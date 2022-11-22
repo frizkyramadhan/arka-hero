@@ -9,7 +9,8 @@ class AuthController extends Controller
 {
     public function getLogin()
     {
-        return view('admin.auth.login');
+        $title = "Login - Human Capital & Support Information System";
+        return view('admin.auth.login', compact('title'));
     }
 
     public function postLogin(Request $request)
@@ -19,16 +20,16 @@ class AuthController extends Controller
             'password' => 'required',
         ]);
 
-        $validated=auth()->attempt([
-            'email'=>$request->email,
-            'password'=>$request->password,
-            'is_admin'=>1
-        ],$request->password);
+        $validated = auth()->attempt([
+            'email' => $request->email,
+            'password' => $request->password,
+            'is_admin' => 1
+        ], $request->password);
 
-        if($validated){
-            return redirect()->route('dashboard')->with('success','Login Successfully');
-        }else{
-            return redirect()->back()->with('error','Invalid Credentials');
+        if ($validated) {
+            return redirect()->route('dashboard')->with('success', 'Login Successfully');
+        } else {
+            return redirect()->back()->with('error', 'Invalid Credentials');
         }
     }
 }

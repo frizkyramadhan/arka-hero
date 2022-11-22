@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>AdminLTE 3 | Log in</title>
+  <title>{{ $title }}</title>
 
   <!-- Google Font: Source Sans Pro -->
   <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700&display=fallback">
@@ -16,24 +16,22 @@
 </head>
 <body class="hold-transition login-page">
 <div class="login-box">
-  <div class="login-logo">
-    <a href="../../index2.html"><b>HCS</b>SIS</a>
-  </div>
   <!-- /.login-logo -->
   <div class="card">
     <div class="card-body login-card-body">
-      <p class="login-box-msg">Sign in to start your session</p>
+      <div class="login-logo">
+        <a href="{{ url('login') }}"><b>HCS</b>SIS</a>
+      </div>
             @if (session('error'))
                 <div class="text-danger text-center"> {{session('error')}}</div>
             @endif
             @if (session('success'))
                 <div class="text-success text-center"> {{session('success')}}</div>
             @endif
-            <p class="login-box-msg">Please Login</p>
 
       <form action="{{route('postLogin') }}" method="post">
         @csrf
-        <div class="input-group mb-1">
+        <div class="input-group mb-3">
           <input type="email" name="email" class="form-control" placeholder="Email">
           <div class="input-group-append">
             <div class="input-group-text">
@@ -44,7 +42,7 @@
         @error('email')
             <div class="text-danger">{{$message }}</div>
         @enderror
-        <div class="input-group mb-1">
+        <div class="input-group mb-3">
           <input type="password" name="password" class="form-control" placeholder="Password">
           <div class="input-group-append">
             <div class="input-group-text">
@@ -56,16 +54,7 @@
             <div class="text-danger">{{$message }}</div>
         @enderror
         <div class="row">
-          <div class="col-8">
-            <div class="icheck-primary">
-              <input type="checkbox" name="remember" id="remember">
-              <label for="remember">
-                Remember Me
-              </label>
-            </div>
-          </div>
-          <!-- /.col -->
-          <div class="col-4">
+          <div class="col-12">
             <button type="submit" class="btn btn-primary btn-block">Sign In</button>
           </div>
           <!-- /.col -->
