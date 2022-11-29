@@ -13,9 +13,12 @@ return new class extends Migration
      */
     public function up()
     {
-        Schema::create('genders', function (Blueprint $table) {
+        Schema::create('operableunits', function (Blueprint $table) {
             $table->id();
-            $table->string('name_gender');
+            $table->foreignUuid('employee_id')->references('id')->on('employees');
+            $table->string('unit_name')->nullable();
+            $table->string('unit_type')->nullable();
+            $table->string('unit_remarks')->nullable();
             $table->timestamps();
         });
     }
@@ -27,6 +30,6 @@ return new class extends Migration
      */
     public function down()
     {
-        Schema::dropIfExists('genders');
+        Schema::dropIfExists('operableunits');
     }
 };

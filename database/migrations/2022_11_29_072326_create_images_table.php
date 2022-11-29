@@ -13,8 +13,11 @@ return new class extends Migration
      */
     public function up()
     {
-        Schema::table('employees', function (Blueprint $table) {
-            $table->softDeletes();
+        Schema::create('images', function (Blueprint $table) {
+            $table->id();
+            $table->foreignUuid('employee_id')->constrained('employees');
+            $table->string('filename')->nullable();
+            $table->timestamps();
         });
     }
 
@@ -25,8 +28,6 @@ return new class extends Migration
      */
     public function down()
     {
-        Schema::table('employees', function (Blueprint $table) {
-            $table->dropSoftDeletes();
-        });
+        Schema::dropIfExists('images');
     }
 };

@@ -15,9 +15,8 @@ return new class extends Migration
     {
         Schema::create('additionaldatas', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('employee_id')->constrained('employees');
+            $table->foreignUuid('employee_id')->references('id')->on('employees');
             $table->string('cloth_size')->nullable();
-            $table->string('slug', 255)->nullable();
             $table->string('pants_size')->nullable();
             $table->string('shoes_size')->nullable();
             $table->string('height')->nullable();

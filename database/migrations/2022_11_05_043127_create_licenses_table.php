@@ -15,9 +15,8 @@ return new class extends Migration
     {
         Schema::create('licenses', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('employee_id')->constrained('employees');
+            $table->foreignUuid('employee_id')->references('id')->on('employees');
             $table->string('driver_license_no')->nullable();
-            $table->string('slug', 255)->nullable();
             $table->string('driver_license_type')->nullable();
             $table->date('driver_license_exp')->nullable();
             $table->timestamps();

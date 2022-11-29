@@ -1,22 +1,23 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BankController;
+use App\Http\Controllers\UserController;
 use App\Http\Controllers\CourseController;
 use App\Http\Controllers\SchoolController;
 use App\Http\Controllers\FamilieController;
 use App\Http\Controllers\LicenseController;
+use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\EmrgcallController;
 use App\Http\Controllers\PositionController;
+use App\Http\Controllers\RegisterController;
+use App\Http\Controllers\ReligionController;
 use App\Http\Controllers\InsuranceController;
-use App\Http\Controllers\Admin\AuthController;
-use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\DepartmentController;
-use App\Http\Controllers\PendidikanController;
 use App\Http\Controllers\EmployeebankController;
-use App\Http\Controllers\Admin\ProfileController;
 use App\Http\Controllers\AdditionaldataController;
 use App\Http\Controllers\AdministrationController;
 
@@ -31,42 +32,35 @@ use App\Http\Controllers\AdministrationController;
 |
 */
 
-Route::get('login', [AuthController::class, 'getLogin'])->name('getLogin')->middleware('guest');
-Route::post('login', [AuthController::class, 'postLogin'])->name('postLogin');
+Route::get('register', [RegisterController::class, 'index'])->name('register')->middleware('guest');
+Route::post('register', [RegisterController::class, 'store']);
 
-Route::group(['middleware' => ['admin_auth']], function () {
+Route::get('login', [AuthController::class, 'getLogin'])->name('login')->middleware('guest');
+Route::post('login', [AuthController::class, 'postLogin']);
 
+Route::group(['middleware' => ['auth']], function () {
     Route::get('/', [ProfileController::class, 'dashboard'])->name('dashboard');
-    Route::get('users', [UserController::class, 'index'])->name('users.list');
-    Route::get('logout', [ProfileController::class, 'logout'])->name('logout');
+    Route::post('logout', [AuthController::class, 'logout']);
 
-    Route::get('projects', [ProjectController::class, 'projects'])->name('projects');
-    Route::get('addProjects', [ProjectController::class, 'addProjects'])->name('addProjects');
-    Route::post('addProjects', [ProjectController::class, 'store'])->name('store');
-    Route::get('editProject/{slug}', [ProjectController::class, 'editProject'])->name('editProject');
-    Route::put('/updateProject/{slug}', [ProjectController::class, 'updateProject'])->name('updateProject');
-    Route::delete('deleteProject/{slug}', [ProjectController::class, 'deleteProject'])->name('deleteProject');
+    Route::resource('users', UserController::class)->except(['show', 'create', 'edit']);
+    Route::get('users/getUsers', [UserController::class, 'getUsers'])->name('users.list');
 
-    Route::get('banks', [BankController::class, 'banks'])->name('banks');
-    Route::get('addBanks', [BankController::class, 'addBanks'])->name('addBanks');
-    Route::post('addBanks', [BankController::class, 'store'])->name('store');
-    Route::get('editBanks/{slug}', [BankController::class, 'editBanks'])->name('editBanks');
-    Route::put('/updateBanks/{slug}', [BankController::class, 'updateBanks'])->name('updateBanks');
-    Route::delete('deleteBanks/{slug}', [BankController::class, 'deleteBanks'])->name('deleteBanks');
+    Route::resource('banks', BankController::class)->except(['show', 'create', 'edit']);
+    Route::get('banks/getBanks', [BankController::class, 'getBanks'])->name('banks.list');
 
-    Route::get('departments', [DepartmentController::class, 'departments'])->name('departments');
-    Route::get('addDept', [DepartmentController::class, 'addDept'])->name('addDept');
-    Route::post('addDept', [DepartmentController::class, 'store'])->name('store');
-    Route::get('editDept/{slug}', [DepartmentController::class, 'editDept'])->name('editDept');
-    Route::put('/updateDept/{slug}', [DepartmentController::class, 'updateDept'])->name('updateDept');
-    Route::delete('deleteDept/{slug}', [DepartmentController::class, 'deleteDept'])->name('deleteDept');
+    Route::resource('religions', ReligionController::class)->except(['show', 'create', 'edit']);
+    Route::get('religions/getReligions', [ReligionController::class, 'getReligions'])->name('religions.list');
 
-    Route::get('positions', [PositionController::class, 'positions'])->name('positions');
-    Route::get('addPost', [PositionController::class, 'addPost'])->name('addPost');
-    Route::post('addPost', [PositionController::class, 'store'])->name('store');
-    Route::get('editPost/{slug}', [PositionController::class, 'editPost'])->name('editPost');
-    Route::put('/updatePost/{slug}', [PositionController::class, 'updatePost'])->name('updatePost');
-    Route::delete('deletePost/{slug}', [PositionController::class, 'deletePost'])->name('deletePost');
+    Route::resource('projects', ProjectController::class)->except(['show', 'create', 'edit']);
+    Route::get('projects/getProjects', [ProjectController::class, 'getProjects'])->name('projects.list');
+
+    Route::resource('departments', DepartmentController::class)->except(['show', 'create', 'edit']);
+    Route::get('departments/getDepartments', [DepartmentController::class, 'getDepartments'])->name('departments.list');
+    Route::post('departments/import', [DepartmentController::class, 'import'])->name('departments.import');
+
+    Route::resource('positions', PositionController::class)->except(['show', 'create', 'edit']);
+    Route::get('positions/getPositions', [PositionController::class, 'getPositions'])->name('positions.list');
+    Route::post('positions/import', [PositionController::class, 'import'])->name('positions.import');
 
     Route::get('employees', [EmployeeController::class, 'employees'])->name('employees');
     Route::get('addEmployee', [EmployeeController::class, 'addEmployee'])->name('addEmployee');
@@ -98,13 +92,6 @@ Route::group(['middleware' => ['admin_auth']], function () {
     Route::get('editFamilie/{slug}', [FamilieController::class, 'editFamilie'])->name('editFamilie');
     Route::put('/updateFamilie/{slug}', [FamilieController::class, 'updateFamilie'])->name('updateFamilie');
     Route::delete('deleteFamilie/{slug}', [FamilieController::class, 'deleteFamilie'])->name('deleteFamilie');
-
-    // Route::get('pendidikans', [PendidikanController::class, 'pendidikans'])->name('educations');
-    // Route::get('AddPendidikan', [PendidikanController::class, 'AddPendidikan'])->name('AddEducations');
-    // Route::post('AddPendidikan', [PendidikanController::class, 'store'])->name('store');
-    // Route::get('editPendidikan/{slug}', [PendidikanController::class, 'editPendidikan'])->name('editPendidikan');
-    // Route::put('/updatePendidikan/{slug}', [PendidikanController::class, 'updatePendidikan'])->name('updatePendidikan');
-    // Route::delete('deletePendidikan/{slug}', [PendidikanController::class, 'deletePendidikan'])->name('deletePendidikan');
 
     Route::get('courses', [CourseController::class, 'courses'])->name('courses');
     Route::get('addCourse', [CourseController::class, 'addCourse'])->name('addCourse');

@@ -16,7 +16,6 @@ return new class extends Migration
         Schema::create('positions', function (Blueprint $table) {
             $table->id();
             $table->string('position_name');
-            $table->string('slug', 255)->nullable();
             $table->foreignId('department_id')->constrained('departments');
             $table->boolean('position_status')->default(1);
             $table->timestamps();

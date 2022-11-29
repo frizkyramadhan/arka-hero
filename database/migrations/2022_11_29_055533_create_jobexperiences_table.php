@@ -13,14 +13,13 @@ return new class extends Migration
      */
     public function up()
     {
-        Schema::create('schools', function (Blueprint $table) {
+        Schema::create('jobexperiences', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('employee_id')->constrained('employees');
-            $table->string('education_level')->nullable();
-            $table->string('education_name')->nullable();
-            $table->string('slug', 255)->nullable();
-            $table->string('education_year')->nullable();
-            $table->string('education_remarks')->nullable();
+            $table->foreignUuid('employee_id')->references('id')->on('employees');
+            $table->string('company_name')->nullable();
+            $table->string('job_position')->nullable();
+            $table->string('job_duration')->nullable();
+            $table->string('quit_reason')->nullable();
             $table->timestamps();
         });
     }
@@ -32,6 +31,6 @@ return new class extends Migration
      */
     public function down()
     {
-        Schema::dropIfExists('schools');
+        Schema::dropIfExists('jobexperiences');
     }
 };

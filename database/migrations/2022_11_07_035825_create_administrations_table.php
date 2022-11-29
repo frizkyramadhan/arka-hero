@@ -15,11 +15,10 @@ return new class extends Migration
     {
         Schema::create('administrations', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('employee_id')->constrained('employees');
+            $table->foreignUuid('employee_id')->references('id')->on('employees');
             $table->foreignId('project_id')->constrained('projects');
             $table->foreignId('position_id')->constrained('positions');
             $table->string('nik');
-            $table->string('slug', 255)->nullable();
             $table->string('class');
             $table->date('doh');
             $table->string('poh');
