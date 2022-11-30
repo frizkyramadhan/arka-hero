@@ -7,16 +7,41 @@ use Illuminate\Http\Request;
 
 class BankController extends Controller
 {
-    public function banks(Request $request)
+    public function index()
     {
-        $keyword = $request->keyword;
+        $title = 'Bank';
+        $subtitle = 'List of Banks';
+        return view('bank.index', compact('title', 'subtitle'));
+    }
 
+    public function getBanks(Request $request)
+    {
+        $banks = Bank::orderBy('bank_name', 'asc');
 
-
-        $banks = Bank::where('bank_name', 'LIKE', '%'.$keyword.'%')
-                    ->paginate(5);
-        return view('bank.index', ['banks' => $banks]);
-        
+        return datatables()->of($banks)
+            ->addIndexColumn()
+            ->addColumn('bank_name', function ($banks) {
+                return $banks->bank_name;
+            })
+            ->addColumn('bank_status', function ($banks) {
+                if ($banks->bank_status == '1') {
+                    return '<span class="badge badge-success">Active</span>';
+                } elseif ($banks->bank_status == '0') {
+                    return '<span class="badge badge-danger">Inactive</span>';
+                }
+            })
+            ->filter(function ($instance) use ($request) {
+                if (!empty($request->get('search'))) {
+                    $instance->where(function ($w) use ($request) {
+                        $search = $request->get('search');
+                        $w->orWhere('bank_name', 'LIKE', "%$search%")
+                            ->orWhere('bank_status', 'LIKE', "%$search%");
+                    });
+                }
+            })
+            ->addColumn('action', 'bank.action')
+            ->rawColumns(['bank_status', 'action'])
+            ->toJson();
     }
 
     public function addBanks()
@@ -26,39 +51,44 @@ class BankController extends Controller
 
     public function store(Request $request)
     {
-        $validated = $request->validate([
-            'bank_name' => 'required|unique:banks|',
-            
+        $validatedData = $request->validate([
+            'bank_name' => 'required',
+            'bank_status' => 'required',
+        ], [
+            'bank_name.required' => 'Bank Name is required'
         ]);
-        $banks = Bank::create($request->all());
-        return redirect('admin/banks')->with('status', 'Name Bank Add Successfully');
+
+        Bank::create($validatedData);
+
+        return redirect('banks')->with('toast_success', 'Bank added successfully!');
     }
 
-    public function editBanks($slug)
+    public function edit($slug)
     {
         $banks = Bank::where('slug', $slug)->first();
         return view('bank.edit', compact('banks'));
     }
 
-    public function updateBanks(Request $request, $slug)
+    public function update(Request $request, $id)
     {
-        $validated = $request->validate([
-            'bank_name' => 'required',
-            
-
+        $this->validate($request, [
+            'bank_name' => 'required'
+        ], [
+            'bank_name.required' => 'Bank Name is required',
         ]);
 
-        $banks = Bank::where('slug', $slug)->first();
-        $banks->slug = null;
-        $banks->update($request->all());
-        return redirect('admin/banks')->with('status', 'Bank Name Edit Successfully');
+        $banks = Bank::find($id);
+        $banks->bank_name = $request->bank_name;
+        $banks->bank_status = $request->bank_status;
+        $banks->save();
+
+        return redirect('banks')->with('toast_success', 'Bank edited successfully');
     }
 
-    public function deleteBanks($slug)
+    public function destroy($id)
     {
-
-        $banks = Bank::where('slug', $slug)->first();
+        $banks = Bank::where('id', $id)->first();
         $banks->delete();
-        return redirect('admin/banks')->with('status', 'Bank Name Delete Successfully');
+        return redirect('banks')->with('toast_success', 'Bank delete successfully');
     }
 }

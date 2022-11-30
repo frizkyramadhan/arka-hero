@@ -14,26 +14,26 @@ class Employee extends Model
     use HasFactory;
     use Sluggable;
     use SoftDeletes;
-    
-    
+
+
     protected $fillable = [
-            'fullname',
-            'slug', 
-            'emp_pob',
-            'emp_dob',
-            'blood_type',
-            'religion_id',
-            'nationality',
-            'gender_id',
-            'marital',
-            'address',
-            'village',
-            'ward',
-            'district',
-            'city',
-            'phone',
-            'identity_card',
-            'image' 
+        'fullname',
+        'slug',
+        'emp_pob',
+        'emp_dob',
+        'blood_type',
+        'religion_id',
+        'nationality',
+        'gender_id',
+        'marital',
+        'address',
+        'village',
+        'ward',
+        'district',
+        'city',
+        'phone',
+        'identity_card',
+        'image'
     ];
 
     public function sluggable(): array

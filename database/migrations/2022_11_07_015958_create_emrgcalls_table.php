@@ -15,9 +15,8 @@ return new class extends Migration
     {
         Schema::create('emrgcalls', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('employee_id')->constrained('employees');
+            $table->foreignUuid('employee_id')->references('id')->on('employees');
             $table->string('emrg_call_name')->nullable();
-            $table->string('slug', 255)->nullable();
             $table->string('emrg_call_relation')->nullable();
             $table->string('emrg_call_phone')->nullable();
             $table->string('emrg_call_address')->nullable();

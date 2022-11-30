@@ -15,10 +15,9 @@ return new class extends Migration
     {
         Schema::create('employeebanks', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('employee_id')->constrained('employees');
+            $table->foreignUuid('employee_id')->references('id')->on('employees');
             $table->foreignId('bank_id')->constrained('banks');
             $table->string('bank_account_no')->nullable();
-            $table->string('slug', 255)->nullable();
             $table->string('bank_account_name')->nullable();
             $table->string('bank_account_branch')->nullable();
             $table->timestamps();

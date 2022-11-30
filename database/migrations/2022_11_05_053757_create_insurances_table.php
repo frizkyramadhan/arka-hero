@@ -15,10 +15,9 @@ return new class extends Migration
     {
         Schema::create('insurances', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('employee_id')->constrained('employees');
+            $table->foreignUuid('employee_id')->references('id')->on('employees');
             $table->string('health_insurance_type')->nullable();
             $table->string('health_insurance_no')->nullable();
-            $table->string('slug', 255)->nullable();
             $table->string('health_facility')->nullable();
             $table->string('health_insurance_remarks')->nullable();
             $table->timestamps();

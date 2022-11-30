@@ -15,9 +15,8 @@ return new class extends Migration
     {
         Schema::create('families', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('employee_id')->constrained('employees');
+            $table->foreignUuid('employee_id')->references('id')->on('employees');
             $table->string('family_name');
-            $table->string('slug', 255)->nullable();
             $table->string('family_relationship');
             $table->string('family_birthplace')->nullable();
             $table->date('family_birthdate')->nullable();

@@ -16,7 +16,6 @@ return new class extends Migration
         Schema::create('banks', function (Blueprint $table) {
             $table->id();
             $table->string('bank_name');
-            $table->string('slug', 255)->nullable();
             $table->boolean('bank_status')->default(1);
             $table->timestamps();
         });

@@ -9,6 +9,5 @@ class Religion extends Model
 {
     use HasFactory;
 
-
-   
+    protected $guarded = [];
 }

@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class AdminAuth
 {
@@ -14,15 +15,30 @@ class AdminAuth
      * @param  \Closure(\Illuminate\Http\Request): (\Illuminate\Http\Response|\Illuminate\Http\RedirectResponse)  $next
      * @return \Illuminate\Http\Response|\Illuminate\Http\RedirectResponse
      */
-    public function handle(Request $request, Closure $next)
+    public function handle(Request $request, Closure $next, ...$roles)
     {
-        if(auth()->check()){
-            if(!auth()->user()->is_admin){
-            return redirect()->route('getLogin')->with('error', 'You have to admin user to access this page');
+        if (empty($roles)) $roles = ['superadmin'];
+
+        foreach ($roles as $role) {
+            if (Auth::check() && Auth::user()->level === $role) {
+                return $next($request);
+            } elseif (Auth::check() && Auth::user()->level === null) {
+                return redirect('login');
             }
-        }else{
-            return redirect()->route('getLogin')->with('error', 'You have to be logged in to access this page');
         }
-        return $next($request);
+        return response()->view('errors.403', ['title' => '403 Error']);
     }
+
+    // public function handle(Request $request, Closure $next)
+    // {
+    //     if (Auth::check() && Auth::user()->level == 'superadmin') {
+    //         return $next($request);
+    //     } elseif (Auth::check() && Auth::user()->level == 'admin') {
+    //         return $next($request);
+    //     } elseif (Auth::check() && Auth::user()->level == 'user') {
+    //         return $next($request);
+    //     } else {
+    //         return redirect()->route('login');
+    //     }
+    // }
 }
