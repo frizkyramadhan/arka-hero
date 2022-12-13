@@ -30,8 +30,8 @@ class Employeebank extends Model
         return $this->belongsTo(Employee::class, 'employee_id', 'id');
     }
 
-    public function banks(): BelongsTo
+    public function banks()
     {
-        return $this->belongsTo(Bank::class, 'bank_id', 'id');
+        return $this->belongsTo(Bank::class);
     }
 }

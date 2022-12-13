@@ -60,4 +60,9 @@ class Employee extends Model
     {
         return $this->hasMany(School::class);
     }
+
+    public function licenses()
+    {
+        return $this->hasMany(License::class);
+    }
 }
