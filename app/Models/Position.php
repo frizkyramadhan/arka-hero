@@ -15,4 +15,9 @@ class Position extends Model
     {
         return $this->belongsTo(Department::class);
     }
+
+    public function administrations()
+    {
+        return $this->hasMany(Administration::class);
+    }
 }

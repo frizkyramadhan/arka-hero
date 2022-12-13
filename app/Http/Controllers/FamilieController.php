@@ -10,34 +10,35 @@ use Illuminate\Support\Facades\DB;
 class FamilieController extends Controller
 {
     public function families(Request $request)
-    {    
+    {
+        $title = 'Families';
         $keyword = $request->keyword;
         $families = Familie::with('employees')
-                            ->where('family_name', 'LIKE', '%'.$keyword.'%')
-                            ->orWhere('family_relationship', 'LIKE', '%'.$keyword.'%')
-                            ->orWhereHas('employees', function($query) use($keyword){
-                                $query->where('fullname', 'LIKE', '%'.$keyword.'%');
-                            })                        
-                            ->paginate(5);
+            ->where('family_name', 'LIKE', '%' . $keyword . '%')
+            ->orWhere('family_relationship', 'LIKE', '%' . $keyword . '%')
+            ->orWhereHas('employees', function ($query) use ($keyword) {
+                $query->where('fullname', 'LIKE', '%' . $keyword . '%');
+            })
+            ->paginate(5);
         // $families = DB::table('families')
         //     ->join('employees', 'families.employee_id', '=', 'employees.id')
         //     ->select('families.*', 'fullname')
         //     ->orderBy('fullname', 'asc')
         //     ->simplePaginate(10);
-        return view('familie.index', ['families' => $families]);
-       
+        return view('familie.index', ['families' => $families], compact('title'));
     }
 
     public function addFamilie()
     {
+        $title = 'Add Family';
         $employee = Employee::orderBy('id', 'asc')->get();
-        return view('familie.create', compact('employee'));
+        return view('familie.create', compact('employee', 'title'));
     }
 
     public function store(Request $request)
     {
 
-     
+
         $request->validate([
             'employee_id' => 'required',
             'family_name' => 'required',
@@ -84,7 +85,7 @@ class FamilieController extends Controller
         return redirect('admin/families')->with('status', 'Family Employee Update Successfully');
     }
 
-    
+
     public function deleteFamilie($slug)
     {
 

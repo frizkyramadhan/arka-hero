@@ -160,7 +160,7 @@
       , processing: true
       , serverSide: true
       , ajax: {
-        url: "{{ route('religions.list') }}"
+        url: "{{ route('religions.data') }}"
         , data: function(d) {
           d.search = $("input[type=search][aria-controls=example1]").val()
           console.log(d);
