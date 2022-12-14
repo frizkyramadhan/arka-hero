@@ -21,6 +21,7 @@ class Employeebank extends Model
 
     public function banks()
     {
-        return $this->belongsTo(Bank::class, 'bank_id', 'id');
+        return $this->belongsTo(Bank::class);
     }
+    
 }

@@ -118,4 +118,9 @@ class Employee extends Model
     {
         return $this->hasMany(Image::class);
     }
+
+    public function licenses()
+    {
+        return $this->hasMany(License::class);
+    }
 }

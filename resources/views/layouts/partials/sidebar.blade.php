@@ -93,6 +93,115 @@
           </ul>
         </li>
         @endcannot
+        @cannot('user')
+        <li class="nav-item {{ Request::is('licenses*') || Request::is('insurances*') || Request::is('families*') || Request::is('schools*') || Request::is('courses*') || Request::is('emrgcalls*') || Request::is('additionaldatas*') || Request::is('employeebanks*') || Request::is('administrations*') || Request::is('jobexperiences*') || Request::is('operableunits*') || Request::is('taxidentifications*')  ? 'menu-open' : '' }}">
+          <a href="#" class="nav-link {{ Request::is('licenses*') || Request::is('insurances*') || Request::is('families*') || Request::is('schools*') || Request::is('courses*') || Request::is('emrgcalls*') || Request::is('additionaldatas*') || Request::is('employeebanks*') || Request::is('administrations*') || Request::is('jobexperiences*') || Request::is('operableunits*') || Request::is('taxidentifications*')  ? 'active' : '' }}">
+            <i class="nav-icon fa fa-table"></i>
+            <p>
+              Summary Employee
+              <i class="fas fa-angle-left right"></i>
+            </p>
+          </a>
+          <ul class="nav nav-treeview">
+            <li class="nav-item">
+              <a href="{{ url('licenses') }}" class="nav-link {{ Request::is('licenses*') ? 'active' : '' }}">
+                <i class="nav-icon fa fa-car"></i>
+                <p>
+                  Driver Licensee
+                </p>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a href="{{ url('insurances') }}" class="nav-link {{ Request::is('insurances*') ? 'active' : '' }}">
+                <i class="nav-icon fa fa-medkit"></i>
+                <p>
+                  Insurances
+                </p>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a href="{{ url('families') }}" class="nav-link {{ Request::is('families*') ? 'active' : '' }}">
+                <i class="nav-icon fa fa-address-card"></i>
+                <p>
+                  Employee Family
+                </p>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a href="{{ url('schools') }}" class="nav-link {{ Request::is('schools*') ? 'active' : '' }}">
+                <i class="nav-icon fa fa-university"></i>
+                <p>
+                  Education
+                </p>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a href="{{ url('courses') }}" class="nav-link {{ Request::is('courses*') ? 'active' : '' }}">
+                <i class="nav-icon fa fa-graduation-cap"></i>
+                <p>
+                  Courses
+                </p>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a href="{{ url('emrgcalls') }}" class="nav-link {{ Request::is('emrgcalls*') ? 'active' : '' }}">
+                <i class="nav-icon fa fa-ambulance"></i>
+                <p>
+                  Emergency Call
+                </p>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a href="{{ url('additionaldatas') }}" class="nav-link {{ Request::is('additionaldatas*') ? 'active' : '' }}">
+                <i class="nav-icon fa fa-list"></i>
+                <p>
+                  Additional Data
+                </p>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a href="{{ url('employeebanks') }}" class="nav-link {{ Request::is('employeebanks*') ? 'active' : '' }}">
+                <i class="nav-icon fa fa-credit-card"></i>
+                <p>
+                  Employee Banks
+                </p>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a href="{{ url('administrations') }}" class="nav-link {{ Request::is('administrations*') ? 'active' : '' }}">
+                <i class="nav-icon fa fa-folder"></i>
+                <p>
+                 Administration
+                </p>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a href="{{ url('jobexperiences') }}" class="nav-link {{ Request::is('jobexperiences*') ? 'active' : '' }}">
+                <i class="nav-icon fa fa-building"></i>
+                <p>
+                  Job Experience
+                </p>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a href="{{ url('operableunits') }}" class="nav-link {{ Request::is('operableunits*') ? 'active' : '' }}">
+                <i class="nav-icon fa fa-truck"></i>
+                <p>
+                  Operable Units
+                </p>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a href="{{ url('taxidentifications') }}" class="nav-link {{ Request::is('taxidentifications*') ? 'active' : '' }}">
+                <i class="nav-icon fa fa-user-md"></i>
+                <p>
+                  Tax Identification
+                </p>
+              </a>
+            </li>
+          </ul>
+        </li>
+        @endcannot
         @can('superadmin')
         <li class="nav-header">ADMINISTRATOR</li>
         <li class="nav-item">

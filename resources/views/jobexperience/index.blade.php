@@ -10,7 +10,7 @@
       <div class="col-sm-6">
         <ol class="breadcrumb float-sm-right">
           <li class="breadcrumb-item"><a href="{{ url('/') }}">Home</a></li>
-          <li class="breadcrumb-item active">Course</li>
+          <li class="breadcrumb-item active">Job Experince</li>
         </ol>
       </div><!-- /.col -->
     </div><!-- /.row -->
@@ -38,9 +38,10 @@
                     <tr>
                       <th class="text-center">No</th>
                       <th>Employee Name</th>
-                      <th>Courses Name</th>
-                      <th class="text-center">Courses Years</th>
-                      <th class="text-center">Courses Remarks</th>
+                      <th>Company Name</th>
+                      <th class="text-center">Job Position</th>
+                      <th class="text-center">Job Duration</th>
+                      <th >Quit Reason</th>                          
                       <th class="text-center">Detail</th>
                     </tr>
                   </thead>
@@ -120,7 +121,7 @@
       , processing: true
       , serverSide: true
       , ajax: {
-        url: "{{ route('courses.list') }}"
+        url: "{{ route('jobexperiences.list') }}"
         , data: function(d) {
           d.search = $("input[type=search][aria-controls=example1]").val()
           console.log(d);
@@ -136,21 +137,27 @@
         , name: "fullname"
         , orderable: false
       , }, {
-        data: "course_name"
-        , name: "course_name"
+        data: "company_name"
+        , name: "company_name"
         , orderable: false
       , }, {
-        data: "course_year"
-        , name: "course_year"
+        data: "job_position"
+        , name: "job_position"
         , orderable: false
         , className: "text-center"
       , }, {
-        data: "course_remarks"
-        , name: "course_remarks"
+        data: "job_duration"
+        , name: "job_duration"
         , orderable: false
         , searchable: false
         , className: "text-center"
-      ,}, {
+      , }, {
+        data: "quit_reason"
+        , name: "quit_reason"
+        , orderable: false
+        , searchable: false
+        , className: "text-center"
+      , }, {
         data: "action"
         , name: "action"
         , orderable: false

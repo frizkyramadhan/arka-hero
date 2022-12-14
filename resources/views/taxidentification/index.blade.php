@@ -10,7 +10,7 @@
       <div class="col-sm-6">
         <ol class="breadcrumb float-sm-right">
           <li class="breadcrumb-item"><a href="{{ url('/') }}">Home</a></li>
-          <li class="breadcrumb-item active">Course</li>
+          <li class="breadcrumb-item active">Tax Identification</li>
         </ol>
       </div><!-- /.col -->
     </div><!-- /.row -->
@@ -38,9 +38,8 @@
                     <tr>
                       <th class="text-center">No</th>
                       <th>Employee Name</th>
-                      <th>Courses Name</th>
-                      <th class="text-center">Courses Years</th>
-                      <th class="text-center">Courses Remarks</th>
+                      <th>Tax No</th>
+                      <th class="text-center">Tax Valid Date</th>                   
                       <th class="text-center">Detail</th>
                     </tr>
                   </thead>
@@ -120,7 +119,7 @@
       , processing: true
       , serverSide: true
       , ajax: {
-        url: "{{ route('courses.list') }}"
+        url: "{{ route('taxidentifications.list') }}"
         , data: function(d) {
           d.search = $("input[type=search][aria-controls=example1]").val()
           console.log(d);
@@ -136,21 +135,15 @@
         , name: "fullname"
         , orderable: false
       , }, {
-        data: "course_name"
-        , name: "course_name"
+        data: "tax_no"
+        , name: "tax_no"
         , orderable: false
       , }, {
-        data: "course_year"
-        , name: "course_year"
+        data: "tax_valid_date"
+        , name: "tax_valid_date"
         , orderable: false
         , className: "text-center"
       , }, {
-        data: "course_remarks"
-        , name: "course_remarks"
-        , orderable: false
-        , searchable: false
-        , className: "text-center"
-      ,}, {
         data: "action"
         , name: "action"
         , orderable: false
