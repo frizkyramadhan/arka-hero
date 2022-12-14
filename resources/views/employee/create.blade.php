@@ -57,6 +57,7 @@
                     <a class="nav-link" id="vert-tabs-emergency-tab" data-toggle="pill" href="#vert-tabs-emergency" role="tab" aria-controls="vert-tabs-emergency" aria-selected="false">Emergency Calls</a>
                     <a class="nav-link" id="vert-tabs-additional-tab" data-toggle="pill" href="#vert-tabs-additional" role="tab" aria-controls="vert-tabs-additional" aria-selected="false">Additional Data</a>
                     <a class="nav-link" id="vert-tabs-administration-tab" data-toggle="pill" href="#vert-tabs-administration" role="tab" aria-controls="vert-tabs-administration" aria-selected="false">Administrations</a>
+                    <a class="nav-link" id="vert-tabs-taxidentification-tab" data-toggle="pill" href="#vert-tabs-taxidentification" role="tab" aria-controls="vert-tabs-taxidentification" aria-selected="false">Tax Identification</a>
                     <a class="nav-link" id="vert-tabs-image-tab" data-toggle="pill" href="#vert-tabs-image" role="tab" aria-controls="vert-tabs-image" aria-selected="false">Images</a>
                   </div>
                 </div>
@@ -550,6 +551,28 @@
                             </select>
                             @if ($errors->any('project_id'))
                             <span class="text-danger">{{ ($errors->first('project_id')) }}</span>
+                            @endif
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="tab-pane fade" id="vert-tabs-taxidentification" role="tabpanel" aria-labelledby="vert-tabs-taxidentification-tab">
+                      <div class="row">
+                        <div class="col-md-8">
+                          <div class="form-group">
+                            <label for="tax_no" class="form-label">Tax No</label>
+                            <input type="number" value="{{ old('tax_no') }}" class="form-control @error('tax_no') is-invalid @enderror" id="tax_no" name="tax_no">
+                            @if ($errors->any('tax_no'))
+                            <span class="text-danger">{{ ($errors->first('tax_no')) }}</span>
+                            @endif
+                          </div>
+                        </div>
+                        <div class="col-md-8">
+                          <div class="form-group">
+                            <label for="tax_valid_date" class="form-label">Tax Valid Date</label>
+                            <input type="date" value="{{ old('tax_valid_date') }}" class="form-control @error('tax_valid_date') is-invalid @enderror" id="tax_valid_date" name="tax_valid_date">
+                            @if ($errors->any('tax_valid_date'))
+                            <span class="text-danger">{{ ($errors->first('tax_valid_date')) }}</span>
                             @endif
                           </div>
                         </div>

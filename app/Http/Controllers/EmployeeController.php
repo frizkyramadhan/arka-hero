@@ -22,6 +22,7 @@ use Illuminate\Http\Request;
 use App\Models\Jobexperience;
 use App\Models\Additionaldata;
 use App\Models\Administration;
+use App\Models\Taxidentification;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
 
@@ -313,6 +314,15 @@ class EmployeeController extends Controller
             $administration->other_allowance = $data['other_allowance'];
             $administration->is_active = 1;
             $administration->save();
+        }
+
+        $checkTaxidentification = $data['nik'] == null ? false : true;
+        if ($checkTaxidentification == true) {
+            $taxidentification = new Taxidentification();
+            $taxidentification->employee_id = $employee->id;
+            $taxidentification->tax_no = $data['tax_no'];
+            $taxidentification->tax_valid_date = $data['tax_valid_date'];
+            $taxidentification->save();
         }
 
         if ($request->hasfile('filename')) {

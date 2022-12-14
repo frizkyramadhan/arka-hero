@@ -52,20 +52,8 @@
             </p>
           </a>
           <ul class="nav nav-treeview">
-            <li class="nav-item">
-              <a href="{{ url('employees') }}" class="nav-link {{ Request::is('employees*') ? 'active' : '' }}">
-                <i class="nav-icon fas fa-users"></i>
-                <p>
-                  Employees
-                </p>
-              </a>
-            </li>
-            <li class="nav-item">
-              <a href="{{ url('positions') }}" class="nav-link {{ Request::is('positions*') ? 'active' : '' }}">
-                <i class="nav-icon fas fa-sitemap"></i>
-                <p>Positions</p>
-              </a>
-            </li>
+           
+            
             <li class="nav-item">
               <a href="{{ url('departments') }}" class="nav-link {{ Request::is('departments*') ? 'active' : '' }}">
                 <i class="nav-icon fas fa-building"></i>
@@ -88,6 +76,20 @@
               <a href="{{ url('banks') }}" class="nav-link {{ Request::is('banks*') ? 'active' : '' }}">
                 <i class="nav-icon fas fa-money-check-alt"></i>
                 <p>Banks</p>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a href="{{ url('positions') }}" class="nav-link {{ Request::is('positions*') ? 'active' : '' }}">
+                <i class="nav-icon fas fa-sitemap"></i>
+                <p>Positions</p>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a href="{{ url('employees') }}" class="nav-link {{ Request::is('employees*') ? 'active' : '' }}">
+                <i class="nav-icon fas fa-users"></i>
+                <p>
+                  Employees
+                </p>
               </a>
             </li>
           </ul>
