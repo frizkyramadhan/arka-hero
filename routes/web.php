@@ -129,14 +129,16 @@ Route::group(['middleware' => ['auth']], function () {
     // Route::put('/updateAdditionaldata/{slug}', [AdditionaldataController::class, 'updateAdditionaldata'])->name('updateAdditionaldata');
     // Route::delete('deleteAdditionaldata/{slug}', [AdditionaldataController::class, 'deleteAdditionaldata'])->name('deleteAdditionaldata');
 
-    Route::get('employeebanks', [EmployeebankController::class, 'index'])->name('index');
+    Route::resource('employeebanks', EmployeebankController::class)->except(['show', 'create', 'edit']);
+    // Route::get('employeebanks', [EmployeebankController::class, 'index'])->name('index');
     Route::get('employeebanks/getEmployeebank', [EmployeebankController::class, 'getEmployeebank'])->name('employeebanks.list');
     // Route::post('AddEmployeebank', [EmployeebankController::class, 'store'])->name('store');
     // Route::get('editEmployeebank/{slug}', [EmployeebankController::class, 'editEmployeebank'])->name('editEmployeebank');
     // Route::put('/updateEmployeebank/{slug}', [EmployeebankController::class, 'updateEmployeebank'])->name('updateEmployeebank');
     // Route::delete('deleteEmployeebank/{slug}', [EmployeebankController::class, 'deleteEmployeebank'])->name('deleteEmployeebank');
 
-    Route::get('administrations', [AdministrationController::class, 'index'])->name('index');
+    Route::resource('administrations', AdministrationController::class)->except(['show', 'create', 'edit']);
+    // Route::get('administrations', [AdministrationController::class, 'index'])->name('index');
     Route::get('administrations/getAdministration', [AdministrationController::class, 'getAdministration'])->name('administrations.list');
     // Route::post('AddAdministration', [AdministrationController::class, 'store'])->name('store');
     // Route::get('editAdministration/{slug}', [AdministrationController::class, 'editAdministration'])->name('editAdministration');
