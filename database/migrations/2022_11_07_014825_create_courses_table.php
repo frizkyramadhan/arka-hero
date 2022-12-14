@@ -17,6 +17,7 @@ return new class extends Migration
             $table->id();
             $table->foreignUuid('employee_id')->references('id')->on('employees');
             $table->string('course_name')->nullable();
+            $table->string('course_address')->nullable();
             $table->string('course_year')->nullable();
             $table->string('course_remarks')->nullable();
             $table->timestamps();

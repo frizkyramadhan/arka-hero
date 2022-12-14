@@ -17,6 +17,7 @@ return new class extends Migration
             $table->id();
             $table->foreignUuid('employee_id')->references('id')->on('employees');
             $table->string('company_name')->nullable();
+            $table->string('company_address')->nullable();
             $table->string('job_position')->nullable();
             $table->string('job_duration')->nullable();
             $table->string('quit_reason')->nullable();

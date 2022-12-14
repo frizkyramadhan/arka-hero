@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Familie;
 use App\Models\Employee;
+use App\Models\Family;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -20,7 +21,7 @@ class FamilieController extends Controller
 
     public function getFamilies(Request $request)
     {
-        $families = Familie::leftJoin('employees', 'families.employee_id', '=', 'employees.id')
+        $families = Family::leftJoin('employees', 'families.employee_id', '=', 'employees.id')
             ->select('families.*', 'employees.fullname')
             ->orderBy('families.family_birthdate', 'asc');
         // $families = Familie::with('employees');
@@ -96,11 +97,40 @@ class FamilieController extends Controller
     //     $employee = Employee::orderBy('id', 'asc')->get();
     //     return view('familie.create', compact('employee'));
     // }
+    // public function families(Request $request)
+    // {
+    //     $title = 'Families';
+    //     $keyword = $request->keyword;
+    //     $families = Familie::with('employees')
+    //         ->where('family_name', 'LIKE', '%' . $keyword . '%')
+    //         ->orWhere('family_relationship', 'LIKE', '%' . $keyword . '%')
+    //         ->orWhereHas('employees', function ($query) use ($keyword) {
+    //             $query->where('fullname', 'LIKE', '%' . $keyword . '%');
+    //         })
+    //         ->paginate(5);
+    //     // $families = DB::table('families')
+    //     //     ->join('employees', 'families.employee_id', '=', 'employees.id')
+    //     //     ->select('families.*', 'fullname')
+    //     //     ->orderBy('fullname', 'asc')
+    //     //     ->simplePaginate(10);
+    //     return view('familie.index', ['families' => $families], compact('title'));
+    // }
+
+    public function addFamilie()
+    {
+        $title = 'Add Family';
+        $employee = Employee::orderBy('id', 'asc')->get();
+        return view('familie.create', compact('employee', 'title'));
+    }
+
 
     // public function store(Request $request)
     // {
 
-     
+
+   
+
+
     //     $request->validate([
     //         'employee_id' => 'required',
     //         'family_name' => 'required',
@@ -109,6 +139,7 @@ class FamilieController extends Controller
     //         'family_birthdate' => 'required',
     //         'family_remarks' => 'required',
     //     ]);
+
 
     //     $families = new Familie();
     //     $families->employee_id = $request->employee_id;
@@ -147,12 +178,19 @@ class FamilieController extends Controller
     //     return redirect('admin/families')->with('status', 'Family Employee Update Successfully');
     // }
 
+
     
     // public function deleteFamilie($slug)
     // {
+
+    public function deleteFamilie($slug)
+    {
+
 
     //     $families = Familie::where('slug', $slug)->first();
     //     $families->delete();
     //     return redirect('admin/families')->with('status', 'Family Employee Delete Successfully');
     // }
+}
+
 }

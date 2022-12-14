@@ -46,34 +46,38 @@ Route::group(['middleware' => ['auth']], function () {
     Route::get('/', [ProfileController::class, 'dashboard'])->name('dashboard');
     Route::post('logout', [AuthController::class, 'logout']);
 
+    Route::get('users/data', [UserController::class, 'getUsers'])->name('users.data');
     Route::resource('users', UserController::class)->except(['show', 'create', 'edit']);
-    Route::get('users/getUsers', [UserController::class, 'getUsers'])->name('users.list');
 
+    Route::get('banks/data', [BankController::class, 'getBanks'])->name('banks.data');
     Route::resource('banks', BankController::class)->except(['show', 'create', 'edit']);
-    Route::get('banks/getBanks', [BankController::class, 'getBanks'])->name('banks.list');
 
+    Route::get('religions/data', [ReligionController::class, 'getReligions'])->name('religions.data');
     Route::resource('religions', ReligionController::class)->except(['show', 'create', 'edit']);
-    Route::get('religions/getReligions', [ReligionController::class, 'getReligions'])->name('religions.list');
 
+    Route::get('projects/data', [ProjectController::class, 'getProjects'])->name('projects.data');
     Route::resource('projects', ProjectController::class)->except(['show', 'create', 'edit']);
-    Route::get('projects/getProjects', [ProjectController::class, 'getProjects'])->name('projects.list');
 
-    Route::resource('departments', DepartmentController::class)->except(['show', 'create', 'edit']);
-    Route::get('departments/getDepartments', [DepartmentController::class, 'getDepartments'])->name('departments.list');
+    Route::get('departments/data', [DepartmentController::class, 'getDepartments'])->name('departments.data');
     Route::post('departments/import', [DepartmentController::class, 'import'])->name('departments.import');
+    Route::resource('departments', DepartmentController::class)->except(['show', 'create', 'edit']);
 
-    Route::resource('positions', PositionController::class)->except(['show', 'create', 'edit']);
-    Route::get('positions/getPositions', [PositionController::class, 'getPositions'])->name('positions.list');
+    Route::get('positions/data', [PositionController::class, 'getPositions'])->name('positions.data');
     Route::post('positions/import', [PositionController::class, 'import'])->name('positions.import');
+    Route::resource('positions', PositionController::class)->except(['show', 'create', 'edit']);
 
-    Route::get('employees', [EmployeeController::class, 'employees'])->name('employees');
-    Route::get('addEmployee', [EmployeeController::class, 'addEmployee'])->name('addEmployee');
-    Route::post('addEmployee', [EmployeeController::class, 'store'])->name('store');
-    Route::get('editEmployee/{slug}', [EmployeeController::class, 'editEmployee'])->name('editEmployee');
-    Route::put('/updateEmployee/{slug}', [EmployeeController::class, 'updateEmployee'])->name('updateEmployee');
-    Route::get('deleteEmployee/{slug}', [EmployeeController::class, 'deleteEmployee'])->name('deleteEmployee');
-    Route::get('/destroyEmployee/{slug}', [EmployeeController::class, 'destroyEmployee'])->name('destroyEmployee');
-    Route::get('detailEmployee/{slug}', [EmployeeController::class, 'detailEmployee'])->name('detailEmployee');
+    Route::get('employees/data', [EmployeeController::class, 'getEmployees'])->name('employees.data');
+    Route::get('employees/getDepartment', [EmployeeController::class, 'getDepartment'])->name('employees.getDepartment');
+    Route::resource('employees', EmployeeController::class);
+
+    // Route::get('employees', [EmployeeController::class, 'employees'])->name('employees');
+    // Route::get('employees/create', [EmployeeController::class, 'create'])->name('employees.create');
+    // Route::post('addEmployee', [EmployeeController::class, 'store'])->name('addEmployee');
+    // Route::get('edit/{slug}', [EmployeeController::class, 'editEmployee'])->name('editEmployee');
+    // Route::put('updateEmployee/{slug}', [EmployeeController::class, 'updateEmployee'])->name('updateEmployee');
+    // Route::get('deleteEmployee/{slug}', [EmployeeController::class, 'deleteEmployee'])->name('deleteEmployee');
+    // Route::get('destroyEmployee/{slug}', [EmployeeController::class, 'destroyEmployee'])->name('destroyEmployee');
+    // Route::get('detailEmployee/{slug}', [EmployeeController::class, 'detailEmployee'])->name('detailEmployee');
 
     Route::resource('licenses', LicenseController::class)->except(['show', 'create', 'edit']);
     // Route::get('licenses', [LicenseController::class, 'index'])->name('index');
