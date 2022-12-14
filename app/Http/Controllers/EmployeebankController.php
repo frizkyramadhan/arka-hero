@@ -111,6 +111,7 @@ class EmployeebankController extends Controller
     //     return redirect('admin/employeebanks')->with('status', 'Bank Employee Add Successfully');
     // }
 
+
     // public function editEmployeebank($slug)
     // {
     //     $employeebanks = Employeebank::where('slug', $slug)->first();
@@ -118,6 +119,7 @@ class EmployeebankController extends Controller
     //     $banks = Bank::all();
     //     return view('employeebank.edit', compact('employeebanks','employee','banks'));
     // }
+
 
     // public function updateEmployeebank(Request $request, $slug)
     // {

@@ -88,7 +88,7 @@
               <dt class="col-sm-3">Nationality</dt>
               <dd class="col-sm-9">{{ $employee->nationality ?? '-' }}</dd>
               <dt class="col-sm-3">Gender</dt>
-              <dd class="col-sm-9">{{ $employee->gender ?? '-' }}</dd>
+              <dd class="col-sm-9">{{ $employee->gender == 'male' ? 'Male' : 'Female' }}</dd>
               <dt class="col-sm-3">Marital</dt>
               <dd class="col-sm-9">{{ $employee->marital ?? '-' }}</dd>
               <dt class="col-sm-3">Address</dt>
@@ -106,6 +106,11 @@
               <dt class="col-sm-3">Email</dt>
               <dd class="col-sm-9">{{ $employee->email ?? '-' }}</dd>
             </dl>
+          </div>
+          <div class="card-footer">
+            <div class="col-12 text-right">
+              <a class="btn btn-sm btn-icon btn-primary" data-toggle="modal" data-target="#modal-employee-{{ $employee->id }}"><i class="fas fa-pen-square"></i></a>
+            </div>
           </div>
           <!-- /.card-body -->
         </div>
@@ -131,6 +136,11 @@
               <dt class="col-sm-3">Branch</dt>
               <dd class="col-sm-9">{{ $bank->bank_account_branch ?? '-' }}</dd>
             </dl>
+          </div>
+          <div class="card-footer">
+            <div class="col-12 text-right">
+              <a class="btn btn-sm btn-icon btn-primary" data-toggle="modal" data-target="#modal-bank-{{ $bank->id }}"><i class="fas fa-pen-square"></i></a>
+            </div>
           </div>
           <!-- /.card-body -->
         </div>
@@ -168,7 +178,14 @@
                   <td>{{ $insurance->health_insurance_no }}</td>
                   <td>{{ $insurance->health_facility }}</td>
                   <td>{{ $insurance->health_insurance_remarks }}</td>
-                  <td>Edit | Delete</td>
+                  <td>
+                    <a class="btn btn-sm btn-icon btn-primary" href="{{ url('insurances/' . $insurance->id . '/edit') }}" data-toggle="modal" data-target="#modal-lg-{{ $insurance->id }}"><i class="fas fa-pen-square"></i></a>
+                    <form action="{{ url('insurances/' . $insurance->id) }}" method="post" onsubmit="return confirm('Are you sure want to delete this data?')" class="d-inline">
+                      @method('delete')
+                      @csrf
+                      <button class="btn btn-sm btn-icon btn-danger"><i class="fas fa-times"></i></button>
+                    </form>
+                  </td>
                 </tr>
                 @endforeach
                 @endif
@@ -213,7 +230,14 @@
                   <td>{{ $family->family_birthplace }}</td>
                   <td>{{ date('d-M-Y', strtotime($family->family_birthdate)) }}</td>
                   <td>{{ $family->family_remarks }}</td>
-                  <td>Edit | Delete</td>
+                  <td>
+                    <a class="btn btn-sm btn-icon btn-primary" href="{{ url('families/' . $family->id . '/edit') }}" data-toggle="modal" data-target="#modal-lg-{{ $family->id }}"><i class="fas fa-pen-square"></i></a>
+                    <form action="{{ url('families/' . $family->id) }}" method="post" onsubmit="return confirm('Are you sure want to delete this data?')" class="d-inline">
+                      @method('delete')
+                      @csrf
+                      <button class="btn btn-sm btn-icon btn-danger"><i class="fas fa-times"></i></button>
+                    </form>
+                  </td>
                 </tr>
                 @endforeach
                 @endif
@@ -256,7 +280,14 @@
                   <td>{{ $education->education_address }}</td>
                   <td>{{ $education->education_year }}</td>
                   <td>{{ $education->education_remarks }}</td>
-                  <td>Edit | Delete</td>
+                  <td>
+                    <a class="btn btn-sm btn-icon btn-primary" href="{{ url('educations/' . $education->id . '/edit') }}" data-toggle="modal" data-target="#modal-lg-{{ $education->id }}"><i class="fas fa-pen-square"></i></a>
+                    <form action="{{ url('educations/' . $education->id) }}" method="post" onsubmit="return confirm('Are you sure want to delete this data?')" class="d-inline">
+                      @method('delete')
+                      @csrf
+                      <button class="btn btn-sm btn-icon btn-danger"><i class="fas fa-times"></i></button>
+                    </form>
+                  </td>
                 </tr>
                 @endforeach
                 @endif
@@ -298,7 +329,14 @@
                   <td>{{ $course->course_address }}</td>
                   <td>{{ $course->course_year }}</td>
                   <td>{{ $course->course_remarks }}</td>
-                  <td>Edit | Delete</td>
+                  <td>
+                    <a class="btn btn-sm btn-icon btn-primary" href="{{ url('courses/' . $course->id . '/edit') }}" data-toggle="modal" data-target="#modal-lg-{{ $course->id }}"><i class="fas fa-pen-square"></i></a>
+                    <form action="{{ url('courses/' . $course->id) }}" method="post" onsubmit="return confirm('Are you sure want to delete this data?')" class="d-inline">
+                      @method('delete')
+                      @csrf
+                      <button class="btn btn-sm btn-icon btn-danger"><i class="fas fa-times"></i></button>
+                    </form>
+                  </td>
                 </tr>
                 @endforeach
                 @endif
@@ -342,7 +380,14 @@
                   <td>{{ $job->job_position }}</td>
                   <td>{{ $job->job_duration }}</td>
                   <td>{{ $job->quit_reason }}</td>
-                  <td>Edit | Delete</td>
+                  <td>
+                    <a class="btn btn-sm btn-icon btn-primary" href="{{ url('jobexperiences/' . $job->id . '/edit') }}" data-toggle="modal" data-target="#modal-lg-{{ $job->id }}"><i class="fas fa-pen-square"></i></a>
+                    <form action="{{ url('jobexperiences/' . $job->id) }}" method="post" onsubmit="return confirm('Are you sure want to delete this data?')" class="d-inline">
+                      @method('delete')
+                      @csrf
+                      <button class="btn btn-sm btn-icon btn-danger"><i class="fas fa-times"></i></button>
+                    </form>
+                  </td>
                 </tr>
                 @endforeach
                 @endif
@@ -382,7 +427,14 @@
                   <td>{{ $unit->unit_name }}</td>
                   <td>{{ $unit->unit_type }}</td>
                   <td>{{ $unit->unit_remarks }}</td>
-                  <td>Edit | Delete</td>
+                  <td>
+                    <a class="btn btn-sm btn-icon btn-primary" href="{{ url('units/' . $unit->id . '/edit') }}" data-toggle="modal" data-target="#modal-lg-{{ $unit->id }}"><i class="fas fa-pen-square"></i></a>
+                    <form action="{{ url('units/' . $unit->id) }}" method="post" onsubmit="return confirm('Are you sure want to delete this data?')" class="d-inline">
+                      @method('delete')
+                      @csrf
+                      <button class="btn btn-sm btn-icon btn-danger"><i class="fas fa-times"></i></button>
+                    </form>
+                  </td>
                 </tr>
                 @endforeach
                 @endif
@@ -422,7 +474,14 @@
                   <td>{{ $license->driver_license_type }}</td>
                   <td>{{ $license->driver_license_no }}</td>
                   <td>{{ date('d-M-Y', strtotime($license->driver_license_exp)) }}</td>
-                  <td>Edit | Delete</td>
+                  <td>
+                    <a class="btn btn-sm btn-icon btn-primary" href="{{ url('licenses/' . $license->id . '/edit') }}" data-toggle="modal" data-target="#modal-lg-{{ $license->id }}"><i class="fas fa-pen-square"></i></a>
+                    <form action="{{ url('licenses/' . $license->id) }}" method="post" onsubmit="return confirm('Are you sure want to delete this data?')" class="d-inline">
+                      @method('delete')
+                      @csrf
+                      <button class="btn btn-sm btn-icon btn-danger"><i class="fas fa-times"></i></button>
+                    </form>
+                  </td>
                 </tr>
                 @endforeach
                 @endif
@@ -464,7 +523,14 @@
                   <td>{{ $emergency->emrg_call_name }}</td>
                   <td>{{ $emergency->emrg_call_address }}</td>
                   <td>{{ $emergency->emrg_call_phone }}</td>
-                  <td>Edit | Delete</td>
+                  <td>
+                    <a class="btn btn-sm btn-icon btn-primary" href="{{ url('emergencies/' . $emergency->id . '/edit') }}" data-toggle="modal" data-target="#modal-lg-{{ $emergency->id }}"><i class="fas fa-pen-square"></i></a>
+                    <form action="{{ url('emergencies/' . $emergency->id) }}" method="post" onsubmit="return confirm('Are you sure want to delete this data?')" class="d-inline">
+                      @method('delete')
+                      @csrf
+                      <button class="btn btn-sm btn-icon btn-danger"><i class="fas fa-times"></i></button>
+                    </form>
+                  </td>
                 </tr>
                 @endforeach
                 @endif
@@ -540,7 +606,14 @@
                   <td>{{ $administration->position_name }}</td>
                   <td>{{ $administration->project_code }}</td>
                   <td>{{ $administration->class }}</td>
-                  <td>Edit | Delete</td>
+                  <td>
+                    <a class="btn btn-sm btn-icon btn-primary" href="{{ url('administrations/' . $administration->id . '/edit') }}" data-toggle="modal" data-target="#modal-lg-{{ $administration->id }}"><i class="fas fa-pen-square"></i></a>
+                    <form action="{{ url('administrations/' . $administration->id) }}" method="post" onsubmit="return confirm('Are you sure want to delete this data?')" class="d-inline">
+                      @method('delete')
+                      @csrf
+                      <button class="btn btn-sm btn-icon btn-danger"><i class="fas fa-times"></i></button>
+                    </form>
+                  </td>
                 </tr>
                 @endforeach
                 @endif
@@ -612,7 +685,11 @@
   <a id="back-to-top" href="#" class="btn btn-primary back-to-top" role="button" aria-label="Scroll to top">
     <i class="fas fa-chevron-up"></i>
   </a>
+
 </section>
+@include('employee.modal-employee')
+@include('employee.modal-bank')
+
 @endsection
 
 @section('styles')
