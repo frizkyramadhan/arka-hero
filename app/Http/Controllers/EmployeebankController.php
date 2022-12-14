@@ -13,13 +13,13 @@ class EmployeebankController extends Controller
     public function employeebanks(Request $request)
     {
         $keyword = $request->keyword;
-        $employeebanks = Employeebank::with(['employees','banks'])
-                                    ->where('bank_account_no', 'LIKE', '%'.$keyword.'%')
-                                    ->orWhere('bank_account_name', 'LIKE', '%'.$keyword.'%')
-                                    ->orWhereHas('employees', function($query) use($keyword){
-                                        $query->where('fullname', 'LIKE', '%'.$keyword.'%');
-                                    })                        
-                                    ->paginate(5);
+        $employeebanks = Employeebank::with(['employees', 'banks'])
+            ->where('bank_account_no', 'LIKE', '%' . $keyword . '%')
+            ->orWhere('bank_account_name', 'LIKE', '%' . $keyword . '%')
+            ->orWhereHas('employees', function ($query) use ($keyword) {
+                $query->where('fullname', 'LIKE', '%' . $keyword . '%');
+            })
+            ->paginate(5);
         // $employeebanks = DB::table('employeebanks')
         //     ->join('employees', 'employeebanks.employee_id', '=', 'employees.id')
         //     ->join('banks', 'employeebanks.bank_id', '=', 'banks.id')
@@ -54,7 +54,7 @@ class EmployeebankController extends Controller
         $employeebanks = Employeebank::where('slug', $slug)->first();
         $employee = Employee::orderBy('id', 'asc')->get();
         $banks = Bank::all();
-        return view('employeebank.edit', compact('employeebanks','employee','banks'));
+        return view('employeebank.edit', compact('employeebanks', 'employee', 'banks'));
     }
 
     public function updateEmployeebank(Request $request, $slug)

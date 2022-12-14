@@ -360,7 +360,11 @@ class EmployeeController extends Controller
             ->get();
         $images = Image::where('employee_id', $id)->get();
 
-        return view('employee.detail', compact('title', 'subtitle', 'employee', 'bank', 'insurances', 'families', 'educations', 'courses', 'jobs', 'units', 'licenses', 'emergencies', 'additional', 'administrations', 'images'));
+        // for select option
+        $religions = Religion::orderBy('id', 'asc')->get();
+        $getBanks = Bank::orderBy('bank_name', 'asc')->get();
+
+        return view('employee.detail', compact('title', 'subtitle', 'employee', 'bank', 'insurances', 'families', 'educations', 'courses', 'jobs', 'units', 'licenses', 'emergencies', 'additional', 'administrations', 'images', 'religions', 'getBanks'));
     }
 
     public function edit($id)
@@ -375,18 +379,37 @@ class EmployeeController extends Controller
 
     public function update(Request $request, $id)
     {
+        $this->validate($request, [
+            'fullname' => 'required',
+            'emp_pob' => 'required',
+            'emp_dob' => 'required',
+        ], [
+            'fullname.required' => 'Full Name is required',
+            'emp_pob.required' => 'Place of Birth is required',
+            'emp_dob.required' => 'Date of Birth is required',
+        ]);
 
+        $employee = Employee::find($id);
+        $employee->fullname = $request->fullname;
+        $employee->emp_pob = $request->emp_pob;
+        $employee->emp_dob = $request->emp_dob;
+        $employee->blood_type = $request->blood_type;
+        $employee->religion_id = $request->religion_id;
+        $employee->nationality = $request->nationality;
+        $employee->gender = $request->gender;
+        $employee->marital = $request->marital;
+        $employee->address = $request->address;
+        $employee->village = $request->village;
+        $employee->ward = $request->ward;
+        $employee->district = $request->district;
+        $employee->city = $request->city;
+        $employee->phone = $request->phone;
+        $employee->email = $request->email;
+        $employee->identity_card = $request->identity_card;
+        $employee->user_id = auth()->user()->id;
+        $employee->save();
 
-        if ($request->file('gambar')) {
-            $extension = $request->file('gambar')->getClientOriginalExtension();
-            $newName = $request->fullname . '-' . now()->timestamp . '-' . $extension;
-            $request->file('gambar')->storeAs('cover', $newName);
-            $request['image'] = $newName;
-        }
-
-        $employee = Employee::where('id', $id)->first();
-        $employee->update($request->all());
-        return redirect('admin/employees')->with('status', 'Employee Edit successfully');
+        return redirect('employees/' . $id)->with('toast_success', 'Employee edited successfully');
     }
 
 
