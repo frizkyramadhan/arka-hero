@@ -12,6 +12,20 @@ class Administration extends Model
 
     protected $guarded = [];
 
+
+    protected $fillable= [
+            'employee_id',
+            'project_id',
+            'position_id',
+            'nik',
+            'class',
+            'doh',
+            'poh',
+            'basic_salary',
+            'site_allowance',
+            'other_allowance',
+    ];
+
     public function projects()
     {
         return $this->belongsTo(Project::class);
@@ -26,4 +40,6 @@ class Administration extends Model
     {
         return $this->belongsTo(Position::class);
     }
+
+    protected $dates = ['doh'];
 }

@@ -43,7 +43,7 @@
               <div class="form-group row">
                 <label class="col-sm-3 col-form-label">Family Birthdate</label>
                 <div class="col-sm-8">
-                  <input type="text" class="form-control" name="family_birthdate" value="{{ $families->family_birthdate }}" readonly>
+                  <input type="text" class="form-control" name="family_birthdate" value="{{  showDateTime($families->family_birthdate, 'l, d F Y') }}" readonly>
                 </div>
               </div>
               <div class="form-group row">

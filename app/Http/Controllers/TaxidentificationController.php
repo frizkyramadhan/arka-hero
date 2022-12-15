@@ -60,6 +60,11 @@ class TaxidentificationController extends Controller
                 $employees = Employee::orderBy('fullname', 'asc')->get();
                 return view('taxidentification.action', compact('employees', 'taxidentifications'));
             })
+            ->addColumn('tax_valid_date', function($taxidentifications){
+                $date = date("d F Y", strtotime($taxidentifications->tax_valid_date));
+                return $date;
+
+            })
             ->rawColumns(['tax_no', 'action'])
             ->toJson();
     }

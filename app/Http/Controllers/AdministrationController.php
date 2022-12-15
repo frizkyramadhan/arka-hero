@@ -35,6 +35,13 @@ class AdministrationController extends Controller
             ->select('administrations.*', 'fullname', 'position_name','project_name')
             ->orderBy('fullname', 'asc');
 
+        // $administrations = Administration::leftJoin('administrations', 'employees.id', '=', 'administrations.employee_id')
+        //     ->leftJoin('projects', 'administrations.project_id', '=', 'projects.id')
+        //     ->leftJoin('positions', 'administrations.position_id', '=', 'positions.id')
+        //     // ->leftJoin('departments', 'positions.department_id', '=', 'departments.id')
+        //     ->select('administrations.*', 'fullname', 'position_name','project_name')
+        //     ->orderBy('fullname', 'asc');
+
         return datatables()->of($administrations)
             ->addIndexColumn()
             ->addColumn('fullname', function ($administrations) {
@@ -85,7 +92,6 @@ class AdministrationController extends Controller
                             ->orWhere('nik', 'LIKE', "%$search%")
                             ->orWhere('doh', 'LIKE', "%$search%")
                             ->orWhere('class', 'LIKE', "%$search%")
-                            ->orWhere('doh', 'LIKE', "%$search%")
                             ->orWhere('poh', 'LIKE', "%$search%");
                            
                     });
@@ -95,32 +101,37 @@ class AdministrationController extends Controller
                 $employees = Employee::orderBy('fullname', 'asc')->get();
                 return view('administration.action', compact('employees', 'administrations'));
             })
+            ->addColumn('doh', function($administrations){
+                $date = date("d F Y", strtotime($administrations->doh));
+                return $date;
+
+            })
             ->rawColumns(['nik', 'action'])
             ->toJson();
     }
-    // public function administrations(Request $request)
-    // {
-    //     $keyword = $request->keyword;
-    //     $administrations = Administration::with(['projects','employees','positions'])
-    //                                         ->where('nik', 'LIKE', '%'.$keyword.'%')
-    //                                         ->orWhere('class', 'LIKE', '%'.$keyword.'%')
-    //                                         ->orWhere('doh', 'LIKE', '%'.$keyword.'%')
-    //                                         ->orWhere('poh', 'LIKE', '%'.$keyword.'%')
-    //                                         ->orWhereHas('employees', function($query) use($keyword){
-    //                                             $query->where('fullname', 'LIKE', '%'.$keyword.'%');
-    //                                         })                        
-    //                                         ->paginate(5);
+    public function administrations(Request $request)
+    {
+        $keyword = $request->keyword;
+        $administrations = Administration::with(['projects','employees','positions'])
+                                            ->where('nik', 'LIKE', '%'.$keyword.'%')
+                                            ->orWhere('class', 'LIKE', '%'.$keyword.'%')
+                                            ->orWhere('doh', 'LIKE', '%'.$keyword.'%')
+                                            ->orWhere('poh', 'LIKE', '%'.$keyword.'%')
+                                            ->orWhereHas('employees', function($query) use($keyword){
+                                                $query->where('fullname', 'LIKE', '%'.$keyword.'%');
+                                            })                        
+                                            ->paginate(5);
       
 
-    //     // $administrations = DB::table('administrations')
-    //     //     ->join('projects', 'administrations.project_id', '=', 'projects.id')
-    //     //     ->join('employees', 'administrations.employee_id', '=', 'employees.id')
-    //     //     ->join('positions', 'administrations.position_id', '=', 'positions.id')
-    //     //     ->select('administrations.*', 'fullname', 'position_name','project_name')
-    //     //     ->orderBy('fullname', 'asc')
-    //     //     ->simplePaginate(10);
-    //     return view('administration.index', ['administrations' => $administrations]);
-    // }
+        // $administrations = DB::table('administrations')
+        //     ->join('projects', 'administrations.project_id', '=', 'projects.id')
+        //     ->join('employees', 'administrations.employee_id', '=', 'employees.id')
+        //     ->join('positions', 'administrations.position_id', '=', 'positions.id')
+        //     ->select('administrations.*', 'fullname', 'position_name','project_name')
+        //     ->orderBy('fullname', 'asc')
+        //     ->simplePaginate(10);
+        return view('administration.index', ['administrations' => $administrations]);
+    }
 
     // public function AddAdministration()
     // {

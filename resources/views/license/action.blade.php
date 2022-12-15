@@ -35,7 +35,7 @@
               <div class="form-group row">
                 <label class="col-sm-3 col-form-label">Driver License Exp</label>
                 <div class="col-sm-8">
-                  <input type="text" class="form-control" name="driver_license_exp" value="{{ $license->driver_license_exp }}" readonly>
+                  <input type="text" class="form-control" name="driver_license_exp" value="{{  showDateTime($license->driver_license_exp, 'l, d F Y') }}" readonly>
                 </div>
               </div>
               

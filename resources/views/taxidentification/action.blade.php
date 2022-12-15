@@ -29,7 +29,7 @@
               <div class="form-group row">
                 <label class="col-sm-3 col-form-label">Tax Valid Date</label>
                 <div class="col-sm-8">
-                  <input type="text" class="form-control" name="tax_valid_date" value="{{ $taxidentifications->tax_valid_date }}" readonly>
+                  <input type="text" class="form-control" name="tax_valid_date" value="{{  showDateTime($taxidentifications->tax_valid_date, 'l, d F Y') }}" readonly>
                   
                 </div>
               </div>
