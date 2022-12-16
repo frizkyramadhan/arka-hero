@@ -84,7 +84,7 @@ class InsuranceController extends Controller
     //     //     ->orderBy('fullname', 'asc')
     //     //     ->simplePaginate(10);
     //     return view('insurance.index', ['insurances' => $insurances]);
-       
+
     // }
 
     // // public function addInsurance()
@@ -93,26 +93,24 @@ class InsuranceController extends Controller
     //     return view('insurance.create', compact('employee'));
     // }
 
-    // public function store(Request $request)
-    // {
-    //     $request->validate([
-    //         'employee_id' => 'required',
-    //         'health_insurance_type' => 'required',
-    //         'health_insurance_no' => 'required|unique:insurances|',
-    //         'health_facility' => 'required',
-    //         'health_insurance_remarks' => 'required',
-    //     ]);
+    public function store($employee_id, Request $request)
+    {
+        $request->validate([
+            'employee_id' => 'required',
+            'health_insurance_type' => 'required',
+            'health_insurance_no' => 'required|unique:insurances|',
+        ]);
 
-    //     $insurances = new Insurance();
-    //     $insurances->employee_id = $request->employee_id;
-    //     $insurances->health_insurance_type = $request->health_insurance_type;
-    //     $insurances->health_insurance_no = $request->health_insurance_no;
-    //     $insurances->health_facility = $request->health_facility;
-    //     $insurances->health_insurance_remarks = $request->health_insurance_remarks;
-    //     $insurances->save();
+        $insurances = new Insurance();
+        $insurances->employee_id = $request->employee_id;
+        $insurances->health_insurance_type = $request->health_insurance_type;
+        $insurances->health_insurance_no = $request->health_insurance_no;
+        $insurances->health_facility = $request->health_facility;
+        $insurances->health_insurance_remarks = $request->health_insurance_remarks;
+        $insurances->save();
 
-    //     return redirect('admin/insurances')->with('status', 'Insurance Employee Add Successfully');
-    // }
+        return redirect('employees/' . $employee_id)->with('status', 'Insurance Employee Add Successfully');
+    }
 
     // public function editInsurance($slug)
     // {
@@ -122,32 +120,31 @@ class InsuranceController extends Controller
     //     return view('insurance.edit', compact('insurances', 'employee'));
     // }
 
-    // public function updateInsurance(Request $request, $slug)
-    // {
-    //     $insurances = Insurance::where('slug', $slug)->first();
-    //     $rules = [
-    //         'employee_id' => 'required',
-    //         'health_insurance_type' => 'required',
-    //         'health_insurance_no' => 'required',
-    //         'health_facility' => 'required',
-    //         'health_insurance_remarks' => 'required',
-    //     ];
+    public function update(Request $request, $id)
+    {
+        $insurances = Insurance::where('id', $id)->first();
+        $rules = [
+            'employee_id' => 'required',
+            'health_insurance_type' => 'required',
+            'health_insurance_no' => 'required',
+            'health_facility' => 'required',
+            'health_insurance_remarks' => 'required',
+        ];
 
-    //     if ($request->health_insurance_no != $insurances->health_insurance_no) {
-    //         $rules['health_insurance_no'] = 'required|unique:insurances';
-    //     }
+        if ($request->health_insurance_no != $insurances->health_insurance_no) {
+            $rules['health_insurance_no'] = 'unique:insurances';
+        }
 
-    //     $validatedData = $request->validate($rules);
-    //     Insurance::where('slug', $slug)->update($validatedData);
+        $validatedData = $request->validate($rules);
+        Insurance::where('id', $id)->update($validatedData);
 
-    //     return redirect('admin/insurances')->with('status', 'Insurance Employee Update Successfully');
-    // }
+        return redirect('employees/' . $request->employee_id)->with('toast_success', 'Insurance Employee Update Successfully');
+    }
 
-    // public function deleteInsurance($slug)
-    // {
-
-    //     $insurances = Insurance::where('slug', $slug)->first();
-    //     $insurances->delete();
-    //     return redirect('admin/insurances')->with('status', 'Insurance Delete Successfully');
-    // }
+    public function delete($employee_id, $id)
+    {
+        $insurances = Insurance::where('id', $id)->first();
+        $insurances->delete();
+        return redirect('employees/' . $employee_id)->with('toast_success', 'Insurance Delete Successfully');
+    }
 }

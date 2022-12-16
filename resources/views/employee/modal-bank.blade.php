@@ -7,7 +7,8 @@
           <span aria-hidden="true">&times;</span>
         </button>
       </div>
-      <form action="{{ url('banks/' . $bank->id) }}" method="POST">
+      <form action="{{ url('employeebanks/' . $bank->id) }}" method="POST">
+        <input type="hidden" name="employee_id" value="{{ old('employee_id', $bank->employee_id) }}">
         @csrf
         @method('PATCH')
         <div class="modal-body">
@@ -32,7 +33,7 @@
             <div class="form-group row">
               <label class="col-sm-2 col-form-label">Account No.</label>
               <div class="col-sm-10">
-                <input type="text" class="form-control @error('bank_account_no') is-invalid @enderror" name="bank_account_no" value="{{ old('bank_account_no', $bank->bank_account_no) }}">
+                <input type="number" class="form-control @error('bank_account_no') is-invalid @enderror" name="bank_account_no" value="{{ old('bank_account_no', $bank->bank_account_no) }}">
                 @error('bank_account_no')
                 <div class="invalid-feedback">
                   {{ $message }}

@@ -363,8 +363,10 @@ class EmployeeController extends Controller
         // for select option
         $religions = Religion::orderBy('id', 'asc')->get();
         $getBanks = Bank::orderBy('bank_name', 'asc')->get();
+        $positions = Position::with('departments')->orderBy('position_name', 'asc')->get();
+        $projects = Project::orderBy('project_code', 'asc')->get();
 
-        return view('employee.detail', compact('title', 'subtitle', 'employee', 'bank', 'insurances', 'families', 'educations', 'courses', 'jobs', 'units', 'licenses', 'emergencies', 'additional', 'administrations', 'images', 'religions', 'getBanks'));
+        return view('employee.detail', compact('title', 'subtitle', 'employee', 'bank', 'insurances', 'families', 'educations', 'courses', 'jobs', 'units', 'licenses', 'emergencies', 'additional', 'administrations', 'images', 'religions', 'getBanks', 'positions', 'projects'));
     }
 
     public function edit($id)
@@ -435,5 +437,62 @@ class EmployeeController extends Controller
         $employees = Employee::where('id', $id)->first();
         $employees->delete();
         return redirect('admin/employees')->with('status', 'Employee Delete Successfully');
+    }
+
+    public function addImages($id, Request $request)
+    {
+        $employee = Employee::find($id);
+
+        $this->validate($request, [
+            'filename' => 'required',
+            'filename.*' => 'image|mimes:jpeg,png,jpg,gif,svg|max:2048'
+        ]);
+
+        if ($request->hasfile('filename')) {
+            $directories = Storage::directories('public/images/' . $employee->id);
+            if (count($directories) == 0) {
+                $path = public_path() . '/images/' . $employee->id;
+                File::makeDirectory($path, $mode = 0777, true, true);
+            }
+            foreach ($request->file('filename') as $image) {
+                $name = $image->getClientOriginalName();
+                $image->move(public_path() . '/images/' . $employee->id, $name);
+
+                $image = new Image();
+                $image->employee_id = $employee->id;
+                $image->filename = $name;
+
+                $image->save();
+            }
+        }
+
+        return back()->with('toast_success', 'Images uploaded successfully');
+    }
+
+    public function deleteImage($id)
+    {
+        $image = Image::find($id);
+        // delete image
+        $img = public_path('images/' . $image->employee_id . '/' . $image->filename);
+        if (file_exists($img)) {
+            unlink($img);
+            Image::where('id', $image->id)->delete();
+        }
+
+        return back()->with('toast_success', 'Image successfully deleted!');
+    }
+
+    public function deleteImages($employee_id)
+    {
+        $images = Image::where('employee_id', $employee_id)->get();
+        foreach ($images as $image) {
+            // delete image
+            $img = public_path('images/' . $image->employee_id . '/' . $image->filename);
+            if (file_exists($img)) {
+                unlink($img);
+                Image::where('id', $image->id)->delete();
+            }
+        }
+        return back()->with('toast_success', 'All images successfully deleted!');
     }
 }

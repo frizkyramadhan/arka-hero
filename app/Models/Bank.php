@@ -11,4 +11,9 @@ class Bank extends Model
     use HasFactory;
 
     protected $guarded = [];
+
+    public function employeebanks()
+    {
+        return $this->hasMany(Employeebank::class);
+    }
 }

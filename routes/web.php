@@ -69,6 +69,9 @@ Route::group(['middleware' => ['auth']], function () {
     Route::get('employees/data', [EmployeeController::class, 'getEmployees'])->name('employees.data');
     Route::get('employees/getDepartment', [EmployeeController::class, 'getDepartment'])->name('employees.getDepartment');
     Route::resource('employees', EmployeeController::class);
+    Route::post('employees/addImages/{id}', [EmployeeController::class, 'addImages'])->name('employees.addImages');
+    Route::get('employees/deleteImage/{id}', [EmployeeController::class, 'deleteImage'])->name('employees.deleteImage');
+    Route::get('employees/deleteImages/{employee_id}', [EmployeeController::class, 'deleteImages'])->name('employees.deleteImages');
 
     // Route::get('employees', [EmployeeController::class, 'employees'])->name('employees');
     // Route::get('employees/create', [EmployeeController::class, 'create'])->name('employees.create');
@@ -79,9 +82,10 @@ Route::group(['middleware' => ['auth']], function () {
     // Route::get('destroyEmployee/{slug}', [EmployeeController::class, 'destroyEmployee'])->name('destroyEmployee');
     // Route::get('detailEmployee/{slug}', [EmployeeController::class, 'detailEmployee'])->name('detailEmployee');
 
-    Route::resource('licenses', LicenseController::class)->except(['show', 'create', 'edit']);
-    // Route::get('licenses', [LicenseController::class, 'index'])->name('index');
     Route::get('licenses/getLicenses', [LicenseController::class, 'getLicenses'])->name('licenses.list');
+    Route::resource('licenses', LicenseController::class)->except(['store', 'show', 'create', 'edit']);
+    Route::post('licenses/{employee_id}', [LicenseController::class, 'store'])->name('licenses.store');
+    Route::delete('licenses/{employee_id}/{id}', [LicenseController::class, 'delete'])->name('licenses.delete');
 
     // Route::get('addLicense', [LicenseController::class, 'addLicense'])->name('addLicense');
     // Route::post('addLicense', [LicenseController::class, 'store'])->name('store');
@@ -89,37 +93,37 @@ Route::group(['middleware' => ['auth']], function () {
     // Route::put('/updateLicense/{slug}', [LicenseController::class, 'updateLicense'])->name('updateLicense');
     // Route::delete('deleteLicense/{slug}', [LicenseController::class, 'deleteLicense'])->name('deleteLicense');
 
-    Route::resource('insurances', InsuranceController::class)->except(['show', 'create', 'edit']);
-    // Route::get('insurances', [InsuranceController::class, 'index'])->name('index');
     Route::get('insurances/getInsurances', [InsuranceController::class, 'getInsurances'])->name('insurances.list');
-    // Route::post('addInsurance', [InsuranceController::class, 'store'])->name('store');
+    Route::resource('insurances', InsuranceController::class)->except(['store', 'show', 'create', 'edit']);
+    // Route::get('insurances', [InsuranceController::class, 'index'])->name('index');
     // Route::get('editInsurance/{slug}', [InsuranceController::class, 'editInsurance'])->name('editInsurance');
     // Route::put('/updateInsurance/{slug}', [InsuranceController::class, 'updateInsurance'])->name('updateInsurance');
-    // Route::delete('deleteInsurance/{slug}', [InsuranceController::class, 'deleteInsurance'])->name('deleteInsurance');
+    Route::post('insurances/{employee_id}', [InsuranceController::class, 'store'])->name('insurances.store');
+    Route::delete('insurances/{employee_id}/{id}', [InsuranceController::class, 'delete'])->name('insurances.delete');
 
-    Route::resource('families', FamilieController::class)->except(['show', 'create', 'edit']);
-    // Route::get('families', [FamilieController::class, 'index'])->name('index');
     Route::get('families/getFamilies', [FamilieController::class, 'getFamilies'])->name('families.list');
-    // Route::post('addFamilie', [FamilieController::class, 'store'])->name('store');
+    Route::resource('families', FamilieController::class)->except(['store', 'show', 'create', 'edit']);
+    // Route::get('families', [FamilieController::class, 'index'])->name('index');
     // Route::get('editFamilie/{slug}', [FamilieController::class, 'editFamilie'])->name('editFamilie');
     // Route::put('/updateFamilie/{slug}', [FamilieController::class, 'updateFamilie'])->name('updateFamilie');
-    // Route::delete('deleteFamilie/{slug}', [FamilieController::class, 'deleteFamilie'])->name('deleteFamilie');
+    Route::post('families/{employee_id}', [FamilieController::class, 'store'])->name('families.store');
+    Route::delete('families/{employee_id}/{id}', [FamilieController::class, 'delete'])->name('families.delete');
 
-    Route::resource('courses', CourseController::class)->except(['show', 'create', 'edit']);
+    Route::resource('courses', CourseController::class)->except(['store', 'show', 'create', 'edit']);
     // Route::get('courses', [CourseController::class, 'index'])->name('index');
-    Route::get('index/getCourse', [CourseController::class, 'getCourse'])->name('courses.list');
-    // Route::post('addCourse', [CourseController::class, 'store'])->name('store');
+    Route::get('courses/getCourse', [CourseController::class, 'getCourse'])->name('courses.list');
     // Route::get('editCourse/{slug}', [CourseController::class, 'editCourse'])->name('editCourse');
     // Route::put('/updateCourse/{slug}', [CourseController::class, 'updateCourse'])->name('updateCourse');
-    // Route::delete('deleteCourse/{slug}', [CourseController::class, 'deleteCourse'])->name('deleteCourse');
+    Route::post('courses/{employee_id}', [CourseController::class, 'store'])->name('courses.store');
+    Route::delete('courses/{employee_id}/{id}', [CourseController::class, 'delete'])->name('courses.delete');
 
-    Route::resource('emrgcalls', EmrgcallController::class)->except(['show', 'create', 'edit']);
-    // Route::get('emrgcalls', [EmrgcallController::class, 'index'])->name('index');
     Route::get('emrgcalls/getEmrgcall', [EmrgcallController::class, 'getEmrgcall'])->name('emrgcalls.list');
-    // Route::post('addEmrgcall', [EmrgcallController::class, 'store'])->name('store');
+    Route::resource('emrgcalls', EmrgcallController::class)->except(['store', 'show', 'create', 'edit']);
+    // Route::get('emrgcalls', [EmrgcallController::class, 'index'])->name('index');
     // Route::get('editEmrgcall/{slug}', [EmrgcallController::class, 'editEmrgcall'])->name('editEmrgcall');
     // Route::put('/updateEmrgcall/{slug}', [EmrgcallController::class, 'updateEmrgcall'])->name('updateEmrgcall');
-    // Route::delete('deleteEmrgcall/{slug}', [EmrgcallController::class, 'deleteEmrgcall'])->name('deleteEmrgcall');
+    Route::post('emrgcalls/{employee_id}', [EmrgcallController::class, 'store'])->name('emrgcalls.store');
+    Route::delete('emrgcalls/{employee_id}/{id}', [EmrgcallController::class, 'delete'])->name('emrgcalls.delete');
 
     Route::resource('additionaldatas', AdditionaldataController::class)->except(['show', 'create', 'edit']);
     // Route::get('additionaldatas', [AdditionaldataController::class, 'index'])->name('index');
@@ -129,40 +133,40 @@ Route::group(['middleware' => ['auth']], function () {
     // Route::put('/updateAdditionaldata/{slug}', [AdditionaldataController::class, 'updateAdditionaldata'])->name('updateAdditionaldata');
     // Route::delete('deleteAdditionaldata/{slug}', [AdditionaldataController::class, 'deleteAdditionaldata'])->name('deleteAdditionaldata');
 
-    Route::get('employeebanks', [EmployeebankController::class, 'index'])->name('index');
     Route::get('employeebanks/getEmployeebank', [EmployeebankController::class, 'getEmployeebank'])->name('employeebanks.list');
+    Route::resource('employeebanks', EmployeebankController::class);
     // Route::post('AddEmployeebank', [EmployeebankController::class, 'store'])->name('store');
     // Route::get('editEmployeebank/{slug}', [EmployeebankController::class, 'editEmployeebank'])->name('editEmployeebank');
     // Route::put('/updateEmployeebank/{slug}', [EmployeebankController::class, 'updateEmployeebank'])->name('updateEmployeebank');
     // Route::delete('deleteEmployeebank/{slug}', [EmployeebankController::class, 'deleteEmployeebank'])->name('deleteEmployeebank');
 
-    Route::get('administrations', [AdministrationController::class, 'index'])->name('index');
     Route::get('administrations/getAdministration', [AdministrationController::class, 'getAdministration'])->name('administrations.list');
-    // Route::post('AddAdministration', [AdministrationController::class, 'store'])->name('store');
+    Route::resource('administrations', AdministrationController::class)->except(['store', 'show', 'create', 'edit']);
     // Route::get('editAdministration/{slug}', [AdministrationController::class, 'editAdministration'])->name('editAdministration');
     // Route::put('/updateAdministration/{slug}', [AdministrationController::class, 'updateAdministration'])->name('updateAdministration');
-    // Route::delete('deleteAdministration/{slug}', [AdministrationController::class, 'deleteAdministration'])->name('deleteAdministration');
+    Route::post('administrations/{employee_id}', [AdministrationController::class, 'store'])->name('administrations.store');
+    Route::delete('administrations/{employee_id}/{id}', [AdministrationController::class, 'delete'])->name('administrations.delete');
 
-    Route::resource('schools', SchoolController::class)->except(['show', 'create', 'edit']);
-    // Route::get('schools', [SchoolController::class, 'index'])->name('index');
     Route::get('schools/getSchool', [SchoolController::class, 'getSchool'])->name('schools.list');
-    // Route::post('AddSchool', [SchoolController::class, 'store'])->name('store');
+    Route::resource('schools', SchoolController::class)->except(['store', 'show', 'create', 'edit']);
+    // Route::get('schools', [SchoolController::class, 'index'])->name('index');
     // Route::get('EditSchool/{slug}', [SchoolController::class, 'EditSchool'])->name('EditSchool');
     // Route::put('/UpdateSchool/{slug}', [SchoolController::class, 'UpdateSchool'])->name('UpdateSchool');
-    // Route::delete('admin/deleteSchool/{slug}', [SchoolController::class, 'deleteSchool'])->name('deleteSchool');
+    Route::post('schools/{employee_id}', [SchoolController::class, 'store'])->name('schools.store');
+    Route::delete('schools/{employee_id}/{id}', [SchoolController::class, 'delete'])->name('schools.delete');
     // Route::post('ImportSchool', [SchoolController::class, 'ImportSchool'])->name('ImportSchool');
     // Route::get('ExportSchool', [SchoolController::class, 'ExportSchool'])->name('ExportSchool');
 
-    Route::resource('jobexperiences', JobexperienceController::class)->except(['show', 'create', 'edit']);
-    // Route::get('jobexperiences', [JobexperienceController::class, 'index'])->name('index');
     Route::get('jobexperiences/getJobexperiences', [JobexperienceController::class, 'getJobexperiences'])->name('jobexperiences.list');
+    Route::resource('jobexperiences', JobexperienceController::class)->except(['store', 'show', 'create', 'edit']);
+    Route::post('jobexperiences/{employee_id}', [JobexperienceController::class, 'store'])->name('jobexperiences.store');
+    Route::delete('jobexperiences/{employee_id}/{id}', [JobexperienceController::class, 'delete'])->name('jobexperiences.delete');
 
-    Route::resource('operableunits', OperableunitController::class)->except(['show', 'create', 'edit']);
-    // Route::get('operableunits', [OperableunitController::class, 'index'])->name('index');
     Route::get('operableunits/getOperableunits', [OperableunitController::class, 'getOperableunits'])->name('operableunits.list');
-
+    Route::resource('operableunits', OperableunitController::class)->except(['store', 'show', 'create', 'edit']);
+    Route::post('operableunits/{employee_id}', [OperableunitController::class, 'store'])->name('operableunits.store');
+    Route::delete('operableunits/{employee_id}/{id}', [OperableunitController::class, 'delete'])->name('operableunits.delete');
 
     Route::get('taxidentifications', [TaxidentificationController::class, 'index'])->name('index');
     Route::get('taxidentifications/getTaxidentifications', [TaxidentificationController::class, 'getTaxidentifications'])->name('taxidentifications.list');
-
 });

@@ -92,19 +92,19 @@ class EmrgcallController extends Controller
     //     return view('emrgcall.create', compact('employee'));
     // }
 
-    // public function store(Request $request)
-    // {
-    //     $validated = $request->validate([
-    //         'employee_id' => 'required',
-    //         'emrg_call_name' => 'required',
-    //         'emrg_call_relation' => 'required',
-    //         'emrg_call_phone' => 'required',
-    //         'emrg_call_address' => 'required',
+    public function store($employee_id, Request $request)
+    {
+        $request->validate([
+            'employee_id' => 'required',
+            'emrg_call_name' => 'required',
+            'emrg_call_relation' => 'required',
+            'emrg_call_phone' => 'required',
+            'emrg_call_address' => 'required',
 
-    //     ]);
-    //     $emrgcalls = Emrgcall::create($request->all());
-    //     return redirect('admin/emrgcalls')->with('status', 'Emergency Call Employee Add Successfully');
-    // }
+        ]);
+        Emrgcall::create($request->all());
+        return redirect('employees/' . $employee_id)->with('toast_success', 'Emergency Call Added Successfully');
+    }
 
     // public function editEmrgcall($slug)
     // {
@@ -114,29 +114,26 @@ class EmrgcallController extends Controller
     //     return view('emrgcall.edit', compact('emrgcalls', 'employee'));
     // }
 
-    // public function updateEmrgcall(Request $request, $slug)
-    // {
-    //     $emrgcalls = Emrgcall::where('slug', $slug)->first();
-    //     $rules = [
-    //         'employee_id' => 'required',
-    //         'emrg_call_name' => 'required',
-    //         'emrg_call_relation' => 'required',
-    //         'emrg_call_phone' => 'required',
-    //         'emrg_call_address' => 'required',
+    public function update(Request $request, $id)
+    {
+        $request->validate([
+            'employee_id' => 'required',
+            'emrg_call_name' => 'required',
+            'emrg_call_relation' => 'required',
+            'emrg_call_phone' => 'required',
+            'emrg_call_address' => 'required',
+        ]);
 
-    //     ];
+        $emrgcalls = Emrgcall::where('id', $id)->first();
+        $emrgcalls->update($request->all());
 
-    //     $validatedData = $request->validate($rules);
-    //     Emrgcall::where('slug', $slug)->update($validatedData);
+        return redirect('employees/' . $request->employee_id)->with('toast_success', 'Emergency Call Updated Successfully');
+    }
 
-    //     return redirect('admin/emrgcalls')->with('status', 'Emergency Call Employee Update Successfully');
-    // }
-
-    // public function deleteEmrgcall($slug)
-    // {
-
-    //     $emrgcalls = Emrgcall::where('slug', $slug)->first();
-    //     $emrgcalls->delete();
-    //     return redirect('admin/emrgcalls')->with('status', 'Emergency Call Employee Delete Successfully');
-    // }
+    public function delete($employee_id, $id)
+    {
+        $emrgcalls = Emrgcall::where('id', $id)->first();
+        $emrgcalls->delete();
+        return redirect('employees/' . $employee_id)->with('toast_success', 'Emergency Call Deleted Successfully');
+    }
 }

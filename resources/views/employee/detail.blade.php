@@ -40,19 +40,45 @@
             <p class="text-muted text-center">{{ $employee->email }}</p>
 
             <ul class="list-group list-group-unbordered mb-3">
-              <li class="list-group-item"><a href="#personal">Personal Detail</a></li>
-              <li class="list-group-item"><a href="#banks">Bank Accounts</a></li>
-              <li class="list-group-item"><a href="#insurances">Health Insurances</a></li>
-              <li class="list-group-item"><a href="#families">Families</a></li>
-              <li class="list-group-item"><a href="#educations">Educations</a></li>
-              <li class="list-group-item"><a href="#courses">Courses</a></li>
-              <li class="list-group-item"><a href="#jobs">Job Experiences</a></li>
-              <li class="list-group-item"><a href="#units">Operable Units</a></li>
-              <li class="list-group-item"><a href="#licenses">Licenses</a></li>
-              <li class="list-group-item"><a href="#emergencies">Emergency Calls</a></li>
-              <li class="list-group-item"><a href="#additional">Additional Data</a></li>
-              <li class="list-group-item"><a href="#administration">Administration</a></li>
-              <li class="list-group-item"><a href="#images">Images</a></li>
+              <a href="#personal">
+                <li class="list-group-item">Personal Detail</li>
+              </a>
+              <a href="#banks">
+                <li class="list-group-item">Bank Accounts</li>
+              </a>
+              <a href="#insurances">
+                <li class="list-group-item">Health Insurances</li>
+              </a>
+              <a href="#families">
+                <li class="list-group-item">Families</li>
+              </a>
+              <a href="#educations">
+                <li class="list-group-item">Educations</li>
+              </a>
+              <a href="#courses">
+                <li class="list-group-item">Courses</li>
+              </a>
+              <a href="#jobs">
+                <li class="list-group-item">Job Experiences</li>
+              </a>
+              <a href="#units">
+                <li class="list-group-item">Operable Units</li>
+              </a>
+              <a href="#licenses">
+                <li class="list-group-item">Licenses</li>
+              </a>
+              <a href="#emergencies">
+                <li class="list-group-item">Emergency Calls</li>
+              </a>
+              <a href="#additional">
+                <li class="list-group-item">Additional Data</li>
+              </a>
+              <a href="#administration">
+                <li class="list-group-item">Administration</li>
+              </a>
+              <a href="#images">
+                <li class="list-group-item">Images</li>
+              </a>
             </ul>
 
             <a href="#" class="btn btn-danger btn-block"><b>Terminate</b></a>
@@ -80,7 +106,7 @@
               <dt class="col-sm-3">ID Card No.</dt>
               <dd class="col-sm-9">{{ $employee->identity_card ?? '-' }}</dd>
               <dt class="col-sm-3">Place/Date of Birth</dt>
-              <dd class="col-sm-9">{{ $employee->emp_pob ?? '-' }}, {{ date('d-M-Y', strtotime($employee->dob)) ?? '-' }}</dd>
+              <dd class="col-sm-9">{{ $employee->emp_pob ?? '-' }}, {{ date('d-M-Y', strtotime($employee->emp_dob)) ?? '-' }}</dd>
               <dt class="col-sm-3">Blood Type</dt>
               <dd class="col-sm-9">{{ $employee->blood_type ?? '-' }}</dd>
               <dt class="col-sm-3">Religion</dt>
@@ -114,7 +140,6 @@
           </div>
           <!-- /.card-body -->
         </div>
-        <!-- /.card -->
         <div class="card card-gray" id="banks">
           <div class="card-header">
             <h2 class="card-title">Bank Account</h2>
@@ -144,7 +169,6 @@
           </div>
           <!-- /.card-body -->
         </div>
-        <!-- /.card -->
         <div class="card card-gray" id="insurances">
           <div class="card-header">
             <h2 class="card-title">Health Insurance</h2>
@@ -179,8 +203,8 @@
                   <td>{{ $insurance->health_facility }}</td>
                   <td>{{ $insurance->health_insurance_remarks }}</td>
                   <td>
-                    <a class="btn btn-sm btn-icon btn-primary" href="{{ url('insurances/' . $insurance->id . '/edit') }}" data-toggle="modal" data-target="#modal-lg-{{ $insurance->id }}"><i class="fas fa-pen-square"></i></a>
-                    <form action="{{ url('insurances/' . $insurance->id) }}" method="post" onsubmit="return confirm('Are you sure want to delete this data?')" class="d-inline">
+                    <a class="btn btn-sm btn-icon btn-primary" data-toggle="modal" data-target="#modal-insurance-{{ $insurance->id }}"><i class="fas fa-pen-square"></i></a>
+                    <form action="{{ url('insurances/'.$employee->id.'/'. $insurance->id) }}" method="post" onsubmit="return confirm('Are you sure want to delete this data?')" class="d-inline">
                       @method('delete')
                       @csrf
                       <button class="btn btn-sm btn-icon btn-danger"><i class="fas fa-times"></i></button>
@@ -193,8 +217,12 @@
             </table>
           </div>
           <!-- /.card-body -->
+          <div class="card-footer">
+            <div class="col-12 text-right">
+              <a class="btn btn-sm btn-icon btn-warning" data-toggle="modal" data-target="#modal-insurance" title="Add Insurance"><i class="fas fa-plus"></i></a>
+            </div>
+          </div>
         </div>
-        <!-- /.card -->
         <div class="card card-gray" id="families">
           <div class="card-header">
             <h2 class="card-title">Families</h2>
@@ -231,8 +259,8 @@
                   <td>{{ date('d-M-Y', strtotime($family->family_birthdate)) }}</td>
                   <td>{{ $family->family_remarks }}</td>
                   <td>
-                    <a class="btn btn-sm btn-icon btn-primary" href="{{ url('families/' . $family->id . '/edit') }}" data-toggle="modal" data-target="#modal-lg-{{ $family->id }}"><i class="fas fa-pen-square"></i></a>
-                    <form action="{{ url('families/' . $family->id) }}" method="post" onsubmit="return confirm('Are you sure want to delete this data?')" class="d-inline">
+                    <a class="btn btn-sm btn-icon btn-primary" data-toggle="modal" data-target="#modal-family-{{ $family->id }}"><i class="fas fa-pen-square"></i></a>
+                    <form action="{{ url('families/'.$employee->id.'/'. $family->id) }}" method="post" onsubmit="return confirm('Are you sure want to delete this data?')" class="d-inline">
                       @method('delete')
                       @csrf
                       <button class="btn btn-sm btn-icon btn-danger"><i class="fas fa-times"></i></button>
@@ -245,8 +273,12 @@
             </table>
           </div>
           <!-- /.card-body -->
+          <div class="card-footer">
+            <div class="col-12 text-right">
+              <a class="btn btn-sm btn-icon btn-warning" data-toggle="modal" data-target="#modal-family" title="Add Family"><i class="fas fa-plus"></i></a>
+            </div>
+          </div>
         </div>
-        <!-- /.card -->
         <div class="card card-gray" id="educations">
           <div class="card-header">
             <h2 class="card-title">Educations</h2>
@@ -281,8 +313,8 @@
                   <td>{{ $education->education_year }}</td>
                   <td>{{ $education->education_remarks }}</td>
                   <td>
-                    <a class="btn btn-sm btn-icon btn-primary" href="{{ url('educations/' . $education->id . '/edit') }}" data-toggle="modal" data-target="#modal-lg-{{ $education->id }}"><i class="fas fa-pen-square"></i></a>
-                    <form action="{{ url('educations/' . $education->id) }}" method="post" onsubmit="return confirm('Are you sure want to delete this data?')" class="d-inline">
+                    <a class="btn btn-sm btn-icon btn-primary" data-toggle="modal" data-target="#modal-education-{{ $education->id }}"><i class="fas fa-pen-square"></i></a>
+                    <form action="{{ url('schools/'.$employee->id.'/'. $education->id) }}" method="post" onsubmit="return confirm('Are you sure want to delete this data?')" class="d-inline">
                       @method('delete')
                       @csrf
                       <button class="btn btn-sm btn-icon btn-danger"><i class="fas fa-times"></i></button>
@@ -295,6 +327,11 @@
             </table>
           </div>
           <!-- /.card-body -->
+          <div class="card-footer">
+            <div class="col-12 text-right">
+              <a class="btn btn-sm btn-icon btn-warning" data-toggle="modal" data-target="#modal-education" title="Add Education"><i class="fas fa-plus"></i></a>
+            </div>
+          </div>
         </div>
         <div class="card card-gray" id="courses">
           <div class="card-header">
@@ -330,8 +367,8 @@
                   <td>{{ $course->course_year }}</td>
                   <td>{{ $course->course_remarks }}</td>
                   <td>
-                    <a class="btn btn-sm btn-icon btn-primary" href="{{ url('courses/' . $course->id . '/edit') }}" data-toggle="modal" data-target="#modal-lg-{{ $course->id }}"><i class="fas fa-pen-square"></i></a>
-                    <form action="{{ url('courses/' . $course->id) }}" method="post" onsubmit="return confirm('Are you sure want to delete this data?')" class="d-inline">
+                    <a class="btn btn-sm btn-icon btn-primary" href="{{ url('courses/' . $course->id . '/edit') }}" data-toggle="modal" data-target="#modal-course-{{ $course->id }}"><i class="fas fa-pen-square"></i></a>
+                    <form action="{{ url('courses/'.$employee->id.'/'.$course->id) }}" method="post" onsubmit="return confirm('Are you sure want to delete this data?')" class="d-inline">
                       @method('delete')
                       @csrf
                       <button class="btn btn-sm btn-icon btn-danger"><i class="fas fa-times"></i></button>
@@ -344,6 +381,11 @@
             </table>
           </div>
           <!-- /.card-body -->
+          <div class="card-footer">
+            <div class="col-12 text-right">
+              <a class="btn btn-sm btn-icon btn-warning" data-toggle="modal" data-target="#modal-course" title="Add Course"><i class="fas fa-plus"></i></a>
+            </div>
+          </div>
         </div>
         <div class="card card-gray" id="jobs">
           <div class="card-header">
@@ -381,8 +423,8 @@
                   <td>{{ $job->job_duration }}</td>
                   <td>{{ $job->quit_reason }}</td>
                   <td>
-                    <a class="btn btn-sm btn-icon btn-primary" href="{{ url('jobexperiences/' . $job->id . '/edit') }}" data-toggle="modal" data-target="#modal-lg-{{ $job->id }}"><i class="fas fa-pen-square"></i></a>
-                    <form action="{{ url('jobexperiences/' . $job->id) }}" method="post" onsubmit="return confirm('Are you sure want to delete this data?')" class="d-inline">
+                    <a class="btn btn-sm btn-icon btn-primary" href="{{ url('jobexperiences/' . $job->id . '/edit') }}" data-toggle="modal" data-target="#modal-job-{{ $job->id }}"><i class="fas fa-pen-square"></i></a>
+                    <form action="{{ url('jobexperiences/'.$employee->id.'/'. $job->id) }}" method="post" onsubmit="return confirm('Are you sure want to delete this data?')" class="d-inline">
                       @method('delete')
                       @csrf
                       <button class="btn btn-sm btn-icon btn-danger"><i class="fas fa-times"></i></button>
@@ -395,6 +437,11 @@
             </table>
           </div>
           <!-- /.card-body -->
+          <div class="card-footer">
+            <div class="col-12 text-right">
+              <a class="btn btn-sm btn-icon btn-warning" data-toggle="modal" data-target="#modal-job" title="Add Job Experience"><i class="fas fa-plus"></i></a>
+            </div>
+          </div>
         </div>
         <div class="card card-gray" id="units">
           <div class="card-header">
@@ -428,8 +475,8 @@
                   <td>{{ $unit->unit_type }}</td>
                   <td>{{ $unit->unit_remarks }}</td>
                   <td>
-                    <a class="btn btn-sm btn-icon btn-primary" href="{{ url('units/' . $unit->id . '/edit') }}" data-toggle="modal" data-target="#modal-lg-{{ $unit->id }}"><i class="fas fa-pen-square"></i></a>
-                    <form action="{{ url('units/' . $unit->id) }}" method="post" onsubmit="return confirm('Are you sure want to delete this data?')" class="d-inline">
+                    <a class="btn btn-sm btn-icon btn-primary" data-toggle="modal" data-target="#modal-unit-{{ $unit->id }}"><i class="fas fa-pen-square"></i></a>
+                    <form action="{{ url('operableunits/'.$employee->id.'/'. $unit->id) }}" method="post" onsubmit="return confirm('Are you sure want to delete this data?')" class="d-inline">
                       @method('delete')
                       @csrf
                       <button class="btn btn-sm btn-icon btn-danger"><i class="fas fa-times"></i></button>
@@ -441,7 +488,11 @@
               </tbody>
             </table>
           </div>
-          <!-- /.card-body -->
+          <div class="card-footer">
+            <div class="col-12 text-right">
+              <a class="btn btn-sm btn-icon btn-warning" data-toggle="modal" data-target="#modal-unit" title="Add Operable Unit"><i class="fas fa-plus"></i></a>
+            </div>
+          </div>
         </div>
         <div class="card card-gray" id="licenses">
           <div class="card-header">
@@ -475,8 +526,8 @@
                   <td>{{ $license->driver_license_no }}</td>
                   <td>{{ date('d-M-Y', strtotime($license->driver_license_exp)) }}</td>
                   <td>
-                    <a class="btn btn-sm btn-icon btn-primary" href="{{ url('licenses/' . $license->id . '/edit') }}" data-toggle="modal" data-target="#modal-lg-{{ $license->id }}"><i class="fas fa-pen-square"></i></a>
-                    <form action="{{ url('licenses/' . $license->id) }}" method="post" onsubmit="return confirm('Are you sure want to delete this data?')" class="d-inline">
+                    <a class="btn btn-sm btn-icon btn-primary" href="{{ url('licenses/' . $license->id . '/edit') }}" data-toggle="modal" data-target="#modal-license-{{ $license->id }}"><i class="fas fa-pen-square"></i></a>
+                    <form action="{{ url('licenses/'.$employee->id.'/'.$license->id) }}" method="post" onsubmit="return confirm('Are you sure want to delete this data?')" class="d-inline">
                       @method('delete')
                       @csrf
                       <button class="btn btn-sm btn-icon btn-danger"><i class="fas fa-times"></i></button>
@@ -488,7 +539,11 @@
               </tbody>
             </table>
           </div>
-          <!-- /.card-body -->
+          <div class="card-footer">
+            <div class="col-12 text-right">
+              <a class="btn btn-sm btn-icon btn-warning" data-toggle="modal" data-target="#modal-license" title="Add License"><i class="fas fa-plus"></i></a>
+            </div>
+          </div>
         </div>
         <div class="card card-gray" id="emergencies">
           <div class="card-header">
@@ -524,8 +579,8 @@
                   <td>{{ $emergency->emrg_call_address }}</td>
                   <td>{{ $emergency->emrg_call_phone }}</td>
                   <td>
-                    <a class="btn btn-sm btn-icon btn-primary" href="{{ url('emergencies/' . $emergency->id . '/edit') }}" data-toggle="modal" data-target="#modal-lg-{{ $emergency->id }}"><i class="fas fa-pen-square"></i></a>
-                    <form action="{{ url('emergencies/' . $emergency->id) }}" method="post" onsubmit="return confirm('Are you sure want to delete this data?')" class="d-inline">
+                    <a class="btn btn-sm btn-icon btn-primary" data-toggle="modal" data-target="#modal-emergency-{{ $emergency->id }}"><i class="fas fa-pen-square"></i></a>
+                    <form action="{{ url('emrgcalls/'.$employee->id.'/'.$emergency->id) }}" method="post" onsubmit="return confirm('Are you sure want to delete this data?')" class="d-inline">
                       @method('delete')
                       @csrf
                       <button class="btn btn-sm btn-icon btn-danger"><i class="fas fa-times"></i></button>
@@ -537,7 +592,11 @@
               </tbody>
             </table>
           </div>
-          <!-- /.card-body -->
+          <div class="card-footer">
+            <div class="col-12 text-right">
+              <a class="btn btn-sm btn-icon btn-warning" data-toggle="modal" data-target="#modal-emergency" title="Add Emergency Call"><i class="fas fa-plus"></i></a>
+            </div>
+          </div>
         </div>
         <div class="card card-gray" id="additional">
           <div class="card-header">
@@ -566,6 +625,11 @@
             </dl>
           </div>
           <!-- /.card-body -->
+          <div class="card-footer">
+            <div class="col-12 text-right">
+              <a class="btn btn-sm btn-icon btn-primary" data-toggle="modal" data-target="#modal-additional-{{ $additional->id }}"><i class="fas fa-pen-square"></i></a>
+            </div>
+          </div>
         </div>
         <div class="card card-gray" id="administration">
           <div class="card-header">
@@ -607,8 +671,8 @@
                   <td>{{ $administration->project_code }}</td>
                   <td>{{ $administration->class }}</td>
                   <td>
-                    <a class="btn btn-sm btn-icon btn-primary" href="{{ url('administrations/' . $administration->id . '/edit') }}" data-toggle="modal" data-target="#modal-lg-{{ $administration->id }}"><i class="fas fa-pen-square"></i></a>
-                    <form action="{{ url('administrations/' . $administration->id) }}" method="post" onsubmit="return confirm('Are you sure want to delete this data?')" class="d-inline">
+                    <a class="btn btn-sm btn-icon btn-primary" data-toggle="modal" data-target="#modal-administration-{{ $administration->id }}"><i class="fas fa-pen-square"></i></a>
+                    <form action="{{ url('administrations/'.$employee->id.'/'.$administration->id) }}" method="post" onsubmit="return confirm('Are you sure want to delete this data?')" class="d-inline">
                       @method('delete')
                       @csrf
                       <button class="btn btn-sm btn-icon btn-danger"><i class="fas fa-times"></i></button>
@@ -620,7 +684,11 @@
               </tbody>
             </table>
           </div>
-          <!-- /.card-body -->
+          <div class="card-footer">
+            <div class="col-12 text-right">
+              <a class="btn btn-sm btn-icon btn-warning" data-toggle="modal" data-target="#modal-administration" title="Add Administration Data"><i class="fas fa-plus"></i></a>
+            </div>
+          </div>
         </div>
         <div class="card card-gray" id="images">
           <div class="card-header">
@@ -689,12 +757,25 @@
 </section>
 @include('employee.modal-employee')
 @include('employee.modal-bank')
+@include('employee.modal-insurance')
+@include('employee.modal-family')
+@include('employee.modal-education')
+@include('employee.modal-course')
+@include('employee.modal-job')
+@include('employee.modal-unit')
+@include('employee.modal-license')
+@include('employee.modal-emergency')
+@include('employee.modal-additional')
+@include('employee.modal-administration')
 
 @endsection
 
 @section('styles')
 <!-- Ekko Lightbox -->
 <link rel="stylesheet" href="{{ asset('assets/plugins/ekko-lightbox/ekko-lightbox.css') }}">
+<!-- Select2 -->
+<link rel="stylesheet" href="{{ asset('assets/plugins/select2/css/select2.min.css') }}">
+<link rel="stylesheet" href="{{ asset('assets/plugins/select2-bootstrap4-theme/select2-bootstrap4.min.css') }}">
 @endsection
 
 @section('scripts')
@@ -709,6 +790,76 @@
       });
     });
   })
+
+</script>
+<!-- Select2 -->
+<script src="{{ asset('assets/plugins/select2/js/select2.full.min.js') }}"></script>
+<script>
+  $(function() {
+    // select2
+    $('.select2').select2()
+    $('.select2bs4').select2({
+      theme: 'bootstrap4'
+    })
+    $(document).on('select2:open', () => {
+      document.querySelector('.select2-search__field').focus();
+    })
+
+
+    // autofill department placeholder based on position_id on add modal
+    $('.position_id').on('change', function() {
+      var position_id = $('.position_id').val();
+      $.ajax({
+        url: "{{ route('employees.getDepartment') }}"
+        , type: "GET"
+        , data: {
+          position_id: position_id
+        }
+        , success: function(data) {
+          console.log(position_id);
+          console.log(data.department_name);
+          // set value to department the data
+          $('.department').val(data.department_name);
+        }
+      });
+    });
+
+    // autofill department placeholder based on position_id on edit modal
+    @foreach($administrations as $administration)
+    $(document).ready(function() {
+      var position_id = $('.position_id{{ $administration->id }}').val();
+      $.ajax({
+        url: "{{ route('employees.getDepartment') }}"
+        , type: "GET"
+        , data: {
+          position_id: position_id
+        }
+        , success: function(data) {
+          console.log(position_id);
+          console.log(data.department_name);
+          // set value to department the data
+          $('.department{{ $administration->id }}').val(data.department_name);
+        }
+      });
+    });
+    $('.position_id{{ $administration->id }}').on('change', function() {
+      var position_id = $('.position_id{{ $administration->id }}').val();
+      $.ajax({
+        url: "{{ route('employees.getDepartment') }}"
+        , type: "GET"
+        , data: {
+          position_id: position_id
+        }
+        , success: function(data) {
+          console.log(position_id);
+          console.log(data.department_name);
+          // set value to department the data
+          $('.department{{ $administration->id }}').val(data.department_name);
+        }
+      });
+    });
+    @endforeach
+  });
 
 </script>
 @endsection

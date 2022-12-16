@@ -8,17 +8,16 @@ use App\Models\Jobexperience;
 
 class JobexperienceController extends Controller
 {
-   
+
     public function index()
     {
 
-       
-        
+
+
         $title = ' Employee Job Experience';
         $subtitle = ' Employee Job Experience';
         $employees = Employee::orderBy('fullname', 'asc')->get();
         return view('jobexperience.index', compact('title', 'subtitle', 'employees'));
-    
     }
 
     public function getJobexperiences(Request $request)
@@ -87,9 +86,27 @@ class JobexperienceController extends Controller
      * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\Response
      */
-    public function store(Request $request)
+    public function store($employee_id, Request $request)
     {
-        //
+        $request->validate([
+            'employee_id' => 'required',
+            'company_name' => 'required',
+            'company_address' => 'required',
+            'job_position' => 'required',
+            'job_duration' => 'required',
+            'quit_reason' => 'required',
+        ]);
+
+        $jobexperience = new Jobexperience();
+        $jobexperience->employee_id = $request->employee_id;
+        $jobexperience->company_name = $request->company_name;
+        $jobexperience->company_address = $request->company_address;
+        $jobexperience->job_position = $request->job_position;
+        $jobexperience->job_duration = $request->job_duration;
+        $jobexperience->quit_reason = $request->quit_reason;
+        $jobexperience->save();
+
+        return redirect('employees/' . $employee_id)->with('toast_success', 'Job Experience Added Successfully');
     }
 
     /**
@@ -121,9 +138,27 @@ class JobexperienceController extends Controller
      * @param  \App\Models\Jobexperience  $jobexperience
      * @return \Illuminate\Http\Response
      */
-    public function update(Request $request, Jobexperience $jobexperience)
+    public function update(Request $request, $id)
     {
-        //
+        $request->validate([
+            'employee_id' => 'required',
+            'company_name' => 'required',
+            'company_address' => 'required',
+            'job_position' => 'required',
+            'job_duration' => 'required',
+            'quit_reason' => 'required',
+        ]);
+
+        $jobexperience = Jobexperience::find($id);
+        $jobexperience->employee_id = $request->employee_id;
+        $jobexperience->company_name = $request->company_name;
+        $jobexperience->company_address = $request->company_address;
+        $jobexperience->job_position = $request->job_position;
+        $jobexperience->job_duration = $request->job_duration;
+        $jobexperience->quit_reason = $request->quit_reason;
+        $jobexperience->save();
+
+        return redirect('employees/' . $jobexperience->employee_id)->with('toast_success', 'Job Experience Updated Successfully');
     }
 
     /**
@@ -132,8 +167,11 @@ class JobexperienceController extends Controller
      * @param  \App\Models\Jobexperience  $jobexperience
      * @return \Illuminate\Http\Response
      */
-    public function destroy(Jobexperience $jobexperience)
+    public function delete($employee_id, $id)
     {
-        //
+        $jobexperience = Jobexperience::find($id);
+        $jobexperience->delete();
+
+        return redirect('employees/' . $employee_id)->with('toast_success', 'Job Experience Deleted Successfully');
     }
 }

@@ -32,7 +32,7 @@ class AdministrationController extends Controller
             ->join('projects', 'administrations.project_id', '=', 'projects.id')
             ->join('employees', 'administrations.employee_id', '=', 'employees.id')
             ->join('positions', 'administrations.position_id', '=', 'positions.id')
-            ->select('administrations.*', 'fullname', 'position_name','project_name')
+            ->select('administrations.*', 'fullname', 'position_name', 'project_name')
             ->orderBy('fullname', 'asc');
 
         return datatables()->of($administrations)
@@ -67,7 +67,7 @@ class AdministrationController extends Controller
             ->addColumn('other_allowance', function ($administrations) {
                 return $administrations->other_allowance;
             })
-            
+
             // ->addColumn('position_status', function ($position) {
             //     if ($position->position_status == '1') {
             //         return '<span class="badge badge-success">Active</span>';
@@ -87,7 +87,6 @@ class AdministrationController extends Controller
                             ->orWhere('class', 'LIKE', "%$search%")
                             ->orWhere('doh', 'LIKE', "%$search%")
                             ->orWhere('poh', 'LIKE', "%$search%");
-                           
                     });
                 }
             })
@@ -110,7 +109,7 @@ class AdministrationController extends Controller
     //                                             $query->where('fullname', 'LIKE', '%'.$keyword.'%');
     //                                         })                        
     //                                         ->paginate(5);
-      
+
 
     //     // $administrations = DB::table('administrations')
     //     //     ->join('projects', 'administrations.project_id', '=', 'projects.id')
@@ -130,26 +129,37 @@ class AdministrationController extends Controller
     //     return view('administration.create', compact('employee','projects','positions'));
     // }
 
-    // public function store(Request $request)
-    // {
+    public function store($employee_id, Request $request)
+    {
+        $request->validate([
+            'employee_id' => 'required',
+            'project_id' => 'required',
+            'position_id' => 'required',
+            'nik' => 'required|unique:administrations',
+            'class' => 'required',
+            'doh' => 'required',
+            'poh' => 'required',
+            'basic_salary' => 'required',
+            'site_allowance' => 'required',
+            'other_allowance' => 'required',
 
-       
-    //     $validated = $request->validate([
-    //         'employee_id' => 'required',
-    //         'project_id' => 'required',
-    //         'position_id' => 'required',
-    //         'nik' => 'required',
-    //         'class' => 'required',
-    //         'doh' => 'required',
-    //         'poh' => 'required',
-    //         'basic_salary' => 'required',
-    //         'site_allowance' => 'required',
-    //         'other_allowance' => 'required',
+        ]);
+        $administration = new Administration;
+        $administration->employee_id = $request->employee_id;
+        $administration->project_id = $request->project_id;
+        $administration->position_id = $request->position_id;
+        $administration->nik = $request->nik;
+        $administration->class = $request->class;
+        $administration->doh = $request->doh;
+        $administration->poh = $request->poh;
+        $administration->basic_salary = $request->basic_salary;
+        $administration->site_allowance = $request->site_allowance;
+        $administration->other_allowance = $request->other_allowance;
+        $administration->is_active = $request->is_active;
+        $administration->save();
 
-    //     ]);
-    //     $administration = Administration::create($request->all());
-    //     return redirect('admin/administrations')->with('status', 'Administration Employee Add Successfully');
-    // }
+        return redirect('employees/' . $employee_id)->with('toast_success', 'Administration Added Successfully');
+    }
 
     // public function editAdministration($slug)
     // {
@@ -160,34 +170,33 @@ class AdministrationController extends Controller
     //     return view('administration.edit', compact('administrations', 'projects', 'positions','employee'));
     // }
 
-    // public function updateAdministration(Request $request, $slug)
-    // {
-    //     $administrations = Administration::where('slug', $slug)->first();
-    //     $rules = [
-    //         'employee_id' => 'required',
-    //         'project_id' => 'required',
-    //         'position_id' => 'required',
-    //         'nik' => 'required',
-    //         'class' => 'required',
-    //         'doh' => 'required',
-    //         'poh' => 'required',
-    //         'basic_salary' => 'required',
-    //         'site_allowance' => 'required',
-    //         'other_allowance' => 'required',
+    public function update(Request $request, $id)
+    {
+        // $administrations = Administration::where('id', $id)->first();
+        $rules = [
+            'employee_id' => 'required',
+            'project_id' => 'required',
+            'position_id' => 'required',
+            'nik' => 'required',
+            'class' => 'required',
+            'doh' => 'required',
+            'poh' => 'required',
+            'basic_salary' => 'required',
+            'site_allowance' => 'required',
+            'other_allowance' => 'required',
 
-    //     ];
+        ];
 
-    //     $validatedData = $request->validate($rules);
-    //     Administration::where('slug', $slug)->update($validatedData);
+        $validatedData = $request->validate($rules);
+        Administration::where('id', $id)->update($validatedData);
 
-    //     return redirect('admin/administrations')->with('status', 'Administration Employee Update Successfully');
-    // }
+        return redirect('employees/' . $request->employee_id)->with('toast_success', 'Administration Updated Successfully');
+    }
 
-    // public function deleteAdministration($slug)
-    // {
-
-    //     $administrations = Administration::where('slug', $slug)->first();
-    //     $administrations->delete();
-    //     return redirect('admin/administrations')->with('status', 'Administration Employee Delete Successfully');
-    // }
+    public function delete($employee_id, $id)
+    {
+        $administrations = Administration::where('id', $id)->first();
+        $administrations->delete();
+        return redirect('employees/' . $employee_id)->with('toast_success', 'Administration Deleted Successfully');
+    }
 }
