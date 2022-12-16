@@ -60,7 +60,7 @@ class LicenseController extends Controller
                 return $date;
 
             })
-            ->rawColumns(['driver_license_no', 'action'])
+            ->rawColumns(['fullname', 'action'])
             ->toJson();
     }
 

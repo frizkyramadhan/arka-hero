@@ -74,7 +74,7 @@ class FamilieController extends Controller
                 return $date;
 
             })
-            ->rawColumns(['family_name', 'action'])
+            ->rawColumns(['fullname', 'action'])
             // ->addColumn('action', 'familie.action')
             ->toJson();
     }

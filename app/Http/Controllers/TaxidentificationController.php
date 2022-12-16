@@ -65,7 +65,7 @@ class TaxidentificationController extends Controller
                 return $date;
 
             })
-            ->rawColumns(['tax_no', 'action'])
+            ->rawColumns(['fullname', 'action'])
             ->toJson();
     }
 

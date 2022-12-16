@@ -1,4 +1,4 @@
-<a class="btn btn-icon btn-primary" href="{{ url('jobexperiences/' . $jobexperiences->id . '/show') }}" data-toggle="modal" data-target="#modal-lg-{{ $jobexperiences->id }}"><i class="fas fa-pen-square"></i></a>
+<a class="btn btn-icon btn-primary btn-xs" href="{{ url('jobexperiences/' . $jobexperiences->id . '/show') }}" data-toggle="modal" data-target="#modal-lg-{{ $jobexperiences->id }}"><i class="fa fa-eye"></i></a>
 
 
 

@@ -23,24 +23,37 @@ class AdministrationController extends Controller
     public function getAdministration(Request $request)
     {
 
-        // $administrations = Administration::with(['projects','employees','positions']);
+        $administrations = Administration::join('projects', 'administrations.project_id', '=', 'projects.id')
+                                            ->join('employees', 'administrations.employee_id', '=', 'employees.id')
+                                            ->join('positions', 'administrations.position_id', '=', 'positions.id')
+                                            ->select('administrations.*', 'fullname', 'position_name','project_name')
+                                            ->orderBy('fullname', 'asc');
+                                       
         // $insurances = Administration::leftJoin('employees', 'insurances.employee_id', '=', 'employees.id')
         //     ->select('insurances.*', 'employees.fullname')
         //     ->orderBy('insurances.health_insurance_no', 'asc');
 
-        $administrations = DB::table('administrations')
-            ->join('projects', 'administrations.project_id', '=', 'projects.id')
-            ->join('employees', 'administrations.employee_id', '=', 'employees.id')
-            ->join('positions', 'administrations.position_id', '=', 'positions.id')
-            ->select('administrations.*', 'fullname', 'position_name','project_name')
-            ->orderBy('fullname', 'asc');
-
-        // $administrations = Administration::leftJoin('administrations', 'employees.id', '=', 'administrations.employee_id')
-        //     ->leftJoin('projects', 'administrations.project_id', '=', 'projects.id')
-        //     ->leftJoin('positions', 'administrations.position_id', '=', 'positions.id')
-        //     // ->leftJoin('departments', 'positions.department_id', '=', 'departments.id')
+        // $administrations = DB::table('administrations')
+        //     ->join('projects', 'administrations.project_id', '=', 'projects.id')
+        //     ->join('employees', 'administrations.employee_id', '=', 'employees.id')
+        //     ->join('positions', 'administrations.position_id', '=', 'positions.id')
         //     ->select('administrations.*', 'fullname', 'position_name','project_name')
         //     ->orderBy('fullname', 'asc');
+
+            // $administrations = Administration::leftJoin('employees', 'administrations.id', '=', 'employees.employee_id')
+            // ->leftJoin('projects', 'administrations.project_id', '=', 'projects.id')
+            // ->leftJoin('positions', 'administrations.position_id', '=', 'positions.id')
+            // ->leftJoin('departments', 'positions.department_id', '=', 'departments.id')
+            // ->select('employees.*', 'employees.created_at as created_date', 'administrations.nik', 'administrations.poh', 'administrations.doh', 'administrations.class', 'projects.project_code', 'positions.position_name', 'departments.department_name')
+            // ->orderBy('administrations.nik', 'desc');
+
+
+            // $employee = Employee::leftJoin('administrations', 'employees.id', '=', 'administrations.employee_id')
+            // ->leftJoin('projects', 'administrations.project_id', '=', 'projects.id')
+            // ->leftJoin('positions', 'administrations.position_id', '=', 'positions.id')
+            // ->leftJoin('departments', 'positions.department_id', '=', 'departments.id')
+            // ->select('employees.*', 'employees.created_at as created_date', 'administrations.nik', 'administrations.poh', 'administrations.doh', 'administrations.class', 'projects.project_code', 'positions.position_name', 'departments.department_name')
+            // ->orderBy('administrations.nik', 'desc');
 
         return datatables()->of($administrations)
             ->addIndexColumn()
@@ -106,32 +119,32 @@ class AdministrationController extends Controller
                 return $date;
 
             })
-            ->rawColumns(['nik', 'action'])
+            ->rawColumns(['fullname', 'action'])
             ->toJson();
     }
-    public function administrations(Request $request)
-    {
-        $keyword = $request->keyword;
-        $administrations = Administration::with(['projects','employees','positions'])
-                                            ->where('nik', 'LIKE', '%'.$keyword.'%')
-                                            ->orWhere('class', 'LIKE', '%'.$keyword.'%')
-                                            ->orWhere('doh', 'LIKE', '%'.$keyword.'%')
-                                            ->orWhere('poh', 'LIKE', '%'.$keyword.'%')
-                                            ->orWhereHas('employees', function($query) use($keyword){
-                                                $query->where('fullname', 'LIKE', '%'.$keyword.'%');
-                                            })                        
-                                            ->paginate(5);
+    // public function administrations(Request $request)
+    // {
+    //     $keyword = $request->keyword;
+    //     $administrations = Administration::with(['projects','employees','positions'])
+    //                                         ->where('nik', 'LIKE', '%'.$keyword.'%')
+    //                                         ->orWhere('class', 'LIKE', '%'.$keyword.'%')
+    //                                         ->orWhere('doh', 'LIKE', '%'.$keyword.'%')
+    //                                         ->orWhere('poh', 'LIKE', '%'.$keyword.'%')
+    //                                         ->orWhereHas('employees', function($query) use($keyword){
+    //                                             $query->where('fullname', 'LIKE', '%'.$keyword.'%');
+    //                                         })                        
+    //                                         ->paginate(5);
       
 
-        // $administrations = DB::table('administrations')
-        //     ->join('projects', 'administrations.project_id', '=', 'projects.id')
-        //     ->join('employees', 'administrations.employee_id', '=', 'employees.id')
-        //     ->join('positions', 'administrations.position_id', '=', 'positions.id')
-        //     ->select('administrations.*', 'fullname', 'position_name','project_name')
-        //     ->orderBy('fullname', 'asc')
-        //     ->simplePaginate(10);
-        return view('administration.index', ['administrations' => $administrations]);
-    }
+    //     // $administrations = DB::table('administrations')
+    //     //     ->join('projects', 'administrations.project_id', '=', 'projects.id')
+    //     //     ->join('employees', 'administrations.employee_id', '=', 'employees.id')
+    //     //     ->join('positions', 'administrations.position_id', '=', 'positions.id')
+    //     //     ->select('administrations.*', 'fullname', 'position_name','project_name')
+    //     //     ->orderBy('fullname', 'asc')
+    //     //     ->simplePaginate(10);
+    //     return view('administration.index', ['administrations' => $administrations]);
+    // }
 
     // public function AddAdministration()
     // {

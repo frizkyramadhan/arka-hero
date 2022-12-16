@@ -1,4 +1,4 @@
-<a class="btn btn-icon btn-primary" href="{{ url('operableunits/' . $operableunits->id . '/show') }}" data-toggle="modal" data-target="#modal-lg-{{ $operableunits->id }}"><i class="fas fa-pen-square"></i></a>
+<a class="btn btn-icon btn-primary btn-xs" href="{{ url('operableunits/' . $operableunits->id . '/show') }}" data-toggle="modal" data-target="#modal-lg-{{ $operableunits->id }}"><i class="fas fa fa-eye"></i></a>
 
 <div class="modal fade text-left" id="modal-lg-{{ $operableunits->id }}">
   <div class="modal-dialog modal-lg">

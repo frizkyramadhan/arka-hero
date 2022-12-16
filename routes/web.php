@@ -163,8 +163,8 @@ Route::group(['middleware' => ['auth']], function () {
     // Route::get('operableunits', [OperableunitController::class, 'index'])->name('index');
     Route::get('operableunits/getOperableunits', [OperableunitController::class, 'getOperableunits'])->name('operableunits.list');
 
-
-    Route::get('taxidentifications', [TaxidentificationController::class, 'index'])->name('index');
+    Route::resource('taxidentifications', TaxidentificationController::class)->except(['show', 'create', 'edit']);
+    // Route::get('taxidentifications', [TaxidentificationController::class, 'index'])->name('index');
     Route::get('taxidentifications/getTaxidentifications', [TaxidentificationController::class, 'getTaxidentifications'])->name('taxidentifications.list');
 
 });

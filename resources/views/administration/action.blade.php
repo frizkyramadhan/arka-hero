@@ -1,4 +1,4 @@
-<a class="btn btn-icon btn-primary" href="{{ url('administrations/' . $administrations->id . '/show') }}" data-toggle="modal" data-target="#modal-lg-{{ $administrations->id }}"><i class="fas fa-pen-square"></i></a>
+<a class="btn btn-icon btn-primary btn-xs" href="{{ url('administrations/' . $administrations->id . '/show') }}" data-toggle="modal" data-target="#modal-lg-{{ $administrations->id }}"><i class="fas fa fa-eye"></i></a>
 
 
 <div class="modal fade text-left" id="modal-lg-{{ $administrations->id }}">
@@ -48,7 +48,7 @@
               <div class="form-group row">
                 <label class="col-sm-3 col-form-label">DOH</label>
                 <div class="col-sm-8">
-                  <input type="text" class="form-control" name="doh" value="{{ $administrations->doh }}" readonly>
+                  <input type="text" class="form-control" name="doh" value="{{  showDateTime($administrations->doh, 'l, d F Y') }}" readonly>
                 </div>
               </div>
               <div class="form-group row">

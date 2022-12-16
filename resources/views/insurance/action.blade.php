@@ -1,4 +1,4 @@
-<a class="btn btn-icon btn-primary" href="{{ url('insurances/' . $insurances->id . '/show') }}" data-toggle="modal" data-target="#modal-lg-{{ $insurances->id }}"><i class="fas fa-pen-square"></i></a>
+<a class="btn btn-icon btn-primary btn-xs" href="{{ url('insurances/' . $insurances->id . '/show') }}" data-toggle="modal" data-target="#modal-lg-{{ $insurances->id }}"><i class="fas fa fa-eye"></i></a>
 
 
 <div class="modal fade text-left" id="modal-lg-{{ $insurances->id }}">

@@ -1,4 +1,4 @@
-<a class="btn btn-icon btn-primary" href="{{ url('taxidentifications/' . $taxidentifications->id . '/show') }}" data-toggle="modal" data-target="#modal-lg-{{ $taxidentifications->id }}"><i class="fas fa-pen-square"></i></a>
+<a class="btn btn-icon btn-primary btn-xs" href="{{ url('taxidentifications/' . $taxidentifications->id . '/show') }}" data-toggle="modal" data-target="#modal-lg-{{ $taxidentifications->id }}"><i class="fas fa fa-eye"></i></a>
 
 
 <div class="modal fade text-left" id="modal-lg-{{ $taxidentifications->id }}">
@@ -32,9 +32,7 @@
                   <input type="text" class="form-control" name="tax_valid_date" value="{{  showDateTime($taxidentifications->tax_valid_date, 'l, d F Y') }}" readonly>
                   
                 </div>
-              </div>
-              
-              
+              </div>                      
             </div>
           </div>
         </div>
