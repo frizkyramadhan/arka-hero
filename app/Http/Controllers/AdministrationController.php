@@ -27,33 +27,7 @@ class AdministrationController extends Controller
                                             ->join('employees', 'administrations.employee_id', '=', 'employees.id')
                                             ->join('positions', 'administrations.position_id', '=', 'positions.id')
                                             ->select('administrations.*', 'fullname', 'position_name','project_name')
-                                            ->orderBy('fullname', 'asc');
-                                       
-        // $insurances = Administration::leftJoin('employees', 'insurances.employee_id', '=', 'employees.id')
-        //     ->select('insurances.*', 'employees.fullname')
-        //     ->orderBy('insurances.health_insurance_no', 'asc');
-
-        // $administrations = DB::table('administrations')
-        //     ->join('projects', 'administrations.project_id', '=', 'projects.id')
-        //     ->join('employees', 'administrations.employee_id', '=', 'employees.id')
-        //     ->join('positions', 'administrations.position_id', '=', 'positions.id')
-        //     ->select('administrations.*', 'fullname', 'position_name','project_name')
-        //     ->orderBy('fullname', 'asc');
-
-            // $administrations = Administration::leftJoin('employees', 'administrations.id', '=', 'employees.employee_id')
-            // ->leftJoin('projects', 'administrations.project_id', '=', 'projects.id')
-            // ->leftJoin('positions', 'administrations.position_id', '=', 'positions.id')
-            // ->leftJoin('departments', 'positions.department_id', '=', 'departments.id')
-            // ->select('employees.*', 'employees.created_at as created_date', 'administrations.nik', 'administrations.poh', 'administrations.doh', 'administrations.class', 'projects.project_code', 'positions.position_name', 'departments.department_name')
-            // ->orderBy('administrations.nik', 'desc');
-
-
-            // $employee = Employee::leftJoin('administrations', 'employees.id', '=', 'administrations.employee_id')
-            // ->leftJoin('projects', 'administrations.project_id', '=', 'projects.id')
-            // ->leftJoin('positions', 'administrations.position_id', '=', 'positions.id')
-            // ->leftJoin('departments', 'positions.department_id', '=', 'departments.id')
-            // ->select('employees.*', 'employees.created_at as created_date', 'administrations.nik', 'administrations.poh', 'administrations.doh', 'administrations.class', 'projects.project_code', 'positions.position_name', 'departments.department_name')
-            // ->orderBy('administrations.nik', 'desc');
+                                            ->orderBy('fullname', 'asc');                                    
 
         return datatables()->of($administrations)
             ->addIndexColumn()

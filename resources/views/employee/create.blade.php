@@ -15,6 +15,7 @@
     </div><!-- /.row -->
   </div><!-- /.container-fluid -->
 </div>
+
 <!-- /.content-header -->
 <section class="content">
   <div class="container-fluid">
@@ -474,6 +475,15 @@
                             <input type="date" value="{{ old('doh') }}" class="form-control @error('doh') is-invalid @enderror" id="doh" name="doh">
                             @if ($errors->any('doh'))
                             <span class="text-danger">{{ ($errors->first('doh')) }}</span>
+                            @endif
+                          </div>
+                        </div>
+                        <div class="col-md-6">
+                          <div class="form-group">
+                            <label for="foc" class="form-label">FOC</label>
+                            <input type="date" value="{{ old('foc') }}" class="form-control @error('foc') is-invalid @enderror" id="foc" name="foc">
+                            @if ($errors->any('foc'))
+                            <span class="text-danger">{{ ($errors->first('foc')) }}</span>
                             @endif
                           </div>
                         </div>
