@@ -1,4 +1,4 @@
-<a class="btn btn-icon btn-primary" href="{{ url('administrations/' . $administrations->id . '/show') }}" data-toggle="modal" data-target="#modal-lg-{{ $administrations->id }}"><i class="fas fa-pen-square"></i></a>
+<a class="btn btn-icon btn-primary btn-xs" href="{{ url('administrations/' . $administrations->id . '/show') }}" data-toggle="modal" data-target="#modal-lg-{{ $administrations->id }}"><i class="fas fa fa-eye"></i></a>
 
 
 <div class="modal fade text-left" id="modal-lg-{{ $administrations->id }}">
@@ -48,7 +48,37 @@
               <div class="form-group row">
                 <label class="col-sm-3 col-form-label">DOH</label>
                 <div class="col-sm-8">
-                  <input type="text" class="form-control" name="doh" value="{{ $administrations->doh }}" readonly>
+                  <input type="text" class="form-control" name="doh" value="{{  showDateTime($administrations->doh, 'l, d F Y') }}" readonly>
+                </div>
+              </div>
+              <div class="form-group row">
+                <label class="col-sm-3 col-form-label">FOC</label>
+                <div class="col-sm-8">
+                  <input type="text" class="form-control" name="foc" value="{{ showDateTime($administrations->foc, 'l, d F Y') }}" readonly>
+                </div>
+              </div>
+              <div class="form-group row">
+                <label class="col-sm-3 col-form-label">Agreement</label>
+                <div class="col-sm-8">
+                  <input type="text" class="form-control" name="agreement" value="{{ $administrations->agreement }}" readonly>
+                </div>
+              </div>
+              <div class="form-group row">
+                <label class="col-sm-3 col-form-label">Company Program</label>
+                <div class="col-sm-8">
+                  <input type="text" class="form-control" name="company_program" value="{{ $administrations->company_program }}" readonly>
+                </div>
+              </div>
+              <div class="form-group row">
+                <label class="col-sm-3 col-form-label">No FPTK</label>
+                <div class="col-sm-8">
+                  <input type="text" class="form-control" name="no_fptk" value="{{ $administrations->no_fptk }}" readonly>
+                </div>
+              </div>
+              <div class="form-group row">
+                <label class="col-sm-3 col-form-label">No Certificate Active Employment</label>
+                <div class="col-sm-8">
+                  <input type="text" class="form-control" name="no_sk_active" value="{{ $administrations->no_sk_active }}" readonly>
                 </div>
               </div>
               <div class="form-group row">
@@ -73,6 +103,17 @@
                 <label class="col-sm-3 col-form-label">Other Allowance</label>
                 <div class="col-sm-8">
                   <input type="text" class="form-control" name="other_allowance" value="{{ $administrations->other_allowance }}" readonly>
+                </div>
+              </div>
+              <div class="form-group row">
+                <label class="col-sm-3 col-form-label">Status</label>
+                <div class="col-sm-8">
+                  <select name="is_active" class="form-control @error('is_active') is-invalid @enderror" disabled="true">
+                    <option value="1" {{ old('is_active', $administrations->is_active) == '1' ? 'selected' : '' }}>
+                      Active</option>
+                    <option value="0" {{ old('is_active', $administrations->is_active) == '0' ? 'selected' : '' }}>Inactive
+                    </option>
+                  </select>
                 </div>
               </div>
             </div>

@@ -69,7 +69,12 @@ class FamilieController extends Controller
                 $employees = Employee::orderBy('fullname', 'asc')->get();
                 return view('familie.action', compact('employees', 'families'));
             })
-            ->rawColumns(['family_name', 'action'])
+            ->addColumn('family_birthdate', function($families){
+                $date = date("d F Y", strtotime($families->family_birthdate));
+                return $date;
+
+            })
+            ->rawColumns(['fullname', 'action'])
             // ->addColumn('action', 'familie.action')
             ->toJson();
     }

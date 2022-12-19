@@ -1,4 +1,4 @@
-<a class="btn btn-icon btn-primary" href="{{ url('licenses/' . $license->id . '/show') }}" data-toggle="modal" data-target="#modal-lg-{{ $license->id }}"><i class="fas fa-pen-square"></i></a>
+<a class="btn btn-icon btn-primary btn-xs" href="{{ url('licenses/' . $license->id . '/show') }}" data-toggle="modal" data-target="#modal-lg-{{ $license->id }}"><i class="fas fa fa-eye"></i></a>
 
 <div class="modal fade text-left" id="modal-lg-{{ $license->id }}">
   <div class="modal-dialog modal-lg">
@@ -35,7 +35,7 @@
               <div class="form-group row">
                 <label class="col-sm-3 col-form-label">Driver License Exp</label>
                 <div class="col-sm-8">
-                  <input type="text" class="form-control" name="driver_license_exp" value="{{ $license->driver_license_exp }}" readonly>
+                  <input type="text" class="form-control" name="driver_license_exp" value="{{  showDateTime($license->driver_license_exp, 'l, d F Y') }}" readonly>
                 </div>
               </div>
               

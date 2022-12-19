@@ -45,6 +45,7 @@ class LicenseController extends Controller
                         $search = $request->get('search');
                         $w->orWhere('driver_license_no', 'LIKE', "%$search%")
                             ->orWhere('driver_license_type', 'LIKE', "%$search%")
+                            ->orWhere('driver_license_exp', 'LIKE', "%$search%")
                             ->orWhere('fullname', 'LIKE', "%$search%");
                     });
                 }
@@ -53,8 +54,13 @@ class LicenseController extends Controller
                 $employees = Employee::orderBy('fullname', 'asc')->get();
                 return view('license.action', compact('employees', 'license'));
             })
-            ->rawColumns(['driver_license_no', 'action'])
-            // ->addColumn('action', 'license.action')
+             
+            ->addColumn('driver_license_exp', function($license){
+                $date = date("d F Y", strtotime($license->driver_license_exp));
+                return $date;
+
+            })
+            ->rawColumns(['fullname', 'action'])
             ->toJson();
     }
 

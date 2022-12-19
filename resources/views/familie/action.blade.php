@@ -1,4 +1,4 @@
-<a class="btn btn-icon btn-primary" href="{{ url('families/' . $families->id . '/show') }}" data-toggle="modal" data-target="#modal-lg-{{ $families->id }}"><i class="fas fa-pen-square"></i></a>
+<a class="btn btn-icon btn-primary btn-xs" href="{{ url('families/' . $families->id . '/show') }}" data-toggle="modal" data-target="#modal-lg-{{ $families->id }}"><i class="fas fa fa-eye"></i></a>
 
 
 
@@ -43,7 +43,7 @@
               <div class="form-group row">
                 <label class="col-sm-3 col-form-label">Family Birthdate</label>
                 <div class="col-sm-8">
-                  <input type="text" class="form-control" name="family_birthdate" value="{{ $families->family_birthdate }}" readonly>
+                  <input type="text" class="form-control" name="family_birthdate" value="{{  showDateTime($families->family_birthdate, 'l, d F Y') }}" readonly>
                 </div>
               </div>
               <div class="form-group row">

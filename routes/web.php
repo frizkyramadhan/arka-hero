@@ -134,6 +134,10 @@ Route::group(['middleware' => ['auth']], function () {
     // Route::put('/updateAdditionaldata/{slug}', [AdditionaldataController::class, 'updateAdditionaldata'])->name('updateAdditionaldata');
     // Route::delete('deleteAdditionaldata/{slug}', [AdditionaldataController::class, 'deleteAdditionaldata'])->name('deleteAdditionaldata');
 
+
+
+    Route::resource('employeebanks', EmployeebankController::class)->except(['show', 'create', 'edit']);
+    // Route::get('employeebanks', [EmployeebankController::class, 'index'])->name('index');
     Route::get('employeebanks/getEmployeebank', [EmployeebankController::class, 'getEmployeebank'])->name('employeebanks.list');
     Route::resource('employeebanks', EmployeebankController::class);
     // Route::post('AddEmployeebank', [EmployeebankController::class, 'store'])->name('store');
@@ -141,6 +145,10 @@ Route::group(['middleware' => ['auth']], function () {
     // Route::put('/updateEmployeebank/{slug}', [EmployeebankController::class, 'updateEmployeebank'])->name('updateEmployeebank');
     // Route::delete('deleteEmployeebank/{slug}', [EmployeebankController::class, 'deleteEmployeebank'])->name('deleteEmployeebank');
 
+
+
+    Route::resource('administrations', AdministrationController::class)->except(['show', 'create', 'edit']);
+    // Route::get('administrations', [AdministrationController::class, 'index'])->name('index');
     Route::get('administrations/getAdministration', [AdministrationController::class, 'getAdministration'])->name('administrations.list');
     Route::resource('administrations', AdministrationController::class)->except(['store', 'show', 'create', 'edit']);
     // Route::get('editAdministration/{slug}', [AdministrationController::class, 'editAdministration'])->name('editAdministration');
@@ -164,13 +172,15 @@ Route::group(['middleware' => ['auth']], function () {
     Route::delete('jobexperiences/{employee_id}/{id}', [JobexperienceController::class, 'delete'])->name('jobexperiences.delete');
 
     Route::get('operableunits/getOperableunits', [OperableunitController::class, 'getOperableunits'])->name('operableunits.list');
+
     Route::resource('operableunits', OperableunitController::class)->except(['store', 'show', 'create', 'edit']);
     Route::post('operableunits/{employee_id}', [OperableunitController::class, 'store'])->name('operableunits.store');
     Route::delete('operableunits/{employee_id}/{id}', [OperableunitController::class, 'delete'])->name('operableunits.delete');
 
     Route::get('taxidentifications', [TaxidentificationController::class, 'index'])->name('index');
+    Route::resource('taxidentifications', TaxidentificationController::class)->except(['show', 'create', 'edit']);
+    // Route::get('taxidentifications', [TaxidentificationController::class, 'index'])->name('index');
     Route::get('taxidentifications/getTaxidentifications', [TaxidentificationController::class, 'getTaxidentifications'])->name('taxidentifications.list');
-
     Route::get('terminations/getTerminations', [TerminationController::class, 'getTerminations'])->name('terminations.list');
     Route::resource('terminations', TerminationController::class)->except(['create', 'show', 'edit']);
 });

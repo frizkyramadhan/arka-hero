@@ -15,7 +15,7 @@ return new class extends Migration
     {
         Schema::create('taxidentifications', function (Blueprint $table) {
             $table->id();
-            $table->foreignUuid('employee_id')->constrained('employees');
+            $table->foreignUuid('employee_id')->references('id')->on('employees');
             $table->string('tax_no')->nullable();
             $table->date('tax_valid_date')->nullable();
             $table->timestamps();

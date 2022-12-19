@@ -23,17 +23,12 @@ class AdministrationController extends Controller
     public function getAdministration(Request $request)
     {
 
-        // $administrations = Administration::with(['projects','employees','positions']);
-        // $insurances = Administration::leftJoin('employees', 'insurances.employee_id', '=', 'employees.id')
-        //     ->select('insurances.*', 'employees.fullname')
-        //     ->orderBy('insurances.health_insurance_no', 'asc');
 
-        $administrations = DB::table('administrations')
-            ->join('projects', 'administrations.project_id', '=', 'projects.id')
-            ->join('employees', 'administrations.employee_id', '=', 'employees.id')
-            ->join('positions', 'administrations.position_id', '=', 'positions.id')
-            ->select('administrations.*', 'fullname', 'position_name', 'project_name')
-            ->orderBy('fullname', 'asc');
+        $administrations = Administration::join('projects', 'administrations.project_id', '=', 'projects.id')
+                                            ->join('employees', 'administrations.employee_id', '=', 'employees.id')
+                                            ->join('positions', 'administrations.position_id', '=', 'positions.id')
+                                            ->select('administrations.*', 'fullname', 'position_name','project_name')
+                                            ->orderBy('fullname', 'asc');                                    
 
         return datatables()->of($administrations)
             ->addIndexColumn()
@@ -55,6 +50,21 @@ class AdministrationController extends Controller
             ->addColumn('doh', function ($administrations) {
                 return $administrations->doh;
             })
+            ->addColumn('foc', function ($administrations) {
+                return $administrations->foc;
+            })
+            ->addColumn('agreement', function ($administrations) {
+                return $administrations->agreement;
+            })
+            ->addColumn('company_program', function ($administrations) {
+                return $administrations->company_program;
+            })
+            ->addColumn('no_fptk', function ($administrations) {
+                return $administrations->no_fptk;
+            })
+            ->addColumn('no_sk_active', function ($administrations) {
+                return $administrations->no_sk_active;
+            })
             ->addColumn('poh', function ($administrations) {
                 return $administrations->poh;
             })
@@ -68,13 +78,15 @@ class AdministrationController extends Controller
                 return $administrations->other_allowance;
             })
 
-            // ->addColumn('position_status', function ($position) {
-            //     if ($position->position_status == '1') {
-            //         return '<span class="badge badge-success">Active</span>';
-            //     } elseif ($position->position_status == '0') {
-            //         return '<span class="badge badge-danger">Inactive</span>';
-            //     }
-            // })
+            
+            ->addColumn('is_active', function ($administrations) {
+                if ($administrations->is_active == '1') {
+                    return '<span class="badge badge-success">Active</span>';
+                } elseif ($administrations->is_active == '0') {
+                    return '<span class="badge badge-danger">Inactive</span>';
+                }
+            })
+
             ->filter(function ($instance) use ($request) {
                 if (!empty($request->get('search'))) {
                     $instance->where(function ($w) use ($request) {
@@ -87,6 +99,14 @@ class AdministrationController extends Controller
                             ->orWhere('class', 'LIKE', "%$search%")
                             ->orWhere('doh', 'LIKE', "%$search%")
                             ->orWhere('poh', 'LIKE', "%$search%");
+                            ->orWhere('poh', 'LIKE', "%$search%")
+                            ->orWhere('foc', 'LIKE', "%$search%")
+                            ->orWhere('agreement', 'LIKE', "%$search%")
+                            ->orWhere('company_program', 'LIKE', "%$search%")
+                            ->orWhere('no_fptk', 'LIKE', "%$search%")
+                            ->orWhere('no_sk_active', 'LIKE', "%$search%")
+                            ->orWhere('is_active', 'LIKE', "%$search%");
+                           
                     });
                 }
             })
@@ -94,7 +114,17 @@ class AdministrationController extends Controller
                 $employees = Employee::orderBy('fullname', 'asc')->get();
                 return view('administration.action', compact('employees', 'administrations'));
             })
-            ->rawColumns(['nik', 'action'])
+            ->addColumn('doh', function($administrations){
+                $date = date("d F Y", strtotime($administrations->doh));
+                return $date;
+
+            })
+            ->addColumn('foc', function($administrations){
+                $date = date("d F Y", strtotime($administrations->foc));
+                return $date;
+
+            })
+            ->rawColumns(['is_active', 'action'])
             ->toJson();
     }
     // public function administrations(Request $request)

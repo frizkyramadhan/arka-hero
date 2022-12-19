@@ -15,6 +15,7 @@
     </div><!-- /.row -->
   </div><!-- /.container-fluid -->
 </div>
+
 <!-- /.content-header -->
 <section class="content">
   <div class="container-fluid">
@@ -57,6 +58,7 @@
                     <a class="nav-link" id="vert-tabs-emergency-tab" data-toggle="pill" href="#vert-tabs-emergency" role="tab" aria-controls="vert-tabs-emergency" aria-selected="false">Emergency Calls</a>
                     <a class="nav-link" id="vert-tabs-additional-tab" data-toggle="pill" href="#vert-tabs-additional" role="tab" aria-controls="vert-tabs-additional" aria-selected="false">Additional Data</a>
                     <a class="nav-link" id="vert-tabs-administration-tab" data-toggle="pill" href="#vert-tabs-administration" role="tab" aria-controls="vert-tabs-administration" aria-selected="false">Administrations</a>
+                    <a class="nav-link" id="vert-tabs-taxidentification-tab" data-toggle="pill" href="#vert-tabs-taxidentification" role="tab" aria-controls="vert-tabs-taxidentification" aria-selected="false">Tax Identification</a>
                     <a class="nav-link" id="vert-tabs-image-tab" data-toggle="pill" href="#vert-tabs-image" role="tab" aria-controls="vert-tabs-image" aria-selected="false">Images</a>
                   </div>
                 </div>
@@ -478,6 +480,51 @@
                         </div>
                         <div class="col-md-6">
                           <div class="form-group">
+                            <label for="foc" class="form-label">FOC</label>
+                            <input type="date" value="{{ old('foc') }}" class="form-control @error('foc') is-invalid @enderror" id="foc" name="foc">
+                            @if ($errors->any('foc'))
+                            <span class="text-danger">{{ ($errors->first('foc')) }}</span>
+                            @endif
+                          </div>
+                        </div>
+                        <div class="col-md-6">
+                          <div class="form-group">
+                            <label for="agreement" class="form-label">Agreement</label>
+                            <input type="text" value="{{ old('agreement') }}" class="form-control @error('agreement') is-invalid @enderror" id="agreement" name="agreement">
+                            @if ($errors->any('agreement'))
+                            <span class="text-danger">{{ ($errors->first('agreement')) }}</span>
+                            @endif
+                          </div>
+                        </div>
+                        <div class="col-md-6">
+                          <div class="form-group">
+                            <label for="company_program" class="form-label">Company Program</label>
+                            <input type="text" value="{{ old('company_program') }}" class="form-control @error('company_program') is-invalid @enderror" id="company_program" name="company_program">
+                            @if ($errors->any('company_program'))
+                            <span class="text-danger">{{ ($errors->first('company_program')) }}</span>
+                            @endif
+                          </div>
+                        </div>
+                        <div class="col-md-6">
+                          <div class="form-group">
+                            <label for="no_fptk" class="form-label">No FPTK</label>
+                            <input type="text" value="{{ old('no_fptk') }}" class="form-control @error('no_fptk') is-invalid @enderror" id="no_fptk" name="no_fptk">
+                            @if ($errors->any('no_fptk'))
+                            <span class="text-danger">{{ ($errors->first('no_fptk')) }}</span>
+                            @endif
+                          </div>
+                        </div>
+                        <div class="col-md-6">
+                          <div class="form-group">
+                            <label for="no_sk_active" class="form-label">No Certificate Active Employment</label>
+                            <input type="text" value="{{ old('no_sk_active') }}" class="form-control @error('no_sk_active') is-invalid @enderror" id="no_sk_active" name="no_sk_active">
+                            @if ($errors->any('no_sk_active'))
+                            <span class="text-danger">{{ ($errors->first('no_sk_active')) }}</span>
+                            @endif
+                          </div>
+                        </div>
+                        <div class="col-md-6">
+                          <div class="form-group">
                             <label for="poh" class="form-label">POH</label>
                             <input type="text" value="{{ old('poh') }}" class="form-control @error('poh') is-invalid @enderror" id="poh" name="poh">
                             @if ($errors->any('poh'))
@@ -553,6 +600,42 @@
                             @endif
                           </div>
                         </div>
+                        <div class="col-md-6">
+                          <div class="form-group">
+                            <label for="is_active" class="form-label">Status</label>
+                            <select name="is_active" class="form-control @error('is_active') is-invalid @enderror">
+                              <option value="1" {{ old('is_active') == '1' ? 'selected' : '' }}>Active</option>
+                              <option value="0" {{ old('is_active') == '0' ? 'selected' : '' }}>Inactive</option>
+                            </select>
+                            @if ($errors->any('is_active'))
+                            <span class="text-danger">{{ ($errors->first('is_active')) }}</span>
+                            @endif
+                          </div>
+                        </div>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="tab-pane fade" id="vert-tabs-taxidentification" role="tabpanel" aria-labelledby="vert-tabs-taxidentification-tab">
+                      <div class="row">
+                        <div class="col-md-8">
+                          <div class="form-group">
+                            <label for="tax_no" class="form-label">Tax No</label>
+                            <input type="number" value="{{ old('tax_no') }}" class="form-control @error('tax_no') is-invalid @enderror" id="tax_no" name="tax_no">
+                            @if ($errors->any('tax_no'))
+                            <span class="text-danger">{{ ($errors->first('tax_no')) }}</span>
+                            @endif
+                          </div>
+                        </div>
+                        <div class="col-md-8">
+                          <div class="form-group">
+                            <label for="tax_valid_date" class="form-label">Tax Valid Date</label>
+                            <input type="date" value="{{ old('tax_valid_date') }}" class="form-control @error('tax_valid_date') is-invalid @enderror" id="tax_valid_date" name="tax_valid_date">
+                            @if ($errors->any('tax_valid_date'))
+                            <span class="text-danger">{{ ($errors->first('tax_valid_date')) }}</span>
+                            @endif
+                          </div>
+                        </div>
+                        
                       </div>
                     </div>
                     <div class="tab-pane fade" id="vert-tabs-image" role="tabpanel" aria-labelledby="vert-tabs-image-tab">

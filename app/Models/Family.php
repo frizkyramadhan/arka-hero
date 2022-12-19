@@ -12,8 +12,19 @@ class Family extends Model
 
     protected $guarded = [];
 
+    protected $fillable= [
+             'employee_id',
+             'family_name',
+             'family_relationship',
+             'family_birthplace',
+             'family_birthdate',
+             'family_remarks',
+    ];
+
     public function employees()
     {
         return $this->belongsTo(Employee::class);
     }
+
+    protected $dates = ['family_birthdate'];
 }
