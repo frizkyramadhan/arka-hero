@@ -10,9 +10,9 @@ class Education extends Model
 {
     use HasFactory;
 
-    protected $guarded = [];
-
     public $table = 'educations';
+
+    protected $guarded = [];
 
     public function employees()
     {

@@ -10,14 +10,13 @@ use Illuminate\Support\Facades\DB;
 class EducationsController extends Controller
 {
     public function educations()
-    {   
+    {
         $educations = DB::table('educations')
             ->join('employees', 'educations.employee_id', '=', 'educations.id')
             ->select('educations.*', 'fullname')
             ->orderBy('fullname', 'asc')
             ->paginate(10);
         return view('education.index', ['educations' => $educations]);
-       
     }
 
     public function AddEducations()
@@ -34,7 +33,7 @@ class EducationsController extends Controller
             'education_name' => 'required',
             'education_year' => 'required',
             'education_remarks' => 'required',
-           
+
 
         ]);
         $educations = Educations::create($request->all());

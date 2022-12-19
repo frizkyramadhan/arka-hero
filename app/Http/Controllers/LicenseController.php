@@ -38,7 +38,7 @@ class LicenseController extends Controller
             ->addColumn('driver_license_exp', function ($license) {
                 return $license->driver_license_exp;
             })
-           
+
             ->filter(function ($instance) use ($request) {
                 if (!empty($request->get('search'))) {
                     $instance->where(function ($w) use ($request) {
@@ -74,14 +74,14 @@ class LicenseController extends Controller
     //                             $query->where('fullname', 'LIKE', '%'.$keyword.'%');
     //                         })                        
     //                         ->paginate(5);
-                          
+
     //     // $licenses = DB::table('licenses')
     //     //     ->join('employees', 'licenses.employee_id', '=', 'employees.id')
     //     //     ->select('licenses.*', 'fullname')
     //     //     ->orderBy('fullname', 'asc')
     //     //     ->simplePaginate(10);
     //     return view('license.index', ['licenses' => $licenses]);
-       
+
     // }
 
     public function addLicense()
@@ -90,11 +90,11 @@ class LicenseController extends Controller
         return view('license.create', compact('employee'));
     }
 
-    public function store(Request $request)
+    public function store($employee_id, Request $request)
     {
         $request->validate([
             'employee_id' => 'required',
-            'driver_license_no' => 'required|unique:licenses|',
+            'driver_license_no' => 'required',
             'driver_license_type' => 'required',
             'driver_license_exp' => 'required',
         ]);
@@ -106,7 +106,7 @@ class LicenseController extends Controller
         $licenses->driver_license_exp = $request->driver_license_exp;
         $licenses->save();
 
-        return redirect('admin/licenses')->with('status', 'Drivers Licenses Add Successfully');
+        return redirect('employees/' . $employee_id)->with('toast_success', 'Driver License Add Successfully');
     }
 
     public function edit($id)
@@ -117,32 +117,29 @@ class LicenseController extends Controller
         return view('license.edit', compact('licenses', 'employee'));
     }
 
-    public function updateLicense(Request $request, $slug)
+    public function update(Request $request, $id)
     {
-
-
-        $validated = $request->validate([
+        $request->validate([
             'employee_id' => 'required',
             'driver_license_no' => 'required',
             'driver_license_type' => 'required',
             'driver_license_exp' => 'required',
-            
-
         ]);
 
-        $licenses = License::where('slug', $slug)->first();
-        $licenses->slug = null;
-        $licenses->update($request->all());
-        return redirect('admin/licenses')->with('status', 'Drivers Licenses Edit Successfully');
+        $licenses = License::find($id);
+        $licenses->employee_id = $request->employee_id;
+        $licenses->driver_license_no = $request->driver_license_no;
+        $licenses->driver_license_type = $request->driver_license_type;
+        $licenses->driver_license_exp = $request->driver_license_exp;
+        $licenses->save();
+
+        return redirect('employees/' . $request->employee_id)->with('toast_success', 'Driver License Update Successfully');
     }
 
-    // public function deleteLicense($slug)
-    // {
-
-    //     $licenses = License::where('slug', $slug)->first();
-    //     $licenses->delete();
-    //     return redirect('admin/licenses')->with('status', 'Drivers Licenses Delete Successfully');
-    // }
-
-
+    public function delete($employee_id, $id)
+    {
+        $licenses = License::find($id);
+        $licenses->delete();
+        return redirect('employees/' . $employee_id)->with('toast_success', 'Driver License Delete Successfully');
+    }
 }

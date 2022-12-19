@@ -10,7 +10,7 @@
       <div class="col-sm-6">
         <ol class="breadcrumb float-sm-right">
           <li class="breadcrumb-item"><a href="{{ url('/') }}">Home</a></li>
-          <li class="breadcrumb-item active">Employees</li>
+          <li class="breadcrumb-item active">Terminated Employees</li>
         </ol>
       </div><!-- /.col -->
     </div><!-- /.row -->
@@ -33,12 +33,10 @@
               <div class="card-tools">
                 <ul class="nav nav-pills ml-auto">
                   <li class="nav-item mr-2">
-                    <a href="{{ url('terminations') }}" class="btn btn-danger"><i class="fas fa-ban"></i>
-                      Terminated</a>
-                    <a class="btn btn-success" data-toggle="modal" data-target="#modal-import"><i class="fas fa-upload"></i>
-                      Import</a>
-                    <a href="{{ url('employees/create') }}" class="btn btn-warning"><i class="fas fa-plus"></i>
+                    <a href="{{ url('terminations/create') }}" class="btn btn-warning"><i class="fas fa-plus"></i>
                       Add</a>
+                    <a href="{{ url('employees') }}" class="btn btn-warning"><i class="fas fa-undo"></i>
+                      Back</a>
                   </li>
                 </ul>
               </div>
@@ -51,13 +49,13 @@
                       <th class="align-middle text-center">No</th>
                       <th class="align-middle text-center">NIK</th>
                       <th class="align-middle">Full Name</th>
-                      <th class="align-middle">POH</th>
-                      <th class="align-middle">DOH</th>
                       <th class="align-middle">Department</th>
                       <th class="align-middle">Position</th>
                       <th class="align-middle">Project</th>
-                      <th class="align-middle">Class</th>
-                      <th class="align-middle text-center">Created Date</th>
+                      <th class="align-middle">DOH</th>
+                      <th class="align-middle">Termination Date</th>
+                      <th class="align-middle">Reason</th>
+                      <th class="align-middle">CoE No</th>
                       <th class="align-middle text-center">Action</th>
                     </tr>
                   </thead>
@@ -74,46 +72,6 @@
     </div>
     <!-- /.row (main row) -->
   </div>
-
-  <div class="modal fade" id="modal-import">
-    <div class="modal-dialog">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h4 class="modal-title">Import Employee</h4>
-          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-            <span aria-hidden="true">&times;</span>
-          </button>
-        </div>
-        <form class="form-horizontal" action="{{ url('employees/import') }}" method="POST" enctype="multipart/form-data">
-          <div class="modal-body">
-            @csrf
-            <div class="card-body">
-              <div class="tab-content p-0">
-                <div class="form-group row">
-                  <label class="col-sm-2 col-form-label">Import</label>
-                  <div class="col-sm-10">
-                    <input type="file" name="file" required>
-                    @error('file')
-                    <div class="error invalid-feedback">
-                      {{ $message }}
-                    </div>
-                    @enderror
-                  </div>
-                </div>
-              </div>
-            </div><!-- /.card-body -->
-          </div>
-          <div class="modal-footer justify-content-between">
-            <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
-            <button type="submit" class="btn btn-primary">Submit</button>
-          </div>
-        </form>
-      </div>
-      <!-- /.modal-content -->
-    </div>
-    <!-- /.modal-dialog -->
-  </div>
-  <!-- /.modal -->
 </section>
 @endsection
 
@@ -155,7 +113,7 @@
       , processing: true
       , serverSide: true
       , ajax: {
-        url: "{{ route('employees.data') }}"
+        url: "{{ route('terminations.list') }}"
         , data: function(d) {
           d.search = $("input[type=search][aria-controls=example1]").val()
           console.log(d);
@@ -175,14 +133,6 @@
         , name: "fullname"
         , orderable: false
       , }, {
-        data: "poh"
-        , name: "poh"
-        , orderable: false
-      , }, {
-        data: "doh"
-        , name: "doh"
-        , orderable: false
-      , }, {
         data: "department_name"
         , name: "department_name"
         , orderable: false
@@ -195,14 +145,21 @@
         , name: "project_code"
         , orderable: false
       , }, {
-        data: "class"
-        , name: "class"
+        data: "doh"
+        , name: "doh"
         , orderable: false
       , }, {
-        data: "created_date"
-        , name: "created_date"
+        data: "termination_date"
+        , name: "termination_date"
         , orderable: false
-        , className: "text-center"
+      , }, {
+        data: "termination_reason"
+        , name: "termination_reason"
+        , orderable: false
+      , }, {
+        data: "coe_no"
+        , name: "coe_no"
+        , orderable: false
       , }, {
         data: "action"
         , name: "action"

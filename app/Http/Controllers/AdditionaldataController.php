@@ -101,21 +101,21 @@ class AdditionaldataController extends Controller
     //     return view('additionaldata.create', compact('employee'));
     // }
 
-    // public function store(Request $request)
-    // {
-    //     $validated = $request->validate([
-    //         'employee_id' => 'required',
-    //         'cloth_size' => 'required',
-    //         'pants_size' => 'required',
-    //         'shoes_size' => 'required',
-    //         'height' => 'required',
-    //         'weight' => 'required',
-    //         'glasses' => 'required',
+    public function store(Request $request)
+    {
+        $request->validate([
+            'employee_id' => 'required',
+            'cloth_size' => 'required',
+            'pants_size' => 'required',
+            'shoes_size' => 'required',
+            'height' => 'required',
+            'weight' => 'required',
+            'glasses' => 'required',
 
-    //     ]);
-    //     $additionaldatas = Additionaldata::create($request->all());
-    //     return redirect('admin/additionaldatas')->with('status', 'Additional Data Employee Add Successfully');
-    // }
+        ]);
+        Additionaldata::create($request->all());
+        return back()->with('toast_success', 'Additional Data Added Successfully');
+    }
 
     // public function editAdditionaldata($slug)
     // {
@@ -125,25 +125,24 @@ class AdditionaldataController extends Controller
     //     return view('additionaldata.edit', compact('additionaldatas', 'employee'));
     // }
 
-    // public function updateAdditionaldata(Request $request, $slug)
-    // {
-    //     $additionaldatas = Additionaldata::where('slug', $slug)->first();
-    //     $rules = [
-    //         'employee_id' => 'required',
-    //         'cloth_size' => 'required',
-    //         'pants_size' => 'required',
-    //         'shoes_size' => 'required',
-    //         'height' => 'required',
-    //         'weight' => 'required',
-    //         'glasses' => 'required',
+    public function update(Request $request, $id)
+    {
+        // $additionaldatas = Additionaldata::where('id', $id)->first();
+        $rules = [
+            'employee_id' => 'required',
+            'cloth_size' => 'required',
+            'pants_size' => 'required',
+            'shoes_size' => 'required',
+            'height' => 'required',
+            'weight' => 'required',
+            'glasses' => 'required',
+        ];
 
-    //     ];
+        $validatedData = $request->validate($rules);
+        Additionaldata::where('id', $id)->update($validatedData);
 
-    //     $validatedData = $request->validate($rules);
-    //     Additionaldata::where('slug', $slug)->update($validatedData);
-
-    //     return redirect('admin/additionaldatas')->with('status', 'Additional Data Employee Update Successfully');
-    // }
+        return redirect('employees/' . $request->employee_id)->with('toast_success', 'Additional Data Employee Update Successfully');
+    }
 
     // public function deleteAdditionaldata($slug)
     // {

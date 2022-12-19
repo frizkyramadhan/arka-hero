@@ -9,7 +9,7 @@ use Illuminate\Http\Request;
 class OperableunitController extends Controller
 {
 
-    
+
     public function index()
     {
         $title = ' Operable Unit';
@@ -80,9 +80,23 @@ class OperableunitController extends Controller
      * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\Response
      */
-    public function store(Request $request)
+    public function store($employee_id, Request $request)
     {
-        //
+        $request->validate([
+            'employee_id' => 'required',
+            'unit_name' => 'required',
+            'unit_type' => 'required',
+            'unit_remarks' => 'required',
+        ]);
+
+        $operableunit = new Operableunit();
+        $operableunit->employee_id = $request->employee_id;
+        $operableunit->unit_name = $request->unit_name;
+        $operableunit->unit_type = $request->unit_type;
+        $operableunit->unit_remarks = $request->unit_remarks;
+        $operableunit->save();
+
+        return redirect('employees/' . $employee_id)->with('toast_success', 'Operable Unit Added Successfully');
     }
 
     /**
@@ -114,9 +128,23 @@ class OperableunitController extends Controller
      * @param  \App\Models\Operableunit  $operableunit
      * @return \Illuminate\Http\Response
      */
-    public function update(Request $request, Operableunit $operableunit)
+    public function update(Request $request, $id)
     {
-        //
+        $request->validate([
+            'employee_id' => 'required',
+            'unit_name' => 'required',
+            'unit_type' => 'required',
+            'unit_remarks' => 'required',
+        ]);
+
+        $operableunit = Operableunit::find($id);
+        $operableunit->employee_id = $request->employee_id;
+        $operableunit->unit_name = $request->unit_name;
+        $operableunit->unit_type = $request->unit_type;
+        $operableunit->unit_remarks = $request->unit_remarks;
+        $operableunit->save();
+
+        return redirect('employees/' . $request->employee_id)->with('toast_success', 'Operable Unit Updated Successfully');
     }
 
     /**
@@ -125,8 +153,11 @@ class OperableunitController extends Controller
      * @param  \App\Models\Operableunit  $operableunit
      * @return \Illuminate\Http\Response
      */
-    public function destroy(Operableunit $operableunit)
+    public function delete($employee_id, $id)
     {
-        //
+        $operableunit = Operableunit::find($id);
+        $operableunit->delete();
+
+        return redirect('employees/' . $employee_id)->with('toast_success', 'Operable Unit Deleted Successfully');
     }
 }

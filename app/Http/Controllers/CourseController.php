@@ -80,18 +80,18 @@ class CourseController extends Controller
     //     return view('course.create', compact('employee'));
     // }
 
-    // public function store(Request $request)
-    // {
-    //     $validated = $request->validate([
-    //         'employee_id' => 'required',
-    //         'course_name' => 'required',
-    //         'course_year' => 'required',
-    //         'course_remarks' => 'required',
+    public function store($employee_id, Request $request)
+    {
+        $request->validate([
+            'employee_id' => 'required',
+            'course_name' => 'required',
+            'course_year' => 'required',
+            'course_remarks' => 'required',
 
-    //     ]);
-    //     $courses = Course::create($request->all());
-    //     return redirect('admin/courses')->with('status', 'Course Employee Add Successfully');
-    // }
+        ]);
+        Course::create($request->all());
+        return redirect('employees/' . $employee_id)->with('toast_success', 'Course Employee Add Successfully');
+    }
 
     // public function editCourse($slug)
     // {
@@ -101,28 +101,26 @@ class CourseController extends Controller
     //     return view('course.edit', compact('courses', 'employee'));
     // }
 
-    // public function updateCourse(Request $request, $slug)
-    // {
-    //     $courses = Course::where('slug', $slug)->first();
-    //     $rules = [
-    //         'employee_id' => 'required',
-    //         'course_name' => 'required',
-    //         'course_year' => 'required',
-    //         'course_remarks' => 'required',
+    public function update(Request $request, $id)
+    {
+        $rules = [
+            'employee_id' => 'required',
+            'course_name' => 'required',
+            'course_year' => 'required',
+            'course_remarks' => 'required',
 
-    //     ];
+        ];
 
-    //     $validatedData = $request->validate($rules);
-    //     Course::where('slug', $slug)->update($validatedData);
+        $validatedData = $request->validate($rules);
+        Course::where('id', $id)->update($validatedData);
 
-    //     return redirect('admin/courses')->with('status', 'Course Employee Update Successfully');
-    // }
+        return redirect('employees/' . $request->employee_id)->with('toast_success', 'Course Employee Update Successfully');
+    }
 
-    // public function deleteCourse($slug)
-    // {
-
-    //     $courses = Course::where('slug', $slug)->first();
-    //     $courses->delete();
-    //     return redirect('admin/courses')->with('status', 'Course Employee Delete Successfully');
-    // }
+    public function delete($employee_id, $id)
+    {
+        $courses = Course::where('id', $id)->first();
+        $courses->delete();
+        return redirect('employees/' . $employee_id)->with('toast_success', 'Course Employee Delete Successfully');
+    }
 }

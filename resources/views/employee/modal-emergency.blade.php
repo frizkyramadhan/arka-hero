@@ -1,29 +1,22 @@
-@if ($bank == null)
-<div class="modal fade text-left" id="modal-bank">
+<div class="modal fade text-left" id="modal-emergency">
   <div class="modal-dialog modal-lg">
     <div class="modal-content">
       <div class="modal-header">
-        <h4 class="modal-title">Edit Employee - Add Bank Account</h4>
+        <h4 class="modal-title">Edit Employee - Add Emergency Data</h4>
         <button type="button" class="close" data-dismiss="modal" aria-label="Close">
           <span aria-hidden="true">&times;</span>
         </button>
       </div>
-      <form action="{{ url('employeebanks') }}" method="POST">
+      <form action="{{ url('emrgcalls/'.$employee->id) }}" method="POST">
         <input type="hidden" name="employee_id" value="{{ old('employee_id', $employee->id) }}">
         @csrf
         <div class="modal-body">
           <div class="card-body">
             <div class="form-group row">
-              <label class="col-sm-2 col-form-label">Bank</label>
+              <label class="col-sm-2 col-form-label">Status</label>
               <div class="col-sm-10">
-                <select name="bank_id" class="form-control @error('bank_id') is-invalid @enderror">
-                  @foreach ($getBanks as $gb)
-                  <option value="{{ $gb->id }}" {{ old('bank_id') == $gb->id ? 'selected' : '' }}>
-                    {{ $gb->bank_name }}
-                  </option>
-                  @endforeach
-                </select>
-                @error('bank_id')
+                <input type="text" class="form-control @error('emrg_call_relation') is-invalid @enderror" name="emrg_call_relation" value="{{ old('emrg_call_relation') }}">
+                @error('emrg_call_relation')
                 <div class="invalid-feedback">
                   {{ $message }}
                 </div>
@@ -31,10 +24,10 @@
               </div>
             </div>
             <div class="form-group row">
-              <label class="col-sm-2 col-form-label">Account No.</label>
+              <label class="col-sm-2 col-form-label">Name</label>
               <div class="col-sm-10">
-                <input type="number" class="form-control @error('bank_account_no') is-invalid @enderror" name="bank_account_no" value="{{ old('bank_account_no') }}">
-                @error('bank_account_no')
+                <input type="text" class="form-control @error('emrg_call_name') is-invalid @enderror" name="emrg_call_name" value="{{ old('emrg_call_name') }}">
+                @error('emrg_call_name')
                 <div class="invalid-feedback">
                   {{ $message }}
                 </div>
@@ -42,10 +35,10 @@
               </div>
             </div>
             <div class="form-group row">
-              <label class="col-sm-2 col-form-label">Account Name</label>
+              <label class="col-sm-2 col-form-label">Address</label>
               <div class="col-sm-10">
-                <input type="text" class="form-control @error('bank_account_name') is-invalid @enderror" name="bank_account_name" value="{{ old('bank_account_name') }}">
-                @error('bank_account_name')
+                <input type="text" class="form-control @error('emrg_call_address') is-invalid @enderror" name="emrg_call_address" value="{{ old('emrg_call_address') }}">
+                @error('emrg_call_address')
                 <div class="invalid-feedback">
                   {{ $message }}
                 </div>
@@ -53,10 +46,10 @@
               </div>
             </div>
             <div class="form-group row">
-              <label class="col-sm-2 col-form-label">Branch</label>
+              <label class="col-sm-2 col-form-label">Phone</label>
               <div class="col-sm-10">
-                <input type="text" class="form-control @error('bank_account_branch') is-invalid @enderror" name="bank_account_branch" value="{{ old('bank_account_branch') }}">
-                @error('bank_account_branch')
+                <input type="text" class="form-control @error('emrg_call_phone') is-invalid @enderror" name="emrg_call_phone" value="{{ old('emrg_call_phone') }}">
+                @error('emrg_call_phone')
                 <div class="invalid-feedback">
                   {{ $message }}
                 </div>
@@ -73,33 +66,31 @@
     </div>
   </div>
 </div>
-@else
-<div class="modal fade text-left" id="modal-bank-{{ $bank->id }}">
+
+
+
+
+@foreach ($emergencies as $emergency)
+<div class="modal fade text-left" id="modal-emergency-{{ $emergency->id }}">
   <div class="modal-dialog modal-lg">
     <div class="modal-content">
       <div class="modal-header">
-        <h4 class="modal-title">Edit Employee - Bank Account</h4>
+        <h4 class="modal-title">Edit Employee - Edit Emergency Data</h4>
         <button type="button" class="close" data-dismiss="modal" aria-label="Close">
           <span aria-hidden="true">&times;</span>
         </button>
       </div>
-      <form action="{{ url('employeebanks/' . $bank->id) }}" method="POST">
-        <input type="hidden" name="employee_id" value="{{ old('employee_id', $bank->employee_id) }}">
+      <form action="{{ url('emrgcalls/' . $emergency->id) }}" method="POST">
+        <input type="hidden" name="employee_id" value="{{ old('employee_id', $emergency->employee_id) }}">
         @csrf
         @method('PATCH')
         <div class="modal-body">
           <div class="card-body">
             <div class="form-group row">
-              <label class="col-sm-2 col-form-label">Bank</label>
+              <label class="col-sm-2 col-form-label">Status</label>
               <div class="col-sm-10">
-                <select name="bank_id" class="form-control @error('bank_id') is-invalid @enderror">
-                  @foreach ($getBanks as $gb)
-                  <option value="{{ $gb->id }}" {{ old('bank_id', $bank->bank_id) == $gb->id ? 'selected' : '' }}>
-                    {{ $gb->bank_name }}
-                  </option>
-                  @endforeach
-                </select>
-                @error('bank_id')
+                <input type="text" class="form-control @error('emrg_call_relation') is-invalid @enderror" name="emrg_call_relation" value="{{ old('emrg_call_relation', $emergency->emrg_call_relation) }}">
+                @error('emrg_call_relation')
                 <div class="invalid-feedback">
                   {{ $message }}
                 </div>
@@ -107,10 +98,10 @@
               </div>
             </div>
             <div class="form-group row">
-              <label class="col-sm-2 col-form-label">Account No.</label>
+              <label class="col-sm-2 col-form-label">Name</label>
               <div class="col-sm-10">
-                <input type="number" class="form-control @error('bank_account_no') is-invalid @enderror" name="bank_account_no" value="{{ old('bank_account_no', $bank->bank_account_no) }}">
-                @error('bank_account_no')
+                <input type="text" class="form-control @error('emrg_call_name') is-invalid @enderror" name="emrg_call_name" value="{{ old('emrg_call_name', $emergency->emrg_call_name) }}">
+                @error('emrg_call_name')
                 <div class="invalid-feedback">
                   {{ $message }}
                 </div>
@@ -118,10 +109,10 @@
               </div>
             </div>
             <div class="form-group row">
-              <label class="col-sm-2 col-form-label">Account Name</label>
+              <label class="col-sm-2 col-form-label">Address</label>
               <div class="col-sm-10">
-                <input type="text" class="form-control @error('bank_account_name') is-invalid @enderror" name="bank_account_name" value="{{ old('bank_account_name', $bank->bank_account_name) }}">
-                @error('bank_account_name')
+                <input type="text" class="form-control @error('emrg_call_address') is-invalid @enderror" name="emrg_call_address" value="{{ old('emrg_call_address', $emergency->emrg_call_address) }}">
+                @error('emrg_call_address')
                 <div class="invalid-feedback">
                   {{ $message }}
                 </div>
@@ -129,10 +120,10 @@
               </div>
             </div>
             <div class="form-group row">
-              <label class="col-sm-2 col-form-label">Branch</label>
+              <label class="col-sm-2 col-form-label">Phone</label>
               <div class="col-sm-10">
-                <input type="text" class="form-control @error('bank_account_branch') is-invalid @enderror" name="bank_account_branch" value="{{ old('bank_account_branch', $bank->bank_account_branch) }}">
-                @error('bank_account_branch')
+                <input type="text" class="form-control @error('emrg_call_phone') is-invalid @enderror" name="emrg_call_phone" value="{{ old('emrg_call_phone', $emergency->emrg_call_phone) }}">
+                @error('emrg_call_phone')
                 <div class="invalid-feedback">
                   {{ $message }}
                 </div>
@@ -149,4 +140,4 @@
     </div>
   </div>
 </div>
-@endif
+@endforeach

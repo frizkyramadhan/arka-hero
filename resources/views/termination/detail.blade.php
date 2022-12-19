@@ -80,9 +80,8 @@
                 <li class="list-group-item">Images</li>
               </a>
             </ul>
-            @if ($termination == null)
-            <a data-toggle="modal" data-target="#modal-termination-{{ $employee->id }}" class="btn btn-danger btn-block"><b>Terminate</b></a>
-            @endif
+
+            <a href="#" class="btn btn-danger btn-block"><b>Terminate</b></a>
           </div>
           <!-- /.card-body -->
         </div>
@@ -165,11 +164,7 @@
           </div>
           <div class="card-footer">
             <div class="col-12 text-right">
-              @if ($bank == null)
-              <a class="btn btn-sm btn-icon btn-warning" data-toggle="modal" data-target="#modal-bank"><i class="fas fa-plus"></i></a>
-              @else
               <a class="btn btn-sm btn-icon btn-primary" data-toggle="modal" data-target="#modal-bank-{{ $bank->id }}"><i class="fas fa-pen-square"></i></a>
-              @endif
             </div>
           </div>
           <!-- /.card-body -->
@@ -632,11 +627,7 @@
           <!-- /.card-body -->
           <div class="card-footer">
             <div class="col-12 text-right">
-              @if ($additional == null)
-              <a class="btn btn-sm btn-icon btn-warning" data-toggle="modal" data-target="#modal-additional"><i class="fas fa-plus"></i></a>
-              @else
               <a class="btn btn-sm btn-icon btn-primary" data-toggle="modal" data-target="#modal-additional-{{ $additional->id }}"><i class="fas fa-pen-square"></i></a>
-              @endif
             </div>
           </div>
         </div>
@@ -776,7 +767,6 @@
 @include('employee.modal-emergency')
 @include('employee.modal-additional')
 @include('employee.modal-administration')
-@include('employee.modal-termination')
 
 @endsection
 

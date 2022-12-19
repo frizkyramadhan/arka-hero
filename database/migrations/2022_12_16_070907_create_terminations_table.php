@@ -13,13 +13,13 @@ return new class extends Migration
      */
     public function up()
     {
-        Schema::create('schools', function (Blueprint $table) {
+        Schema::create('terminations', function (Blueprint $table) {
             $table->id();
-            $table->foreignUuid('employee_id')->references('id')->on('employees');
-            $table->string('education_level')->nullable();
-            $table->string('education_name')->nullable();
-            $table->string('education_year')->nullable();
-            $table->string('education_remarks')->nullable();
+            $table->foreignUuid('employee_id')->constrained('employees');
+            $table->date('termination_date');
+            $table->string('termination_reason');
+            $table->string('coe_no')->nullable();
+            $table->foreignId('user_id')->constrained('users');
             $table->timestamps();
         });
     }
@@ -31,6 +31,6 @@ return new class extends Migration
      */
     public function down()
     {
-        Schema::dropIfExists('schools');
+        Schema::dropIfExists('terminations');
     }
 };
