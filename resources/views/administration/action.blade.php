@@ -52,6 +52,36 @@
                 </div>
               </div>
               <div class="form-group row">
+                <label class="col-sm-3 col-form-label">FOC</label>
+                <div class="col-sm-8">
+                  <input type="text" class="form-control" name="foc" value="{{ showDateTime($administrations->foc, 'l, d F Y') }}" readonly>
+                </div>
+              </div>
+              <div class="form-group row">
+                <label class="col-sm-3 col-form-label">Agreement</label>
+                <div class="col-sm-8">
+                  <input type="text" class="form-control" name="agreement" value="{{ $administrations->agreement }}" readonly>
+                </div>
+              </div>
+              <div class="form-group row">
+                <label class="col-sm-3 col-form-label">Company Program</label>
+                <div class="col-sm-8">
+                  <input type="text" class="form-control" name="company_program" value="{{ $administrations->company_program }}" readonly>
+                </div>
+              </div>
+              <div class="form-group row">
+                <label class="col-sm-3 col-form-label">No FPTK</label>
+                <div class="col-sm-8">
+                  <input type="text" class="form-control" name="no_fptk" value="{{ $administrations->no_fptk }}" readonly>
+                </div>
+              </div>
+              <div class="form-group row">
+                <label class="col-sm-3 col-form-label">No Certificate Active Employment</label>
+                <div class="col-sm-8">
+                  <input type="text" class="form-control" name="no_sk_active" value="{{ $administrations->no_sk_active }}" readonly>
+                </div>
+              </div>
+              <div class="form-group row">
                 <label class="col-sm-3 col-form-label">POH</label>
                 <div class="col-sm-8">
                   <input type="text" class="form-control" name="poh" value="{{ $administrations->poh }}" readonly>

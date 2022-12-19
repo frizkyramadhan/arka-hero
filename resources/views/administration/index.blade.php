@@ -44,6 +44,7 @@
                       <th >Class</th>              
                       <th >DOH</th>              
                       <th >POH</th>              
+                      <th >FOC</th>              
                       <th >Basic Salary</th>              
                       <th >Site Allowance</th>              
                       <th >Other Allowance</th>              
@@ -169,6 +170,12 @@
         , searchable: false
         , className: "text-center"
       ,}, {
+        data: "foc"
+        , name: "foc"
+        , orderable: false
+        , searchable: false
+        , className: "text-center"
+      ,}, {
         data: "poh"
         , name: "poh"
         , orderable: false
@@ -180,7 +187,7 @@
         , orderable: false
         , searchable: false
         , className: "text-center"
-      ,}, {
+     , }, {
         data: "site_allowance"
         , name: "site_allowance"
         , orderable: false
@@ -192,7 +199,7 @@
         , orderable: false
         , searchable: false
         , className: "text-center"
-     , }, {
+      ,}, {
         data: "action"
         , name: "action"
         , orderable: false

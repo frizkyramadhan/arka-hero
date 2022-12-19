@@ -489,6 +489,42 @@
                         </div>
                         <div class="col-md-6">
                           <div class="form-group">
+                            <label for="agreement" class="form-label">Agreement</label>
+                            <input type="text" value="{{ old('agreement') }}" class="form-control @error('agreement') is-invalid @enderror" id="agreement" name="agreement">
+                            @if ($errors->any('agreement'))
+                            <span class="text-danger">{{ ($errors->first('agreement')) }}</span>
+                            @endif
+                          </div>
+                        </div>
+                        <div class="col-md-6">
+                          <div class="form-group">
+                            <label for="company_program" class="form-label">Company Program</label>
+                            <input type="text" value="{{ old('company_program') }}" class="form-control @error('company_program') is-invalid @enderror" id="company_program" name="company_program">
+                            @if ($errors->any('company_program'))
+                            <span class="text-danger">{{ ($errors->first('company_program')) }}</span>
+                            @endif
+                          </div>
+                        </div>
+                        <div class="col-md-6">
+                          <div class="form-group">
+                            <label for="no_fptk" class="form-label">No FPTK</label>
+                            <input type="text" value="{{ old('no_fptk') }}" class="form-control @error('no_fptk') is-invalid @enderror" id="no_fptk" name="no_fptk">
+                            @if ($errors->any('no_fptk'))
+                            <span class="text-danger">{{ ($errors->first('no_fptk')) }}</span>
+                            @endif
+                          </div>
+                        </div>
+                        <div class="col-md-6">
+                          <div class="form-group">
+                            <label for="no_sk_active" class="form-label">No Certificate Active Employment</label>
+                            <input type="text" value="{{ old('no_sk_active') }}" class="form-control @error('no_sk_active') is-invalid @enderror" id="no_sk_active" name="no_sk_active">
+                            @if ($errors->any('no_sk_active'))
+                            <span class="text-danger">{{ ($errors->first('no_sk_active')) }}</span>
+                            @endif
+                          </div>
+                        </div>
+                        <div class="col-md-6">
+                          <div class="form-group">
                             <label for="poh" class="form-label">POH</label>
                             <input type="text" value="{{ old('poh') }}" class="form-control @error('poh') is-invalid @enderror" id="poh" name="poh">
                             @if ($errors->any('poh'))

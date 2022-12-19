@@ -20,6 +20,10 @@ class Administration extends Model
             'nik',
             'class',
             'doh',
+            'foc',
+            'agreement',
+            'company_program',
+            'no_fptk',
             'poh',
             'basic_salary',
             'site_allowance',
@@ -41,5 +45,10 @@ class Administration extends Model
         return $this->belongsTo(Position::class);
     }
 
-    protected $dates = ['doh'];
+    protected $dates = [
+        'doh',
+        'foc',
+    ];
+
+   
 }

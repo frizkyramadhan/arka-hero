@@ -49,6 +49,21 @@ class AdministrationController extends Controller
             ->addColumn('doh', function ($administrations) {
                 return $administrations->doh;
             })
+            ->addColumn('foc', function ($administrations) {
+                return $administrations->foc;
+            })
+            ->addColumn('agreement', function ($administrations) {
+                return $administrations->agreement;
+            })
+            ->addColumn('company_program', function ($administrations) {
+                return $administrations->company_program;
+            })
+            ->addColumn('no_fptk', function ($administrations) {
+                return $administrations->no_fptk;
+            })
+            ->addColumn('no_sk_active', function ($administrations) {
+                return $administrations->no_sk_active;
+            })
             ->addColumn('poh', function ($administrations) {
                 return $administrations->poh;
             })
@@ -79,7 +94,12 @@ class AdministrationController extends Controller
                             ->orWhere('nik', 'LIKE', "%$search%")
                             ->orWhere('doh', 'LIKE', "%$search%")
                             ->orWhere('class', 'LIKE', "%$search%")
-                            ->orWhere('poh', 'LIKE', "%$search%");
+                            ->orWhere('poh', 'LIKE', "%$search%")
+                            ->orWhere('foc', 'LIKE', "%$search%")
+                            ->orWhere('agreement', 'LIKE', "%$search%")
+                            ->orWhere('company_program', 'LIKE', "%$search%")
+                            ->orWhere('no_fptk', 'LIKE', "%$search%")
+                            ->orWhere('no_sk_active', 'LIKE', "%$search%");
                            
                     });
                 }
@@ -90,6 +110,11 @@ class AdministrationController extends Controller
             })
             ->addColumn('doh', function($administrations){
                 $date = date("d F Y", strtotime($administrations->doh));
+                return $date;
+
+            })
+            ->addColumn('foc', function($administrations){
+                $date = date("d F Y", strtotime($administrations->foc));
                 return $date;
 
             })

@@ -124,6 +124,7 @@ class EmployeeController extends Controller
             'nik' => 'required|unique:administrations',
             'poh' => 'required',
             'doh' => 'required',
+            'foc' => 'required',
             'class' => 'required',
             'position_id' => 'required',
             'project_id' => 'required',
@@ -134,6 +135,7 @@ class EmployeeController extends Controller
             'emp_dob.required' => 'Date of Birth is required',
             'poh.required' => 'Place of Hire is required',
             'doh.required' => 'Date of Hire is required',
+            'foc.required' => 'Finish Of Contract is required',
             'class.required' => 'Class is required',
             'position_id.required' => 'Position is required',
             'project_id.required' => 'Project is required',
@@ -309,6 +311,11 @@ class EmployeeController extends Controller
             $administration->class = $data['class'];
             $administration->doh = $data['doh'];
             $administration->poh = $data['poh'];
+            $administration->foc = $data['foc'];
+            $administration->agreement = $data['agreement'];
+            $administration->company_program = $data['company_program'];
+            $administration->no_fptk = $data['no_fptk'];
+            $administration->no_sk_active = $data['no_sk_active'];
             $administration->basic_salary = $data['basic_salary'];
             $administration->site_allowance = $data['site_allowance'];
             $administration->other_allowance = $data['other_allowance'];
@@ -316,7 +323,7 @@ class EmployeeController extends Controller
             $administration->save();
         }
 
-        $checkTaxidentification = $data['nik'] == null ? false : true;
+        $checkTaxidentification = $data['tax_no'] == null ? false : true;
         if ($checkTaxidentification == true) {
             $taxidentification = new Taxidentification();
             $taxidentification->employee_id = $employee->id;
