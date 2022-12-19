@@ -22,9 +22,9 @@ return new class extends Migration
             $table->string('class');
             $table->date('doh');
             $table->string('poh');
-            $table->decimal('basic_salary', 9, 2)->nullable();
-            $table->decimal('site_allowance', 9, 2)->nullable();
-            $table->decimal('other_allowance', 9, 2)->nullable();
+            $table->string('basic_salary')->nullable();
+            $table->string('site_allowance')->nullable();
+            $table->string('other_allowance')->nullable();
             $table->boolean('is_active')->default(1);
             $table->timestamps();
         });
