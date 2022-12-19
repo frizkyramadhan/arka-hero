@@ -47,7 +47,8 @@
                       <th >FOC</th>              
                       <th >Basic Salary</th>              
                       <th >Site Allowance</th>              
-                      <th >Other Allowance</th>              
+                      <th >Other Allowance</th>
+                      <th class="text-center">Status</th>              
                       <th class="text-center">Detail</th>
                     </tr>
                   </thead>
@@ -196,6 +197,12 @@
      , }, {
         data: "other_allowance"
         , name: "other_allowance"
+        , orderable: false
+        , searchable: false
+        , className: "text-center"
+      ,}, {
+        data: "is_active"
+        , name: "is_active"
         , orderable: false
         , searchable: false
         , className: "text-center"

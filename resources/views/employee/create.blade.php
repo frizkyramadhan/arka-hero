@@ -600,6 +600,19 @@
                             @endif
                           </div>
                         </div>
+                        <div class="col-md-6">
+                          <div class="form-group">
+                            <label for="is_active" class="form-label">Status</label>
+                            <select name="is_active" class="form-control @error('is_active') is-invalid @enderror">
+                              <option value="1" {{ old('is_active') == '1' ? 'selected' : '' }}>Active</option>
+                              <option value="0" {{ old('is_active') == '0' ? 'selected' : '' }}>Inactive</option>
+                            </select>
+                            @if ($errors->any('is_active'))
+                            <span class="text-danger">{{ ($errors->first('is_active')) }}</span>
+                            @endif
+                          </div>
+                        </div>
+                        </div>
                       </div>
                     </div>
                     <div class="tab-pane fade" id="vert-tabs-taxidentification" role="tabpanel" aria-labelledby="vert-tabs-taxidentification-tab">
@@ -622,6 +635,7 @@
                             @endif
                           </div>
                         </div>
+                        
                       </div>
                     </div>
                     <div class="tab-pane fade" id="vert-tabs-image" role="tabpanel" aria-labelledby="vert-tabs-image-tab">

@@ -319,7 +319,7 @@ class EmployeeController extends Controller
             $administration->basic_salary = $data['basic_salary'];
             $administration->site_allowance = $data['site_allowance'];
             $administration->other_allowance = $data['other_allowance'];
-            $administration->is_active = 1;
+            $administration->is_active = $data['is_active'];
             $administration->save();
         }
 

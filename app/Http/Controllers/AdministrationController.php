@@ -77,13 +77,13 @@ class AdministrationController extends Controller
                 return $administrations->other_allowance;
             })
             
-            // ->addColumn('position_status', function ($position) {
-            //     if ($position->position_status == '1') {
-            //         return '<span class="badge badge-success">Active</span>';
-            //     } elseif ($position->position_status == '0') {
-            //         return '<span class="badge badge-danger">Inactive</span>';
-            //     }
-            // })
+            ->addColumn('is_active', function ($administrations) {
+                if ($administrations->is_active == '1') {
+                    return '<span class="badge badge-success">Active</span>';
+                } elseif ($administrations->is_active == '0') {
+                    return '<span class="badge badge-danger">Inactive</span>';
+                }
+            })
             ->filter(function ($instance) use ($request) {
                 if (!empty($request->get('search'))) {
                     $instance->where(function ($w) use ($request) {
@@ -99,7 +99,8 @@ class AdministrationController extends Controller
                             ->orWhere('agreement', 'LIKE', "%$search%")
                             ->orWhere('company_program', 'LIKE', "%$search%")
                             ->orWhere('no_fptk', 'LIKE', "%$search%")
-                            ->orWhere('no_sk_active', 'LIKE', "%$search%");
+                            ->orWhere('no_sk_active', 'LIKE', "%$search%")
+                            ->orWhere('is_active', 'LIKE', "%$search%");
                            
                     });
                 }
@@ -118,7 +119,7 @@ class AdministrationController extends Controller
                 return $date;
 
             })
-            ->rawColumns(['fullname', 'action'])
+            ->rawColumns(['is_active', 'action'])
             ->toJson();
     }
     // public function administrations(Request $request)

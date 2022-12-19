@@ -18,12 +18,7 @@ return new class extends Migration
             $table->string('no_fptk')->nullable()->after('doh');
             $table->string('company_program')->nullable()->after('doh');
             $table->string('agreement')->nullable()->after('doh');
-            $table->date('foc')->nullable()->after('doh');
-           
-           
-           
-           
-           
+            $table->date('foc')->nullable()->after('doh');                                  
         });
     }
 

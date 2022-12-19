@@ -105,6 +105,17 @@
                   <input type="text" class="form-control" name="other_allowance" value="{{ $administrations->other_allowance }}" readonly>
                 </div>
               </div>
+              <div class="form-group row">
+                <label class="col-sm-3 col-form-label">Status</label>
+                <div class="col-sm-8">
+                  <select name="is_active" class="form-control @error('is_active') is-invalid @enderror" disabled="true">
+                    <option value="1" {{ old('is_active', $administrations->is_active) == '1' ? 'selected' : '' }}>
+                      Active</option>
+                    <option value="0" {{ old('is_active', $administrations->is_active) == '0' ? 'selected' : '' }}>Inactive
+                    </option>
+                  </select>
+                </div>
+              </div>
             </div>
           </div>
         </div>
