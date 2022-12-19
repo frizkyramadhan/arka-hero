@@ -98,7 +98,7 @@ class AdministrationController extends Controller
                             ->orWhere('doh', 'LIKE', "%$search%")
                             ->orWhere('class', 'LIKE', "%$search%")
                             ->orWhere('doh', 'LIKE', "%$search%")
-                            ->orWhere('poh', 'LIKE', "%$search%");
+                            ->orWhere('poh', 'LIKE', "%$search%")
                             ->orWhere('poh', 'LIKE', "%$search%")
                             ->orWhere('foc', 'LIKE', "%$search%")
                             ->orWhere('agreement', 'LIKE', "%$search%")
