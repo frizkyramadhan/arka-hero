@@ -97,19 +97,19 @@ class EmployeebankController extends Controller
     //     return view('employeebank.create', compact('employee', 'banks'));
     // }
 
-    // public function store(Request $request)
-    // {
-    //     $validated = $request->validate([
-    //         'employee_id' => 'required',
-    //         'bank_id' => 'required',
-    //         'bank_account_no' => 'required',
-    //         'bank_account_name' => 'required',
-    //         'bank_account_branch' => 'required',
+    public function store(Request $request)
+    {
+        $request->validate([
+            'employee_id' => 'required',
+            'bank_id' => 'required',
+            'bank_account_no' => 'required',
+            'bank_account_name' => 'required',
+            'bank_account_branch' => 'required',
 
-    //     ]);
-    //     $employeebanks = Employeebank::create($request->all());
-    //     return redirect('admin/employeebanks')->with('status', 'Bank Employee Add Successfully');
-    // }
+        ]);
+        Employeebank::create($request->all());
+        return back()->with('status', 'Bank Added Successfully');
+    }
 
 
     // public function editEmployeebank($slug)

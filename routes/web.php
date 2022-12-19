@@ -18,6 +18,7 @@ use App\Http\Controllers\RegisterController;
 use App\Http\Controllers\ReligionController;
 use App\Http\Controllers\InsuranceController;
 use App\Http\Controllers\DepartmentController;
+use App\Http\Controllers\TerminationController;
 use App\Http\Controllers\EmployeebankController;
 use App\Http\Controllers\OperableunitController;
 use App\Http\Controllers\JobexperienceController;
@@ -125,9 +126,9 @@ Route::group(['middleware' => ['auth']], function () {
     Route::post('emrgcalls/{employee_id}', [EmrgcallController::class, 'store'])->name('emrgcalls.store');
     Route::delete('emrgcalls/{employee_id}/{id}', [EmrgcallController::class, 'delete'])->name('emrgcalls.delete');
 
+    Route::get('additionaldatas/getAdditionaldata', [AdditionaldataController::class, 'getAdditionaldata'])->name('additionaldatas.list');
     Route::resource('additionaldatas', AdditionaldataController::class)->except(['show', 'create', 'edit']);
     // Route::get('additionaldatas', [AdditionaldataController::class, 'index'])->name('index');
-    Route::get('additionaldatas/getAdditionaldata', [AdditionaldataController::class, 'getAdditionaldata'])->name('additionaldatas.list');
     // Route::post('Addadditionaldata', [AdditionaldataController::class, 'store'])->name('store');
     // Route::get('editAdditionaldata/{slug}', [AdditionaldataController::class, 'editAdditionaldata'])->name('editAdditionaldata');
     // Route::put('/updateAdditionaldata/{slug}', [AdditionaldataController::class, 'updateAdditionaldata'])->name('updateAdditionaldata');
@@ -169,4 +170,7 @@ Route::group(['middleware' => ['auth']], function () {
 
     Route::get('taxidentifications', [TaxidentificationController::class, 'index'])->name('index');
     Route::get('taxidentifications/getTaxidentifications', [TaxidentificationController::class, 'getTaxidentifications'])->name('taxidentifications.list');
+
+    Route::get('terminations/getTerminations', [TerminationController::class, 'getTerminations'])->name('terminations.list');
+    Route::resource('terminations', TerminationController::class)->except(['create', 'show', 'edit']);
 });

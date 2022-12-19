@@ -12,6 +12,7 @@ use App\Models\Emrgcall;
 use App\Models\Religion;
 use App\Models\Education;
 use App\Models\Insurance;
+use App\Models\Termination;
 use App\Models\Employeebank;
 use App\Models\Operableunit;
 use App\Models\Jobexperience;
@@ -122,5 +123,10 @@ class Employee extends Model
     public function licenses()
     {
         return $this->hasMany(License::class);
+    }
+
+    public function termination()
+    {
+        return $this->hasMany(Termination::class);
     }
 }

@@ -101,21 +101,21 @@ class AdditionaldataController extends Controller
     //     return view('additionaldata.create', compact('employee'));
     // }
 
-    // public function store(Request $request)
-    // {
-    //     $validated = $request->validate([
-    //         'employee_id' => 'required',
-    //         'cloth_size' => 'required',
-    //         'pants_size' => 'required',
-    //         'shoes_size' => 'required',
-    //         'height' => 'required',
-    //         'weight' => 'required',
-    //         'glasses' => 'required',
+    public function store(Request $request)
+    {
+        $request->validate([
+            'employee_id' => 'required',
+            'cloth_size' => 'required',
+            'pants_size' => 'required',
+            'shoes_size' => 'required',
+            'height' => 'required',
+            'weight' => 'required',
+            'glasses' => 'required',
 
-    //     ]);
-    //     $additionaldatas = Additionaldata::create($request->all());
-    //     return redirect('admin/additionaldatas')->with('status', 'Additional Data Employee Add Successfully');
-    // }
+        ]);
+        Additionaldata::create($request->all());
+        return back()->with('toast_success', 'Additional Data Added Successfully');
+    }
 
     // public function editAdditionaldata($slug)
     // {

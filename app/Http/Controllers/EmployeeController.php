@@ -15,6 +15,7 @@ use App\Models\Religion;
 use App\Models\Education;
 use App\Models\Insurance;
 use App\Models\Department;
+use App\Models\Termination;
 use Illuminate\Support\Arr;
 use App\Models\Employeebank;
 use App\Models\Operableunit;
@@ -22,6 +23,7 @@ use Illuminate\Http\Request;
 use App\Models\Jobexperience;
 use App\Models\Additionaldata;
 use App\Models\Administration;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
 
@@ -42,6 +44,11 @@ class EmployeeController extends Controller
             ->leftJoin('positions', 'administrations.position_id', '=', 'positions.id')
             ->leftJoin('departments', 'positions.department_id', '=', 'departments.id')
             ->select('employees.*', 'employees.created_at as created_date', 'administrations.nik', 'administrations.poh', 'administrations.doh', 'administrations.class', 'projects.project_code', 'positions.position_name', 'departments.department_name')
+            ->whereNotExists(function ($query) {
+                $query->select(DB::raw(1))
+                    ->from('terminations')
+                    ->whereRaw('terminations.employee_id = employees.id');
+            })
             ->orderBy('administrations.nik', 'desc');
 
         return datatables()->of($employee)
@@ -359,6 +366,7 @@ class EmployeeController extends Controller
             ->orderBy('administrations.nik', 'desc')
             ->get();
         $images = Image::where('employee_id', $id)->get();
+        $termination = Termination::where('employee_id', $id)->first();
 
         // for select option
         $religions = Religion::orderBy('id', 'asc')->get();
@@ -366,7 +374,7 @@ class EmployeeController extends Controller
         $positions = Position::with('departments')->orderBy('position_name', 'asc')->get();
         $projects = Project::orderBy('project_code', 'asc')->get();
 
-        return view('employee.detail', compact('title', 'subtitle', 'employee', 'bank', 'insurances', 'families', 'educations', 'courses', 'jobs', 'units', 'licenses', 'emergencies', 'additional', 'administrations', 'images', 'religions', 'getBanks', 'positions', 'projects'));
+        return view('employee.detail', compact('title', 'subtitle', 'employee', 'bank', 'insurances', 'families', 'educations', 'courses', 'jobs', 'units', 'licenses', 'emergencies', 'additional', 'administrations', 'images', 'termination', 'religions', 'getBanks', 'positions', 'projects'));
     }
 
     public function edit($id)
