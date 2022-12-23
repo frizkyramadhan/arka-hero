@@ -18,6 +18,7 @@ use App\Http\Controllers\RegisterController;
 use App\Http\Controllers\ReligionController;
 use App\Http\Controllers\InsuranceController;
 use App\Http\Controllers\DepartmentController;
+use App\Http\Controllers\EducationsController;
 use App\Http\Controllers\TerminationController;
 use App\Http\Controllers\EmployeebankController;
 use App\Http\Controllers\OperableunitController;
@@ -156,8 +157,12 @@ Route::group(['middleware' => ['auth']], function () {
     Route::post('administrations/{employee_id}', [AdministrationController::class, 'store'])->name('administrations.store');
     Route::delete('administrations/{employee_id}/{id}', [AdministrationController::class, 'delete'])->name('administrations.delete');
 
-    Route::get('schools/getSchool', [SchoolController::class, 'getSchool'])->name('schools.list');
     Route::resource('schools', SchoolController::class)->except(['store', 'show', 'create', 'edit']);
+    Route::get('schools/getSchool', [SchoolController::class, 'getSchool'])->name('schools.list');
+
+    Route::resource('educations', EducationsController::class)->except(['store', 'show', 'create', 'edit']);
+    Route::get('educations/getEducations', [EducationsController::class, 'getEducations'])->name('educations.list');
+   
     // Route::get('schools', [SchoolController::class, 'index'])->name('index');
     // Route::get('EditSchool/{slug}', [SchoolController::class, 'EditSchool'])->name('EditSchool');
     // Route::put('/UpdateSchool/{slug}', [SchoolController::class, 'UpdateSchool'])->name('UpdateSchool');

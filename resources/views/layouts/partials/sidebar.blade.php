@@ -96,8 +96,8 @@
         </li>
         @endcannot
         @cannot('user')
-        <li class="nav-item {{ Request::is('licenses*') || Request::is('insurances*') || Request::is('families*') || Request::is('schools*') || Request::is('courses*') || Request::is('emrgcalls*') || Request::is('additionaldatas*') || Request::is('employeebanks*') || Request::is('administrations*') || Request::is('jobexperiences*') || Request::is('operableunits*') || Request::is('taxidentifications*')  ? 'menu-open' : '' }}">
-          <a href="#" class="nav-link {{ Request::is('licenses*') || Request::is('insurances*') || Request::is('families*') || Request::is('schools*') || Request::is('courses*') || Request::is('emrgcalls*') || Request::is('additionaldatas*') || Request::is('employeebanks*') || Request::is('administrations*') || Request::is('jobexperiences*') || Request::is('operableunits*') || Request::is('taxidentifications*')  ? 'active' : '' }}">
+        <li class="nav-item {{ Request::is('licenses*') || Request::is('insurances*') || Request::is('families*') || Request::is('educations*') || Request::is('courses*') || Request::is('emrgcalls*') || Request::is('additionaldatas*') || Request::is('employeebanks*') || Request::is('administrations*') || Request::is('jobexperiences*') || Request::is('operableunits*') || Request::is('taxidentifications*')  ? 'menu-open' : '' }}">
+          <a href="#" class="nav-link {{ Request::is('licenses*') || Request::is('insurances*') || Request::is('families*') || Request::is('educations*') || Request::is('courses*') || Request::is('emrgcalls*') || Request::is('additionaldatas*') || Request::is('employeebanks*') || Request::is('administrations*') || Request::is('jobexperiences*') || Request::is('operableunits*') || Request::is('taxidentifications*')  ? 'active' : '' }}">
             <i class="nav-icon fa fa-table"></i>
             <p>
               Summary Employee
@@ -130,7 +130,7 @@
               </a>
             </li>
             <li class="nav-item">
-              <a href="{{ url('schools') }}" class="nav-link {{ Request::is('schools*') ? 'active' : '' }}">
+              <a href="{{ url('educations') }}" class="nav-link {{ Request::is('educations*') ? 'active' : '' }}">
                 <i class="nav-icon fa fa-university"></i>
                 <p>
                   Education
