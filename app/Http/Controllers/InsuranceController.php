@@ -42,13 +42,6 @@ class InsuranceController extends Controller
             ->addColumn('health_insurance_remarks', function ($insurances) {
                 return $insurances->health_insurance_remarks;
             })
-            // ->addColumn('insurances_status', function ($insurances) {
-            //     if ($insurances->insurances_status == '1') {
-            //         return '<span class="badge badge-success">Active</span>';
-            //     } elseif ($insurances->insurances_status == '0') {
-            //         return '<span class="badge badge-danger">Inactive</span>';
-            //     }
-            // })
             ->filter(function ($instance) use ($request) {
                 if (!empty($request->get('search'))) {
                     $instance->where(function ($w) use ($request) {
@@ -68,31 +61,6 @@ class InsuranceController extends Controller
             ->toJson();
     }
 
-    // public function insurances(Request $request)
-    // {   
-    //     $keyword = $request->keyword;
-    //     $insurances = Insurance::with('employees')
-    //                             ->where('health_insurance_type', 'LIKE', '%'.$keyword.'%')
-    //                             ->orWhere('health_insurance_no', 'LIKE', '%'.$keyword.'%')
-    //                             ->orWhereHas('employees', function($query) use($keyword){
-    //                                 $query->where('fullname', 'LIKE', '%'.$keyword.'%');
-    //                             })                        
-    //                             ->paginate(5);
-    //     // $insurances = DB::table('insurances')
-    //     //     ->join('employees', 'insurances.employee_id', '=', 'employees.id')
-    //     //     ->select('insurances.*', 'fullname')
-    //     //     ->orderBy('fullname', 'asc')
-    //     //     ->simplePaginate(10);
-    //     return view('insurance.index', ['insurances' => $insurances]);
-
-    // }
-
-    // // public function addInsurance()
-    // {
-    //     $employee = Employee::orderBy('id', 'asc')->get();
-    //     return view('insurance.create', compact('employee'));
-    // }
-
     public function store($employee_id, Request $request)
     {
         $request->validate([
@@ -109,16 +77,8 @@ class InsuranceController extends Controller
         $insurances->health_insurance_remarks = $request->health_insurance_remarks;
         $insurances->save();
 
-        return redirect('employees/' . $employee_id)->with('status', 'Insurance Employee Add Successfully');
+        return redirect('employees/' . $employee_id . '#insurances')->with('status', 'Insurance Employee Add Successfully');
     }
-
-    // public function editInsurance($slug)
-    // {
-    //     $insurances = Insurance::where('slug', $slug)->first();
-    //     $employee = Employee::orderBy('id', 'asc')->get();
-
-    //     return view('insurance.edit', compact('insurances', 'employee'));
-    // }
 
     public function update(Request $request, $id)
     {
@@ -138,13 +98,19 @@ class InsuranceController extends Controller
         $validatedData = $request->validate($rules);
         Insurance::where('id', $id)->update($validatedData);
 
-        return redirect('employees/' . $request->employee_id)->with('toast_success', 'Insurance Employee Update Successfully');
+        return redirect('employees/' . $request->employee_id . '#insurances')->with('toast_success', 'Insurance Employee Update Successfully');
     }
 
     public function delete($employee_id, $id)
     {
         $insurances = Insurance::where('id', $id)->first();
         $insurances->delete();
-        return redirect('employees/' . $employee_id)->with('toast_success', 'Insurance Delete Successfully');
+        return redirect('employees/' . $employee_id . '#insurances')->with('toast_success', 'Insurance Delete Successfully');
+    }
+
+    public function deleteAll($employee_id)
+    {
+        Insurance::where('employee_id', $employee_id)->delete();
+        return redirect('employees/' . $employee_id . '#insurances')->with('toast_success', 'Insurance Delete Successfully');
     }
 }

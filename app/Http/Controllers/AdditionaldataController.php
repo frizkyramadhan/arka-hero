@@ -47,13 +47,6 @@ class AdditionaldataController extends Controller
             ->addColumn('glasses', function ($additionaldatas) {
                 return $additionaldatas->glasses;
             })
-            // ->addColumn('additionaldatas_status', function ($additionaldatas) {
-            //     if ($additionaldatas->additionaldatas_status == '1') {
-            //         return '<span class="badge badge-success">Active</span>';
-            //     } elseif ($additionaldatas->additionaldatas_status == '0') {
-            //         return '<span class="badge badge-danger">Inactive</span>';
-            //     }
-            // })
             ->filter(function ($instance) use ($request) {
                 if (!empty($request->get('search'))) {
                     $instance->where(function ($w) use ($request) {
@@ -75,31 +68,6 @@ class AdditionaldataController extends Controller
             // ->addColumn('action', 'license.action')
             ->toJson();
     }
-    // public function additionaldatas(Request $request)
-    // { 
-    //     $keyword = $request->keyword;
-    //     $additionaldatas = Additionaldata::with('employees')
-    //                                     ->where('cloth_size', 'LIKE', '%'.$keyword.'%')
-    //                                     ->orWhere('pants_size', 'LIKE', '%'.$keyword.'%')
-    //                                     ->orWhere('shoes_size', 'LIKE', '%'.$keyword.'%')
-    //                                     ->orWhereHas('employees', function($query) use($keyword){
-    //                                         $query->where('fullname', 'LIKE', '%'.$keyword.'%');
-    //                                     })                        
-    //                                     ->paginate(5);
-
-    // // $additionaldatas = DB::table('additionaldatas')
-    // //         ->join('employees', 'additionaldatas.employee_id', '=', 'employees.id')
-    // //         ->select('additionaldatas.*', 'fullname')
-    // //         ->orderBy('fullname', 'asc')
-    // //         ->simplePaginate(10);
-    //     return view('additionaldata.index', ['additionaldatas' => $additionaldatas]);
-    // }
-
-    // public function Addadditionaldata()
-    // {
-    //     $employee = Employee::orderBy('id', 'asc')->get();
-    //     return view('additionaldata.create', compact('employee'));
-    // }
 
     public function store(Request $request)
     {
@@ -114,20 +82,11 @@ class AdditionaldataController extends Controller
 
         ]);
         Additionaldata::create($request->all());
-        return back()->with('toast_success', 'Additional Data Added Successfully');
+        return redirect('employees/' . $request->employee_id . '#additional')->with('toast_success', 'Additional Data Added Successfully');
     }
-
-    // public function editAdditionaldata($slug)
-    // {
-    //     $additionaldatas = Additionaldata::where('slug', $slug)->first();
-    //     $employee = Employee::orderBy('id', 'asc')->get();
-
-    //     return view('additionaldata.edit', compact('additionaldatas', 'employee'));
-    // }
 
     public function update(Request $request, $id)
     {
-        // $additionaldatas = Additionaldata::where('id', $id)->first();
         $rules = [
             'employee_id' => 'required',
             'cloth_size' => 'required',
@@ -141,14 +100,12 @@ class AdditionaldataController extends Controller
         $validatedData = $request->validate($rules);
         Additionaldata::where('id', $id)->update($validatedData);
 
-        return redirect('employees/' . $request->employee_id)->with('toast_success', 'Additional Data Employee Update Successfully');
+        return redirect('employees/' . $request->employee_id . '#additional')->with('toast_success', 'Additional Data Employee Update Successfully');
     }
 
-    // public function deleteAdditionaldata($slug)
-    // {
-
-    //     $additionaldatas = Additionaldata::where('slug', $slug)->first();
-    //     $additionaldatas->delete();
-    //     return redirect('admin/additionaldatas')->with('status', 'Additional Data Employee Delete Successfully');
-    // }
+    public function delete($employee_id, $id)
+    {
+        Additionaldata::where('id', $id)->delete();
+        return redirect('employees/' . $employee_id . '#additional')->with('toast_success', 'Additional Data Employee Delete Successfully');
+    }
 }

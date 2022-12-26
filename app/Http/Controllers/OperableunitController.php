@@ -8,12 +8,10 @@ use Illuminate\Http\Request;
 
 class OperableunitController extends Controller
 {
-
-
     public function index()
     {
-        $title = ' Operable Unit';
-        $subtitle = ' Operable Unit';
+        $title = 'Operable Unit';
+        $subtitle = 'Operable Unit';
         $employees = Employee::orderBy('fullname', 'asc')->get();
         return view('operableunit.index', compact('title', 'subtitle', 'employees'));
     }
@@ -38,13 +36,6 @@ class OperableunitController extends Controller
             ->addColumn('unit_remarks', function ($operableunits) {
                 return $operableunits->unit_remarks;
             })
-            // ->addColumn('position_status', function ($position) {
-            //     if ($position->position_status == '1') {
-            //         return '<span class="badge badge-success">Active</span>';
-            //     } elseif ($position->position_status == '0') {
-            //         return '<span class="badge badge-danger">Inactive</span>';
-            //     }
-            // })
             ->filter(function ($instance) use ($request) {
                 if (!empty($request->get('search'))) {
                     $instance->where(function ($w) use ($request) {
@@ -96,7 +87,7 @@ class OperableunitController extends Controller
         $operableunit->unit_remarks = $request->unit_remarks;
         $operableunit->save();
 
-        return redirect('employees/' . $employee_id)->with('toast_success', 'Operable Unit Added Successfully');
+        return redirect('employees/' . $employee_id . '#units')->with('toast_success', 'Operable Unit Added Successfully');
     }
 
     /**
@@ -144,7 +135,7 @@ class OperableunitController extends Controller
         $operableunit->unit_remarks = $request->unit_remarks;
         $operableunit->save();
 
-        return redirect('employees/' . $request->employee_id)->with('toast_success', 'Operable Unit Updated Successfully');
+        return redirect('employees/' . $request->employee_id . '#units')->with('toast_success', 'Operable Unit Updated Successfully');
     }
 
     /**
@@ -158,6 +149,12 @@ class OperableunitController extends Controller
         $operableunit = Operableunit::find($id);
         $operableunit->delete();
 
-        return redirect('employees/' . $employee_id)->with('toast_success', 'Operable Unit Deleted Successfully');
+        return redirect('employees/' . $employee_id . '#units')->with('toast_success', 'Operable Unit Deleted Successfully');
+    }
+
+    public function deleteAll($employee_id)
+    {
+        Operableunit::where('employee_id', $employee_id)->delete();
+        return redirect('employees/' . $employee_id . '#units')->with('toast_success', 'Operable Unit Deleted Successfully');
     }
 }

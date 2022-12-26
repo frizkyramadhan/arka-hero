@@ -64,7 +64,10 @@ class EmployeeController extends Controller
                 return $employee->poh;
             })
             ->addColumn('doh', function ($employee) {
-                return date('d-M-Y', strtotime($employee->doh));
+                if ($employee->doh == null)
+                    return null;
+                else
+                    return date('d-M-Y', strtotime($employee->doh));
             })
             ->addColumn('department_name', function ($employee) {
                 return $employee->department_name;
@@ -126,23 +129,24 @@ class EmployeeController extends Controller
     {
         $request->validate([
             'fullname' => 'required',
+            'identity_card' => 'required|unique:employees',
             'emp_pob' => 'required',
             'emp_dob' => 'required',
             'nik' => 'required|unique:administrations',
             'poh' => 'required',
             'doh' => 'required',
-            'foc' => 'required',
             'class' => 'required',
             'position_id' => 'required',
             'project_id' => 'required',
             'filename.*' => 'image|mimes:jpeg,png,jpg,gif,svg|max:2048'
         ], [
             'fullname.required' => 'Full Name is required',
+            'identity_card.required' => 'Identity Card No is required',
+            'identity_card.unique' => 'Identity Card No already exists',
             'emp_pob.required' => 'Place of Birth is required',
             'emp_dob.required' => 'Date of Birth is required',
             'poh.required' => 'Place of Hire is required',
             'doh.required' => 'Date of Hire is required',
-            'foc.required' => 'Finish Of Contract is required',
             'class.required' => 'Class is required',
             'position_id.required' => 'Position is required',
             'project_id.required' => 'Project is required',
@@ -366,6 +370,7 @@ class EmployeeController extends Controller
         $subtitle = 'Detail Employee';
         $employee = Employee::with(['religion'])->withTrashed()->where('id', $id)->first();
         $bank = Employeebank::with(['banks'])->where('employee_id', $id)->first();
+        $tax = Taxidentification::where('employee_id', $id)->first();
         $insurances = Insurance::where('employee_id', $id)->get();
         $families = Family::where('employee_id', $id)->get();
         $educations = Education::where('employee_id', $id)->get();
@@ -391,7 +396,7 @@ class EmployeeController extends Controller
         $positions = Position::with('departments')->orderBy('position_name', 'asc')->get();
         $projects = Project::orderBy('project_code', 'asc')->get();
 
-        return view('employee.detail', compact('title', 'subtitle', 'employee', 'bank', 'insurances', 'families', 'educations', 'courses', 'jobs', 'units', 'licenses', 'emergencies', 'additional', 'administrations', 'images', 'termination', 'religions', 'getBanks', 'positions', 'projects'));
+        return view('employee.detail', compact('title', 'subtitle', 'employee', 'bank', 'tax', 'insurances', 'families', 'educations', 'courses', 'jobs', 'units', 'licenses', 'emergencies', 'additional', 'administrations', 'images', 'termination', 'religions', 'getBanks', 'positions', 'projects'));
     }
 
     public function edit($id)
@@ -439,29 +444,33 @@ class EmployeeController extends Controller
         return redirect('employees/' . $id)->with('toast_success', 'Employee edited successfully');
     }
 
-
-
-    public function deleteEmployee($id)
+    public function destroy($employee_id)
     {
-        $employee = Employee::where('id', $id)->first();
-        return view('employee.delete', ['employee' => $employee]);
+        $images = Image::where('employee_id', $employee_id)->get();
+        foreach ($images as $image) {
+            // delete image
+            $img = public_path('images/' . $image->employee_id . '/' . $image->filename);
+            if (file_exists($img)) {
+                unlink($img);
+                Image::where('id', $image->id)->delete();
+            }
+        }
+        Administration::where('employee_id', $employee_id)->delete();
+        Employeebank::where('employee_id', $employee_id)->delete();
+        Taxidentification::where('employee_id', $employee_id)->delete();
+        Insurance::where('employee_id', $employee_id)->delete();
+        License::where('employee_id', $employee_id)->delete();
+        Family::where('employee_id', $employee_id)->delete();
+        Education::where('employee_id', $employee_id)->delete();
+        Course::where('employee_id', $employee_id)->delete();
+        Jobexperience::where('employee_id', $employee_id)->delete();
+        Operableunit::where('employee_id', $employee_id)->delete();
+        Emrgcall::where('employee_id', $employee_id)->delete();
+        Additionaldata::where('employee_id', $employee_id)->delete();
+        Termination::where('employee_id', $employee_id)->delete();
+        Employee::where('id', $employee_id)->delete();
 
-
-        // $employees = Employee::where('id', $id)->first();
-        // $employees->delete();
-        // return redirect('admin/employees')->with('status', 'Employee Delete Successfully');
-    }
-
-
-    public function destroy($id)
-    {
-        // $employee = Employee::where('id', $id)->first();
-        // return view('employee.delete', ['employee' => $employee]);
-
-
-        $employees = Employee::where('id', $id)->first();
-        $employees->delete();
-        return redirect('admin/employees')->with('status', 'Employee Delete Successfully');
+        return redirect('employees')->with('toast_success', 'Employee Delete Successfully');
     }
 
     public function addImages($id, Request $request)
@@ -491,26 +500,23 @@ class EmployeeController extends Controller
             }
         }
 
-        return back()->with('toast_success', 'Images uploaded successfully');
+        return redirect('employees/' . $id . '#images')->with('toast_success', 'Images uploaded successfully');
     }
 
-    public function deleteImage($id)
-    {
-        $image = Image::find($id);
-        // delete image
-        $img = public_path('images/' . $image->employee_id . '/' . $image->filename);
-        if (file_exists($img)) {
-            unlink($img);
-            Image::where('id', $image->id)->delete();
-        }
-
-        return back()->with('toast_success', 'Image successfully deleted!');
-    }
-
-    public function deleteImages($employee_id)
+    public function deleteImage($employee_id, $id)
     {
         $images = Image::where('employee_id', $employee_id)->get();
-        foreach ($images as $image) {
+        if ($images->count() == 1) { // jika image sisa 1, hapus juga foldernya
+            $image = Image::find($id);
+            // delete image
+            $img = public_path('images/' . $image->employee_id . '/' . $image->filename);
+            if (file_exists($img)) {
+                unlink($img);
+                Image::where('id', $image->id)->delete();
+                File::deleteDirectory(public_path('images/' . $image->employee_id));
+            }
+        } else {
+            $image = Image::find($id);
             // delete image
             $img = public_path('images/' . $image->employee_id . '/' . $image->filename);
             if (file_exists($img)) {
@@ -518,6 +524,28 @@ class EmployeeController extends Controller
                 Image::where('id', $image->id)->delete();
             }
         }
-        return back()->with('toast_success', 'All images successfully deleted!');
+
+        return redirect('employees/' . $image->employee_id . '#images')->with('toast_success', 'Image successfully deleted!');
+    }
+
+    public function deleteImages($employee_id)
+    {
+        $images = Image::where('employee_id', $employee_id)->get();
+        // delete folder
+        $path = public_path('images/' . $employee_id);
+        if (file_exists($path)) {
+            Image::where('employee_id', $employee_id)->delete();
+            File::deleteDirectory($path);
+        }
+
+        // delete image
+        // foreach ($images as $image) {
+        //     $img = public_path('images/' . $image->employee_id . '/' . $image->filename);
+        //     if (file_exists($img)) {
+        //         unlink($img);
+        //         Image::where('id', $image->id)->delete();
+        //     }
+        // }
+        return redirect('employees/' . $employee_id . '#images')->with('toast_success', 'All images successfully deleted!');
     }
 }

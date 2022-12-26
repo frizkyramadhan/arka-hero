@@ -41,13 +41,6 @@ class EmrgcallController extends Controller
             ->addColumn('emrg_call_address', function ($emrgcalls) {
                 return $emrgcalls->emrg_call_address;
             })
-            // ->addColumn('emrgcalls_status', function ($emrgcalls) {
-            //     if ($emrgcalls->emrgcalls_status == '1') {
-            //         return '<span class="badge badge-success">Active</span>';
-            //     } elseif ($emrgcalls->emrgcalls_status == '0') {
-            //         return '<span class="badge badge-danger">Inactive</span>';
-            //     }
-            // })
             ->filter(function ($instance) use ($request) {
                 if (!empty($request->get('search'))) {
                     $instance->where(function ($w) use ($request) {
@@ -68,29 +61,6 @@ class EmrgcallController extends Controller
             // ->addColumn('action', 'emrgcall.action')
             ->toJson();
     }
-    // public function emrgcalls(Request $request)
-    // { 
-    //     $keyword = $request->keyword;
-    //     $emrgcalls = Emrgcall::with('employees')
-    //                         ->where('emrg_call_name', 'LIKE', '%'.$keyword.'%')
-    //                         ->orWhere('emrg_call_relation', 'LIKE', '%'.$keyword.'%')
-    //                         ->orWhereHas('employees', function($query) use($keyword){
-    //                             $query->where('fullname', 'LIKE', '%'.$keyword.'%');
-    //                         })                        
-    //                         ->paginate(5);
-    // // $emrgcalls = DB::table('emrgcalls')
-    // //         ->join('employees', 'emrgcalls.employee_id', '=', 'employees.id')
-    // //         ->select('emrgcalls.*', 'fullname')
-    // //         ->orderBy('fullname', 'asc')
-    // //         ->simplePaginate(10);
-    //     return view('emrgcall.index', ['emrgcalls' => $emrgcalls]);
-    // }
-
-    // public function addEmrgcall()
-    // {
-    //     $employee = Employee::orderBy('id', 'asc')->get();
-    //     return view('emrgcall.create', compact('employee'));
-    // }
 
     public function store($employee_id, Request $request)
     {
@@ -103,16 +73,8 @@ class EmrgcallController extends Controller
 
         ]);
         Emrgcall::create($request->all());
-        return redirect('employees/' . $employee_id)->with('toast_success', 'Emergency Call Added Successfully');
+        return redirect('employees/' . $employee_id . '#emergencies')->with('toast_success', 'Emergency Call Added Successfully');
     }
-
-    // public function editEmrgcall($slug)
-    // {
-    //     $emrgcalls = Emrgcall::where('slug', $slug)->first();
-    //     $employee = Employee::orderBy('id', 'asc')->get();
-
-    //     return view('emrgcall.edit', compact('emrgcalls', 'employee'));
-    // }
 
     public function update(Request $request, $id)
     {
@@ -127,13 +89,19 @@ class EmrgcallController extends Controller
         $emrgcalls = Emrgcall::where('id', $id)->first();
         $emrgcalls->update($request->all());
 
-        return redirect('employees/' . $request->employee_id)->with('toast_success', 'Emergency Call Updated Successfully');
+        return redirect('employees/' . $request->employee_id . '#emergencies')->with('toast_success', 'Emergency Call Updated Successfully');
     }
 
     public function delete($employee_id, $id)
     {
         $emrgcalls = Emrgcall::where('id', $id)->first();
         $emrgcalls->delete();
-        return redirect('employees/' . $employee_id)->with('toast_success', 'Emergency Call Deleted Successfully');
+        return redirect('employees/' . $employee_id . '#emergencies')->with('toast_success', 'Emergency Call Deleted Successfully');
+    }
+
+    public function deleteAll($employee_id)
+    {
+        Emrgcall::where('employee_id', $employee_id)->delete();
+        return redirect('employees/' . $employee_id . '#emergencies')->with('toast_success', 'Emergency Call Deleted Successfully');
     }
 }

@@ -47,18 +47,18 @@
                 <div class="col-5 col-sm-3">
                   <div class="nav flex-column nav-tabs h-100" id="vert-tabs-tab" role="tablist" aria-orientation="vertical">
                     <a class="nav-link active" id="vert-tabs-employee-tab" data-toggle="pill" href="#vert-tabs-employee" role="tab" aria-controls="vert-tabs-employee" aria-selected="true">Personal Detail</a>
+                    <a class="nav-link" id="vert-tabs-administration-tab" data-toggle="pill" href="#vert-tabs-administration" role="tab" aria-controls="vert-tabs-administration" aria-selected="false">Administrations</a>
                     <a class="nav-link" id="vert-tabs-bank-tab" data-toggle="pill" href="#vert-tabs-bank" role="tab" aria-controls="vert-tabs-bank" aria-selected="false">Bank Accounts</a>
+                    <a class="nav-link" id="vert-tabs-taxidentification-tab" data-toggle="pill" href="#vert-tabs-taxidentification" role="tab" aria-controls="vert-tabs-taxidentification" aria-selected="false">Tax Identification</a>
                     <a class="nav-link" id="vert-tabs-insurance-tab" data-toggle="pill" href="#vert-tabs-insurance" role="tab" aria-controls="vert-tabs-insurance" aria-selected="false">Health Insurance</a>
+                    <a class="nav-link" id="vert-tabs-licence-tab" data-toggle="pill" href="#vert-tabs-licence" role="tab" aria-controls="vert-tabs-licence" aria-selected="false">Licences</a>
                     <a class="nav-link" id="vert-tabs-family-tab" data-toggle="pill" href="#vert-tabs-family" role="tab" aria-controls="vert-tabs-family" aria-selected="false">Families</a>
                     <a class="nav-link" id="vert-tabs-education-tab" data-toggle="pill" href="#vert-tabs-education" role="tab" aria-controls="vert-tabs-education" aria-selected="false">Educations</a>
                     <a class="nav-link" id="vert-tabs-course-tab" data-toggle="pill" href="#vert-tabs-course" role="tab" aria-controls="vert-tabs-course" aria-selected="false">Courses</a>
                     <a class="nav-link" id="vert-tabs-jobexp-tab" data-toggle="pill" href="#vert-tabs-jobexp" role="tab" aria-controls="vert-tabs-jobexp" aria-selected="false">Job Experiences</a>
                     <a class="nav-link" id="vert-tabs-unit-tab" data-toggle="pill" href="#vert-tabs-unit" role="tab" aria-controls="vert-tabs-unit" aria-selected="false">Operable Units</a>
-                    <a class="nav-link" id="vert-tabs-licence-tab" data-toggle="pill" href="#vert-tabs-licence" role="tab" aria-controls="vert-tabs-licence" aria-selected="false">Licences</a>
                     <a class="nav-link" id="vert-tabs-emergency-tab" data-toggle="pill" href="#vert-tabs-emergency" role="tab" aria-controls="vert-tabs-emergency" aria-selected="false">Emergency Calls</a>
                     <a class="nav-link" id="vert-tabs-additional-tab" data-toggle="pill" href="#vert-tabs-additional" role="tab" aria-controls="vert-tabs-additional" aria-selected="false">Additional Data</a>
-                    <a class="nav-link" id="vert-tabs-administration-tab" data-toggle="pill" href="#vert-tabs-administration" role="tab" aria-controls="vert-tabs-administration" aria-selected="false">Administrations</a>
-                    <a class="nav-link" id="vert-tabs-taxidentification-tab" data-toggle="pill" href="#vert-tabs-taxidentification" role="tab" aria-controls="vert-tabs-taxidentification" aria-selected="false">Tax Identification</a>
                     <a class="nav-link" id="vert-tabs-image-tab" data-toggle="pill" href="#vert-tabs-image" role="tab" aria-controls="vert-tabs-image" aria-selected="false">Images</a>
                   </div>
                 </div>
@@ -73,6 +73,12 @@
                             @if ($errors->any('fullname'))
                             <span class="text-danger">{{ ($errors->first('fullname')) }}</span>
                             @endif
+                          </div>
+                        </div>
+                        <div class="col-md-3">
+                          <div class="form-group">
+                            <label for="identity_card" class="form-label">Identity Card</label>
+                            <input type="text" value="{{ old('identity_card') }}" class="form-control @error('identity_card') is-invalid @enderror" id="identity_card" name="identity_card" placeholder="No. KTP">
                           </div>
                         </div>
                         <div class="col-md-3">
@@ -190,250 +196,6 @@
                             <input type="text" value="{{ old('email') }}" class="form-control @error('email') is-invalid @enderror" id="email" name="email">
                           </div>
                         </div>
-                        <div class="col-md-3">
-                          <div class="form-group">
-                            <label for="identity_card" class="form-label">Identity Card</label>
-                            <input type="text" value="{{ old('identity_card') }}" class="form-control @error('identity_card') is-invalid @enderror" id="identity_card" name="identity_card" placeholder="No. KTP">
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                    <div class="tab-pane fade" id="vert-tabs-bank" role="tabpanel" aria-labelledby="vert-tabs-bank-tab">
-                      <div class="row">
-                        <div class="col-md-8">
-                          <div class="form-group">
-                            <label for="bank_id" class="form-label">Bank</label>
-                            <select name="bank_id" class="form-control @error('bank_id') is-invalid @enderror">
-                              <option value="">-Select Bank-</option>
-                              @foreach ($banks as $bank)
-                              <option value="{{ $bank->id }}" {{ old('bank_id') == $bank->id ? 'selected' : '' }}>
-                                {{ $bank->bank_name }}
-                              </option>
-                              @endforeach
-                            </select>
-                          </div>
-                        </div>
-                        <div class="col-md-8">
-                          <div class="form-group">
-                            <label for="bank_account_no" class="form-label">Account No</label>
-                            <input type="number" value="{{ old('bank_account_no') }}" class="form-control @error('bank_account_no') is-invalid @enderror" id="bank_account_no" name="bank_account_no">
-                            @if ($errors->any('bank_account_no'))
-                            <span class="text-danger">{{ ($errors->first('bank_account_no')) }}</span>
-                            @endif
-                          </div>
-                        </div>
-                        <div class="col-md-8">
-                          <div class="form-group">
-                            <label for="bank_account_name" class="form-label">Account Name</label>
-                            <input type="text" value="{{ old('bank_account_name') }}" class="form-control @error('bank_account_name') is-invalid @enderror" id="bank_account_name" name="bank_account_name">
-                            @if ($errors->any('bank_account_name'))
-                            <span class="text-danger">{{ ($errors->first('bank_account_name')) }}</span>
-                            @endif
-                          </div>
-                        </div>
-                        <div class="col-md-8">
-                          <div class="form-group">
-                            <label for="bank_account_branch" class="form-label">Branch</label>
-                            <input type="text" value="{{ old('bank_account_branch') }}" class="form-control @error('bank_account_branch') is-invalid @enderror" id="bank_account_branch" name="bank_account_branch">
-                            @if ($errors->any('bank_account_branch'))
-                            <span class="text-danger">{{ ($errors->first('bank_account_branch')) }}</span>
-                            @endif
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                    <div class="tab-pane fade" id="vert-tabs-insurance" role="tabpanel" aria-labelledby="vert-tabs-insurance-tab">
-                      <div class="row">
-                        <div class="table-responsive mt-3">
-                          <table class="table table-sm table-bordered" id="table-insurance">
-                            <thead>
-                              <tr>
-                                <th class="align-middle">Insurance</th>
-                                <th class="align-middle">Insurance No</th>
-                                <th class="align-middle">Health Facility</th>
-                                <th class="align-middle">Remarks</th>
-                                <th style="width: 40px"><button type="button" id="add-insurance" class="btn btn-outline-primary"><i class="fas fa-plus"></i></button></th>
-                              </tr>
-                            </thead>
-                          </table>
-                        </div>
-                      </div>
-                    </div>
-                    <div class="tab-pane fade" id="vert-tabs-family" role="tabpanel" aria-labelledby="vert-tabs-family-tab">
-                      <div class="row">
-                        <div class="table-responsive mt-3">
-                          <table class="table table-sm table-bordered" id="table-family">
-                            <thead>
-                              <tr>
-                                <th class="align-middle">Relationship</th>
-                                <th class="align-middle">Name</th>
-                                <th class="align-middle">Birth Place</th>
-                                <th class="align-middle">Birth Date</th>
-                                <th class="align-middle">Remarks</th>
-                                <th style="width: 40px"><button type="button" id="add-family" class="btn btn-outline-primary"><i class="fas fa-plus"></i></button></th>
-                              </tr>
-                            </thead>
-                          </table>
-                        </div>
-                      </div>
-                    </div>
-                    <div class="tab-pane fade" id="vert-tabs-education" role="tabpanel" aria-labelledby="vert-tabs-education-tab">
-                      <div class="row">
-                        <div class="table-responsive mt-3">
-                          <table class="table table-sm table-bordered" id="table-education">
-                            <thead>
-                              <tr>
-                                <th class="align-middle">Name</th>
-                                <th class="align-middle">Address</th>
-                                <th class="align-middle">Year</th>
-                                <th class="align-middle">Remarks</th>
-                                <th style="width: 40px"><button type="button" id="add-education" class="btn btn-outline-primary"><i class="fas fa-plus"></i></button></th>
-                              </tr>
-                            </thead>
-                          </table>
-                        </div>
-                      </div>
-                    </div>
-                    <div class="tab-pane fade" id="vert-tabs-course" role="tabpanel" aria-labelledby="vert-tabs-course-tab">
-                      <div class="row">
-                        <div class="table-responsive mt-3">
-                          <table class="table table-sm table-bordered" id="table-course">
-                            <thead>
-                              <tr>
-                                <th class="align-middle">Name</th>
-                                <th class="align-middle">Address</th>
-                                <th class="align-middle">Year</th>
-                                <th class="align-middle">Remarks</th>
-                                <th style="width: 40px"><button type="button" id="add-course" class="btn btn-outline-primary"><i class="fas fa-plus"></i></button></th>
-                              </tr>
-                            </thead>
-                          </table>
-                        </div>
-                      </div>
-                    </div>
-                    <div class="tab-pane fade" id="vert-tabs-jobexp" role="tabpanel" aria-labelledby="vert-tabs-jobexp-tab">
-                      <div class="row">
-                        <div class="table-responsive mt-3">
-                          <table class="table table-sm table-bordered" id="table-jobexp">
-                            <thead>
-                              <tr>
-                                <th class="align-middle">Name</th>
-                                <th class="align-middle">Address</th>
-                                <th class="align-middle">Position</th>
-                                <th class="align-middle">Periode</th>
-                                <th class="align-middle">Quit Reason</th>
-                                <th style="width: 40px"><button type="button" id="add-jobexp" class="btn btn-outline-primary"><i class="fas fa-plus"></i></button></th>
-                              </tr>
-                            </thead>
-                          </table>
-                        </div>
-                      </div>
-                    </div>
-                    <div class="tab-pane fade" id="vert-tabs-unit" role="tabpanel" aria-labelledby="vert-tabs-unit-tab">
-                      <div class="row">
-                        <div class="table-responsive mt-3">
-                          <table class="table table-sm table-bordered" id="table-operableunit">
-                            <thead>
-                              <tr>
-                                <th class="align-middle">Unit Name</th>
-                                <th class="align-middle">Unit Type</th>
-                                <th class="align-middle">Remarks</th>
-                                <th style="width: 40px"><button type="button" id="add-operableunit" class="btn btn-outline-primary"><i class="fas fa-plus"></i></button></th>
-                              </tr>
-                            </thead>
-                          </table>
-                        </div>
-                      </div>
-                    </div>
-                    <div class="tab-pane fade" id="vert-tabs-licence" role="tabpanel" aria-labelledby="vert-tabs-licence-tab">
-                      <div class="row">
-                        <div class="table-responsive mt-3">
-                          <table class="table table-sm table-bordered" id="table-license">
-                            <thead>
-                              <tr>
-                                <th class="align-middle">License Type</th>
-                                <th class="align-middle">License No</th>
-                                <th class="align-middle">Expire Date</th>
-                                <th style="width: 40px"><button type="button" id="add-license" class="btn btn-outline-primary"><i class="fas fa-plus"></i></button></th>
-                              </tr>
-                            </thead>
-                          </table>
-                        </div>
-                      </div>
-                    </div>
-                    <div class="tab-pane fade" id="vert-tabs-emergency" role="tabpanel" aria-labelledby="vert-tabs-emergency-tab">
-                      <div class="row">
-                        <div class="table-responsive mt-3">
-                          <table class="table table-sm table-bordered" id="table-emergency">
-                            <thead>
-                              <tr>
-                                <th class="align-middle">Status</th>
-                                <th class="align-middle">Name</th>
-                                <th class="align-middle">Address</th>
-                                <th class="align-middle">Phone</th>
-                                <th style="width: 40px"><button type="button" id="add-emergency" class="btn btn-outline-primary"><i class="fas fa-plus"></i></button></th>
-                              </tr>
-                            </thead>
-                          </table>
-                        </div>
-                      </div>
-                    </div>
-                    <div class="tab-pane fade" id="vert-tabs-additional" role="tabpanel" aria-labelledby="vert-tabs-additional-tab">
-                      <div class="row">
-                        <div class="col-md-8">
-                          <div class="form-group">
-                            <label for="cloth_size" class="form-label">Clothes Size</label>
-                            <input type="text" value="{{ old('cloth_size') }}" class="form-control @error('cloth_size') is-invalid @enderror" id="cloth_size" name="cloth_size">
-                            @if ($errors->any('cloth_size'))
-                            <span class="text-danger">{{ ($errors->first('cloth_size')) }}</span>
-                            @endif
-                          </div>
-                        </div>
-                        <div class="col-md-8">
-                          <div class="form-group">
-                            <label for="pants_size" class="form-label">Pants Size</label>
-                            <input type="text" value="{{ old('pants_size') }}" class="form-control @error('pants_size') is-invalid @enderror" id="pants_size" name="pants_size">
-                            @if ($errors->any('pants_size'))
-                            <span class="text-danger">{{ ($errors->first('pants_size')) }}</span>
-                            @endif
-                          </div>
-                        </div>
-                        <div class="col-md-8">
-                          <div class="form-group">
-                            <label for="shoes_size" class="form-label">Shoes Size</label>
-                            <input type="text" value="{{ old('shoes_size') }}" class="form-control @error('shoes_size') is-invalid @enderror" id="shoes_size" name="shoes_size">
-                            @if ($errors->any('shoes_size'))
-                            <span class="text-danger">{{ ($errors->first('shoes_size')) }}</span>
-                            @endif
-                          </div>
-                        </div>
-                        <div class="col-md-8">
-                          <div class="form-group">
-                            <label for="height" class="form-label">Height</label>
-                            <input type="text" value="{{ old('height') }}" class="form-control @error('height') is-invalid @enderror" id="height" name="height">
-                            @if ($errors->any('height'))
-                            <span class="text-danger">{{ ($errors->first('height')) }}</span>
-                            @endif
-                          </div>
-                        </div>
-                        <div class="col-md-8">
-                          <div class="form-group">
-                            <label for="weight" class="form-label">Weight</label>
-                            <input type="text" value="{{ old('weight') }}" class="form-control @error('weight') is-invalid @enderror" id="weight" name="weight">
-                            @if ($errors->any('weight'))
-                            <span class="text-danger">{{ ($errors->first('weight')) }}</span>
-                            @endif
-                          </div>
-                        </div>
-                        <div class="col-md-8">
-                          <div class="form-group">
-                            <label for="glasses" class="form-label">Glasses</label>
-                            <input type="text" value="{{ old('glasses') }}" class="form-control @error('glasses') is-invalid @enderror" id="glasses" name="glasses">
-                            @if ($errors->any('glasses'))
-                            <span class="text-danger">{{ ($errors->first('glasses')) }}</span>
-                            @endif
-                          </div>
-                        </div>
                       </div>
                     </div>
                     <div class="tab-pane fade" id="vert-tabs-administration" role="tabpanel" aria-labelledby="vert-tabs-administration-tab">
@@ -490,7 +252,15 @@
                         <div class="col-md-6">
                           <div class="form-group">
                             <label for="agreement" class="form-label">Agreement</label>
-                            <input type="text" value="{{ old('agreement') }}" class="form-control @error('agreement') is-invalid @enderror" id="agreement" name="agreement">
+                            <select name="agreement" class="form-control @error('agreement') is-invalid @enderror select2bs4">
+                              <option value="" {{ old('agreement') == '' ? 'selected' : '' }}>-Select Aggrement-</option>
+                              <option value="PKWT1" {{ old('agreement') == 'PKWT1' ? 'selected' : '' }}>PKWT1</option>
+                              <option value="PKWT2" {{ old('agreement') == 'PKWT2' ? 'selected' : '' }}>PKWT2</option>
+                              <option value="PKWT3" {{ old('agreement') == 'PKWT3' ? 'selected' : '' }}>PKWT3</option>
+                              <option value="PKWT4" {{ old('agreement') == 'PKWT4' ? 'selected' : '' }}>PKWT4</option>
+                              <option value="PKWTT" {{ old('agreement') == 'PKWTT' ? 'selected' : '' }}>PKWTT</option>
+                              <option value="Daily" {{ old('agreement') == 'Daily' ? 'selected' : '' }}>Daily</option>
+                            </select>
                             @if ($errors->any('agreement'))
                             <span class="text-danger">{{ ($errors->first('agreement')) }}</span>
                             @endif
@@ -603,7 +373,7 @@
                         <div class="col-md-6">
                           <div class="form-group">
                             <label for="is_active" class="form-label">Status</label>
-                            <select name="is_active" class="form-control @error('is_active') is-invalid @enderror">
+                            <select name="is_active" class="form-control @error('is_active') is-invalid @enderror select2bs4">
                               <option value="1" {{ old('is_active') == '1' ? 'selected' : '' }}>Active</option>
                               <option value="0" {{ old('is_active') == '0' ? 'selected' : '' }}>Inactive</option>
                             </select>
@@ -612,6 +382,49 @@
                             @endif
                           </div>
                         </div>
+                      </div>
+                    </div>
+                    <div class="tab-pane fade" id="vert-tabs-bank" role="tabpanel" aria-labelledby="vert-tabs-bank-tab">
+                      <div class="row">
+                        <div class="col-md-8">
+                          <div class="form-group">
+                            <label for="bank_id" class="form-label">Bank</label>
+                            <select name="bank_id" class="form-control @error('bank_id') is-invalid @enderror">
+                              <option value="">-Select Bank-</option>
+                              @foreach ($banks as $bank)
+                              <option value="{{ $bank->id }}" {{ old('bank_id') == $bank->id ? 'selected' : '' }}>
+                                {{ $bank->bank_name }}
+                              </option>
+                              @endforeach
+                            </select>
+                          </div>
+                        </div>
+                        <div class="col-md-8">
+                          <div class="form-group">
+                            <label for="bank_account_no" class="form-label">Account No</label>
+                            <input type="number" value="{{ old('bank_account_no') }}" class="form-control @error('bank_account_no') is-invalid @enderror" id="bank_account_no" name="bank_account_no">
+                            @if ($errors->any('bank_account_no'))
+                            <span class="text-danger">{{ ($errors->first('bank_account_no')) }}</span>
+                            @endif
+                          </div>
+                        </div>
+                        <div class="col-md-8">
+                          <div class="form-group">
+                            <label for="bank_account_name" class="form-label">Account Name</label>
+                            <input type="text" value="{{ old('bank_account_name') }}" class="form-control @error('bank_account_name') is-invalid @enderror" id="bank_account_name" name="bank_account_name">
+                            @if ($errors->any('bank_account_name'))
+                            <span class="text-danger">{{ ($errors->first('bank_account_name')) }}</span>
+                            @endif
+                          </div>
+                        </div>
+                        <div class="col-md-8">
+                          <div class="form-group">
+                            <label for="bank_account_branch" class="form-label">Branch</label>
+                            <input type="text" value="{{ old('bank_account_branch') }}" class="form-control @error('bank_account_branch') is-invalid @enderror" id="bank_account_branch" name="bank_account_branch">
+                            @if ($errors->any('bank_account_branch'))
+                            <span class="text-danger">{{ ($errors->first('bank_account_branch')) }}</span>
+                            @endif
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -635,7 +448,200 @@
                             @endif
                           </div>
                         </div>
-                        
+                      </div>
+                    </div>
+                    <div class="tab-pane fade" id="vert-tabs-insurance" role="tabpanel" aria-labelledby="vert-tabs-insurance-tab">
+                      <div class="row">
+                        <div class="table-responsive mt-3">
+                          <table class="table table-sm table-bordered" id="table-insurance">
+                            <thead>
+                              <tr>
+                                <th class="align-middle">Insurance</th>
+                                <th class="align-middle">Insurance No</th>
+                                <th class="align-middle">Health Facility</th>
+                                <th class="align-middle">Remarks</th>
+                                <th style="width: 40px"><button type="button" id="add-insurance" class="btn btn-outline-primary"><i class="fas fa-plus"></i></button></th>
+                              </tr>
+                            </thead>
+                          </table>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="tab-pane fade" id="vert-tabs-licence" role="tabpanel" aria-labelledby="vert-tabs-licence-tab">
+                      <div class="row">
+                        <div class="table-responsive mt-3">
+                          <table class="table table-sm table-bordered" id="table-license">
+                            <thead>
+                              <tr>
+                                <th class="align-middle">License Type</th>
+                                <th class="align-middle">License No</th>
+                                <th class="align-middle">Expire Date</th>
+                                <th style="width: 40px"><button type="button" id="add-license" class="btn btn-outline-primary"><i class="fas fa-plus"></i></button></th>
+                              </tr>
+                            </thead>
+                          </table>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="tab-pane fade" id="vert-tabs-family" role="tabpanel" aria-labelledby="vert-tabs-family-tab">
+                      <div class="row">
+                        <div class="table-responsive mt-3">
+                          <table class="table table-sm table-bordered" id="table-family">
+                            <thead>
+                              <tr>
+                                <th class="align-middle">Relationship</th>
+                                <th class="align-middle">Name</th>
+                                <th class="align-middle">Birth Place</th>
+                                <th class="align-middle">Birth Date</th>
+                                <th class="align-middle">Remarks</th>
+                                <th style="width: 40px"><button type="button" id="add-family" class="btn btn-outline-primary"><i class="fas fa-plus"></i></button></th>
+                              </tr>
+                            </thead>
+                          </table>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="tab-pane fade" id="vert-tabs-education" role="tabpanel" aria-labelledby="vert-tabs-education-tab">
+                      <div class="row">
+                        <div class="table-responsive mt-3">
+                          <table class="table table-sm table-bordered" id="table-education">
+                            <thead>
+                              <tr>
+                                <th class="align-middle">Name</th>
+                                <th class="align-middle">Address</th>
+                                <th class="align-middle">Year</th>
+                                <th class="align-middle">Remarks</th>
+                                <th style="width: 40px"><button type="button" id="add-education" class="btn btn-outline-primary"><i class="fas fa-plus"></i></button></th>
+                              </tr>
+                            </thead>
+                          </table>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="tab-pane fade" id="vert-tabs-course" role="tabpanel" aria-labelledby="vert-tabs-course-tab">
+                      <div class="row">
+                        <div class="table-responsive mt-3">
+                          <table class="table table-sm table-bordered" id="table-course">
+                            <thead>
+                              <tr>
+                                <th class="align-middle">Name</th>
+                                <th class="align-middle">Address</th>
+                                <th class="align-middle">Year</th>
+                                <th class="align-middle">Remarks</th>
+                                <th style="width: 40px"><button type="button" id="add-course" class="btn btn-outline-primary"><i class="fas fa-plus"></i></button></th>
+                              </tr>
+                            </thead>
+                          </table>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="tab-pane fade" id="vert-tabs-jobexp" role="tabpanel" aria-labelledby="vert-tabs-jobexp-tab">
+                      <div class="row">
+                        <div class="table-responsive mt-3">
+                          <table class="table table-sm table-bordered" id="table-jobexp">
+                            <thead>
+                              <tr>
+                                <th class="align-middle">Name</th>
+                                <th class="align-middle">Address</th>
+                                <th class="align-middle">Position</th>
+                                <th class="align-middle">Periode</th>
+                                <th class="align-middle">Quit Reason</th>
+                                <th style="width: 40px"><button type="button" id="add-jobexp" class="btn btn-outline-primary"><i class="fas fa-plus"></i></button></th>
+                              </tr>
+                            </thead>
+                          </table>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="tab-pane fade" id="vert-tabs-unit" role="tabpanel" aria-labelledby="vert-tabs-unit-tab">
+                      <div class="row">
+                        <div class="table-responsive mt-3">
+                          <table class="table table-sm table-bordered" id="table-operableunit">
+                            <thead>
+                              <tr>
+                                <th class="align-middle">Unit Name</th>
+                                <th class="align-middle">Unit Type</th>
+                                <th class="align-middle">Remarks</th>
+                                <th style="width: 40px"><button type="button" id="add-operableunit" class="btn btn-outline-primary"><i class="fas fa-plus"></i></button></th>
+                              </tr>
+                            </thead>
+                          </table>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="tab-pane fade" id="vert-tabs-emergency" role="tabpanel" aria-labelledby="vert-tabs-emergency-tab">
+                      <div class="row">
+                        <div class="table-responsive mt-3">
+                          <table class="table table-sm table-bordered" id="table-emergency">
+                            <thead>
+                              <tr>
+                                <th class="align-middle">Status</th>
+                                <th class="align-middle">Name</th>
+                                <th class="align-middle">Address</th>
+                                <th class="align-middle">Phone</th>
+                                <th style="width: 40px"><button type="button" id="add-emergency" class="btn btn-outline-primary"><i class="fas fa-plus"></i></button></th>
+                              </tr>
+                            </thead>
+                          </table>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="tab-pane fade" id="vert-tabs-additional" role="tabpanel" aria-labelledby="vert-tabs-additional-tab">
+                      <div class="row">
+                        <div class="col-md-8">
+                          <div class="form-group">
+                            <label for="cloth_size" class="form-label">Clothes Size</label>
+                            <input type="text" value="{{ old('cloth_size') }}" class="form-control @error('cloth_size') is-invalid @enderror" id="cloth_size" name="cloth_size">
+                            @if ($errors->any('cloth_size'))
+                            <span class="text-danger">{{ ($errors->first('cloth_size')) }}</span>
+                            @endif
+                          </div>
+                        </div>
+                        <div class="col-md-8">
+                          <div class="form-group">
+                            <label for="pants_size" class="form-label">Pants Size</label>
+                            <input type="text" value="{{ old('pants_size') }}" class="form-control @error('pants_size') is-invalid @enderror" id="pants_size" name="pants_size">
+                            @if ($errors->any('pants_size'))
+                            <span class="text-danger">{{ ($errors->first('pants_size')) }}</span>
+                            @endif
+                          </div>
+                        </div>
+                        <div class="col-md-8">
+                          <div class="form-group">
+                            <label for="shoes_size" class="form-label">Shoes Size</label>
+                            <input type="text" value="{{ old('shoes_size') }}" class="form-control @error('shoes_size') is-invalid @enderror" id="shoes_size" name="shoes_size">
+                            @if ($errors->any('shoes_size'))
+                            <span class="text-danger">{{ ($errors->first('shoes_size')) }}</span>
+                            @endif
+                          </div>
+                        </div>
+                        <div class="col-md-8">
+                          <div class="form-group">
+                            <label for="height" class="form-label">Height</label>
+                            <input type="text" value="{{ old('height') }}" class="form-control @error('height') is-invalid @enderror" id="height" name="height">
+                            @if ($errors->any('height'))
+                            <span class="text-danger">{{ ($errors->first('height')) }}</span>
+                            @endif
+                          </div>
+                        </div>
+                        <div class="col-md-8">
+                          <div class="form-group">
+                            <label for="weight" class="form-label">Weight</label>
+                            <input type="text" value="{{ old('weight') }}" class="form-control @error('weight') is-invalid @enderror" id="weight" name="weight">
+                            @if ($errors->any('weight'))
+                            <span class="text-danger">{{ ($errors->first('weight')) }}</span>
+                            @endif
+                          </div>
+                        </div>
+                        <div class="col-md-8">
+                          <div class="form-group">
+                            <label for="glasses" class="form-label">Glasses</label>
+                            <input type="text" value="{{ old('glasses') }}" class="form-control @error('glasses') is-invalid @enderror" id="glasses" name="glasses">
+                            @if ($errors->any('glasses'))
+                            <span class="text-danger">{{ ($errors->first('glasses')) }}</span>
+                            @endif
+                          </div>
+                        </div>
                       </div>
                     </div>
                     <div class="tab-pane fade" id="vert-tabs-image" role="tabpanel" aria-labelledby="vert-tabs-image-tab">
@@ -650,13 +656,14 @@
                   </div>
                 </div>
               </div>
-            </form>
           </div>
+          </form>
         </div>
       </div>
-      <!-- /.col -->
     </div>
-    <!-- /.row -->
+    <!-- /.col -->
+  </div>
+  <!-- /.row -->
   </div>
   <!-- /.container-fluid -->
 
