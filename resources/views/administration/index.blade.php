@@ -41,14 +41,14 @@
                       <th>Project Name</th>
                       <th class="text-center">Position Name</th>
                       <th class="text-center">NIK</th>
-                      <th >Class</th>              
-                      <th >DOH</th>              
-                      <th >POH</th>              
-                      <th >FOC</th>              
-                      <th >Basic Salary</th>              
-                      <th >Site Allowance</th>              
-                      <th >Other Allowance</th>
-                      <th class="text-center">Status</th>              
+                      <th>Class</th>
+                      <th>DOH</th>
+                      <th>POH</th>
+                      <th>FOC</th>
+                      <th>Basic Salary</th>
+                      <th>Site Allowance</th>
+                      <th>Other Allowance</th>
+                      <th class="text-center">Status</th>
                       <th class="text-center">Detail</th>
                     </tr>
                   </thead>
@@ -65,13 +65,6 @@
     </div>
     <!-- /.row (main row) -->
   </div>
-
-  
-
-
-  
-      
- 
 </section>
 @endsection
 
@@ -158,55 +151,55 @@
         , orderable: false
         , searchable: false
         , className: "text-center"
-      ,}, {
+      , }, {
         data: "class"
         , name: "class"
         , orderable: false
         , searchable: false
         , className: "text-center"
-      ,}, {
+      , }, {
         data: "doh"
         , name: "doh"
         , orderable: false
         , searchable: false
         , className: "text-center"
-      ,}, {
+      , }, {
         data: "foc"
         , name: "foc"
         , orderable: false
         , searchable: false
         , className: "text-center"
-      ,}, {
+      , }, {
         data: "poh"
         , name: "poh"
         , orderable: false
         , searchable: false
         , className: "text-center"
-      ,}, {
+      , }, {
         data: "basic_salary"
         , name: "basic_salary"
         , orderable: false
         , searchable: false
         , className: "text-center"
-     , }, {
+      , }, {
         data: "site_allowance"
         , name: "site_allowance"
         , orderable: false
         , searchable: false
         , className: "text-center"
-     , }, {
+      , }, {
         data: "other_allowance"
         , name: "other_allowance"
         , orderable: false
         , searchable: false
         , className: "text-center"
-      ,}, {
+      , }, {
         data: "is_active"
         , name: "is_active"
         , orderable: false
         , searchable: false
         , className: "text-center"
-      ,}, {
+      , }, {
         data: "action"
         , name: "action"
         , orderable: false

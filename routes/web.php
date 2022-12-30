@@ -116,6 +116,7 @@ Route::group(['middleware' => ['auth']], function () {
     Route::post('administrations/{employee_id}', [AdministrationController::class, 'store'])->name('administrations.store');
     Route::delete('administrations/{employee_id}/{id}', [AdministrationController::class, 'delete'])->name('administrations.delete');
     Route::delete('administrations/{employee_id}', [AdministrationController::class, 'deleteAll'])->name('administrations.deleteAll');
+    Route::patch('administrations/changeStatus/{employee_id}/{id}', [AdministrationController::class, 'changeStatus'])->name('administrations.changeStatus');
 
     Route::get('educations/getEducation', [EducationController::class, 'getEducation'])->name('educations.list');
     Route::resource('educations', EducationController::class)->except(['store', 'show', 'create', 'edit', 'destroy']);
@@ -139,6 +140,8 @@ Route::group(['middleware' => ['auth']], function () {
     Route::resource('taxidentifications', TaxidentificationController::class)->except(['show', 'create', 'edit', 'destroy']);
     Route::delete('taxidentifications/{employee_id}/{id}', [TaxidentificationController::class, 'delete'])->name('taxidentifications.delete');
 
+    Route::get('terminations/getEmployees', [TerminationController::class, 'getEmployees'])->name('terminations.getActiveEmployees');
     Route::get('terminations/getTerminations', [TerminationController::class, 'getTerminations'])->name('terminations.list');
-    Route::resource('terminations', TerminationController::class)->except(['create', 'show', 'edit']);
+    Route::post('terminations/massTermination', [TerminationController::class, 'massTermination'])->name('terminations.massTermination');
+    Route::resource('terminations', TerminationController::class)->except(['show', 'edit']);
 });

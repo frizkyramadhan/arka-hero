@@ -44,6 +44,106 @@
               </div>
             </div><!-- /.card-header -->
             <div class="card-body">
+              <div class="card card-primary">
+                <div class="card-header">
+                  <h4 class="card-title w-100">
+                    <a class="d-block w-100" data-toggle="collapse" href="#collapseOne">
+                      <i class="fas fa-filter"></i> Filter
+                    </a>
+                  </h4>
+                </div>
+                <div id="collapseOne" class="collapse" data-parent="#accordion">
+                  <div class="card-body">
+                    <div class="row form-group">
+                      <div class="col-3">
+                        <div class="form-group">
+                          <label class=" form-control-label">DOH From</label>
+                          <input type="date" class="form-control" name="date1" id="date1" value="{{ request('date1') }}">
+                        </div>
+                      </div>
+                      <div class="col-3">
+                        <div class="form-group">
+                          <label class=" form-control-label">DOH To</label>
+                          <input type="date" class="form-control" name="date2" id="date2" value="{{ request('date2') }}">
+                        </div>
+                      </div>
+                      <div class="col-3">
+                        <div class="form-group">
+                          <label class="form-control-label">NIK</label>
+                          <input type="text" class="form-control" name="nik" id="nik" value="{{ request('nik') }}">
+                        </div>
+                      </div>
+                      <div class="col-3">
+                        <div class="form-group">
+                          <label class="form-control-label">Full Name</label>
+                          <input type="text" class="form-control" name="fullname" id="fullname" value="{{ request('fullname') }}">
+                        </div>
+                      </div>
+                      <div class="col-3">
+                        <div class="form-group">
+                          <label class="form-control-label">POH</label>
+                          <input type="text" class="form-control" name="poh" id="poh" value="{{ request('poh') }}">
+                        </div>
+                      </div>
+                      <div class="col-3">
+                        <div class="form-group">
+                          <label class="form-control-label">Department</label>
+                          <select name="department_name" class="form-control select2bs4" id="department_name" style="width: 100%;">
+                            <option value="">- All -</option>
+                            @foreach ($departments as $department => $data)
+                            <option value="{{ $data->department_name }}" {{ request('department_name') == $data->department_name ? 'selected' : '' }}>
+                              {{ $data->department_name }}
+                            </option>
+                            @endforeach
+                          </select>
+                        </div>
+                      </div>
+                      <div class="col-3">
+                        <div class="form-group">
+                          <label class="form-control-label">Position</label>
+                          <select name="position_name" class="form-control select2bs4" id="position_name" style="width: 100%;">
+                            <option value="">- All -</option>
+                            @foreach ($positions as $position => $data)
+                            <option value="{{ $data->position_name }}" {{ request('position_name') == $data->position_name ? 'selected' : '' }}>
+                              {{ $data->position_name }}
+                            </option>
+                            @endforeach
+                          </select>
+                        </div>
+                      </div>
+                      <div class="col-3">
+                        <div class="form-group">
+                          <label class="form-control-label">Project</label>
+                          <select name="project_code" class="form-control select2bs4" id="project_code" style="width: 100%;">
+                            <option value="">- All -</option>
+                            @foreach ($projects as $project => $data)
+                            <option value="{{ $data->project_code }}" {{ request('project_code') == $data->project_code ? 'selected' : '' }}>
+                              {{ $data->project_code }}
+                            </option>
+                            @endforeach
+                          </select>
+                        </div>
+                      </div>
+                      <div class="col-3">
+                        <div class="form-group">
+                          <label class="form-control-label">Staff</label>
+                          <select name="class" class="form-control select2bs4" id="class" style="width: 100%;">
+                            <option value="">- All -</option>
+                            <option value="Staff">Staff</option>
+                            <option value="Non Staff">Non Staff</option>
+                          </select>
+                        </div>
+                      </div>
+                      <div class="col-3">
+                        <div class="form-group">
+                          <label class=" form-control-label">&nbsp;</label>
+                          <button id="btn-reset" type="button" class="btn btn-danger btn-block">Reset</button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
               <div class="table-responsive">
                 <table id="example1" width="100%" class="table table-sm table-bordered table-striped">
                   <thead>
@@ -74,46 +174,6 @@
     </div>
     <!-- /.row (main row) -->
   </div>
-
-  <div class="modal fade" id="modal-import">
-    <div class="modal-dialog">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h4 class="modal-title">Import Employee</h4>
-          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-            <span aria-hidden="true">&times;</span>
-          </button>
-        </div>
-        <form class="form-horizontal" action="{{ url('employees/import') }}" method="POST" enctype="multipart/form-data">
-          <div class="modal-body">
-            @csrf
-            <div class="card-body">
-              <div class="tab-content p-0">
-                <div class="form-group row">
-                  <label class="col-sm-2 col-form-label">Import</label>
-                  <div class="col-sm-10">
-                    <input type="file" name="file" required>
-                    @error('file')
-                    <div class="error invalid-feedback">
-                      {{ $message }}
-                    </div>
-                    @enderror
-                  </div>
-                </div>
-              </div>
-            </div><!-- /.card-body -->
-          </div>
-          <div class="modal-footer justify-content-between">
-            <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
-            <button type="submit" class="btn btn-primary">Submit</button>
-          </div>
-        </form>
-      </div>
-      <!-- /.modal-content -->
-    </div>
-    <!-- /.modal-dialog -->
-  </div>
-  <!-- /.modal -->
 </section>
 @endsection
 
@@ -122,6 +182,9 @@
 <link rel="stylesheet" href="{{ asset('assets/plugins/datatables-bs4/css/dataTables.bootstrap4.min.css') }}">
 {{-- <link rel="stylesheet" href="{{ asset('assets/plugins/datatables-responsive/css/responsive.bootstrap4.min.css') }}"> --}}
 <link rel="stylesheet" href="{{ asset('assets/plugins/datatables-buttons/css/buttons.bootstrap4.min.css') }}">
+<!-- Select2 -->
+<link rel="stylesheet" href="{{ asset('assets/plugins/select2/css/select2.min.css') }}">
+<link rel="stylesheet" href="{{ asset('assets/plugins/select2-bootstrap4-theme/select2-bootstrap4.min.css') }}">
 @endsection
 
 @section('scripts')
@@ -150,14 +213,23 @@
           , ['10', '25', '50', '100', 'Show all']
         ]
         //, dom: 'lBfrtpi'
-      , dom: 'frtpi'
+      , dom: 'rtpi'
       , buttons: ["copy", "csv", "excel", "pdf", "print", "colvis"]
       , processing: true
       , serverSide: true
       , ajax: {
         url: "{{ route('employees.data') }}"
         , data: function(d) {
-          d.search = $("input[type=search][aria-controls=example1]").val()
+          d.date1 = $('#date1').val()
+            , d.date2 = $('#date2').val()
+            , d.nik = $('#nik').val()
+            , d.fullname = $('#fullname').val()
+            , d.poh = $('#poh').val()
+            , d.department_name = $('#department_name').val()
+            , d.position_name = $('#position_name').val()
+            , d.project_code = $('#project_code').val()
+            , d.class = $('#class').val()
+            , d.search = $("input[type=search][aria-controls=example1]").val()
           console.log(d);
         }
       }
@@ -212,7 +284,36 @@
       }]
       , fixedColumns: true
     , })
+    $('#date1, #date2, #nik, #fullname, #poh, #department_name, #position_name, #project_code, #class').keyup(function() {
+      table.draw();
+    });
+    $('#date1, #date2, #department_name, #position_name, #project_code, #class').change(function() {
+      table.draw();
+    });
+    $('#btn-reset').click(function() {
+      $('#date1, #date2, #nik, #fullname, #poh, #department_name, #position_name, #project_code, #class').val('');
+      $('#date1, #date2, #department_name, #position_name, #project_code, #class').change();
+    });
   });
+
+</script>
+
+<!-- Select2 -->
+<script src="{{ asset('assets/plugins/select2/js/select2.full.min.js') }}"></script>
+<script>
+  $(function() {
+    //Initialize Select2 Elements
+    $('.select2').select2()
+
+    //Initialize Select2 Elements
+    $('.select2bs4').select2({
+      theme: 'bootstrap4'
+    })
+
+    $(document).on('select2:open', () => {
+      document.querySelector('.select2-search__field').focus();
+    })
+  })
 
 </script>
 @endsection

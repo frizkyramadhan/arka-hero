@@ -22,18 +22,18 @@ class EducationController extends Controller
     {
         $educations = Education::leftJoin('employees', 'educations.employee_id', '=', 'employees.id')
             ->select('educations.*', 'employees.fullname')
-            ->orderBy('educations.education_level', 'asc');
+            ->orderBy('fullname', 'asc');
 
         return datatables()->of($educations)
             ->addIndexColumn()
             ->addColumn('fullname', function ($educations) {
                 return $educations->fullname;
             })
-            ->addColumn('education_level', function ($educations) {
-                return $educations->education_level;
-            })
             ->addColumn('education_name', function ($educations) {
                 return $educations->education_name;
+            })
+            ->addColumn('education_address', function ($educations) {
+                return $educations->education_address;
             })
             ->addColumn('education_year', function ($educations) {
                 return $educations->education_year;
@@ -46,7 +46,7 @@ class EducationController extends Controller
                     $instance->where(function ($w) use ($request) {
                         $search = $request->get('search');
                         $w->orWhere('fullname', 'LIKE', "%$search%")
-                            ->orWhere('education_level', 'LIKE', "%$search%")
+                            ->orWhere('education_address', 'LIKE', "%$search%")
                             ->orWhere('education_name', 'LIKE', "%$search%")
                             ->orWhere('education_year', 'LIKE', "%$search%")
                             ->orWhere('education_remarks', 'LIKE', "%$search%");

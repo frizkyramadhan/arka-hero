@@ -86,11 +86,13 @@
             @if ($termination == null)
             <a data-toggle="modal" data-target="#modal-termination-{{ $employee->id }}" class="btn btn-danger btn-block mb-3"><b>Terminate</b></a>
             @endif
+            @can('superadmin')
             <form action="{{ url('employees/'.$employee->id) }}" method="post" onsubmit="return confirm('This employee and all his/her data will be deleted. Are you sure?')" class="d-inline">
               @method('delete')
               @csrf
               <button class="btn btn-outline-danger btn-block"><b>Delete Employee</b></button>
             </form>
+            @endcan
           </div>
           <!-- /.card-body -->
         </div>
@@ -163,6 +165,7 @@
             <table class="table table-hover table-head-fixed text-nowrap">
               <thead>
                 <tr>
+                  <th class="text-center">Status</th>
                   <th>NIK</th>
                   <th>POH</th>
                   <th>DOH</th>
@@ -181,6 +184,17 @@
                 @else
                 @foreach ($administrations as $administration)
                 <tr>
+                  <td class="text-center">
+                    @if ($administration->is_active == 1)
+                    <span class="badge bg-success">Active</span>
+                    @else
+                    <form action="{{ url('administrations/changeStatus/'.$employee->id.'/'.$administration->id) }}" method="POST">
+                      @csrf
+                      @method('PATCH')
+                      <button type="submit" class="badge bg-danger">Inactive</button>
+                    </form>
+                    @endif
+                  </td>
                   <td>{{ $administration->nik }}</td>
                   <td>{{ $administration->poh }}</td>
                   <td>{{ date('d-M-Y', strtotime($administration->doh)) }}</td>
@@ -189,7 +203,7 @@
                   <td>{{ $administration->project_code }}</td>
                   <td>{{ $administration->class }}</td>
                   <td>
-                    <a class="btn btn-sm btn-icon btn-primary" data-toggle="modal" data-target="#modal-administration-{{ $administration->id }}"><i class="fas fa-pen-square"></i></a>
+                    <a class=" btn btn-sm btn-icon btn-primary" data-toggle="modal" data-target="#modal-administration-{{ $administration->id }}"><i class="fas fa-pen-square"></i></a>
                     <form action="{{ url('administrations/'.$employee->id.'/'.$administration->id) }}" method="post" onsubmit="return confirm('Are you sure want to delete this data?')" class="d-inline">
                       @method('delete')
                       @csrf

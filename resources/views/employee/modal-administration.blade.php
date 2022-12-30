@@ -184,28 +184,28 @@
                   @endif
                 </div>
               </div>
-              <div class="col-md-6">
+              {{-- <div class="col-md-6">
                 <div class="form-group">
                   <label for="is_active" class="form-label">Status</label>
                   <select name="is_active" class="form-control @error('is_active') is-invalid @enderror select2bs4">
                     <option value="1" {{ old('is_active') == '1' ? 'selected' : '' }}>Active</option>
-                    <option value="0" {{ old('is_active') == '0' ? 'selected' : '' }}>Inactive</option>
-                  </select>
-                  @if ($errors->any('is_active'))
-                  <span class="text-danger">{{ ($errors->first('is_active')) }}</span>
-                  @endif
-                </div>
-              </div>
+              <option value="0" {{ old('is_active') == '0' ? 'selected' : '' }}>Inactive</option>
+              </select>
+              @if ($errors->any('is_active'))
+              <span class="text-danger">{{ ($errors->first('is_active')) }}</span>
+              @endif
             </div>
-          </div>
+          </div> --}}
         </div>
-        <div class="modal-footer justify-content-between">
-          <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
-          <button type="submit" class="btn btn-primary">Save</button>
-        </div>
-      </form>
     </div>
   </div>
+  <div class="modal-footer justify-content-between">
+    <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+    <button type="submit" class="btn btn-primary">Save</button>
+  </div>
+  </form>
+</div>
+</div>
 </div>
 
 
@@ -223,7 +223,7 @@
       </div>
       <form action="{{ url('administrations/' . $administration->id) }}" method="POST">
         <input type="hidden" name="employee_id" value="{{ old('employee_id', $administration->employee_id) }}">
-        <input type="hidden" name="is_active" value="1">
+        <input type="hidden" name="is_active" value="{{ old('is_active', $administration->is_active) }}">
         @csrf
         @method('PATCH')
         <div class="modal-body">
@@ -399,27 +399,27 @@
                   @endif
                 </div>
               </div>
-              <div class="col-md-6">
+              {{-- <div class="col-md-6">
                 <div class="form-group">
                   <label for="is_active" class="form-label">Status</label>
                   <select name="is_active" class="form-control @error('is_active') is-invalid @enderror select2bs4">
                     <option value="1" {{ old('is_active', $administration->is_active) == '1' ? 'selected' : '' }}>Active</option>
-                    <option value="0" {{ old('is_active', $administration->is_active) == '0' ? 'selected' : '' }}>Inactive</option>
-                  </select>
-                  @if ($errors->any('is_active'))
-                  <span class="text-danger">{{ ($errors->first('is_active')) }}</span>
-                  @endif
-                </div>
-              </div>
+              <option value="0" {{ old('is_active', $administration->is_active) == '0' ? 'selected' : '' }}>Inactive</option>
+              </select>
+              @if ($errors->any('is_active'))
+              <span class="text-danger">{{ ($errors->first('is_active')) }}</span>
+              @endif
             </div>
-          </div>
+          </div> --}}
         </div>
-        <div class="modal-footer justify-content-between">
-          <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
-          <button type="submit" class="btn btn-primary">Update</button>
-        </div>
-      </form>
     </div>
   </div>
+  <div class="modal-footer justify-content-between">
+    <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+    <button type="submit" class="btn btn-primary">Update</button>
+  </div>
+  </form>
+</div>
+</div>
 </div>
 @endforeach

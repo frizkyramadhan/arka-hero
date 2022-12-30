@@ -26,7 +26,7 @@ class AdministrationController extends Controller
             ->join('employees', 'administrations.employee_id', '=', 'employees.id')
             ->join('positions', 'administrations.position_id', '=', 'positions.id')
             ->select('administrations.*', 'fullname', 'position_name', 'project_name')
-            ->orderBy('fullname', 'asc');
+            ->orderBy('nik', 'desc');
 
         return datatables()->of($administrations)
             ->addIndexColumn()
@@ -75,8 +75,6 @@ class AdministrationController extends Controller
             ->addColumn('other_allowance', function ($administrations) {
                 return $administrations->other_allowance;
             })
-
-
             ->addColumn('is_active', function ($administrations) {
                 if ($administrations->is_active == '1') {
                     return '<span class="badge badge-success">Active</span>';
@@ -84,7 +82,6 @@ class AdministrationController extends Controller
                     return '<span class="badge badge-danger">Inactive</span>';
                 }
             })
-
             ->filter(function ($instance) use ($request) {
                 if (!empty($request->get('search'))) {
                     $instance->where(function ($w) use ($request) {
@@ -157,6 +154,8 @@ class AdministrationController extends Controller
         $administration->is_active = $request->is_active;
         $administration->save();
 
+        Administration::where('employee_id', $employee_id)->where('id', '!=', $administration->id)->update(['is_active' => 0]);
+
         return redirect('employees/' . $employee_id . '#administration')->with('toast_success', 'Administration Added Successfully');
     }
 
@@ -208,5 +207,16 @@ class AdministrationController extends Controller
     {
         Administration::where('employee_id', $employee_id)->delete();
         return redirect('employees/' . $employee_id . '#administration')->with('toast_success', 'Administration Deleted Successfully');
+    }
+
+    // function for change is_active status
+    public function changeStatus($employee_id, $id)
+    {
+        $administration = Administration::find($id);
+        $administration->is_active = 1;
+        $administration->save();
+        Administration::where('employee_id', $administration->employee_id)->where('id', '!=', $id)->update(['is_active' => 0]);
+
+        return redirect('employees/' . $employee_id . '#administration')->with('toast_success', 'Administration Status Changed Successfully');
     }
 }

@@ -1,5 +1,6 @@
 <div class="btn-group">
   <a title="Detail" class="btn btn-sm btn-icon btn-success" href="{{ url('employees/' . $model->id) }}"><i class="fas fa-info-circle"></i></a>
+  @can('superadmin')
   <button type="button" class="btn btn-sm btn-success dropdown-toggle dropdown-icon" data-toggle="dropdown">
     <span class="sr-only">Toggle Dropdown</span>
   </button>
@@ -10,4 +11,5 @@
       <button class="dropdown-item bg-danger" title="Delete"><i class="fas fa-times"></i> Delete</button>
     </form>
   </div>
+  @endcan
 </div>

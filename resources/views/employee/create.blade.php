@@ -21,29 +21,25 @@
   <div class="container-fluid">
     <div class="row">
       <div class="col-12">
-        <div class="card">
-          <div class="card-header">
-            <h3 class="card-title">
-              <strong>{{ $subtitle }}</strong>
-            </h3>
-            <div class="card-tools">
-              <ul class="nav nav-pills ml-auto">
-                <li class="nav-item mr-2">
-                  <a href="{{ url('employees') }}" class="btn btn-warning"><i class="fas fa-undo"></i>
-                    Back</a>
-                </li>
-              </ul>
-            </div>
-          </div><!-- /.card-header -->
-          <div class="card-body">
-            <form method="POST" action="{{ url('employees') }}" enctype="multipart/form-data">
-              @csrf
+        <form method="POST" action="{{ url('employees') }}" enctype="multipart/form-data">
+          @csrf
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">
+                <strong>{{ $subtitle }}</strong>
+              </h3>
+              <div class="card-tools">
+                <ul class="nav nav-pills ml-auto">
+                  <li class="nav-item mr-2">
+                    <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Save</button>
+                    <a href="{{ url('employees') }}" class="btn btn-warning"><i class="fas fa-undo"></i>
+                      Back</a>
+                  </li>
+                </ul>
+              </div>
+            </div><!-- /.card-header -->
+            <div class="card-body">
               <div class="row">
-                <div class="col-12">
-                  <div class="form-group">
-                    <button type="submit" class="btn btn-primary float-right">Submit</button>
-                  </div>
-                </div>
                 <div class="col-5 col-sm-3">
                   <div class="nav flex-column nav-tabs h-100" id="vert-tabs-tab" role="tablist" aria-orientation="vertical">
                     <a class="nav-link active" id="vert-tabs-employee-tab" data-toggle="pill" href="#vert-tabs-employee" role="tab" aria-controls="vert-tabs-employee" aria-selected="true">Personal Detail</a>
@@ -200,6 +196,7 @@
                     </div>
                     <div class="tab-pane fade" id="vert-tabs-administration" role="tabpanel" aria-labelledby="vert-tabs-administration-tab">
                       <div class="row">
+                        <input type="hidden" value="1" class="form-control @error('is_active') is-invalid @enderror" id="is_active" name="is_active">
                         <div class="col-md-6">
                           <div class="form-group">
                             <label for="nik" class="form-label">NIK</label>
@@ -367,18 +364,6 @@
                             </select>
                             @if ($errors->any('project_id'))
                             <span class="text-danger">{{ ($errors->first('project_id')) }}</span>
-                            @endif
-                          </div>
-                        </div>
-                        <div class="col-md-6">
-                          <div class="form-group">
-                            <label for="is_active" class="form-label">Status</label>
-                            <select name="is_active" class="form-control @error('is_active') is-invalid @enderror select2bs4">
-                              <option value="1" {{ old('is_active') == '1' ? 'selected' : '' }}>Active</option>
-                              <option value="0" {{ old('is_active') == '0' ? 'selected' : '' }}>Inactive</option>
-                            </select>
-                            @if ($errors->any('is_active'))
-                            <span class="text-danger">{{ ($errors->first('is_active')) }}</span>
                             @endif
                           </div>
                         </div>
@@ -656,12 +641,13 @@
                   </div>
                 </div>
               </div>
+            </div>
           </div>
-          </form>
-        </div>
+        </form>
       </div>
     </div>
-    <!-- /.col -->
+  </div>
+  <!-- /.col -->
   </div>
   <!-- /.row -->
   </div>

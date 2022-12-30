@@ -20,13 +20,11 @@ use App\Models\Additionaldata;
 use App\Models\Administration;
 use App\Models\Taxidentification;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Employee extends Model
 {
     use HasFactory;
-    use SoftDeletes;
     use Uuids;
 
     protected $guarded = [];

@@ -45,13 +45,6 @@ class FamilieController extends Controller
             ->addColumn('family_remarks', function ($families) {
                 return $families->family_remarks;
             })
-            // ->addColumn('families_status', function ($families) {
-            //     if ($families->families_status == '1') {
-            //         return '<span class="badge badge-success">Active</span>';
-            //     } elseif ($families->families_status == '0') {
-            //         return '<span class="badge badge-danger">Inactive</span>';
-            //     }
-            // })
             ->filter(function ($instance) use ($request) {
                 if (!empty($request->get('search'))) {
                     $instance->where(function ($w) use ($request) {
