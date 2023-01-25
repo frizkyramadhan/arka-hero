@@ -1,18 +1,18 @@
 <div class="btn-group">
-  <a title="Edit" class="btn btn-sm btn-icon btn-primary" data-toggle="modal" data-target="#modal-termination-{{ $model->termination_id }}"><i class="fas fa-pen-square"></i></a>
+  <a title="Edit" class="btn btn-sm btn-icon btn-primary" data-toggle="modal" data-target="#modal-termination-{{ $model->id }}"><i class="fas fa-pen-square"></i></a>
   <button type="button" class="btn btn-sm btn-primary dropdown-toggle dropdown-icon" data-toggle="dropdown">
     <span class="sr-only">Toggle Dropdown</span>
   </button>
   <div class="dropdown-menu" role="menu">
-    <form action="{{ url('terminations/' . $model->termination_id) }}" method="post" onsubmit="return confirm('Are you sure want to delete this data?')" class="d-inline">
-      @method('delete')
+    <form action="{{ url('terminations/delete/' . $model->id) }}" method="post" onsubmit="return confirm('Are you sure want to delete this data?')" class="d-inline">
+      @method('PATCH')
       @csrf
       <button class="dropdown-item bg-danger" title="Delete"><i class="fas fa-times"></i> Delete</button>
     </form>
   </div>
 </div>
 
-<div class="modal fade text-left" id="modal-termination-{{ $model->termination_id }}">
+<div class="modal fade text-left" id="modal-termination-{{ $model->id }}">
   <div class="modal-dialog modal-lg">
     <div class="modal-content">
       <div class="modal-header">
@@ -21,10 +21,10 @@
           <span aria-hidden="true">&times;</span>
         </button>
       </div>
-      <form action="{{ url('terminations/'. $model->termination_id) }}" method="POST">
+      <form action="{{ url('terminations/'. $model->id) }}" method="POST">
         @csrf
         @method('PATCH')
-        <input type="hidden" name="employee_id" value="{{ old('employee_id', $model->id) }}">
+        <input type="hidden" name="id" value="{{ old('id', $model->id) }}">
         <div class="modal-body">
           <div class="card-body">
             <div class="form-group row">

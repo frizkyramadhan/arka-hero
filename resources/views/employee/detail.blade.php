@@ -21,6 +21,8 @@
   <div class="container-fluid">
     <div class="row">
       <div class="col-12 mb-2 text-right">
+        <a href="{{ url('employees/print/'. $employee->id) }}" class="btn btn-primary" target="blank"><i class="fas fa-print"></i>
+          Print</a>
         <a href="{{ url('employees') }}" class="btn btn-warning"><i class="fas fa-undo"></i>
           Back</a>
       </div>
@@ -37,7 +39,7 @@
 
             <h3 class="profile-username text-center">{{ $employee->fullname }}</h3>
 
-            <p class="text-muted text-center">{{ $employee->email }}</p>
+            <p class="text-muted text-center">{{ $employee->identity_card }}</p>
 
             <ul class="list-group list-group-unbordered mb-3">
               <a href="#personal">
@@ -83,14 +85,11 @@
                 <li class="list-group-item">Images</li>
               </a>
             </ul>
-            @if ($termination == null)
-            <a data-toggle="modal" data-target="#modal-termination-{{ $employee->id }}" class="btn btn-danger btn-block mb-3"><b>Terminate</b></a>
-            @endif
             @can('superadmin')
             <form action="{{ url('employees/'.$employee->id) }}" method="post" onsubmit="return confirm('This employee and all his/her data will be deleted. Are you sure?')" class="d-inline">
               @method('delete')
               @csrf
-              <button class="btn btn-outline-danger btn-block"><b>Delete Employee</b></button>
+              <button class="btn btn-danger btn-block"><b>Delete Employee</b></button>
             </form>
             @endcan
           </div>
@@ -392,7 +391,7 @@
                 <tr>
                   <td>{{ $license->driver_license_type }}</td>
                   <td>{{ $license->driver_license_no }}</td>
-                  <td>{{ date('d-M-Y', strtotime($license->driver_license_exp)) }}</td>
+                  <td>{{ $license->driver_license_exp ? date('d-M-Y', strtotime($license->driver_license_exp)) : '-' }}</td>
                   <td>
                     <a class="btn btn-sm btn-icon btn-primary" href="{{ url('licenses/' . $license->id . '/edit') }}" data-toggle="modal" data-target="#modal-license-{{ $license->id }}"><i class="fas fa-pen-square"></i></a>
                     <form action="{{ url('licenses/'.$employee->id.'/'.$license->id) }}" method="post" onsubmit="return confirm('Are you sure want to delete this data?')" class="d-inline">
@@ -439,6 +438,7 @@
                   <th>Birth Place</th>
                   <th>Birth Date</th>
                   <th>Remarks</th>
+                  <th>BPJS Kesehatan</th>
                   <th>Action</th>
                 </tr>
               </thead>
@@ -455,6 +455,7 @@
                   <td>{{ $family->family_birthplace }}</td>
                   <td>{{ date('d-M-Y', strtotime($family->family_birthdate)) }}</td>
                   <td>{{ $family->family_remarks }}</td>
+                  <td>{{ $family->bpjsks_no }}</td>
                   <td>
                     <a class="btn btn-sm btn-icon btn-primary" data-toggle="modal" data-target="#modal-family-{{ $family->id }}"><i class="fas fa-pen-square"></i></a>
                     <form action="{{ url('families/'.$employee->id.'/'. $family->id) }}" method="post" onsubmit="return confirm('Are you sure want to delete this data?')" class="d-inline">
@@ -906,7 +907,6 @@
 @include('employee.modal-emergency')
 @include('employee.modal-additional')
 @include('employee.modal-administration')
-@include('employee.modal-termination')
 
 @endsection
 

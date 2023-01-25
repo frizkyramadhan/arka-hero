@@ -43,6 +43,7 @@
                       <th class="text-center">Family Birthplace</th>
                       <th class="text-center">Family Birthdate</th>
                       <th class="text-center">Family Remark</th>
+                      <th class="text-center">BPJS Kesehatan</th>
                       <th class="text-center">Detail</th>
                     </tr>
                   </thead>
@@ -60,12 +61,6 @@
     <!-- /.row (main row) -->
   </div>
 
-  
-
-
-  
-      
- 
 </section>
 @endsection
 
@@ -152,19 +147,24 @@
         , orderable: false
         , searchable: false
         , className: "text-center"
-      ,}, {
+      , }, {
         data: "family_birthdate"
         , name: "family_birthdate"
         , orderable: false
         , searchable: false
         , className: "text-center"
-      ,}, {
+      , }, {
         data: "family_remarks"
         , name: "family_remarks"
         , orderable: false
         , searchable: false
         , className: "text-center"
-      ,}, {
+      , }, {
+        data: "bpjsks_no"
+        , name: "bpjsks_no"
+        , orderable: false
+        , searchable: false
+      , }, {
         data: "action"
         , name: "action"
         , orderable: false

@@ -36,20 +36,20 @@
                 <table id="example1" width="100%" class="table table-sm table-bordered table-striped">
                   <thead>
                     <tr>
-                      <th class="text-center">No</th>
-                      <th>Employee Name</th>
-                      <th>Project Name</th>
-                      <th class="text-center">Position Name</th>
-                      <th class="text-center">NIK</th>
-                      <th>Class</th>
-                      <th>DOH</th>
-                      <th>POH</th>
-                      <th>FOC</th>
-                      <th>Basic Salary</th>
-                      <th>Site Allowance</th>
-                      <th>Other Allowance</th>
-                      <th class="text-center">Status</th>
-                      <th class="text-center">Detail</th>
+                      <th class="align-middle text-center">No</th>
+                      <th class="align-middle">Employee Name</th>
+                      <th class="align-middle">Project Name</th>
+                      <th class="align-middle text-center">Position Name</th>
+                      <th class="align-middle text-center">NIK</th>
+                      <th class="align-middle">Class</th>
+                      <th class="align-middle">POH</th>
+                      <th class="align-middle">DOH</th>
+                      <th class="align-middle">FOC</th>
+                      <th class="align-middle">Basic Salary</th>
+                      <th class="align-middle">Site Allowance</th>
+                      <th class="align-middle">Other Allowance</th>
+                      <th class="align-middle text-center">Status</th>
+                      <th class="align-middle text-center">Detail</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -158,6 +158,12 @@
         , searchable: false
         , className: "text-center"
       , }, {
+        data: "poh"
+        , name: "poh"
+        , orderable: false
+        , searchable: false
+        , className: "text-center"
+      , }, {
         data: "doh"
         , name: "doh"
         , orderable: false
@@ -166,12 +172,6 @@
       , }, {
         data: "foc"
         , name: "foc"
-        , orderable: false
-        , searchable: false
-        , className: "text-center"
-      , }, {
-        data: "poh"
-        , name: "poh"
         , orderable: false
         , searchable: false
         , className: "text-center"

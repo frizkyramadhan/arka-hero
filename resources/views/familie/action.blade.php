@@ -52,6 +52,12 @@
                   <input type="text" class="form-control" name="family_remarks" value="{{ $families->family_remarks }}" readonly>
                 </div>
               </div>
+              <div class="form-group row">
+                <label class="col-sm-3 col-form-label">BPJS Kesehatan</label>
+                <div class="col-sm-8">
+                  <input type="text" class="form-control" name="bpjsks_no" value="{{ $families->bpjsks_no }}" readonly>
+                </div>
+              </div>
             </div>
           </div>
         </div>

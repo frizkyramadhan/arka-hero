@@ -67,11 +67,17 @@ Route::group(['middleware' => ['auth']], function () {
     Route::resource('positions', PositionController::class)->except(['show', 'create', 'edit']);
 
     Route::get('employees/data', [EmployeeController::class, 'getEmployees'])->name('employees.data');
+    Route::get('employees/print/{id}', [EmployeeController::class, 'print'])->name('employees.print');
     Route::get('employees/getDepartment', [EmployeeController::class, 'getDepartment'])->name('employees.getDepartment');
+    Route::get('employees/getPersonals', [EmployeeController::class, 'getPersonals'])->name('employees.getPersonals');
+    Route::get('employees/export', [EmployeeController::class, 'export'])->name('employees.export');
     Route::resource('employees', EmployeeController::class);
     Route::post('employees/addImages/{id}', [EmployeeController::class, 'addImages'])->name('employees.addImages');
     Route::get('employees/deleteImage/{employee_id}/{id}', [EmployeeController::class, 'deleteImage'])->name('employees.deleteImage');
     Route::get('employees/deleteImages/{employee_id}', [EmployeeController::class, 'deleteImages'])->name('employees.deleteImages');
+    Route::post('employees/import', [EmployeeController::class, 'import'])->name('employees.import');
+
+    Route::get('personals', [EmployeeController::class, 'personal'])->name('employees.personal');
 
     Route::get('licenses/getLicenses', [LicenseController::class, 'getLicenses'])->name('licenses.list');
     Route::resource('licenses', LicenseController::class)->except(['store', 'show', 'create', 'edit', 'destroy']);
@@ -140,8 +146,9 @@ Route::group(['middleware' => ['auth']], function () {
     Route::resource('taxidentifications', TaxidentificationController::class)->except(['show', 'create', 'edit', 'destroy']);
     Route::delete('taxidentifications/{employee_id}/{id}', [TaxidentificationController::class, 'delete'])->name('taxidentifications.delete');
 
+    Route::resource('terminations', TerminationController::class)->except(['show', 'edit', 'destroy']);
     Route::get('terminations/getEmployees', [TerminationController::class, 'getEmployees'])->name('terminations.getActiveEmployees');
     Route::get('terminations/getTerminations', [TerminationController::class, 'getTerminations'])->name('terminations.list');
     Route::post('terminations/massTermination', [TerminationController::class, 'massTermination'])->name('terminations.massTermination');
-    Route::resource('terminations', TerminationController::class)->except(['show', 'edit']);
+    Route::patch('terminations/delete/{id}', [TerminationController::class, 'delete'])->name('terminations.delete');
 });

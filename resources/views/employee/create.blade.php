@@ -479,6 +479,7 @@
                                 <th class="align-middle">Birth Place</th>
                                 <th class="align-middle">Birth Date</th>
                                 <th class="align-middle">Remarks</th>
+                                <th class="align-middle">BPJS Kesehatan</th>
                                 <th style="width: 40px"><button type="button" id="add-family" class="btn btn-outline-primary"><i class="fas fa-plus"></i></button></th>
                               </tr>
                             </thead>
@@ -730,6 +731,9 @@
               </td>
               <td>
                 <input type="text" class="form-control" name="family_remarks[]" required>
+              </td>
+              <td>
+                <input type="text" class="form-control" name="bpjsks_no[]">
               </td>
               <td>
                 <button type="button" class="btn btn-outline-danger remove-input-field"><i class="fas fa-trash-alt"></i></button>

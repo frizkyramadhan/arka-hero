@@ -45,6 +45,9 @@ class FamilieController extends Controller
             ->addColumn('family_remarks', function ($families) {
                 return $families->family_remarks;
             })
+            ->addColumn('bpjsks_no', function ($families) {
+                return $families->bpjsks_no;
+            })
             ->filter(function ($instance) use ($request) {
                 if (!empty($request->get('search'))) {
                     $instance->where(function ($w) use ($request) {
@@ -54,7 +57,8 @@ class FamilieController extends Controller
                             ->orWhere('family_relationship', 'LIKE', "%$search%")
                             ->orWhere('family_birthplace', 'LIKE', "%$search%")
                             ->orWhere('family_birthdate', 'LIKE', "%$search%")
-                            ->orWhere('family_remarks', 'LIKE', "%$search%");
+                            ->orWhere('family_remarks', 'LIKE', "%$search%")
+                            ->orWhere('bpjsks_no', 'LIKE', "%$search%");
                     });
                 }
             })
@@ -97,6 +101,7 @@ class FamilieController extends Controller
         $families->family_birthplace = $request->family_birthplace;
         $families->family_birthdate = $request->family_birthdate;
         $families->family_remarks = $request->family_remarks;
+        $families->bpjsks_no = $request->bpjsks_no;
         $families->save();
 
         return redirect('employees/' . $employee_id . '#families')->with('toast_success', 'Family Employee Add Successfully');
@@ -104,16 +109,24 @@ class FamilieController extends Controller
 
     public function update(Request $request, $id)
     {
-        $rules = [
+        $request->validate([
             'employee_id' => 'required',
             'family_name' => 'required',
             'family_relationship' => 'required',
             'family_birthplace' => 'required',
             'family_birthdate' => 'required',
             'family_remarks' => 'required',
-        ];
-        $validatedData = $request->validate($rules);
-        Family::where('id', $id)->update($validatedData);
+        ]);
+
+        $family = Family::find($id);
+        $family->employee_id = $request->employee_id;
+        $family->family_name = $request->family_name;
+        $family->family_relationship = $request->family_relationship;
+        $family->family_birthplace = $request->family_birthplace;
+        $family->family_birthdate = $request->family_birthdate;
+        $family->family_remarks = $request->family_remarks;
+        $family->bpjsks_no = $request->bpjsks_no;
+        $family->save();
 
         return redirect('employees/' . $request->employee_id . '#families')->with('toast_success', 'Family Employee Update Successfully');
     }

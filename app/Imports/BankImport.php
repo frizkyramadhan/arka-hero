@@ -2,19 +2,19 @@
 
 namespace App\Imports;
 
-use App\Models\Department;
+use App\Models\Bank;
+use Maatwebsite\Excel\Concerns\ToModel;
 use Maatwebsite\Excel\Concerns\Importable;
 use Maatwebsite\Excel\Concerns\SkipsErrors;
-use Maatwebsite\Excel\Concerns\SkipsFailures;
 use Maatwebsite\Excel\Concerns\SkipsOnError;
+use Maatwebsite\Excel\Concerns\SkipsFailures;
 use Maatwebsite\Excel\Concerns\SkipsOnFailure;
-use Maatwebsite\Excel\Concerns\ToModel;
-use Maatwebsite\Excel\Concerns\WithBatchInserts;
-use Maatwebsite\Excel\Concerns\WithChunkReading;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
 use Maatwebsite\Excel\Concerns\WithValidation;
+use Maatwebsite\Excel\Concerns\WithBatchInserts;
+use Maatwebsite\Excel\Concerns\WithChunkReading;
 
-class DepartmentImport implements
+class BankImport implements
     ToModel,
     WithHeadingRow,
     WithValidation,
@@ -32,19 +32,17 @@ class DepartmentImport implements
 
     public function model(array $row)
     {
-        return new Department([
-            'department_name' => $row['department_name'],
-            'slug' => $row['slug'],
-            'department_status' => $row['department_status'],
-        ]);
+        $bank = new Bank();
+        $bank->bank_name = $row['bank_name'] ?? NULL;
+        $bank->bank_status = $row['bank_status'] ?? NULL;
+        $bank->save();
     }
 
     public function rules(): array
     {
         return [
-            '*.department_name' => ['required'],
-            '*.slug' => ['required', 'unique:departments,slug'],
-            '*.department_status' => ['required']
+            '*.bank_name' => ['required', 'unique:banks,bank_name'],
+            '*.bank_status' => ['required'],
         ];
     }
 

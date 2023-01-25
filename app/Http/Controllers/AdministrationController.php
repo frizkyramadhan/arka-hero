@@ -46,10 +46,20 @@ class AdministrationController extends Controller
                 return $administrations->class;
             })
             ->addColumn('doh', function ($administrations) {
-                return $administrations->doh;
+                if ($administrations->doh == null) {
+                    return '-';
+                } else {
+                    $date = date("d F Y", strtotime($administrations->doh));
+                    return $date;
+                }
             })
             ->addColumn('foc', function ($administrations) {
-                return $administrations->foc;
+                if ($administrations->foc == null) {
+                    return '-';
+                } else {
+                    $date = date("d F Y", strtotime($administrations->foc));
+                    return $date;
+                }
             })
             ->addColumn('agreement', function ($administrations) {
                 return $administrations->agreement;
@@ -108,14 +118,6 @@ class AdministrationController extends Controller
                 $employees = Employee::orderBy('fullname', 'asc')->get();
                 return view('administration.action', compact('employees', 'administrations'));
             })
-            ->addColumn('doh', function ($administrations) {
-                $date = date("d F Y", strtotime($administrations->doh));
-                return $date;
-            })
-            ->addColumn('foc', function ($administrations) {
-                $date = date("d F Y", strtotime($administrations->foc));
-                return $date;
-            })
             ->rawColumns(['is_active', 'action'])
             ->toJson();
     }
@@ -130,9 +132,6 @@ class AdministrationController extends Controller
             'class' => 'required',
             'doh' => 'required',
             'poh' => 'required',
-            'basic_salary' => 'required',
-            'site_allowance' => 'required',
-            'other_allowance' => 'required',
 
         ]);
         $administration = new Administration;
@@ -152,6 +151,7 @@ class AdministrationController extends Controller
         $administration->site_allowance = $request->site_allowance;
         $administration->other_allowance = $request->other_allowance;
         $administration->is_active = $request->is_active;
+        $administration->user_id = auth()->user()->id;
         $administration->save();
 
         Administration::where('employee_id', $employee_id)->where('id', '!=', $administration->id)->update(['is_active' => 0]);
@@ -169,9 +169,6 @@ class AdministrationController extends Controller
             'class' => 'required',
             'doh' => 'required',
             'poh' => 'required',
-            'basic_salary' => 'required',
-            'site_allowance' => 'required',
-            'other_allowance' => 'required',
         ]);
 
         $administration = Administration::where('id', $id)->first();
@@ -191,6 +188,10 @@ class AdministrationController extends Controller
         $administration->site_allowance = $request->site_allowance;
         $administration->other_allowance = $request->other_allowance;
         $administration->is_active = $request->is_active;
+        $administration->termination_date = $request->termination_date;
+        $administration->termination_reason = $request->termination_reason;
+        $administration->coe_no = $request->coe_no;
+        $administration->user_id = auth()->user()->id;
         $administration->save();
 
         return redirect('employees/' . $request->employee_id . '#administration')->with('toast_success', 'Administration Updated Successfully');

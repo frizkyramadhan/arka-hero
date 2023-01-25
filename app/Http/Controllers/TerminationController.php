@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Administration;
 use App\Models\Project;
 use App\Models\Employee;
 use App\Models\Position;
@@ -50,14 +51,12 @@ class TerminationController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'employee_id' => 'required',
             'termination_date' => 'required',
             'termination_reason' => 'required',
             'coe_no' => 'required',
         ]);
 
         $termination = new Termination();
-        $termination->employee_id = $request->employee_id;
         $termination->termination_date = $request->termination_date;
         $termination->termination_reason = $request->termination_reason;
         $termination->coe_no = $request->coe_no;
@@ -67,63 +66,44 @@ class TerminationController extends Controller
         return redirect('employees')->with('toast_success', 'Employee Terminated Successfully');
     }
 
-    /**
-     * Display the specified resource.
-     *
-     * @param  \App\Models\Termination  $termination
-     * @return \Illuminate\Http\Response
-     */
     public function show(Termination $termination)
     {
         //
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     *
-     * @param  \App\Models\Termination  $termination
-     * @return \Illuminate\Http\Response
-     */
     public function edit(Termination $termination)
     {
         //
     }
 
-    /**
-     * Update the specified resource in storage.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  \App\Models\Termination  $termination
-     * @return \Illuminate\Http\Response
-     */
-    public function update(Request $request, Termination $termination)
+    public function update(Request $request, $id)
     {
         $request->validate([
-            'employee_id' => 'required',
             'termination_date' => 'required',
             'termination_reason' => 'required',
             'coe_no' => 'required',
         ]);
 
-        $termination->employee_id = $request->employee_id;
-        $termination->termination_date = $request->termination_date;
-        $termination->termination_reason = $request->termination_reason;
-        $termination->coe_no = $request->coe_no;
-        $termination->user_id = auth()->user()->id;
-        $termination->save();
+        $administration = Administration::where('id', $id)->first();
+        $administration->termination_date = $request->termination_date;
+        $administration->termination_reason = $request->termination_reason;
+        $administration->coe_no = $request->coe_no;
+        $administration->user_id = auth()->user()->id;
+        $administration->save();
 
         return back()->with('toast_success', 'Employee Termination Updated Successfully');
     }
 
-    /**
-     * Remove the specified resource from storage.
-     *
-     * @param  \App\Models\Termination  $termination
-     * @return \Illuminate\Http\Response
-     */
-    public function destroy(Termination $termination)
+    public function delete($id)
     {
-        $termination->delete();
+        $administration = Administration::where('id', $id)->first();
+        $administration->termination_date = NULL;
+        $administration->termination_reason = NULL;
+        $administration->coe_no = NULL;
+        $administration->is_active = 1;
+        $administration->user_id = auth()->user()->id;
+        $administration->save();
+
         return back()->with('toast_success', 'Employee Termination Deleted Successfully');
     }
 
@@ -133,14 +113,13 @@ class TerminationController extends Controller
             ->leftJoin('projects', 'administrations.project_id', '=', 'projects.id')
             ->leftJoin('positions', 'administrations.position_id', '=', 'positions.id')
             ->leftJoin('departments', 'positions.department_id', '=', 'departments.id')
-            ->leftJoin('terminations', 'employees.id', '=', 'terminations.employee_id')
-            ->select('employees.*', 'employees.created_at as created_date', 'administrations.nik', 'administrations.poh', 'administrations.doh', 'administrations.class', 'projects.project_code', 'positions.position_name', 'departments.department_name', 'terminations.id as termination_id', 'terminations.termination_date', 'terminations.termination_reason', 'terminations.coe_no')
-            ->where('administrations.is_active', 1)
-            ->whereExists(function ($query) {
-                $query->select(DB::raw(1))
-                    ->from('terminations')
-                    ->whereRaw('terminations.employee_id = employees.id');
-            })
+            ->select('employees.fullname', 'employees.created_at as created_date', 'administrations.*', 'projects.project_code', 'positions.position_name', 'departments.department_name')
+            ->where('administrations.is_active', 0)
+            // ->whereExists(function ($query) {
+            //     $query->select(DB::raw(1))
+            //         ->from('terminations')
+            //         ->whereRaw('terminations.employee_id = employees.id');
+            // })
             ->orderBy('administrations.nik', 'desc');
 
         return datatables()->of($employee)
@@ -199,13 +178,13 @@ class TerminationController extends Controller
             ->leftJoin('projects', 'administrations.project_id', '=', 'projects.id')
             ->leftJoin('positions', 'administrations.position_id', '=', 'positions.id')
             ->leftJoin('departments', 'positions.department_id', '=', 'departments.id')
-            ->select('employees.*', 'employees.created_at as created_date', 'administrations.nik', 'administrations.poh', 'administrations.doh', 'administrations.class', 'projects.project_code', 'positions.position_name', 'departments.department_name')
+            ->select('employees.fullname', 'employees.created_at as created_date', 'administrations.*', 'projects.project_code', 'positions.position_name', 'departments.department_name')
             ->where('administrations.is_active', 1)
-            ->whereNotExists(function ($query) {
-                $query->select(DB::raw(1))
-                    ->from('terminations')
-                    ->whereRaw('terminations.employee_id = employees.id');
-            })
+            // ->whereNotExists(function ($query) {
+            //     $query->select(DB::raw(1))
+            //         ->from('terminations')
+            //         ->whereRaw('terminations.employee_id = employees.id');
+            // })
             ->orderBy('administrations.nik', 'desc');
 
         return datatables()->of($employee)
@@ -306,7 +285,11 @@ class TerminationController extends Controller
             <div class="form-check">
                 <input type="checkbox" name="ids_check[]" class="form-check-input" value="{{$id}}">
             </div>')
-            ->rawColumns(['checkbox'])
+            ->addColumn('coe_no', '
+            <div class="form-group">
+                <input type="text" name="coe_no[]" class="form-control">
+            </div>')
+            ->rawColumns(['checkbox', 'coe_no'])
             ->toJson();
     }
 
@@ -317,13 +300,14 @@ class TerminationController extends Controller
         $termination_date = $request->termination_date;
         $termination_reason = $request->termination_reason;
 
-        $employee = Employee::whereIn('id', $ids)->get();
+        $administration = Administration::whereIn('id', $ids)->get();
 
-        foreach ($employee as $key => $value) {
-            $termination = new Termination;
-            $termination->employee_id = $value->id;
+        foreach ($administration as $key => $value) {
+            $termination = Administration::find($value->id);
             $termination->termination_date = $termination_date;
             $termination->termination_reason = $termination_reason;
+            $termination->coe_no = $request->coe_no[$key];
+            $termination->is_active = 0;
             $termination->user_id = auth()->user()->id;
             $termination->save();
         }

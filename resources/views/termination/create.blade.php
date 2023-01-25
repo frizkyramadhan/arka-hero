@@ -58,6 +58,7 @@
                         <label class="col-sm-2 col-form-label">Termination Reason</label>
                         <div class="col-sm-10">
                           <select name="termination_reason" class="form-control select2bs4" style="width: 100%;">
+                            <option value="">-Select Reason-</option>
                             <option value="End of Contract" {{ old('termination_reason') == 'End of Contract' ? 'selected' : '' }}>End of Contract</option>
                             <option value="End of Project" {{ old('termination_reason') == 'End of Project' ? 'selected' : '' }}>End of Project</option>
                             <option value="Resign" {{ old('termination_reason') == 'Resign' ? 'selected' : '' }}>Resign</option>
@@ -195,6 +196,7 @@
                         <th class="align-middle">Position</th>
                         <th class="align-middle">Project</th>
                         <th class="align-middle">Class</th>
+                        <th class="align-middle">CoE No</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -316,6 +318,11 @@
         data: "class"
         , name: "class"
         , orderable: false
+      , }, {
+        data: "coe_no"
+        , name: "coe_no"
+        , orderable: false
+        , searchable: false
       , }]
       , fixedColumns: true
     , })

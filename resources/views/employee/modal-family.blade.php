@@ -74,6 +74,17 @@
                 @enderror
               </div>
             </div>
+            <div class="form-group row">
+              <label class="col-sm-2 col-form-label">BPJS Kesehatan</label>
+              <div class="col-sm-10">
+                <input type="text" class="form-control @error('bpjsks_no') is-invalid @enderror" name="bpjsks_no" value="{{ old('bpjsks_no') }}">
+                @error('bpjsks_no')
+                <div class="invalid-feedback">
+                  {{ $message }}
+                </div>
+                @enderror
+              </div>
+            </div>
           </div>
         </div>
         <div class="modal-footer justify-content-between">
@@ -160,6 +171,17 @@
               <div class="col-sm-10">
                 <input type="text" class="form-control @error('family_remarks') is-invalid @enderror" name="family_remarks" value="{{ old('family_remarks', $family->family_remarks) }}">
                 @error('family_remarks')
+                <div class="invalid-feedback">
+                  {{ $message }}
+                </div>
+                @enderror
+              </div>
+            </div>
+            <div class="form-group row">
+              <label class="col-sm-2 col-form-label">BPJS Kesehatan</label>
+              <div class="col-sm-10">
+                <input type="text" class="form-control @error('bpjsks_no') is-invalid @enderror" name="bpjsks_no" value="{{ old('bpjsks_no', $family->bpjsks_no) }}">
+                @error('bpjsks_no')
                 <div class="invalid-feedback">
                   {{ $message }}
                 </div>
