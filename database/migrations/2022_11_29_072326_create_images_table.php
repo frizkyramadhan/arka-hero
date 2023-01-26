@@ -17,6 +17,7 @@ return new class extends Migration
             $table->id();
             $table->foreignUuid('employee_id')->constrained('employees');
             $table->string('filename')->nullable();
+            $table->boolean('is_profile')->default(0);
             $table->timestamps();
         });
     }

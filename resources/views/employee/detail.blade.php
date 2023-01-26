@@ -34,7 +34,11 @@
         <div class="card card-primary card-outline">
           <div class="card-body box-profile">
             <div class="text-center">
+              @if ($profile)
+              <img class="img-thumbnail" src="{{ asset('images/'.$profile->employee_id.'/'.$profile->filename) }}" alt="User profile picture">
+              @else
               <img class="profile-user-img img-fluid img-circle" src="{{ asset('assets/dist/img/avatar6.png') }}" alt="User profile picture">
+              @endif
             </div>
 
             <h3 class="profile-username text-center">{{ $employee->fullname }}</h3>
@@ -870,7 +874,10 @@
                 <a href="{{ asset('images/'.$image->employee_id.'/'.$image->filename) }}" data-toggle="lightbox" data-title="{{ $image->filename }}" data-gallery="gallery">
                   <img src="{{ asset('images/'.$image->employee_id.'/'.$image->filename) }}" class="img-fluid mb-2" alt="{{ $image->filename }}" />
                 </a>
-                <a href="{{ url('employees/deleteImage/' . $employee->id.'/'.$image->id) }}" class="btn btn-danger btn-sm mb-2" onclick="return confirm('Are you sure you want to delete this image?');"><i class="fas fa-trash"></i> Delete</a>
+                @if ($image->is_profile == 0)
+                <a href="{{ url('employees/setProfile/' . $employee->id.'/'.$image->id) }}" class="btn btn-primary btn-sm mb-2" title="Set Profile Picture"><i class="fas fa-id-badge"></i></a>
+                @endif
+                <a href="{{ url('employees/deleteImage/' . $employee->id.'/'.$image->id) }}" class="btn btn-danger btn-sm mb-2" onclick="return confirm('Are you sure you want to delete this image?');" title="Delete Image"><i class="fas fa-trash"></i></a>
               </div>
               @endforeach
             </div>

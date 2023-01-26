@@ -9,7 +9,11 @@
             <div class="card card-primary card-outline">
               <div class="card-body box-profile">
                 <div class="text-center">
+                  @if ($profile)
+                  <img class="img-thumbnail" src="{{ asset('images/'.$profile->employee_id.'/'.$profile->filename) }}" alt="User profile picture">
+                  @else
                   <img class="profile-user-img img-fluid img-circle" src="{{ asset('assets/dist/img/avatar6.png') }}" alt="User profile picture">
+                  @endif
                 </div>
 
                 <h3 class="profile-username text-center">{{ $employee->fullname }}</h3>

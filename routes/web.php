@@ -73,6 +73,7 @@ Route::group(['middleware' => ['auth']], function () {
     Route::get('employees/export', [EmployeeController::class, 'export'])->name('employees.export');
     Route::resource('employees', EmployeeController::class);
     Route::post('employees/addImages/{id}', [EmployeeController::class, 'addImages'])->name('employees.addImages');
+    Route::get('employees/setProfile/{employee_id}/{id}', [EmployeeController::class, 'setProfile'])->name('employees.setProfile');
     Route::get('employees/deleteImage/{employee_id}/{id}', [EmployeeController::class, 'deleteImage'])->name('employees.deleteImage');
     Route::get('employees/deleteImages/{employee_id}', [EmployeeController::class, 'deleteImages'])->name('employees.deleteImages');
     Route::post('employees/import', [EmployeeController::class, 'import'])->name('employees.import');

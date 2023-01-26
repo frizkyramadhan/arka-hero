@@ -332,13 +332,14 @@ class EmployeeController extends Controller
             ->orderBy('administrations.nik', 'desc')
             ->get();
         $images = Image::where('employee_id', $id)->get();
+        $profile = Image::where('employee_id', $id)->where('is_profile', '=', '1')->first();
         // for select option
         $religions = Religion::orderBy('id', 'asc')->get();
         $getBanks = Bank::orderBy('bank_name', 'asc')->get();
         $positions = Position::with('departments')->orderBy('position_name', 'asc')->get();
         $projects = Project::orderBy('project_code', 'asc')->get();
 
-        return view('employee.detail', compact('title', 'subtitle', 'employee', 'bank', 'tax', 'insurances', 'families', 'educations', 'courses', 'jobs', 'units', 'licenses', 'emergencies', 'additional', 'administrations', 'images', 'religions', 'getBanks', 'positions', 'projects'));
+        return view('employee.detail', compact('title', 'subtitle', 'employee', 'bank', 'tax', 'insurances', 'families', 'educations', 'courses', 'jobs', 'units', 'licenses', 'emergencies', 'additional', 'administrations', 'images', 'religions', 'getBanks', 'positions', 'projects', 'profile'));
     }
 
     public function edit($id)
@@ -439,13 +440,14 @@ class EmployeeController extends Controller
             ->orderBy('administrations.nik', 'desc')
             ->get();
         $images = Image::where('employee_id', $id)->get();
+        $profile = Image::where('employee_id', $id)->where('is_profile', '=', '1')->first();
         // for select option
         $religions = Religion::orderBy('id', 'asc')->get();
         $getBanks = Bank::orderBy('bank_name', 'asc')->get();
         $positions = Position::with('departments')->orderBy('position_name', 'asc')->get();
         $projects = Project::orderBy('project_code', 'asc')->get();
 
-        return view('employee.print', compact('title', 'subtitle', 'employee', 'bank', 'tax', 'insurances', 'families', 'educations', 'courses', 'jobs', 'units', 'licenses', 'emergencies', 'additional', 'administrations', 'images', 'religions', 'getBanks', 'positions', 'projects'));
+        return view('employee.print', compact('title', 'subtitle', 'employee', 'bank', 'tax', 'insurances', 'families', 'educations', 'courses', 'jobs', 'units', 'licenses', 'emergencies', 'additional', 'administrations', 'images', 'religions', 'getBanks', 'positions', 'projects', 'profile'));
     }
 
     public function addImages($id, Request $request)
@@ -470,6 +472,7 @@ class EmployeeController extends Controller
                 $image = new Image();
                 $image->employee_id = $employee->id;
                 $image->filename = $name;
+                $image->is_profile = 0;
 
                 $image->save();
             }
@@ -522,6 +525,16 @@ class EmployeeController extends Controller
         //     }
         // }
         return redirect('employees/' . $employee_id . '#images')->with('toast_success', 'All images successfully deleted!');
+    }
+
+    public function setProfile($employee_id, $id)
+    {
+        $image = Image::find($id);
+        $image->is_profile = 1;
+        $image->save();
+        Image::where('employee_id', $employee_id)->where('id', '!=', $id)->update(['is_profile' => 0]);
+
+        return redirect('employees/' . $employee_id . '#images')->with('toast_success', 'Profile Picture Set Successfully');
     }
 
     public function getEmployees(Request $request)
