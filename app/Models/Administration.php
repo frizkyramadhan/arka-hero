@@ -3,7 +3,6 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Cviebrock\EloquentSluggable\Sluggable;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
@@ -11,33 +10,20 @@ class Administration extends Model
 {
     use HasFactory;
 
-    use Sluggable;
-
     protected $guarded = [];
 
-
-    public function sluggable(): array
+    public function projects()
     {
-        return [
-            'slug' => [
-                'source' => 'nik'
-            ]
-        ];
+        return $this->belongsTo(Project::class);
     }
 
-    public function projects(): BelongsTo
+    public function employees()
     {
-        return $this->belongsTo(Project::class, 'project_id', 'id');
+        return $this->belongsTo(Employee::class);
     }
 
-    public function employees(): BelongsTo
+    public function positions()
     {
-        return $this->belongsTo(Employee::class, 'employee_id', 'id');
+        return $this->belongsTo(Position::class);
     }
-
-    public function positions(): BelongsTo
-    {
-        return $this->belongsTo(Position::class, 'position_id', 'id');
-    }
-
 }

@@ -16,11 +16,12 @@ return new class extends Migration
         Schema::create('families', function (Blueprint $table) {
             $table->id();
             $table->foreignUuid('employee_id')->references('id')->on('employees');
-            $table->string('family_name');
             $table->string('family_relationship');
+            $table->string('family_name');
             $table->string('family_birthplace')->nullable();
             $table->date('family_birthdate')->nullable();
             $table->string('family_remarks')->nullable();
+            $table->string('bpjsks_no')->nullable();
             $table->timestamps();
         });
     }

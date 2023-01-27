@@ -57,7 +57,7 @@ class PositionController extends Controller
             ->toJson();
     }
 
-    public function addDepartments()
+    public function add()
     {
         return view('position.create');
     }

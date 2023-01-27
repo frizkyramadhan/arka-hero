@@ -1,0 +1,1 @@
+U (Untraced) = file yang belum pernah dimasukkan ke dalam git (file baru)

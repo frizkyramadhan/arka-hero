@@ -2,36 +2,24 @@
 
 namespace App\Models;
 
+use App\Models\Bank;
+use App\Models\Employee;
 use Illuminate\Database\Eloquent\Model;
-use Cviebrock\EloquentSluggable\Sluggable;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Employeebank extends Model
 {
     use HasFactory;
 
-    use Sluggable;
-
     protected $guarded = [];
 
-
-    public function sluggable(): array
+    public function employees()
     {
-        return [
-            'slug' => [
-                'source' => 'bank_account_no'
-            ]
-        ];
+        return $this->belongsTo(Employee::class);
     }
 
-    public function employees(): BelongsTo
+    public function banks()
     {
-        return $this->belongsTo(Employee::class, 'employee_id', 'id');
-    }
-
-    public function banks(): BelongsTo
-    {
-        return $this->belongsTo(Bank::class, 'bank_id', 'id');
+        return $this->belongsTo(Bank::class, 'bank_id');
     }
 }

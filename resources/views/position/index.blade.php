@@ -235,7 +235,7 @@
       , processing: true
       , serverSide: true
       , ajax: {
-        url: "{{ route('positions.list') }}"
+        url: "{{ route('positions.data') }}"
         , data: function(d) {
           d.search = $("input[type=search][aria-controls=example1]").val()
           console.log(d);

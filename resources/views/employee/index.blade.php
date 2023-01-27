@@ -1,15 +1,16 @@
 @extends('layouts.main')
+
 @section('content')
 <div class="content-header">
   <div class="container-fluid">
     <div class="row mb-2">
       <div class="col-sm-6">
-        <h1 class="m-0">Employee</h1>
+        <h1 class="m-0">{{ $title }}</h1>
       </div><!-- /.col -->
       <div class="col-sm-6">
         <ol class="breadcrumb float-sm-right">
-          <li class="breadcrumb-item"><a href="#">Home</a></li>
-          <li class="breadcrumb-item active">Employee</li>
+          <li class="breadcrumb-item"><a href="{{ url('/') }}">Home</a></li>
+          <li class="breadcrumb-item active">Employees</li>
         </ol>
       </div><!-- /.col -->
     </div><!-- /.row -->
@@ -20,130 +21,468 @@
 <section class="content">
   <div class="container-fluid">
     <div class="row">
-      <div class="col-12">
-        <div class="card">
-          <div class="card-header">
-            <h3 class="card-title">Employee Data Table</h3>
-          </div>
-          <!-- /.card-header -->
-          <div class="card-body">
-            <div id="example2_wrapper" class="dataTables_wrapper dt-bootstrap4">
-              <div class="row">
-                <div class="col-sm-12 col-md-6">
-                  {{-- <form action="{{route('ImportSchool') }}" method="post" enctype="multipart/form-data">
-                  @csrf
-                  <input type="file" name="file" class="form-control">
-                  <button class="btn btn-info btn-sm" class="form-control"> Upload
-
-                  </button>
-                  </form> --}}
-                </div>
-                <div class="col-sm-12 col-md-6">
-                  <div class="mt-5 d-flex justify-content-end">
-                    <a href="{{route('addEmployee')}}" class="btn btn-primary btn-sm">Add Data</a>
-                    {{-- <a href="{{route('ExportSchool')}}" class="btn btn-success btn-sm">Exp Excel</a> --}}
-                  </div>
-                </div>
-                <div class="my-3">
-                  <form action="" method="get">
-                    <div class="input-group mb-3">
-                      <input type="text" class="form-control" name="keyword" id="floatingInputGroup1" placeholder="Keyword">
-                      <button class="input-group-text btn btn-primary">Search</button>
-                    </div>
-
-                  </form>
-                </div>
+      <!-- Left col -->
+      <div class="col-lg-12">
+        <!-- Custom tabs (Charts with tabs)-->
+        <div id="accordion">
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">
+                <strong>{{ $subtitle }}</strong>
+              </h3>
+              <div class="card-tools">
+                <ul class="nav nav-pills ml-auto">
+                  <li class="nav-item mr-2">
+                    <a href="{{ url('terminations') }}" class="btn btn-danger"><i class="fas fa-ban"></i>
+                      Terminated</a>
+                    <a class="btn btn-primary" href="{{ url('employees/export/') }}"><i class="fas fa-download"></i>
+                      Export</a>
+                    @can('superadmin')
+                    <a class="btn btn-success" data-toggle="modal" data-target="#modal-import"><i class="fas fa-upload"></i>
+                      Import</a>
+                    @endcan
+                    <a href="{{ url('employees/create') }}" class="btn btn-warning"><i class="fas fa-plus"></i>
+                      Add</a>
+                  </li>
+                </ul>
               </div>
-              <div class="mt-5">
-                @if (session('status'))
-                <div class="alert alert-success">
-                  {{ session('status') }}
-                </div>
-                @endif
-              </div>
-
-              <div class="row">
-                <div class="col-sm-12">
-                  <table id="example2" class="table table-bordered table-hover dataTable dtr-inline" role="grid" aria-describedby="example2_info">
-                    <thead>
-                      <tr role="row">
-                        <th class="sorting" tabindex="0" aria-controls="example2" rowspan="1" colspan="1" aria-label="Rendering engine: activate to sort column ascending">No</th>
-                        <th class="sorting" tabindex="0" aria-controls="example2" rowspan="1" colspan="1" aria-label="Rendering engine: activate to sort column ascending">Name</th>
-                        <th class="sorting" tabindex="0" aria-controls="example2" rowspan="1" colspan="1" aria-label="Browser: activate to sort column ascending">POB</th>
-                        <th class="sorting sorting_desc" tabindex="0" aria-controls="example2" rowspan="1" colspan="1" aria-label="Platform(s): activate to sort column ascending" aria-sort="descending">DOB</th>
-                        <th class="sorting" tabindex="0" aria-controls="example2" rowspan="1" colspan="1" aria-label="Engine version: activate to sort column ascending">Religion</th>
-                        <th class="sorting" tabindex="0" aria-controls="example2" rowspan="1" colspan="1" aria-label="Engine version: activate to sort column ascending">Nationality</th>
-                        <th class="sorting" tabindex="0" aria-controls="example2" rowspan="1" colspan="1" aria-label="Engine version: activate to sort column ascending">Address</th>
-                        <th class="sorting text-center" tabindex="0" aria-controls="example2" rowspan="1" colspan="1" aria-label="CSS grade: activate to sort column ascending">Action</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      @foreach ($employees as $item)
-                      <tr class="odd">
-                        <td class="dtr-control">{{ $loop->iteration }}</td>
-                        <td>{{ $item->fullname }}</td>
-                        <td class="sorting_1">{{ $item->emp_pob }}</td>
-                        <td>{{ $item->emp_dob }}</td>
-                        <td>{{ $item->religion->religion_name }}</td>
-                        <td>{{ $item->nationality }}</td>
-                        <td>{{ $item->address }}</td>
-                        <td class="text-center">
-
-                          <a href="deleteEmployee/{{$item->slug}}" class="btn btn-danger btn-sm">
-                            <i class="fa fa-pencil">Delete</i>
-                          </a>
-                          <a href="editEmployee/{{$item->slug}}" class="btn btn-primary btn-sm">
-                            <i class="fa fa-pencil">Update</i>
-                          </a>
-                          <a href="detailEmployee/{{$item->slug}}" class="btn btn-success btn-sm">
-                            <i class="fa fa-view">Detail</i>
-                          </a>
-
-                        </td>
-                      </tr>
-
-                      @endforeach
-                    </tbody>
-
-                  </table>
-                  <div class="my-5">
-                    {{$employees->withQueryString()->links()}}
-                  </div>
-                </div>
-              </div>
-
+            </div><!-- /.card-header -->
+            <div class="card-body">
+              {{-- @if(isset($errors) && $errors->any())
+              <div class="alert alert-danger alert-dismissible">
+                <button type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button>
+                <h5><i class="icon fas fa-ban"></i> Alert!</h5>
+                @foreach ($errors->all() as $error)
+                <li>{{ $error }}</li>
+              @endforeach
             </div>
-
-          </div>
-
-
-
-
+            @endif --}}
+            @if (session()->has('failures'))
+            <div class="alert alert-danger alert-dismissible">
+              <button type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button>
+              <h5><i class="icon fas fa-ban"></i> Alert!</h5>
+              <table class="table table-sm">
+                <tr>
+                  <th>Row</th>
+                  <th>Attribute</th>
+                  <th>Errors</th>
+                  <th>Value</th>
+                </tr>
+                @foreach (session()->get('failures') as $validation)
+                <tr>
+                  <td>{{ $validation->row() }}</td>
+                  <td>{{ $validation->attribute() }}</td>
+                  <td>
+                    <ul>
+                      @foreach ($validation->errors() as $e)
+                      <li>{{ $e }}</li>
+                      @endforeach
+                    </ul>
+                  </td>
+                  <td>{{ $validation->values()[$validation->attribute()] }}</td>
+                </tr>
+                @endforeach
+              </table>
+            </div>
+            @endif
+            <div class="card card-primary">
+              <div class="card-header">
+                <h4 class="card-title w-100">
+                  <a class="d-block w-100" data-toggle="collapse" href="#collapseOne">
+                    <i class="fas fa-filter"></i> Filter
+                  </a>
+                </h4>
+              </div>
+              <div id="collapseOne" class="collapse" data-parent="#accordion">
+                <div class="card-body">
+                  <div class="row form-group">
+                    <div class="col-3">
+                      <div class="form-group">
+                        <label class=" form-control-label">DOH From</label>
+                        <input type="date" class="form-control" name="date1" id="date1" value="{{ request('date1') }}">
+                      </div>
+                    </div>
+                    <div class="col-3">
+                      <div class="form-group">
+                        <label class=" form-control-label">DOH To</label>
+                        <input type="date" class="form-control" name="date2" id="date2" value="{{ request('date2') }}">
+                      </div>
+                    </div>
+                    <div class="col-3">
+                      <div class="form-group">
+                        <label class="form-control-label">NIK</label>
+                        <input type="text" class="form-control" name="nik" id="nik" value="{{ request('nik') }}">
+                      </div>
+                    </div>
+                    <div class="col-3">
+                      <div class="form-group">
+                        <label class="form-control-label">Full Name</label>
+                        <input type="text" class="form-control" name="fullname" id="fullname" value="{{ request('fullname') }}">
+                      </div>
+                    </div>
+                    <div class="col-3">
+                      <div class="form-group">
+                        <label class="form-control-label">POH</label>
+                        <input type="text" class="form-control" name="poh" id="poh" value="{{ request('poh') }}">
+                      </div>
+                    </div>
+                    <div class="col-3">
+                      <div class="form-group">
+                        <label class="form-control-label">Department</label>
+                        <select name="department_name" class="form-control select2bs4" id="department_name" style="width: 100%;">
+                          <option value="">- All -</option>
+                          @foreach ($departments as $department => $data)
+                          <option value="{{ $data->department_name }}" {{ request('department_name') == $data->department_name ? 'selected' : '' }}>
+                            {{ $data->department_name }}
+                          </option>
+                          @endforeach
+                        </select>
+                      </div>
+                    </div>
+                    <div class="col-3">
+                      <div class="form-group">
+                        <label class="form-control-label">Position</label>
+                        <select name="position_name" class="form-control select2bs4" id="position_name" style="width: 100%;">
+                          <option value="">- All -</option>
+                          @foreach ($positions as $position => $data)
+                          <option value="{{ $data->position_name }}" {{ request('position_name') == $data->position_name ? 'selected' : '' }}>
+                            {{ $data->position_name }}
+                          </option>
+                          @endforeach
+                        </select>
+                      </div>
+                    </div>
+                    <div class="col-3">
+                      <div class="form-group">
+                        <label class="form-control-label">Project</label>
+                        <select name="project_code" class="form-control select2bs4" id="project_code" style="width: 100%;">
+                          <option value="">- All -</option>
+                          @foreach ($projects as $project => $data)
+                          <option value="{{ $data->project_code }}" {{ request('project_code') == $data->project_code ? 'selected' : '' }}>
+                            {{ $data->project_code }}
+                          </option>
+                          @endforeach
+                        </select>
+                      </div>
+                    </div>
+                    <div class="col-3">
+                      <div class="form-group">
+                        <label class="form-control-label">Staff</label>
+                        <select name="class" class="form-control select2bs4" id="class" style="width: 100%;">
+                          <option value="">- All -</option>
+                          <option value="Staff">Staff</option>
+                          <option value="Non Staff">Non Staff</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div class="col-3">
+                      <div class="form-group">
+                        <label class=" form-control-label">&nbsp;</label>
+                        <button id="btn-reset" type="button" class="btn btn-danger btn-block">Reset</button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="table-responsive">
+              <table id="example1" width="100%" class="table table-sm table-bordered table-striped">
+                <thead>
+                  <tr>
+                    <th class="align-middle text-center">No</th>
+                    <th class="align-middle text-center">NIK</th>
+                    <th class="align-middle">Full Name</th>
+                    <th class="align-middle">POH</th>
+                    <th class="align-middle">DOH</th>
+                    <th class="align-middle">Department</th>
+                    <th class="align-middle">Position</th>
+                    <th class="align-middle">Project</th>
+                    <th class="align-middle">Class</th>
+                    <th class="align-middle text-center">Created Date</th>
+                    <th class="align-middle text-center">Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                </tbody>
+              </table>
+            </div>
+          </div><!-- /.card-body -->
         </div>
-        <!-- /.col -->
       </div>
-      <!-- /.row -->
+      <!-- /.card -->
     </div>
-    <!-- /.container-fluid -->
+    <!-- right col -->
+  </div>
+  <!-- /.row (main row) -->
+  </div>
+
+  <div class="modal fade" id="modal-import">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h4 class="modal-title">Import Data</h4>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <form class="form-horizontal" action="{{ url('employees/import') }}" method="POST" enctype="multipart/form-data">
+          <div class="modal-body">
+            @csrf
+            <div class="card-body">
+              <div class="tab-content p-0">
+                <div class="form-group row">
+                  <label class="col-sm-5 col-form-label">Import Bank</label>
+                  <div class="col-sm-7">
+                    <input type="file" name="bank">
+                    @error('bank')
+                    <div class="error invalid-feedback">
+                      {{ $message }}
+                    </div>
+                    @enderror
+                  </div>
+                </div>
+                <div class="form-group row">
+                  <label class="col-sm-5 col-form-label">Import Department</label>
+                  <div class="col-sm-7">
+                    <input type="file" name="department">
+                    @error('department')
+                    <div class="error invalid-feedback">
+                      {{ $message }}
+                    </div>
+                    @enderror
+                  </div>
+                </div>
+                <div class="form-group row">
+                  <label class="col-sm-5 col-form-label">Import Project</label>
+                  <div class="col-sm-7">
+                    <input type="file" name="project">
+                    @error('project')
+                    <div class="error invalid-feedback">
+                      {{ $message }}
+                    </div>
+                    @enderror
+                  </div>
+                </div>
+                <div class="form-group row">
+                  <label class="col-sm-5 col-form-label">Import Position</label>
+                  <div class="col-sm-7">
+                    <input type="file" name="position">
+                    @error('position')
+                    <div class="error invalid-feedback">
+                      {{ $message }}
+                    </div>
+                    @enderror
+                  </div>
+                </div>
+                <div class="form-group row">
+                  <label class="col-sm-5 col-form-label">Import Employee</label>
+                  <div class="col-sm-7">
+                    <input type="file" name="employee">
+                    @error('employee')
+                    <div class="error invalid-feedback">
+                      {{ $message }}
+                    </div>
+                    @enderror
+                  </div>
+                </div>
+                <div class="form-group row">
+                  <label class="col-sm-5 col-form-label">Import Family</label>
+                  <div class="col-sm-7">
+                    <input type="file" name="family">
+                    @error('family')
+                    <div class="error invalid-feedback">
+                      {{ $message }}
+                    </div>
+                    @enderror
+                  </div>
+                </div>
+                <div class="form-group row">
+                  <label class="col-sm-5 col-form-label">Import Insurance</label>
+                  <div class="col-sm-7">
+                    <input type="file" name="insurance">
+                    @error('insurance')
+                    <div class="error invalid-feedback">
+                      {{ $message }}
+                    </div>
+                    @enderror
+                  </div>
+                </div>
+                <div class="form-group row">
+                  <label class="col-sm-5 col-form-label">Import License</label>
+                  <div class="col-sm-7">
+                    <input type="file" name="license">
+                    @error('license')
+                    <div class="error invalid-feedback">
+                      {{ $message }}
+                    </div>
+                    @enderror
+                  </div>
+                </div>
+                <div class="form-group row">
+                  <label class="col-sm-5 col-form-label">Import Termination</label>
+                  <div class="col-sm-7">
+                    <input type="file" name="termination">
+                    @error('termination')
+                    <div class="error invalid-feedback">
+                      {{ $message }}
+                    </div>
+                    @enderror
+                  </div>
+                </div>
+              </div>
+            </div><!-- /.card-body -->
+          </div>
+          <div class="modal-footer justify-content-between">
+            <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+            <button type="submit" class="btn btn-primary">Submit</button>
+          </div>
+        </form>
+      </div>
+      <!-- /.modal-content -->
+    </div>
+    <!-- /.modal-dialog -->
+  </div>
+  <!-- /.modal -->
 </section>
 @endsection
 
-{{-- <script type="text/javascript">
-  $(function () {
-    $('#datatables').DataTable({
-      processing:true,
-      serverSide: true,
-      ajax: 'admin/EmployeeJson',
-      columns:[
-        {data: 'id', name: 'id',}
-        {data: 'fullname', name: 'id',}
-        {data: 'emp_pob', name: 'id',}
-        {data: 'emp_dob', name: 'id',}
-        {data: 'name_religion', name: 'id',}
-        {data: 'nationality', name: 'id',}
-        {data: 'name_gender', name: 'id',}
-      ]
+@section('styles')
+<!-- DataTables -->
+<link rel="stylesheet" href="{{ asset('assets/plugins/datatables-bs4/css/dataTables.bootstrap4.min.css') }}">
+{{-- <link rel="stylesheet" href="{{ asset('assets/plugins/datatables-responsive/css/responsive.bootstrap4.min.css') }}"> --}}
+<link rel="stylesheet" href="{{ asset('assets/plugins/datatables-buttons/css/buttons.bootstrap4.min.css') }}">
+<!-- Select2 -->
+<link rel="stylesheet" href="{{ asset('assets/plugins/select2/css/select2.min.css') }}">
+<link rel="stylesheet" href="{{ asset('assets/plugins/select2-bootstrap4-theme/select2-bootstrap4.min.css') }}">
+@endsection
+
+@section('scripts')
+<!-- DataTables  & Plugins -->
+<script src="{{ asset('assets/plugins/datatables/jquery.dataTables.min.js') }}"></script>
+<script src="{{ asset('assets/plugins/datatables-bs4/js/dataTables.bootstrap4.min.js') }}"></script>
+{{-- <script src="{{ asset('assets/plugins/datatables-responsive/js/dataTables.responsive.min.js') }}"></script> --}}
+{{-- <script src="{{ asset('assets/plugins/datatables-responsive/js/responsive.bootstrap4.min.js') }}"></script> --}}
+<script src="{{ asset('assets/plugins/datatables-buttons/js/dataTables.buttons.min.js') }}"></script>
+<script src="{{ asset('assets/plugins/datatables-buttons/js/buttons.bootstrap4.min.js') }}"></script>
+<script src="{{ asset('assets/plugins/jszip/jszip.min.js') }}"></script>
+<script src="{{ asset('assets/plugins/pdfmake/pdfmake.min.js') }}"></script>
+<script src="{{ asset('assets/plugins/pdfmake/vfs_fonts.js') }}"></script>
+<script src="{{ asset('assets/plugins/datatables-buttons/js/buttons.html5.min.js') }}"></script>
+<script src="{{ asset('assets/plugins/datatables-buttons/js/buttons.print.min.js') }}"></script>
+<script src="{{ asset('assets/plugins/datatables-buttons/js/buttons.colVis.min.js') }}"></script>
+<!-- Page specific script -->
+<script>
+  $(function() {
+    var table = $("#example1").DataTable({
+      responsive: true
+      , autoWidth: true
+      , lengthChange: true
+      , lengthMenu: [
+          [10, 25, 50, 100, -1]
+          , ['10', '25', '50', '100', 'Show all']
+        ]
+        //, dom: 'lBfrtpi'
+      , dom: 'rtpi'
+      , buttons: ["copy", "csv", "excel", "pdf", "print", "colvis"]
+      , processing: true
+      , serverSide: true
+      , ajax: {
+        url: "{{ route('employees.data') }}"
+        , data: function(d) {
+          d.date1 = $('#date1').val()
+            , d.date2 = $('#date2').val()
+            , d.nik = $('#nik').val()
+            , d.fullname = $('#fullname').val()
+            , d.poh = $('#poh').val()
+            , d.department_name = $('#department_name').val()
+            , d.position_name = $('#position_name').val()
+            , d.project_code = $('#project_code').val()
+            , d.class = $('#class').val()
+            , d.search = $("input[type=search][aria-controls=example1]").val()
+          console.log(d);
+        }
+      }
+      , columns: [{
+        data: 'DT_RowIndex'
+        , orderable: false
+        , searchable: false
+        , className: 'text-center'
+      }, {
+        data: "nik"
+        , name: "nik"
+        , orderable: false
+      , }, {
+        data: "fullname"
+        , name: "fullname"
+        , orderable: false
+      , }, {
+        data: "poh"
+        , name: "poh"
+        , orderable: false
+      , }, {
+        data: "doh"
+        , name: "doh"
+        , orderable: false
+      , }, {
+        data: "department_name"
+        , name: "department_name"
+        , orderable: false
+      , }, {
+        data: "position_name"
+        , name: "position_name"
+        , orderable: false
+      , }, {
+        data: "project_code"
+        , name: "project_code"
+        , orderable: false
+      , }, {
+        data: "class"
+        , name: "class"
+        , orderable: false
+      , }, {
+        data: "created_date"
+        , name: "created_date"
+        , orderable: false
+        , className: "text-center"
+      , }, {
+        data: "action"
+        , name: "action"
+        , orderable: false
+        , searchable: false
+        , className: "text-center"
+      }]
+      , fixedColumns: true
+    , })
+    $('#date1, #date2, #nik, #fullname, #poh, #department_name, #position_name, #project_code, #class').keyup(function() {
+      table.draw();
+    });
+    $('#date1, #date2, #department_name, #position_name, #project_code, #class').change(function() {
+      table.draw();
+    });
+    $('#btn-reset').click(function() {
+      $('#date1, #date2, #nik, #fullname, #poh, #department_name, #position_name, #project_code, #class').val('');
+      $('#date1, #date2, #department_name, #position_name, #project_code, #class').change();
+    });
+  });
+
+</script>
+
+<!-- Select2 -->
+<script src="{{ asset('assets/plugins/select2/js/select2.full.min.js') }}"></script>
+<script>
+  $(function() {
+    //Initialize Select2 Elements
+    $('.select2').select2()
+
+    //Initialize Select2 Elements
+    $('.select2bs4').select2({
+      theme: 'bootstrap4'
+    })
+
+    $(document).on('select2:open', () => {
+      document.querySelector('.select2-search__field').focus();
     })
   })
 
-</script> --}}
+</script>
+@endsection

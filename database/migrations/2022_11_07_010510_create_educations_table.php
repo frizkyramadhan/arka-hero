@@ -16,8 +16,8 @@ return new class extends Migration
         Schema::create('educations', function (Blueprint $table) {
             $table->id();
             $table->foreignUuid('employee_id')->references('id')->on('employees');
-            $table->string('education_level')->nullable();
             $table->string('education_name')->nullable();
+            $table->string('education_address')->nullable();
             $table->string('education_year')->nullable();
             $table->string('education_remarks')->nullable();
             $table->timestamps();
