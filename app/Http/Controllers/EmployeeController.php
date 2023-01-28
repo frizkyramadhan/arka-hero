@@ -15,100 +15,45 @@ use App\Models\Religion;
 use App\Models\Education;
 use App\Models\Insurance;
 use App\Models\Department;
+use App\Imports\BankImport;
 use App\Models\Termination;
 use Illuminate\Support\Arr;
 use App\Models\Employeebank;
 use App\Models\Operableunit;
 use Illuminate\Http\Request;
+use App\Imports\FamilyImport;
 use App\Models\Jobexperience;
+use App\Imports\LicenseImport;
+use App\Imports\ProjectImport;
 use App\Models\Additionaldata;
 use App\Models\Administration;
-use Illuminate\Support\Facades\DB;
+use App\Exports\MultipleSheetExport;
+use App\Imports\EmployeeImport;
+use App\Imports\PositionImport;
+use App\Imports\InsuranceImport;
+use App\Imports\DepartmentImport;
 use App\Models\Taxidentification;
+use App\Imports\TerminationImport;
+use Maatwebsite\Excel\Excel;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
 
 class EmployeeController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('admin_auth:superadmin')->only('destroy');
+    }
+
     public function index(Request $request)
     {
         $title = 'Employees';
         $subtitle = 'List of Employees';
+        $departments = Department::where('department_status', '1')->orderBy('department_name', 'asc')->get();
+        $positions = Position::where('position_status', '1')->orderBy('position_name', 'asc')->get();
+        $projects = Project::where('project_status', '1')->orderBy('project_code', 'asc')->get();
 
-        return view('employee.index', compact('subtitle', 'title'));
-    }
-
-    public function getEmployees(Request $request)
-    {
-        $employee = Employee::leftJoin('administrations', 'employees.id', '=', 'administrations.employee_id')
-            ->leftJoin('projects', 'administrations.project_id', '=', 'projects.id')
-            ->leftJoin('positions', 'administrations.position_id', '=', 'positions.id')
-            ->leftJoin('departments', 'positions.department_id', '=', 'departments.id')
-            ->select('employees.*', 'employees.created_at as created_date', 'administrations.nik', 'administrations.poh', 'administrations.doh', 'administrations.class', 'projects.project_code', 'positions.position_name', 'departments.department_name')
-            ->whereNotExists(function ($query) {
-                $query->select(DB::raw(1))
-                    ->from('terminations')
-                    ->whereRaw('terminations.employee_id = employees.id');
-            })
-            ->orderBy('administrations.nik', 'desc');
-
-        return datatables()->of($employee)
-            ->addIndexColumn()
-            ->addColumn('nik', function ($employee) {
-                return $employee->nik;
-            })
-            ->addColumn('fullname', function ($employee) {
-                return $employee->fullname;
-            })
-            ->addColumn('poh', function ($employee) {
-                return $employee->poh;
-            })
-            ->addColumn('doh', function ($employee) {
-                return date('d-M-Y', strtotime($employee->doh));
-            })
-            ->addColumn('department_name', function ($employee) {
-                return $employee->department_name;
-            })
-            ->addColumn('position_name', function ($employee) {
-                return $employee->position_name;
-            })
-            ->addColumn('project_code', function ($employee) {
-                return $employee->project_code;
-            })
-            ->addColumn('class', function ($employee) {
-                return $employee->class;
-            })
-            ->addColumn('created_date', function ($employee) {
-                return date('d-M-Y', strtotime($employee->created_date));
-            })
-            ->filter(function ($instance) use ($request) {
-                if (!empty($request->get('search'))) {
-                    $instance->where(function ($w) use ($request) {
-                        $search = $request->get('search');
-                        $w->orWhere('nik', 'LIKE', "%$search%")
-                            ->orWhere('fullname', 'LIKE', "%$search%")
-                            ->orWhere('poh', 'LIKE', "%$search%")
-                            ->orWhere('doh', 'LIKE', "%$search%")
-                            ->orWhere('department_name', 'LIKE', "%$search%")
-                            ->orWhere('position_name', 'LIKE', "%$search%")
-                            ->orWhere('project_code', 'LIKE', "%$search%")
-                            ->orWhere('class', 'LIKE', "%$search%")
-                            ->orWhere('employees.created_at', 'LIKE', "%$search%");
-                    });
-                }
-            })
-            ->addColumn('action', 'employee.action')
-            ->rawColumns(['action'])
-            ->toJson();
-    }
-
-    public function getDepartment()
-    {
-        $departments = Department::whereHas('positions', function ($query) {
-            $query->whereId(request()->input('position_id', 0));
-        })->orderBy('department_name', 'asc')->first();
-
-        return response()->json($departments);
+        return view('employee.index', compact('subtitle', 'title', 'departments', 'positions', 'projects'));
     }
 
     public function create()
@@ -126,23 +71,24 @@ class EmployeeController extends Controller
     {
         $request->validate([
             'fullname' => 'required',
+            'identity_card' => 'required|unique:employees',
             'emp_pob' => 'required',
             'emp_dob' => 'required',
             'nik' => 'required|unique:administrations',
             'poh' => 'required',
             'doh' => 'required',
-            'foc' => 'required',
             'class' => 'required',
             'position_id' => 'required',
             'project_id' => 'required',
             'filename.*' => 'image|mimes:jpeg,png,jpg,gif,svg|max:2048'
         ], [
             'fullname.required' => 'Full Name is required',
+            'identity_card.required' => 'Identity Card No is required',
+            'identity_card.unique' => 'Identity Card No already exists',
             'emp_pob.required' => 'Place of Birth is required',
             'emp_dob.required' => 'Date of Birth is required',
             'poh.required' => 'Place of Hire is required',
             'doh.required' => 'Date of Hire is required',
-            'foc.required' => 'Finish Of Contract is required',
             'class.required' => 'Class is required',
             'position_id.required' => 'Position is required',
             'project_id.required' => 'Project is required',
@@ -207,6 +153,7 @@ class EmployeeController extends Controller
                     'family_birthplace' => $data['family_birthplace'][$family],
                     'family_birthdate' => $data['family_birthdate'][$family],
                     'family_remarks' => $data['family_remarks'][$family],
+                    'bpjsks_no' => $data['bpjsks_no'][$family],
                 );
                 Family::create($families);
             }
@@ -327,6 +274,7 @@ class EmployeeController extends Controller
             $administration->site_allowance = $data['site_allowance'];
             $administration->other_allowance = $data['other_allowance'];
             $administration->is_active = $data['is_active'];
+            $administration->user_id = auth()->user()->id;
             $administration->save();
         }
 
@@ -364,8 +312,9 @@ class EmployeeController extends Controller
     {
         $title = 'Employees';
         $subtitle = 'Detail Employee';
-        $employee = Employee::with(['religion'])->withTrashed()->where('id', $id)->first();
+        $employee = Employee::with(['religion'])->where('id', $id)->first();
         $bank = Employeebank::with(['banks'])->where('employee_id', $id)->first();
+        $tax = Taxidentification::where('employee_id', $id)->first();
         $insurances = Insurance::where('employee_id', $id)->get();
         $families = Family::where('employee_id', $id)->get();
         $educations = Education::where('employee_id', $id)->get();
@@ -383,15 +332,14 @@ class EmployeeController extends Controller
             ->orderBy('administrations.nik', 'desc')
             ->get();
         $images = Image::where('employee_id', $id)->get();
-        $termination = Termination::where('employee_id', $id)->first();
-
+        $profile = Image::where('employee_id', $id)->where('is_profile', '=', '1')->first();
         // for select option
         $religions = Religion::orderBy('id', 'asc')->get();
         $getBanks = Bank::orderBy('bank_name', 'asc')->get();
         $positions = Position::with('departments')->orderBy('position_name', 'asc')->get();
         $projects = Project::orderBy('project_code', 'asc')->get();
 
-        return view('employee.detail', compact('title', 'subtitle', 'employee', 'bank', 'insurances', 'families', 'educations', 'courses', 'jobs', 'units', 'licenses', 'emergencies', 'additional', 'administrations', 'images', 'termination', 'religions', 'getBanks', 'positions', 'projects'));
+        return view('employee.detail', compact('title', 'subtitle', 'employee', 'bank', 'tax', 'insurances', 'families', 'educations', 'courses', 'jobs', 'units', 'licenses', 'emergencies', 'additional', 'administrations', 'images', 'religions', 'getBanks', 'positions', 'projects', 'profile'));
     }
 
     public function edit($id)
@@ -439,29 +387,67 @@ class EmployeeController extends Controller
         return redirect('employees/' . $id)->with('toast_success', 'Employee edited successfully');
     }
 
-
-
-    public function deleteEmployee($id)
+    public function destroy($employee_id)
     {
-        $employee = Employee::where('id', $id)->first();
-        return view('employee.delete', ['employee' => $employee]);
+        $images = Image::where('employee_id', $employee_id)->get();
+        foreach ($images as $image) {
+            // delete image
+            $img = public_path('images/' . $image->employee_id . '/' . $image->filename);
+            if (file_exists($img)) {
+                unlink($img);
+                Image::where('id', $image->id)->delete();
+            }
+        }
+        Administration::where('employee_id', $employee_id)->delete();
+        Employeebank::where('employee_id', $employee_id)->delete();
+        Taxidentification::where('employee_id', $employee_id)->delete();
+        Insurance::where('employee_id', $employee_id)->delete();
+        License::where('employee_id', $employee_id)->delete();
+        Family::where('employee_id', $employee_id)->delete();
+        Education::where('employee_id', $employee_id)->delete();
+        Course::where('employee_id', $employee_id)->delete();
+        Jobexperience::where('employee_id', $employee_id)->delete();
+        Operableunit::where('employee_id', $employee_id)->delete();
+        Emrgcall::where('employee_id', $employee_id)->delete();
+        Additionaldata::where('employee_id', $employee_id)->delete();
+        Termination::where('employee_id', $employee_id)->delete();
+        Employee::where('id', $employee_id)->delete();
 
-
-        // $employees = Employee::where('id', $id)->first();
-        // $employees->delete();
-        // return redirect('admin/employees')->with('status', 'Employee Delete Successfully');
+        return redirect('employees')->with('toast_success', 'Employee Delete Successfully');
     }
 
-
-    public function destroy($id)
+    public function print($id)
     {
-        // $employee = Employee::where('id', $id)->first();
-        // return view('employee.delete', ['employee' => $employee]);
+        $title = 'Employees';
+        $subtitle = 'Detail Employee';
+        $employee = Employee::with(['religion'])->where('id', $id)->first();
+        $bank = Employeebank::with(['banks'])->where('employee_id', $id)->first();
+        $tax = Taxidentification::where('employee_id', $id)->first();
+        $insurances = Insurance::where('employee_id', $id)->get();
+        $families = Family::where('employee_id', $id)->get();
+        $educations = Education::where('employee_id', $id)->get();
+        $courses = Course::where('employee_id', $id)->get();
+        $jobs = Jobexperience::where('employee_id', $id)->get();
+        $units = Operableunit::where('employee_id', $id)->get();
+        $licenses = License::where('employee_id', $id)->get();
+        $emergencies = Emrgcall::where('employee_id', $id)->get();
+        $additional = Additionaldata::where('employee_id', $id)->first();
+        $administrations = Administration::leftJoin('projects', 'administrations.project_id', '=', 'projects.id')
+            ->leftJoin('positions', 'administrations.position_id', '=', 'positions.id')
+            ->leftJoin('departments', 'positions.department_id', '=', 'departments.id')
+            ->select('administrations.*', 'projects.project_code', 'positions.position_name', 'departments.department_name')
+            ->where('employee_id', $id)
+            ->orderBy('administrations.nik', 'desc')
+            ->get();
+        $images = Image::where('employee_id', $id)->get();
+        $profile = Image::where('employee_id', $id)->where('is_profile', '=', '1')->first();
+        // for select option
+        $religions = Religion::orderBy('id', 'asc')->get();
+        $getBanks = Bank::orderBy('bank_name', 'asc')->get();
+        $positions = Position::with('departments')->orderBy('position_name', 'asc')->get();
+        $projects = Project::orderBy('project_code', 'asc')->get();
 
-
-        $employees = Employee::where('id', $id)->first();
-        $employees->delete();
-        return redirect('admin/employees')->with('status', 'Employee Delete Successfully');
+        return view('employee.print', compact('title', 'subtitle', 'employee', 'bank', 'tax', 'insurances', 'families', 'educations', 'courses', 'jobs', 'units', 'licenses', 'emergencies', 'additional', 'administrations', 'images', 'religions', 'getBanks', 'positions', 'projects', 'profile'));
     }
 
     public function addImages($id, Request $request)
@@ -486,31 +472,29 @@ class EmployeeController extends Controller
                 $image = new Image();
                 $image->employee_id = $employee->id;
                 $image->filename = $name;
+                $image->is_profile = 0;
 
                 $image->save();
             }
         }
 
-        return back()->with('toast_success', 'Images uploaded successfully');
+        return redirect('employees/' . $id . '#images')->with('toast_success', 'Images uploaded successfully');
     }
 
-    public function deleteImage($id)
-    {
-        $image = Image::find($id);
-        // delete image
-        $img = public_path('images/' . $image->employee_id . '/' . $image->filename);
-        if (file_exists($img)) {
-            unlink($img);
-            Image::where('id', $image->id)->delete();
-        }
-
-        return back()->with('toast_success', 'Image successfully deleted!');
-    }
-
-    public function deleteImages($employee_id)
+    public function deleteImage($employee_id, $id)
     {
         $images = Image::where('employee_id', $employee_id)->get();
-        foreach ($images as $image) {
+        if ($images->count() == 1) { // jika image sisa 1, hapus juga foldernya
+            $image = Image::find($id);
+            // delete image
+            $img = public_path('images/' . $image->employee_id . '/' . $image->filename);
+            if (file_exists($img)) {
+                unlink($img);
+                Image::where('id', $image->id)->delete();
+                File::deleteDirectory(public_path('images/' . $image->employee_id));
+            }
+        } else {
+            $image = Image::find($id);
             // delete image
             $img = public_path('images/' . $image->employee_id . '/' . $image->filename);
             if (file_exists($img)) {
@@ -518,6 +502,408 @@ class EmployeeController extends Controller
                 Image::where('id', $image->id)->delete();
             }
         }
-        return back()->with('toast_success', 'All images successfully deleted!');
+
+        return redirect('employees/' . $image->employee_id . '#images')->with('toast_success', 'Image successfully deleted!');
+    }
+
+    public function deleteImages($employee_id)
+    {
+        $images = Image::where('employee_id', $employee_id)->get();
+        // delete folder
+        $path = public_path('images/' . $employee_id);
+        if (file_exists($path)) {
+            Image::where('employee_id', $employee_id)->delete();
+            File::deleteDirectory($path);
+        }
+
+        // delete image
+        // foreach ($images as $image) {
+        //     $img = public_path('images/' . $image->employee_id . '/' . $image->filename);
+        //     if (file_exists($img)) {
+        //         unlink($img);
+        //         Image::where('id', $image->id)->delete();
+        //     }
+        // }
+        return redirect('employees/' . $employee_id . '#images')->with('toast_success', 'All images successfully deleted!');
+    }
+
+    public function setProfile($employee_id, $id)
+    {
+        $image = Image::find($id);
+        $image->is_profile = 1;
+        $image->save();
+        Image::where('employee_id', $employee_id)->where('id', '!=', $id)->update(['is_profile' => 0]);
+
+        return redirect('employees/' . $employee_id . '#images')->with('toast_success', 'Profile Picture Set Successfully');
+    }
+
+    public function getEmployees(Request $request)
+    {
+        $employee = Employee::leftJoin('administrations', 'employees.id', '=', 'administrations.employee_id')
+            ->leftJoin('projects', 'administrations.project_id', '=', 'projects.id')
+            ->leftJoin('positions', 'administrations.position_id', '=', 'positions.id')
+            ->leftJoin('departments', 'positions.department_id', '=', 'departments.id')
+            ->select('employees.*', 'employees.created_at as created_date', 'administrations.nik', 'administrations.poh', 'administrations.doh', 'administrations.class', 'projects.project_code', 'positions.position_name', 'departments.department_name')
+            ->where('administrations.is_active', '1')
+            // ->whereNotExists(function ($query) {
+            //     $query->select(DB::raw(1))
+            //         ->from('terminations')
+            //         ->whereRaw('terminations.employee_id = employees.id');
+            // })
+            ->orderBy('administrations.nik', 'desc');
+
+        return datatables()->of($employee)
+            ->addIndexColumn()
+            ->addColumn('nik', function ($employee) {
+                return $employee->nik;
+            })
+            ->addColumn('fullname', function ($employee) {
+                return $employee->fullname;
+            })
+            ->addColumn('poh', function ($employee) {
+                return $employee->poh;
+            })
+            ->addColumn('doh', function ($employee) {
+                if ($employee->doh == null)
+                    return null;
+                else
+                    return date('d-M-Y', strtotime($employee->doh));
+            })
+            ->addColumn('department_name', function ($employee) {
+                return $employee->department_name;
+            })
+            ->addColumn('position_name', function ($employee) {
+                return $employee->position_name;
+            })
+            ->addColumn('project_code', function ($employee) {
+                return $employee->project_code;
+            })
+            ->addColumn('class', function ($employee) {
+                return $employee->class;
+            })
+            ->addColumn('created_date', function ($employee) {
+                return date('d-M-Y', strtotime($employee->created_date));
+            })
+            ->filter(function ($instance) use ($request) {
+                if (!empty($request->get('date1') && !empty($request->get('date2')))) {
+                    $instance->where(function ($w) use ($request) {
+                        $date1 = $request->get('date1');
+                        $date2 = $request->get('date2');
+                        $w->whereBetween('doh', array($date1, $date2));
+                    });
+                }
+                if (!empty($request->get('nik'))) {
+                    $instance->where(function ($w) use ($request) {
+                        $nik = $request->get('nik');
+                        $w->orWhere('nik', 'LIKE', '%' . $nik . '%');
+                    });
+                }
+                if (!empty($request->get('fullname'))) {
+                    $instance->where(function ($w) use ($request) {
+                        $fullname = $request->get('fullname');
+                        $w->orWhere('fullname', 'LIKE', '%' . $fullname . '%');
+                    });
+                }
+                if (!empty($request->get('poh'))) {
+                    $instance->where(function ($w) use ($request) {
+                        $poh = $request->get('poh');
+                        $w->orWhere('poh', 'LIKE', '%' . $poh . '%');
+                    });
+                }
+                if (!empty($request->get('department_name'))) {
+                    $instance->where(function ($w) use ($request) {
+                        $department_name = $request->get('department_name');
+                        $w->orWhere('department_name', 'LIKE', '%' . $department_name . '%');
+                    });
+                }
+                if (!empty($request->get('position_name'))) {
+                    $instance->where(function ($w) use ($request) {
+                        $position_name = $request->get('position_name');
+                        $w->orWhere('position_name', 'LIKE', '%' . $position_name . '%');
+                    });
+                }
+                if (!empty($request->get('project_code'))) {
+                    $instance->where(function ($w) use ($request) {
+                        $project_code = $request->get('project_code');
+                        $w->orWhere('project_code', 'LIKE', '%' . $project_code . '%');
+                    });
+                }
+                if (!empty($request->get('class'))) {
+                    $instance->where(function ($w) use ($request) {
+                        $class = $request->get('class');
+                        $w->orWhere('class', 'LIKE', '%' . $class . '%');
+                    });
+                }
+                if (!empty($request->get('search'))) {
+                    $instance->where(function ($w) use ($request) {
+                        $search = $request->get('search');
+                        $w->orWhere('nik', 'LIKE', "%$search%")
+                            ->orWhere('fullname', 'LIKE', "%$search%")
+                            ->orWhere('poh', 'LIKE', "%$search%")
+                            ->orWhere('doh', 'LIKE', "%$search%")
+                            ->orWhere('department_name', 'LIKE', "%$search%")
+                            ->orWhere('position_name', 'LIKE', "%$search%")
+                            ->orWhere('project_code', 'LIKE', "%$search%")
+                            ->orWhere('class', 'LIKE', "%$search%")
+                            ->orWhere('employees.created_at', 'LIKE', "%$search%");
+                    });
+                }
+            })
+            ->addColumn('action', 'employee.action')
+            ->rawColumns(['action'])
+            ->toJson();
+    }
+
+    public function getDepartment()
+    {
+        $departments = Department::whereHas('positions', function ($query) {
+            $query->whereId(request()->input('position_id', 0));
+        })->orderBy('department_name', 'asc')->first();
+
+        return response()->json($departments);
+    }
+
+    public function personal()
+    {
+        $title = 'Personal Detail';
+        $subtitle = 'Personal Detail';
+        $religions = Religion::where('religion_status', '1')->orderBy('id', 'asc')->get();
+
+        return view('employee.personal', compact('subtitle', 'title', 'religions'));
+    }
+
+    public function getPersonals(Request $request)
+    {
+        $employee = Employee::leftJoin('religions', 'employees.religion_id', '=', 'religions.id')
+            ->select('employees.*', 'employees.created_at as created_date', 'religions.religion_name')
+            ->orderBy('fullname', 'asc');
+
+        return datatables()->of($employee)
+            ->addIndexColumn()
+            ->addColumn('fullname', function ($employee) {
+                return $employee->fullname;
+            })
+            ->addColumn('emp_pob', function ($employee) {
+                return $employee->emp_pob;
+            })
+            ->addColumn('emp_dob', function ($employee) {
+                if ($employee->emp_dob == null)
+                    return null;
+                else
+                    return date('d-M-Y', strtotime($employee->emp_dob));
+            })
+            ->addColumn('religion_name', function ($employee) {
+                return $employee->religion_name;
+            })
+            ->addColumn('gender', function ($employee) {
+                if ($employee->gender == 'male') {
+                    return 'Male';
+                } else {
+                    return 'Female';
+                }
+            })
+            ->addColumn('marital', function ($employee) {
+                return $employee->marital;
+            })
+            ->addColumn('address', function ($employee) {
+                return $employee->address;
+            })
+            ->addColumn('village', function ($employee) {
+                return $employee->village;
+            })
+            ->addColumn('ward', function ($employee) {
+                return $employee->ward;
+            })
+            ->addColumn('district', function ($employee) {
+                return $employee->district;
+            })
+            ->addColumn('city', function ($employee) {
+                return $employee->city;
+            })
+            ->addColumn('phone', function ($employee) {
+                return $employee->phone;
+            })
+            ->filter(function ($instance) use ($request) {
+                if (!empty($request->get('date1') && !empty($request->get('date2')))) {
+                    $instance->where(function ($w) use ($request) {
+                        $date1 = $request->get('date1');
+                        $date2 = $request->get('date2');
+                        $w->whereBetween('emp_dob', array($date1, $date2));
+                    });
+                }
+                if (!empty($request->get('fullname'))) {
+                    $instance->where(function ($w) use ($request) {
+                        $fullname = $request->get('fullname');
+                        $w->orWhere('fullname', 'LIKE', '%' . $fullname . '%');
+                    });
+                }
+                if (!empty($request->get('emp_pob'))) {
+                    $instance->where(function ($w) use ($request) {
+                        $emp_pob = $request->get('emp_pob');
+                        $w->orWhere('emp_pob', 'LIKE', '%' . $emp_pob . '%');
+                    });
+                }
+                if (!empty($request->get('religion_name'))) {
+                    $instance->where(function ($w) use ($request) {
+                        $religion_name = $request->get('religion_name');
+                        $w->orWhere('religion_name', 'LIKE', '%' . $religion_name . '%');
+                    });
+                }
+                if (!empty($request->get('gender'))) {
+                    $instance->where(function ($w) use ($request) {
+                        $gender = $request->get('gender');
+                        $w->orWhere('gender', 'LIKE', '%' . $gender . '%');
+                    });
+                }
+                if (!empty($request->get('marital'))) {
+                    $instance->where(function ($w) use ($request) {
+                        $marital = $request->get('marital');
+                        $w->orWhere('marital', 'LIKE', '%' . $marital . '%');
+                    });
+                }
+                if (!empty($request->get('address'))) {
+                    $instance->where(function ($w) use ($request) {
+                        $address = $request->get('address');
+                        $w->orWhere('address', 'LIKE', '%' . $address . '%');
+                    });
+                }
+                if (!empty($request->get('village'))) {
+                    $instance->where(function ($w) use ($request) {
+                        $village = $request->get('village');
+                        $w->orWhere('village', 'LIKE', '%' . $village . '%');
+                    });
+                }
+                if (!empty($request->get('ward'))) {
+                    $instance->where(function ($w) use ($request) {
+                        $ward = $request->get('ward');
+                        $w->orWhere('ward', 'LIKE', '%' . $ward . '%');
+                    });
+                }
+                if (!empty($request->get('district'))) {
+                    $instance->where(function ($w) use ($request) {
+                        $district = $request->get('district');
+                        $w->orWhere('district', 'LIKE', '%' . $district . '%');
+                    });
+                }
+                if (!empty($request->get('city'))) {
+                    $instance->where(function ($w) use ($request) {
+                        $city = $request->get('city');
+                        $w->orWhere('city', 'LIKE', '%' . $city . '%');
+                    });
+                }
+                if (!empty($request->get('phone'))) {
+                    $instance->where(function ($w) use ($request) {
+                        $phone = $request->get('phone');
+                        $w->orWhere('phone', 'LIKE', '%' . $phone . '%');
+                    });
+                }
+            })
+            ->addColumn('action', 'employee.action-personal')
+            ->rawColumns(['action'])
+            ->toJson();
+    }
+
+    public function import(Request $request)
+    {
+        $this->validate($request, [
+            'bank' => 'mimes:xls,xlsx',
+            'project' => 'mimes:xls,xlsx',
+            'department' => 'mimes:xls,xlsx',
+            'position' => 'mimes:xls,xlsx',
+            'employee' => 'mimes:xls,xlsx',
+            'family' => 'mimes:xls,xlsx',
+            'insurance' => 'mimes:xls,xlsx',
+            'license' => 'mimes:xls,xlsx',
+            'termination' => 'mimes:xls,xlsx',
+        ]);
+        $bank = $request->file('bank');
+        $project = $request->file('project');
+        $department = $request->file('department');
+        $position = $request->file('position');
+        $employee = $request->file('employee');
+        $family = $request->file('family');
+        $insurance = $request->file('insurance');
+        $license = $request->file('license');
+        $termination = $request->file('termination');
+
+        if ($request->hasFile('bank')) {
+            $import_bank = new BankImport;
+            $import_bank->import($bank);
+
+            if ($import_bank->failures()->isNotEmpty()) {
+                return back()->withFailures($import_bank->failures());
+            }
+        }
+        if ($request->hasFile('project')) {
+            $import_project = new ProjectImport;
+            $import_project->import($project);
+
+            if ($import_project->failures()->isNotEmpty()) {
+                return back()->withFailures($import_project->failures());
+            }
+        }
+        if ($request->hasFile('department')) {
+            $import_department = new DepartmentImport;
+            $import_department->import($department);
+
+            if ($import_department->failures()->isNotEmpty()) {
+                return back()->withFailures($import_department->failures());
+            }
+        }
+        if ($request->hasFile('position')) {
+            $import_position = new PositionImport;
+            $import_position->import($position);
+
+            if ($import_position->failures()->isNotEmpty()) {
+                return back()->withFailures($import_position->failures());
+            }
+        }
+        if ($request->hasFile('employee')) {
+            $import_employee = new EmployeeImport;
+            $import_employee->import($employee);
+
+            if ($import_employee->failures()->isNotEmpty()) {
+                return back()->withFailures($import_employee->failures());
+            }
+        }
+        if ($request->hasFile('family')) {
+            $import_family = new FamilyImport;
+            $import_family->import($family);
+
+            if ($import_family->failures()->isNotEmpty()) {
+                return back()->withFailures($import_family->failures());
+            }
+        }
+        if ($request->hasFile('insurance')) {
+            $import_insurance = new InsuranceImport;
+            $import_insurance->import($insurance);
+
+            if ($import_insurance->failures()->isNotEmpty()) {
+                return back()->withFailures($import_insurance->failures());
+            }
+        }
+        if ($request->hasFile('license')) {
+            $import_license = new LicenseImport;
+            $import_license->import($license);
+
+            if ($import_license->failures()->isNotEmpty()) {
+                return back()->withFailures($import_license->failures());
+            }
+        }
+        if ($request->hasFile('termination')) {
+            $import_termination = new TerminationImport;
+            $import_termination->import($termination);
+
+            if ($import_termination->failures()->isNotEmpty()) {
+                return back()->withFailures($import_termination->failures());
+            }
+        }
+
+        return redirect('employees')->with('toast_success', 'Data imported successfully');
+    }
+
+    public function export()
+    {
+        return (new MultipleSheetExport())->download('export.xlsx');
     }
 }

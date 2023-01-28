@@ -21,6 +21,8 @@
   <div class="container-fluid">
     <div class="row">
       <div class="col-12 mb-2 text-right">
+        <a href="{{ url('employees/print/'. $employee->id) }}" class="btn btn-primary" target="blank"><i class="fas fa-print"></i>
+          Print</a>
         <a href="{{ url('employees') }}" class="btn btn-warning"><i class="fas fa-undo"></i>
           Back</a>
       </div>
@@ -32,22 +34,35 @@
         <div class="card card-primary card-outline">
           <div class="card-body box-profile">
             <div class="text-center">
+              @if ($profile)
+              <img class="img-thumbnail" src="{{ asset('images/'.$profile->employee_id.'/'.$profile->filename) }}" alt="User profile picture">
+              @else
               <img class="profile-user-img img-fluid img-circle" src="{{ asset('assets/dist/img/avatar6.png') }}" alt="User profile picture">
+              @endif
             </div>
 
             <h3 class="profile-username text-center">{{ $employee->fullname }}</h3>
 
-            <p class="text-muted text-center">{{ $employee->email }}</p>
+            <p class="text-muted text-center">{{ $employee->identity_card }}</p>
 
             <ul class="list-group list-group-unbordered mb-3">
               <a href="#personal">
                 <li class="list-group-item">Personal Detail</li>
               </a>
+              <a href="#administration">
+                <li class="list-group-item">Administration</li>
+              </a>
               <a href="#banks">
                 <li class="list-group-item">Bank Accounts</li>
               </a>
+              <a href="#tax">
+                <li class="list-group-item">Tax Identification Number</li>
+              </a>
               <a href="#insurances">
                 <li class="list-group-item">Health Insurances</li>
+              </a>
+              <a href="#licenses">
+                <li class="list-group-item">Licenses</li>
               </a>
               <a href="#families">
                 <li class="list-group-item">Families</li>
@@ -64,25 +79,23 @@
               <a href="#units">
                 <li class="list-group-item">Operable Units</li>
               </a>
-              <a href="#licenses">
-                <li class="list-group-item">Licenses</li>
-              </a>
               <a href="#emergencies">
                 <li class="list-group-item">Emergency Calls</li>
               </a>
               <a href="#additional">
                 <li class="list-group-item">Additional Data</li>
               </a>
-              <a href="#administration">
-                <li class="list-group-item">Administration</li>
-              </a>
               <a href="#images">
                 <li class="list-group-item">Images</li>
               </a>
             </ul>
-            @if ($termination == null)
-            <a data-toggle="modal" data-target="#modal-termination-{{ $employee->id }}" class="btn btn-danger btn-block"><b>Terminate</b></a>
-            @endif
+            @can('superadmin')
+            <form action="{{ url('employees/'.$employee->id) }}" method="post" onsubmit="return confirm('This employee and all his/her data will be deleted. Are you sure?')" class="d-inline">
+              @method('delete')
+              @csrf
+              <button class="btn btn-danger btn-block"><b>Delete Employee</b></button>
+            </form>
+            @endcan
           </div>
           <!-- /.card-body -->
         </div>
@@ -141,6 +154,84 @@
           </div>
           <!-- /.card-body -->
         </div>
+        <div class="card card-gray" id="administration">
+          <div class="card-header">
+            <h2 class="card-title">Administration</h2>
+            <div class="card-tools">
+              <button type="button" class="btn btn-tool" data-card-widget="maximize"><i class="fas fa-expand"></i>
+              </button>
+            </div>
+            <!-- /.card-tools -->
+          </div>
+          <!-- /.card-header -->
+          <div class="card-body table-responsive p-0" style="height: 200px;">
+            <table class="table table-hover table-head-fixed text-nowrap">
+              <thead>
+                <tr>
+                  <th class="text-center">Status</th>
+                  <th>NIK</th>
+                  <th>POH</th>
+                  <th>DOH</th>
+                  <th>Department</th>
+                  <th>Position</th>
+                  <th>Project</th>
+                  <th>Class</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                @if ($administrations->isEmpty())
+                <tr>
+                  <td colspan="8" class="text-center"><span class="badge bg-warning">No Data Available</span></td>
+                </tr>
+                @else
+                @foreach ($administrations as $administration)
+                <tr>
+                  <td class="text-center">
+                    @if ($administration->is_active == 1)
+                    <span class="badge bg-success">Active</span>
+                    @else
+                    <form action="{{ url('administrations/changeStatus/'.$employee->id.'/'.$administration->id) }}" method="POST">
+                      @csrf
+                      @method('PATCH')
+                      <button type="submit" class="badge bg-danger">Inactive</button>
+                    </form>
+                    @endif
+                  </td>
+                  <td>{{ $administration->nik }}</td>
+                  <td>{{ $administration->poh }}</td>
+                  <td>{{ date('d-M-Y', strtotime($administration->doh)) }}</td>
+                  <td>{{ $administration->department_name }}</td>
+                  <td>{{ $administration->position_name }}</td>
+                  <td>{{ $administration->project_code }}</td>
+                  <td>{{ $administration->class }}</td>
+                  <td>
+                    <a class=" btn btn-sm btn-icon btn-primary" data-toggle="modal" data-target="#modal-administration-{{ $administration->id }}"><i class="fas fa-pen-square"></i></a>
+                    <form action="{{ url('administrations/'.$employee->id.'/'.$administration->id) }}" method="post" onsubmit="return confirm('Are you sure want to delete this data?')" class="d-inline">
+                      @method('delete')
+                      @csrf
+                      <button class="btn btn-sm btn-icon btn-danger"><i class="fas fa-times"></i></button>
+                    </form>
+                  </td>
+                </tr>
+                @endforeach
+                @endif
+              </tbody>
+            </table>
+          </div>
+          <div class="card-footer">
+            <div class="col-12 text-right">
+              <a class="btn btn-sm btn-icon btn-warning" data-toggle="modal" data-target="#modal-administration" title="Add Administration Data"><i class="fas fa-plus"></i></a>
+              @if ($administrations->isNotEmpty())
+              <form action="{{ url('administrations/'.$employee->id) }}" method="post" onsubmit="return confirm('Are you sure want to delete all this administration data?')" class="d-inline">
+                @method('delete')
+                @csrf
+                <button class="btn btn-sm btn-icon btn-danger" title="Delete Administration Data"><i class="fas fa-trash"></i></button>
+              </form>
+              @endif
+            </div>
+          </div>
+        </div>
         <div class="card card-gray" id="banks">
           <div class="card-header">
             <h2 class="card-title">Bank Account</h2>
@@ -169,6 +260,45 @@
               <a class="btn btn-sm btn-icon btn-warning" data-toggle="modal" data-target="#modal-bank"><i class="fas fa-plus"></i></a>
               @else
               <a class="btn btn-sm btn-icon btn-primary" data-toggle="modal" data-target="#modal-bank-{{ $bank->id }}"><i class="fas fa-pen-square"></i></a>
+              <form action="{{ url('employeebanks/'.$employee->id.'/'.$bank->id) }}" method="post" onsubmit="return confirm('Are you sure want to delete this bank account data?')" class="d-inline">
+                @method('delete')
+                @csrf
+                <button class="btn btn-sm btn-icon btn-danger" title="Delete Bank Account Data"><i class="fas fa-trash"></i></button>
+              </form>
+              @endif
+            </div>
+          </div>
+          <!-- /.card-body -->
+        </div>
+        <div class="card card-gray" id="tax">
+          <div class="card-header">
+            <h2 class="card-title">Tax Identification Number</h2>
+            <div class="card-tools">
+              <button type="button" class="btn btn-tool" data-card-widget="maximize"><i class="fas fa-expand"></i>
+              </button>
+            </div>
+            <!-- /.card-tools -->
+          </div>
+          <!-- /.card-header -->
+          <div class="card-body">
+            <dl class="row">
+              <dt class="col-sm-3">Tax Identification No.</dt>
+              <dd class="col-sm-9">{{ $tax->tax_no ?? '-' }}</dd>
+              <dt class="col-sm-3">Valid Date</dt>
+              <dd class="col-sm-9">{{ $tax ? date('d-M-Y', strtotime($tax->tax_valid_date)) : '-' }}</dd>
+            </dl>
+          </div>
+          <div class="card-footer">
+            <div class="col-12 text-right">
+              @if ($tax == null)
+              <a class="btn btn-sm btn-icon btn-warning" data-toggle="modal" data-target="#modal-tax"><i class="fas fa-plus"></i></a>
+              @else
+              <a class="btn btn-sm btn-icon btn-primary" data-toggle="modal" data-target="#modal-tax-{{ $tax->id }}"><i class="fas fa-pen-square"></i></a>
+              <form action="{{ url('taxidentifications/'.$employee->id.'/'.$tax->id) }}" method="post" onsubmit="return confirm('Are you sure want to delete this tax identification data?')" class="d-inline">
+                @method('delete')
+                @csrf
+                <button class="btn btn-sm btn-icon btn-danger" title="Delete Tax Identification Data"><i class="fas fa-trash"></i></button>
+              </form>
               @endif
             </div>
           </div>
@@ -225,6 +355,71 @@
           <div class="card-footer">
             <div class="col-12 text-right">
               <a class="btn btn-sm btn-icon btn-warning" data-toggle="modal" data-target="#modal-insurance" title="Add Insurance"><i class="fas fa-plus"></i></a>
+              @if ($insurances->isNotEmpty())
+              <form action="{{ url('insurances/'.$employee->id) }}" method="post" onsubmit="return confirm('Are you sure want to delete all this insurance data?')" class="d-inline">
+                @method('delete')
+                @csrf
+                <button class="btn btn-sm btn-icon btn-danger" title="Delete Insurance Data"><i class="fas fa-trash"></i></button>
+              </form>
+              @endif
+            </div>
+          </div>
+        </div>
+        <div class="card card-gray" id="licenses">
+          <div class="card-header">
+            <h2 class="card-title">Licenses</h2>
+            <div class="card-tools">
+              <button type="button" class="btn btn-tool" data-card-widget="maximize"><i class="fas fa-expand"></i>
+              </button>
+            </div>
+            <!-- /.card-tools -->
+          </div>
+          <!-- /.card-header -->
+          <div class="card-body table-responsive p-0" style="height: 200px;">
+            <table class="table table-hover table-head-fixed text-nowrap">
+              <thead>
+                <tr>
+                  <th>License Type</th>
+                  <th>License No</th>
+                  <th>Validity Period</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                @if ($licenses->isEmpty())
+                <tr>
+                  <td colspan="4" class="text-center"><span class="badge bg-warning">No Data Available</span></td>
+                </tr>
+                @else
+                @foreach ($licenses as $license)
+                <tr>
+                  <td>{{ $license->driver_license_type }}</td>
+                  <td>{{ $license->driver_license_no }}</td>
+                  <td>{{ $license->driver_license_exp ? date('d-M-Y', strtotime($license->driver_license_exp)) : '-' }}</td>
+                  <td>
+                    <a class="btn btn-sm btn-icon btn-primary" href="{{ url('licenses/' . $license->id . '/edit') }}" data-toggle="modal" data-target="#modal-license-{{ $license->id }}"><i class="fas fa-pen-square"></i></a>
+                    <form action="{{ url('licenses/'.$employee->id.'/'.$license->id) }}" method="post" onsubmit="return confirm('Are you sure want to delete this data?')" class="d-inline">
+                      @method('delete')
+                      @csrf
+                      <button class="btn btn-sm btn-icon btn-danger"><i class="fas fa-times"></i></button>
+                    </form>
+                  </td>
+                </tr>
+                @endforeach
+                @endif
+              </tbody>
+            </table>
+          </div>
+          <div class="card-footer">
+            <div class="col-12 text-right">
+              <a class="btn btn-sm btn-icon btn-warning" data-toggle="modal" data-target="#modal-license" title="Add License"><i class="fas fa-plus"></i></a>
+              @if ($licenses->isNotEmpty())
+              <form action="{{ url('licenses/'.$employee->id) }}" method="post" onsubmit="return confirm('Are you sure want to delete all this license data?')" class="d-inline">
+                @method('delete')
+                @csrf
+                <button class="btn btn-sm btn-icon btn-danger" title="Delete License Data"><i class="fas fa-trash"></i></button>
+              </form>
+              @endif
             </div>
           </div>
         </div>
@@ -247,6 +442,7 @@
                   <th>Birth Place</th>
                   <th>Birth Date</th>
                   <th>Remarks</th>
+                  <th>BPJS Kesehatan</th>
                   <th>Action</th>
                 </tr>
               </thead>
@@ -263,6 +459,7 @@
                   <td>{{ $family->family_birthplace }}</td>
                   <td>{{ date('d-M-Y', strtotime($family->family_birthdate)) }}</td>
                   <td>{{ $family->family_remarks }}</td>
+                  <td>{{ $family->bpjsks_no }}</td>
                   <td>
                     <a class="btn btn-sm btn-icon btn-primary" data-toggle="modal" data-target="#modal-family-{{ $family->id }}"><i class="fas fa-pen-square"></i></a>
                     <form action="{{ url('families/'.$employee->id.'/'. $family->id) }}" method="post" onsubmit="return confirm('Are you sure want to delete this data?')" class="d-inline">
@@ -281,6 +478,13 @@
           <div class="card-footer">
             <div class="col-12 text-right">
               <a class="btn btn-sm btn-icon btn-warning" data-toggle="modal" data-target="#modal-family" title="Add Family"><i class="fas fa-plus"></i></a>
+              @if ($families->isNotEmpty())
+              <form action="{{ url('families/'.$employee->id) }}" method="post" onsubmit="return confirm('Are you sure want to delete all this family data?')" class="d-inline">
+                @method('delete')
+                @csrf
+                <button class="btn btn-sm btn-icon btn-danger" title="Delete Family Data"><i class="fas fa-trash"></i></button>
+              </form>
+              @endif
             </div>
           </div>
         </div>
@@ -319,7 +523,7 @@
                   <td>{{ $education->education_remarks }}</td>
                   <td>
                     <a class="btn btn-sm btn-icon btn-primary" data-toggle="modal" data-target="#modal-education-{{ $education->id }}"><i class="fas fa-pen-square"></i></a>
-                    <form action="{{ url('schools/'.$employee->id.'/'. $education->id) }}" method="post" onsubmit="return confirm('Are you sure want to delete this data?')" class="d-inline">
+                    <form action="{{ url('educations/'.$employee->id.'/'. $education->id) }}" method="post" onsubmit="return confirm('Are you sure want to delete this data?')" class="d-inline">
                       @method('delete')
                       @csrf
                       <button class="btn btn-sm btn-icon btn-danger"><i class="fas fa-times"></i></button>
@@ -335,6 +539,13 @@
           <div class="card-footer">
             <div class="col-12 text-right">
               <a class="btn btn-sm btn-icon btn-warning" data-toggle="modal" data-target="#modal-education" title="Add Education"><i class="fas fa-plus"></i></a>
+              @if ($educations->isNotEmpty())
+              <form action="{{ url('educations/'.$employee->id) }}" method="post" onsubmit="return confirm('Are you sure want to delete all this education data?')" class="d-inline">
+                @method('delete')
+                @csrf
+                <button class="btn btn-sm btn-icon btn-danger" title="Delete Education Data"><i class="fas fa-trash"></i></button>
+              </form>
+              @endif
             </div>
           </div>
         </div>
@@ -389,6 +600,13 @@
           <div class="card-footer">
             <div class="col-12 text-right">
               <a class="btn btn-sm btn-icon btn-warning" data-toggle="modal" data-target="#modal-course" title="Add Course"><i class="fas fa-plus"></i></a>
+              @if ($courses->isNotEmpty())
+              <form action="{{ url('courses/'.$employee->id) }}" method="post" onsubmit="return confirm('Are you sure want to delete all this course data?')" class="d-inline">
+                @method('delete')
+                @csrf
+                <button class="btn btn-sm btn-icon btn-danger" title="Delete Course Data"><i class="fas fa-trash"></i></button>
+              </form>
+              @endif
             </div>
           </div>
         </div>
@@ -445,6 +663,13 @@
           <div class="card-footer">
             <div class="col-12 text-right">
               <a class="btn btn-sm btn-icon btn-warning" data-toggle="modal" data-target="#modal-job" title="Add Job Experience"><i class="fas fa-plus"></i></a>
+              @if ($jobs->isNotEmpty())
+              <form action="{{ url('jobexperiences/'.$employee->id) }}" method="post" onsubmit="return confirm('Are you sure want to delete all this job experience data?')" class="d-inline">
+                @method('delete')
+                @csrf
+                <button class="btn btn-sm btn-icon btn-danger" title="Delete Job Experience Data"><i class="fas fa-trash"></i></button>
+              </form>
+              @endif
             </div>
           </div>
         </div>
@@ -496,57 +721,13 @@
           <div class="card-footer">
             <div class="col-12 text-right">
               <a class="btn btn-sm btn-icon btn-warning" data-toggle="modal" data-target="#modal-unit" title="Add Operable Unit"><i class="fas fa-plus"></i></a>
-            </div>
-          </div>
-        </div>
-        <div class="card card-gray" id="licenses">
-          <div class="card-header">
-            <h2 class="card-title">Licenses</h2>
-            <div class="card-tools">
-              <button type="button" class="btn btn-tool" data-card-widget="maximize"><i class="fas fa-expand"></i>
-              </button>
-            </div>
-            <!-- /.card-tools -->
-          </div>
-          <!-- /.card-header -->
-          <div class="card-body table-responsive p-0" style="height: 200px;">
-            <table class="table table-hover table-head-fixed text-nowrap">
-              <thead>
-                <tr>
-                  <th>License Type</th>
-                  <th>License No</th>
-                  <th>Validity Period</th>
-                  <th>Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                @if ($licenses->isEmpty())
-                <tr>
-                  <td colspan="4" class="text-center"><span class="badge bg-warning">No Data Available</span></td>
-                </tr>
-                @else
-                @foreach ($licenses as $license)
-                <tr>
-                  <td>{{ $license->driver_license_type }}</td>
-                  <td>{{ $license->driver_license_no }}</td>
-                  <td>{{ date('d-M-Y', strtotime($license->driver_license_exp)) }}</td>
-                  <td>
-                    <a class="btn btn-sm btn-icon btn-primary" href="{{ url('licenses/' . $license->id . '/edit') }}" data-toggle="modal" data-target="#modal-license-{{ $license->id }}"><i class="fas fa-pen-square"></i></a>
-                    <form action="{{ url('licenses/'.$employee->id.'/'.$license->id) }}" method="post" onsubmit="return confirm('Are you sure want to delete this data?')" class="d-inline">
-                      @method('delete')
-                      @csrf
-                      <button class="btn btn-sm btn-icon btn-danger"><i class="fas fa-times"></i></button>
-                    </form>
-                  </td>
-                </tr>
-                @endforeach
-                @endif
-              </tbody>
-            </table>
-          </div>
-          <div class="card-footer">
-            <div class="col-12 text-right">
-              <a class="btn btn-sm btn-icon btn-warning" data-toggle="modal" data-target="#modal-license" title="Add License"><i class="fas fa-plus"></i></a>
+              @if ($units->isNotEmpty())
+              <form action="{{ url('operableunits/'.$employee->id) }}" method="post" onsubmit="return confirm('Are you sure want to delete all this operable unit data?')" class="d-inline">
+                @method('delete')
+                @csrf
+                <button class="btn btn-sm btn-icon btn-danger" title="Delete Operable Unit Data"><i class="fas fa-trash"></i></button>
+              </form>
+              @endif
             </div>
           </div>
         </div>
@@ -600,6 +781,13 @@
           <div class="card-footer">
             <div class="col-12 text-right">
               <a class="btn btn-sm btn-icon btn-warning" data-toggle="modal" data-target="#modal-emergency" title="Add Emergency Call"><i class="fas fa-plus"></i></a>
+              @if ($emergencies->isNotEmpty())
+              <form action="{{ url('emrgcalls/'.$employee->id) }}" method="post" onsubmit="return confirm('Are you sure want to delete all this emergency data?')" class="d-inline">
+                @method('delete')
+                @csrf
+                <button class="btn btn-sm btn-icon btn-danger" title="Delete Emergency Data"><i class="fas fa-trash"></i></button>
+              </form>
+              @endif
             </div>
           </div>
         </div>
@@ -636,66 +824,12 @@
               <a class="btn btn-sm btn-icon btn-warning" data-toggle="modal" data-target="#modal-additional"><i class="fas fa-plus"></i></a>
               @else
               <a class="btn btn-sm btn-icon btn-primary" data-toggle="modal" data-target="#modal-additional-{{ $additional->id }}"><i class="fas fa-pen-square"></i></a>
+              <form action="{{ url('additionaldatas/'.$employee->id.'/'.$additional->id) }}" method="post" onsubmit="return confirm('Are you sure want to delete this additional data?')" class="d-inline">
+                @method('delete')
+                @csrf
+                <button class="btn btn-sm btn-icon btn-danger" title="Delete Additional Data"><i class="fas fa-trash"></i></button>
+              </form>
               @endif
-            </div>
-          </div>
-        </div>
-        <div class="card card-gray" id="administration">
-          <div class="card-header">
-            <h2 class="card-title">Administration</h2>
-            <div class="card-tools">
-              <button type="button" class="btn btn-tool" data-card-widget="maximize"><i class="fas fa-expand"></i>
-              </button>
-            </div>
-            <!-- /.card-tools -->
-          </div>
-          <!-- /.card-header -->
-          <div class="card-body table-responsive p-0" style="height: 200px;">
-            <table class="table table-hover table-head-fixed text-nowrap">
-              <thead>
-                <tr>
-                  <th>NIK</th>
-                  <th>POH</th>
-                  <th>DOH</th>
-                  <th>Department</th>
-                  <th>Position</th>
-                  <th>Project</th>
-                  <th>Class</th>
-                  <th>Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                @if ($administrations->isEmpty())
-                <tr>
-                  <td colspan="8" class="text-center"><span class="badge bg-warning">No Data Available</span></td>
-                </tr>
-                @else
-                @foreach ($administrations as $administration)
-                <tr>
-                  <td>{{ $administration->nik }}</td>
-                  <td>{{ $administration->poh }}</td>
-                  <td>{{ date('d-M-Y', strtotime($administration->doh)) }}</td>
-                  <td>{{ $administration->department_name }}</td>
-                  <td>{{ $administration->position_name }}</td>
-                  <td>{{ $administration->project_code }}</td>
-                  <td>{{ $administration->class }}</td>
-                  <td>
-                    <a class="btn btn-sm btn-icon btn-primary" data-toggle="modal" data-target="#modal-administration-{{ $administration->id }}"><i class="fas fa-pen-square"></i></a>
-                    <form action="{{ url('administrations/'.$employee->id.'/'.$administration->id) }}" method="post" onsubmit="return confirm('Are you sure want to delete this data?')" class="d-inline">
-                      @method('delete')
-                      @csrf
-                      <button class="btn btn-sm btn-icon btn-danger"><i class="fas fa-times"></i></button>
-                    </form>
-                  </td>
-                </tr>
-                @endforeach
-                @endif
-              </tbody>
-            </table>
-          </div>
-          <div class="card-footer">
-            <div class="col-12 text-right">
-              <a class="btn btn-sm btn-icon btn-warning" data-toggle="modal" data-target="#modal-administration" title="Add Administration Data"><i class="fas fa-plus"></i></a>
             </div>
           </div>
         </div>
@@ -730,17 +864,20 @@
                   </div>
                 </div>
                 <div class="col-6 text-right">
-                  <a href="{{ url('employees/deleteImages/' . $employee->id) }}" class="btn btn-danger btn-sm" onclick="return confirm('Are you sure you want to delete all images?');"><i class="fas fa-trash"></i> Delete All</a>
+                  <a href="{{ url('employees/deleteImages/' . $employee->id) }}" class="btn btn-danger btn-sm" onclick="return confirm('Are you sure you want to delete all images?');"><i class="fas fa-trash"></i> Delete All Images</a>
                 </div>
               </div>
             </div>
             <div class="row">
               @foreach ($images as $image)
-              <div class="col-sm-2 text-center">
+              <div class="col-sm-3 text-center">
                 <a href="{{ asset('images/'.$image->employee_id.'/'.$image->filename) }}" data-toggle="lightbox" data-title="{{ $image->filename }}" data-gallery="gallery">
                   <img src="{{ asset('images/'.$image->employee_id.'/'.$image->filename) }}" class="img-fluid mb-2" alt="{{ $image->filename }}" />
                 </a>
-                <a href="{{ url('employees/deleteImage/' . $image->id) }}" class="btn btn-danger btn-sm mb-2" onclick="return confirm('Are you sure you want to delete this image?');"><i class="fas fa-trash"></i> Delete</a>
+                @if ($image->is_profile == 0)
+                <a href="{{ url('employees/setProfile/' . $employee->id.'/'.$image->id) }}" class="btn btn-primary btn-sm mb-2" title="Set Profile Picture"><i class="fas fa-id-badge"></i></a>
+                @endif
+                <a href="{{ url('employees/deleteImage/' . $employee->id.'/'.$image->id) }}" class="btn btn-danger btn-sm mb-2" onclick="return confirm('Are you sure you want to delete this image?');" title="Delete Image"><i class="fas fa-trash"></i></a>
               </div>
               @endforeach
             </div>
@@ -766,6 +903,7 @@
 </section>
 @include('employee.modal-employee')
 @include('employee.modal-bank')
+@include('employee.modal-tax')
 @include('employee.modal-insurance')
 @include('employee.modal-family')
 @include('employee.modal-education')
@@ -776,7 +914,6 @@
 @include('employee.modal-emergency')
 @include('employee.modal-additional')
 @include('employee.modal-administration')
-@include('employee.modal-termination')
 
 @endsection
 

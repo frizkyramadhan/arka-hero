@@ -18,37 +18,16 @@ use App\Models\Operableunit;
 use App\Models\Jobexperience;
 use App\Models\Additionaldata;
 use App\Models\Administration;
+use App\Models\Taxidentification;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Employee extends Model
 {
     use HasFactory;
-    use SoftDeletes;
     use Uuids;
 
     protected $guarded = [];
-
-    // protected $fillable = [
-    //     'fullname',
-    //     'slug',
-    //     'emp_pob',
-    //     'emp_dob',
-    //     'blood_type',
-    //     'religion_id',
-    //     'nationality',
-    //     'gender_id',
-    //     'marital',
-    //     'address',
-    //     'village',
-    //     'ward',
-    //     'district',
-    //     'city',
-    //     'phone',
-    //     'identity_card',
-    //     'image'
-    // ];
 
     public function religion()
     {
@@ -128,5 +107,10 @@ class Employee extends Model
     public function termination()
     {
         return $this->hasMany(Termination::class);
+    }
+
+    public function taxidentification()
+    {
+        return $this->hasMany(Taxidentification::class);
     }
 }

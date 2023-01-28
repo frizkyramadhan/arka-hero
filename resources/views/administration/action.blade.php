@@ -30,7 +30,6 @@
                 <label class="col-sm-3 col-form-label">Position Name</label>
                 <div class="col-sm-8">
                   <input type="text" class="form-control" name="position_name" value="{{ $administrations->position_name }}" readonly>
-                  
                 </div>
               </div>
               <div class="form-group row">
@@ -48,13 +47,13 @@
               <div class="form-group row">
                 <label class="col-sm-3 col-form-label">DOH</label>
                 <div class="col-sm-8">
-                  <input type="text" class="form-control" name="doh" value="{{  showDateTime($administrations->doh, 'l, d F Y') }}" readonly>
+                  <input type="text" class="form-control" name="doh" value="{{ date('l, d F Y', strtotime($administrations->doh)) }}" readonly>
                 </div>
               </div>
               <div class="form-group row">
                 <label class="col-sm-3 col-form-label">FOC</label>
                 <div class="col-sm-8">
-                  <input type="text" class="form-control" name="foc" value="{{ showDateTime($administrations->foc, 'l, d F Y') }}" readonly>
+                  <input type="text" class="form-control" name="foc" value="{{ date('l, d F Y', strtotime($administrations->foc)) }}" readonly>
                 </div>
               </div>
               <div class="form-group row">

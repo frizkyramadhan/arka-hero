@@ -25,6 +25,10 @@ return new class extends Migration
             $table->string('basic_salary')->nullable();
             $table->string('site_allowance')->nullable();
             $table->string('other_allowance')->nullable();
+            $table->date('termination_date')->nullable();
+            $table->string('termination_reason')->nullable();
+            $table->string('coe_no')->nullable();
+            $table->foreignId('user_id')->constrained('users');
             $table->boolean('is_active')->default(1);
             $table->timestamps();
         });

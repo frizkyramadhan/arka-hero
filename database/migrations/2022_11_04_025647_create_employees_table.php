@@ -30,10 +30,9 @@ return new class extends Migration
             $table->string('city')->nullable();
             $table->string('phone')->nullable();
             $table->string('email')->nullable();
-            $table->string('identity_card')->nullable();
+            $table->string('identity_card')->nullable()->unique();
             $table->foreignId('user_id')->constrained('users');
             $table->timestamps();
-            $table->softDeletes();
         });
     }
 

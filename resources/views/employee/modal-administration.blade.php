@@ -56,6 +56,59 @@
               </div>
               <div class="col-md-6">
                 <div class="form-group">
+                  <label for="foc" class="form-label">FOC</label>
+                  <input type="date" value="{{ old('foc') }}" class="form-control @error('foc') is-invalid @enderror" id="foc" name="foc">
+                  @if ($errors->any('foc'))
+                  <span class="text-danger">{{ ($errors->first('foc')) }}</span>
+                  @endif
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label for="agreement" class="form-label">Agreement</label>
+                  <select name="agreement" class="form-control @error('agreement') is-invalid @enderror select2bs4">
+                    <option value="" {{ old('agreement') == '' ? 'selected' : '' }}>-Select Aggrement-</option>
+                    <option value="PKWT1" {{ old('agreement') == 'PKWT1' ? 'selected' : '' }}>PKWT1</option>
+                    <option value="PKWT2" {{ old('agreement') == 'PKWT2' ? 'selected' : '' }}>PKWT2</option>
+                    <option value="PKWT3" {{ old('agreement') == 'PKWT3' ? 'selected' : '' }}>PKWT3</option>
+                    <option value="PKWT4" {{ old('agreement') == 'PKWT4' ? 'selected' : '' }}>PKWT4</option>
+                    <option value="PKWTT" {{ old('agreement') == 'PKWTT' ? 'selected' : '' }}>PKWTT</option>
+                    <option value="Daily" {{ old('agreement') == 'Daily' ? 'selected' : '' }}>Daily</option>
+                  </select>
+                  @if ($errors->any('agreement'))
+                  <span class="text-danger">{{ ($errors->first('agreement')) }}</span>
+                  @endif
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label for="company_program" class="form-label">Company Program</label>
+                  <input type="text" value="{{ old('company_program') }}" class="form-control @error('company_program') is-invalid @enderror" id="company_program" name="company_program">
+                  @if ($errors->any('company_program'))
+                  <span class="text-danger">{{ ($errors->first('company_program')) }}</span>
+                  @endif
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label for="no_fptk" class="form-label">No FPTK</label>
+                  <input type="text" value="{{ old('no_fptk') }}" class="form-control @error('no_fptk') is-invalid @enderror" id="no_fptk" name="no_fptk">
+                  @if ($errors->any('no_fptk'))
+                  <span class="text-danger">{{ ($errors->first('no_fptk')) }}</span>
+                  @endif
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label for="no_sk_active" class="form-label">No Certificate Active Employment</label>
+                  <input type="text" value="{{ old('no_sk_active') }}" class="form-control @error('no_sk_active') is-invalid @enderror" id="no_sk_active" name="no_sk_active">
+                  @if ($errors->any('no_sk_active'))
+                  <span class="text-danger">{{ ($errors->first('no_sk_active')) }}</span>
+                  @endif
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="form-group">
                   <label for="poh" class="form-label">POH</label>
                   <input type="text" value="{{ old('poh') }}" class="form-control @error('poh') is-invalid @enderror" id="poh" name="poh">
                   @if ($errors->any('poh'))
@@ -131,16 +184,28 @@
                   @endif
                 </div>
               </div>
+              {{-- <div class="col-md-6">
+                <div class="form-group">
+                  <label for="is_active" class="form-label">Status</label>
+                  <select name="is_active" class="form-control @error('is_active') is-invalid @enderror select2bs4">
+                    <option value="1" {{ old('is_active') == '1' ? 'selected' : '' }}>Active</option>
+              <option value="0" {{ old('is_active') == '0' ? 'selected' : '' }}>Inactive</option>
+              </select>
+              @if ($errors->any('is_active'))
+              <span class="text-danger">{{ ($errors->first('is_active')) }}</span>
+              @endif
             </div>
-          </div>
+          </div> --}}
         </div>
-        <div class="modal-footer justify-content-between">
-          <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
-          <button type="submit" class="btn btn-primary">Save</button>
-        </div>
-      </form>
     </div>
   </div>
+  <div class="modal-footer justify-content-between">
+    <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+    <button type="submit" class="btn btn-primary">Save</button>
+  </div>
+  </form>
+</div>
+</div>
 </div>
 
 
@@ -158,7 +223,7 @@
       </div>
       <form action="{{ url('administrations/' . $administration->id) }}" method="POST">
         <input type="hidden" name="employee_id" value="{{ old('employee_id', $administration->employee_id) }}">
-        <input type="hidden" name="is_active" value="1">
+        <input type="hidden" name="is_active" value="{{ old('is_active', $administration->is_active) }}">
         @csrf
         @method('PATCH')
         <div class="modal-body">
@@ -167,7 +232,7 @@
               <div class="col-md-6">
                 <div class="form-group">
                   <label for="nik" class="form-label">NIK</label>
-                  <input type="text" value="{{ old('nik',$administration->nik) }}" class="form-control @error('nik') is-invalid @enderror" id="nik" name="nik">
+                  <input type="text" value="{{ old('nik', $administration->nik) }}" class="form-control @error('nik') is-invalid @enderror" id="nik" name="nik">
                   @if ($errors->any('nik'))
                   <span class="text-danger">{{ ($errors->first('nik')) }}</span>
                   @endif
@@ -201,6 +266,59 @@
                   <input type="date" value="{{ old('doh', $administration->doh) }}" class="form-control @error('doh') is-invalid @enderror" id="doh" name="doh">
                   @if ($errors->any('doh'))
                   <span class="text-danger">{{ ($errors->first('doh')) }}</span>
+                  @endif
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label for="foc" class="form-label">FOC</label>
+                  <input type="date" value="{{ old('foc', $administration->foc) }}" class="form-control @error('foc') is-invalid @enderror" id="foc" name="foc">
+                  @if ($errors->any('foc'))
+                  <span class="text-danger">{{ ($errors->first('foc')) }}</span>
+                  @endif
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label for="agreement" class="form-label">Agreement</label>
+                  <select name="agreement" class="form-control @error('agreement') is-invalid @enderror select2bs4">
+                    <option value="" {{ old('agreement', $administration->agreement) == '' ? 'selected' : '' }}>-Select Aggrement-</option>
+                    <option value="PKWT1" {{ old('agreement', $administration->agreement) == 'PKWT1' ? 'selected' : '' }}>PKWT1</option>
+                    <option value="PKWT2" {{ old('agreement', $administration->agreement) == 'PKWT2' ? 'selected' : '' }}>PKWT2</option>
+                    <option value="PKWT3" {{ old('agreement', $administration->agreement) == 'PKWT3' ? 'selected' : '' }}>PKWT3</option>
+                    <option value="PKWT4" {{ old('agreement', $administration->agreement) == 'PKWT4' ? 'selected' : '' }}>PKWT4</option>
+                    <option value="PKWTT" {{ old('agreement', $administration->agreement) == 'PKWTT' ? 'selected' : '' }}>PKWTT</option>
+                    <option value="Daily" {{ old('agreement', $administration->agreement) == 'Daily' ? 'selected' : '' }}>Daily</option>
+                  </select>
+                  @if ($errors->any('agreement'))
+                  <span class="text-danger">{{ ($errors->first('agreement')) }}</span>
+                  @endif
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label for="company_program" class="form-label">Company Program</label>
+                  <input type="text" value="{{ old('company_program', $administration->company_program) }}" class="form-control @error('company_program') is-invalid @enderror" id="company_program" name="company_program">
+                  @if ($errors->any('company_program'))
+                  <span class="text-danger">{{ ($errors->first('company_program')) }}</span>
+                  @endif
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label for="no_fptk" class="form-label">FPTK No</label>
+                  <input type="text" value="{{ old('no_fptk', $administration->no_fptk) }}" class="form-control @error('no_fptk') is-invalid @enderror" id="no_fptk" name="no_fptk">
+                  @if ($errors->any('no_fptk'))
+                  <span class="text-danger">{{ ($errors->first('no_fptk')) }}</span>
+                  @endif
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label for="no_sk_active" class="form-label">Certificate Active Employment No</label>
+                  <input type="text" value="{{ old('no_sk_active', $administration->no_sk_active) }}" class="form-control @error('no_sk_active') is-invalid @enderror" id="no_sk_active" name="no_sk_active">
+                  @if ($errors->any('no_sk_active'))
+                  <span class="text-danger">{{ ($errors->first('no_sk_active')) }}</span>
                   @endif
                 </div>
               </div>
@@ -271,7 +389,7 @@
                   <select name="project_id" class="form-control @error('project_id') is-invalid @enderror select2bs4">
                     <option value="">-Select Project-</option>
                     @foreach ($projects as $project)
-                    <option value="{{ $project->id }}" {{ old('project_id', $administration->project_id) == $project->id ? 'selected' : '' }}>
+                    <option value="{{ $project->id }}" {{ old('project_id',$administration->project_id) == $project->id ? 'selected' : '' }}>
                       {{ $project->project_code }} - {{ $project->project_name }}
                     </option>
                     @endforeach
@@ -281,12 +399,68 @@
                   @endif
                 </div>
               </div>
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label for="is_active" class="form-label">Status</label>
+                  <select name="is_active" class="form-control @error('is_active') is-invalid @enderror select2bs4">
+                    <option value="1" {{ old('is_active', $administration->is_active) == '1' ? 'selected' : '' }}>Active</option>
+                    <option value="0" {{ old('is_active', $administration->is_active) == '0' ? 'selected' : '' }}>Inactive</option>
+                  </select>
+                  @if ($errors->any('is_active'))
+                  <span class="text-danger">{{ ($errors->first('is_active')) }}</span>
+                  @endif
+                </div>
+              </div>
+            </div>
+            <div class="row bg-danger">
+              <div class="col-md-12 text-center">
+                <label class="form-label">TERMINATION SECTION</label>
+              </div>
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label for="is_active" class="form-label">Termination Date</label>
+                  <input type="date" class="form-control @error('termination_date') is-invalid @enderror" name="termination_date" value="{{ old('termination_date', $administration->termination_date) }}">
+                  @error('termination_date')
+                  <div class="invalid-feedback">
+                    {{ $message }}
+                  </div>
+                  @enderror
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label for="is_active" class="form-label">Termination Reason</label>
+                  <select name="termination_reason" class="form-control @error('termination_reason') is-invalid @enderror select2bs4" style="width: 100%;">
+                    <option value="">-Select Reason-</option>
+                    <option value="End of Contract" {{ old('termination_reason', $administration->termination_reason) == 'End of Contract' ? 'selected' : '' }}>End of Contract</option>
+                    <option value="End of Project" {{ old('termination_reason', $administration->termination_reason) == 'End of Project' ? 'selected' : '' }}>End of Project</option>
+                    <option value="Resign" {{ old('termination_reason', $administration->termination_reason) == 'Resign' ? 'selected' : '' }}>Resign</option>
+                    <option value="Termination" {{ old('termination_reason', $administration->termination_reason) == 'Termination' ? 'selected' : '' }}>Termination</option>
+                  </select>
+                  @error('termination_reson')
+                  <div class="invalid-feedback">
+                    {{ $message }}
+                  </div>
+                  @enderror
+                </div>
+              </div>
+              <div class="col-md-12">
+                <div class="form-group">
+                  <label for="is_active" class="form-label">Certificate of Employment</label>
+                  <input type="text" class="form-control @error('coe_no') is-invalid @enderror" name="coe_no" value="{{ old('coe_no', $administration->coe_no) }}">
+                  @error('coe_no')
+                  <div class="invalid-feedback">
+                    {{ $message }}
+                  </div>
+                  @enderror
+                </div>
+              </div>
             </div>
           </div>
-        </div>
-        <div class="modal-footer justify-content-between">
-          <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
-          <button type="submit" class="btn btn-primary">Update</button>
+          <div class="modal-footer justify-content-between">
+            <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+            <button type="submit" class="btn btn-primary">Update</button>
+          </div>
         </div>
       </form>
     </div>

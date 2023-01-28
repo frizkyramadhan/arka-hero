@@ -45,13 +45,9 @@ class FamilieController extends Controller
             ->addColumn('family_remarks', function ($families) {
                 return $families->family_remarks;
             })
-            // ->addColumn('families_status', function ($families) {
-            //     if ($families->families_status == '1') {
-            //         return '<span class="badge badge-success">Active</span>';
-            //     } elseif ($families->families_status == '0') {
-            //         return '<span class="badge badge-danger">Inactive</span>';
-            //     }
-            // })
+            ->addColumn('bpjsks_no', function ($families) {
+                return $families->bpjsks_no;
+            })
             ->filter(function ($instance) use ($request) {
                 if (!empty($request->get('search'))) {
                     $instance->where(function ($w) use ($request) {
@@ -61,7 +57,8 @@ class FamilieController extends Controller
                             ->orWhere('family_relationship', 'LIKE', "%$search%")
                             ->orWhere('family_birthplace', 'LIKE', "%$search%")
                             ->orWhere('family_birthdate', 'LIKE', "%$search%")
-                            ->orWhere('family_remarks', 'LIKE', "%$search%");
+                            ->orWhere('family_remarks', 'LIKE', "%$search%")
+                            ->orWhere('bpjsks_no', 'LIKE', "%$search%");
                     });
                 }
             })
@@ -69,57 +66,14 @@ class FamilieController extends Controller
                 $employees = Employee::orderBy('fullname', 'asc')->get();
                 return view('familie.action', compact('employees', 'families'));
             })
-            ->addColumn('family_birthdate', function($families){
+            ->addColumn('family_birthdate', function ($families) {
                 $date = date("d F Y", strtotime($families->family_birthdate));
                 return $date;
-
             })
             ->rawColumns(['fullname', 'action'])
             // ->addColumn('action', 'familie.action')
             ->toJson();
     }
-    // public function families(Request $request)
-    // {    
-    //     $keyword = $request->keyword;
-    //     $families = Familie::with('employees')
-    //                         ->where('family_name', 'LIKE', '%'.$keyword.'%')
-    //                         ->orWhere('family_relationship', 'LIKE', '%'.$keyword.'%')
-    //                         ->orWhereHas('employees', function($query) use($keyword){
-    //                             $query->where('fullname', 'LIKE', '%'.$keyword.'%');
-    //                         })                        
-    //                         ->paginate(5);
-    //     // $families = DB::table('families')
-    //     //     ->join('employees', 'families.employee_id', '=', 'employees.id')
-    //     //     ->select('families.*', 'fullname')
-    //     //     ->orderBy('fullname', 'asc')
-    //     //     ->simplePaginate(10);
-    //     return view('familie.index', ['families' => $families]);
-
-    // }
-
-    // public function addFamilie()
-    // {
-    //     $employee = Employee::orderBy('id', 'asc')->get();
-    //     return view('familie.create', compact('employee'));
-    // }
-    // public function families(Request $request)
-    // {
-    //     $title = 'Families';
-    //     $keyword = $request->keyword;
-    //     $families = Familie::with('employees')
-    //         ->where('family_name', 'LIKE', '%' . $keyword . '%')
-    //         ->orWhere('family_relationship', 'LIKE', '%' . $keyword . '%')
-    //         ->orWhereHas('employees', function ($query) use ($keyword) {
-    //             $query->where('fullname', 'LIKE', '%' . $keyword . '%');
-    //         })
-    //         ->paginate(5);
-    //     // $families = DB::table('families')
-    //     //     ->join('employees', 'families.employee_id', '=', 'employees.id')
-    //     //     ->select('families.*', 'fullname')
-    //     //     ->orderBy('fullname', 'asc')
-    //     //     ->simplePaginate(10);
-    //     return view('familie.index', ['families' => $families], compact('title'));
-    // }
 
     public function addFamilie()
     {
@@ -147,40 +101,46 @@ class FamilieController extends Controller
         $families->family_birthplace = $request->family_birthplace;
         $families->family_birthdate = $request->family_birthdate;
         $families->family_remarks = $request->family_remarks;
+        $families->bpjsks_no = $request->bpjsks_no;
         $families->save();
 
-        return redirect('employees/' . $employee_id)->with('toast_success', 'Family Employee Add Successfully');
+        return redirect('employees/' . $employee_id . '#families')->with('toast_success', 'Family Employee Add Successfully');
     }
-
-    // public function editFamilie($slug)
-    // {
-    //     $families = Familie::where('slug', $slug)->first();
-    //     $employee = Employee::orderBy('id', 'asc')->get();
-
-    //     return view('familie.edit', compact('families', 'employee'));
-    // }
 
     public function update(Request $request, $id)
     {
-        // $families = Family::where('id', $id)->first();
-        $rules = [
+        $request->validate([
             'employee_id' => 'required',
             'family_name' => 'required',
             'family_relationship' => 'required',
             'family_birthplace' => 'required',
             'family_birthdate' => 'required',
             'family_remarks' => 'required',
-        ];
-        $validatedData = $request->validate($rules);
-        Family::where('id', $id)->update($validatedData);
+        ]);
 
-        return redirect('employees/' . $request->employee_id)->with('toast_success', 'Family Employee Update Successfully');
+        $family = Family::find($id);
+        $family->employee_id = $request->employee_id;
+        $family->family_name = $request->family_name;
+        $family->family_relationship = $request->family_relationship;
+        $family->family_birthplace = $request->family_birthplace;
+        $family->family_birthdate = $request->family_birthdate;
+        $family->family_remarks = $request->family_remarks;
+        $family->bpjsks_no = $request->bpjsks_no;
+        $family->save();
+
+        return redirect('employees/' . $request->employee_id . '#families')->with('toast_success', 'Family Employee Update Successfully');
     }
 
     public function delete($employee_id, $id)
     {
         $families = Family::where('id', $id)->first();
         $families->delete();
-        return redirect('employees/' . $employee_id)->with('toast_success', 'Family Employee Delete Successfully');
+        return redirect('employees/' . $employee_id . '#families')->with('toast_success', 'Family Employee Delete Successfully');
+    }
+
+    public function deleteAll($employee_id)
+    {
+        Family::where('employee_id', $employee_id)->delete();
+        return redirect('employees/' . $employee_id . '#families')->with('toast_success', 'Family Employee Delete Successfully');
     }
 }

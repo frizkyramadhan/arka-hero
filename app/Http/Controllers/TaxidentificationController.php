@@ -52,7 +52,6 @@ class TaxidentificationController extends Controller
                         $w->orWhere('fullname', 'LIKE', "%$search%")
                             ->orWhere('tax_no', 'LIKE', "%$search%")
                             ->orWhere('tax_valid_date', 'LIKE', "%$search%");
-                           
                     });
                 }
             })
@@ -60,10 +59,9 @@ class TaxidentificationController extends Controller
                 $employees = Employee::orderBy('fullname', 'asc')->get();
                 return view('taxidentification.action', compact('employees', 'taxidentifications'));
             })
-            ->addColumn('tax_valid_date', function($taxidentifications){
+            ->addColumn('tax_valid_date', function ($taxidentifications) {
                 $date = date("d F Y", strtotime($taxidentifications->tax_valid_date));
                 return $date;
-
             })
             ->rawColumns(['fullname', 'action'])
             ->toJson();
@@ -87,7 +85,14 @@ class TaxidentificationController extends Controller
      */
     public function store(Request $request)
     {
-        //
+        $request->validate([
+            'employee_id' => 'required',
+            'tax_no' => 'required',
+            'tax_valid_date' => 'required'
+
+        ]);
+        Taxidentification::create($request->all());
+        return redirect('employees/' . $request->employee_id . '#tax')->with('toast_success', 'Tax Identification Added Successfully');
     }
 
     /**
@@ -121,7 +126,14 @@ class TaxidentificationController extends Controller
      */
     public function update(Request $request, Taxidentification $taxidentification)
     {
-        //
+        $request->validate([
+            'employee_id' => 'required',
+            'tax_no' => 'required',
+            'tax_valid_date' => 'required'
+
+        ]);
+        $taxidentification->update($request->all());
+        return redirect('employees/' . $request->employee_id . '#tax')->with('toast_success', 'Tax Identification Updated Successfully');
     }
 
     /**
@@ -130,8 +142,9 @@ class TaxidentificationController extends Controller
      * @param  \App\Models\Taxidentification  $taxidentification
      * @return \Illuminate\Http\Response
      */
-    public function destroy(Taxidentification $taxidentification)
+    public function delete($employee_id, $id)
     {
-        //
+        Taxidentification::where('id', $id)->delete();
+        return redirect('employees/' . $employee_id . '#tax')->with('toast_success', 'Tax Identification Deleted Successfully');
     }
 }

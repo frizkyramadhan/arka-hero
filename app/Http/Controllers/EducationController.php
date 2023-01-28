@@ -2,13 +2,14 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Educations;
 use App\Models\Employee;
+use App\Models\Education;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
-class EducationsController extends Controller
+class EducationController extends Controller
 {
+
     public function index()
     {
         $title = ' Employee Education';
@@ -17,11 +18,11 @@ class EducationsController extends Controller
         return view('education.index', compact('title', 'subtitle', 'employees'));
     }
 
-    public function getEducations(Request $request)
+    public function getEducation(Request $request)
     {
-        $educations = Educations::leftJoin('employees', 'educations.employee_id', '=', 'employees.id')
+        $educations = Education::leftJoin('employees', 'educations.employee_id', '=', 'employees.id')
             ->select('educations.*', 'employees.fullname')
-            ->orderBy('educations.education_name', 'asc');
+            ->orderBy('fullname', 'asc');
 
         return datatables()->of($educations)
             ->addIndexColumn()
@@ -40,13 +41,6 @@ class EducationsController extends Controller
             ->addColumn('education_remarks', function ($educations) {
                 return $educations->education_remarks;
             })
-            // ->addColumn('educations_status', function ($educations) {
-            //     if ($educations->educations_status == '1') {
-            //         return '<span class="badge badge-success">Active</span>';
-            //     } elseif ($educations->educations_status == '0') {
-            //         return '<span class="badge badge-danger">Inactive</span>';
-            //     }
-            // })
             ->filter(function ($instance) use ($request) {
                 if (!empty($request->get('search'))) {
                     $instance->where(function ($w) use ($request) {
@@ -64,21 +58,49 @@ class EducationsController extends Controller
                 return view('education.action', compact('employees', 'educations'));
             })
             ->rawColumns(['education_name', 'action'])
+            // ->addColumn('action', 'education.action')
             ->toJson();
     }
 
-    // public function store(Request $request)
-    // {
-    //     $validated = $request->validate([
-    //         'employee_id' => 'required',
-    //         'education_level' => 'required',
-    //         'education_name' => 'required',
-    //         'education_year' => 'required',
-    //         'education_remarks' => 'required',
+    public function store($employee_id, Request $request)
+    {
+        $request->validate([
+            'employee_id' => 'required',
+            'education_name' => 'required',
+            'education_address' => 'required',
+            'education_year' => 'required',
+            'education_remarks' => 'required',
 
+        ]);
+        Education::create($request->all());
+        return redirect('employees/' . $employee_id . '#educations')->with('toast_success', 'Education Employee Add Successfully');
+    }
 
-    //     ]);
-    //     $educations = Educations::create($request->all());
-    //     return redirect('admin/educations')->with('status', 'Education Employee Add Successfully');
-    // }
+    public function update(Request $request, $id)
+    {
+        $rules = [
+            'employee_id' => 'required',
+            'education_name' => 'required',
+            'education_address' => 'required',
+            'education_year' => 'required',
+            'education_remarks' => 'required',
+        ];
+        $validatedData = $request->validate($rules);
+        Education::where('id', $id)->update($validatedData);
+
+        return redirect('employees/' . $request->employee_id . '#educations')->with('toast_success', 'Education Employee Update Successfully');
+    }
+
+    public function delete($employee_id, $id)
+    {
+        $educations = Education::where('id', $id)->first();
+        $educations->delete();
+        return redirect('employees/' . $employee_id . '#educations')->with('toast_success', 'Education Employee Delete Successfully');
+    }
+
+    public function deleteAll($employee_id)
+    {
+        Education::where('employee_id', $employee_id)->delete();
+        return redirect('employees/' . $employee_id . '#educations')->with('toast_success', 'Education Employee Delete Successfully');
+    }
 }

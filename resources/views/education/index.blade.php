@@ -38,8 +38,8 @@
                     <tr>
                       <th class="text-center">No</th>
                       <th>Employee Name</th>
-                      <th>Education Level</th>
                       <th class="text-center">Education Name</th>
+                      <th>Education Address</th>
                       <th class="text-center">Education Years</th>
                       <th class="text-center">Education Remarks</th>
                       <th class="text-center">Detail</th>
@@ -58,13 +58,6 @@
     </div>
     <!-- /.row (main row) -->
   </div>
-
-  
-
-
-  
-      
- 
 </section>
 @endsection
 
@@ -140,24 +133,24 @@
         data: "education_name"
         , name: "education_name"
         , orderable: false
+        , className: "text-center"
       , }, {
         data: "education_address"
         , name: "education_address"
         , orderable: false
-        , className: "text-center"
       , }, {
         data: "education_year"
         , name: "education_year"
         , orderable: false
         , searchable: false
         , className: "text-center"
-      ,}, {
+      , }, {
         data: "education_remarks"
         , name: "education_remarks"
         , orderable: false
         , searchable: false
         , className: "text-center"
-      ,}, {
+      , }, {
         data: "action"
         , name: "action"
         , orderable: false
