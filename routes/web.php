@@ -44,8 +44,8 @@ Route::post('register', [RegisterController::class, 'store']);
 Route::get('login', [AuthController::class, 'getLogin'])->name('login')->middleware('guest');
 Route::post('login', [AuthController::class, 'postLogin']);
 
+Route::get('/', [ProfileController::class, 'dashboard'])->name('dashboard');
 Route::group(['middleware' => ['auth']], function () {
-    Route::get('/', [ProfileController::class, 'dashboard'])->name('dashboard');
     Route::get('dashboard/getHobpn', [ProfileController::class, 'getHobpn'])->name('hobpn.list');
     Route::get('dashboard/getBojkt', [ProfileController::class, 'getBojkt'])->name('bojkt.list');
     Route::get('dashboard/getKpuc', [ProfileController::class, 'getKpuc'])->name('kpuc.list');
