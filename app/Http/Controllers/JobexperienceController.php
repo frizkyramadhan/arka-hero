@@ -11,9 +11,6 @@ class JobexperienceController extends Controller
 
     public function index()
     {
-
-
-
         $title = ' Employee Job Experience';
         $subtitle = ' Employee Job Experience';
         $employees = Employee::orderBy('fullname', 'asc')->get();
@@ -43,13 +40,6 @@ class JobexperienceController extends Controller
             ->addColumn('quit_reason', function ($jobexperiences) {
                 return $jobexperiences->quit_reason;
             })
-            // ->addColumn('position_status', function ($position) {
-            //     if ($position->position_status == '1') {
-            //         return '<span class="badge badge-success">Active</span>';
-            //     } elseif ($position->position_status == '0') {
-            //         return '<span class="badge badge-danger">Inactive</span>';
-            //     }
-            // })
             ->filter(function ($instance) use ($request) {
                 if (!empty($request->get('search'))) {
                     $instance->where(function ($w) use ($request) {
@@ -106,7 +96,7 @@ class JobexperienceController extends Controller
         $jobexperience->quit_reason = $request->quit_reason;
         $jobexperience->save();
 
-        return redirect('employees/' . $employee_id)->with('toast_success', 'Job Experience Added Successfully');
+        return redirect('employees/' . $employee_id . '#jobs')->with('toast_success', 'Job Experience Added Successfully');
     }
 
     /**
@@ -158,7 +148,7 @@ class JobexperienceController extends Controller
         $jobexperience->quit_reason = $request->quit_reason;
         $jobexperience->save();
 
-        return redirect('employees/' . $jobexperience->employee_id)->with('toast_success', 'Job Experience Updated Successfully');
+        return redirect('employees/' . $jobexperience->employee_id . '#jobs')->with('toast_success', 'Job Experience Updated Successfully');
     }
 
     /**
@@ -172,6 +162,12 @@ class JobexperienceController extends Controller
         $jobexperience = Jobexperience::find($id);
         $jobexperience->delete();
 
-        return redirect('employees/' . $employee_id)->with('toast_success', 'Job Experience Deleted Successfully');
+        return redirect('employees/' . $employee_id . '#jobs')->with('toast_success', 'Job Experience Deleted Successfully');
+    }
+
+    public function deleteAll($employee_id)
+    {
+        Jobexperience::where('employee_id', $employee_id)->delete();
+        return redirect('employees/' . $employee_id . '#jobs')->with('toast_success', 'Job Experience Deleted Successfully');
     }
 }

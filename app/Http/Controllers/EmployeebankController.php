@@ -72,30 +72,6 @@ class EmployeebankController extends Controller
             ->rawColumns(['bank_account_no', 'action'])
             ->toJson();
     }
-    // public function employeebanks(Request $request)
-    // {
-    //     $keyword = $request->keyword;
-    //     $employeebanks = Employeebank::with(['employees','banks'])
-    //                                 ->where('bank_account_no', 'LIKE', '%'.$keyword.'%')
-    //                                 ->orWhere('bank_account_name', 'LIKE', '%'.$keyword.'%')
-    //                                 ->orWhereHas('employees', function($query) use($keyword){
-    //                                     $query->where('fullname', 'LIKE', '%'.$keyword.'%');
-    //                                 })                        
-    //                                 ->paginate(5);
-    //     // $employeebanks = DB::table('employeebanks')
-    //     //     ->join('employees', 'employeebanks.employee_id', '=', 'employees.id')
-    //     //     ->join('banks', 'employeebanks.bank_id', '=', 'banks.id')
-    //     //     ->select('employeebanks.*', 'fullname', 'bank_name')
-    //     //     ->orderBy('fullname', 'asc')
-    //     //     ->simplePaginate(15);
-    //     return view('employeebank.index', ['employeebanks' => $employeebanks]);
-    // }
-    // public function AddEmployeebank()
-    // {
-    //     $employee = Employee::orderBy('id', 'asc')->get();
-    //     $banks = Bank::all();
-    //     return view('employeebank.create', compact('employee', 'banks'));
-    // }
 
     public function store(Request $request)
     {
@@ -108,7 +84,7 @@ class EmployeebankController extends Controller
 
         ]);
         Employeebank::create($request->all());
-        return back()->with('status', 'Bank Added Successfully');
+        return redirect('employees/' . $request->employee_id . '#banks')->with('toast_success', 'Bank Added Successfully');
     }
 
 
@@ -139,14 +115,12 @@ class EmployeebankController extends Controller
 
         Employeebank::where('id', $id)->update($rules);
 
-        return redirect('employees/' . $request->employee_id)->with('toast_success', 'Bank Account Update Successfully');
+        return redirect('employees/' . $request->employee_id . '#banks')->with('toast_success', 'Bank Account Update Successfully');
     }
 
-    // public function deleteEmployeebank($slug)
-    // {
-
-    //     $employeebanks = Employeebank::where('slug', $slug)->first();
-    //     $employeebanks->delete();
-    //     return redirect('admin/employeebanks')->with('status', 'Bank Employee Delete Successfully');
-    // }
+    public function delete($employee_id, $id)
+    {
+        Employeebank::where('id', $id)->delete();
+        return redirect('employees/' . $employee_id . '#banks')->with('toast_success', 'Bank Account Delete Successfully');
+    }
 }

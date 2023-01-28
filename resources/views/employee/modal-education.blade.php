@@ -7,7 +7,7 @@
           <span aria-hidden="true">&times;</span>
         </button>
       </div>
-      <form action="{{ url('schools/'.$employee->id) }}" method="POST">
+      <form action="{{ url('educations/'.$employee->id) }}" method="POST">
         <input type="hidden" name="employee_id" value="{{ old('employee_id', $employee->id) }}">
         @csrf
         <div class="modal-body">
@@ -80,7 +80,7 @@
           <span aria-hidden="true">&times;</span>
         </button>
       </div>
-      <form action="{{ url('schools/' . $education->id) }}" method="POST">
+      <form action="{{ url('educations/' . $education->id) }}" method="POST">
         <input type="hidden" name="employee_id" value="{{ old('employee_id', $education->employee_id) }}">
         @csrf
         @method('PATCH')

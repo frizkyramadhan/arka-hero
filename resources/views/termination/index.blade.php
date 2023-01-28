@@ -10,7 +10,7 @@
       <div class="col-sm-6">
         <ol class="breadcrumb float-sm-right">
           <li class="breadcrumb-item"><a href="{{ url('/') }}">Home</a></li>
-          <li class="breadcrumb-item active">Terminated Employees</li>
+          <li class="breadcrumb-item active">Termination</li>
         </ol>
       </div><!-- /.col -->
     </div><!-- /.row -->
@@ -33,7 +33,7 @@
               <div class="card-tools">
                 <ul class="nav nav-pills ml-auto">
                   <li class="nav-item mr-2">
-                    <a href="{{ url('terminations/create') }}" class="btn btn-warning"><i class="fas fa-plus"></i>
+                    <a href="{{ url('terminations/create') }}" class="btn btn-success"><i class="fas fa-plus"></i>
                       Add</a>
                     <a href="{{ url('employees') }}" class="btn btn-warning"><i class="fas fa-undo"></i>
                       Back</a>

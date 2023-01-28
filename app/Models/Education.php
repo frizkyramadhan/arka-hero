@@ -16,6 +16,6 @@ class Education extends Model
 
     public function employees()
     {
-        return $this->belongsTo(Employee::class);
+        return $this->belongsTo(Employee::class, 'employee_id');
     }
 }

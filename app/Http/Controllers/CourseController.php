@@ -38,13 +38,6 @@ class CourseController extends Controller
             ->addColumn('course_remarks', function ($courses) {
                 return $courses->course_remarks;
             })
-            // ->addColumn('courses_status', function ($courses) {
-            //     if ($courses->courses_status == '1') {
-            //         return '<span class="badge badge-success">Active</span>';
-            //     } elseif ($courses->courses_status == '0') {
-            //         return '<span class="badge badge-danger">Inactive</span>';
-            //     }
-            // })
             ->filter(function ($instance) use ($request) {
                 if (!empty($request->get('search'))) {
                     $instance->where(function ($w) use ($request) {
@@ -64,21 +57,6 @@ class CourseController extends Controller
             // ->addColumn('action', 'course.action')
             ->toJson();
     }
-    // public function courses()
-    // { 
-    // $courses = DB::table('courses')
-    //         ->join('employees', 'courses.employee_id', '=', 'employees.id')
-    //         ->select('courses.*', 'fullname')
-    //         ->orderBy('fullname', 'asc')
-    //         ->simplePaginate(10);
-    //     return view('course.index', ['courses' => $courses]);
-    // }
-
-    // public function addCourse()
-    // {
-    //     $employee = Employee::orderBy('id', 'asc')->get();
-    //     return view('course.create', compact('employee'));
-    // }
 
     public function store($employee_id, Request $request)
     {
@@ -90,16 +68,8 @@ class CourseController extends Controller
 
         ]);
         Course::create($request->all());
-        return redirect('employees/' . $employee_id)->with('toast_success', 'Course Employee Add Successfully');
+        return redirect('employees/' . $employee_id . '#courses')->with('toast_success', 'Course Employee Add Successfully');
     }
-
-    // public function editCourse($slug)
-    // {
-    //     $courses = Course::where('slug', $slug)->first();
-    //     $employee = Employee::orderBy('id', 'asc')->get();
-
-    //     return view('course.edit', compact('courses', 'employee'));
-    // }
 
     public function update(Request $request, $id)
     {
@@ -114,13 +84,19 @@ class CourseController extends Controller
         $validatedData = $request->validate($rules);
         Course::where('id', $id)->update($validatedData);
 
-        return redirect('employees/' . $request->employee_id)->with('toast_success', 'Course Employee Update Successfully');
+        return redirect('employees/' . $request->employee_id . '#courses')->with('toast_success', 'Course Employee Update Successfully');
     }
 
     public function delete($employee_id, $id)
     {
         $courses = Course::where('id', $id)->first();
         $courses->delete();
-        return redirect('employees/' . $employee_id)->with('toast_success', 'Course Employee Delete Successfully');
+        return redirect('employees/' . $employee_id . '#courses')->with('toast_success', 'Course Employee Delete Successfully');
+    }
+
+    public function deleteAll($employee_id)
+    {
+        Course::where('employee_id', $employee_id)->delete();
+        return redirect('employees/' . $employee_id . '#courses')->with('toast_success', 'Course Employee Delete Successfully');
     }
 }

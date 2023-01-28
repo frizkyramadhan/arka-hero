@@ -34,7 +34,7 @@
                   </div>
                   <div class="col-sm-12 col-md-6">
                     <div class="mt-5 d-flex justify-content-end">
-                      <a href="{{route('educations') }}" class="btn btn-primary">Back</a>
+                      <a href="{{route('schools') }}" class="btn btn-primary">Back</a>
                   </div>
                   </div>
                 </div>
@@ -47,7 +47,7 @@
                             </ul>
                         </div>
                     @endif --}}
-                <form class="form-horizontal" action="{{route('AddEducations') }}" method="post">
+                <form class="form-horizontal" action="{{route('AddSchool') }}" method="post">
                     @csrf
                     <div class="card-body">
                         <div class="form-group row">
