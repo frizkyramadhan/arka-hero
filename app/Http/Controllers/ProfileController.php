@@ -25,24 +25,26 @@ use PHPMailer\PHPMailer\Exception;
 
 class ProfileController extends Controller
 {
- 
+
     public function dashboard()
     {
         $data = [
             'title' => 'Dashboard'
         ];
-        $hoCount = Administration::where('project_id','1')->count();
-        $boCount = Administration::where('project_id','2')->count();
-        $malinauCount = Administration::where('project_id','3')->count();
-        $sbiCount = Administration::where('project_id','4')->count();
-        $gpkCount = Administration::where('project_id','5')->count();
-        $bekCount = Administration::where('project_id','6')->count();
-        $apsCount = Administration::where('project_id','7')->count();
+        $hoCount = Administration::where('project_id', '1')->where('is_active', '1')->count();
+        $boCount = Administration::where('project_id', '2')->where('is_active', '1')->count();
+        $malinauCount = Administration::where('project_id', '3')->where('is_active', '1')->count();
+        $sbiCount = Administration::where('project_id', '4')->where('is_active', '1')->count();
+        $gpkCount = Administration::where('project_id', '5')->where('is_active', '1')->count();
+        $bekCount = Administration::where('project_id', '6')->where('is_active', '1')->count();
+        $apsCount = Administration::where('project_id', '7')->where('is_active', '1')->count();
         $employeeCount = Employee::count();
-        $terminationCount = Termination::count();
+        $terminationCount = Administration::where('is_active', '0')->count();
         $Contract   = Administration::whereRaw('datediff(foc, current_date) < 30')->count();
-        return view('dashboard', $data, ['hoCount' => $hoCount, 'boCount' => $boCount, 'malinauCount'=> $malinauCount,
-        'sbiCount'=> $sbiCount, 'gpkCount'=> $gpkCount, 'bekCount'=> $bekCount, 'apsCount'=>$apsCount, 'employeeCount'=>$employeeCount,'terminationCount'=>$terminationCount, 'Contract'=>$Contract]);
+        return view('dashboard', $data, [
+            'hoCount' => $hoCount, 'boCount' => $boCount, 'malinauCount' => $malinauCount,
+            'sbiCount' => $sbiCount, 'gpkCount' => $gpkCount, 'bekCount' => $bekCount, 'apsCount' => $apsCount, 'employeeCount' => $employeeCount, 'terminationCount' => $terminationCount, 'Contract' => $Contract
+        ]);
     }
 
 
@@ -54,11 +56,12 @@ class ProfileController extends Controller
             ->leftJoin('departments', 'positions.department_id', '=', 'departments.id')
             ->select('employees.*', 'employees.created_at as created_date', 'administrations.nik', 'administrations.poh', 'administrations.doh', 'administrations.class', 'projects.project_code', 'positions.position_name', 'departments.department_name')
             ->where('project_id', '1')
-            ->whereNotExists(function ($query) {
-                $query->select(DB::raw(1))
-                    ->from('terminations')
-                    ->whereRaw('terminations.employee_id = employees.id');
-            })
+            ->where('is_active', '1')
+            // ->whereNotExists(function ($query) {
+            //     $query->select(DB::raw(1))
+            //         ->from('terminations')
+            //         ->whereRaw('terminations.employee_id = employees.id');
+            // })
             ->orderBy('administrations.nik', 'desc');
 
         return datatables()->of($employee)
@@ -87,7 +90,6 @@ class ProfileController extends Controller
             ->addColumn('class', function ($employee) {
                 return $employee->class;
             })
-           
             ->filter(function ($instance) use ($request) {
                 if (!empty($request->get('search'))) {
                     $instance->where(function ($w) use ($request) {
@@ -104,7 +106,6 @@ class ProfileController extends Controller
                     });
                 }
             })
-            
             ->toJson();
     }
 
@@ -116,11 +117,12 @@ class ProfileController extends Controller
             ->leftJoin('departments', 'positions.department_id', '=', 'departments.id')
             ->select('employees.*', 'employees.created_at as created_date', 'administrations.nik', 'administrations.poh', 'administrations.doh', 'administrations.class', 'projects.project_code', 'positions.position_name', 'departments.department_name')
             ->where('project_id', '2')
-            ->whereNotExists(function ($query) {
-                $query->select(DB::raw(1))
-                    ->from('terminations')
-                    ->whereRaw('terminations.employee_id = employees.id');
-            })
+            ->where('is_active', '1')
+            // ->whereNotExists(function ($query) {
+            //     $query->select(DB::raw(1))
+            //         ->from('terminations')
+            //         ->whereRaw('terminations.employee_id = employees.id');
+            // })
             ->orderBy('administrations.nik', 'desc');
 
         return datatables()->of($employee)
@@ -149,7 +151,6 @@ class ProfileController extends Controller
             ->addColumn('class', function ($employee) {
                 return $employee->class;
             })
-           
             ->filter(function ($instance) use ($request) {
                 if (!empty($request->get('search'))) {
                     $instance->where(function ($w) use ($request) {
@@ -166,7 +167,6 @@ class ProfileController extends Controller
                     });
                 }
             })
-            
             ->toJson();
     }
 
@@ -178,11 +178,12 @@ class ProfileController extends Controller
             ->leftJoin('departments', 'positions.department_id', '=', 'departments.id')
             ->select('employees.*', 'employees.created_at as created_date', 'administrations.nik', 'administrations.poh', 'administrations.doh', 'administrations.class', 'projects.project_code', 'positions.position_name', 'departments.department_name')
             ->where('project_id', '3')
-            ->whereNotExists(function ($query) {
-                $query->select(DB::raw(1))
-                    ->from('terminations')
-                    ->whereRaw('terminations.employee_id = employees.id');
-            })
+            ->where('is_active', '1')
+            // ->whereNotExists(function ($query) {
+            //     $query->select(DB::raw(1))
+            //         ->from('terminations')
+            //         ->whereRaw('terminations.employee_id = employees.id');
+            // })
             ->orderBy('administrations.nik', 'desc');
 
         return datatables()->of($employee)
@@ -211,7 +212,6 @@ class ProfileController extends Controller
             ->addColumn('class', function ($employee) {
                 return $employee->class;
             })
-           
             ->filter(function ($instance) use ($request) {
                 if (!empty($request->get('search'))) {
                     $instance->where(function ($w) use ($request) {
@@ -228,7 +228,6 @@ class ProfileController extends Controller
                     });
                 }
             })
-            
             ->toJson();
     }
 
@@ -240,11 +239,12 @@ class ProfileController extends Controller
             ->leftJoin('departments', 'positions.department_id', '=', 'departments.id')
             ->select('employees.*', 'employees.created_at as created_date', 'administrations.nik', 'administrations.poh', 'administrations.doh', 'administrations.class', 'projects.project_code', 'positions.position_name', 'departments.department_name')
             ->where('project_id', '4')
-            ->whereNotExists(function ($query) {
-                $query->select(DB::raw(1))
-                    ->from('terminations')
-                    ->whereRaw('terminations.employee_id = employees.id');
-            })
+            ->where('is_active', '1')
+            // ->whereNotExists(function ($query) {
+            //     $query->select(DB::raw(1))
+            //         ->from('terminations')
+            //         ->whereRaw('terminations.employee_id = employees.id');
+            // })
             ->orderBy('administrations.nik', 'desc');
 
         return datatables()->of($employee)
@@ -273,7 +273,6 @@ class ProfileController extends Controller
             ->addColumn('class', function ($employee) {
                 return $employee->class;
             })
-           
             ->filter(function ($instance) use ($request) {
                 if (!empty($request->get('search'))) {
                     $instance->where(function ($w) use ($request) {
@@ -290,7 +289,6 @@ class ProfileController extends Controller
                     });
                 }
             })
-           
             ->toJson();
     }
 
@@ -302,11 +300,12 @@ class ProfileController extends Controller
             ->leftJoin('departments', 'positions.department_id', '=', 'departments.id')
             ->select('employees.*', 'employees.created_at as created_date', 'administrations.nik', 'administrations.poh', 'administrations.doh', 'administrations.class', 'projects.project_code', 'positions.position_name', 'departments.department_name')
             ->where('project_id', '5')
-            ->whereNotExists(function ($query) {
-                $query->select(DB::raw(1))
-                    ->from('terminations')
-                    ->whereRaw('terminations.employee_id = employees.id');
-            })
+            ->where('is_active', '1')
+            // ->whereNotExists(function ($query) {
+            //     $query->select(DB::raw(1))
+            //         ->from('terminations')
+            //         ->whereRaw('terminations.employee_id = employees.id');
+            // })
             ->orderBy('administrations.nik', 'desc');
 
         return datatables()->of($employee)
@@ -335,7 +334,7 @@ class ProfileController extends Controller
             ->addColumn('class', function ($employee) {
                 return $employee->class;
             })
-           
+
             ->filter(function ($instance) use ($request) {
                 if (!empty($request->get('search'))) {
                     $instance->where(function ($w) use ($request) {
@@ -352,7 +351,7 @@ class ProfileController extends Controller
                     });
                 }
             })
-            
+
             ->toJson();
     }
 
@@ -364,11 +363,12 @@ class ProfileController extends Controller
             ->leftJoin('departments', 'positions.department_id', '=', 'departments.id')
             ->select('employees.*', 'employees.created_at as created_date', 'administrations.nik', 'administrations.poh', 'administrations.doh', 'administrations.class', 'projects.project_code', 'positions.position_name', 'departments.department_name')
             ->where('project_id', '6')
-            ->whereNotExists(function ($query) {
-                $query->select(DB::raw(1))
-                    ->from('terminations')
-                    ->whereRaw('terminations.employee_id = employees.id');
-            })
+            ->where('is_active', '1')
+            // ->whereNotExists(function ($query) {
+            //     $query->select(DB::raw(1))
+            //         ->from('terminations')
+            //         ->whereRaw('terminations.employee_id = employees.id');
+            // })
             ->orderBy('administrations.nik', 'desc');
 
         return datatables()->of($employee)
@@ -397,7 +397,7 @@ class ProfileController extends Controller
             ->addColumn('class', function ($employee) {
                 return $employee->class;
             })
-           
+
             ->filter(function ($instance) use ($request) {
                 if (!empty($request->get('search'))) {
                     $instance->where(function ($w) use ($request) {
@@ -414,7 +414,7 @@ class ProfileController extends Controller
                     });
                 }
             })
-           
+
             ->toJson();
     }
 
@@ -426,11 +426,12 @@ class ProfileController extends Controller
             ->leftJoin('departments', 'positions.department_id', '=', 'departments.id')
             ->select('employees.*', 'employees.created_at as created_date', 'administrations.nik', 'administrations.poh', 'administrations.doh', 'administrations.class', 'projects.project_code', 'positions.position_name', 'departments.department_name')
             ->where('project_id', '7')
-            ->whereNotExists(function ($query) {
-                $query->select(DB::raw(1))
-                    ->from('terminations')
-                    ->whereRaw('terminations.employee_id = employees.id');
-            })
+            ->where('is_active', '1')
+            // ->whereNotExists(function ($query) {
+            //     $query->select(DB::raw(1))
+            //         ->from('terminations')
+            //         ->whereRaw('terminations.employee_id = employees.id');
+            // })
             ->orderBy('administrations.nik', 'desc');
 
         return datatables()->of($employee)
@@ -459,7 +460,7 @@ class ProfileController extends Controller
             ->addColumn('class', function ($employee) {
                 return $employee->class;
             })
-           
+
             ->filter(function ($instance) use ($request) {
                 if (!empty($request->get('search'))) {
                     $instance->where(function ($w) use ($request) {
@@ -476,7 +477,7 @@ class ProfileController extends Controller
                     });
                 }
             })
-           
+
             ->toJson();
     }
 
@@ -486,12 +487,13 @@ class ProfileController extends Controller
             ->leftJoin('projects', 'administrations.project_id', '=', 'projects.id')
             ->leftJoin('positions', 'administrations.position_id', '=', 'positions.id')
             ->leftJoin('departments', 'positions.department_id', '=', 'departments.id')
-            ->select('employees.*', 'employees.created_at as created_date', 'administrations.nik', 'administrations.poh','administrations.foc', 'administrations.doh', 'administrations.class', 'projects.project_code', 'positions.position_name', 'departments.department_name')
-            ->whereNotExists(function ($query) {
-                $query->select(DB::raw(1))
-                    ->from('terminations')
-                    ->whereRaw('terminations.employee_id = employees.id');
-            })
+            ->select('employees.*', 'employees.created_at as created_date', 'administrations.nik', 'administrations.poh', 'administrations.foc', 'administrations.doh', 'administrations.class', 'projects.project_code', 'positions.position_name', 'departments.department_name')
+            ->where('is_active', '1')
+            // ->whereNotExists(function ($query) {
+            //     $query->select(DB::raw(1))
+            //         ->from('terminations')
+            //         ->whereRaw('terminations.employee_id = employees.id');
+            // })
             ->orderBy('administrations.nik', 'desc');
 
         return datatables()->of($employee)
@@ -523,7 +525,7 @@ class ProfileController extends Controller
             ->addColumn('class', function ($employee) {
                 return $employee->class;
             })
-           
+
             ->filter(function ($instance) use ($request) {
                 if (!empty($request->get('search'))) {
                     $instance->where(function ($w) use ($request) {
@@ -541,15 +543,19 @@ class ProfileController extends Controller
                     });
                 }
             })
-           
+
             ->toJson();
     }
 
     public function getTermination(Request $request)
     {
-        $termination = Termination::leftJoin('employees', 'terminations.employee_id', '=', 'employees.id')
-            ->select('terminations.*', 'employees.fullname')
-            ->orderBy('terminations.coe_no', 'asc');
+        $termination = Employee::leftJoin('administrations', 'employees.id', '=', 'administrations.employee_id')
+            ->leftJoin('projects', 'administrations.project_id', '=', 'projects.id')
+            ->leftJoin('positions', 'administrations.position_id', '=', 'positions.id')
+            ->leftJoin('departments', 'positions.department_id', '=', 'departments.id')
+            ->select('employees.fullname', 'employees.created_at as created_date', 'administrations.*', 'projects.project_code', 'positions.position_name', 'departments.department_name')
+            ->where('administrations.is_active', 0)
+            ->orderBy('administrations.nik', 'desc');
 
         return datatables()->of($termination)
             ->addIndexColumn()
@@ -582,67 +588,67 @@ class ProfileController extends Controller
     public function getContract(Request $request)
     {
         $employee = Employee::leftJoin('administrations', 'employees.id', '=', 'administrations.employee_id')
-        ->leftJoin('projects', 'administrations.project_id', '=', 'projects.id')
-        ->leftJoin('positions', 'administrations.position_id', '=', 'positions.id')
-        ->leftJoin('departments', 'positions.department_id', '=', 'departments.id')
-        ->select('employees.*', 'employees.created_at as created_date', 'administrations.nik', 'administrations.poh','administrations.foc', 'administrations.doh', 'administrations.class', 'projects.project_code', 'positions.position_name', 'departments.department_name')
-        ->whereRaw('datediff(foc, current_date) < 30')
-        ->whereNotExists(function ($query) {
-            $query->select(DB::raw(1))
-                ->from('terminations')
-                ->whereRaw('terminations.employee_id = employees.id');
-        })
-        ->orderBy('administrations.foc', 'desc');
+            ->leftJoin('projects', 'administrations.project_id', '=', 'projects.id')
+            ->leftJoin('positions', 'administrations.position_id', '=', 'positions.id')
+            ->leftJoin('departments', 'positions.department_id', '=', 'departments.id')
+            ->select('employees.*', 'employees.created_at as created_date', 'administrations.nik', 'administrations.poh', 'administrations.foc', 'administrations.doh', 'administrations.class', 'projects.project_code', 'positions.position_name', 'departments.department_name')
+            ->whereRaw('datediff(foc, current_date) < 30')
+            ->where('is_active', '1')
+            // ->whereNotExists(function ($query) {
+            //     $query->select(DB::raw(1))
+            //         ->from('terminations')
+            //         ->whereRaw('terminations.employee_id = employees.id');
+            // })
+            ->orderBy('administrations.foc', 'desc');
 
-    return datatables()->of($employee)
-        ->addIndexColumn()
-        ->addColumn('nik', function ($employee) {
-            return $employee->nik;
-        })
-        ->addColumn('fullname', function ($employee) {
-            return $employee->fullname;
-        })
-        ->addColumn('poh', function ($employee) {
-            return $employee->poh;
-        })
-        ->addColumn('doh', function ($employee) {
-            return date('d-M-Y', strtotime($employee->doh));
-        })
-        ->addColumn('foc', function ($employee) {
-            return date('d-M-Y', strtotime($employee->foc));
-        })
-        ->addColumn('department_name', function ($employee) {
-            return $employee->department_name;
-        })
-        ->addColumn('position_name', function ($employee) {
-            return $employee->position_name;
-        })
-        ->addColumn('project_code', function ($employee) {
-            return $employee->project_code;
-        })
-        ->addColumn('class', function ($employee) {
-            return $employee->class;
-        })
-       
-        ->filter(function ($instance) use ($request) {
-            if (!empty($request->get('search'))) {
-                $instance->where(function ($w) use ($request) {
-                    $search = $request->get('search');
-                    $w->orWhere('nik', 'LIKE', "%$search%")
-                        ->orWhere('fullname', 'LIKE', "%$search%")
-                        ->orWhere('poh', 'LIKE', "%$search%")
-                        ->orWhere('doh', 'LIKE', "%$search%")
-                        ->orWhere('department_name', 'LIKE', "%$search%")
-                        ->orWhere('position_name', 'LIKE', "%$search%")
-                        ->orWhere('project_code', 'LIKE', "%$search%")
-                        ->orWhere('class', 'LIKE', "%$search%")
-                        ->orWhere('employees.created_at', 'LIKE', "%$search%");
-                });
-            }
-        })
-       
-        ->toJson();
+        return datatables()->of($employee)
+            ->addIndexColumn()
+            ->addColumn('nik', function ($employee) {
+                return $employee->nik;
+            })
+            ->addColumn('fullname', function ($employee) {
+                return $employee->fullname;
+            })
+            ->addColumn('poh', function ($employee) {
+                return $employee->poh;
+            })
+            ->addColumn('doh', function ($employee) {
+                return date('d-M-Y', strtotime($employee->doh));
+            })
+            ->addColumn('foc', function ($employee) {
+                return date('d-M-Y', strtotime($employee->foc));
+            })
+            ->addColumn('department_name', function ($employee) {
+                return $employee->department_name;
+            })
+            ->addColumn('position_name', function ($employee) {
+                return $employee->position_name;
+            })
+            ->addColumn('project_code', function ($employee) {
+                return $employee->project_code;
+            })
+            ->addColumn('class', function ($employee) {
+                return $employee->class;
+            })
 
+            ->filter(function ($instance) use ($request) {
+                if (!empty($request->get('search'))) {
+                    $instance->where(function ($w) use ($request) {
+                        $search = $request->get('search');
+                        $w->orWhere('nik', 'LIKE', "%$search%")
+                            ->orWhere('fullname', 'LIKE', "%$search%")
+                            ->orWhere('poh', 'LIKE', "%$search%")
+                            ->orWhere('doh', 'LIKE', "%$search%")
+                            ->orWhere('department_name', 'LIKE', "%$search%")
+                            ->orWhere('position_name', 'LIKE', "%$search%")
+                            ->orWhere('project_code', 'LIKE', "%$search%")
+                            ->orWhere('class', 'LIKE', "%$search%")
+                            ->orWhere('employees.created_at', 'LIKE', "%$search%");
+                    });
+                }
+            })
+
+            ->toJson();
     }
 
 
