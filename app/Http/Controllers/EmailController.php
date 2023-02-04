@@ -3,9 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Mail\NotificationEmail;
-use PHPMailer\PHPMailer\PHPMailer;  
+use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
-
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
 
@@ -18,7 +17,7 @@ class EmailController extends Controller
      */
     public function index()
     {
-        
+
         $title = 'Email';
         $subtitle = 'Send Email';
         return view('email.index', compact('title', 'subtitle'));
@@ -26,7 +25,7 @@ class EmailController extends Controller
 
     function sendMail(Request $request)
     {
-        
+
         $subject = "Contact dari " . $request->input('name');
         $name = $request->input('name');
         $emailAddress = $request->input('email');
@@ -44,30 +43,30 @@ class EmailController extends Controller
             $mail->SMTPSecure = 'ssl';                            // Enable TLS encryption, `ssl` also accepted
             $mail->Port = 465;                                    // TCP port to connect to
             $mail->SMTPOptions = array(
-                                'ssl' => array(
-                                    'verify_peer' => false,
-                                    'verify_peer_name' => false,
-                                    'allow_self_signed' => true
-                                )
-                            );
+                'ssl' => array(
+                    'verify_peer' => false,
+                    'verify_peer_name' => false,
+                    'allow_self_signed' => true
+                )
+            );
 
             // Siapa yang mengirim email
             $mail->setFrom("hcssis.application@arka.co.id", "Ardianta Pargo");
 
             // Siapa yang akan menerima email
             $mail->addAddress('hendik.saputra@arka.co.id', 'Petani Kode');     // Add a recipient
+            $mail->addAddress('frizky.ramadhan@arka.co.id', 'Frizky Ramadhan');     // Add a recipient
             // $mail->addAddress('ellen@example.com');               // Name is optional
 
             // ke siapa akan kita balas emailnya
             $mail->addReplyTo($emailAddress, $name);
-            
+
             // $mail->addCC('cc@example.com');
             // $mail->addBCC('bcc@example.com');
 
             //Attachments
             // $mail->addAttachment('/var/tmp/file.tar.gz');         // Add attachments
             // $mail->addAttachment('/tmp/image.jpg', 'new.jpg');    // Optional name
-
 
             //Content
             $mail->isHTML(true);                                  // Set email format to HTML
@@ -79,15 +78,13 @@ class EmailController extends Controller
 
             // $request->session()->flash('status', 'Terima kasih, kami sudah menerima email anda.');
             return redirect()->back();
-
         } catch (Exception $e) {
             echo 'Message could not be sent.';
             echo 'Mailer Error: ' . $mail->ErrorInfo;
         }
-
     }
 
-     
+
 
 
 

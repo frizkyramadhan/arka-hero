@@ -65,7 +65,7 @@
               <div class="icon">
                 <i class="ion ion-person-add"></i>
               </div>
-              <a class="small-box-footer" data-toggle="modal" data-target="#modal-lg3" >More info <i class="fas fa-arrow-circle-right"></i></a>
+              <a class="small-box-footer" data-toggle="modal" data-target="#modal-lg3">More info <i class="fas fa-arrow-circle-right"></i></a>
             </div>
           </div>
           <!-- ./col -->
@@ -80,7 +80,7 @@
               <div class="icon">
                 <i class="ion ion-pie-graph"></i>
               </div>
-              <a class="small-box-footer" data-toggle="modal" data-target="#modal-lg4" >More info <i class="fas fa-arrow-circle-right"></i></a>
+              <a class="small-box-footer" data-toggle="modal" data-target="#modal-lg4">More info <i class="fas fa-arrow-circle-right"></i></a>
             </div>
           </div>
           <div class="col-lg-3 col-6">
@@ -168,11 +168,10 @@
               <a class="small-box-footer" data-toggle="modal" data-target="#modal-lg10">More info <i class="fas fa-arrow-circle-right"></i></a>
             </div>
           </div>
-         
-        </div>   
+        </div>
       </div>
-      
-      
+
+
 
       <div class="modal fade" id="modal-lg1">
         <div class="modal-dialog modal-xl">
@@ -206,9 +205,9 @@
               </div>
             </div>
           </div>
-         
+
         </div>
-       
+
       </div>
 
       <div class="modal fade" id="modal-lg2">
@@ -243,9 +242,9 @@
               </div>
             </div>
           </div>
-         
+
         </div>
-       
+
       </div>
 
       <div class="modal fade" id="modal-lg3">
@@ -280,9 +279,9 @@
               </div>
             </div>
           </div>
-         
+
         </div>
-       
+
       </div>
 
       <div class="modal fade" id="modal-lg4">
@@ -317,9 +316,9 @@
               </div>
             </div>
           </div>
-         
+
         </div>
-       
+
       </div>
 
       <div class="modal fade" id="modal-lg5">
@@ -354,9 +353,9 @@
               </div>
             </div>
           </div>
-         
+
         </div>
-       
+
       </div>
 
       <div class="modal fade" id="modal-lg6">
@@ -391,9 +390,9 @@
               </div>
             </div>
           </div>
-         
+
         </div>
-       
+
       </div>
 
       <div class="modal fade" id="modal-lg7">
@@ -428,9 +427,9 @@
               </div>
             </div>
           </div>
-         
+
         </div>
-       
+
       </div>
 
       <div class="modal fade" id="modal-lg8">
@@ -466,9 +465,9 @@
               </div>
             </div>
           </div>
-         
+
         </div>
-       
+
       </div>
 
       <div class="modal fade" id="modal-lg9">
@@ -498,8 +497,8 @@
               </div>
             </div>
           </div>
-         
-        </div>    
+
+        </div>
       </div>
 
       <div class="modal fade" id="modal-lg10">
@@ -534,12 +533,8 @@
               </div>
             </div>
           </div>
-         
-        </div>    
+        </div>
       </div>
-
-      
-      
 
     </section>
   </div>
@@ -1219,6 +1214,5 @@
   });
 
 </script>
-
 
 @endsection

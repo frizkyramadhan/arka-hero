@@ -16,7 +16,6 @@ use App\Models\Education;
 use App\Models\Insurance;
 use App\Models\Department;
 use App\Imports\BankImport;
-use App\Models\Termination;
 use Illuminate\Support\Arr;
 use App\Models\Employeebank;
 use App\Models\Operableunit;
@@ -410,7 +409,6 @@ class EmployeeController extends Controller
         Operableunit::where('employee_id', $employee_id)->delete();
         Emrgcall::where('employee_id', $employee_id)->delete();
         Additionaldata::where('employee_id', $employee_id)->delete();
-        Termination::where('employee_id', $employee_id)->delete();
         Employee::where('id', $employee_id)->delete();
 
         return redirect('employees')->with('toast_success', 'Employee Delete Successfully');
