@@ -168,7 +168,6 @@
               <a class="small-box-footer" data-toggle="modal" data-target="#modal-lg10">More info <i class="fas fa-arrow-circle-right"></i></a>
             </div>
           </div>
-
         </div>
       </div>
 
@@ -534,12 +533,8 @@
               </div>
             </div>
           </div>
-
         </div>
       </div>
-
-
-
 
     </section>
   </div>
@@ -1219,6 +1214,5 @@
   });
 
 </script>
-
 
 @endsection

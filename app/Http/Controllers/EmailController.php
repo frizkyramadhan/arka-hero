@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Mail\NotificationEmail;
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
-
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
 
@@ -68,7 +67,6 @@ class EmailController extends Controller
             //Attachments
             // $mail->addAttachment('/var/tmp/file.tar.gz');         // Add attachments
             // $mail->addAttachment('/tmp/image.jpg', 'new.jpg');    // Optional name
-
 
             //Content
             $mail->isHTML(true);                                  // Set email format to HTML
