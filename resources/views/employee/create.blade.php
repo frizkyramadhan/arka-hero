@@ -412,7 +412,7 @@
                           </div>
                         </div>
                       </div>
-                   
+                    </div>
                     <div class="tab-pane fade" id="vert-tabs-taxidentification" role="tabpanel" aria-labelledby="vert-tabs-taxidentification-tab">
                       <div class="row">
                         <div class="col-md-8">
@@ -639,7 +639,6 @@
                         </div>
                       </div>
                     </div>
-                  </div>
                   </div>
                 </div>
               </div>

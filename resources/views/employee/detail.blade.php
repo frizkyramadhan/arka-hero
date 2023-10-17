@@ -449,7 +449,7 @@
               <tbody>
                 @if ($families->isEmpty())
                 <tr>
-                  <td colspan="6" class="text-center"><span class="badge bg-warning">No Data Available</span></td>
+                  <td colspan="7" class="text-center"><span class="badge bg-warning">No Data Available</span></td>
                 </tr>
                 @else
                 @foreach ($families as $family)
