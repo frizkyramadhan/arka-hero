@@ -11,7 +11,7 @@ class Position extends Model
 
     protected $guarded = [];
 
-    public function departments()
+    public function department()
     {
         return $this->belongsTo(Department::class);
     }
