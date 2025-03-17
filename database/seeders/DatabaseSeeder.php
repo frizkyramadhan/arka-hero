@@ -17,9 +17,9 @@ class DatabaseSeeder extends Seeder
     public function run()
     {
         $this->call(ReligionSeeder::class);
-        // $this->call(BankSeeder::class);
-        // $this->call(ProjectSeeder::class);
-        // $this->call(DepartmentSeeder::class);
+        $this->call(BankSeeder::class);
+        $this->call(ProjectSeeder::class);
+        $this->call(DepartmentSeeder::class);
 
         User::factory()->create([
             'name' => 'Administrator',
