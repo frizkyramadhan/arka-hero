@@ -20,6 +20,7 @@ class DatabaseSeeder extends Seeder
         $this->call(BankSeeder::class);
         $this->call(ProjectSeeder::class);
         $this->call(DepartmentSeeder::class);
+        $this->call(RoleAndPermissionSeeder::class);
 
         User::factory()->create([
             'name' => 'Administrator',

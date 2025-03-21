@@ -48,7 +48,6 @@
             </div>
             @enderror
           </div>
-          <input type="hidden" class="form-control" name="level" value="user">
           <input type="hidden" class="form-control" name="user_status" value="0">
           <div class="row">
             <div class="col-12">

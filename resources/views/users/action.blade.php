@@ -1,11 +1,11 @@
-<a class="btn btn-icon btn-primary" href="{{ url('users/' . $model->id . '/edit') }}" data-toggle="modal" data-target="#modal-lg-{{ $model->id }}"><i class="fas fa-pen-square"></i></a>
+<a class="btn btn-icon btn-primary" href="javascript:void(0)" onclick="editUser({{ $model->id }})"><i class="fas fa-pen-square"></i></a>
 <form action="{{ url('users/' . $model->id) }}" method="post" onsubmit="return confirm('Are you sure want to delete this data?')" class="d-inline">
   @method('delete')
   @csrf
   <button class="btn btn-icon btn-danger"><i class="fas fa-times"></i></button>
 </form>
 
-<div class="modal fade text-left" id="modal-lg-{{ $model->id }}">
+<div class="modal fade text-left" id="modal-edit-{{ $model->id }}">
   <div class="modal-dialog modal-lg">
     <div class="modal-content">
       <div class="modal-header">
@@ -54,17 +54,14 @@
                 </div>
               </div>
               <div class="form-group row">
-                <label class="col-sm-2 col-form-label">Level</label>
+                <label class="col-sm-2 col-form-label">Roles</label>
                 <div class="col-sm-10">
-                  <select name="level" class="form-control @error('level') is-invalid @enderror">
-                    <option value="user" {{ old('level', $model->level) == 'user' ? 'selected' : '' }}>User
-                    </option>
-                    <option value="admin" {{ old('level', $model->level) == 'admin' ? 'selected' : '' }}>Administrator
-                    </option>
-                    <option value="superadmin" {{ old('level', $model->level) == 'superadmin' ? 'selected' : '' }}>
-                      Super Administrator</option>
+                  <select name="roles[]" class="form-control select2-edit-{{ $model->id }} @error('roles') is-invalid @enderror" multiple="multiple" data-placeholder="Select roles" style="width: 100%">
+                    @foreach($roles as $role)
+                    <option value="{{ $role->name }}" {{ in_array($role->name, $model->roles->pluck('name')->toArray()) ? 'selected' : '' }}>{{ $role->name }}</option>
+                    @endforeach
                   </select>
-                  @error('level')
+                  @error('roles')
                   <div class="invalid-feedback">
                     {{ $message }}
                   </div>
@@ -75,10 +72,8 @@
                 <label class="col-sm-2 col-form-label">Status</label>
                 <div class="col-sm-10">
                   <select name="user_status" class="form-control @error('user_status') is-invalid @enderror">
-                    <option value="1" {{ old('user_status', $model->user_status) == '1' ? 'selected' : '' }}>
-                      Active</option>
-                    <option value="0" {{ old('user_status', $model->user_status) == '0' ? 'selected' : '' }}>Inactive
-                    </option>
+                    <option value="1" {{ old('user_status', $model->user_status) == '1' ? 'selected' : '' }}>Active</option>
+                    <option value="0" {{ old('user_status', $model->user_status) == '0' ? 'selected' : '' }}>Inactive</option>
                   </select>
                   @error('user_status')
                   <div class="invalid-feedback">

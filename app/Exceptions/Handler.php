@@ -43,8 +43,22 @@ class Handler extends ExceptionHandler
      */
     public function register()
     {
-        $this->reportable(function (Throwable $e) {
-            //
+        $this->renderable(function (\Spatie\Permission\Exceptions\UnauthorizedException $e, $request) {
+            if ($request->expectsJson()) {
+                // For API requests, return JSON response
+                return response()->json([
+                    'responseMessage' => 'You do not have the required authorization.',
+                    'responseStatus'  => 403,
+                ]);
+            }
+
+            // For web requests, redirect with flash message for SweetAlert2
+            return redirect()
+                ->back()
+                ->with('toast_error', 'You do not have permission to access this page')
+                ->with('alert_type', 'error')
+                ->with('alert_title', 'Access Denied')
+                ->with('alert_message', 'You do not have the required permissions to perform this action.');
         });
     }
 }
