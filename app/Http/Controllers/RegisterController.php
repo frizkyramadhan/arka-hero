@@ -23,7 +23,6 @@ class RegisterController extends Controller
             'name' => 'required',
             'email' => 'required|email:dns|unique:users|ends_with:@arka.co.id',
             'password' => 'required|min:5',
-            'level' => 'required',
             'user_status' => 'required',
         ], [
             'name.required' => 'Name is required',

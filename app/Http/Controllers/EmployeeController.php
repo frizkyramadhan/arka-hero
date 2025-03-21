@@ -39,10 +39,13 @@ use Illuminate\Support\Facades\Storage;
 
 class EmployeeController extends Controller
 {
-    public function __construct()
-    {
-        $this->middleware('admin_auth:superadmin')->only('destroy');
-    }
+    // public function __construct()
+    // {
+    //     $this->middleware('role_or_permission:employees.show')->only('index', 'show');
+    //     $this->middleware('role_or_permission:employees.create')->only('create');
+    //     $this->middleware('role_or_permission:employees.edit')->only('edit');
+    //     $this->middleware('role_or_permission:employees.delete')->only('destroy');
+    // }
 
     public function index(Request $request)
     {

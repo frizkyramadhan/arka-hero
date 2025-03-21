@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BankController;
+use App\Http\Controllers\RoleController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\EmailController;
 use App\Http\Controllers\CourseController;
@@ -19,13 +20,16 @@ use App\Http\Controllers\EducationController;
 use App\Http\Controllers\InsuranceController;
 use App\Http\Controllers\PHPMailerController;
 use App\Http\Controllers\DepartmentController;
+use App\Http\Controllers\PermissionController;
 use App\Http\Controllers\TerminationController;
 use App\Http\Controllers\EmployeebankController;
 use App\Http\Controllers\OperableunitController;
 use App\Http\Controllers\JobexperienceController;
 use App\Http\Controllers\AdditionaldataController;
 use App\Http\Controllers\AdministrationController;
+use App\Http\Controllers\TransportationController;
 use App\Http\Controllers\TaxidentificationController;
+use App\Http\Controllers\AccommodationController;
 
 /*
 |--------------------------------------------------------------------------
@@ -61,8 +65,18 @@ Route::group(['middleware' => ['auth']], function () {
 
     Route::post('logout', [AuthController::class, 'logout']);
 
+    // ADMINISTRATOR ROUTES
+
     Route::get('users/data', [UserController::class, 'getUsers'])->name('users.data');
     Route::resource('users', UserController::class)->except(['show', 'create', 'edit']);
+
+    Route::get('roles/data', [RoleController::class, 'getRoles'])->name('roles.data');
+    Route::resource('roles', RoleController::class);
+
+    Route::get('permissions/data', [PermissionController::class, 'getPermissions'])->name('permissions.data');
+    Route::resource('permissions', PermissionController::class);
+
+    // MASTER DATA ROUTES
 
     Route::get('banks/data', [BankController::class, 'getBanks'])->name('banks.data');
     Route::resource('banks', BankController::class)->except(['show', 'create', 'edit']);
@@ -80,6 +94,18 @@ Route::group(['middleware' => ['auth']], function () {
     Route::get('positions/data', [PositionController::class, 'getPositions'])->name('positions.data');
     Route::post('positions/import', [PositionController::class, 'import'])->name('positions.import');
     Route::resource('positions', PositionController::class)->except(['show', 'create', 'edit']);
+
+    Route::get('transportations/data', [TransportationController::class, 'getTransportations'])->name('transportations.data');
+    Route::resource('transportations', TransportationController::class)->except(['show', 'create', 'edit']);
+
+    Route::get('accommodations/data', [AccommodationController::class, 'getAccommodations'])->name('accommodations.data');
+    Route::resource('accommodations', AccommodationController::class);
+
+    // APPS
+
+    // OFFICIAL TRAVEL ROUTES
+
+    // EMPLOYEE ROUTES
 
     Route::get('employees/data', [EmployeeController::class, 'getEmployees'])->name('employees.data');
     Route::get('employees/print/{id}', [EmployeeController::class, 'print'])->name('employees.print');

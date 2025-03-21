@@ -41,15 +41,15 @@
             </div><!-- /.card-header -->
             <div class="card-body">
               <div class="table-responsive">
-                <table id="example1" width="100%" class="table table-sm table-bordered table-striped">
+                <table id="example1" width="100%" class="table table-bordered table-striped">
                   <thead>
                     <tr>
-                      <th class="text-center">No</th>
+                      <th style="width: 5%" class="text-center">No</th>
                       <th>Name</th>
                       <th>Email</th>
-                      <th>Level</th>
-                      <th class="text-center">Status</th>
-                      <th class="text-center">Action</th>
+                      <th>Roles</th>
+                      <th style="width: 10%" class="text-center">Status</th>
+                      <th style="width: 10%" class="text-center">Action</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -114,22 +114,19 @@
                   </div>
                 </div>
                 <div class="form-group row">
-                  <label class="col-sm-2 col-form-label">Level</label>
-                  <div class="col-sm-10">
-                    <select name="level" class="form-control @error('level') is-invalid @enderror">
-                      <option value="user" {{ old('level') == 'user' ? 'selected' : '' }}>User
-                      </option>
-                      <option value="admin" {{ old('level') == 'admin' ? 'selected' : '' }}>Administrator
-                      </option>
-                      <option value="superadmin" {{ old('level') == 'superadmin' ? 'selected' : '' }}>
-                        Super Administrator</option>
-                    </select>
-                    @error('level')
-                    <div class="invalid-feedback">
-                      {{ $message }}
+                  <label class="col-sm-2 col-form-label">Roles</label>
+                    <div class="col-sm-10">
+                      <select name="roles[]" class="form-control select2 @error('roles') is-invalid @enderror" multiple="multiple" data-placeholder="Select roles">
+                        @foreach($roles as $role)
+                        <option value="{{ $role->name }}" {{ (collect(old('roles'))->contains($role->name)) ? 'selected':'' }}>{{ $role->name }}</option>
+                        @endforeach
+                      </select>
+                      @error('roles')
+                      <div class="invalid-feedback">
+                        {{ $message }}
+                      </div>
+                      @enderror
                     </div>
-                    @enderror
-                  </div>
                 </div>
                 <div class="form-group row">
                   <label class="col-sm-2 col-form-label">Status</label>
@@ -167,16 +164,16 @@
 @section('styles')
 <!-- DataTables -->
 <link rel="stylesheet" href="{{ asset('assets/plugins/datatables-bs4/css/dataTables.bootstrap4.min.css') }}">
-{{-- <link rel="stylesheet" href="{{ asset('assets/plugins/datatables-responsive/css/responsive.bootstrap4.min.css') }}"> --}}
 <link rel="stylesheet" href="{{ asset('assets/plugins/datatables-buttons/css/buttons.bootstrap4.min.css') }}">
+<!-- Select2 -->
+<link rel="stylesheet" href="{{ asset('assets/plugins/select2/css/select2.min.css') }}">
+<link rel="stylesheet" href="{{ asset('assets/plugins/select2-bootstrap4-theme/select2-bootstrap4.min.css') }}">
 @endsection
 
 @section('scripts')
 <!-- DataTables  & Plugins -->
 <script src="{{ asset('assets/plugins/datatables/jquery.dataTables.min.js') }}"></script>
 <script src="{{ asset('assets/plugins/datatables-bs4/js/dataTables.bootstrap4.min.js') }}"></script>
-{{-- <script src="{{ asset('assets/plugins/datatables-responsive/js/dataTables.responsive.min.js') }}"></script> --}}
-{{-- <script src="{{ asset('assets/plugins/datatables-responsive/js/responsive.bootstrap4.min.js') }}"></script> --}}
 <script src="{{ asset('assets/plugins/datatables-buttons/js/dataTables.buttons.min.js') }}"></script>
 <script src="{{ asset('assets/plugins/datatables-buttons/js/buttons.bootstrap4.min.js') }}"></script>
 <script src="{{ asset('assets/plugins/jszip/jszip.min.js') }}"></script>
@@ -185,61 +182,86 @@
 <script src="{{ asset('assets/plugins/datatables-buttons/js/buttons.html5.min.js') }}"></script>
 <script src="{{ asset('assets/plugins/datatables-buttons/js/buttons.print.min.js') }}"></script>
 <script src="{{ asset('assets/plugins/datatables-buttons/js/buttons.colVis.min.js') }}"></script>
+<script src="{{ asset('assets/plugins/select2/js/select2.full.min.js') }}"></script>
 <!-- Page specific script -->
 <script>
   $(function() {
+    //Initialize Select2 Elements
+    $('.select2').select2({
+      theme: 'bootstrap4',
+      dropdownParent: $('#modal-lg')
+    });
+
     var table = $("#example1").DataTable({
-      responsive: true
-      , autoWidth: true
-      , lengthChange: true
-      , lengthMenu: [
-          [10, 25, 50, 100, -1]
-          , ['10', '25', '50', '100', 'Show all']
-        ]
-        //, dom: 'lBfrtpi'
-      , dom: 'frtpi'
-      , buttons: ["copy", "csv", "excel", "pdf", "print", "colvis"]
-      , processing: true
-      , serverSide: true
-      , ajax: {
-        url: "{{ route('users.data') }}"
-        , data: function(d) {
-          d.search = $("input[type=search][aria-controls=example1]").val()
-          console.log(d);
+      responsive: true,
+      autoWidth: true,
+      lengthChange: true,
+      lengthMenu: [
+        [10, 25, 50, 100, -1],
+        ['10', '25', '50', '100', 'Show all']
+      ],
+      dom: 'frtpi',
+      buttons: ["copy", "csv", "excel", "pdf", "print", "colvis"],
+      processing: true,
+      serverSide: true,
+      ajax: {
+        url: "{{ route('users.data') }}",
+        data: function(d) {
+          d.search = $("input[type=search][aria-controls=example1]").val();
         }
-      }
-      , columns: [{
-        data: 'DT_RowIndex'
-        , orderable: false
-        , searchable: false
-        , className: 'text-center'
-      }, {
-        data: "name"
-        , name: "name"
-        , orderable: false
-      , }, {
-        data: "email"
-        , name: "email"
-        , orderable: false
-      , }, {
-        data: "level"
-        , name: "level"
-        , orderable: false
-      , }, {
-        data: "user_status"
-        , name: "user_status"
-        , orderable: false
-        , className: "text-center"
-      , }, {
-        data: "action"
-        , name: "action"
-        , orderable: false
-        , searchable: false
-        , className: "text-center"
-      }]
-      , fixedColumns: true
-    , })
+      },
+      columns: [{
+          data: 'DT_RowIndex',
+          orderable: false,
+          searchable: false,
+          className: 'text-center'
+        },
+        {
+          data: "name",
+          name: "name",
+          orderable: false,
+        },
+        {
+          data: "email",
+          name: "email",
+          orderable: false,
+        },
+        {
+          data: "roles",
+          name: "roles",
+          orderable: false,
+        },
+        {
+          data: "user_status",
+          name: "user_status",
+          orderable: false,
+          className: "text-center",
+        },
+        {
+          data: "action",
+          name: "action",
+          orderable: false,
+          searchable: false,
+          className: "text-center"
+        }
+      ],
+      fixedColumns: true,
+    });
+
+    // Enable tooltips
+    $('[data-toggle="tooltip"]').tooltip();
   });
 
+  // Function to handle edit user
+  function editUser(id) {
+    $('#modal-edit-' + id).modal('show');
+    setTimeout(function() {
+      $('.select2-edit-' + id).select2({
+        theme: 'bootstrap4',
+        width: '100%',
+        dropdownParent: $('#modal-edit-' + id)
+      });
+    }, 100);
+  }
 </script>
 @endsection
