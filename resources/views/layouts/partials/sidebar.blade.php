@@ -57,6 +57,15 @@
                         </p>
                     </a>
                 </li>
+                <li class="nav-item">
+                    <a href="{{ url('officialtravels') }}"
+                        class="nav-link {{ Request::is('officialtravels*') ? 'active' : '' }}">
+                        <i class="nav-icon fas fa-compass"></i>
+                        <p>
+                            Official Travels
+                        </p>
+                    </a>
+                </li>
 
 
                 {{-- MASTER DATA --}}

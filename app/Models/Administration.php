@@ -12,17 +12,17 @@ class Administration extends Model
 
     protected $guarded = [];
 
-    public function projects()
+    public function project()
     {
         return $this->belongsTo(Project::class);
     }
 
-    public function employees()
+    public function employee()
     {
         return $this->belongsTo(Employee::class);
     }
 
-    public function positions()
+    public function position()
     {
         return $this->belongsTo(Position::class);
     }

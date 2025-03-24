@@ -24,12 +24,13 @@ use App\Http\Controllers\PermissionController;
 use App\Http\Controllers\TerminationController;
 use App\Http\Controllers\EmployeebankController;
 use App\Http\Controllers\OperableunitController;
+use App\Http\Controllers\AccommodationController;
 use App\Http\Controllers\JobexperienceController;
 use App\Http\Controllers\AdditionaldataController;
 use App\Http\Controllers\AdministrationController;
+use App\Http\Controllers\OfficialtravelController;
 use App\Http\Controllers\TransportationController;
 use App\Http\Controllers\TaxidentificationController;
-use App\Http\Controllers\AccommodationController;
 
 /*
 |--------------------------------------------------------------------------
@@ -104,6 +105,16 @@ Route::group(['middleware' => ['auth']], function () {
     // APPS
 
     // OFFICIAL TRAVEL ROUTES
+    Route::get('officialtravels/data', [OfficialtravelController::class, 'getOfficialtravels'])->name('officialtravels.data');
+    Route::resource('officialtravels', OfficialtravelController::class);
+    Route::get('officialtravels/{officialtravel}/recommend', [OfficialtravelController::class, 'showRecommendForm'])->name('officialtravels.showRecommendForm');
+    Route::post('officialtravels/{officialtravel}/recommend', [OfficialtravelController::class, 'recommend'])->name('officialtravels.recommend');
+    Route::get('officialtravels/{officialtravel}/approve', [OfficialtravelController::class, 'showApprovalForm'])->name('officialtravels.showApprovalForm');
+    Route::post('officialtravels/{officialtravel}/approve', [OfficialtravelController::class, 'approve'])->name('officialtravels.approve');
+    Route::get('officialtravels/{officialtravel}/arrival', [OfficialtravelController::class, 'showArrivalForm'])->name('officialtravels.showArrivalForm');
+    Route::post('officialtravels/{officialtravel}/arrival', [OfficialtravelController::class, 'arrivalStamp'])->name('officialtravels.arrivalStamp');
+    Route::get('officialtravels/{officialtravel}/departure', [OfficialtravelController::class, 'showDepartureForm'])->name('officialtravels.showDepartureForm');
+    Route::post('officialtravels/{officialtravel}/departure', [OfficialtravelController::class, 'departureStamp'])->name('officialtravels.departureStamp');
 
     // EMPLOYEE ROUTES
 
