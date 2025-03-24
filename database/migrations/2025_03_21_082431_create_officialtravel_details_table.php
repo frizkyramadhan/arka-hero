@@ -13,10 +13,10 @@ return new class extends Migration
      */
     public function up()
     {
-        Schema::create('accommodations', function (Blueprint $table) {
+        Schema::create('officialtravel_details', function (Blueprint $table) {
             $table->id();
-            $table->string('accommodation_name');
-            $table->boolean('accommodation_status')->default(1);
+            $table->foreignUuid('official_travel_id')->constrained('officialtravels');
+            $table->foreignId('follower_id')->constrained('administrations');
             $table->timestamps();
         });
     }
@@ -28,6 +28,6 @@ return new class extends Migration
      */
     public function down()
     {
-        Schema::dropIfExists('accommodations');
+        Schema::dropIfExists('officialtravel_details');
     }
 };
