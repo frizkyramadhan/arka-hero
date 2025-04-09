@@ -35,24 +35,27 @@
                         </div>
                         <!-- /.card-header -->
                         <div class="card-body">
-                            <table id="officialtravel-table" class="table table-bordered table-striped">
-                                <thead>
-                                    <tr>
-                                        <th class="text-center" width="5%">No</th>
-                                        <th>Travel Number</th>
-                                        <th>Date</th>
-                                        <th>Traveler</th>
-                                        <th>Project</th>
-                                        <th>Destination</th>
-                                        <th>Status</th>
-                                        <th>Recommendation</th>
-                                        <th>Approval</th>
-                                        <th width="10%">Action</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                </tbody>
-                            </table>
+                            <div class="table-responsive">
+                                <table id="officialtravel-table" class="table table-bordered table-striped">
+                                    <thead>
+                                        <tr>
+                                            <th class="text-center" width="5%">No</th>
+                                            <th>Travel Number</th>
+                                            <th>Date</th>
+                                            <th>Traveler</th>
+                                            <th>Project</th>
+                                            <th>Destination</th>
+                                            <th>Status</th>
+                                            <th>Recommendation</th>
+                                            <th>Approval</th>
+                                            <th>Creator</th>
+                                            <th width="5%">Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                         <!-- /.card-body -->
                     </div>
@@ -147,6 +150,12 @@
                     {
                         data: 'approval',
                         name: 'approval',
+                        orderable: false,
+                        className: 'text-center'
+                    },
+                    {
+                        data: 'created_by',
+                        name: 'created_by',
                         orderable: false,
                         className: 'text-center'
                     },

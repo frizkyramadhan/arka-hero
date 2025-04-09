@@ -26,6 +26,7 @@ return new class extends Migration
             $table->date('departure_from');
             $table->foreignId('transportation_id')->constrained('transportations');
             $table->foreignId('accommodation_id')->constrained('accommodations');
+            $table->foreignId('created_by')->constrained('users');
             // arrival
             $table->datetime('arrival_at_destination')->nullable();
             $table->foreignId('arrival_check_by')->nullable()->constrained('users');

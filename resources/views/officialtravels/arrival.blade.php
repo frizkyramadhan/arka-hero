@@ -1,217 +1,419 @@
 @extends('layouts.main')
 
 @section('content')
-    <div class="content-header">
-        <div class="container-fluid">
-            <div class="row mb-2">
-                <div class="col-sm-6">
-                    <h1 class="m-0">{{ $title }}</h1>
-                </div><!-- /.col -->
-                <div class="col-sm-6">
-                    <ol class="breadcrumb float-sm-right">
-                        <li class="breadcrumb-item"><a href="{{ url('/') }}">Home</a></li>
-                        <li class="breadcrumb-item"><a href="{{ route('officialtravels.index') }}">{{ $title }}</a>
-                        </li>
-                        <li class="breadcrumb-item active">Arrival Stamp</li>
-                    </ol>
-                </div><!-- /.col -->
-            </div><!-- /.row -->
-        </div><!-- /.container-fluid -->
-    </div>
-    <!-- /.content-header -->
+    <div class="content-wrapper-custom">
+        <!-- Travel Header -->
+        <div class="travel-header">
+            <div class="travel-header-content">
+                <div class="travel-number">{{ $officialtravel->project->project_name }}</div>
+                <h1 class="travel-destination">{{ $officialtravel->official_travel_number }}</h1>
+                <div class="travel-date">
+                    <i class="far fa-calendar-alt"></i> {{ date('d F Y', strtotime($officialtravel->official_travel_date)) }}
+                </div>
+                <div
+                    class="travel-status-pill {{ $officialtravel->official_travel_status == 'open' ? 'status-open' : 'status-closed' }}">
+                    <i class="fas fa-plane-arrival"></i>
+                    {{ ucfirst($officialtravel->official_travel_status) }}
+                </div>
+            </div>
+        </div>
 
-    <section class="content">
-        <div class="container-fluid">
+        <!-- Main Content -->
+        <div class="travel-content">
             <div class="row">
-                <div class="col-12">
-                    <div class="card card-primary card-outline">
-                        <div class="card-header">
-                            <h3 class="card-title">{{ $subtitle }}</h3>
+                <!-- Travel Details -->
+                <div class="col-lg-8">
+                    <div class="travel-card travel-info-card">
+                        <div class="card-head">
+                            <h2><i class="fas fa-info-circle"></i> Travel Details</h2>
                         </div>
-                        <!-- /.card-header -->
-
                         <div class="card-body">
-                            <div class="row">
-                                <div class="col-md-12">
-                                    <div class="callout callout-info">
-                                        <h5><i class="fas fa-plane-arrival"></i> Arrival Confirmation</h5>
-                                        <p>Confirm the arrival of travelers at the destination. This will record the arrival
-                                            time and update the official travel status.</p>
+                            <div class="info-grid">
+                                <div class="info-item">
+                                    <div class="info-icon" style="background-color: #3498db;">
+                                        <i class="fas fa-user"></i>
+                                    </div>
+                                    <div class="info-content">
+                                        <div class="info-label">Main Traveler</div>
+                                        <div class="info-value">{{ $officialtravel->traveler->employee->fullname ?? 'N/A' }}
+                                        </div>
+                                        <div class="info-meta">
+                                            {{ $officialtravel->traveler->position->position_name ?? 'N/A' }}
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
 
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <div class="info-box bg-light">
-                                        <div class="info-box-content">
-                                            <span class="info-box-text text-muted">Travel Number</span>
-                                            <span
-                                                class="info-box-number text-bold">{{ $officialtravel->official_travel_number }}</span>
-                                        </div>
+                                <div class="info-item">
+                                    <div class="info-icon" style="background-color: #e74c3c;">
+                                        <i class="fas fa-map-marker-alt"></i>
+                                    </div>
+                                    <div class="info-content">
+                                        <div class="info-label">Destination</div>
+                                        <div class="info-value">{{ $officialtravel->destination }}</div>
+                                        <div class="info-meta">Duration: {{ $officialtravel->duration }}</div>
                                     </div>
                                 </div>
-                                <div class="col-md-6">
-                                    <div class="info-box bg-light">
-                                        <div class="info-box-content">
-                                            <span class="info-box-text text-muted">Destination</span>
-                                            <span
-                                                class="info-box-number text-bold">{{ $officialtravel->destination }}</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
 
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <div class="info-box bg-light">
-                                        <div class="info-box-content">
-                                            <span class="info-box-text text-muted">Main Traveler</span>
-                                            <span
-                                                class="info-box-number text-bold">{{ $officialtravel->traveler->employees->fullname ?? 'N/A' }}</span>
-                                        </div>
+                                <div class="info-item">
+                                    <div class="info-icon" style="background-color: #f1c40f;">
+                                        <i class="fas fa-calendar-check"></i>
+                                    </div>
+                                    <div class="info-content">
+                                        <div class="info-label">Expected Arrival</div>
+                                        <div class="info-value">{{ $officialtravel->arrival_at_destination }}</div>
+                                        <div class="info-meta">From:
+                                            {{ date('d M Y', strtotime($officialtravel->departure_from)) }}</div>
                                     </div>
                                 </div>
-                                <div class="col-md-6">
-                                    <div class="info-box bg-light">
-                                        <div class="info-box-content">
-                                            <span class="info-box-text text-muted">Expected Arrival Date</span>
-                                            <span
-                                                class="info-box-number text-bold">{{ $officialtravel->arrival_at_destination }}</span>
-                                        </div>
+
+                                <div class="info-item">
+                                    <div class="info-icon" style="background-color: #27ae60;">
+                                        <i class="fas fa-plane"></i>
+                                    </div>
+                                    <div class="info-content">
+                                        <div class="info-label">Transportation</div>
+                                        <div class="info-value">
+                                            {{ $officialtravel->transportation->transportation_name ?? 'N/A' }}</div>
+                                        <div class="info-meta">
+                                            {{ $officialtravel->accommodation->accommodation_name ?? 'N/A' }}</div>
                                     </div>
                                 </div>
                             </div>
 
                             @if ($officialtravel->details->count() > 0)
-                                <div class="row">
-                                    <div class="col-md-12">
-                                        <div class="card card-outline card-secondary">
-                                            <div class="card-header">
-                                                <h3 class="card-title">Travel Members</h3>
+                                <div class="additional-travelers mt-4">
+                                    <h3><i class="fas fa-users"></i> Accompanying Travelers</h3>
+                                    <div class="traveler-list">
+                                        @foreach ($officialtravel->details as $detail)
+                                            <div class="traveler-item">
+                                                <i class="fas fa-user"></i>
+                                                <span>{{ $detail->follower->employee->fullname ?? 'Unknown' }}</span>
                                             </div>
-                                            <div class="card-body">
-                                                <div class="row">
-                                                    <div class="col-md-12">
-                                                        <ul class="list-group">
-                                                            <li class="list-group-item bg-primary">
-                                                                {{ $officialtravel->traveler->employees->fullname ?? 'Unknown' }}
-                                                                <span class="badge badge-light">Main Traveler</span>
-                                                            </li>
-                                                            @foreach ($officialtravel->details as $detail)
-                                                                <li class="list-group-item">
-                                                                    {{ $detail->follower->employees->fullname ?? 'Unknown' }}
-                                                                    <span class="badge badge-primary">Follower</span>
-                                                                </li>
-                                                            @endforeach
-                                                        </ul>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
+                                        @endforeach
                                     </div>
                                 </div>
                             @endif
-
-                            <form action="{{ route('officialtravels.arrivalStamp', $officialtravel->id) }}" method="POST">
-                                @csrf
-                                <div class="row mt-4">
-                                    <div class="col-md-12">
-                                        <div class="card card-outline card-primary">
-                                            <div class="card-header">
-                                                <h3 class="card-title">Confirm Arrival</h3>
-                                            </div>
-                                            <div class="card-body">
-                                                <div class="row">
-                                                    <div class="col-md-12">
-                                                        <div class="form-group">
-                                                            <label for="arrival_remark">Arrival Notes <span
-                                                                    class="text-danger">*</span></label>
-                                                            <textarea class="form-control @error('arrival_remark') is-invalid @enderror" name="arrival_remark" id="arrival_remark"
-                                                                rows="4" placeholder="Enter arrival confirmation notes, include any important information about the arrival."
-                                                                required>{{ old('arrival_remark', $officialtravel->arrival_remark) }}</textarea>
-                                                            @error('arrival_remark')
-                                                                <div class="invalid-feedback">{{ $message }}</div>
-                                                            @enderror
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <div class="card-footer">
-                                                <div class="time-info text-center mb-3">
-                                                    <h3>Current Date & Time</h3>
-                                                    <div id="current-time" class="current-time-display">
-                                                        <span id="date">{{ now()->format('Y-m-d') }}</span>
-                                                        <span id="time">{{ now()->format('H:i:s') }}</span>
-                                                    </div>
-                                                    <div class="small text-muted mt-2">This timestamp will be recorded with
-                                                        the arrival stamp</div>
-                                                </div>
-                                                <button type="submit" class="btn btn-primary btn-lg btn-block">
-                                                    <i class="fas fa-stamp"></i> Stamp Arrival
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div class="row">
-                                    <div class="col-md-12">
-                                        <a href="{{ route('officialtravels.index') }}" class="btn btn-secondary">
-                                            <i class="fas fa-arrow-left"></i> Back to List
-                                        </a>
-                                    </div>
-                                </div>
-                            </form>
                         </div>
-                        <!-- /.card-body -->
                     </div>
-                    <!-- /.card -->
                 </div>
-                <!-- /.col -->
+
+                <!-- Arrival Form -->
+                <div class="col-lg-4">
+                    <form action="{{ route('officialtravels.arrivalStamp', $officialtravel->id) }}" method="POST">
+                        @csrf
+                        <div class="travel-card arrival-card">
+                            <div class="card-head">
+                                <h2><i class="fas fa-plane-arrival"></i> Arrival Check</h2>
+                            </div>
+                            <div class="card-body">
+                                <div class="form-group">
+                                    <label for="arrival_at_destination">Arrival Date & Time <span
+                                            class="text-danger">*</span></label>
+                                    <input type="datetime-local"
+                                        class="form-control @error('arrival_at_destination') is-invalid @enderror"
+                                        name="arrival_at_destination" id="arrival_at_destination"
+                                        value="{{ old('arrival_at_destination', $officialtravel->arrival_at_destination ? date('Y-m-d\TH:i', strtotime($officialtravel->arrival_at_destination)) : date('Y-m-d\TH:i')) }}"
+                                        required>
+                                    @error('arrival_at_destination')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                    @enderror
+                                </div>
+
+                                <div class="form-group mt-4">
+                                    <label for="arrival_remark">
+                                        Arrival Notes <span class="text-danger">*</span>
+                                    </label>
+                                    <textarea class="form-control @error('arrival_remark') is-invalid @enderror" name="arrival_remark" id="arrival_remark"
+                                        rows="4"
+                                        placeholder="Please provide arrival details:
+• Actual arrival time
+• Any delays encountered
+• Special circumstances
+• Additional notes or observations"
+                                        required>{{ old('arrival_remark', $officialtravel->arrival_remark) }}</textarea>
+                                    @error('arrival_remark')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                    @enderror
+                                </div>
+
+                                <div class="form-actions">
+                                    <button type="submit" class="btn btn-primary btn-block"
+                                        onclick="return confirm('Are you sure you want to confirm the arrival? This action cannot be undone.')">
+                                        <i class="fas fa-check-circle"></i>
+                                        Confirm Arrival
+                                    </button>
+                                    <a href="{{ route('officialtravels.show', $officialtravel->id) }}"
+                                        class="btn btn-secondary btn-block mt-2">
+                                        <i class="fas fa-times"></i>
+                                        Cancel
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
             </div>
-            <!-- /.row -->
         </div>
-        <!-- /.container-fluid -->
-    </section>
+    </div>
 @endsection
 
-@push('styles')
+@section('styles')
     <style>
-        .current-time-display {
-            font-size: 32px;
-            color: #007bff;
-            background-color: #f8f9fa;
-            border-radius: 5px;
-            padding: 15px;
-            margin: 10px 0;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        .content-wrapper-custom {
+            background-color: #f8fafc;
+            min-height: 100vh;
+            padding-bottom: 40px;
         }
 
-        #date,
-        #time {
-            margin: 0 10px;
-            font-weight: bold;
+        /* Header */
+        .travel-header {
+            position: relative;
+            height: 120px;
+            color: white;
+            padding: 20px 30px;
+            margin-bottom: 30px;
+            background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .travel-header-content {
+            position: relative;
+            z-index: 2;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .travel-number {
+            font-size: 13px;
+            margin-bottom: 4px;
+            opacity: 0.9;
+            letter-spacing: 1px;
+        }
+
+        .travel-destination {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .travel-date {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .travel-status-pill {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 13px;
+        }
+
+        .status-open {
+            background-color: #2ecc71;
+            color: #ffffff;
+        }
+
+        .status-closed {
+            background-color: #e74c3c;
+            color: #ffffff;
+        }
+
+        /* Content Styles */
+        .travel-content {
+            padding: 0 20px;
+        }
+
+        .travel-card {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            margin-bottom: 30px;
+        }
+
+        .card-head {
+            padding: 20px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .card-head h2 {
+            margin: 0;
+            font-size: 1.4rem;
+            color: #2c3e50;
+        }
+
+        .card-body {
+            padding: 20px;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+
+        .info-item {
+            display: flex;
+            align-items: center;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .info-icon {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 15px;
+            color: white;
+        }
+
+        .info-content {
+            flex: 1;
+        }
+
+        .info-label {
+            color: #666;
+            font-size: 0.9rem;
+            margin-bottom: 5px;
+        }
+
+        .info-value {
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .info-meta {
+            color: #718096;
+            font-size: 0.875rem;
+        }
+
+        .additional-travelers {
+            border-top: 1px solid #eee;
+            padding-top: 20px;
+        }
+
+        .traveler-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .traveler-item {
+            background: #f8f9fa;
+            padding: 10px 15px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #2c3e50;
+            font-weight: 500;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 10px 15px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .form-control:focus {
+            border-color: #3498db;
+            box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+            outline: none;
+        }
+
+        .form-control::placeholder {
+            color: #95a5a6;
+        }
+
+        .text-danger {
+            color: #e74c3c;
+        }
+
+        .form-actions {
+            margin-top: 30px;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            width: 100%;
+            padding: 11px;
+            border-radius: 6px;
+            font-weight: 500;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            border: none;
+        }
+
+        .btn-primary {
+            background: #3498db;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #2980b9;
+        }
+
+        .btn-secondary {
+            background: #95a5a6;
+            color: white;
+            text-decoration: none;
+            text-align: center;
+        }
+
+        .btn-secondary:hover {
+            background: #7f8c8d;
+        }
+
+        @media (max-width: 768px) {
+            .travel-header {
+                height: auto;
+                padding: 15px;
+            }
+
+            .travel-destination {
+                font-size: 20px;
+            }
+
+            .travel-status-pill {
+                position: static;
+                margin-top: 10px;
+                align-self: flex-start;
+            }
+
+            .info-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .traveler-list {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
-@endpush
-
-@push('scripts')
-    <script>
-        $(function() {
-            // Update the time every second
-            setInterval(function() {
-                var now = new Date();
-                var dateStr = now.getFullYear() + '-' +
-                    String(now.getMonth() + 1).padStart(2, '0') + '-' +
-                    String(now.getDate()).padStart(2, '0');
-                var timeStr = String(now.getHours()).padStart(2, '0') + ':' +
-                    String(now.getMinutes()).padStart(2, '0') + ':' +
-                    String(now.getSeconds()).padStart(2, '0');
-
-                $('#date').text(dateStr);
-                $('#time').text(timeStr);
-            }, 1000);
-        });
-    </script>
-@endpush
+@endsection
