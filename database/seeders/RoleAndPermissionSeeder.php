@@ -53,6 +53,8 @@ class RoleAndPermissionSeeder extends Seeder
             'official-travels.delete',
             'official-travels.approve',
             'official-travels.recommend',
+            'official-travels.edit-approval',
+            'official-travels.edit-recommendation',
 
             // Master Data Management
             'master-data.show',
