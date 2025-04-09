@@ -1,21 +1,18 @@
 @extends('layouts.main')
 
-@section('title', $title)
-@section('subtitle', $subtitle)
-
 @section('content')
     <div class="content-wrapper-custom">
         <div class="travel-header">
             <div class="travel-header-content">
-                {{-- <div class="travel-number">{{ $officialtravel->destination }}</div> --}}
+                <div class="travel-number">{{ $officialtravel->project->project_name }}</div>
                 <h1 class="travel-destination">{{ $officialtravel->official_travel_number }}</h1>
                 <div class="travel-date">
                     <i class="far fa-calendar-alt"></i> {{ date('d F Y', strtotime($officialtravel->official_travel_date)) }}
                 </div>
                 <div
-                    class="travel-status-pill {{ $officialtravel->official_travel_status == 'draft' ? 'status-draft' : ($officialtravel->official_travel_status == 'open' ? 'status-open' : 'status-closed') }}">
+                    class="travel-status-pill {{ $officialtravel->official_travel_status == 'draft' ? 'status-draft' : ($officialtravel->official_travel_status == 'open' ? 'status-open' : ($officialtravel->official_travel_status == 'canceled' ? 'status-canceled' : 'status-closed')) }}">
                     <i
-                        class="fas {{ $officialtravel->official_travel_status == 'draft' ? 'fa-edit' : ($officialtravel->official_travel_status == 'open' ? 'fa-plane' : 'fa-check-circle') }}"></i>
+                        class="fas {{ $officialtravel->official_travel_status == 'draft' ? 'fa-edit' : ($officialtravel->official_travel_status == 'open' ? 'fa-plane' : ($officialtravel->official_travel_status == 'canceled' ? 'fa-times-circle' : 'fa-check-circle')) }}"></i>
                     {{ ucfirst($officialtravel->official_travel_status) }}
                 </div>
             </div>
@@ -33,7 +30,7 @@
                         </div>
                         <div class="card-body">
                             <div class="info-grid">
-                                <div class="info-item">
+                                {{-- <div class="info-item">
                                     <div class="info-icon" style="background-color: #3498db;">
                                         <i class="fas fa-building"></i>
                                     </div>
@@ -41,9 +38,9 @@
                                         <div class="info-label">Origin Project</div>
                                         <div class="info-value">{{ $officialtravel->project->project_name }}</div>
                                     </div>
-                                </div>
+                                </div> --}}
                                 <div class="info-item">
-                                    <div class="info-icon" style="background-color: #2ecc71;">
+                                    <div class="info-icon" style="background-color: #3498db;">
                                         <i class="fas fa-map-marker-alt"></i>
                                     </div>
                                     <div class="info-content">
@@ -180,7 +177,7 @@
                                     </div>
                                 </div>
 
-                                @if ($officialtravel->official_travel_status != 'draft')
+                                @if ($officialtravel->official_travel_status != 'draft' && $officialtravel->official_travel_status != 'canceled')
                                     <!-- Travel Status -->
                                     <div class="approval-step">
                                         <div
@@ -202,7 +199,7 @@
                                                 </div>
                                                 <div class="step-date">
                                                     <i class="fas fa-calendar-check"></i>
-                                                    {{ $officialtravel->arrival_timestamps ? date('d M Y H:i', strtotime($officialtravel->arrival_timestamps)) : 'Not arrived' }}
+                                                    {{ $officialtravel->arrival_date ? date('d M Y H:i', strtotime($officialtravel->arrival_date)) : 'Not arrived' }}
                                                 </div>
                                             </div>
                                             <div class="step-remark">
@@ -234,7 +231,7 @@
                                                 </div>
                                                 <div class="step-date">
                                                     <i class="fas fa-calendar-check"></i>
-                                                    {{ $officialtravel->departure_timestamps ? date('d M Y H:i', strtotime($officialtravel->departure_timestamps)) : 'Not departed' }}
+                                                    {{ $officialtravel->departure_date ? date('d M Y H:i', strtotime($officialtravel->departure_date)) : 'Not departed' }}
                                                 </div>
                                             </div>
                                             <div class="step-remark">
@@ -314,36 +311,63 @@
                             <i class="fas fa-arrow-left"></i> Back to List
                         </a>
 
-                        @if ($officialtravel->official_travel_status == 'draft')
-                            @can('official-travels.edit')
-                                <a href="{{ route('officialtravels.edit', $officialtravel->id) }}"
-                                    class="btn-action edit-btn">
-                                    <i class="fas fa-edit"></i> Edit
-                                </a>
-                            @endcan
-
-                            @can('official-travels.delete')
-                                <button type="button" class="btn-action delete-btn" data-toggle="modal"
-                                    data-target="#deleteModal">
-                                    <i class="fas fa-trash"></i> Delete
-                                </button>
-                            @endcan
-                        @endif
-
-                        @if ($officialtravel->official_travel_status == 'open')
-                            @can('official-travels.stamp')
-                                @if (!$officialtravel->arrival_check_by)
-                                    <a href="{{ route('officialtravels.arrival.form', $officialtravel->id) }}"
-                                        class="btn-action arrival-btn">
-                                        <i class="fas fa-plane-arrival"></i> Arrival Stamp
+                        @if ($officialtravel->official_travel_status != 'canceled')
+                            @if ($officialtravel->official_travel_status == 'draft')
+                                @can('official-travels.edit')
+                                    <a href="{{ route('officialtravels.edit', $officialtravel->id) }}"
+                                        class="btn-action edit-btn">
+                                        <i class="fas fa-edit"></i> Edit
                                     </a>
-                                @elseif(!$officialtravel->departure_check_by)
-                                    <a href="{{ route('officialtravels.departure.form', $officialtravel->id) }}"
-                                        class="btn-action departure-btn">
-                                        <i class="fas fa-plane-departure"></i> Departure Stamp
+                                @endcan
+
+                                @can('official-travels.delete')
+                                    <button type="button" class="btn-action delete-btn" data-toggle="modal"
+                                        data-target="#deleteModal">
+                                        <i class="fas fa-trash"></i> Delete
+                                    </button>
+                                @endcan
+                            @endif
+
+                            @can('official-travels.recommend')
+                                @if (Auth::id() == $officialtravel->recommendation_by && $officialtravel->approval_status == 'pending')
+                                    <a href="{{ route('officialtravels.recommend', $officialtravel->id) }}"
+                                        class="btn-action recommend-btn">
+                                        <i
+                                            class="fas fa-{{ $officialtravel->recommendation_status == 'pending' ? 'user-check' : 'edit' }}"></i>
+                                        {{ $officialtravel->recommendation_status == 'pending' ? 'Recommend' : 'Edit Recommendation' }}
                                     </a>
                                 @endif
                             @endcan
+
+                            @can('official-travels.approve')
+                                @if (Auth::id() == $officialtravel->approval_by &&
+                                        $officialtravel->recommendation_status == 'approved' &&
+                                        ($officialtravel->approval_status == 'pending' ||
+                                            ($officialtravel->approval_status != 'pending' && !$officialtravel->arrival_at_destination)))
+                                    <a href="{{ route('officialtravels.approve', $officialtravel->id) }}"
+                                        class="btn-action approve-btn">
+                                        <i
+                                            class="fas fa-{{ $officialtravel->approval_status == 'pending' ? 'user-shield' : 'edit' }}"></i>
+                                        {{ $officialtravel->approval_status == 'pending' ? 'Approve' : 'Edit Approval' }}
+                                    </a>
+                                @endif
+                            @endcan
+
+                            @if ($officialtravel->official_travel_status == 'open')
+                                @can('official-travels.stamp')
+                                    @if (!$officialtravel->arrival_check_by)
+                                        <a href="{{ route('officialtravels.arrival.form', $officialtravel->id) }}"
+                                            class="btn-action arrival-btn">
+                                            <i class="fas fa-plane-arrival"></i> Arrival Stamp
+                                        </a>
+                                    @elseif(!$officialtravel->departure_check_by)
+                                        <a href="{{ route('officialtravels.departure.form', $officialtravel->id) }}"
+                                            class="btn-action departure-btn">
+                                            <i class="fas fa-plane-departure"></i> Departure Stamp
+                                        </a>
+                                    @endif
+                                @endcan
+                            @endif
                         @endif
                     </div>
                 </div>
@@ -458,6 +482,11 @@
 
         .status-closed {
             background-color: #27ae60;
+            color: #ffffff;
+        }
+
+        .status-canceled {
+            background-color: #e74c3c;
             color: #ffffff;
         }
 
@@ -870,6 +899,32 @@
             .info-grid {
                 grid-template-columns: 1fr;
             }
+
+            /* Reorder columns on mobile */
+            .travel-content .row {
+                display: flex;
+                flex-direction: column;
+            }
+
+            .travel-content .col-lg-8 {
+                order: 1;
+                width: 100%;
+            }
+
+            .travel-content .col-lg-4 {
+                order: 2;
+                width: 100%;
+            }
+
+            /* Ensure cards maintain proper spacing */
+            .travel-card {
+                margin-bottom: 20px;
+            }
+
+            /* Adjust padding for better mobile view */
+            .travel-content {
+                padding: 0 15px;
+            }
         }
 
         @media (max-width: 768px) {
@@ -887,6 +942,52 @@
                 margin-top: 10px;
                 align-self: flex-start;
             }
+
+            /* Additional mobile-specific adjustments */
+            .card-body {
+                padding: 15px;
+            }
+
+            .info-item {
+                padding: 10px 0;
+            }
+
+            .followers-list {
+                max-height: 300px;
+            }
+        }
+
+        /* Preserve desktop layout above 992px */
+        @media (min-width: 993px) {
+            .travel-content .row {
+                display: flex;
+                flex-wrap: wrap;
+            }
+
+            .travel-content .col-lg-8 {
+                flex: 0 0 66.666667%;
+                max-width: 66.666667%;
+            }
+
+            .travel-content .col-lg-4 {
+                flex: 0 0 33.333333%;
+                max-width: 33.333333%;
+            }
+        }
+
+        .recommend-btn {
+            background-color: #f39c12;
+        }
+
+        .approve-btn {
+            background-color: #16a085;
+        }
+
+        .recommend-btn:hover,
+        .approve-btn:hover {
+            color: white;
+            opacity: 0.9;
+            transform: translateY(-1px);
         }
     </style>
 @endsection

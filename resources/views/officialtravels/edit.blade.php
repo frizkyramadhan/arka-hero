@@ -115,7 +115,6 @@
                                                         data-position="{{ $employee['position'] }}"
                                                         data-project="{{ $employee['project'] }}"
                                                         data-department="{{ $employee['department'] }}"
-                                                        data-current-project="{{ $employee['current_project'] }}"
                                                         {{ old('traveler_id', $officialtravel->traveler_id) == $employee['id'] ? 'selected' : '' }}>
                                                         {{ $employee['nik'] }} - {{ $employee['fullname'] }}
                                                     </option>
@@ -129,33 +128,25 @@
                                 </div>
 
                                 <div class="row mt-2">
-                                    <div class="col-md-3">
+                                    <div class="col-md-4">
                                         <div class="form-group">
                                             <label class="font-weight-bold">Title</label>
                                             <div class="main-traveler-position">
                                                 {{ $officialtravel->traveler->position->position_name }}</div>
                                         </div>
                                     </div>
-                                    <div class="col-md-3">
+                                    <div class="col-md-4">
                                         <div class="form-group">
                                             <label class="font-weight-bold">Business Unit</label>
                                             <div class="main-traveler-project">{{ $officialtravel->project->project_name }}
                                             </div>
                                         </div>
                                     </div>
-                                    <div class="col-md-3">
+                                    <div class="col-md-4">
                                         <div class="form-group">
                                             <label class="font-weight-bold">Department</label>
                                             <div class="main-traveler-department">
                                                 {{ $officialtravel->traveler->position->department->department_name }}
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-3">
-                                        <div class="form-group">
-                                            <label class="font-weight-bold">Current Project</label>
-                                            <div class="main-traveler-current-project">
-                                                {{ $officialtravel->traveler->project->project_name }}
                                             </div>
                                         </div>
                                     </div>
@@ -256,7 +247,6 @@
                                                 <th>Title</th>
                                                 <th>Business Unit</th>
                                                 <th>Department</th>
-                                                <th>Current Project</th>
                                                 <th width="50px">Action</th>
                                             </tr>
                                         </thead>
@@ -272,7 +262,6 @@
                                                                     data-position="{{ $employee['position'] }}"
                                                                     data-project="{{ $employee['project'] }}"
                                                                     data-department="{{ $employee['department'] }}"
-                                                                    data-current-project="{{ $employee['current_project'] }}"
                                                                     {{ $detail->follower_id == $employee['id'] ? 'selected' : '' }}>
                                                                     {{ $employee['nik'] }} - {{ $employee['fullname'] }}
                                                                 </option>
@@ -287,9 +276,6 @@
                                                     </td>
                                                     <td><span
                                                             class="employee-department">{{ $detail->follower->position->department->department_name }}</span>
-                                                    </td>
-                                                    <td><span
-                                                            class="employee-current-project">{{ $detail->follower->project->project_name }}</span>
                                                     </td>
                                                     <td class="text-center">
                                                         <a href="javascript:void(0)" class="remove-follower"
@@ -369,7 +355,8 @@
                                     <label for="recommender_id">Recommended By <span class="text-danger">*</span></label>
                                     <select
                                         class="form-control select2-secondary @error('recommender_id') is-invalid @enderror"
-                                        name="recommender_id" id="recommender_id" style="width: 100%;" required>
+                                        name="recommender_id" id="recommender_id" style="width: 100%;" required
+                                        {{ $officialtravel->recommendation_status !== 'pending' ? 'disabled' : '' }}>
                                         <option value="">Select Recommender</option>
                                         @foreach ($recommenders as $recommender)
                                             <option value="{{ $recommender['id'] }}"
@@ -378,6 +365,10 @@
                                             </option>
                                         @endforeach
                                     </select>
+                                    @if ($officialtravel->recommendation_status !== 'pending')
+                                        <small class="text-muted">Cannot change recommender after recommendation has been
+                                            made</small>
+                                    @endif
                                     @error('recommender_id')
                                         <div class="invalid-feedback">{{ $message }}</div>
                                     @enderror
@@ -387,7 +378,8 @@
                                     <label for="approver_id">Approved By <span class="text-danger">*</span></label>
                                     <select
                                         class="form-control select2-secondary @error('approver_id') is-invalid @enderror"
-                                        name="approver_id" id="approver_id" style="width: 100%;" required>
+                                        name="approver_id" id="approver_id" style="width: 100%;" required
+                                        {{ $officialtravel->approval_status !== 'pending' ? 'disabled' : '' }}>
                                         <option value="">Select Approver</option>
                                         @foreach ($approvers as $approver)
                                             <option value="{{ $approver['id'] }}"
@@ -396,6 +388,10 @@
                                             </option>
                                         @endforeach
                                     </select>
+                                    @if ($officialtravel->approval_status !== 'pending')
+                                        <small class="text-muted">Cannot change approver after approval has been
+                                            made</small>
+                                    @endif
                                     @error('approver_id')
                                         <div class="invalid-feedback">{{ $message }}</div>
                                     @enderror
@@ -538,7 +534,6 @@
                 $('.main-traveler-position').text($option.data('position') || '-');
                 $('.main-traveler-project').text($option.data('project') || '-');
                 $('.main-traveler-department').text($option.data('department') || '-');
-                $('.main-traveler-current-project').text($option.data('current-project') || '-');
             });
 
             $('.select2-warning').select2({
@@ -570,7 +565,6 @@
                     $row.find('.employee-position').text($option.data('position') || '-');
                     $row.find('.employee-project').text($option.data('project') || '-');
                     $row.find('.employee-department').text($option.data('department') || '-');
-                    $row.find('.employee-current-project').text($option.data('current-project') || '-');
                 });
             }
 
@@ -595,8 +589,7 @@
                                     <option value="{{ $employee['id'] }}"
                                         data-position="{{ $employee['position'] }}"
                                         data-project="{{ $employee['project'] }}"
-                                        data-department="{{ $employee['department'] }}"
-                                        data-current-project="{{ $employee['current_project'] }}">
+                                        data-department="{{ $employee['department'] }}">
                                         {{ $employee['nik'] }} - {{ $employee['fullname'] }}
                                     </option>
                                 @endforeach
@@ -605,7 +598,6 @@
                         <td><span class="employee-position">-</span></td>
                         <td><span class="employee-project">-</span></td>
                         <td><span class="employee-department">-</span></td>
-                        <td><span class="employee-current-project">-</span></td>
                         <td class="text-center">
                             <a href="javascript:void(0)" class="remove-follower" title="Remove">
                                 <i class="fas fa-times-circle"></i>

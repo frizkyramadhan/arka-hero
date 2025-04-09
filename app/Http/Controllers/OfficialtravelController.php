@@ -12,6 +12,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use App\Models\User;
+use Spatie\Activitylog\Facades\LogActivity;
 
 class OfficialtravelController extends Controller
 {
@@ -27,6 +28,8 @@ class OfficialtravelController extends Controller
         $this->middleware('permission:official-travels.recommend')->only('recommend');
         $this->middleware('permission:official-travels.approve')->only('approve');
         $this->middleware('permission:official-travels.stamp')->only(['arrivalStamp', 'departureStamp']);
+        $this->middleware('permission:official-travels.edit-recommendation')->only(['showRecommendForm', 'recommend']);
+        $this->middleware('permission:official-travels.edit-approval')->only(['showApprovalForm', 'approve']);
     }
 
     /**
@@ -84,6 +87,8 @@ class OfficialtravelController extends Controller
                     return '<span class="badge badge-primary">Open</span>';
                 } elseif ($officialtravel->official_travel_status == 'closed') {
                     return '<span class="badge badge-success">Closed</span>';
+                } elseif ($officialtravel->official_travel_status == 'canceled') {
+                    return '<span class="badge badge-danger">Canceled</span>';
                 }
             })
             ->addColumn('recommendation', function ($officialtravel) {
@@ -147,7 +152,6 @@ class OfficialtravelController extends Controller
 
         // Generate Travel Number
         $lastTravel = Officialtravel::whereYear('created_at', now()->year)
-            ->whereMonth('created_at', now()->month)
             ->orderBy('id', 'desc')
             ->first();
 
@@ -475,9 +479,25 @@ class OfficialtravelController extends Controller
      */
     public function showRecommendForm(Officialtravel $officialtravel)
     {
+        // Cek permission
+        if (!auth()->user()->can('official-travels.edit-recommendation')) {
+            return redirect()->back()->with('toast_error', 'You do not have permission to modify recommendations');
+        }
+
+        // Cek apakah approval sudah diproses
+        if ($officialtravel->approval_status !== 'pending') {
+            return redirect()->back()->with('toast_error', 'Cannot modify recommendation after approval has been processed');
+        }
+
+        // Cek apakah user adalah recommender yang ditugaskan
+        if (auth()->id() !== $officialtravel->recommendation_by) {
+            return redirect()->back()->with('toast_error', 'You are not assigned as the recommender for this travel request');
+        }
+
+        // Lanjutkan dengan kode yang ada
         $title = 'Official Travels';
         $subtitle = 'Recommend Official Travel';
-        $officialtravel->load(['traveler.employees', 'project', 'transportation', 'accommodation', 'details.follower.employees']);
+        $officialtravel->load(['traveler.employee', 'project', 'transportation', 'accommodation', 'details.follower.employee', 'arrivalChecker', 'departureChecker', 'recommender', 'approver']);
 
         return view('officialtravels.recommend', compact('title', 'subtitle', 'officialtravel'));
     }
@@ -488,9 +508,24 @@ class OfficialtravelController extends Controller
     public function recommend(Request $request, Officialtravel $officialtravel)
     {
         try {
+            // Check if travel can be recommended
+            if ($officialtravel->recommendation_status !== 'pending' && $officialtravel->approval_status !== 'pending') {
+                return redirect()->back()
+                    ->with('toast_error', 'Cannot change recommendation after approval has been processed.');
+            }
+
+            // Validate request
             $this->validate($request, [
                 'recommendation_status' => 'required|in:approved,rejected',
-                'recommendation_remark' => 'required',
+                'recommendation_remark' => 'required|string',
+                'recommendation_date' => 'required|date_format:Y-m-d\TH:i',
+            ], [
+                'recommendation_status.required' => 'Please select whether to approve or reject this travel request.',
+                'recommendation_status.in' => 'Invalid recommendation status.',
+                'recommendation_remark.required' => 'Please provide remarks for your recommendation.',
+                'recommendation_remark.min' => 'Recommendation remarks must be at least 10 characters.',
+                'recommendation_date.required' => 'Please select the recommendation date.',
+                'recommendation_date.date_format' => 'The recommendation date format is invalid.',
             ]);
 
             DB::beginTransaction();
@@ -498,14 +533,16 @@ class OfficialtravelController extends Controller
             $officialtravel->update([
                 'recommendation_status' => $request->recommendation_status,
                 'recommendation_remark' => $request->recommendation_remark,
-                'recommendation_by' => Auth::id(),
-                'recommendation_date' => now(),
+                'recommendation_date' => $request->recommendation_date,
                 'recommendation_timestamps' => now(),
+                'official_travel_status' => $request->recommendation_status === 'rejected' ? 'canceled' : 'draft'
             ]);
 
             DB::commit();
 
-            return redirect('officialtravels')->with('toast_success', 'Official Travel recommendation processed successfully!');
+            $status = $request->recommendation_status === 'approved' ? 'approved' : 'rejected';
+            return redirect('officialtravels/' . $officialtravel->id)
+                ->with('toast_success', "Official Travel has been {$status} successfully!");
         } catch (\Illuminate\Validation\ValidationException $e) {
             DB::rollback();
             return redirect()->back()
@@ -524,13 +561,36 @@ class OfficialtravelController extends Controller
      */
     public function showApprovalForm(Officialtravel $officialtravel)
     {
+        // Cek permission
+        if (!auth()->user()->can('official-travels.edit-approval')) {
+            return redirect()->back()->with('toast_error', 'You do not have permission to modify approvals');
+        }
+
+        // Cek apakah arrival sudah direcord
+        if ($officialtravel->arrival_at_destination) {
+            return redirect()->back()->with('toast_error', 'Cannot modify approval after arrival has been recorded');
+        }
+
+        // Cek apakah user adalah approver yang ditugaskan
+        if (auth()->id() !== $officialtravel->approval_by) {
+            return redirect()->back()->with('toast_error', 'You are not assigned as the approver for this travel request');
+        }
+
+        // Cek status recommendation
+        if ($officialtravel->recommendation_status !== 'approved') {
+            return redirect()->back()->with('toast_error', 'Cannot approve travel request that has not been recommended');
+        }
+
+        // Check if travel is rejected
+        if ($officialtravel->approval_status === 'rejected') {
+            return redirect()->back()
+                ->with('toast_error', 'This travel request has already been rejected and cannot be modified.');
+        }
+
+        // Lanjutkan dengan kode yang ada
         $title = 'Official Travels';
         $subtitle = 'Approve Official Travel';
-        $officialtravel->load(['traveler.employees', 'project', 'transportation', 'accommodation', 'details.follower.employees', 'recommender']);
-
-        if ($officialtravel->recommendation_status != 'approved') {
-            return redirect()->back()->with('toast_error', 'Cannot approve Official Travel that has not been recommended.');
-        }
+        $officialtravel->load(['traveler.employee', 'project', 'transportation', 'accommodation', 'details.follower.employee', 'arrivalChecker', 'departureChecker', 'recommender', 'approver']);
 
         return view('officialtravels.approve', compact('title', 'subtitle', 'officialtravel'));
     }
@@ -541,29 +601,59 @@ class OfficialtravelController extends Controller
     public function approve(Request $request, Officialtravel $officialtravel)
     {
         try {
+            // Check if arrival has been recorded
+            if ($officialtravel->arrival_at_destination) {
+                return redirect()->back()
+                    ->with('toast_error', 'Cannot modify approval after arrival has been recorded.');
+            }
+
+            // Check if travel is rejected
+            if ($officialtravel->approval_status === 'rejected') {
+                return redirect()->back()
+                    ->with('toast_error', 'This travel request has already been rejected and cannot be modified.');
+            }
+
+            if ($officialtravel->approval_status !== 'pending' && $officialtravel->official_travel_status !== 'canceled') {
+                return redirect()->back()
+                    ->with('toast_error', 'This travel request has already been approved or rejected.');
+            }
+
+            // Check if recommendation is approved
+            if ($officialtravel->recommendation_status !== 'approved') {
+                return redirect()->back()
+                    ->with('toast_error', 'Cannot approve travel request that has not been recommended or was rejected.');
+            }
+
+            // Validate request
             $this->validate($request, [
                 'approval_status' => 'required|in:approved,rejected',
-                'approval_remark' => 'required',
+                'approval_remark' => 'required|string',
+                'approval_date' => 'required|date_format:Y-m-d\TH:i',
+            ], [
+                'approval_status.required' => 'Please select whether to approve or reject this travel request.',
+                'approval_status.in' => 'Invalid approval status.',
+                'approval_remark.required' => 'Please provide remarks for your approval.',
+                'approval_remark.min' => 'Approval remarks must be at least 10 characters.',
+                'approval_date.required' => 'Please select the approval date.',
+                'approval_date.date_format' => 'The approval date format is invalid.',
             ]);
 
             DB::beginTransaction();
-
-            if ($officialtravel->recommendation_status != 'approved') {
-                throw new \Exception('Cannot approve Official Travel that has not been recommended.');
-            }
 
             $officialtravel->update([
                 'approval_status' => $request->approval_status,
                 'approval_remark' => $request->approval_remark,
                 'approval_by' => Auth::id(),
-                'approval_date' => now(),
+                'approval_date' => $request->approval_date,
                 'approval_timestamps' => now(),
-                'official_travel_status' => $request->approval_status == 'approved' ? 'open' : 'draft',
+                'official_travel_status' => $request->approval_status === 'approved' ? 'open' : 'canceled'
             ]);
 
             DB::commit();
 
-            return redirect('officialtravels')->with('toast_success', 'Official Travel approval processed successfully!');
+            $status = $request->approval_status === 'approved' ? 'approved' : 'rejected';
+            return redirect('officialtravels/' . $officialtravel->id)
+                ->with('toast_success', "Official Travel has been {$status} successfully!");
         } catch (\Illuminate\Validation\ValidationException $e) {
             DB::rollback();
             return redirect()->back()

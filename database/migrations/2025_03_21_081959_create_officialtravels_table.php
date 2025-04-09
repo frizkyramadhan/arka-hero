@@ -27,12 +27,12 @@ return new class extends Migration
             $table->foreignId('transportation_id')->constrained('transportations');
             $table->foreignId('accommodation_id')->constrained('accommodations');
             // arrival
-            $table->date('arrival_at_destination')->nullable();
+            $table->datetime('arrival_at_destination')->nullable();
             $table->foreignId('arrival_check_by')->nullable()->constrained('users');
             $table->string('arrival_remark')->nullable();
             $table->timestamp('arrival_timestamps')->nullable();
             // departure
-            $table->date('departure_at_destination')->nullable();
+            $table->datetime('departure_at_destination')->nullable();
             $table->foreignId('departure_check_by')->nullable()->constrained('users');
             $table->string('departure_remark')->nullable();
             $table->timestamp('departure_timestamps')->nullable();
@@ -40,13 +40,13 @@ return new class extends Migration
             $table->enum('recommendation_status', ['pending', 'approved', 'rejected']);
             $table->string('recommendation_remark')->nullable();
             $table->foreignId('recommendation_by')->nullable()->constrained('users');
-            $table->date('recommendation_date')->nullable();
+            $table->datetime('recommendation_date')->nullable();
             $table->timestamp('recommendation_timestamps')->nullable();
             // approval
             $table->enum('approval_status', ['pending', 'approved', 'rejected']);
             $table->string('approval_remark')->nullable();
             $table->foreignId('approval_by')->nullable()->constrained('users');
-            $table->date('approval_date')->nullable();
+            $table->datetime('approval_date')->nullable();
             $table->timestamp('approval_timestamps')->nullable();
 
             $table->timestamps();
