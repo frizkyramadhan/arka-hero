@@ -42,8 +42,16 @@ class ProfileController extends Controller
         $terminationCount = Administration::where('is_active', '0')->count();
         $Contract   = Administration::whereRaw('datediff(foc, current_date) < 30')->count();
         return view('dashboard', $data, [
-            'hoCount' => $hoCount, 'boCount' => $boCount, 'malinauCount' => $malinauCount,
-            'sbiCount' => $sbiCount, 'gpkCount' => $gpkCount, 'bekCount' => $bekCount, 'apsCount' => $apsCount, 'employeeCount' => $employeeCount, 'terminationCount' => $terminationCount, 'Contract' => $Contract
+            'hoCount' => $hoCount,
+            'boCount' => $boCount,
+            'malinauCount' => $malinauCount,
+            'sbiCount' => $sbiCount,
+            'gpkCount' => $gpkCount,
+            'bekCount' => $bekCount,
+            'apsCount' => $apsCount,
+            'employeeCount' => $employeeCount,
+            'terminationCount' => $terminationCount,
+            'Contract' => $Contract
         ]);
     }
 

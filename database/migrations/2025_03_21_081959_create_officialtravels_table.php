@@ -50,6 +50,9 @@ return new class extends Migration
             $table->datetime('approval_date')->nullable();
             $table->timestamp('approval_timestamps')->nullable();
 
+            // is claimed, used for LOTC App on PayReq
+            $table->enum('is_claimed', ['yes', 'no'])->default('no');
+            $table->datetime('claimed_at')->nullable();
             $table->timestamps();
         });
     }

@@ -64,7 +64,7 @@ class EmployeeController extends Controller
         $subtitle = 'Add Employee';
         $religions = Religion::orderBy('id', 'asc')->get();
         $banks = Bank::orderBy('bank_name', 'asc')->get();
-        $positions = Position::with('departments')->orderBy('position_name', 'asc')->get();
+        $positions = Position::with('department')->orderBy('position_name', 'asc')->get();
         $projects = Project::orderBy('project_code', 'asc')->get();
         return view('employee.create', compact('title', 'subtitle', 'religions', 'banks', 'positions', 'projects'));
     }
@@ -338,7 +338,7 @@ class EmployeeController extends Controller
         // for select option
         $religions = Religion::orderBy('id', 'asc')->get();
         $getBanks = Bank::orderBy('bank_name', 'asc')->get();
-        $positions = Position::with('departments')->orderBy('position_name', 'asc')->get();
+        $positions = Position::with('department')->orderBy('position_name', 'asc')->get();
         $projects = Project::orderBy('project_code', 'asc')->get();
 
         return view('employee.detail', compact('title', 'subtitle', 'employee', 'bank', 'tax', 'insurances', 'families', 'educations', 'courses', 'jobs', 'units', 'licenses', 'emergencies', 'additional', 'administrations', 'images', 'religions', 'getBanks', 'positions', 'projects', 'profile'));

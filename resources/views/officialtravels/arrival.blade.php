@@ -356,41 +356,6 @@
             margin-top: 30px;
         }
 
-        .btn {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            width: 100%;
-            padding: 11px;
-            border-radius: 6px;
-            font-weight: 500;
-            font-size: 14px;
-            transition: all 0.3s ease;
-            cursor: pointer;
-            border: none;
-        }
-
-        .btn-primary {
-            background: #3498db;
-            color: white;
-        }
-
-        .btn-primary:hover {
-            background: #2980b9;
-        }
-
-        .btn-secondary {
-            background: #95a5a6;
-            color: white;
-            text-decoration: none;
-            text-align: center;
-        }
-
-        .btn-secondary:hover {
-            background: #7f8c8d;
-        }
-
         @media (max-width: 768px) {
             .travel-header {
                 height: auto;
