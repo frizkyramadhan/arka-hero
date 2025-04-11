@@ -14,6 +14,7 @@
                     <i
                         class="fas {{ $officialtravel->official_travel_status == 'draft' ? 'fa-edit' : ($officialtravel->official_travel_status == 'open' ? 'fa-plane' : ($officialtravel->official_travel_status == 'canceled' ? 'fa-times-circle' : 'fa-check-circle')) }}"></i>
                     {{ ucfirst($officialtravel->official_travel_status) }}
+
                 </div>
             </div>
         </div>
@@ -100,6 +101,87 @@
                         </div>
                     </div>
 
+                    <!-- Traveler Info -->
+                    <div class="travel-card traveler-card">
+                        <div class="card-head">
+                            <h2><i class="fas fa-user"></i> Traveler</h2>
+                        </div>
+                        <div class="traveler-details">
+                            <div class="traveler-detail-item">
+                                <i class="fas fa-id-card detail-icon"></i>
+                                <div class="detail-content">
+                                    <div class="detail-label">NIK - Name</div>
+                                    <div class="detail-value">{{ $officialtravel->traveler->nik }} -
+                                        {{ $officialtravel->traveler->employee->fullname }}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="traveler-detail-item">
+                                <i class="fas fa-sitemap detail-icon"></i>
+                                <div class="detail-content">
+                                    <div class="detail-label">Title</div>
+                                    <div class="detail-value">{{ $officialtravel->traveler->position->position_name }}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="traveler-detail-item">
+                                <i class="fas fa-globe detail-icon"></i>
+                                <div class="detail-content">
+                                    <div class="detail-label">Business Unit</div>
+                                    <div class="detail-value">
+                                        {{ $officialtravel->traveler->project->project_code }} :
+                                        {{ $officialtravel->traveler->project->project_name }}</div>
+                                </div>
+                            </div>
+                            <div class="traveler-detail-item">
+                                <i class="fas fa-building detail-icon"></i>
+                                <div class="detail-content">
+                                    <div class="detail-label">Division / Department</div>
+                                    <div class="detail-value">
+                                        {{ $officialtravel->traveler->position->department->department_name }}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Followers List -->
+                    @if ($officialtravel->details->isNotEmpty())
+                        <div class="travel-card followers-card">
+                            <div class="card-head">
+                                <h2><i class="fas fa-users"></i> Followers <span
+                                        class="followers-count">{{ $officialtravel->details->count() }}</span></h2>
+                            </div>
+                            <div class="card-body p-0">
+                                <div class="followers-list">
+                                    @foreach ($officialtravel->details as $detail)
+                                        <div class="follower-item">
+                                            <div class="follower-info">
+                                                <div class="follower-name">{{ $detail->follower->employee->fullname }}
+                                                </div>
+                                                <div class="follower-position">
+                                                    {{ $detail->follower->position->position_name }}</div>
+                                                <div class="follower-meta">
+                                                    <span class="follower-nik"><i class="fas fa-id-card"></i>
+                                                        {{ $detail->follower->nik }}</span>
+                                                    <span class="follower-department"><i class="fas fa-sitemap"></i>
+                                                        {{ $detail->follower->position->department->department_name }}</span>
+                                                </div>
+                                                <div class="follower-project">
+                                                    <i class="fas fa-project-diagram"></i>
+                                                    {{ $detail->follower->project->project_code }} :
+                                                    {{ $detail->follower->project->project_name }}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    @endforeach
+                                </div>
+                            </div>
+                        </div>
+                    @endif
+                </div>
+
+                <!-- Right Column -->
+                <div class="col-lg-4">
                     <!-- Approval Process -->
                     <div class="travel-card approval-process-card">
                         <div class="card-head">
@@ -199,7 +281,7 @@
                                                 </div>
                                                 <div class="step-date">
                                                     <i class="fas fa-calendar-check"></i>
-                                                    {{ $officialtravel->arrival_date ? date('d M Y H:i', strtotime($officialtravel->arrival_date)) : 'Not arrived' }}
+                                                    {{ $officialtravel->arrival_at_destination ? date('d M Y H:i', strtotime($officialtravel->arrival_at_destination)) : 'Not arrived' }}
                                                 </div>
                                             </div>
                                             <div class="step-remark">
@@ -231,7 +313,7 @@
                                                 </div>
                                                 <div class="step-date">
                                                     <i class="fas fa-calendar-check"></i>
-                                                    {{ $officialtravel->departure_date ? date('d M Y H:i', strtotime($officialtravel->departure_date)) : 'Not departed' }}
+                                                    {{ $officialtravel->departure_at_destination ? date('d M Y H:i', strtotime($officialtravel->departure_at_destination)) : 'Not departed' }}
                                                 </div>
                                             </div>
                                             <div class="step-remark">
@@ -245,65 +327,6 @@
                             </div>
                         </div>
                     </div>
-                </div>
-
-                <!-- Right Column -->
-                <div class="col-lg-4">
-                    <!-- Traveler Info -->
-                    <div class="travel-card traveler-card">
-                        <div class="traveler-header">
-                            <h3 class="traveler-name">{{ $officialtravel->traveler->employee->fullname }}</h3>
-                            <div class="traveler-nik">{{ $officialtravel->traveler->nik }}</div>
-                        </div>
-                        <div class="traveler-details">
-                            <div class="traveler-detail-item">
-                                <i class="fas fa-briefcase detail-icon"></i>
-                                <div class="detail-content">
-                                    <div class="detail-label">Position</div>
-                                    <div class="detail-value">{{ $officialtravel->traveler->position->position_name }}
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="traveler-detail-item">
-                                <i class="fas fa-building detail-icon"></i>
-                                <div class="detail-content">
-                                    <div class="detail-label">Department</div>
-                                    <div class="detail-value">
-                                        {{ $officialtravel->traveler->position->department->department_name }}</div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Followers List -->
-                    @if ($officialtravel->details->isNotEmpty())
-                        <div class="travel-card followers-card">
-                            <div class="card-head">
-                                <h2><i class="fas fa-users"></i> Followers <span
-                                        class="followers-count">{{ $officialtravel->details->count() }}</span></h2>
-                            </div>
-                            <div class="card-body p-0">
-                                <div class="followers-list">
-                                    @foreach ($officialtravel->details as $detail)
-                                        <div class="follower-item">
-                                            <div class="follower-info">
-                                                <div class="follower-name">{{ $detail->follower->employee->fullname }}
-                                                </div>
-                                                <div class="follower-position">
-                                                    {{ $detail->follower->position->position_name }}</div>
-                                                <div class="follower-meta">
-                                                    <span class="follower-nik"><i class="fas fa-id-card"></i>
-                                                        {{ $detail->follower->nik }}</span>
-                                                    <span class="follower-department"><i class="fas fa-sitemap"></i>
-                                                        {{ $detail->follower->position->department->department_name }}</span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    @endforeach
-                                </div>
-                            </div>
-                        </div>
-                    @endif
 
                     <!-- Action Buttons -->
                     <div class="travel-action-buttons">
@@ -356,19 +379,29 @@
                             @if ($officialtravel->official_travel_status == 'open')
                                 @can('official-travels.stamp')
                                     @if (!$officialtravel->arrival_check_by)
-                                        <a href="{{ route('officialtravels.arrival.form', $officialtravel->id) }}"
+                                        <a href="{{ route('officialtravels.showArrivalForm', $officialtravel->id) }}"
                                             class="btn-action arrival-btn">
                                             <i class="fas fa-plane-arrival"></i> Arrival Stamp
                                         </a>
                                     @elseif(!$officialtravel->departure_check_by)
-                                        <a href="{{ route('officialtravels.departure.form', $officialtravel->id) }}"
+                                        <a href="{{ route('officialtravels.showDepartureForm', $officialtravel->id) }}"
                                             class="btn-action departure-btn">
                                             <i class="fas fa-plane-departure"></i> Departure Stamp
                                         </a>
                                     @endif
+
+                                    @if ($officialtravel->arrival_check_by && $officialtravel->departure_check_by)
+                                        <button type="button" class="btn-action close-btn" data-toggle="modal"
+                                            data-target="#closeModal">
+                                            <i class="fas fa-lock"></i> Close Official Travel
+                                        </button>
+                                    @endif
                                 @endcan
                             @endif
                         @endif
+                        <a href="{{ route('officialtravels.print', $officialtravel->id) }}" class="btn btn-primary"
+                            target="_blank">
+                            <i class="fas fa-print"></i> Print</a>
                     </div>
                 </div>
             </div>
@@ -401,6 +434,42 @@
                             @csrf
                             @method('DELETE')
                             <button type="submit" class="btn-confirm-delete">Yes, Delete</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    @endif
+
+    <!-- Close Modal -->
+    @if (
+        $officialtravel->official_travel_status == 'open' &&
+            $officialtravel->arrival_check_by &&
+            $officialtravel->departure_check_by)
+        <div class="modal fade custom-modal" id="closeModal" tabindex="-1" role="dialog"
+            aria-labelledby="closeModalLabel" aria-hidden="true">
+            <div class="modal-dialog" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="closeModalLabel">Close Travel Request</h5>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="close-icon">
+                            <i class="fas fa-lock text-warning"></i>
+                        </div>
+                        <p class="close-message">Are you sure you want to close this official travel?</p>
+                        <p class="close-warning">This action cannot be undone and no further changes will be allowed.</p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn-cancel" data-dismiss="modal">Cancel</button>
+                        <form action="{{ route('officialtravels.close', $officialtravel->id) }}" method="POST"
+                            class="d-inline">
+                            @csrf
+                            @method('PATCH')
+                            <button type="submit" class="btn-confirm-close">Yes, Close Travel</button>
                         </form>
                     </div>
                 </div>
@@ -597,15 +666,23 @@
             border-bottom: 1px solid #edf2f7;
         }
 
+        .traveler-detail-item:last-child {
+            border-bottom: none;
+        }
+
         .detail-icon {
             color: #3498db;
             margin-right: 12px;
             font-size: 16px;
         }
 
+        .detail-content {
+            flex: 1;
+        }
+
         /* Approval Flow */
         .approval-process-card {
-            margin-top: 25px;
+            margin-top: 0;
         }
 
         .approval-flow {
@@ -742,9 +819,9 @@
         .followers-count {
             background: #3498db;
             color: white;
-            font-size: 12px;
+            font-size: 14px;
             border-radius: 4px;
-            padding: 2px 6px;
+            padding: 2px 8px;
             margin-left: 8px;
         }
 
@@ -754,35 +831,51 @@
         }
 
         .follower-item {
-            padding: 12px 15px;
+            padding: 15px;
             border-bottom: 1px solid #edf2f7;
         }
 
         .follower-name {
-            font-size: 14px;
+            font-size: 16px;
             font-weight: 500;
             color: #2c3e50;
-            margin-bottom: 2px;
+            margin-bottom: 4px;
         }
 
         .follower-position {
-            font-size: 13px;
+            font-size: 15px;
             color: #64748b;
-            margin-bottom: 4px;
+            margin-bottom: 6px;
         }
 
         .follower-meta {
             display: flex;
-            gap: 12px;
-            font-size: 12px;
-            color: #94a3b8;
+            gap: 15px;
+            font-size: 14px;
+            color: #64748b;
+            margin-bottom: 6px;
         }
 
         .follower-nik,
         .follower-department {
             display: flex;
             align-items: center;
-            gap: 5px;
+            gap: 6px;
+        }
+
+        .follower-project {
+            font-size: 14px;
+            color: #64748b;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .follower-meta i,
+        .follower-project i {
+            font-size: 14px;
+            width: 16px;
+            text-align: center;
         }
 
         /* Action Buttons */
@@ -836,8 +929,16 @@
             background-color: #27ae60;
         }
 
+        .arrival-btn:hover {
+            color: white;
+        }
+
         .departure-btn {
             background-color: #8e44ad;
+        }
+
+        .departure-btn:hover {
+            color: white;
         }
 
         .btn-action:hover {
@@ -931,6 +1032,12 @@
             .travel-header {
                 height: auto;
                 padding: 15px;
+                position: relative;
+            }
+
+            .travel-header-content {
+                padding-right: 80px;
+                /* Create space for the status pill */
             }
 
             .travel-destination {
@@ -938,8 +1045,10 @@
             }
 
             .travel-status-pill {
-                position: static;
-                margin-top: 10px;
+                position: absolute;
+                top: 15px;
+                right: 15px;
+                margin-top: 0;
                 align-self: flex-start;
             }
 
@@ -988,6 +1097,43 @@
             color: white;
             opacity: 0.9;
             transform: translateY(-1px);
+        }
+
+        .close-btn {
+            background-color: #f1c40f;
+            color: #2c3e50;
+        }
+
+        .close-btn:hover {
+            color: #2c3e50;
+        }
+
+        .btn-confirm-close {
+            padding: 8px 16px;
+            border-radius: 4px;
+            background-color: #f1c40f;
+            color: #2c3e50;
+            font-weight: 500;
+            border: none;
+        }
+
+        .close-icon {
+            text-align: center;
+            font-size: 48px;
+            margin-bottom: 15px;
+        }
+
+        .close-message {
+            font-size: 16px;
+            color: #2c3e50;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .close-warning {
+            font-size: 13px;
+            color: #e74c3c;
+            text-align: center;
         }
     </style>
 @endsection

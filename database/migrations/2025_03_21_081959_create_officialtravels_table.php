@@ -26,6 +26,7 @@ return new class extends Migration
             $table->date('departure_from');
             $table->foreignId('transportation_id')->constrained('transportations');
             $table->foreignId('accommodation_id')->constrained('accommodations');
+            $table->foreignId('created_by')->constrained('users');
             // arrival
             $table->datetime('arrival_at_destination')->nullable();
             $table->foreignId('arrival_check_by')->nullable()->constrained('users');
@@ -49,6 +50,9 @@ return new class extends Migration
             $table->datetime('approval_date')->nullable();
             $table->timestamp('approval_timestamps')->nullable();
 
+            // is claimed, used for LOTC App on PayReq
+            $table->enum('is_claimed', ['yes', 'no'])->default('no');
+            $table->datetime('claimed_at')->nullable();
             $table->timestamps();
         });
     }

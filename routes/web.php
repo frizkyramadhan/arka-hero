@@ -31,6 +31,7 @@ use App\Http\Controllers\AdministrationController;
 use App\Http\Controllers\OfficialtravelController;
 use App\Http\Controllers\TransportationController;
 use App\Http\Controllers\TaxidentificationController;
+use App\Http\Controllers\DashboardController;
 
 /*
 |--------------------------------------------------------------------------
@@ -50,19 +51,27 @@ Route::get('login', [AuthController::class, 'getLogin'])->name('login')->middlew
 Route::post('login', [AuthController::class, 'postLogin']);
 
 Route::group(['middleware' => ['auth']], function () {
-    Route::get('/', [ProfileController::class, 'dashboard'])->name('dashboard');
-    Route::get('dashboard/getHobpn', [ProfileController::class, 'getHobpn'])->name('hobpn.list');
-    Route::get('dashboard/getBojkt', [ProfileController::class, 'getBojkt'])->name('bojkt.list');
-    Route::get('dashboard/getKpuc', [ProfileController::class, 'getKpuc'])->name('kpuc.list');
-    Route::get('dashboard/getSbi', [ProfileController::class, 'getSbi'])->name('sbi.list');
-    Route::get('dashboard/getGpk', [ProfileController::class, 'getGpk'])->name('gpk.list');
-    Route::get('dashboard/getBek', [ProfileController::class, 'getBek'])->name('bek.list');
-    Route::get('dashboard/getAps', [ProfileController::class, 'getAps'])->name('aps.list');
-    Route::get('dashboard/getEmployee', [ProfileController::class, 'getEmployee'])->name('employee.list');
-    Route::get('dashboard/getTermination', [ProfileController::class, 'getTermination'])->name('termination.list');
-    Route::get('dashboard/getContract', [ProfileController::class, 'getContract'])->name('contract.list');
-    Route::post('dashboard/sendEmail', [ProfileController::class, 'sendEmail'])->name('sendEmail');
+    // Route::get('/', [ProfileController::class, 'dashboard'])->name('dashboard');
+    // Route::get('dashboard/getHobpn', [ProfileController::class, 'getHobpn'])->name('hobpn.list');
+    // Route::get('dashboard/getBojkt', [ProfileController::class, 'getBojkt'])->name('bojkt.list');
+    // Route::get('dashboard/getKpuc', [ProfileController::class, 'getKpuc'])->name('kpuc.list');
+    // Route::get('dashboard/getSbi', [ProfileController::class, 'getSbi'])->name('sbi.list');
+    // Route::get('dashboard/getGpk', [ProfileController::class, 'getGpk'])->name('gpk.list');
+    // Route::get('dashboard/getBek', [ProfileController::class, 'getBek'])->name('bek.list');
+    // Route::get('dashboard/getAps', [ProfileController::class, 'getAps'])->name('aps.list');
+    // Route::get('dashboard/getEmployee', [ProfileController::class, 'getEmployee'])->name('employee.list');
+    // Route::get('dashboard/getTermination', [ProfileController::class, 'getTermination'])->name('termination.list');
+    // Route::get('dashboard/getContract', [ProfileController::class, 'getContract'])->name('contract.list');
+    // Route::post('dashboard/sendEmail', [ProfileController::class, 'sendEmail'])->name('sendEmail');
 
+
+    Route::get('/', [DashboardController::class, 'dashboard'])->name('dashboard');
+    // OFFICIAL TRAVEL DASHBOARD ROUTES
+    Route::get('officialtravel-dashboard', [DashboardController::class, 'dashboard'])->name('officialtravel.dashboard');
+    Route::get('officialtravel-dashboard/pending-recommendations', [DashboardController::class, 'pendingRecommendations'])->name('officialtravel.pending-recommendations');
+    Route::get('officialtravel-dashboard/pending-approvals', [DashboardController::class, 'pendingApprovals'])->name('officialtravel.pending-approvals');
+    Route::get('officialtravel-dashboard/pending-arrivals', [DashboardController::class, 'pendingArrivals'])->name('officialtravel.pending-arrivals');
+    Route::get('officialtravel-dashboard/pending-departures', [DashboardController::class, 'pendingDepartures'])->name('officialtravel.pending-departures');
 
     Route::post('logout', [AuthController::class, 'logout']);
 
@@ -115,6 +124,8 @@ Route::group(['middleware' => ['auth']], function () {
     Route::post('officialtravels/{officialtravel}/arrival', [OfficialtravelController::class, 'arrivalStamp'])->name('officialtravels.arrivalStamp');
     Route::get('officialtravels/{officialtravel}/departure', [OfficialtravelController::class, 'showDepartureForm'])->name('officialtravels.showDepartureForm');
     Route::post('officialtravels/{officialtravel}/departure', [OfficialtravelController::class, 'departureStamp'])->name('officialtravels.departureStamp');
+    Route::get('officialtravels/{officialtravel}/print', [OfficialtravelController::class, 'print'])->name('officialtravels.print');
+    Route::patch('officialtravels/{officialtravel}/close', [OfficialtravelController::class, 'close'])->name('officialtravels.close');
 
     // EMPLOYEE ROUTES
 
