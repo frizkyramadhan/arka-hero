@@ -18,13 +18,11 @@ use App\Http\Controllers\Api\v1\OfficialtravelApiController;
 |
 */
 
-Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
-    return $request->user();
+Route::group(['middleware' => ['auth:sanctum']], function () {
+    Route::apiResource('positions', PositionController::class);
+    Route::apiResource('departments', DepartmentController::class);
+    Route::apiResource('projects', ProjectController::class);
 });
-
-Route::apiResource('positions', PositionController::class);
-Route::apiResource('departments', DepartmentController::class);
-Route::apiResource('projects', ProjectController::class);
 
 // Official Travel API Routes
 Route::prefix('official-travels')->group(function () {

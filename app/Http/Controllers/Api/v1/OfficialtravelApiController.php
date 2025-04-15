@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\v1;
 use App\Http\Controllers\Controller;
 use App\Models\Officialtravel;
 use App\Enums\ClaimStatus;
+use App\Http\Resources\OfficialtravelResource;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -52,7 +53,8 @@ class OfficialtravelApiController extends Controller
                 ->where('approval_status', 'approved')
                 ->where('arrival_at_destination', null)
                 ->where('official_travel_status', 'open')
-                ->orderBy('created_at', 'desc')->get();
+                ->orderBy('created_at', 'desc')
+                ->get();
 
             if ($officialtravels->isEmpty()) {
                 return response()->json([
@@ -63,7 +65,7 @@ class OfficialtravelApiController extends Controller
             } else {
                 return response()->json([
                     'status' => 'success',
-                    'data' => $officialtravels
+                    'data' => OfficialtravelResource::collection($officialtravels)
                 ], 200);
             }
         } catch (\Exception $e) {
@@ -95,7 +97,7 @@ class OfficialtravelApiController extends Controller
 
             return response()->json([
                 'status' => 'success',
-                'data' => $officialtravel
+                'data' => new OfficialtravelResource($officialtravel)
             ], 200);
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             return response()->json([
@@ -126,7 +128,22 @@ class OfficialtravelApiController extends Controller
 
             DB::beginTransaction();
 
-            $officialtravel = Officialtravel::findOrFail($id);
+            $officialtravel = Officialtravel::with([
+                'traveler.employee',
+                'project',
+                'transportation',
+                'accommodation',
+                'details.follower.employee',
+                'recommender',
+                'approver'
+            ])->find($id);
+
+            if (!$officialtravel) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Official travel not found'
+                ], 404);
+            }
 
             // Check if departure_at_destination is not null
             if (is_null($officialtravel->departure_at_destination)) {
@@ -154,7 +171,7 @@ class OfficialtravelApiController extends Controller
             return response()->json([
                 'status' => 'success',
                 'message' => 'Claim status updated successfully',
-                'data' => $officialtravel
+                'data' => new OfficialtravelResource($officialtravel)
             ], 200);
         } catch (\Illuminate\Validation\ValidationException $e) {
             DB::rollBack();
@@ -163,12 +180,6 @@ class OfficialtravelApiController extends Controller
                 'message' => 'Validation error',
                 'errors' => $e->errors()
             ], 422);
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
-            DB::rollBack();
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Official travel not found'
-            ], 404);
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json([

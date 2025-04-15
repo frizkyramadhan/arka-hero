@@ -67,87 +67,88 @@
                     </a>
                 </li>
 
+                @canany(['master-data.show'])
+                    {{-- MASTER DATA --}}
+                    <li class="nav-header">MASTER DATA</li>
+                    <li
+                        class="nav-item {{ Request::is('banks*') || Request::is('religions*') || Request::is('positions*') || Request::is('departments*') || Request::is('projects*') ? 'menu-open' : '' }}">
+                        <a href="#"
+                            class="nav-link {{ Request::is('banks*') || Request::is('religions*') || Request::is('positions*') || Request::is('departments*') || Request::is('projects*') ? 'active' : '' }}">
+                            <i class="nav-icon fas fa-database"></i>
+                            <p>
+                                Employee
+                                <i class="fas fa-angle-left right"></i>
+                            </p>
+                        </a>
+                        <ul class="nav nav-treeview">
+                            <li class="nav-item">
+                                <a href="{{ url('positions') }}"
+                                    class="nav-link {{ Request::is('positions*') ? 'active' : '' }}">
+                                    <i class="nav-icon fas fa-sitemap"></i>
+                                    <p>Positions</p>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="{{ url('departments') }}"
+                                    class="nav-link {{ Request::is('departments*') ? 'active' : '' }}">
+                                    <i class="nav-icon fas fa-building"></i>
+                                    <p>Departments</p>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="{{ url('projects') }}"
+                                    class="nav-link {{ Request::is('projects*') ? 'active' : '' }}">
+                                    <i class="nav-icon fas fa-globe"></i>
+                                    <p>Projects</p>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="{{ url('religions') }}"
+                                    class="nav-link {{ Request::is('religions*') ? 'active' : '' }}">
+                                    <i class="nav-icon fas fa-heart"></i>
+                                    <p>Religions</p>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="{{ url('banks') }}"
+                                    class="nav-link {{ Request::is('banks*') ? 'active' : '' }}">
+                                    <i class="nav-icon fas fa-money-check-alt"></i>
+                                    <p>Banks</p>
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
 
-                {{-- MASTER DATA --}}
-                <li class="nav-header">MASTER DATA</li>
-                <li
-                    class="nav-item {{ Request::is('banks*') || Request::is('religions*') || Request::is('positions*') || Request::is('departments*') || Request::is('projects*') ? 'menu-open' : '' }}">
-                    <a href="#"
-                        class="nav-link {{ Request::is('banks*') || Request::is('religions*') || Request::is('positions*') || Request::is('departments*') || Request::is('projects*') ? 'active' : '' }}">
-                        <i class="nav-icon fas fa-database"></i>
-                        <p>
-                            Employee
-                            <i class="fas fa-angle-left right"></i>
-                        </p>
-                    </a>
-                    <ul class="nav nav-treeview">
-                        <li class="nav-item">
-                            <a href="{{ url('positions') }}"
-                                class="nav-link {{ Request::is('positions*') ? 'active' : '' }}">
-                                <i class="nav-icon fas fa-sitemap"></i>
-                                <p>Positions</p>
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a href="{{ url('departments') }}"
-                                class="nav-link {{ Request::is('departments*') ? 'active' : '' }}">
-                                <i class="nav-icon fas fa-building"></i>
-                                <p>Departments</p>
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a href="{{ url('projects') }}"
-                                class="nav-link {{ Request::is('projects*') ? 'active' : '' }}">
-                                <i class="nav-icon fas fa-globe"></i>
-                                <p>Projects</p>
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a href="{{ url('religions') }}"
-                                class="nav-link {{ Request::is('religions*') ? 'active' : '' }}">
-                                <i class="nav-icon fas fa-heart"></i>
-                                <p>Religions</p>
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a href="{{ url('banks') }}"
-                                class="nav-link {{ Request::is('banks*') ? 'active' : '' }}">
-                                <i class="nav-icon fas fa-money-check-alt"></i>
-                                <p>Banks</p>
-                            </a>
-                        </li>
-                    </ul>
-                </li>
-                <li
-                    class="nav-item {{ Request::is('transportations*') || Request::is('accommodations*') ? 'menu-open' : '' }}">
-                    <a href="#"
-                        class="nav-link {{ Request::is('transportations*') || Request::is('accommodations*') ? 'active' : '' }}">
-                        <i class="nav-icon fas fa-database"></i>
-                        <p>
-                            Official Travel
-                            <i class="fas fa-angle-left right"></i>
-                        </p>
-                    </a>
-                    <ul class="nav nav-treeview">
-                        <li class="nav-item">
-                            <a href="{{ url('transportations') }}"
-                                class="nav-link {{ Request::is('transportations*') ? 'active' : '' }}">
-                                <i class="nav-icon fas fa-car-side"></i>
-                                <p>Transportations</p>
-                            </a>
-                        </li>
-                    </ul>
-                    <ul class="nav nav-treeview">
-                        <li class="nav-item">
-                            <a href="{{ url('accommodations') }}"
-                                class="nav-link {{ Request::is('accommodations*') ? 'active' : '' }}">
-                                <i class="nav-icon fas fa-hotel"></i>
-                                <p>Accommodations</p>
-                            </a>
-                        </li>
-                    </ul>
-                </li>
-
+                    <li
+                        class="nav-item {{ Request::is('transportations*') || Request::is('accommodations*') ? 'menu-open' : '' }}">
+                        <a href="#"
+                            class="nav-link {{ Request::is('transportations*') || Request::is('accommodations*') ? 'active' : '' }}">
+                            <i class="nav-icon fas fa-database"></i>
+                            <p>
+                                Official Travel
+                                <i class="fas fa-angle-left right"></i>
+                            </p>
+                        </a>
+                        <ul class="nav nav-treeview">
+                            <li class="nav-item">
+                                <a href="{{ url('transportations') }}"
+                                    class="nav-link {{ Request::is('transportations*') ? 'active' : '' }}">
+                                    <i class="nav-icon fas fa-car-side"></i>
+                                    <p>Transportations</p>
+                                </a>
+                            </li>
+                        </ul>
+                        <ul class="nav nav-treeview">
+                            <li class="nav-item">
+                                <a href="{{ url('accommodations') }}"
+                                    class="nav-link {{ Request::is('accommodations*') ? 'active' : '' }}">
+                                    <i class="nav-icon fas fa-hotel"></i>
+                                    <p>Accommodations</p>
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+                @endcanany
                 {{-- SUMMARY EMPLOYEE --}}
                 {{-- <li class="nav-item {{ Request::is('personals*') || Request::is('licenses*') || Request::is('insurances*') || Request::is('families*') || Request::is('educations*') || Request::is('courses*') || Request::is('emrgcalls*') || Request::is('additionaldatas*') || Request::is('employeebanks*') || Request::is('administrations*') || Request::is('jobexperiences*') || Request::is('operableunits*') || Request::is('taxidentifications*')  ? 'menu-open' : '' }}">
           <a href="#" class="nav-link {{ Request::is('personals*') || Request::is('licenses*') || Request::is('insurances*') || Request::is('families*') || Request::is('educations*') || Request::is('courses*') || Request::is('emrgcalls*') || Request::is('additionaldatas*') || Request::is('employeebanks*') || Request::is('administrations*') || Request::is('jobexperiences*') || Request::is('operableunits*') || Request::is('taxidentifications*')  ? 'active' : '' }}">
