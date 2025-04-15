@@ -54,6 +54,7 @@ class OfficialtravelController extends Controller
             'project',
             'transportation',
             'accommodation',
+            'details.follower.employee',
             'recommender',
             'approver',
             'creator'
@@ -296,8 +297,8 @@ class OfficialtravelController extends Controller
                 'accommodation_id' => 'required|exists:accommodations,id',
                 'followers' => 'nullable|array',
                 'followers.*' => 'exists:administrations,id',
-                'recommender_id' => 'required|exists:users,id',
-                'approver_id' => 'required|exists:users,id|different:recommender_id',
+                'recommendation_by' => 'required|exists:users,id',
+                'approval_by' => 'required|exists:users,id|different:recommendation_by',
             ]);
 
             DB::beginTransaction();
@@ -316,11 +317,11 @@ class OfficialtravelController extends Controller
                 'transportation_id' => $request->transportation_id,
                 'accommodation_id' => $request->accommodation_id,
                 'recommendation_status' => 'pending',
-                'recommendation_by' => $request->recommender_id,
+                'recommendation_by' => $request->recommendation_by,
                 'recommendation_remark' => null,
                 'recommendation_date' => null,
                 'approval_status' => 'pending',
-                'approval_by' => $request->approver_id,
+                'approval_by' => $request->approval_by,
                 'approval_remark' => null,
                 'approval_date' => null,
                 'created_by' => auth()->id(),
@@ -355,14 +356,24 @@ class OfficialtravelController extends Controller
     /**
      * Display the specified resource.
      *
-     * @param  \App\Models\Officialtravel  $officialtravel
+     * @param  int  $id
      * @return \Illuminate\Http\Response
      */
-    public function show(Officialtravel $officialtravel)
+    public function show($id)
     {
         $title = 'Official Travels';
         $subtitle = 'Official Travel Details';
-        $officialtravel->load(['traveler.employee', 'project', 'transportation', 'accommodation', 'details.follower.employee', 'arrivalChecker', 'departureChecker', 'recommender', 'approver']);
+        $officialtravel = Officialtravel::with([
+            'traveler.employee',
+            'project',
+            'transportation',
+            'accommodation',
+            'details.follower.employee',
+            'arrivalChecker',
+            'departureChecker',
+            'recommender',
+            'approver'
+        ])->findOrFail($id);
 
         return view('officialtravels.show', compact('title', 'subtitle', 'officialtravel'));
     }
@@ -450,6 +461,8 @@ class OfficialtravelController extends Controller
                 'transportation_id' => 'required',
                 'accommodation_id' => 'required',
                 'followers' => 'nullable|array',
+                'recommendation_by' => 'required',
+                'approval_by' => 'required',
             ]);
 
             DB::beginTransaction();
@@ -475,6 +488,8 @@ class OfficialtravelController extends Controller
                 'arrival_remark' => $request->arrival_remark ?? $officialtravel->arrival_remark,
                 'departure_at_destination' => $request->departure_at_destination,
                 'departure_remark' => $request->departure_remark ?? $officialtravel->departure_remark,
+                'recommendation_by' => $request->recommendation_by,
+                'approval_by' => $request->approval_by,
             ]);
 
             // Update followers - remove all existing and add new ones
@@ -540,12 +555,24 @@ class OfficialtravelController extends Controller
     /**
      * Show recommendation form
      */
-    public function showRecommendForm(Officialtravel $officialtravel)
+    public function showRecommendForm($id)
     {
         // Cek permission
         if (!auth()->user()->can('official-travels.recommend')) {
             return redirect()->back()->with('toast_error', 'You do not have permission to modify recommendations');
         }
+
+        $officialtravel = Officialtravel::with([
+            'traveler.employee',
+            'project',
+            'transportation',
+            'accommodation',
+            'details.follower.employee',
+            'arrivalChecker',
+            'departureChecker',
+            'recommender',
+            'approver'
+        ])->findOrFail($id);
 
         // Cek apakah approval sudah diproses
         if ($officialtravel->approval_status !== 'pending') {
@@ -557,10 +584,8 @@ class OfficialtravelController extends Controller
             return redirect()->back()->with('toast_error', 'You are not assigned as the recommender for this travel request');
         }
 
-        // Lanjutkan dengan kode yang ada
         $title = 'Official Travels';
         $subtitle = 'Recommend Official Travel';
-        $officialtravel->load(['traveler.employee', 'project', 'transportation', 'accommodation', 'details.follower.employee', 'arrivalChecker', 'departureChecker', 'recommender', 'approver']);
 
         return view('officialtravels.recommend', compact('title', 'subtitle', 'officialtravel'));
     }
@@ -622,12 +647,24 @@ class OfficialtravelController extends Controller
     /**
      * Show approval form
      */
-    public function showApprovalForm(Officialtravel $officialtravel)
+    public function showApprovalForm($id)
     {
         // Cek permission
         if (!auth()->user()->can('official-travels.approve')) {
             return redirect()->back()->with('toast_error', 'You do not have permission to modify approvals');
         }
+
+        $officialtravel = Officialtravel::with([
+            'traveler.employee',
+            'project',
+            'transportation',
+            'accommodation',
+            'details.follower.employee',
+            'arrivalChecker',
+            'departureChecker',
+            'recommender',
+            'approver'
+        ])->findOrFail($id);
 
         // Cek apakah arrival sudah direcord
         if ($officialtravel->arrival_at_destination) {
@@ -650,10 +687,8 @@ class OfficialtravelController extends Controller
                 ->with('toast_error', 'This travel request has already been rejected and cannot be modified.');
         }
 
-        // Lanjutkan dengan kode yang ada
         $title = 'Official Travels';
         $subtitle = 'Approve Official Travel';
-        $officialtravel->load(['traveler.employee', 'project', 'transportation', 'accommodation', 'details.follower.employee', 'arrivalChecker', 'departureChecker', 'recommender', 'approver']);
 
         return view('officialtravels.approve', compact('title', 'subtitle', 'officialtravel'));
     }
@@ -728,8 +763,16 @@ class OfficialtravelController extends Controller
     /**
      * Show arrival stamp form
      */
-    public function showArrivalForm(Officialtravel $officialtravel)
+    public function showArrivalForm($id)
     {
+        $officialtravel = Officialtravel::with([
+            'traveler.employee',
+            'project',
+            'transportation',
+            'accommodation',
+            'details.follower.employee'
+        ])->findOrFail($id);
+
         // Cek status official travel
         if ($officialtravel->official_travel_status != 'open') {
             return redirect()->back()->with('toast_error', 'Cannot stamp arrival for Official Travel that is not open');
@@ -747,7 +790,6 @@ class OfficialtravelController extends Controller
 
         $title = 'Official Travels';
         $subtitle = 'Arrival Stamp';
-        $officialtravel->load(['traveler.employee', 'project', 'transportation', 'accommodation', 'details.follower.employee']);
 
         return view('officialtravels.arrival', compact('title', 'subtitle', 'officialtravel'));
     }
@@ -758,7 +800,6 @@ class OfficialtravelController extends Controller
     public function arrivalStamp(Request $request, Officialtravel $officialtravel)
     {
         try {
-
             // Cek status official travel
             if ($officialtravel->official_travel_status != 'open') {
                 return redirect()->back()->with('toast_error', 'Cannot stamp arrival for Official Travel that is not open');
@@ -802,8 +843,16 @@ class OfficialtravelController extends Controller
     /**
      * Show departure stamp form
      */
-    public function showDepartureForm(Officialtravel $officialtravel)
+    public function showDepartureForm($id)
     {
+        $officialtravel = Officialtravel::with([
+            'traveler.employee',
+            'project',
+            'transportation',
+            'accommodation',
+            'details.follower.employee'
+        ])->findOrFail($id);
+
         // Cek status official travel
         if ($officialtravel->official_travel_status != 'open') {
             return redirect()->back()->with('toast_error', 'Cannot stamp departure for Official Travel that is not open');
@@ -821,7 +870,6 @@ class OfficialtravelController extends Controller
 
         $title = 'Official Travels';
         $subtitle = 'Departure Stamp';
-        $officialtravel->load(['traveler.employee', 'project', 'transportation', 'accommodation', 'details.follower.employee']);
 
         return view('officialtravels.departure', compact('title', 'subtitle', 'officialtravel'));
     }
@@ -832,7 +880,13 @@ class OfficialtravelController extends Controller
     public function departureStamp(Request $request, $id)
     {
         try {
-            $officialtravel = Officialtravel::findOrFail($id);
+            $officialtravel = Officialtravel::with([
+                'traveler.employee',
+                'project',
+                'transportation',
+                'accommodation',
+                'details.follower.employee'
+            ])->findOrFail($id);
 
             // Cek status official travel
             if ($officialtravel->official_travel_status != 'open') {
@@ -881,11 +935,21 @@ class OfficialtravelController extends Controller
         }
     }
 
-    public function print(Officialtravel $officialtravel)
+    public function print($id)
     {
         $title = 'Official Travels';
         $subtitle = 'Official Travel Details';
-        $officialtravel->load(['traveler.employee', 'project', 'transportation', 'accommodation', 'details.follower.employee', 'arrivalChecker', 'departureChecker', 'recommender', 'approver']);
+        $officialtravel = Officialtravel::with([
+            'traveler.employee',
+            'project',
+            'transportation',
+            'accommodation',
+            'details.follower.employee',
+            'arrivalChecker',
+            'departureChecker',
+            'recommender',
+            'approver'
+        ])->findOrFail($id);
 
         return view('officialtravels.print', compact('title', 'subtitle', 'officialtravel'));
     }

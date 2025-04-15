@@ -352,15 +352,16 @@
                             </div>
                             <div class="card-body">
                                 <div class="form-group">
-                                    <label for="recommender_id">Recommended By <span class="text-danger">*</span></label>
+                                    <label for="recommendation_by">Recommended By <span
+                                            class="text-danger">*</span></label>
                                     <select
-                                        class="form-control select2-secondary @error('recommender_id') is-invalid @enderror"
-                                        name="recommender_id" id="recommender_id" style="width: 100%;" required
+                                        class="form-control select2-secondary @error('recommendation_by') is-invalid @enderror"
+                                        name="recommendation_by" id="recommendation_by" style="width: 100%;" required
                                         {{ $officialtravel->recommendation_status !== 'pending' ? 'disabled' : '' }}>
                                         <option value="">Select Recommender</option>
                                         @foreach ($recommenders as $recommender)
                                             <option value="{{ $recommender['id'] }}"
-                                                {{ old('recommender_id', $officialtravel->recommendation_by) == $recommender['id'] ? 'selected' : '' }}>
+                                                {{ old('recommendation_by', $officialtravel->recommendation_by) == $recommender['id'] ? 'selected' : '' }}>
                                                 {{ $recommender['name'] }}
                                             </option>
                                         @endforeach
@@ -369,21 +370,21 @@
                                         <small class="text-muted">Cannot change recommender after recommendation has been
                                             made</small>
                                     @endif
-                                    @error('recommender_id')
+                                    @error('recommendation_by')
                                         <div class="invalid-feedback">{{ $message }}</div>
                                     @enderror
                                 </div>
 
                                 <div class="form-group mt-4">
-                                    <label for="approver_id">Approved By <span class="text-danger">*</span></label>
+                                    <label for="approval_by">Approved By <span class="text-danger">*</span></label>
                                     <select
-                                        class="form-control select2-secondary @error('approver_id') is-invalid @enderror"
-                                        name="approver_id" id="approver_id" style="width: 100%;" required
+                                        class="form-control select2-secondary @error('approval_by') is-invalid @enderror"
+                                        name="approval_by" id="approval_by" style="width: 100%;" required
                                         {{ $officialtravel->approval_status !== 'pending' ? 'disabled' : '' }}>
                                         <option value="">Select Approver</option>
                                         @foreach ($approvers as $approver)
                                             <option value="{{ $approver['id'] }}"
-                                                {{ old('approver_id', $officialtravel->approval_by) == $approver['id'] ? 'selected' : '' }}>
+                                                {{ old('approval_by', $officialtravel->approval_by) == $approver['id'] ? 'selected' : '' }}>
                                                 {{ $approver['name'] }}
                                             </option>
                                         @endforeach
@@ -392,7 +393,7 @@
                                         <small class="text-muted">Cannot change approver after approval has been
                                             made</small>
                                     @endif
-                                    @error('approver_id')
+                                    @error('approval_by')
                                         <div class="invalid-feedback">{{ $message }}</div>
                                     @enderror
                                 </div>

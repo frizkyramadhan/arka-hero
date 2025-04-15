@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\v1;
 
 use App\Http\Controllers\Controller;
 use App\Models\Project;
+use App\Http\Resources\ProjectResource;
 use Illuminate\Http\Request;
 
 class ProjectController extends Controller
@@ -15,7 +16,11 @@ class ProjectController extends Controller
      */
     public function index()
     {
-        return Project::where('project_status', 1)->orderBy('project_code', 'asc')->get();
+        $projects = Project::where('project_status', 1)
+            ->orderBy('project_code', 'asc')
+            ->get();
+
+        return ProjectResource::collection($projects);
     }
 
     /**
@@ -37,7 +42,8 @@ class ProjectController extends Controller
      */
     public function show($id)
     {
-        //
+        $project = Project::findOrFail($id);
+        return new ProjectResource($project);
     }
 
     /**

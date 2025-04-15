@@ -3,6 +3,9 @@
 namespace App\Exceptions;
 
 use Illuminate\Foundation\Exceptions\Handler as ExceptionHandler;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use Spatie\Permission\Exceptions\UnauthorizedException;
 use Throwable;
 
 class Handler extends ExceptionHandler
@@ -38,10 +41,8 @@ class Handler extends ExceptionHandler
 
     /**
      * Register the exception handling callbacks for the application.
-     *
-     * @return void
      */
-    public function register()
+    public function register(): void
     {
         $this->renderable(function (\Spatie\Permission\Exceptions\UnauthorizedException $e, $request) {
             if ($request->expectsJson()) {
@@ -59,6 +60,48 @@ class Handler extends ExceptionHandler
                 ->with('alert_type', 'error')
                 ->with('alert_title', 'Access Denied')
                 ->with('alert_message', 'You do not have the required permissions to perform this action.');
+        });
+
+        $this->renderable(function (NotFoundHttpException $e, $request) {
+            if ($request->is('api/*')) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Resource not found'
+                ], 404);
+            }
+        });
+
+        $this->renderable(function (ModelNotFoundException $e, $request) {
+            if ($request->is('api/*')) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Resource not found'
+                ], 404);
+            }
+        });
+
+        $this->renderable(function (Throwable $e, $request) {
+            if ($request->is('api/*')) {
+                $status = 500;
+                $message = 'Server error';
+
+                if ($e instanceof \Illuminate\Validation\ValidationException) {
+                    $status = 422;
+                    $message = $e->getMessage();
+                } elseif ($e instanceof \Illuminate\Auth\AuthenticationException) {
+                    $status = 401;
+                    $message = 'Unauthenticated';
+                } elseif ($e instanceof \Illuminate\Auth\Access\AuthorizationException) {
+                    $status = 403;
+                    $message = 'Unauthorized';
+                }
+
+                return response()->json([
+                    'status' => 'error',
+                    'message' => $message,
+                    'errors' => $e instanceof \Illuminate\Validation\ValidationException ? $e->errors() : null
+                ], $status);
+            }
         });
     }
 }

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\v1;
 
 use App\Http\Controllers\Controller;
 use App\Models\Position;
+use App\Http\Resources\PositionResource;
 use Illuminate\Http\Request;
 
 class PositionController extends Controller
@@ -15,7 +16,12 @@ class PositionController extends Controller
      */
     public function index()
     {
-        return Position::with(['department'])->where('position_status', 1)->orderBy('position_name', 'asc')->get();
+        $positions = Position::with(['department'])
+            ->where('position_status', 1)
+            ->orderBy('position_name', 'asc')
+            ->get();
+
+        return PositionResource::collection($positions);
     }
 
     /**
@@ -37,7 +43,8 @@ class PositionController extends Controller
      */
     public function show($id)
     {
-        //
+        $position = Position::with(['department'])->findOrFail($id);
+        return new PositionResource($position);
     }
 
     /**

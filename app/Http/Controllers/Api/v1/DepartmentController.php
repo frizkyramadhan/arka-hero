@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\v1;
 
 use App\Http\Controllers\Controller;
 use App\Models\Department;
+use App\Http\Resources\DepartmentResource;
 use Illuminate\Http\Request;
 
 class DepartmentController extends Controller
@@ -15,7 +16,12 @@ class DepartmentController extends Controller
      */
     public function index()
     {
-        return Department::where('department_status', 1)->orderBy('department_name', 'asc')->get();
+        $departments = Department::with(['positions'])
+            ->where('department_status', 1)
+            ->orderBy('department_name', 'asc')
+            ->get();
+
+        return DepartmentResource::collection($departments);
     }
 
     /**
@@ -37,7 +43,8 @@ class DepartmentController extends Controller
      */
     public function show($id)
     {
-        //
+        $department = Department::with(['positions'])->findOrFail($id);
+        return new DepartmentResource($department);
     }
 
     /**
