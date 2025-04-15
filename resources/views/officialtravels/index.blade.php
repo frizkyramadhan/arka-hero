@@ -25,13 +25,16 @@
                     <div id="accordion">
                         <div class="card">
                             <div class="card-header">
-                                <h3 class="card-title"><b>{{ $subtitle }}</b></h3>
-                                <div class="float-right">
+                                <h3 class="card-title">{{ $title }}</h3>
+                                <div class="card-tools">
                                     @can('official-travels.create')
                                         <a href="{{ route('officialtravels.create') }}" class="btn btn-warning">
                                             <i class="fas fa-plus"></i> Add
                                         </a>
                                     @endcan
+                                    <button type="button" class="btn btn-success" id="exportExcel">
+                                        <i class="fas fa-file-excel"></i> Export Excel
+                                    </button>
                                 </div>
                             </div>
                             <!-- /.card-header -->
@@ -222,13 +225,13 @@
             var table = $("#officialtravel-table").DataTable({
                 responsive: true,
                 autoWidth: true,
-                lengthChange: true,
-                lengthMenu: [
-                    [10, 25, 50, 100, -1],
-                    ['10', '25', '50', '100', 'Show all']
-                ],
-                dom: 'rtpi',
-                buttons: ["copy", "csv", "excel", "pdf", "print", "colvis"],
+                // lengthChange: true,
+                // lengthMenu: [
+                //     [10, 25, 50, 100, -1],
+                //     ['10', '25', '50', '100', 'Show all']
+                // ],
+                dom: 'rtip',
+                // buttons: ["copy", "csv", "excel", "pdf", "print"],
                 processing: true,
                 serverSide: true,
                 ajax: {
@@ -326,6 +329,53 @@
                 $('#travel_number, #destination, #nik, #fullname').val('');
                 $('#project, #status, #recommendation, #approval').val('').trigger('change');
                 table.draw();
+            });
+
+            // Export Excel button click handler
+            $('#exportExcel').click(function() {
+                // Get all filter values
+                var filters = {
+                    date1: $('#date1').val(),
+                    date2: $('#date2').val(),
+                    travel_number: $('#travel_number').val(),
+                    destination: $('#destination').val(),
+                    nik: $('#nik').val(),
+                    fullname: $('#fullname').val(),
+                    project: $('#project').val(),
+                    status: $('#status').val(),
+                    recommendation: $('#recommendation').val(),
+                    approval: $('#approval').val(),
+                    search: $("input[type=search][aria-controls=officialtravel-table]").val(),
+                    _token: '{{ csrf_token() }}'
+                };
+
+                // Create a form dynamically
+                var form = $('<form>', {
+                    method: 'POST',
+                    action: '{{ route('officialtravels.export') }}'
+                });
+
+                // Add CSRF token
+                form.append($('<input>', {
+                    type: 'hidden',
+                    name: '_token',
+                    value: '{{ csrf_token() }}'
+                }));
+
+                // Add all filter values as hidden inputs
+                Object.keys(filters).forEach(function(key) {
+                    if (filters[key]) {
+                        form.append($('<input>', {
+                            type: 'hidden',
+                            name: key,
+                            value: filters[key]
+                        }));
+                    }
+                });
+
+                // Append form to body and submit
+                $('body').append(form);
+                form.submit();
             });
         });
     </script>

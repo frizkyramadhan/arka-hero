@@ -53,7 +53,7 @@ class DashboardController extends Controller
         if ($user->can('official-travels.stamp')) {
             $pendingDepartures = Officialtravel::where('official_travel_status', 'open')
                 ->whereNotNull('arrival_at_destination')
-                ->whereNull('departure_at_destination')
+                ->whereNull('departure_from_destination')
                 ->count();
         }
 
@@ -193,7 +193,7 @@ class DashboardController extends Controller
         $query = Officialtravel::with('traveler.employee')
             ->where('official_travel_status', 'open')
             ->whereNotNull('arrival_at_destination')
-            ->whereNull('departure_at_destination');
+            ->whereNull('departure_from_destination');
 
         return DataTables::of($query)
             ->addIndexColumn()

@@ -230,7 +230,7 @@
                             </div>
                             <div>
                                 <strong>Date:</strong><br>
-                                {{ $officialtravel->departure_at_destination ? date('d/m/Y', strtotime($officialtravel->departure_at_destination)) : '.........................' }}
+                                {{ $officialtravel->departure_from_destination ? date('d/m/Y', strtotime($officialtravel->departure_from_destination)) : '.........................' }}
                             </div>
                         </td>
                     </tr>

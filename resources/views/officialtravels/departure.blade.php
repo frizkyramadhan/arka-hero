@@ -59,7 +59,7 @@
                                     </div>
                                     <div class="info-content">
                                         <div class="info-label">Expected Departure</div>
-                                        <div class="info-value">{{ $officialtravel->departure_at_destination }}</div>
+                                        <div class="info-value">{{ $officialtravel->departure_from_destination }}</div>
                                         <div class="info-meta">From:
                                             {{ date('d M Y', strtotime($officialtravel->departure_from)) }}</div>
                                     </div>
@@ -136,14 +136,14 @@
                             </div>
                             <div class="card-body">
                                 <div class="form-group">
-                                    <label for="departure_at_destination">Departure Date & Time <span
+                                    <label for="departure_from_destination">Departure Date & Time <span
                                             class="text-danger">*</span></label>
                                     <input type="datetime-local"
-                                        class="form-control @error('departure_at_destination') is-invalid @enderror"
-                                        name="departure_at_destination" id="departure_at_destination"
-                                        value="{{ old('departure_at_destination', $officialtravel->departure_at_destination ? date('Y-m-d\TH:i', strtotime($officialtravel->departure_at_destination)) : date('Y-m-d\TH:i')) }}"
+                                        class="form-control @error('departure_from_destination') is-invalid @enderror"
+                                        name="departure_from_destination" id="departure_from_destination"
+                                        value="{{ old('departure_from_destination', $officialtravel->departure_from_destination ? date('Y-m-d\TH:i', strtotime($officialtravel->departure_from_destination)) : date('Y-m-d\TH:i')) }}"
                                         required>
-                                    @error('departure_at_destination')
+                                    @error('departure_from_destination')
                                         <div class="invalid-feedback">{{ $message }}</div>
                                     @enderror
                                 </div>

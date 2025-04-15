@@ -170,7 +170,7 @@
                                                     {{ $travel->traveler->employee->fullname ?? 'N/A' }}</td>
                                                 <td>{{ $travel->destination }}</td>
                                                 <td>{{ $travel->arrival_at_destination }}</td>
-                                                <td>{{ $travel->departure_at_destination }}</td>
+                                                <td>{{ $travel->departure_from_destination }}</td>
                                                 <td class="text-center">
                                                     @if ($travel->official_travel_status == 'draft')
                                                         <span class="badge badge-secondary">Draft</span>

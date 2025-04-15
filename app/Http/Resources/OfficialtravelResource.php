@@ -22,7 +22,7 @@ class OfficialtravelResource extends JsonResource
             'approval_status' => $this->approval_status,
             'is_claimed' => $this->is_claimed,
             'claimed_at' => $this->claimed_at,
-            'departure_at_destination' => $this->departure_at_destination,
+            'departure_from_destination' => $this->departure_from_destination,
             'arrival_at_destination' => $this->arrival_at_destination,
             'traveler' => $this->whenLoaded('traveler'),
             'project' => $this->whenLoaded('project'),

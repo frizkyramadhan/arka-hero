@@ -313,7 +313,7 @@
                                                 </div>
                                                 <div class="step-date">
                                                     <i class="fas fa-calendar-check"></i>
-                                                    {{ $officialtravel->departure_at_destination ? date('d M Y H:i', strtotime($officialtravel->departure_at_destination)) : 'Not departed' }}
+                                                    {{ $officialtravel->departure_from_destination ? date('d M Y H:i', strtotime($officialtravel->departure_from_destination)) : 'Not departed' }}
                                                 </div>
                                             </div>
                                             <div class="step-remark">

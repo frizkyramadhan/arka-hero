@@ -145,8 +145,8 @@ class OfficialtravelApiController extends Controller
                 ], 404);
             }
 
-            // Check if departure_at_destination is not null
-            if (is_null($officialtravel->departure_at_destination)) {
+            // Check if departure_from_destination is not null
+            if (is_null($officialtravel->departure_from_destination)) {
                 return response()->json([
                     'status' => 'error',
                     'message' => 'Cannot update claim status because departure at destination is not recorded'

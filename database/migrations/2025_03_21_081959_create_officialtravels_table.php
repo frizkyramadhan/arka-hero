@@ -27,16 +27,6 @@ return new class extends Migration
             $table->foreignId('transportation_id')->constrained('transportations');
             $table->foreignId('accommodation_id')->constrained('accommodations');
             $table->foreignId('created_by')->constrained('users');
-            // arrival
-            $table->datetime('arrival_at_destination')->nullable();
-            $table->foreignId('arrival_check_by')->nullable()->constrained('users');
-            $table->string('arrival_remark')->nullable();
-            $table->timestamp('arrival_timestamps')->nullable();
-            // departure
-            $table->datetime('departure_at_destination')->nullable();
-            $table->foreignId('departure_check_by')->nullable()->constrained('users');
-            $table->string('departure_remark')->nullable();
-            $table->timestamp('departure_timestamps')->nullable();
             // recommendation
             $table->enum('recommendation_status', ['pending', 'approved', 'rejected']);
             $table->string('recommendation_remark')->nullable();
@@ -49,7 +39,16 @@ return new class extends Migration
             $table->foreignId('approval_by')->nullable()->constrained('users');
             $table->datetime('approval_date')->nullable();
             $table->timestamp('approval_timestamps')->nullable();
-
+            // arrival
+            $table->datetime('arrival_at_destination')->nullable();
+            $table->foreignId('arrival_check_by')->nullable()->constrained('users');
+            $table->string('arrival_remark')->nullable();
+            $table->timestamp('arrival_timestamps')->nullable();
+            // departure
+            $table->datetime('departure_from_destination')->nullable();
+            $table->foreignId('departure_check_by')->nullable()->constrained('users');
+            $table->string('departure_remark')->nullable();
+            $table->timestamp('departure_timestamps')->nullable();
             // is claimed, used for LOTC App on PayReq
             $table->enum('is_claimed', ['yes', 'no'])->default('no');
             $table->datetime('claimed_at')->nullable();

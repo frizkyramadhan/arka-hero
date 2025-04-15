@@ -13,6 +13,10 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use App\Models\User;
 use Spatie\Activitylog\Facades\LogActivity;
+use Maatwebsite\Excel\Facades\Excel;
+use Maatwebsite\Excel\Concerns\FromCollection;
+use Maatwebsite\Excel\Concerns\WithHeadings;
+use Maatwebsite\Excel\Concerns\WithMapping;
 
 class OfficialtravelController extends Controller
 {
@@ -198,6 +202,204 @@ class OfficialtravelController extends Controller
             })
             ->rawColumns(['action', 'status', 'recommendation', 'approval', 'created_by'])
             ->toJson();
+    }
+
+    /**
+     * Export official travels to Excel
+     */
+    public function exportExcel(Request $request)
+    {
+        try {
+            $query = Officialtravel::with([
+                'traveler.employee',
+                'project',
+                'transportation',
+                'accommodation',
+                'details.follower.employee',
+                'recommender',
+                'approver',
+                'creator'
+            ]);
+
+            // Apply the same filters as getOfficialtravels
+            if (!empty($request->get('date1')) && !empty($request->get('date2'))) {
+                $query->whereBetween('official_travel_date', [
+                    $request->get('date1'),
+                    $request->get('date2')
+                ]);
+            }
+
+            if (!empty($request->get('travel_number'))) {
+                $query->where('official_travel_number', 'LIKE', '%' . $request->get('travel_number') . '%');
+            }
+
+            if (!empty($request->get('destination'))) {
+                $query->where('destination', 'LIKE', '%' . $request->get('destination') . '%');
+            }
+
+            if (!empty($request->get('nik'))) {
+                $query->whereHas('traveler', function ($q) use ($request) {
+                    $q->where('nik', 'LIKE', '%' . $request->get('nik') . '%');
+                });
+            }
+
+            if (!empty($request->get('fullname'))) {
+                $query->whereHas('traveler.employee', function ($q) use ($request) {
+                    $q->where('fullname', 'LIKE', '%' . $request->get('fullname') . '%');
+                });
+            }
+
+            if (!empty($request->get('project'))) {
+                $query->where('official_travel_origin', $request->get('project'));
+            }
+
+            if (!empty($request->get('status'))) {
+                $query->where('official_travel_status', $request->get('status'));
+            }
+
+            if (!empty($request->get('recommendation'))) {
+                $query->where('recommendation_status', $request->get('recommendation'));
+            }
+
+            if (!empty($request->get('approval'))) {
+                $query->where('approval_status', $request->get('approval'));
+            }
+
+            if (!empty($request->get('search'))) {
+                $search = $request->get('search');
+                $query->where(function ($q) use ($search) {
+                    $q->where('official_travel_number', 'LIKE', "%$search%")
+                        ->orWhere('destination', 'LIKE', "%$search%")
+                        ->orWhereHas('traveler.employee', function ($q) use ($search) {
+                            $q->where('fullname', 'LIKE', "%$search%")
+                                ->orWhere('nik', 'LIKE', "%$search%");
+                        })
+                        ->orWhereHas('project', function ($q) use ($search) {
+                            $q->where('project_code', 'LIKE', "%$search%")
+                                ->orWhere('project_name', 'LIKE', "%$search%");
+                        });
+                });
+            }
+
+            $officialtravels = $query->orderBy('created_at', 'desc')->get();
+
+            return Excel::download(new class($officialtravels) implements FromCollection, WithHeadings, WithMapping {
+                private $officialtravels;
+
+                public function __construct($officialtravels)
+                {
+                    $this->officialtravels = $officialtravels;
+                }
+
+                public function collection()
+                {
+                    return $this->officialtravels;
+                }
+
+                public function headings(): array
+                {
+                    return [
+                        'Travel Number',
+                        'Date',
+                        'Traveler',
+                        'Project',
+                        'Destination',
+                        'Status',
+                        'Recommendation',
+                        'Recommend By',
+                        'Recommend Date',
+                        'Approval',
+                        'Approve By',
+                        'Approve Date',
+                        'Arrival Checker',
+                        'Arrival Date',
+                        'Arrival Remarks',
+                        'Departure Checker',
+                        'Departure Date',
+                        'Departure Remarks',
+                        'Created By',
+                        'Created At'
+                    ];
+                }
+
+                public function map($officialtravel): array
+                {
+                    $traveler = $officialtravel->traveler;
+                    $travelerName = $traveler && $traveler->employee ?
+                        $traveler->nik . ' - ' . $traveler->employee->fullname : '-';
+
+                    $project = $officialtravel->project ? $officialtravel->project->project_code : '-';
+
+                    $status = match ($officialtravel->official_travel_status) {
+                        'draft' => 'Draft',
+                        'open' => 'Open',
+                        'closed' => 'Closed',
+                        'canceled' => 'Canceled',
+                        default => '-'
+                    };
+
+                    $recommendation = match ($officialtravel->recommendation_status) {
+                        'pending' => 'Pending',
+                        'approved' => 'Approved',
+                        'rejected' => 'Rejected',
+                        default => '-'
+                    };
+
+                    $recommendBy = $officialtravel->recommender ? $officialtravel->recommender->name : '-';
+                    $recommendDate = $officialtravel->recommendation_date ?
+                        date('d/m/Y H:i', strtotime($officialtravel->recommendation_date)) : '-';
+
+                    $approval = match ($officialtravel->approval_status) {
+                        'pending' => 'Pending',
+                        'approved' => 'Approved',
+                        'rejected' => 'Rejected',
+                        default => '-'
+                    };
+
+                    $approveBy = $officialtravel->approver ? $officialtravel->approver->name : '-';
+                    $approveDate = $officialtravel->approval_date ?
+                        date('d/m/Y H:i', strtotime($officialtravel->approval_date)) : '-';
+
+                    // Arrival information
+                    $arrivalDate = $officialtravel->arrival_at_destination ?
+                        date('d/m/Y H:i', strtotime($officialtravel->arrival_at_destination)) : '-';
+                    $arrivalChecker = $officialtravel->arrivalChecker ? $officialtravel->arrivalChecker->name : '-';
+                    $arrivalRemarks = $officialtravel->arrival_remark ?? '-';
+
+                    // Departure information
+                    $departureDate = $officialtravel->departure_from_destination ?
+                        date('d/m/Y H:i', strtotime($officialtravel->departure_from_destination)) : '-';
+                    $departureChecker = $officialtravel->departureChecker ? $officialtravel->departureChecker->name : '-';
+                    $departureRemarks = $officialtravel->departure_remark ?? '-';
+
+                    return [
+                        $officialtravel->official_travel_number,
+                        date('d/m/Y', strtotime($officialtravel->official_travel_date)),
+                        $travelerName,
+                        $project,
+                        $officialtravel->destination,
+                        $status,
+                        $recommendation,
+                        $recommendBy,
+                        $recommendDate,
+                        $approval,
+                        $approveBy,
+                        $approveDate,
+                        $arrivalChecker,
+                        $arrivalDate,
+                        $arrivalRemarks,
+                        $departureChecker,
+                        $departureDate,
+                        $departureRemarks,
+                        $officialtravel->creator->name ?? '-',
+                        $officialtravel->created_at->format('d/m/Y H:i')
+                    ];
+                }
+            }, 'official_travels_' . date('YmdHis') . '.xlsx');
+        } catch (\Exception $e) {
+            return redirect()->back()
+                ->with('toast_error', 'Failed to export data: ' . $e->getMessage());
+        }
     }
 
     /**
@@ -486,7 +688,7 @@ class OfficialtravelController extends Controller
                 'accommodation_id' => $request->accommodation_id,
                 'arrival_at_destination' => $request->arrival_at_destination,
                 'arrival_remark' => $request->arrival_remark ?? $officialtravel->arrival_remark,
-                'departure_at_destination' => $request->departure_at_destination,
+                'departure_from_destination' => $request->departure_from_destination,
                 'departure_remark' => $request->departure_remark ?? $officialtravel->departure_remark,
                 'recommendation_by' => $request->recommendation_by,
                 'approval_by' => $request->approval_by,
@@ -904,14 +1106,14 @@ class OfficialtravelController extends Controller
             }
 
             $request->validate([
-                'departure_at_destination' => 'required|date',
+                'departure_from_destination' => 'required|date',
                 'departure_remark' => 'required|string'
             ]);
 
             DB::beginTransaction();
 
             $officialtravel->update([
-                'departure_at_destination' => $request->departure_at_destination,
+                'departure_from_destination' => $request->departure_from_destination,
                 'departure_remark' => $request->departure_remark,
                 'departure_check_by' => auth()->id(),
                 'departure_timestamps' => now()
