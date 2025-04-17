@@ -104,10 +104,10 @@ class Employee extends Model
         return $this->hasMany(License::class);
     }
 
-    public function termination()
-    {
-        return $this->hasMany(Termination::class);
-    }
+    // public function termination()
+    // {
+    //     return $this->hasMany(Termination::class);
+    // }
 
     public function taxidentification()
     {

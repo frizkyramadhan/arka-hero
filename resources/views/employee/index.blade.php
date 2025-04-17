@@ -195,8 +195,7 @@
                                     </div>
                                 </div>
                                 <div class="table-responsive">
-                                    <table id="example1" width="100%"
-                                        class="table table-sm table-bordered table-striped">
+                                    <table id="example1" width="100%" class="table table-bordered table-striped">
                                         <thead>
                                             <tr>
                                                 <th class="align-middle text-center">No</th>
