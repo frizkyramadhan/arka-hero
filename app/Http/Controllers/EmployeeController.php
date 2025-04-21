@@ -432,6 +432,7 @@ class EmployeeController extends Controller
         $title = 'Employees';
         $subtitle = 'Detail Employee';
         $employee = Employee::with(['religion'])->where('id', $id)->first();
+        $banks = Bank::orderBy('bank_name', 'asc')->get();
         $bank = Employeebank::with(['banks'])->where('employee_id', $id)->first();
         $tax = Taxidentification::where('employee_id', $id)->first();
         $insurances = Insurance::where('employee_id', $id)->get();
@@ -458,7 +459,7 @@ class EmployeeController extends Controller
         $positions = Position::with('department')->orderBy('position_name', 'asc')->get();
         $projects = Project::orderBy('project_code', 'asc')->get();
 
-        return view('employee.detail', compact('title', 'subtitle', 'employee', 'bank', 'tax', 'insurances', 'families', 'educations', 'courses', 'jobs', 'units', 'licenses', 'emergencies', 'additional', 'administrations', 'images', 'religions', 'getBanks', 'positions', 'projects', 'profile'));
+        return view('employee.detail', compact('title', 'subtitle', 'employee', 'banks', 'bank', 'tax', 'insurances', 'families', 'educations', 'courses', 'jobs', 'units', 'licenses', 'emergencies', 'additional', 'administrations', 'images', 'religions', 'getBanks', 'positions', 'projects', 'profile'));
     }
 
     public function edit($id)
@@ -574,7 +575,7 @@ class EmployeeController extends Controller
 
         $this->validate($request, [
             'filename' => 'required',
-            'filename.*' => 'image|mimes:jpeg,png,jpg,gif,svg|max:2048'
+            'filename.*' => 'image|mimes:jpeg,png,jpg|max:2048'
         ]);
 
         if ($request->hasfile('filename')) {
@@ -596,7 +597,7 @@ class EmployeeController extends Controller
             }
         }
 
-        return redirect('employees/' . $id . '#images')->with('toast_success', 'Images uploaded successfully');
+        return redirect('employees/' . $id . '#image')->with('toast_success', 'Images uploaded successfully');
     }
 
     public function deleteImage($employee_id, $id)
@@ -621,7 +622,7 @@ class EmployeeController extends Controller
             }
         }
 
-        return redirect('employees/' . $image->employee_id . '#images')->with('toast_success', 'Image successfully deleted!');
+        return redirect('employees/' . $image->employee_id . '#image')->with('toast_success', 'Image successfully deleted!');
     }
 
     public function deleteImages($employee_id)
@@ -642,7 +643,7 @@ class EmployeeController extends Controller
         //         Image::where('id', $image->id)->delete();
         //     }
         // }
-        return redirect('employees/' . $employee_id . '#images')->with('toast_success', 'All images successfully deleted!');
+        return redirect('employees/' . $employee_id . '#image')->with('toast_success', 'All images successfully deleted!');
     }
 
     public function setProfile($employee_id, $id)
@@ -652,7 +653,7 @@ class EmployeeController extends Controller
         $image->save();
         Image::where('employee_id', $employee_id)->where('id', '!=', $id)->update(['is_profile' => 0]);
 
-        return redirect('employees/' . $employee_id . '#images')->with('toast_success', 'Profile Picture Set Successfully');
+        return redirect('employees/' . $employee_id . '#image')->with('toast_success', 'Profile Picture Set Successfully');
     }
 
     public function getDepartment()

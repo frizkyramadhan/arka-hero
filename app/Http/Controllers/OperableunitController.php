@@ -87,7 +87,7 @@ class OperableunitController extends Controller
         $operableunit->unit_remarks = $request->unit_remarks;
         $operableunit->save();
 
-        return redirect('employees/' . $employee_id . '#units')->with('toast_success', 'Operable Unit Added Successfully');
+        return redirect('employees/' . $employee_id . '#unit')->with('toast_success', 'Operable Unit Added Successfully');
     }
 
     /**
@@ -135,7 +135,7 @@ class OperableunitController extends Controller
         $operableunit->unit_remarks = $request->unit_remarks;
         $operableunit->save();
 
-        return redirect('employees/' . $request->employee_id . '#units')->with('toast_success', 'Operable Unit Updated Successfully');
+        return redirect('employees/' . $request->employee_id . '#unit')->with('toast_success', 'Operable Unit Updated Successfully');
     }
 
     /**
@@ -149,12 +149,12 @@ class OperableunitController extends Controller
         $operableunit = Operableunit::find($id);
         $operableunit->delete();
 
-        return redirect('employees/' . $employee_id . '#units')->with('toast_success', 'Operable Unit Deleted Successfully');
+        return redirect('employees/' . $employee_id . '#unit')->with('toast_success', 'Operable Unit Deleted Successfully');
     }
 
     public function deleteAll($employee_id)
     {
         Operableunit::where('employee_id', $employee_id)->delete();
-        return redirect('employees/' . $employee_id . '#units')->with('toast_success', 'Operable Unit Deleted Successfully');
+        return redirect('employees/' . $employee_id . '#unit')->with('toast_success', 'Operable Unit Deleted Successfully');
     }
 }

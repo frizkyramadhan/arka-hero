@@ -85,7 +85,7 @@ class LicenseController extends Controller
         $licenses->driver_license_exp = $request->driver_license_exp;
         $licenses->save();
 
-        return redirect('employees/' . $employee_id . '#licenses')->with('toast_success', 'Driver License Add Successfully');
+        return redirect('employees/' . $employee_id . '#license')->with('toast_success', 'Driver License Added Successfully');
     }
 
     public function edit($id)
@@ -112,19 +112,19 @@ class LicenseController extends Controller
         $licenses->driver_license_exp = $request->driver_license_exp;
         $licenses->save();
 
-        return redirect('employees/' . $request->employee_id . '#licenses')->with('toast_success', 'Driver License Update Successfully');
+        return redirect('employees/' . $request->employee_id . '#license')->with('toast_success', 'Driver License Update Successfully');
     }
 
     public function delete($employee_id, $id)
     {
         $licenses = License::find($id);
         $licenses->delete();
-        return redirect('employees/' . $employee_id . '#licenses')->with('toast_success', 'Driver License Delete Successfully');
+        return redirect('employees/' . $employee_id . '#license')->with('toast_success', 'Driver License Delete Successfully');
     }
 
     public function deleteAll($employee_id)
     {
         License::where('employee_id', $employee_id)->delete();
-        return redirect('employees/' . $employee_id . '#licenses')->with('toast_success', 'Driver License Delete Successfully');
+        return redirect('employees/' . $employee_id . '#license')->with('toast_success', 'Driver License Delete Successfully');
     }
 }

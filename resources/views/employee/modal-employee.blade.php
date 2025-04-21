@@ -52,7 +52,7 @@
                             </div>
                         </div>
 
-                        <h6 class="mt-4 mb-3 text-muted">Birth Information</h6>
+                        <h5 class="mt-4 mb-3">Birth Information</h5>
                         <div class="row">
                             <div class="col-md-4">
                                 <div class="form-group">
@@ -104,7 +104,7 @@
                             </div>
                         </div>
 
-                        <h6 class="mt-4 mb-3 text-muted">Personal Details</h6>
+                        <h5 class="mt-4 mb-3">Personal Details</h5>
                         <div class="row">
                             <div class="col-md-4">
                                 <div class="form-group">
@@ -177,7 +177,7 @@
                             </div>
                         </div>
 
-                        <h6 class="mt-4 mb-3 text-muted">Contact Information</h6>
+                        <h5 class="mt-4 mb-3">Contact Information</h5>
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="form-group">
@@ -213,7 +213,7 @@
                             </div>
                         </div>
 
-                        <h6 class="mt-4 mb-3 text-muted">Address Information</h6>
+                        <h5 class="mt-4 mb-3">Address Information</h5>
                         <div class="row">
                             <div class="col-md-12">
                                 <div class="form-group">

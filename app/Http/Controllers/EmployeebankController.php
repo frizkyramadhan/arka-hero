@@ -84,7 +84,7 @@ class EmployeebankController extends Controller
 
         ]);
         Employeebank::create($request->all());
-        return redirect('employees/' . $request->employee_id . '#banks')->with('toast_success', 'Bank Added Successfully');
+        return redirect('employees/' . $request->employee_id . '#bank')->with('toast_success', 'Bank Added Successfully');
     }
 
 
@@ -115,12 +115,12 @@ class EmployeebankController extends Controller
 
         Employeebank::where('id', $id)->update($rules);
 
-        return redirect('employees/' . $request->employee_id . '#banks')->with('toast_success', 'Bank Account Update Successfully');
+        return redirect('employees/' . $request->employee_id . '#bank')->with('toast_success', 'Bank Account Update Successfully');
     }
 
     public function delete($employee_id, $id)
     {
         Employeebank::where('id', $id)->delete();
-        return redirect('employees/' . $employee_id . '#banks')->with('toast_success', 'Bank Account Delete Successfully');
+        return redirect('employees/' . $employee_id . '#bank')->with('toast_success', 'Bank Account Delete Successfully');
     }
 }

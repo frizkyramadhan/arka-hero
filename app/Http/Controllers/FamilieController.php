@@ -104,7 +104,7 @@ class FamilieController extends Controller
         $families->bpjsks_no = $request->bpjsks_no;
         $families->save();
 
-        return redirect('employees/' . $employee_id . '#families')->with('toast_success', 'Family Employee Add Successfully');
+        return redirect('employees/' . $employee_id . '#family')->with('toast_success', 'Family Employee Add Successfully');
     }
 
     public function update(Request $request, $id)
@@ -128,19 +128,19 @@ class FamilieController extends Controller
         $family->bpjsks_no = $request->bpjsks_no;
         $family->save();
 
-        return redirect('employees/' . $request->employee_id . '#families')->with('toast_success', 'Family Employee Update Successfully');
+        return redirect('employees/' . $request->employee_id . '#family')->with('toast_success', 'Family Employee Update Successfully');
     }
 
     public function delete($employee_id, $id)
     {
         $families = Family::where('id', $id)->first();
         $families->delete();
-        return redirect('employees/' . $employee_id . '#families')->with('toast_success', 'Family Employee Delete Successfully');
+        return redirect('employees/' . $employee_id . '#family')->with('toast_success', 'Family Employee Delete Successfully');
     }
 
     public function deleteAll($employee_id)
     {
         Family::where('employee_id', $employee_id)->delete();
-        return redirect('employees/' . $employee_id . '#families')->with('toast_success', 'Family Employee Delete Successfully');
+        return redirect('employees/' . $employee_id . '#family')->with('toast_success', 'Family Employee Delete Successfully');
     }
 }

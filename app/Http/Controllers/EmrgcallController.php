@@ -73,7 +73,7 @@ class EmrgcallController extends Controller
 
         ]);
         Emrgcall::create($request->all());
-        return redirect('employees/' . $employee_id . '#emergencies')->with('toast_success', 'Emergency Call Added Successfully');
+        return redirect('employees/' . $employee_id . '#emergency')->with('toast_success', 'Emergency Call Added Successfully');
     }
 
     public function update(Request $request, $id)
@@ -89,19 +89,19 @@ class EmrgcallController extends Controller
         $emrgcalls = Emrgcall::where('id', $id)->first();
         $emrgcalls->update($request->all());
 
-        return redirect('employees/' . $request->employee_id . '#emergencies')->with('toast_success', 'Emergency Call Updated Successfully');
+        return redirect('employees/' . $request->employee_id . '#emergency')->with('toast_success', 'Emergency Call Updated Successfully');
     }
 
     public function delete($employee_id, $id)
     {
         $emrgcalls = Emrgcall::where('id', $id)->first();
         $emrgcalls->delete();
-        return redirect('employees/' . $employee_id . '#emergencies')->with('toast_success', 'Emergency Call Deleted Successfully');
+        return redirect('employees/' . $employee_id . '#emergency')->with('toast_success', 'Emergency Call Deleted Successfully');
     }
 
     public function deleteAll($employee_id)
     {
         Emrgcall::where('employee_id', $employee_id)->delete();
-        return redirect('employees/' . $employee_id . '#emergencies')->with('toast_success', 'Emergency Call Deleted Successfully');
+        return redirect('employees/' . $employee_id . '#emergency')->with('toast_success', 'Emergency Call Deleted Successfully');
     }
 }

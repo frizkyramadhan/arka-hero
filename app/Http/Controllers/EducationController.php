@@ -73,7 +73,7 @@ class EducationController extends Controller
 
         ]);
         Education::create($request->all());
-        return redirect('employees/' . $employee_id . '#educations')->with('toast_success', 'Education Employee Add Successfully');
+        return redirect('employees/' . $employee_id . '#education')->with('toast_success', 'Education Employee Add Successfully');
     }
 
     public function update(Request $request, $id)
@@ -88,19 +88,19 @@ class EducationController extends Controller
         $validatedData = $request->validate($rules);
         Education::where('id', $id)->update($validatedData);
 
-        return redirect('employees/' . $request->employee_id . '#educations')->with('toast_success', 'Education Employee Update Successfully');
+        return redirect('employees/' . $request->employee_id . '#education')->with('toast_success', 'Education Employee Update Successfully');
     }
 
     public function delete($employee_id, $id)
     {
         $educations = Education::where('id', $id)->first();
         $educations->delete();
-        return redirect('employees/' . $employee_id . '#educations')->with('toast_success', 'Education Employee Delete Successfully');
+        return redirect('employees/' . $employee_id . '#education')->with('toast_success', 'Education Employee Delete Successfully');
     }
 
     public function deleteAll($employee_id)
     {
         Education::where('employee_id', $employee_id)->delete();
-        return redirect('employees/' . $employee_id . '#educations')->with('toast_success', 'Education Employee Delete Successfully');
+        return redirect('employees/' . $employee_id . '#education')->with('toast_success', 'Education Employee Delete Successfully');
     }
 }

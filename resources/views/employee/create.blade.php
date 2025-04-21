@@ -58,7 +58,7 @@
                                     <button type="button" class="step-trigger" role="tab" aria-controls="bank-part"
                                         id="bank-part-trigger">
                                         <span class="bs-stepper-circle"><i class="fas fa-money-check-alt"></i></span>
-                                        <span class="bs-stepper-label">Bank Account</span>
+                                        <span class="bs-stepper-label">&nbsp;&nbsp;Bank&nbsp;&nbsp;</span>
                                     </button>
                                 </div>
 
@@ -66,7 +66,7 @@
                                     <button type="button" class="step-trigger" role="tab" aria-controls="tax-part"
                                         id="tax-part-trigger">
                                         <span class="bs-stepper-circle"><i class="fas fa-file-invoice-dollar"></i></span>
-                                        <span class="bs-stepper-label">Tax Info</span>
+                                        <span class="bs-stepper-label">&nbsp;&nbsp;Tax&nbsp;&nbsp;</span>
                                     </button>
                                 </div>
 
@@ -198,7 +198,7 @@
                                         </div>
                                     </div>
 
-                                    <h6 class="mt-4 mb-3 text-muted">Birth Information</h6>
+                                    <h5 class="mt-2 mb-3">Birth Information</h5>
                                     <div class="row">
                                         <div class="col-md-4">
                                             <div class="form-group">
@@ -247,7 +247,7 @@
                                         </div>
                                     </div>
 
-                                    <h6 class="mt-4 mb-3 text-muted">Personal Details</h6>
+                                    <h5 class="mt-2 mb-3">Personal Details</h5>
                                     <div class="row">
                                         <div class="col-md-4">
                                             <div class="form-group">
@@ -318,7 +318,7 @@
                                         </div>
                                     </div>
 
-                                    <h6 class="mt-4 mb-3 text-muted">Contact Information</h6>
+                                    <h5 class="mt-2 mb-3">Contact Information</h5>
                                     <div class="row">
                                         <div class="col-md-6">
                                             <div class="form-group">
@@ -355,7 +355,7 @@
                                         </div>
                                     </div>
 
-                                    <h6 class="mt-4 mb-3 text-muted">Address Information</h6>
+                                    <h5 class="mt-2 mb-3">Address Information</h5>
                                     <div class="row">
                                         <div class="col-md-12">
                                             <div class="form-group">
@@ -416,7 +416,7 @@
                                             </div>
                                         </div>
                                     </div>
-                                    <div class="d-flex justify-content-end mt-4">
+                                    <div class="d-flex justify-content-end mt-2">
                                         <button type="button" class="btn btn-primary" onclick="stepper.next()"><i
                                                 class="fas fa-arrow-right mr-1"></i> Next</button>
                                     </div>
@@ -477,7 +477,7 @@
                                         </div>
                                     </div>
 
-                                    <h6 class="mt-4 mb-3 text-muted">Hiring Information</h6>
+                                    <h5 class="mt-2 mb-3">Hiring Information</h5>
                                     <div class="row">
                                         <div class="col-md-6">
                                             <div class="form-group">
@@ -569,7 +569,7 @@
                                         </div>
                                     </div>
 
-                                    <h6 class="mt-4 mb-3 text-muted">Position Information</h6>
+                                    <h5 class="mt-2 mb-3">Position Information</h5>
                                     <div class="row">
                                         <div class="col-md-6">
                                             <div class="form-group">
@@ -639,7 +639,7 @@
                                         </div>
                                     </div>
 
-                                    <h6 class="mt-4 mb-3 text-muted">Certificates & References</h6>
+                                    <h5 class="mt-2 mb-3">Certificates & References</h5>
                                     <div class="row">
                                         <div class="col-md-6">
                                             <div class="form-group">
@@ -667,7 +667,7 @@
                                         </div>
                                     </div>
 
-                                    <h6 class="mt-4 mb-3 text-muted">Compensation</h6>
+                                    <h5 class="mt-2 mb-3">Compensation</h5>
                                     <div class="row">
                                         <div class="col-md-4">
                                             <div class="form-group">
@@ -735,6 +735,10 @@
                                 <div id="bank-part" class="content" role="tabpanel" aria-labelledby="bank-part-trigger">
                                     {{-- START Removing inner card div --}}
                                     <h5 class="mb-3 border-bottom pb-2">Bank Account Information</h5>
+                                    <div class="alert alert-info mt-3">
+                                        <i class="fas fa-info-circle mr-2"></i>
+                                        Bank account information is used for payroll and other financial transactions.
+                                    </div>
                                     <div class="row">
                                         <div class="col-md-8">
                                             <div class="form-group">
@@ -823,11 +827,6 @@
                                             </div>
                                         </div>
                                     </div>
-
-                                    <div class="alert alert-info mt-3">
-                                        <i class="fas fa-info-circle mr-2"></i>
-                                        Bank account information is used for payroll and other financial transactions.
-                                    </div>
                                     <div class="d-flex justify-content-between mt-4">
                                         <button type="button" class="btn btn-secondary" onclick="stepper.previous()"><i
                                                 class="fas fa-arrow-left mr-1"></i>
@@ -842,6 +841,10 @@
                                 <div id="tax-part" class="content" role="tabpanel" aria-labelledby="tax-part-trigger">
                                     {{-- START Removing inner card div --}}
                                     <h5 class="mb-3 border-bottom pb-2">Tax Information</h5>
+                                    <div class="alert alert-info mt-3">
+                                        <i class="fas fa-info-circle mr-2"></i>
+                                        Tax information is required for payroll tax deductions and annual tax reporting.
+                                    </div>
                                     <div class="row">
                                         <div class="col-md-8">
                                             <div class="form-group">
@@ -886,11 +889,6 @@
                                             </div>
                                         </div>
                                     </div>
-
-                                    <div class="alert alert-warning mt-3">
-                                        <i class="fas fa-exclamation-triangle mr-2"></i>
-                                        Tax information is required for payroll tax deductions and annual tax reporting.
-                                    </div>
                                     <div class="d-flex justify-content-between mt-4">
                                         <button type="button" class="btn btn-secondary" onclick="stepper.previous()"><i
                                                 class="fas fa-arrow-left mr-1"></i>
@@ -926,7 +924,7 @@
                                                     <th width="20%">Insurance No</th>
                                                     <th width="25%">Health Facility</th>
                                                     <th width="20%">Remarks</th>
-                                                    <th width="10%">Action</th>
+                                                    <th width="10%" class="text-center">Action</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -972,7 +970,7 @@
                                                     <th width="30%">License Type</th>
                                                     <th width="30%">License Number</th>
                                                     <th width="30%">Expiration Date</th>
-                                                    <th width="10%">Action</th>
+                                                    <th width="10%" class="text-center">Action</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -1021,7 +1019,7 @@
                                                     <th width="15%">Birth Date</th>
                                                     <th width="15%">Remarks</th>
                                                     <th width="15%">BPJS Kesehatan</th>
-                                                    <th width="5%">Action</th>
+                                                    <th width="5%" class="text-center">Action</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -1069,7 +1067,7 @@
                                                     <th width="30%">Address</th>
                                                     <th width="15%">Year</th>
                                                     <th width="15%">Remarks</th>
-                                                    <th width="10%">Action</th>
+                                                    <th width="10%" class="text-center">Action</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -1116,7 +1114,7 @@
                                                     <th width="30%">Institution</th>
                                                     <th width="15%">Year</th>
                                                     <th width="15%">Remarks</th>
-                                                    <th width="10%">Action</th>
+                                                    <th width="10%" class="text-center">Action</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -1164,7 +1162,7 @@
                                                     <th width="15%">Position</th>
                                                     <th width="15%">Period</th>
                                                     <th width="20%">Reason for Leaving</th>
-                                                    <th width="10%">Action</th>
+                                                    <th width="10%" class="text-center">Action</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -1209,7 +1207,7 @@
                                                     <th width="30%">Unit Name</th>
                                                     <th width="30%">Unit Type</th>
                                                     <th width="30%">Remarks</th>
-                                                    <th width="10%">Action</th>
+                                                    <th width="10%" class="text-center">Action</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -1256,7 +1254,7 @@
                                                     <th width="25%">Name</th>
                                                     <th width="30%">Address</th>
                                                     <th width="15%">Phone</th>
-                                                    <th width="10%">Action</th>
+                                                    <th width="10%" class="text-center">Action</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -1270,8 +1268,8 @@
                                         Emergency contacts are important for safety and emergency situations
                                     </div>
                                     <div class="d-flex justify-content-between mt-4">
-                                        <button type="button" class="btn btn-secondary" onclick="stepper.previous()"><i
-                                                class="fas fa-arrow-left mr-1"></i>
+                                        <button type="button" class="btn btn-secondary"
+                                            onclick="stepper.previous()"><i class="fas fa-arrow-left mr-1"></i>
                                             Previous</button>
                                         <button type="button" class="btn btn-primary" onclick="stepper.next()"><i
                                                 class="fas fa-arrow-right mr-1"></i> Next</button>
@@ -1448,7 +1446,7 @@
                                                 <i class="fas fa-lightbulb text-warning mr-2"></i>Image Guidelines
                                             </h6><br>
                                             <ul class="mb-0 pl-3">
-                                                <li>Supported formats: JPG, PNG, GIF. Maximum file size: 2MB.</li>
+                                                <li>Supported formats: JPG, PNG. Maximum file size: 2MB.</li>
                                                 <li>Profile photos should be clear and professional</li>
                                                 <li>ID card images must be legible</li>
                                                 <li>All uploads must be appropriate for workplace use</li>
@@ -1760,32 +1758,93 @@
 @endsection
 
 @section('scripts')
-    <!-- Select2 -->
-    <script src="{{ asset('assets/plugins/select2/js/select2.full.min.js') }}"></script>
-    <!-- SweetAlert2 -->
-    <script src="{{ asset('assets/plugins/sweetalert2/sweetalert2.min.js') }}"></script>
-    <!-- BS-Stepper -->
-    <script src="{{ asset('assets/plugins/bs-stepper/js/bs-stepper.min.js') }}"></script>
-    <!-- InputMask (if you use it for Tax No, Phone etc.) -->
-    {{-- <script src="{{ asset('assets/plugins/moment/moment.min.js') }}"></script> --}}
-    {{-- <script src="{{ asset('assets/plugins/inputmask/jquery.inputmask.min.js') }}"></script> --}}
-    <!-- bs-custom-file-input -->
-    <script src="{{ asset('assets/plugins/bs-custom-file-input/bs-custom-file-input.min.js') }}"></script>
+    <script src="{{ asset('assets/plugins/select2/js/select2.full.min.js') }}" defer></script>
+    <script src="{{ asset('assets/plugins/bs-stepper/js/bs-stepper.min.js') }}" defer></script>
+    <script src="{{ asset('assets/plugins/bs-custom-file-input/bs-custom-file-input.min.js') }}" defer></script>
 
     <script>
-        var stepper; // Make stepper global
-
-        $(function() {
-            // Initialize BS Stepper
-            stepper = new Stepper($('.bs-stepper')[0], {
-                linear: false, // Allow jumping between steps
-                animation: true
+        $(document).ready(function() {
+            // Initialize stepper
+            var stepper = new Stepper(document.querySelector('.bs-stepper'), {
+                linear: false,
+                animation: true,
+                selectors: {
+                    steps: '.step',
+                    trigger: '.step-trigger',
+                    stepper: '.bs-stepper'
+                }
             });
 
-            // Initialize Select2
-            initializeSelect2(document);
+            // Handle hash-based navigation
+            function handleHash() {
+                const hash = window.location.hash.toLowerCase();
+                if (hash) {
+                    const stepMap = {
+                        '#personal': 1,
+                        '#administration': 2,
+                        '#bank': 3,
+                        '#tax': 4,
+                        '#insurance': 5,
+                        '#license': 6,
+                        '#family': 7,
+                        '#education': 8,
+                        '#course': 9,
+                        '#jobexp': 10,
+                        '#unit': 11,
+                        '#emergency': 12,
+                        '#additional': 13,
+                        '#image': 14
+                    };
 
-            // Initialize bs-custom-file-input
+                    if (stepMap.hasOwnProperty(hash)) {
+                        stepper.to(stepMap[hash]);
+                        window.scrollTo({
+                            top: 0,
+                            behavior: 'smooth'
+                        });
+                    }
+                }
+            }
+
+            // Handle initial hash on page load
+            handleHash();
+
+            // Handle hash changes while on the page
+            window.addEventListener('hashchange', function() {
+                handleHash();
+                window.scrollTo({
+                    top: 0,
+                    behavior: 'smooth'
+                });
+            });
+
+            // Update hash when clicking stepper buttons
+            document.querySelectorAll('.step-trigger').forEach(trigger => {
+                trigger.addEventListener('click', function() {
+                    const paneId = this.getAttribute('aria-controls');
+                    if (paneId) {
+                        const hash = paneId.replace('-part', '');
+                        window.location.hash = hash;
+                        window.scrollTo({
+                            top: 0,
+                            behavior: 'smooth'
+                        });
+                    }
+                });
+            });
+
+            // Initialize Select2 Elements
+            function initializeSelect2(container) {
+                $(container).find('.select2bs4').select2({
+                    theme: 'bootstrap4',
+                    width: '100%',
+                    placeholder: $(this).data('placeholder') || 'Select an option',
+                    allowClear: true
+                });
+            }
+
+            // Initialize components
+            initializeSelect2(document);
             bsCustomFileInput.init();
 
             // Focus search field when select2 opens
@@ -1793,47 +1852,25 @@
                 document.querySelector('.select2-search__field').focus();
             });
 
-            // Back to top button
-            $(window).scroll(function() {
-                if ($(this).scrollTop() > 100) {
-                    $('#back-to-top').fadeIn();
-                } else {
-                    $('#back-to-top').fadeOut();
-                }
-            });
-            $('#back-to-top').click(function() {
-                $('html, body').animate({
-                    scrollTop: 0
-                }, 600);
-                return false;
-            });
-
-            // Reinitialize select2 after adding new rows
-            function initializeSelect2(container) {
-                $(container).find('.select2bs4').select2({
-                    theme: 'bootstrap4',
-                    width: '100%',
-                    placeholder: $(this).data('placeholder') || '-Select-', // Add placeholder support
-                    allowClear: Boolean($(this).data('allow-clear')) // Add allowClear support
-                });
-            }
-
-            // ----- Dynamic Row Addition Logic -----
-
-            // Common function to add rows and init select2
+            // Common function to add dynamic rows
             function addDynamicRow(tableId, rowHtml) {
                 const tableBody = $(`#${tableId} tbody`);
                 tableBody.append(rowHtml);
-                // Reinitialize select2 only for the new row
+                // Initialize select2 for the new row if it contains select2 elements
                 initializeSelect2(tableBody.find('tr:last'));
             }
 
+            // Remove row functionality
+            $(document).on('click', '.remove-input-field', function() {
+                $(this).closest('tr').remove();
+            });
+
             // Insurances
-            $("#add-insurance").on('click', function() {
+            $("#add-insurance").click(function() {
                 const rowHtml = `<tr>
                     <td>
-                        <select name="health_insurance_type[]" class="form-control select2bs4" data-placeholder="Select Insurance" style="width: 100%;" required>
-                            <option value=""></option> {{-- Empty option for placeholder --}}
+                        <select name="health_insurance_type[]" class="form-control select2bs4" data-placeholder="Select Insurance" required>
+                            <option value=""></option>
                     <option value="bpjsks">BPJS Kesehatan</option>
                     <option value="bpjskt">BPJS Ketenagakerjaan</option>
                 </select>
@@ -1841,22 +1878,22 @@
                     <td><input type="text" class="form-control" name="health_insurance_no[]" placeholder="Insurance No" required></td>
                     <td><input type="text" class="form-control" name="health_facility[]" placeholder="Health Facility" required></td>
                     <td><input type="text" class="form-control" name="health_insurance_remarks[]" placeholder="Remarks"></td>
-                    <td><button type="button" class="btn btn-outline-danger remove-input-field"><i class="fas fa-trash-alt"></i></button></td>
+                    <td class="text-center"><button type="button" class="btn btn-outline-danger remove-input-field"><i class="fas fa-trash-alt"></i></button></td>
             </tr>`;
                 addDynamicRow('table-insurance', rowHtml);
             });
 
             // Families
-            $("#add-family").on('click', function() {
+            $("#add-family").click(function() {
                 const rowHtml = `<tr>
                     <td>
-                        <select name="family_relationship[]" class="form-control select2bs4" data-placeholder="Select Relationship" style="width: 100%;">
-                             <option value=""></option>
+                        <select name="family_relationship[]" class="form-control select2bs4" data-placeholder="Select Relationship" required>
+                            <option value=""></option>
                     <option value="Husband">Husband</option>
                     <option value="Wife">Wife</option>
                     <option value="Child">Child</option>
-                             <option value="Parent">Parent</option>
-                             <option value="Sibling">Sibling</option>
+                            <option value="Parent">Parent</option>
+                            <option value="Sibling">Sibling</option>
                 </select>
               </td>
                     <td><input type="text" class="form-control" name="family_name[]" placeholder="Full Name" required></td>
@@ -1864,16 +1901,16 @@
                     <td><input type="date" class="form-control" name="family_birthdate[]"></td>
                     <td><input type="text" class="form-control" name="family_remarks[]" placeholder="Remarks"></td>
                     <td><input type="text" class="form-control" name="bpjsks_no[]" placeholder="BPJS No (if any)"></td>
-                    <td><button type="button" class="btn btn-outline-danger remove-input-field"><i class="fas fa-trash-alt"></i></button></td>
+                    <td class="text-center"><button type="button" class="btn btn-outline-danger remove-input-field"><i class="fas fa-trash-alt"></i></button></td>
             </tr>`;
                 addDynamicRow('table-family', rowHtml);
             });
 
             // Operable Units
-            $("#add-operableunit").on('click', function() {
+            $("#add-operableunit").click(function() {
                 const rowHtml = `<tr>
                     <td>
-                        <select name="unit_name[]" class="form-control select2bs4" data-placeholder="Select Unit" style="width: 100%;">
+                        <select name="unit_name[]" class="form-control select2bs4" data-placeholder="Select Unit" required>
                             <option value=""></option>
                     <option value="LV / SARANA">LV / SARANA</option>
                     <option value="DUMP TRUCK">DUMP TRUCK</option>
@@ -1883,121 +1920,104 @@
                     <option value="GRADER">GRADER</option>
                             <option value="COMPACTOR">COMPACTOR</option>
                             <option value="CRANE">CRANE</option>
-                            <option value="OTHER">OTHER</option> {{-- Add Other --}}
+                            <option value="OTHER">OTHER</option>
                 </select>
               </td>
                     <td><input type="text" class="form-control" name="unit_type[]" placeholder="Specific Type/Model" required></td>
                     <td><input type="text" class="form-control" name="unit_remarks[]" placeholder="Remarks/License Ref"></td>
-                    <td><button type="button" class="btn btn-outline-danger remove-input-field"><i class="fas fa-trash-alt"></i></button></td>
+                    <td class="text-center"><button type="button" class="btn btn-outline-danger remove-input-field"><i class="fas fa-trash-alt"></i></button></td>
             </tr>`;
                 addDynamicRow('table-operableunit', rowHtml);
             });
 
             // Educations
-            $("#add-education").on('click', function() {
+            $("#add-education").click(function() {
                 const rowHtml = `<tr>
-                     <td><input type="text" class="form-control" name="education_name[]" placeholder="Institution Name" required></td>
-                     <td><input type="text" class="form-control" name="education_address[]" placeholder="City/Address"></td>
-                     <td><input type="text" class="form-control" name="education_year[]" placeholder="Year Graduated"></td>
-                     <td><input type="text" class="form-control" name="education_remarks[]" placeholder="Major/Degree/Remarks"></td>
-                     <td><button type="button" class="btn btn-outline-danger remove-input-field"><i class="fas fa-trash-alt"></i></button></td>
-                 </tr>`;
-                addDynamicRow('table-education', rowHtml); // Note: No select2 needed here directly
+                    <td><input type="text" class="form-control" name="education_name[]" placeholder="Institution Name" required></td>
+                    <td><input type="text" class="form-control" name="education_address[]" placeholder="City/Address"></td>
+                    <td><input type="text" class="form-control" name="education_year[]" placeholder="Year Graduated"></td>
+                    <td><input type="text" class="form-control" name="education_remarks[]" placeholder="Major/Degree/Remarks"></td>
+                    <td class="text-center"><button type="button" class="btn btn-outline-danger remove-input-field"><i class="fas fa-trash-alt"></i></button></td>
+                </tr>`;
+                addDynamicRow('table-education', rowHtml);
             });
 
             // Courses
-            $("#add-course").on('click', function() {
+            $("#add-course").click(function() {
                 const rowHtml = `<tr>
-                     <td><input type="text" class="form-control" name="course_name[]" placeholder="Course/Training Name" required></td>
-                     <td><input type="text" class="form-control" name="course_address[]" placeholder="Provider/Institution"></td>
-                     <td><input type="text" class="form-control" name="course_year[]" placeholder="Year Completed"></td>
-                     <td><input type="text" class="form-control" name="course_remarks[]" placeholder="Certificate No/Remarks"></td>
-                     <td><button type="button" class="btn btn-outline-danger remove-input-field"><i class="fas fa-trash-alt"></i></button></td>
-                 </tr>`;
+                    <td><input type="text" class="form-control" name="course_name[]" placeholder="Course/Training Name" required></td>
+                    <td><input type="text" class="form-control" name="course_address[]" placeholder="Provider/Institution"></td>
+                    <td><input type="text" class="form-control" name="course_year[]" placeholder="Year Completed"></td>
+                    <td><input type="text" class="form-control" name="course_remarks[]" placeholder="Certificate No/Remarks"></td>
+                    <td class="text-center"><button type="button" class="btn btn-outline-danger remove-input-field"><i class="fas fa-trash-alt"></i></button></td>
+            </tr>`;
                 addDynamicRow('table-course', rowHtml);
             });
 
             // Job Experiences
-            $("#add-jobexp").on('click', function() {
+            $("#add-jobexp").click(function() {
                 const rowHtml = `<tr>
-                     <td><input type="text" class="form-control" name="company_name[]" placeholder="Company Name" required></td>
-                     <td><input type="text" class="form-control" name="company_address[]" placeholder="City/Address"></td>
-                     <td><input type="text" class="form-control" name="job_position[]" placeholder="Last Position"></td>
-                     <td><input type="text" class="form-control" name="job_duration[]" placeholder="Period (e.g., 2018-2022)"></td>
-                     <td><input type="text" class="form-control" name="quit_reason[]" placeholder="Reason for Leaving"></td>
-                     <td><button type="button" class="btn btn-outline-danger remove-input-field"><i class="fas fa-trash-alt"></i></button></td>
+                    <td><input type="text" class="form-control" name="company_name[]" placeholder="Company Name" required></td>
+                    <td><input type="text" class="form-control" name="company_address[]" placeholder="City/Address"></td>
+                    <td><input type="text" class="form-control" name="job_position[]" placeholder="Last Position"></td>
+                    <td><input type="text" class="form-control" name="job_duration[]" placeholder="Period (e.g., 2018-2022)"></td>
+                    <td><input type="text" class="form-control" name="quit_reason[]" placeholder="Reason for Leaving"></td>
+                    <td class="text-center"><button type="button" class="btn btn-outline-danger remove-input-field"><i class="fas fa-trash-alt"></i></button></td>
             </tr>`;
                 addDynamicRow('table-jobexp', rowHtml);
             });
 
             // Licenses
-            $("#add-license").on('click', function() {
+            $("#add-license").click(function() {
                 const rowHtml = `<tr>
-                     <td><input type="text" class="form-control" name="driver_license_type[]" placeholder="License/Certification Type" required></td>
-                     <td><input type="text" class="form-control" name="driver_license_no[]" placeholder="License Number"></td>
-                     <td><input type="date" class="form-control" name="driver_license_exp[]" placeholder="Expiration Date"></td>
-                     <td><button type="button" class="btn btn-outline-danger remove-input-field"><i class="fas fa-trash-alt"></i></button></td>
-                 </tr>`;
+                    <td><input type="text" class="form-control" name="driver_license_type[]" placeholder="License/Certification Type" required></td>
+                    <td><input type="text" class="form-control" name="driver_license_no[]" placeholder="License Number"></td>
+                    <td><input type="date" class="form-control" name="driver_license_exp[]"></td>
+                    <td class="text-center"><button type="button" class="btn btn-outline-danger remove-input-field"><i class="fas fa-trash-alt"></i></button></td>
+            </tr>`;
                 addDynamicRow('table-license', rowHtml);
             });
 
             // Emergency Contacts
-            $("#add-emergency").on('click', function() {
+            $("#add-emergency").click(function() {
                 const rowHtml = `<tr>
-                     <td><input type="text" class="form-control" name="emrg_call_relation[]" placeholder="Relationship" required></td>
-                     <td><input type="text" class="form-control" name="emrg_call_name[]" placeholder="Contact Name" required></td>
-                     <td><input type="text" class="form-control" name="emrg_call_address[]" placeholder="Address"></td>
-                     <td><input type="text" class="form-control" name="emrg_call_phone[]" placeholder="Phone Number" required></td>
-                     <td><button type="button" class="btn btn-outline-danger remove-input-field"><i class="fas fa-trash-alt"></i></button></td>
+                    <td><input type="text" class="form-control" name="emrg_call_relation[]" placeholder="Relationship" required></td>
+                    <td><input type="text" class="form-control" name="emrg_call_name[]" placeholder="Contact Name" required></td>
+                    <td><input type="text" class="form-control" name="emrg_call_address[]" placeholder="Address"></td>
+                    <td><input type="text" class="form-control" name="emrg_call_phone[]" placeholder="Phone Number" required></td>
+                    <td class="text-center"><button type="button" class="btn btn-outline-danger remove-input-field"><i class="fas fa-trash-alt"></i></button></td>
             </tr>`;
                 addDynamicRow('table-emergency', rowHtml);
             });
-
-            // Remove row functionality
-            $(document).on('click', '.remove-input-field', function() {
-                $(this).closest('tr').fadeOut(300, function() {
-                    $(this).remove();
-                });
-            });
-
-            // ----- End Dynamic Row Logic -----
-
 
             // Autofill department based on position_id
             $('#position_id').on('change', function() {
                 var position_id = $(this).val();
                 if (position_id) {
                     $.ajax({
-                        url: "{{ route('employees.getDepartment') }}", // Make sure this route exists and works
+                        url: "{{ route('employees.getDepartment') }}",
                         type: "GET",
                         data: {
                             position_id: position_id
                         },
-                        dataType: 'json', // Expect JSON response
+                        dataType: 'json',
                         success: function(data) {
                             if (data && data.department_name) {
-                                $('#department').val(data.department_name).trigger(
-                                    'change'); // Trigger change for visual update if needed
+                                $('#department').val(data.department_name).trigger('change');
                             } else {
-                                $('#department').val('').trigger(
-                                    'change'); // Clear if no department found
+                                $('#department').val('').trigger('change');
                             }
                         },
                         error: function(jqXHR, textStatus, errorThrown) {
                             console.error("Error fetching department: ", textStatus,
                                 errorThrown);
-                            $('#department').val('').trigger('change'); // Clear on error
+                            $('#department').val('').trigger('change');
                         }
                     });
                 } else {
-                    $('#department').val('').trigger('change'); // Clear if no position selected
+                    $('#department').val('').trigger('change');
                 }
             });
-
-            // Optional: Add Input Masking (uncomment links/scripts above if needed)
-            // Example: $('#tax_no').inputmask('99.999.999.9-999.999');
-            // Example: $('#phone').inputmask('+629{9,13}'); // Simple Indonesian phone mask
-
         });
     </script>
 @endsection

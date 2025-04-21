@@ -96,7 +96,7 @@ class JobexperienceController extends Controller
         $jobexperience->quit_reason = $request->quit_reason;
         $jobexperience->save();
 
-        return redirect('employees/' . $employee_id . '#jobs')->with('toast_success', 'Job Experience Added Successfully');
+        return redirect('employees/' . $employee_id . '#jobexp')->with('toast_success', 'Job Experience Added Successfully');
     }
 
     /**
@@ -148,7 +148,7 @@ class JobexperienceController extends Controller
         $jobexperience->quit_reason = $request->quit_reason;
         $jobexperience->save();
 
-        return redirect('employees/' . $jobexperience->employee_id . '#jobs')->with('toast_success', 'Job Experience Updated Successfully');
+        return redirect('employees/' . $jobexperience->employee_id . '#jobexp')->with('toast_success', 'Job Experience Updated Successfully');
     }
 
     /**
@@ -162,12 +162,12 @@ class JobexperienceController extends Controller
         $jobexperience = Jobexperience::find($id);
         $jobexperience->delete();
 
-        return redirect('employees/' . $employee_id . '#jobs')->with('toast_success', 'Job Experience Deleted Successfully');
+        return redirect('employees/' . $employee_id . '#jobexp')->with('toast_success', 'Job Experience Deleted Successfully');
     }
 
     public function deleteAll($employee_id)
     {
         Jobexperience::where('employee_id', $employee_id)->delete();
-        return redirect('employees/' . $employee_id . '#jobs')->with('toast_success', 'Job Experience Deleted Successfully');
+        return redirect('employees/' . $employee_id . '#jobexp')->with('toast_success', 'Job Experience Deleted Successfully');
     }
 }

@@ -77,7 +77,7 @@ class InsuranceController extends Controller
         $insurances->health_insurance_remarks = $request->health_insurance_remarks;
         $insurances->save();
 
-        return redirect('employees/' . $employee_id . '#insurances')->with('status', 'Insurance Employee Add Successfully');
+        return redirect('employees/' . $employee_id . '#insurance')->with('status', 'Insurance Employee Add Successfully');
     }
 
     public function update(Request $request, $id)
@@ -98,19 +98,19 @@ class InsuranceController extends Controller
         $validatedData = $request->validate($rules);
         Insurance::where('id', $id)->update($validatedData);
 
-        return redirect('employees/' . $request->employee_id . '#insurances')->with('toast_success', 'Insurance Employee Update Successfully');
+        return redirect('employees/' . $request->employee_id . '#insurance')->with('toast_success', 'Insurance Employee Update Successfully');
     }
 
     public function delete($employee_id, $id)
     {
         $insurances = Insurance::where('id', $id)->first();
         $insurances->delete();
-        return redirect('employees/' . $employee_id . '#insurances')->with('toast_success', 'Insurance Delete Successfully');
+        return redirect('employees/' . $employee_id . '#insurance')->with('toast_success', 'Insurance Delete Successfully');
     }
 
     public function deleteAll($employee_id)
     {
         Insurance::where('employee_id', $employee_id)->delete();
-        return redirect('employees/' . $employee_id . '#insurances')->with('toast_success', 'Insurance Delete Successfully');
+        return redirect('employees/' . $employee_id . '#insurance')->with('toast_success', 'Insurance Delete Successfully');
     }
 }

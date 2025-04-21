@@ -16,7 +16,7 @@
                             <h6 class="mb-3 text-muted">Bank Account Information</h6>
 
                             <div class="row">
-                                <div class="col-md-6">
+                                <div class="col-md-8">
                                     <div class="form-group">
                                         <label for="bank_id" class="form-label">Bank</label>
                                         <select id="bank_id" name="bank_id"
@@ -35,7 +35,7 @@
                                     </div>
                                 </div>
 
-                                <div class="col-md-6">
+                                <div class="col-md-8">
                                     <div class="form-group">
                                         <label for="bank_account_no" class="form-label">Account Number</label>
                                         <div class="input-group">
@@ -126,7 +126,7 @@
                             <h6 class="mb-3 text-muted">Bank Account Information</h6>
 
                             <div class="row">
-                                <div class="col-md-6">
+                                <div class="col-md-8">
                                     <div class="form-group">
                                         <label for="bank_id" class="form-label">Bank</label>
                                         <select id="bank_id" name="bank_id"
@@ -145,7 +145,7 @@
                                     </div>
                                 </div>
 
-                                <div class="col-md-6">
+                                <div class="col-md-8">
                                     <div class="form-group">
                                         <label for="bank_account_no" class="form-label">Account Number</label>
                                         <div class="input-group">

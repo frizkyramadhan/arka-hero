@@ -68,7 +68,7 @@ class CourseController extends Controller
 
         ]);
         Course::create($request->all());
-        return redirect('employees/' . $employee_id . '#courses')->with('toast_success', 'Course Employee Add Successfully');
+        return redirect('employees/' . $employee_id . '#course')->with('toast_success', 'Course Employee Add Successfully');
     }
 
     public function update(Request $request, $id)
@@ -84,19 +84,19 @@ class CourseController extends Controller
         $validatedData = $request->validate($rules);
         Course::where('id', $id)->update($validatedData);
 
-        return redirect('employees/' . $request->employee_id . '#courses')->with('toast_success', 'Course Employee Update Successfully');
+        return redirect('employees/' . $request->employee_id . '#course')->with('toast_success', 'Course Employee Update Successfully');
     }
 
     public function delete($employee_id, $id)
     {
         $courses = Course::where('id', $id)->first();
         $courses->delete();
-        return redirect('employees/' . $employee_id . '#courses')->with('toast_success', 'Course Employee Delete Successfully');
+        return redirect('employees/' . $employee_id . '#course')->with('toast_success', 'Course Employee Delete Successfully');
     }
 
     public function deleteAll($employee_id)
     {
         Course::where('employee_id', $employee_id)->delete();
-        return redirect('employees/' . $employee_id . '#courses')->with('toast_success', 'Course Employee Delete Successfully');
+        return redirect('employees/' . $employee_id . '#course')->with('toast_success', 'Course Employee Delete Successfully');
     }
 }
