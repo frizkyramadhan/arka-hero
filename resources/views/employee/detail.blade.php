@@ -152,1170 +152,20 @@
                         </div>
 
                         <div class="bs-stepper-content p-3">
-                            <div id="personal-detail-pane" class="content" role="tabpanel"
-                                aria-labelledby="personal-detail-pane-trigger">
-                                <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
-                                    <h5 class="mb-0">Personal Detail</h5>
-                                    <button class="btn btn-primary" data-toggle="modal"
-                                        data-target="#modal-employee-{{ $employee->id }}">
-                                        <i class="fas fa-pen-square mr-1"></i> Edit Personal
-                                    </button>
-                                </div>
-                                <div class="row">
-                                    <div class="col-md-3 text-center">
-                                        @if ($profile)
-                                            <img class="img-fluid img-thumbnail" style="max-height: 250px;"
-                                                src="{{ asset('images/' . $profile->employee_id . '/' . $profile->filename) }}"
-                                                alt="User profile picture">
-                                        @else
-                                            <img class="img-fluid img-thumbnail" style="max-height: 250px;"
-                                                src="{{ asset('assets/dist/img/avatar6.png') }}"
-                                                alt="Default profile picture">
-                                        @endif
-                                    </div>
-                                    <div class="col-md-9">
-                                        <dl class="row">
-                                            <dt class="col-sm-4">Full Name</dt>
-                                            <dd class="col-sm-8">{{ $employee->fullname ?? '-' }}</dd>
-                                            <dt class="col-sm-4">ID Card No.</dt>
-                                            <dd class="col-sm-8">{{ $employee->identity_card ?? '-' }}</dd>
-                                            <dt class="col-sm-4">Place/Date of Birth</dt>
-                                            <dd class="col-sm-8">{{ $employee->emp_pob ?? '-' }},
-                                                {{ $employee->emp_dob ? date('d M Y', strtotime($employee->emp_dob)) : '-' }}
-                                            </dd>
-                                            <dt class="col-sm-4">Blood Type</dt>
-                                            <dd class="col-sm-8">{{ $employee->blood_type ?? '-' }}</dd>
-                                            <dt class="col-sm-4">Religion</dt>
-                                            <dd class="col-sm-8">{{ $employee->religion->religion_name ?? '-' }}</dd>
-                                            <dt class="col-sm-4">Nationality</dt>
-                                            <dd class="col-sm-8">{{ $employee->nationality ?? '-' }}</dd>
-                                            <dt class="col-sm-4">Gender</dt>
-                                            <dd class="col-sm-8">
-                                                {{ $employee->gender == 'male' ? 'Male' : ($employee->gender == 'female' ? 'Female' : '-') }}
-                                            </dd>
-                                            <dt class="col-sm-4">Marital</dt>
-                                            <dd class="col-sm-8">{{ $employee->marital ?? '-' }}</dd>
-                                        </dl>
-                                        <h6 class="mt-4 mb-3 text-muted border-top pt-3">Address & Contact</h6>
-                                        <dl class="row">
-                                            <dt class="col-sm-4">Address</dt>
-                                            <dd class="col-sm-8">{{ $employee->address ?? '-' }}</dd>
-                                            <dt class="col-sm-4">Village</dt>
-                                            <dd class="col-sm-8">{{ $employee->village ?? '-' }}</dd>
-                                            <dt class="col-sm-4">Ward</dt>
-                                            <dd class="col-sm-8">{{ $employee->ward ?? '-' }}</dd>
-                                            <dt class="col-sm-4">District</dt>
-                                            <dd class="col-sm-8">{{ $employee->district ?? '-' }}</dd>
-                                            <dt class="col-sm-4">City</dt>
-                                            <dd class="col-sm-8">{{ $employee->city ?? '-' }}</dd>
-                                            <dt class="col-sm-4">Phone</dt>
-                                            <dd class="col-sm-8">{{ $employee->phone ?? '-' }}</dd>
-                                            <dt class="col-sm-4">Email</dt>
-                                            <dd class="col-sm-8">{{ $employee->email ?? '-' }}</dd>
-                                        </dl>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div id="administration-pane" class="content" role="tabpanel"
-                                aria-labelledby="administration-pane-trigger">
-                                <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
-                                    <h5 class="mb-0">Employment History</h5>
-                                    <div>
-                                        <button class="btn btn-primary" data-toggle="modal"
-                                            data-target="#modal-administration" title="Add Administration Data">
-                                            <i class="fas fa-plus mr-1"></i> Add Employment
-                                        </button>
-                                        @if ($administrations->isNotEmpty())
-                                            <form action="{{ url('administrations/' . $employee->id) }}" method="post"
-                                                onsubmit="return confirm('Are you sure want to delete all administration records?')"
-                                                class="d-inline">
-                                                @method('delete')
-                                                @csrf
-                                                <button class="btn btn-danger" title="Delete All Administration Records">
-                                                    <i class="fas fa-trash mr-1"></i> Delete All
-                                                </button>
-                                            </form>
-                                        @endif
-                                    </div>
-                                </div>
-                                <div class="table-responsive">
-                                    <table class="table-modern">
-                                        <thead>
-                                            <tr>
-                                                <th class="text-center">Status</th>
-                                                <th class="text-center">NIK</th>
-                                                <th>POH</th>
-                                                <th>DOH</th>
-                                                <th>Department</th>
-                                                <th>Position</th>
-                                                <th class="text-center">Project</th>
-                                                <th>Class</th>
-                                                <th class="text-center">Action</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            @forelse ($administrations as $administration)
-                                                <tr>
-                                                    <td class="text-center">
-                                                        @if ($administration->is_active == 1)
-                                                            <span class="badge-status active">Active</span>
-                                                        @else
-                                                            <form
-                                                                action="{{ url('administrations/changeStatus/' . $employee->id . '/' . $administration->id) }}"
-                                                                method="POST" class="d-inline">
-                                                                @csrf
-                                                                @method('PATCH')
-                                                                <button type="submit"
-                                                                    class="badge-status inactive">Inactive</button>
-                                                            </form>
-                                                        @endif
-                                                    </td>
-                                                    <td class="text-center">{{ $administration->nik }}</td>
-                                                    <td>{{ $administration->poh }}</td>
-                                                    <td>{{ $administration->doh ? date('d M Y', strtotime($administration->doh)) : '-' }}
-                                                    </td>
-                                                    <td>{{ $administration->department_name }}</td>
-                                                    <td>{{ $administration->position_name }}</td>
-                                                    <td>{{ $administration->project_code }}</td>
-                                                    <td>{{ $administration->class }}</td>
-                                                    <td class="action-buttons">
-                                                        <button class="btn btn-primary btn-action" data-toggle="modal"
-                                                            data-target="#modal-administration-{{ $administration->id }}">
-                                                            <i class="fas fa-pen-square"></i>
-                                                        </button>
-                                                        <form
-                                                            action="{{ url('administrations/' . $employee->id . '/' . $administration->id) }}"
-                                                            method="post"
-                                                            onsubmit="return confirm('Are you sure want to delete this record?')"
-                                                            class="d-inline">
-                                                            @method('delete')
-                                                            @csrf
-                                                            <button class="btn btn-danger btn-action">
-                                                                <i class="fas fa-times"></i>
-                                                            </button>
-                                                        </form>
-                                                    </td>
-                                                </tr>
-                                            @empty
-                                                <tr>
-                                                    <td colspan="9">
-                                                        <div class="empty-state">
-                                                            <i class="fas fa-exclamation-circle"></i>
-                                                            <h6>No Data Available</h6>
-                                                            <p>No administration records found for this employee</p>
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                            @endforelse
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-
-                            <div id="bank-pane" class="content" role="tabpanel" aria-labelledby="bank-pane-trigger">
-                                <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
-                                    <h5 class="mb-0">Bank Account</h5>
-                                    <div>
-                                        @if ($bank == null)
-                                            <button class="btn btn-primary" data-toggle="modal"
-                                                data-target="#modal-bank">
-                                                <i class="fas fa-plus mr-1"></i> Add Bank
-                                            </button>
-                                        @else
-                                            <button class="btn btn-primary" data-toggle="modal"
-                                                data-target="#modal-bank-{{ $bank->id }}">
-                                                <i class="fas fa-pen-square mr-1"></i> Edit Bank
-                                            </button>
-                                            <form action="{{ url('employeebanks/' . $employee->id . '/' . $bank->id) }}"
-                                                method="post"
-                                                onsubmit="return confirm('Are you sure want to delete this bank account data?')"
-                                                class="d-inline">
-                                                @method('delete')
-                                                @csrf
-                                                <button class="btn btn-danger" title="Delete Bank Account Data">
-                                                    <i class="fas fa-trash mr-1"></i> Delete
-                                                </button>
-                                            </form>
-                                        @endif
-                                    </div>
-                                </div>
-
-                                @if ($bank == null)
-                                    <div class="text-center py-5">
-                                        <img src="{{ asset('assets/dist/img/bank-empty.png') }}" alt="No Bank Data"
-                                            class="img-fluid mb-3" style="max-height: 120px; opacity: 0.5;">
-                                        <h6 class="text-muted">No bank account information available</h6>
-                                        <p class="text-muted small">Click "Add Bank" button to register employee's bank
-                                            account details</p>
-                                    </div>
-                                @else
-                                    <div class="row">
-                                        <div class="col-md-6">
-                                            <div class="card card-primary card-outline">
-                                                <div class="card-header">
-                                                    <h3 class="card-title">
-                                                        <i class="fas fa-university mr-2"></i>
-                                                        Bank Information
-                                                    </h3>
-                                                </div>
-                                                <div class="card-body">
-                                                    <div class="info-box bg-light">
-                                                        <span class="info-box-icon bg-primary"><i
-                                                                class="fas fa-university"></i></span>
-                                                        <div class="info-box-content">
-                                                            <span class="info-box-text">Bank Name</span>
-                                                            <span
-                                                                class="info-box-number">{{ $bank->banks->bank_name ?? '-' }}</span>
-                                                        </div>
-                                                    </div>
-                                                    <div class="info-box bg-light">
-                                                        <span class="info-box-icon bg-primary"><i
-                                                                class="fas fa-map-marker-alt"></i></span>
-                                                        <div class="info-box-content">
-                                                            <span class="info-box-text">Branch</span>
-                                                            <span
-                                                                class="info-box-number">{{ $bank->bank_account_branch ?? '-' }}</span>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="col-md-6">
-                                            <div class="card card-primary card-outline">
-                                                <div class="card-header">
-                                                    <h3 class="card-title">
-                                                        <i class="fas fa-user mr-2"></i>
-                                                        Account Holder
-                                                    </h3>
-                                                </div>
-                                                <div class="card-body">
-                                                    <div class="info-box bg-light">
-                                                        <span class="info-box-icon bg-primary"><i
-                                                                class="fas fa-hashtag"></i></span>
-                                                        <div class="info-box-content">
-                                                            <span class="info-box-text">Account Number</span>
-                                                            <span
-                                                                class="info-box-number">{{ $bank->bank_account_no ?? '-' }}</span>
-                                                        </div>
-                                                    </div>
-                                                    <div class="info-box bg-light">
-                                                        <span class="info-box-icon bg-primary"><i
-                                                                class="fas fa-user"></i></span>
-                                                        <div class="info-box-content">
-                                                            <span class="info-box-text">Account Name</span>
-                                                            <span
-                                                                class="info-box-number">{{ $bank->bank_account_name ?? '-' }}</span>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                @endif
-                            </div>
-
-                            <div id="tax-pane" class="content" role="tabpanel" aria-labelledby="tax-pane-trigger">
-                                <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
-                                    <h5 class="mb-0">Tax Identification Number (NPWP)</h5>
-                                    <div>
-                                        @if ($tax == null)
-                                            <button class="btn btn-primary" data-toggle="modal" data-target="#modal-tax">
-                                                <i class="fas fa-plus mr-1"></i> Add Tax Info
-                                            </button>
-                                        @else
-                                            <button class="btn btn-primary" data-toggle="modal"
-                                                data-target="#modal-tax-{{ $tax->id }}">
-                                                <i class="fas fa-pen-square mr-1"></i> Edit Tax Info
-                                            </button>
-                                            <form
-                                                action="{{ url('taxidentifications/' . $employee->id . '/' . $tax->id) }}"
-                                                method="post"
-                                                onsubmit="return confirm('Are you sure want to delete this tax identification data?')"
-                                                class="d-inline">
-                                                @method('delete')
-                                                @csrf
-                                                <button class="btn btn-danger" title="Delete Tax Identification Data">
-                                                    <i class="fas fa-trash mr-1"></i> Delete
-                                                </button>
-                                            </form>
-                                        @endif
-                                    </div>
-                                </div>
-
-                                @if ($tax == null)
-                                    <div class="text-center py-5">
-                                        <img src="{{ asset('assets/dist/img/tax-empty.png') }}" alt="No Tax Data"
-                                            class="img-fluid mb-3" style="max-height: 120px; opacity: 0.5;">
-                                        <h6 class="text-muted">No tax identification information available</h6>
-                                        <p class="text-muted small">Click "Add Tax Info" button to register employee's tax
-                                            identification details</p>
-                                    </div>
-                                @else
-                                    <div class="row">
-                                        <div class="col-md-8">
-                                            <div class="card card-primary card-outline">
-                                                <div class="card-header">
-                                                    <h3 class="card-title">
-                                                        <i class="fas fa-file-invoice-dollar mr-2"></i>
-                                                        Tax Information
-                                                    </h3>
-                                                </div>
-                                                <div class="card-body">
-                                                    <div class="info-box bg-light">
-                                                        <span class="info-box-icon bg-primary"><i
-                                                                class="fas fa-file-invoice-dollar"></i></span>
-                                                        <div class="info-box-content">
-                                                            <span class="info-box-text">NPWP Number</span>
-                                                            <span class="info-box-number">{{ $tax->tax_no ?? '-' }}</span>
-                                                        </div>
-                                                    </div>
-                                                    <div class="info-box bg-light">
-                                                        <span class="info-box-icon bg-primary"><i
-                                                                class="fas fa-calendar-alt"></i></span>
-                                                        <div class="info-box-content">
-                                                            <span class="info-box-text">Registration Date</span>
-                                                            <span
-                                                                class="info-box-number">{{ $tax ? ($tax->tax_valid_date ? date('d M Y', strtotime($tax->tax_valid_date)) : '-') : '-' }}</span>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                @endif
-                            </div>
-
-                            <div id="insurance-pane" class="content" role="tabpanel"
-                                aria-labelledby="insurance-pane-trigger">
-                                <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
-                                    <h5 class="mb-0">Health Insurance</h5>
-                                    <div>
-                                        <button class="btn btn-primary" data-toggle="modal"
-                                            data-target="#modal-insurance" title="Add Insurance">
-                                            <i class="fas fa-plus mr-1"></i> Add Insurance
-                                        </button>
-                                        @if ($insurances->isNotEmpty())
-                                            <form action="{{ url('insurances/' . $employee->id) }}" method="post"
-                                                onsubmit="return confirm('Are you sure want to delete all insurance records?')"
-                                                class="d-inline">
-                                                @method('delete')
-                                                @csrf
-                                                <button class="btn btn-danger" title="Delete All Insurance Records">
-                                                    <i class="fas fa-trash mr-1"></i> Delete All
-                                                </button>
-                                            </form>
-                                        @endif
-                                    </div>
-                                </div>
-                                <div class="table-responsive">
-                                    <table class="table-modern">
-                                        <thead>
-                                            <tr>
-                                                <th>Insurance</th>
-                                                <th>Insurance No</th>
-                                                <th>Health Facility</th>
-                                                <th>Remarks</th>
-                                                <th class="text-center">Action</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            @forelse ($insurances as $insurance)
-                                                <tr>
-                                                    <td>{{ $insurance->health_insurance_type == 'bpjskt' ? 'BPJS Ketenagakerjaan' : 'BPJS Kesehatan' }}
-                                                    </td>
-                                                    <td>{{ $insurance->health_insurance_no }}</td>
-                                                    <td>{{ $insurance->health_facility }}</td>
-                                                    <td>{{ $insurance->health_insurance_remarks }}</td>
-                                                    <td class="action-buttons">
-                                                        <button class="btn btn-primary btn-action" data-toggle="modal"
-                                                            data-target="#modal-insurance-{{ $insurance->id }}">
-                                                            <i class="fas fa-pen-square"></i>
-                                                        </button>
-                                                        <form
-                                                            action="{{ url('insurances/' . $employee->id . '/' . $insurance->id) }}"
-                                                            method="post"
-                                                            onsubmit="return confirm('Are you sure want to delete this record?')"
-                                                            class="d-inline">
-                                                            @method('delete')
-                                                            @csrf
-                                                            <button class="btn btn-danger btn-action">
-                                                                <i class="fas fa-times"></i>
-                                                            </button>
-                                                        </form>
-                                                    </td>
-                                                </tr>
-                                            @empty
-                                                <tr>
-                                                    <td colspan="5">
-                                                        <div class="empty-state">
-                                                            <i class="fas fa-exclamation-circle"></i>
-                                                            <h6>No Data Available</h6>
-                                                            <p>No insurance records found for this employee</p>
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                            @endforelse
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-
-                            <div id="license-pane" class="content" role="tabpanel"
-                                aria-labelledby="license-pane-trigger">
-                                <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
-                                    <h5 class="mb-0">Licenses</h5>
-                                    <div>
-                                        <button class="btn btn-primary" data-toggle="modal" data-target="#modal-license"
-                                            title="Add License">
-                                            <i class="fas fa-plus mr-1"></i> Add License
-                                        </button>
-                                        @if ($licenses->isNotEmpty())
-                                            <form action="{{ url('licenses/' . $employee->id) }}" method="post"
-                                                onsubmit="return confirm('Are you sure want to delete all license records?')"
-                                                class="d-inline">
-                                                @method('delete')
-                                                @csrf
-                                                <button class="btn btn-danger" title="Delete All License Records">
-                                                    <i class="fas fa-trash mr-1"></i> Delete All
-                                                </button>
-                                            </form>
-                                        @endif
-                                    </div>
-                                </div>
-                                <div class="table-responsive">
-                                    <table class="table-modern">
-                                        <thead>
-                                            <tr>
-                                                <th>License Type</th>
-                                                <th>License No</th>
-                                                <th>Expiration Date</th>
-                                                <th class="text-center">Action</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            @forelse ($licenses as $license)
-                                                <tr>
-                                                    <td>{{ $license->driver_license_type }}</td>
-                                                    <td>{{ $license->driver_license_no }}</td>
-                                                    <td>{{ $license->driver_license_exp ? date('d M Y', strtotime($license->driver_license_exp)) : '-' }}
-                                                    </td>
-                                                    <td class="action-buttons">
-                                                        <button class="btn btn-primary btn-action" data-toggle="modal"
-                                                            data-target="#modal-license-{{ $license->id }}">
-                                                            <i class="fas fa-pen-square"></i>
-                                                        </button>
-                                                        <form
-                                                            action="{{ url('licenses/' . $employee->id . '/' . $license->id) }}"
-                                                            method="post"
-                                                            onsubmit="return confirm('Are you sure want to delete this record?')"
-                                                            class="d-inline">
-                                                            @method('delete')
-                                                            @csrf
-                                                            <button class="btn btn-danger btn-action">
-                                                                <i class="fas fa-times"></i>
-                                                            </button>
-                                                        </form>
-                                                    </td>
-                                                </tr>
-                                            @empty
-                                                <tr>
-                                                    <td colspan="4">
-                                                        <div class="empty-state">
-                                                            <i class="fas fa-exclamation-circle"></i>
-                                                            <h6>No Data Available</h6>
-                                                            <p>No license records found for this employee</p>
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                            @endforelse
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-
-                            <div id="family-pane" class="content" role="tabpanel" aria-labelledby="family-pane-trigger">
-                                <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
-                                    <h5 class="mb-0">Families</h5>
-                                    <div>
-                                        <button class="btn btn-primary" data-toggle="modal" data-target="#modal-family"
-                                            title="Add Family">
-                                            <i class="fas fa-plus mr-1"></i> Add Family
-                                        </button>
-                                        @if ($families->isNotEmpty())
-                                            <form action="{{ url('families/' . $employee->id) }}" method="post"
-                                                onsubmit="return confirm('Are you sure want to delete all family records?')"
-                                                class="d-inline">
-                                                @method('delete')
-                                                @csrf
-                                                <button class="btn btn-danger" title="Delete All Family Records">
-                                                    <i class="fas fa-trash mr-1"></i> Delete All
-                                                </button>
-                                            </form>
-                                        @endif
-                                    </div>
-                                </div>
-                                <div class="table-responsive">
-                                    <table class="table-modern">
-                                        <thead>
-                                            <tr>
-                                                <th>Relationship</th>
-                                                <th>Name</th>
-                                                <th>Birth Place</th>
-                                                <th>Birth Date</th>
-                                                <th>Remarks</th>
-                                                <th>BPJS Kesehatan</th>
-                                                <th class="text-center">Action</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            @forelse ($families as $family)
-                                                <tr>
-                                                    <td>{{ $family->family_relationship }}</td>
-                                                    <td>{{ $family->family_name }}</td>
-                                                    <td>{{ $family->family_birthplace }}</td>
-                                                    <td>{{ $family->family_birthdate ? date('d M Y', strtotime($family->family_birthdate)) : '-' }}
-                                                    </td>
-                                                    <td>{{ $family->family_remarks }}</td>
-                                                    <td>{{ $family->bpjsks_no }}</td>
-                                                    <td class="action-buttons">
-                                                        <button class="btn btn-primary btn-action" data-toggle="modal"
-                                                            data-target="#modal-family-{{ $family->id }}">
-                                                            <i class="fas fa-pen-square"></i>
-                                                        </button>
-                                                        <form
-                                                            action="{{ url('families/' . $employee->id . '/' . $family->id) }}"
-                                                            method="post"
-                                                            onsubmit="return confirm('Are you sure want to delete this record?')"
-                                                            class="d-inline">
-                                                            @method('delete')
-                                                            @csrf
-                                                            <button class="btn btn-danger btn-action">
-                                                                <i class="fas fa-times"></i>
-                                                            </button>
-                                                        </form>
-                                                    </td>
-                                                </tr>
-                                            @empty
-                                                <tr>
-                                                    <td colspan="7">
-                                                        <div class="empty-state">
-                                                            <i class="fas fa-exclamation-circle"></i>
-                                                            <h6>No Data Available</h6>
-                                                            <p>No family records found for this employee</p>
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                            @endforelse
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-
-                            <div id="education-pane" class="content" role="tabpanel"
-                                aria-labelledby="education-pane-trigger">
-                                <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
-                                    <h5 class="mb-0">Educations</h5>
-                                    <div>
-                                        <button class="btn btn-primary" data-toggle="modal"
-                                            data-target="#modal-education" title="Add Education">
-                                            <i class="fas fa-plus mr-1"></i> Add Education
-                                        </button>
-                                        @if ($educations->isNotEmpty())
-                                            <form action="{{ url('educations/' . $employee->id) }}" method="post"
-                                                onsubmit="return confirm('Are you sure want to delete all education records?')"
-                                                class="d-inline">
-                                                @method('delete')
-                                                @csrf
-                                                <button class="btn btn-danger" title="Delete All Education Records">
-                                                    <i class="fas fa-trash mr-1"></i> Delete All
-                                                </button>
-                                            </form>
-                                        @endif
-                                    </div>
-                                </div>
-                                <div class="table-responsive">
-                                    <table class="table-modern">
-                                        <thead>
-                                            <tr>
-                                                <th>Name</th>
-                                                <th>Address</th>
-                                                <th>Year</th>
-                                                <th>Remarks</th>
-                                                <th class="text-center">Action</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            @forelse ($educations as $education)
-                                                <tr>
-                                                    <td>{{ $education->education_name }}</td>
-                                                    <td>{{ $education->education_address }}</td>
-                                                    <td>{{ $education->education_year }}</td>
-                                                    <td>{{ $education->education_remarks }}</td>
-                                                    <td class="action-buttons">
-                                                        <button class="btn btn-primary btn-action" data-toggle="modal"
-                                                            data-target="#modal-education-{{ $education->id }}">
-                                                            <i class="fas fa-pen-square"></i>
-                                                        </button>
-                                                        <form
-                                                            action="{{ url('educations/' . $employee->id . '/' . $education->id) }}"
-                                                            method="post"
-                                                            onsubmit="return confirm('Are you sure want to delete this record?')"
-                                                            class="d-inline">
-                                                            @method('delete')
-                                                            @csrf
-                                                            <button class="btn btn-danger btn-action">
-                                                                <i class="fas fa-times"></i>
-                                                            </button>
-                                                        </form>
-                                                    </td>
-                                                </tr>
-                                            @empty
-                                                <tr>
-                                                    <td colspan="5">
-                                                        <div class="empty-state">
-                                                            <i class="fas fa-exclamation-circle"></i>
-                                                            <h6>No Data Available</h6>
-                                                            <p>No education records found for this employee</p>
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                            @endforelse
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-
-                            <div id="course-pane" class="content" role="tabpanel" aria-labelledby="course-pane-trigger">
-                                <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
-                                    <h5 class="mb-0">Courses</h5>
-                                    <div>
-                                        <button class="btn btn-primary" data-toggle="modal" data-target="#modal-course"
-                                            title="Add Course">
-                                            <i class="fas fa-plus mr-1"></i> Add Course
-                                        </button>
-                                        @if ($courses->isNotEmpty())
-                                            <form action="{{ url('courses/' . $employee->id) }}" method="post"
-                                                onsubmit="return confirm('Are you sure want to delete all course records?')"
-                                                class="d-inline">
-                                                @method('delete')
-                                                @csrf
-                                                <button class="btn btn-danger" title="Delete All Course Records">
-                                                    <i class="fas fa-trash mr-1"></i> Delete All
-                                                </button>
-                                            </form>
-                                        @endif
-                                    </div>
-                                </div>
-                                <div class="table-responsive">
-                                    <table class="table-modern">
-                                        <thead>
-                                            <tr>
-                                                <th>Name</th>
-                                                <th>Address</th>
-                                                <th>Year</th>
-                                                <th>Remarks</th>
-                                                <th class="text-center">Action</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            @forelse ($courses as $course)
-                                                <tr>
-                                                    <td>{{ $course->course_name }}</td>
-                                                    <td>{{ $course->course_address }}</td>
-                                                    <td>{{ $course->course_year }}</td>
-                                                    <td>{{ $course->course_remarks }}</td>
-                                                    <td class="action-buttons">
-                                                        <button class="btn btn-primary btn-action" data-toggle="modal"
-                                                            data-target="#modal-course-{{ $course->id }}">
-                                                            <i class="fas fa-pen-square"></i>
-                                                        </button>
-                                                        <form
-                                                            action="{{ url('courses/' . $employee->id . '/' . $course->id) }}"
-                                                            method="post"
-                                                            onsubmit="return confirm('Are you sure want to delete this record?')"
-                                                            class="d-inline">
-                                                            @method('delete')
-                                                            @csrf
-                                                            <button class="btn btn-danger btn-action">
-                                                                <i class="fas fa-times"></i>
-                                                            </button>
-                                                        </form>
-                                                    </td>
-                                                </tr>
-                                            @empty
-                                                <tr>
-                                                    <td colspan="5">
-                                                        <div class="empty-state">
-                                                            <i class="fas fa-exclamation-circle"></i>
-                                                            <h6>No Data Available</h6>
-                                                            <p>No course records found for this employee</p>
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                            @endforelse
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-
-                            <div id="jobexp-pane" class="content" role="tabpanel" aria-labelledby="jobexp-pane-trigger">
-                                <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
-                                    <h5 class="mb-0">Job Experiences</h5>
-                                    <div>
-                                        <button class="btn btn-primary" data-toggle="modal" data-target="#modal-job"
-                                            title="Add Job Experience">
-                                            <i class="fas fa-plus mr-1"></i> Add Job
-                                        </button>
-                                        @if ($jobs->isNotEmpty())
-                                            <form action="{{ url('jobexperiences/' . $employee->id) }}" method="post"
-                                                onsubmit="return confirm('Are you sure want to delete all job experience records?')"
-                                                class="d-inline">
-                                                @method('delete')
-                                                @csrf
-                                                <button class="btn btn-danger" title="Delete All Job Experience Records">
-                                                    <i class="fas fa-trash mr-1"></i> Delete All
-                                                </button>
-                                            </form>
-                                        @endif
-                                    </div>
-                                </div>
-                                <div class="table-responsive">
-                                    <table class="table-modern">
-                                        <thead>
-                                            <tr>
-                                                <th>Name</th>
-                                                <th>Address</th>
-                                                <th>Position</th>
-                                                <th>Duration</th>
-                                                <th>Quit Reason</th>
-                                                <th class="text-center">Action</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            @forelse ($jobs as $job)
-                                                <tr>
-                                                    <td>{{ $job->company_name }}</td>
-                                                    <td>{{ $job->company_address }}</td>
-                                                    <td>{{ $job->job_position }}</td>
-                                                    <td>{{ $job->job_duration }}</td>
-                                                    <td>{{ $job->quit_reason }}</td>
-                                                    <td class="action-buttons">
-                                                        <button class="btn btn-primary btn-action" data-toggle="modal"
-                                                            data-target="#modal-job-{{ $job->id }}">
-                                                            <i class="fas fa-pen-square"></i>
-                                                        </button>
-                                                        <form
-                                                            action="{{ url('jobexperiences/' . $employee->id . '/' . $job->id) }}"
-                                                            method="post"
-                                                            onsubmit="return confirm('Are you sure want to delete this record?')"
-                                                            class="d-inline">
-                                                            @method('delete')
-                                                            @csrf
-                                                            <button class="btn btn-danger btn-action">
-                                                                <i class="fas fa-times"></i>
-                                                            </button>
-                                                        </form>
-                                                    </td>
-                                                </tr>
-                                            @empty
-                                                <tr>
-                                                    <td colspan="6">
-                                                        <div class="empty-state">
-                                                            <i class="fas fa-exclamation-circle"></i>
-                                                            <h6>No Data Available</h6>
-                                                            <p>No job experience records found for this employee</p>
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                            @endforelse
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-
-                            <div id="unit-pane" class="content" role="tabpanel" aria-labelledby="unit-pane-trigger">
-                                <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
-                                    <h5 class="mb-0">Operable Units</h5>
-                                    <div>
-                                        <button class="btn btn-primary" data-toggle="modal" data-target="#modal-unit"
-                                            title="Add Operable Unit">
-                                            <i class="fas fa-plus mr-1"></i> Add Unit
-                                        </button>
-                                        @if ($units->isNotEmpty())
-                                            <form action="{{ url('operableunits/' . $employee->id) }}" method="post"
-                                                onsubmit="return confirm('Are you sure want to delete all operable unit records?')"
-                                                class="d-inline">
-                                                @method('delete')
-                                                @csrf
-                                                <button class="btn btn-danger" title="Delete All Operable Unit Records">
-                                                    <i class="fas fa-trash mr-1"></i> Delete All
-                                                </button>
-                                            </form>
-                                        @endif
-                                    </div>
-                                </div>
-                                <div class="table-responsive">
-                                    <table class="table-modern">
-                                        <thead>
-                                            <tr>
-                                                <th>Unit Name</th>
-                                                <th>Unit Type / Class</th>
-                                                <th>Remarks</th>
-                                                <th class="text-center">Action</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            @forelse ($units as $unit)
-                                                <tr>
-                                                    <td>{{ $unit->unit_name }}</td>
-                                                    <td>{{ $unit->unit_type }}</td>
-                                                    <td>{{ $unit->unit_remarks }}</td>
-                                                    <td class="action-buttons">
-                                                        <button class="btn btn-primary btn-action" data-toggle="modal"
-                                                            data-target="#modal-unit-{{ $unit->id }}">
-                                                            <i class="fas fa-pen-square"></i>
-                                                        </button>
-                                                        <form
-                                                            action="{{ url('operableunits/' . $employee->id . '/' . $unit->id) }}"
-                                                            method="post"
-                                                            onsubmit="return confirm('Are you sure want to delete this record?')"
-                                                            class="d-inline">
-                                                            @method('delete')
-                                                            @csrf
-                                                            <button class="btn btn-danger btn-action">
-                                                                <i class="fas fa-times"></i>
-                                                            </button>
-                                                        </form>
-                                                    </td>
-                                                </tr>
-                                            @empty
-                                                <tr>
-                                                    <td colspan="4">
-                                                        <div class="empty-state">
-                                                            <i class="fas fa-exclamation-circle"></i>
-                                                            <h6>No Data Available</h6>
-                                                            <p>No unit records found for this employee</p>
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                            @endforelse
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-
-                            <div id="emergency-pane" class="content" role="tabpanel"
-                                aria-labelledby="emergency-pane-trigger">
-                                <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
-                                    <h5 class="mb-0">Emergency Calls</h5>
-                                    <div>
-                                        <button class="btn btn-primary" data-toggle="modal"
-                                            data-target="#modal-emergency" title="Add Emergency Call">
-                                            <i class="fas fa-plus mr-1"></i> Add Contact
-                                        </button>
-                                        @if ($emergencies->isNotEmpty())
-                                            <form action="{{ url('emrgcalls/' . $employee->id) }}" method="post"
-                                                onsubmit="return confirm('Are you sure want to delete all emergency contact records?')"
-                                                class="d-inline">
-                                                @method('delete')
-                                                @csrf
-                                                <button class="btn btn-danger" title="Delete All Emergency Records">
-                                                    <i class="fas fa-trash mr-1"></i> Delete All
-                                                </button>
-                                            </form>
-                                        @endif
-                                    </div>
-                                </div>
-                                <div class="table-responsive">
-                                    <table class="table-modern">
-                                        <thead>
-                                            <tr>
-                                                <th>Relationship</th>
-                                                <th>Full Name</th>
-                                                <th>Address</th>
-                                                <th>Phone</th>
-                                                <th class="text-center">Action</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            @forelse ($emergencies as $emergency)
-                                                <tr>
-                                                    <td>{{ $emergency->emrg_call_relation }}</td>
-                                                    <td>{{ $emergency->emrg_call_name }}</td>
-                                                    <td>{{ $emergency->emrg_call_address }}</td>
-                                                    <td>{{ $emergency->emrg_call_phone }}</td>
-                                                    <td class="action-buttons">
-                                                        <button class="btn btn-primary btn-action" data-toggle="modal"
-                                                            data-target="#modal-emergency-{{ $emergency->id }}">
-                                                            <i class="fas fa-pen-square"></i>
-                                                        </button>
-                                                        <form
-                                                            action="{{ url('emrgcalls/' . $employee->id . '/' . $emergency->id) }}"
-                                                            method="post"
-                                                            onsubmit="return confirm('Are you sure want to delete this record?')"
-                                                            class="d-inline">
-                                                            @method('delete')
-                                                            @csrf
-                                                            <button class="btn btn-danger btn-action">
-                                                                <i class="fas fa-times"></i>
-                                                            </button>
-                                                        </form>
-                                                    </td>
-                                                </tr>
-                                            @empty
-                                                <tr>
-                                                    <td colspan="5">
-                                                        <div class="empty-state">
-                                                            <i class="fas fa-exclamation-circle"></i>
-                                                            <h6>No Data Available</h6>
-                                                            <p>No emergency contact records found for this employee</p>
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                            @endforelse
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-
-                            <div id="additional-pane" class="content" role="tabpanel"
-                                aria-labelledby="additional-pane-trigger">
-                                <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
-                                    <h5 class="mb-0">Additional Data</h5>
-                                    <div>
-                                        @if ($additional == null)
-                                            <button class="btn btn-primary" data-toggle="modal"
-                                                data-target="#modal-additional">
-                                                <i class="fas fa-plus mr-1"></i> Add Data
-                                            </button>
-                                        @else
-                                            <button class="btn btn-primary" data-toggle="modal"
-                                                data-target="#modal-additional-{{ $additional->id }}">
-                                                <i class="fas fa-pen-square mr-1"></i> Edit Data
-                                            </button>
-                                            <form
-                                                action="{{ url('additionaldatas/' . $employee->id . '/' . $additional->id) }}"
-                                                method="post"
-                                                onsubmit="return confirm('Are you sure want to delete this additional data?')"
-                                                class="d-inline">
-                                                @method('delete')
-                                                @csrf
-                                                <button class="btn btn-danger" title="Delete Additional Data">
-                                                    <i class="fas fa-trash mr-1"></i> Delete
-                                                </button>
-                                            </form>
-                                        @endif
-                                    </div>
-                                </div>
-
-                                @if ($additional == null)
-                                    <div class="text-center py-5">
-                                        <img src="{{ asset('assets/dist/img/additional-empty.png') }}"
-                                            alt="No Additional Data" class="img-fluid mb-3"
-                                            style="max-height: 120px; opacity: 0.5;">
-                                        <h6 class="text-muted">No additional information available</h6>
-                                        <p class="text-muted small">Click "Add Data" button to register employee's
-                                            additional details</p>
-                                    </div>
-                                @else
-                                    <div class="row">
-                                        <div class="col-md-6">
-                                            <div class="card card-primary card-outline">
-                                                <div class="card-header">
-                                                    <h3 class="card-title">
-                                                        <i class="fas fa-tshirt mr-2"></i>
-                                                        Clothing Information
-                                                    </h3>
-                                                </div>
-                                                <div class="card-body">
-                                                    <div class="row">
-                                                        <div class="col-md-6">
-                                                            <div class="info-box bg-light">
-                                                                <span class="info-box-icon bg-primary"><i
-                                                                        class="fas fa-tshirt"></i></span>
-                                                                <div class="info-box-content">
-                                                                    <span class="info-box-text">Cloth Size</span>
-                                                                    <span
-                                                                        class="info-box-number">{{ $additional->cloth_size ?? '-' }}</span>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                        <div class="col-md-6">
-                                                            <div class="info-box bg-light">
-                                                                <span class="info-box-icon bg-primary"><i
-                                                                        class="fas fa-socks"></i></span>
-                                                                <div class="info-box-content">
-                                                                    <span class="info-box-text">Pants Size</span>
-                                                                    <span
-                                                                        class="info-box-number">{{ $additional->pants_size ?? '-' }}</span>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                        <div class="col-md-6">
-                                                            <div class="info-box bg-light">
-                                                                <span class="info-box-icon bg-primary"><i
-                                                                        class="fas fa-shoe-prints"></i></span>
-                                                                <div class="info-box-content">
-                                                                    <span class="info-box-text">Shoes Size</span>
-                                                                    <span
-                                                                        class="info-box-number">{{ $additional->shoes_size ?? '-' }}</span>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                        <div class="col-md-6">
-                                                            <div class="info-box bg-light">
-                                                                <span class="info-box-icon bg-primary"><i
-                                                                        class="fas fa-glasses"></i></span>
-                                                                <div class="info-box-content">
-                                                                    <span class="info-box-text">Glasses</span>
-                                                                    <span
-                                                                        class="info-box-number">{{ $additional->glasses ?? '-' }}</span>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="col-md-6">
-                                            <div class="card card-primary card-outline">
-                                                <div class="card-header">
-                                                    <h3 class="card-title">
-                                                        <i class="fas fa-ruler-combined mr-2"></i>
-                                                        Physical Information
-                                                    </h3>
-                                                </div>
-                                                <div class="card-body">
-                                                    <div class="row">
-                                                        <div class="col-md-6">
-                                                            <div class="info-box bg-light">
-                                                                <span class="info-box-icon bg-primary"><i
-                                                                        class="fas fa-ruler-vertical"></i></span>
-                                                                <div class="info-box-content">
-                                                                    <span class="info-box-text">Height</span>
-                                                                    <span
-                                                                        class="info-box-number">{{ $additional->height ?? '-' }}
-                                                                        cm</span>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                        <div class="col-md-6">
-                                                            <div class="info-box bg-light">
-                                                                <span class="info-box-icon bg-primary"><i
-                                                                        class="fas fa-weight"></i></span>
-                                                                <div class="info-box-content">
-                                                                    <span class="info-box-text">Weight</span>
-                                                                    <span
-                                                                        class="info-box-number">{{ $additional->weight ?? '-' }}
-                                                                        kg</span>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                @endif
-                            </div>
-
-                            <div id="image-pane" class="content" role="tabpanel" aria-labelledby="image-pane-trigger">
-                                <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
-                                    <h5 class="mb-0">Employee Images</h5>
-                                    <div>
-                                        @if ($images->isNotEmpty())
-                                            <a href="{{ url('employees/deleteImages/' . $employee->id) }}"
-                                                class="btn btn-danger"
-                                                onclick="return confirm('Are you sure you want to delete all images?');">
-                                                <i class="fas fa-trash mr-1"></i> Delete All Images
-                                            </a>
-                                        @endif
-                                    </div>
-                                </div>
-
-                                <div class="alert alert-info mb-3">
-                                    <i class="fas fa-info-circle mr-2"></i>
-                                    Upload employee images including ID cards, profile photos, and other relevant
-                                    documents.
-                                </div>
-
-                                <form action="{{ url('employees/addImages/' . $employee->id) }}" method="POST"
-                                    enctype="multipart/form-data" class="mb-4">
-                                    @csrf
-                                    <div class="form-group">
-                                        <label for="images_upload" class="form-label">Upload Images</label>
-                                        <div class="custom-file">
-                                            <input type="file" class="custom-file-input" id="images_upload"
-                                                name="filename[]" multiple required>
-                                            <label class="custom-file-label" for="images_upload">Choose
-                                                files...</label>
-                                        </div>
-                                    </div>
-                                    <button type="submit" class="btn btn-primary">
-                                        <i class="fas fa-upload mr-1"></i> Upload
-                                    </button>
-                                </form>
-
-                                <div class="card bg-light mb-3">
-                                    <div class="card-body">
-                                        <h6 class="card-title">
-                                            <i class="fas fa-lightbulb text-warning mr-2"></i>Image Guidelines
-                                        </h6>
-                                        <br>
-                                        <ul class="mb-0 pl-3">
-                                            <li>Supported formats: JPG, PNG. Maximum file size: 2MB.</li>
-                                            <li>Profile photos should be clear and professional</li>
-                                            <li>ID card images must be legible</li>
-                                            <li>All uploads must be appropriate for workplace use</li>
-                                        </ul>
-                                    </div>
-                                </div>
-
-                                <div class="row mt-4">
-                                    @forelse ($images as $image)
-                                        <div class="col-sm-6 col-md-4 col-lg-3 mb-4">
-                                            <div class="card h-100">
-                                                <a href="{{ asset('images/' . $image->employee_id . '/' . $image->filename) }}"
-                                                    data-toggle="lightbox" data-title="{{ $image->filename }}"
-                                                    data-gallery="gallery">
-                                                    <img src="{{ asset('images/' . $image->employee_id . '/' . $image->filename) }}"
-                                                        class="card-img-top" alt="{{ $image->filename }}"
-                                                        style="height: 200px; object-fit: cover;" />
-                                                </a>
-                                                <div class="card-body p-2">
-                                                    <div class="d-flex justify-content-between align-items-center">
-                                                        @if ($image->is_profile == 0)
-                                                            <a href="{{ url('employees/setProfile/' . $employee->id . '/' . $image->id) }}"
-                                                                class="btn btn-primary btn-sm"
-                                                                title="Set Profile Picture">
-                                                                <i class="fas fa-id-badge mr-1"></i> Set Profile
-                                                            </a>
-                                                        @else
-                                                            <span class="badge badge-success">
-                                                                <i class="fas fa-check mr-1"></i> Profile Picture
-                                                            </span>
-                                                        @endif
-                                                        <a href="{{ url('employees/deleteImage/' . $employee->id . '/' . $image->id) }}"
-                                                            class="btn btn-danger btn-sm"
-                                                            onclick="return confirm('Are you sure you want to delete this image?');"
-                                                            title="Delete Image">
-                                                            <i class="fas fa-trash"></i>
-                                                        </a>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    @empty
-                                        <div class="col-12 text-center">
-                                            <div class="alert alert-warning">
-                                                <i class="fas fa-exclamation-circle mr-2"></i>
-                                                No images available. Please upload some images.
-                                            </div>
-                                        </div>
-                                    @endforelse
-                                </div>
-                            </div>
+                            @include('employee.components.personal-detail-pane')
+                            @include('employee.components.administration-pane')
+                            @include('employee.components.bank-pane')
+                            @include('employee.components.tax-pane')
+                            @include('employee.components.insurance-pane')
+                            @include('employee.components.license-pane')
+                            @include('employee.components.family-pane')
+                            @include('employee.components.education-pane')
+                            @include('employee.components.course-pane')
+                            @include('employee.components.jobexp-pane')
+                            @include('employee.components.unit-pane')
+                            @include('employee.components.emergency-pane')
+                            @include('employee.components.additional-pane')
+                            @include('employee.components.image-pane')
 
                         </div>
                     </div>
@@ -1331,6 +181,7 @@
     </section>
 
     @include('employee.modal-employee')
+    @include('employee.modal-administration')
     @include('employee.modal-bank')
     @include('employee.modal-tax')
     @include('employee.modal-insurance')
@@ -1342,14 +193,13 @@
     @include('employee.modal-license')
     @include('employee.modal-emergency')
     @include('employee.modal-additional')
-    @include('employee.modal-administration')
 @endsection
 
 @section('styles')
     <link rel="stylesheet" href="{{ asset('assets/plugins/ekko-lightbox/ekko-lightbox.css') }}">
+    <link rel="stylesheet" href="{{ asset('assets/plugins/bs-stepper/css/bs-stepper.min.css') }}">
     <link rel="stylesheet" href="{{ asset('assets/plugins/select2/css/select2.min.css') }}">
     <link rel="stylesheet" href="{{ asset('assets/plugins/select2-bootstrap4-theme/select2-bootstrap4.min.css') }}">
-    <link rel="stylesheet" href="{{ asset('assets/plugins/bs-stepper/css/bs-stepper.min.css') }}">
     <style>
         /* Critical CSS - Load First */
         .content {
@@ -1725,10 +575,11 @@
 @endsection
 
 @section('scripts')
-    <script src="{{ asset('assets/plugins/select2/js/select2.full.min.js') }}" defer></script>
     <script src="{{ asset('assets/plugins/ekko-lightbox/ekko-lightbox.min.js') }}" defer></script>
     <script src="{{ asset('assets/plugins/bs-stepper/js/bs-stepper.min.js') }}" defer></script>
     <script src="{{ asset('assets/plugins/bs-custom-file-input/bs-custom-file-input.min.js') }}" defer></script>
+    <!-- Select2 -->
+    <script src="{{ asset('assets/plugins/select2/js/select2.full.min.js') }}"></script>
 
     <script>
         // Add loading indicator to body
@@ -1873,10 +724,7 @@
             function initializeSelect2(container) {
                 $(container).find('.select2bs4').select2({
                     theme: 'bootstrap4',
-                    width: '100%',
-                    placeholder: $(this).data('placeholder') || '-Select-',
-                    allowClear: Boolean($(this).data('allow-clear')),
-                    dropdownParent: $(this).closest('.modal')
+                    width: '100%'
                 });
             }
 
@@ -1937,6 +785,95 @@
                         );
                     }
                 });
+            @endforeach
+        });
+
+        $(document).ready(function() {
+            // Centralized Select2 initialization
+            function initializeSelect2(element) {
+                // Destroy existing Select2 instances to prevent conflicts
+                $(element).find('.select2bs4').each(function() {
+                    if ($(this).data('select2')) {
+                        $(this).select2('destroy');
+                    }
+                });
+
+                // Initialize new Select2 instances
+                $(element).find('.select2bs4').select2({
+                    theme: 'bootstrap4',
+                    width: '100%',
+                    placeholder: 'Select an option',
+                    allowClear: true,
+                    minimumResultsForSearch: 0,
+                    dropdownParent: $(element).closest('.modal')
+                });
+            }
+
+            // Initialize Select2 for all modals
+            $('.modal').each(function() {
+                initializeSelect2(this);
+            });
+
+            // Handle modal show events
+            $('.modal').on('shown.bs.modal', function() {
+                initializeSelect2(this);
+            });
+
+            // Handle modal hide events
+            $('.modal').on('hidden.bs.modal', function() {
+                // Clean up Select2 instances when modal is hidden
+                $(this).find('.select2bs4').each(function() {
+                    if ($(this).data('select2')) {
+                        $(this).select2('destroy');
+                    }
+                });
+            });
+
+            // Function to fetch department
+            function fetchDepartment(positionId, departmentElement) {
+                if (!positionId) {
+                    $(departmentElement).val('');
+                    return;
+                }
+
+                $.ajax({
+                    url: "{{ route('employees.getDepartment') }}",
+                    type: "GET",
+                    data: {
+                        position_id: positionId
+                    },
+                    dataType: 'json',
+                    success: function(data) {
+                        $(departmentElement).val(data ? data.department_name : '');
+                    },
+                    error: function() {
+                        $(departmentElement).val('');
+                    }
+                });
+            }
+
+            // Handle position change for add modal
+            $('#position_id').on('change', function() {
+                fetchDepartment($(this).val(), $('#department'));
+            });
+
+            // Handle position change for edit modals
+            @foreach ($administrations as $administration)
+                $('#position_id{{ $administration->id }}').on('change', function() {
+                    fetchDepartment($(this).val(), $('#department{{ $administration->id }}'));
+                });
+            @endforeach
+
+            // Initialize department if position is already selected
+            if ($('#position_id').val()) {
+                fetchDepartment($('#position_id').val(), $('#department'));
+            }
+
+            @foreach ($administrations as $administration)
+                if ($('#position_id{{ $administration->id }}').val()) {
+                    fetchDepartment($('#position_id{{ $administration->id }}').val(), $(
+                        '#department{{ $administration->id }}'));
+                }
             @endforeach
         });
     </script>

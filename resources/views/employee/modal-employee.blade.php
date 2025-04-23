@@ -284,3 +284,28 @@
         </div>
     </div>
 </div>
+
+@push('styles')
+    <link rel="stylesheet" href="{{ asset('assets/plugins/select2/css/select2.min.css') }}">
+    <link rel="stylesheet" href="{{ asset('assets/plugins/select2-bootstrap4-theme/select2-bootstrap4.min.css') }}">
+@endpush
+
+@push('scripts')
+    <!-- Select2 -->
+    <script src="{{ asset('assets/plugins/select2/js/select2.full.min.js') }}"></script>
+    <script>
+        $(document).ready(function() {
+            // Initialize select2 when modal is shown
+            $('#modal-employee-{{ $employee->id }}').on('shown.bs.modal', function() {
+                var $select2 = $(this).find('.select2bs4').select2({
+                    theme: 'bootstrap4',
+                    width: '100%',
+                    dropdownParent: $(
+                        '#modal-employee-{{ $employee->id }}') // Important for modal
+                });
+            }).on('select2:open', function() {
+                document.querySelector('.select2-search__field').focus();
+            });
+        });
+    </script>
+@endpush

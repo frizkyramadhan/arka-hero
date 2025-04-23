@@ -11,9 +11,9 @@
 <!-- AdminLTE App -->
 <script src="{{ asset('assets/dist/js/adminlte.js') }}"></script>
 <!-- pace-progress -->
-<script src="{{ asset('assets/plugins/pace-progress/pace.min.js') }}"></script>
-
+{{-- <script src="{{ asset('assets/plugins/pace-progress/pace.min.js') }}"></script> --}}
 @yield('scripts')
+@stack('scripts')
 @include('sweetalert::alert')
 <!-- SweetAlert2 -->
 <script src="{{ asset('assets/plugins/sweetalert2/sweetalert2.min.js') }}"></script>
