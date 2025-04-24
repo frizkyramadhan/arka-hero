@@ -540,6 +540,7 @@ class EmployeeController extends Controller
         $title = 'Employees';
         $subtitle = 'Detail Employee';
         $employee = Employee::with(['religion'])->where('id', $id)->first();
+        $banks = Bank::orderBy('bank_name', 'asc')->get();
         $bank = Employeebank::with(['banks'])->where('employee_id', $id)->first();
         $tax = Taxidentification::where('employee_id', $id)->first();
         $insurances = Insurance::where('employee_id', $id)->get();
@@ -563,7 +564,7 @@ class EmployeeController extends Controller
         // for select option
         $religions = Religion::orderBy('id', 'asc')->get();
         $getBanks = Bank::orderBy('bank_name', 'asc')->get();
-        $positions = Position::with('departments')->orderBy('position_name', 'asc')->get();
+        $positions = Position::with('department')->orderBy('position_name', 'asc')->get();
         $projects = Project::orderBy('project_code', 'asc')->get();
 
         return view('employee.print', compact('title', 'subtitle', 'employee', 'bank', 'tax', 'insurances', 'families', 'educations', 'courses', 'jobs', 'units', 'licenses', 'emergencies', 'additional', 'administrations', 'images', 'religions', 'getBanks', 'positions', 'projects', 'profile'));

@@ -166,7 +166,6 @@
                             @include('employee.components.emergency-pane')
                             @include('employee.components.additional-pane')
                             @include('employee.components.image-pane')
-
                         </div>
                     </div>
                 </div>
@@ -198,8 +197,6 @@
 @section('styles')
     <link rel="stylesheet" href="{{ asset('assets/plugins/ekko-lightbox/ekko-lightbox.css') }}">
     <link rel="stylesheet" href="{{ asset('assets/plugins/bs-stepper/css/bs-stepper.min.css') }}">
-    <link rel="stylesheet" href="{{ asset('assets/plugins/select2/css/select2.min.css') }}">
-    <link rel="stylesheet" href="{{ asset('assets/plugins/select2-bootstrap4-theme/select2-bootstrap4.min.css') }}">
     <style>
         /* Critical CSS - Load First */
         .content {
@@ -571,6 +568,14 @@
                 display: none !important;
             }
         }
+
+        /* Loading state styles */
+        .select2-container.loading .select2-selection {
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cpath fill='%23007bff' d='M12,4V2A10,10 0 0,0 2,12H4A8,8 0 0,1 12,4Z'%3E%3CanimateTransform attributeName='transform' type='rotate' from='0 12 12' to='360 12 12' dur='1s' repeatCount='indefinite'/%3E%3C/path%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right center;
+            background-size: 20px;
+        }
     </style>
 @endsection
 
@@ -578,258 +583,191 @@
     <script src="{{ asset('assets/plugins/ekko-lightbox/ekko-lightbox.min.js') }}" defer></script>
     <script src="{{ asset('assets/plugins/bs-stepper/js/bs-stepper.min.js') }}" defer></script>
     <script src="{{ asset('assets/plugins/bs-custom-file-input/bs-custom-file-input.min.js') }}" defer></script>
-    <!-- Select2 -->
-    <script src="{{ asset('assets/plugins/select2/js/select2.full.min.js') }}"></script>
 
     <script>
-        // Add loading indicator to body
-        document.body.insertAdjacentHTML('afterbegin',
-            '<div class="page-loader"><div class="spinner-border text-primary" role="status"><span class="sr-only">Loading...</span></div></div>'
-        );
+        // App initialization
+        (function() {
+            // Add loading indicator to body
+            document.body.insertAdjacentHTML('afterbegin',
+                '<div class="page-loader"><div class="spinner-border text-primary" role="status"><span class="sr-only">Loading...</span></div></div>'
+            );
 
-        // Initialize variables
-        var stepper;
+            // Global variables
+            let stepper;
+            const stepMap = {
+                '#personal': 1,
+                '#administration': 2,
+                '#bank': 3,
+                '#tax': 4,
+                '#insurance': 5,
+                '#license': 6,
+                '#family': 7,
+                '#education': 8,
+                '#course': 9,
+                '#jobexp': 10,
+                '#unit': 11,
+                '#emergency': 12,
+                '#additional': 13,
+                '#image': 14
+            };
 
-        // DOM Ready handler with performance optimizations
-        document.addEventListener('DOMContentLoaded', function() {
-            // Hide loader when DOM is ready
-            document.querySelector('.page-loader').classList.add('hidden');
-            document.querySelector('.content').classList.add('loaded');
-
-            // Initialize stepper with performance optimizations
-            stepper = new Stepper(document.querySelector('.bs-stepper'), {
-                linear: false,
-                animation: true,
-                selectors: {
-                    steps: '.step',
-                    trigger: '.step-trigger',
-                    stepper: '.bs-stepper'
-                }
+            // Main initialization when DOM is ready
+            document.addEventListener('DOMContentLoaded', function() {
+                hideLoader();
+                initComponents();
+                attachEventListeners();
             });
 
-            // Handle hash-based navigation
-            function handleHash() {
-                const hash = window.location.hash.toLowerCase();
-                if (hash) {
-                    const stepMap = {
-                        '#personal': 1,
-                        '#administration': 2,
-                        '#bank': 3,
-                        '#tax': 4,
-                        '#insurance': 5,
-                        '#license': 6,
-                        '#family': 7,
-                        '#education': 8,
-                        '#course': 9,
-                        '#jobexp': 10,
-                        '#unit': 11,
-                        '#emergency': 12,
-                        '#additional': 13,
-                        '#image': 14
-                    };
-
-                    if (stepMap.hasOwnProperty(hash)) {
-                        stepper.to(stepMap[hash]);
-                        // Scroll to top when hash changes
-                        window.scrollTo({
-                            top: 0,
-                            behavior: 'smooth'
-                        });
-                    }
-                }
+            /**
+             * Remove loader and show content
+             */
+            function hideLoader() {
+                document.querySelector('.page-loader').classList.add('hidden');
+                document.querySelector('.content').classList.add('loaded');
             }
 
-            // Handle initial hash on page load
-            handleHash();
+            /**
+             * Initialize all page components
+             */
+            function initComponents() {
+                initStepper();
+                initBackToTop();
+                initLightbox();
+                initCustomFileInput();
+                initDepartmentHandlers();
+                handleInitialHash();
+            }
 
-            // Handle hash changes while on the page
-            window.addEventListener('hashchange', function() {
-                handleHash();
-                // Scroll to top when hash changes
-                window.scrollTo({
-                    top: 0,
-                    behavior: 'smooth'
-                });
-            });
+            /**
+             * Attach global event listeners
+             */
+            function attachEventListeners() {
+                // Handle hash changes
+                window.addEventListener('hashchange', handleHashChange);
 
-            // Update hash and scroll position when clicking stepper buttons
-            document.querySelectorAll('.step-trigger').forEach(trigger => {
-                trigger.addEventListener('click', function() {
-                    const paneId = this.getAttribute('aria-controls');
-                    if (paneId) {
-                        const hash = paneId.replace('-pane', '');
-                        window.location.hash = hash;
-                        // Always scroll to top when any step is clicked
-                        window.scrollTo({
-                            top: 0,
-                            behavior: 'smooth'
+                // Optimize back to top click
+                const backToTop = document.getElementById('back-to-top');
+                backToTop.addEventListener('click', scrollToTop);
+
+                // Add scroll listener for back-to-top button visibility
+                let ticking = false;
+                window.addEventListener('scroll', function() {
+                    if (!ticking) {
+                        window.requestAnimationFrame(function() {
+                            backToTop.style.display = window.pageYOffset > 100 ? 'block' : 'none';
+                            ticking = false;
                         });
+                        ticking = true;
                     }
                 });
-            });
 
-            // Ensure all panes are properly initialized
-            document.querySelectorAll('.step').forEach(function(step) {
-                step.addEventListener('click', function(e) {
-                    let targetPane = this.getAttribute('data-target');
-                    if (targetPane) {
-                        document.querySelectorAll('.content').forEach(pane => pane.classList.remove(
-                            'active'));
-                        document.querySelector(targetPane).classList.add('active');
-                    }
-                });
-            });
-
-            document.querySelector('.bs-stepper').classList.add('initialized');
-
-            // Optimize scroll handler
-            let backToTop = document.getElementById('back-to-top');
-            let ticking = false;
-
-            window.addEventListener('scroll', function() {
-                if (!ticking) {
-                    window.requestAnimationFrame(function() {
-                        if (window.pageYOffset > 100) {
-                            backToTop.style.display = 'block';
-                        } else {
-                            backToTop.style.display = 'none';
+                // Attach step trigger click listeners
+                document.querySelectorAll('.step-trigger').forEach(trigger => {
+                    trigger.addEventListener('click', function() {
+                        const paneId = this.getAttribute('aria-controls');
+                        if (paneId) {
+                            const hash = paneId.replace('-pane', '');
+                            window.location.hash = hash;
+                            scrollToTop();
                         }
-                        ticking = false;
                     });
-                    ticking = true;
-                }
-            });
+                });
+            }
 
-            // Optimize back to top click
-            backToTop.addEventListener('click', function(e) {
-                e.preventDefault();
+            /**
+             * Initialize the stepper component
+             */
+            function initStepper() {
+                stepper = new Stepper(document.querySelector('.bs-stepper'), {
+                    linear: false,
+                    animation: true,
+                    selectors: {
+                        steps: '.step',
+                        trigger: '.step-trigger',
+                        stepper: '.bs-stepper'
+                    }
+                });
+
+                // Ensure all panes can be activated when steps are clicked
+                document.querySelectorAll('.step').forEach(function(step) {
+                    step.addEventListener('click', function() {
+                        let targetPane = this.getAttribute('data-target');
+                        if (targetPane) {
+                            document.querySelectorAll('.content').forEach(pane => pane.classList.remove(
+                                'active'));
+                            document.querySelector(targetPane).classList.add('active');
+                        }
+                    });
+                });
+
+                document.querySelector('.bs-stepper').classList.add('initialized');
+            }
+
+            /**
+             * Initialize back to top button
+             */
+            function initBackToTop() {
+                document.getElementById('back-to-top').style.display = 'none';
+            }
+
+            /**
+             * Handle smooth scrolling to top
+             */
+            function scrollToTop(e) {
+                if (e) e.preventDefault();
                 window.scrollTo({
                     top: 0,
                     behavior: 'smooth'
                 });
-            });
-
-            // Initialize lightbox with lazy loading
-            document.querySelectorAll('[data-toggle="lightbox"]').forEach(function(el) {
-                el.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    $(this).ekkoLightbox({
-                        alwaysShowClose: true,
-                        loadingMessage: 'Loading...'
-                    });
-                });
-            });
-
-            // Initialize Select2 with performance optimizations
-            function initializeSelect2(container) {
-                $(container).find('.select2bs4').select2({
-                    theme: 'bootstrap4',
-                    width: '100%'
-                });
             }
 
-            // Initialize components
-            initializeSelect2(document);
-            bsCustomFileInput.init();
-
-            // Modal handlers with optimizations
-            $('.modal').on('shown.bs.modal', function() {
-                initializeSelect2(this);
-                bsCustomFileInput.init();
-            });
-
-            // Department fetching optimization
-            function fetchDepartment(position_id, targetElement) {
-                if (!position_id) {
-                    $(targetElement).val('').trigger('change');
-                    return;
+            /**
+             * Process URL hash and navigate to correct tab
+             */
+            function handleInitialHash() {
+                const hash = window.location.hash.toLowerCase();
+                if (hash && stepMap.hasOwnProperty(hash)) {
+                    stepper.to(stepMap[hash]);
+                    scrollToTop();
                 }
-
-                $.ajax({
-                    url: "{{ route('employees.getDepartment') }}",
-                    type: "GET",
-                    data: {
-                        position_id: position_id
-                    },
-                    dataType: 'json',
-                    success: function(data) {
-                        $(targetElement).val(data ? data.department_name : '').trigger('change');
-                    },
-                    error: function() {
-                        $(targetElement).val('').trigger('change');
-                    }
-                });
             }
 
-            // Position change handler
-            $('#modal-administration .position_id').on('change', function() {
-                fetchDepartment($(this).val(), '#modal-administration .department');
-            });
+            /**
+             * Handle hash change events
+             */
+            function handleHashChange() {
+                const hash = window.location.hash.toLowerCase();
+                if (hash && stepMap.hasOwnProperty(hash)) {
+                    stepper.to(stepMap[hash]);
+                    scrollToTop();
+                }
+            }
 
-            // Dynamic administration modals
-            @foreach ($administrations as $administration)
-                $('#modal-administration-{{ $administration->id }} .position_id{{ $administration->id }}').on(
-                    'change',
-                    function() {
-                        fetchDepartment($(this).val(),
-                            '#modal-administration-{{ $administration->id }} .department{{ $administration->id }}'
-                        );
+            /**
+             * Initialize lightbox for images
+             */
+            function initLightbox() {
+                document.querySelectorAll('[data-toggle="lightbox"]').forEach(function(el) {
+                    el.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        $(this).ekkoLightbox({
+                            alwaysShowClose: true,
+                            loadingMessage: 'Loading...'
+                        });
                     });
-
-                $('#modal-administration-{{ $administration->id }}').on('shown.bs.modal', function() {
-                    var initial_position_id = $(this).find('.position_id{{ $administration->id }}').val();
-                    if (initial_position_id && !$(this).find('.department{{ $administration->id }}')
-                        .val()) {
-                        fetchDepartment(initial_position_id,
-                            '#modal-administration-{{ $administration->id }} .department{{ $administration->id }}'
-                        );
-                    }
-                });
-            @endforeach
-        });
-
-        $(document).ready(function() {
-            // Centralized Select2 initialization
-            function initializeSelect2(element) {
-                // Destroy existing Select2 instances to prevent conflicts
-                $(element).find('.select2bs4').each(function() {
-                    if ($(this).data('select2')) {
-                        $(this).select2('destroy');
-                    }
-                });
-
-                // Initialize new Select2 instances
-                $(element).find('.select2bs4').select2({
-                    theme: 'bootstrap4',
-                    width: '100%',
-                    placeholder: 'Select an option',
-                    allowClear: true,
-                    minimumResultsForSearch: 0,
-                    dropdownParent: $(element).closest('.modal')
                 });
             }
 
-            // Initialize Select2 for all modals
-            $('.modal').each(function() {
-                initializeSelect2(this);
-            });
+            /**
+             * Initialize custom file input
+             */
+            function initCustomFileInput() {
+                bsCustomFileInput.init();
+            }
 
-            // Handle modal show events
-            $('.modal').on('shown.bs.modal', function() {
-                initializeSelect2(this);
-            });
-
-            // Handle modal hide events
-            $('.modal').on('hidden.bs.modal', function() {
-                // Clean up Select2 instances when modal is hidden
-                $(this).find('.select2bs4').each(function() {
-                    if ($(this).data('select2')) {
-                        $(this).select2('destroy');
-                    }
-                });
-            });
-
-            // Function to fetch department
+            /**
+             * Fetch department based on position ID
+             */
             function fetchDepartment(positionId, departmentElement) {
                 if (!positionId) {
                     $(departmentElement).val('');
@@ -844,7 +782,11 @@
                     },
                     dataType: 'json',
                     success: function(data) {
-                        $(departmentElement).val(data ? data.department_name : '');
+                        if (data && data.department_name) {
+                            $(departmentElement).val(data.department_name);
+                        } else {
+                            $(departmentElement).val('');
+                        }
                     },
                     error: function() {
                         $(departmentElement).val('');
@@ -852,29 +794,39 @@
                 });
             }
 
-            // Handle position change for add modal
-            $('#position_id').on('change', function() {
-                fetchDepartment($(this).val(), $('#department'));
-            });
-
-            // Handle position change for edit modals
-            @foreach ($administrations as $administration)
-                $('#position_id{{ $administration->id }}').on('change', function() {
-                    fetchDepartment($(this).val(), $('#department{{ $administration->id }}'));
+            /**
+             * Initialize department handlers
+             */
+            function initDepartmentHandlers() {
+                // Handle position change for add modal
+                $('#position_id_add').on('change', function() {
+                    fetchDepartment($(this).val(), $('#department_add'));
                 });
-            @endforeach
 
-            // Initialize department if position is already selected
-            if ($('#position_id').val()) {
-                fetchDepartment($('#position_id').val(), $('#department'));
+                // Handle position change for edit modals
+                @foreach ($administrations as $administration)
+                    $('#position_id_edit_{{ $administration->id }}').on('change', function() {
+                        fetchDepartment($(this).val(), $('#department_edit_{{ $administration->id }}'));
+                    });
+                @endforeach
+
+                // Initialize departments when modals are shown
+                $('[id^="modal-administration"]').on('shown.bs.modal', function() {
+                    const modalId = $(this).attr('id');
+                    if (modalId === 'modal-administration') {
+                        // Add modal
+                        if ($('#position_id_add').val()) {
+                            fetchDepartment($('#position_id_add').val(), $('#department_add'));
+                        }
+                    } else {
+                        // Edit modal
+                        const id = modalId.replace('modal-administration-', '');
+                        if ($(`#position_id_edit_${id}`).val()) {
+                            fetchDepartment($(`#position_id_edit_${id}`).val(), $(`#department_edit_${id}`));
+                        }
+                    }
+                });
             }
-
-            @foreach ($administrations as $administration)
-                if ($('#position_id{{ $administration->id }}').val()) {
-                    fetchDepartment($('#position_id{{ $administration->id }}').val(), $(
-                        '#department{{ $administration->id }}'));
-                }
-            @endforeach
-        });
+        })();
     </script>
 @endsection

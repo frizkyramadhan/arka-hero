@@ -1,6 +1,5 @@
 @push('styles')
-    <link rel="stylesheet" href="{{ asset('assets/plugins/select2/css/select2.min.css') }}">
-    <link rel="stylesheet" href="{{ asset('assets/plugins/select2-bootstrap4-theme/select2-bootstrap4.min.css') }}">
+    <!-- Remove Select2 styles -->
 @endpush
 
 <!-- Add Administration Modal -->
@@ -120,7 +119,7 @@
                                 <div class="form-group">
                                     <label for="agreement_add" class="form-label">Agreement Type</label>
                                     <select name="agreement" id="agreement_add"
-                                        class="form-control select2bs4 @error('agreement') is-invalid @enderror">
+                                        class="form-control @error('agreement') is-invalid @enderror">
                                         <option value="">-Select Agreement-</option>
                                         <option value="PKWT1" {{ old('agreement') == 'PKWT1' ? 'selected' : '' }}>
                                             PKWT1</option>
@@ -149,7 +148,7 @@
                                 <div class="form-group">
                                     <label for="position_id_add" class="form-label required-field">Position</label>
                                     <select name="position_id" id="position_id_add"
-                                        class="form-control select2bs4 @error('position_id') is-invalid @enderror">
+                                        class="form-control @error('position_id') is-invalid @enderror">
                                         <option value="">-Select Position-</option>
                                         @foreach ($positions as $position)
                                             <option value="{{ $position->id }}"
@@ -184,7 +183,7 @@
                                 <div class="form-group">
                                     <label for="project_id_add" class="form-label required-field">Project</label>
                                     <select name="project_id" id="project_id_add"
-                                        class="form-control select2bs4 @error('project_id') is-invalid @enderror">
+                                        class="form-control @error('project_id') is-invalid @enderror">
                                         <option value="">-Select Project-</option>
                                         @foreach ($projects as $project)
                                             <option value="{{ $project->id }}"
@@ -322,7 +321,7 @@
                                 <div class="form-group">
                                     <label for="termination_reason_add" class="form-label">Termination Reason</label>
                                     <select name="termination_reason" id="termination_reason_add"
-                                        class="form-control select2bs4 @error('termination_reason') is-invalid @enderror"
+                                        class="form-control @error('termination_reason') is-invalid @enderror"
                                         style="width: 100%;">
                                         <option value="">-Select Reason-</option>
                                         <option value="End of Contract"
@@ -508,7 +507,7 @@
                                         <label for="agreement_edit_{{ $administration->id }}"
                                             class="form-label">Agreement Type</label>
                                         <select name="agreement" id="agreement_edit_{{ $administration->id }}"
-                                            class="form-control select2bs4 @error('agreement') is-invalid @enderror">
+                                            class="form-control @error('agreement') is-invalid @enderror">
                                             <option value="">-Select Agreement-</option>
                                             <option value="PKWT1"
                                                 {{ old('agreement', $administration->agreement) == 'PKWT1' ? 'selected' : '' }}>
@@ -544,7 +543,7 @@
                                         <label for="position_id_edit_{{ $administration->id }}"
                                             class="form-label required-field">Position</label>
                                         <select name="position_id" id="position_id_edit_{{ $administration->id }}"
-                                            class="form-control select2bs4 @error('position_id') is-invalid @enderror">
+                                            class="form-control @error('position_id') is-invalid @enderror">
                                             <option value="">-Select Position-</option>
                                             @foreach ($positions as $position)
                                                 <option value="{{ $position->id }}"
@@ -582,7 +581,7 @@
                                         <label for="project_id_edit_{{ $administration->id }}"
                                             class="form-label required-field">Project</label>
                                         <select name="project_id" id="project_id_edit_{{ $administration->id }}"
-                                            class="form-control select2bs4 @error('project_id') is-invalid @enderror">
+                                            class="form-control @error('project_id') is-invalid @enderror">
                                             <option value="">-Select Project-</option>
                                             @foreach ($projects as $project)
                                                 <option value="{{ $project->id }}"
@@ -741,7 +740,7 @@
                                             class="form-label">Termination Reason</label>
                                         <select name="termination_reason"
                                             id="termination_reason_edit_{{ $administration->id }}"
-                                            class="form-control select2bs4 @error('termination_reason') is-invalid @enderror"
+                                            class="form-control @error('termination_reason') is-invalid @enderror"
                                             style="width: 100%;">
                                             <option value="">-Select Reason-</option>
                                             <option value="End of Contract"
@@ -790,30 +789,8 @@
 @endforeach
 
 @push('scripts')
-    <!-- Select2 -->
-    <script src="{{ asset('assets/plugins/select2/js/select2.full.min.js') }}"></script>
     <script>
         $(document).ready(function() {
-            // Centralized Select2 initialization
-            function initializeSelect2(element) {
-                // Destroy existing Select2 instances to prevent conflicts
-                $(element).find('.select2bs4').each(function() {
-                    if ($(this).data('select2')) {
-                        $(this).select2('destroy');
-                    }
-                });
-
-                // Initialize new Select2 instances
-                $(element).find('.select2bs4').select2({
-                    theme: 'bootstrap4',
-                    width: '100%',
-                    placeholder: 'Select an option',
-                    allowClear: true,
-                    minimumResultsForSearch: 0,
-                    dropdownParent: $(element).closest('.modal')
-                });
-            }
-
             // Function to fetch department
             function fetchDepartment(positionId, departmentElement) {
                 if (!positionId) {
@@ -829,7 +806,11 @@
                     },
                     dataType: 'json',
                     success: function(data) {
-                        $(departmentElement).val(data ? data.department_name : '');
+                        if (data && data.department_name) {
+                            $(departmentElement).val(data.department_name);
+                        } else {
+                            $(departmentElement).val('');
+                        }
                     },
                     error: function() {
                         $(departmentElement).val('');
@@ -837,47 +818,33 @@
                 });
             }
 
-            // Initialize Select2 for add modal
-            $('#modal-administration').on('shown.bs.modal', function() {
-                initializeSelect2(this);
-
-                // Handle position change for add modal
-                $('#position_id_add').on('change', function() {
-                    fetchDepartment($(this).val(), $('#department_add'));
-                });
-
-                // Initialize department if position is already selected
-                if ($('#position_id_add').val()) {
-                    fetchDepartment($('#position_id_add').val(), $('#department_add'));
-                }
+            // Handle position change for add modal
+            $('#position_id_add').on('change', function() {
+                fetchDepartment($(this).val(), $('#department_add'));
             });
 
-            // Initialize Select2 for edit modals
+            // Handle position change for edit modals
             @foreach ($administrations as $administration)
-                $('#modal-administration-{{ $administration->id }}').on('shown.bs.modal', function() {
-                    initializeSelect2(this);
-
-                    // Handle position change for edit modal
-                    $('#position_id_edit_{{ $administration->id }}').on('change', function() {
-                        fetchDepartment($(this).val(), $(
-                            '#department_edit_{{ $administration->id }}'));
-                    });
-
-                    // Initialize department if position is already selected
-                    if ($('#position_id_edit_{{ $administration->id }}').val()) {
-                        fetchDepartment($('#position_id_edit_{{ $administration->id }}').val(),
-                            $('#department_edit_{{ $administration->id }}'));
-                    }
+                $('#position_id_edit_{{ $administration->id }}').on('change', function() {
+                    fetchDepartment($(this).val(), $('#department_edit_{{ $administration->id }}'));
                 });
             @endforeach
 
-            // Clean up Select2 instances when modals are hidden
-            $('.modal').on('hidden.bs.modal', function() {
-                $(this).find('.select2bs4').each(function() {
-                    if ($(this).data('select2')) {
-                        $(this).select2('destroy');
+            // Initialize departments when modals are shown
+            $('[id^="modal-administration"]').on('shown.bs.modal', function() {
+                const modalId = $(this).attr('id');
+                if (modalId === 'modal-administration') {
+                    // Add modal
+                    if ($('#position_id_add').val()) {
+                        fetchDepartment($('#position_id_add').val(), $('#department_add'));
                     }
-                });
+                } else {
+                    // Edit modal
+                    const id = modalId.replace('modal-administration-', '');
+                    if ($(`#position_id_edit_${id}`).val()) {
+                        fetchDepartment($(`#position_id_edit_${id}`).val(), $(`#department_edit_${id}`));
+                    }
+                }
             });
         });
     </script>

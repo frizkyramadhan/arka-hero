@@ -32,12 +32,10 @@
     </div>
 
     @if ($bank == null)
-        <div class="text-center py-5">
-            <img src="{{ asset('assets/dist/img/bank-empty.png') }}" alt="No Bank Data" class="img-fluid mb-3"
-                style="max-height: 120px; opacity: 0.5;">
-            <h6 class="text-muted">No bank account information available</h6>
-            <p class="text-muted small">Click "Add Bank" button to register employee's bank
-                account details</p>
+        <div class="empty-state">
+            <i class="fas fa-exclamation-circle"></i>
+            <h6>No Data Available</h6>
+            <p>No bank account information found for this employee</p>
         </div>
     @else
         <div class="row">

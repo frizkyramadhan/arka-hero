@@ -33,12 +33,10 @@
     </div>
 
     @if ($tax == null)
-        <div class="text-center py-5">
-            <img src="{{ asset('assets/dist/img/tax-empty.png') }}" alt="No Tax Data" class="img-fluid mb-3"
-                style="max-height: 120px; opacity: 0.5;">
-            <h6 class="text-muted">No tax identification information available</h6>
-            <p class="text-muted small">Click "Add Tax Info" button to register employee's tax identification details
-            </p>
+        <div class="empty-state">
+            <i class="fas fa-exclamation-circle"></i>
+            <h6>No Data Available</h6>
+            <p>No tax identification information found for this employee</p>
         </div>
     @else
         <div class="row">
