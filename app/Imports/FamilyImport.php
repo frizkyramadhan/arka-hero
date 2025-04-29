@@ -77,4 +77,17 @@ class FamilyImport implements
     {
         return 1000;
     }
+
+    public function customValidationMessages()
+    {
+        return [
+            'employee_id.required' => 'Employee ID is required',
+            'employee_id.exists' => 'Employee does not exist',
+            'relationship.required' => 'Relationship is required',
+            'name.required' => 'Name is required',
+            'birthplace.required' => 'Birthplace is required',
+            'birthdate.required' => 'Birthdate is required',
+            'birthdate.date' => 'Birthdate must be a valid date',
+        ];
+    }
 }

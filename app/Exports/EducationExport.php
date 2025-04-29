@@ -13,15 +13,20 @@ use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 use PhpOffice\PhpSpreadsheet\Style\NumberFormat;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 use Maatwebsite\Excel\Concerns\WithColumnFormatting;
+use PhpOffice\PhpSpreadsheet\Cell\Cell;
+use PhpOffice\PhpSpreadsheet\Cell\DataType;
+use Maatwebsite\Excel\Concerns\WithCustomValueBinder;
+use PhpOffice\PhpSpreadsheet\Cell\DefaultValueBinder;
 
-class EducationExport implements
+class EducationExport extends DefaultValueBinder implements
     FromQuery,
     ShouldAutoSize,
     WithMapping,
     WithHeadings,
     WithTitle,
     WithColumnFormatting,
-    WithStyles
+    WithStyles,
+    WithCustomValueBinder
 {
     use Exportable;
 
@@ -33,8 +38,8 @@ class EducationExport implements
     public function headings(): array
     {
         return [
-            'ID No',
             'Full Name',
+            'ID No',
             'Education Name',
             'Education Address',
             'Education Year',
@@ -45,7 +50,7 @@ class EducationExport implements
     public function columnFormats(): array
     {
         return [
-            'A' => NumberFormat::FORMAT_NUMBER
+            'B' => NumberFormat::FORMAT_TEXT
         ];
     }
 
@@ -68,12 +73,22 @@ class EducationExport implements
     public function map($education): array
     {
         return [
-            $education->identity_card,
             $education->fullname,
+            $education->identity_card,
             $education->education_name,
             $education->education_address,
             $education->education_year,
             $education->education_remarks
         ];
+    }
+
+    public function bindValue(Cell $cell, $value)
+    {
+        if ($cell->getColumn() === 'B') {
+            $cell->setValueExplicit($value, DataType::TYPE_STRING);
+            return true;
+        }
+
+        return parent::bindValue($cell, $value);
     }
 }

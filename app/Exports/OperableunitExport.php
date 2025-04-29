@@ -13,15 +13,20 @@ use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 use PhpOffice\PhpSpreadsheet\Style\NumberFormat;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 use Maatwebsite\Excel\Concerns\WithColumnFormatting;
+use PhpOffice\PhpSpreadsheet\Cell\Cell;
+use PhpOffice\PhpSpreadsheet\Cell\DataType;
+use Maatwebsite\Excel\Concerns\WithCustomValueBinder;
+use PhpOffice\PhpSpreadsheet\Cell\DefaultValueBinder;
 
-class OperableunitExport implements
+class OperableunitExport extends DefaultValueBinder implements
     FromQuery,
     ShouldAutoSize,
     WithMapping,
     WithHeadings,
     WithTitle,
     WithColumnFormatting,
-    WithStyles
+    WithStyles,
+    WithCustomValueBinder
 {
     use Exportable;
 
@@ -33,8 +38,8 @@ class OperableunitExport implements
     public function headings(): array
     {
         return [
-            'ID No',
             'Full Name',
+            'ID No',
             'Unit Name',
             'Unit Type',
             'Remarks'
@@ -44,7 +49,7 @@ class OperableunitExport implements
     public function columnFormats(): array
     {
         return [
-            'A' => NumberFormat::FORMAT_NUMBER
+            'B' => '@'  // Using @ format to preserve exact string
         ];
     }
 
@@ -67,11 +72,21 @@ class OperableunitExport implements
     public function map($jobexperience): array
     {
         return [
-            $jobexperience->identity_card,
             $jobexperience->fullname,
+            $jobexperience->identity_card,
             $jobexperience->unit_name,
             $jobexperience->unit_type,
             $jobexperience->unit_remarks
         ];
+    }
+
+    public function bindValue(Cell $cell, $value)
+    {
+        if ($cell->getColumn() === 'B') {
+            $cell->setValueExplicit($value, DataType::TYPE_STRING);
+            return true;
+        }
+
+        return parent::bindValue($cell, $value);
     }
 }

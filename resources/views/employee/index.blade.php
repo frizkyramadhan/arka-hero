@@ -39,11 +39,11 @@
                                             <a class="btn btn-primary" href="{{ url('employees/export/') }}"><i
                                                     class="fas fa-download"></i>
                                                 Export</a>
-                                            @can('superadmin')
+                                            @role('administrator')
                                                 <a class="btn btn-success" data-toggle="modal" data-target="#modal-import"><i
                                                         class="fas fa-upload"></i>
                                                     Import</a>
-                                            @endcan
+                                            @endrole
                                             <a href="{{ url('employees/create') }}" class="btn btn-warning"><i
                                                     class="fas fa-plus"></i>
                                                 Add</a>
@@ -53,33 +53,104 @@
                             </div><!-- /.card-header -->
                             <div class="card-body">
                                 @if (session()->has('failures'))
-                                    <div class="alert alert-danger alert-dismissible">
+                                    <div class="card card-danger">
+                                        <div class="card-header">
+                                            <h3 class="card-title"><i class="icon fas fa-exclamation-triangle"></i> Import
+                                                Validation Errors</h3>
+
+                                            <div class="card-tools">
+                                                <button type="button" class="btn btn-tool" data-card-widget="collapse">
+                                                    <i class="fas fa-minus"></i>
+                                                </button>
+                                            </div>
+                                            <!-- /.card-tools -->
+                                        </div>
+                                        <div class="card-body" style="display: block;">
+                                            <div class="table-responsive">
+                                                <table class="table table-sm table-striped">
+                                                    <thead>
+                                                        <tr>
+                                                            <th style="width: 5%">Sheet</th>
+                                                            <th class="text-center" style="width: 5%">Row</th>
+                                                            <th style="width: 20%">Column</th>
+                                                            <th style="width: 20%">Value</th>
+                                                            <th>Error Message</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        @foreach (session()->get('failures') as $failure)
+                                                            <tr>
+                                                                <td>{{ $failure['sheet'] }}</td>
+                                                                <td class="text-center">{{ $failure['row'] }}</td>
+                                                                <td>
+                                                                    <strong>{{ ucwords(str_replace('_', ' ', $failure['attribute'])) }}</strong>
+                                                                </td>
+                                                                <td>
+                                                                    @if (isset($failure['value']))
+                                                                        {{ $failure['value'] }}
+                                                                    @endif
+                                                                </td>
+                                                                <td>
+                                                                    {{ $failure['errors'] }}
+                                                                </td>
+                                                            </tr>
+                                                        @endforeach
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                            <div class="mt-1">
+                                                <small class="text-muted">
+                                                    <i class="fas fa-info-circle"></i>
+                                                    Please correct these errors in your Excel file and try importing again.
+                                                </small>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {{-- <div class="alert alert-warning alert-dismissible">
                                         <button type="button" class="close" data-dismiss="alert"
                                             aria-hidden="true">&times;</button>
-                                        <h5><i class="icon fas fa-ban"></i> Alert!</h5>
-                                        <table class="table table-sm">
-                                            <tr>
-                                                <th>Row</th>
-                                                <th>Attribute</th>
-                                                <th>Errors</th>
-                                                <th>Value</th>
-                                            </tr>
-                                            @foreach (session()->get('failures') as $validation)
-                                                <tr>
-                                                    <td>{{ $validation->row() }}</td>
-                                                    <td>{{ $validation->attribute() }}</td>
-                                                    <td>
-                                                        <ul>
-                                                            @foreach ($validation->errors() as $e)
-                                                                <li>{{ $e }}</li>
-                                                            @endforeach
-                                                        </ul>
-                                                    </td>
-                                                    <td>{{ $validation->values()[$validation->attribute()] }}</td>
-                                                </tr>
-                                            @endforeach
-                                        </table>
-                                    </div>
+                                        <h5 class="mb-3"><i class="icon fas fa-exclamation-triangle"></i> Import
+                                            Validation Errors</h5>
+                                        <div class="table-responsive">
+                                            <table class="table table-sm table-striped">
+                                                <thead>
+                                                    <tr>
+                                                        <th style="width: 15%">Sheet</th>
+                                                        <th style="width: 10%">Row</th>
+                                                        <th style="width: 20%">Column</th>
+                                                        <th style="width: 20%">Value</th>
+                                                        <th style="width: 50%">Error Message</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    @foreach (session()->get('failures') as $failure)
+                                                        <tr>
+                                                            <td class="text-center">{{ $failure['sheet'] }}</td>
+                                                            <td class="text-center">{{ $failure['row'] }}</td>
+                                                            <td>
+                                                                <strong>{{ ucwords(str_replace('_', ' ', $failure['attribute'])) }}</strong>
+                                                            </td>
+                                                            <td>
+                                                                @if (isset($failure['value']))
+                                                                    {{ $failure['value'] }}
+                                                                @endif
+                                                            </td>
+                                                            <td>
+                                                                {{ $failure['errors'] }}
+                                                            </td>
+                                                        </tr>
+                                                    @endforeach
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                        <div class="mt-1">
+                                            <small class="text-muted">
+                                                <i class="fas fa-info-circle"></i>
+                                                Please correct these errors in your Excel file and try importing again.
+                                            </small>
+                                        </div>
+                                    </div> --}}
                                 @endif
                                 <div class="card card-primary">
                                     <div class="card-header">
@@ -241,98 +312,10 @@
                             <div class="card-body">
                                 <div class="tab-content p-0">
                                     <div class="form-group row">
-                                        <label class="col-sm-5 col-form-label">Import Bank</label>
-                                        <div class="col-sm-7">
-                                            <input type="file" name="bank">
-                                            @error('bank')
-                                                <div class="error invalid-feedback">
-                                                    {{ $message }}
-                                                </div>
-                                            @enderror
-                                        </div>
-                                    </div>
-                                    <div class="form-group row">
-                                        <label class="col-sm-5 col-form-label">Import Department</label>
-                                        <div class="col-sm-7">
-                                            <input type="file" name="department">
-                                            @error('department')
-                                                <div class="error invalid-feedback">
-                                                    {{ $message }}
-                                                </div>
-                                            @enderror
-                                        </div>
-                                    </div>
-                                    <div class="form-group row">
-                                        <label class="col-sm-5 col-form-label">Import Project</label>
-                                        <div class="col-sm-7">
-                                            <input type="file" name="project">
-                                            @error('project')
-                                                <div class="error invalid-feedback">
-                                                    {{ $message }}
-                                                </div>
-                                            @enderror
-                                        </div>
-                                    </div>
-                                    <div class="form-group row">
-                                        <label class="col-sm-5 col-form-label">Import Position</label>
-                                        <div class="col-sm-7">
-                                            <input type="file" name="position">
-                                            @error('position')
-                                                <div class="error invalid-feedback">
-                                                    {{ $message }}
-                                                </div>
-                                            @enderror
-                                        </div>
-                                    </div>
-                                    <div class="form-group row">
                                         <label class="col-sm-5 col-form-label">Import Employee</label>
                                         <div class="col-sm-7">
                                             <input type="file" name="employee">
                                             @error('employee')
-                                                <div class="error invalid-feedback">
-                                                    {{ $message }}
-                                                </div>
-                                            @enderror
-                                        </div>
-                                    </div>
-                                    <div class="form-group row">
-                                        <label class="col-sm-5 col-form-label">Import Family</label>
-                                        <div class="col-sm-7">
-                                            <input type="file" name="family">
-                                            @error('family')
-                                                <div class="error invalid-feedback">
-                                                    {{ $message }}
-                                                </div>
-                                            @enderror
-                                        </div>
-                                    </div>
-                                    <div class="form-group row">
-                                        <label class="col-sm-5 col-form-label">Import Insurance</label>
-                                        <div class="col-sm-7">
-                                            <input type="file" name="insurance">
-                                            @error('insurance')
-                                                <div class="error invalid-feedback">
-                                                    {{ $message }}
-                                                </div>
-                                            @enderror
-                                        </div>
-                                    </div>
-                                    <div class="form-group row">
-                                        <label class="col-sm-5 col-form-label">Import License</label>
-                                        <div class="col-sm-7">
-                                            <input type="file" name="license">
-                                            @error('license')
-                                                <div class="error invalid-feedback">
-                                                    {{ $message }}
-                                                </div>
-                                            @enderror
-                                        </div>
-                                    </div>
-                                    <div class="form-group row">
-                                        <label class="col-sm-5 col-form-label">Import Termination</label>
-                                        <div class="col-sm-7">
-                                            <input type="file" name="termination">
-                                            @error('termination')
                                                 <div class="error invalid-feedback">
                                                     {{ $message }}
                                                 </div>
@@ -406,7 +389,6 @@
                                 '#position_name').val(), d.project_code = $('#project_code').val(), d
                             .class = $('#class').val(), d.search = $(
                                 "input[type=search][aria-controls=example1]").val()
-                        console.log(d);
                     }
                 },
                 columns: [{

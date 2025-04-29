@@ -13,15 +13,20 @@ use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 use PhpOffice\PhpSpreadsheet\Style\NumberFormat;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 use Maatwebsite\Excel\Concerns\WithColumnFormatting;
+use PhpOffice\PhpSpreadsheet\Cell\Cell;
+use PhpOffice\PhpSpreadsheet\Cell\DataType;
+use Maatwebsite\Excel\Concerns\WithCustomValueBinder;
+use PhpOffice\PhpSpreadsheet\Cell\DefaultValueBinder;
 
-class CourseExport implements
+class CourseExport extends DefaultValueBinder implements
     FromQuery,
     ShouldAutoSize,
     WithMapping,
     WithHeadings,
     WithTitle,
     WithColumnFormatting,
-    WithStyles
+    WithStyles,
+    WithCustomValueBinder
 {
     use Exportable;
 
@@ -33,8 +38,8 @@ class CourseExport implements
     public function headings(): array
     {
         return [
-            'ID No',
             'Full Name',
+            'ID No',
             'Course Name',
             'Course Address',
             'Course Year',
@@ -45,7 +50,7 @@ class CourseExport implements
     public function columnFormats(): array
     {
         return [
-            'A' => NumberFormat::FORMAT_NUMBER
+            'B' => NumberFormat::FORMAT_TEXT
         ];
     }
 
@@ -68,12 +73,22 @@ class CourseExport implements
     public function map($course): array
     {
         return [
-            $course->identity_card,
             $course->fullname,
+            $course->identity_card,
             $course->course_name,
             $course->course_address,
             $course->course_year,
             $course->course_remarks
         ];
+    }
+
+    public function bindValue(Cell $cell, $value)
+    {
+        if ($cell->getColumn() === 'B') {
+            $cell->setValueExplicit($value, DataType::TYPE_STRING);
+            return true;
+        }
+
+        return parent::bindValue($cell, $value);
     }
 }

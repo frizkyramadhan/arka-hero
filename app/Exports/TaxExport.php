@@ -13,15 +13,20 @@ use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 use PhpOffice\PhpSpreadsheet\Style\NumberFormat;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 use Maatwebsite\Excel\Concerns\WithColumnFormatting;
+use PhpOffice\PhpSpreadsheet\Cell\Cell;
+use PhpOffice\PhpSpreadsheet\Cell\DataType;
+use Maatwebsite\Excel\Concerns\WithCustomValueBinder;
+use PhpOffice\PhpSpreadsheet\Cell\DefaultValueBinder;
 
-class TaxExport implements
+class TaxExport extends DefaultValueBinder implements
     FromQuery,
     ShouldAutoSize,
     WithMapping,
     WithHeadings,
     WithTitle,
     WithColumnFormatting,
-    WithStyles
+    WithStyles,
+    WithCustomValueBinder
 {
     use Exportable;
 
@@ -33,8 +38,8 @@ class TaxExport implements
     public function headings(): array
     {
         return [
-            'ID No',
             'Full Name',
+            'ID No',
             'Tax Identification No',
             'Valid Date'
         ];
@@ -43,7 +48,7 @@ class TaxExport implements
     public function columnFormats(): array
     {
         return [
-            'A' => NumberFormat::FORMAT_NUMBER,
+            'B' => '@',
             'C' => NumberFormat::FORMAT_NUMBER
         ];
     }
@@ -67,10 +72,20 @@ class TaxExport implements
     public function map($taxidentification): array
     {
         return [
-            $taxidentification->identity_card,
             $taxidentification->fullname,
+            $taxidentification->identity_card,
             $taxidentification->tax_no,
             $taxidentification->tax_valid_date ? date('d F Y', strtotime($taxidentification->tax_valid_date)) : 'n/a',
         ];
+    }
+
+    public function bindValue(Cell $cell, $value)
+    {
+        if ($cell->getColumn() === 'B') {
+            $cell->setValueExplicit($value, DataType::TYPE_STRING);
+            return true;
+        }
+
+        return parent::bindValue($cell, $value);
     }
 }

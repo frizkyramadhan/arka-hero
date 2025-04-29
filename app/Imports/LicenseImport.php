@@ -74,4 +74,16 @@ class LicenseImport implements
     {
         return 1000;
     }
+
+    public function customValidationMessages()
+    {
+        return [
+            'employee_id.required' => 'Employee ID is required',
+            'employee_id.exists' => 'Employee does not exist',
+            'license_type.required' => 'License Type is required',
+            'license_number.required' => 'License Number is required',
+            'expiry_date.required' => 'Expiry Date is required',
+            'expiry_date.date' => 'Expiry Date must be a valid date',
+        ];
+    }
 }

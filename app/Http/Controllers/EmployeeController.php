@@ -26,16 +26,19 @@ use App\Imports\LicenseImport;
 use App\Imports\ProjectImport;
 use App\Models\Additionaldata;
 use App\Models\Administration;
-use App\Exports\MultipleSheetExport;
 use App\Imports\EmployeeImport;
+use App\Imports\PersonalImport;
 use App\Imports\PositionImport;
 use App\Imports\InsuranceImport;
 use App\Imports\DepartmentImport;
 use App\Models\Taxidentification;
 use App\Imports\TerminationImport;
-use Maatwebsite\Excel\Excel;
+use App\Exports\MultipleSheetExport;
+use App\Imports\MultipleSheetImport;
 use Illuminate\Support\Facades\File;
+use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Support\Facades\Storage;
+use Maatwebsite\Excel\Validators\ValidationException;
 
 class EmployeeController extends Controller
 {
@@ -806,107 +809,118 @@ class EmployeeController extends Controller
             ->toJson();
     }
 
-    public function import(Request $request)
-    {
-        $this->validate($request, [
-            'bank' => 'mimes:xls,xlsx',
-            'project' => 'mimes:xls,xlsx',
-            'department' => 'mimes:xls,xlsx',
-            'position' => 'mimes:xls,xlsx',
-            'employee' => 'mimes:xls,xlsx',
-            'family' => 'mimes:xls,xlsx',
-            'insurance' => 'mimes:xls,xlsx',
-            'license' => 'mimes:xls,xlsx',
-            'termination' => 'mimes:xls,xlsx',
-        ]);
-        $bank = $request->file('bank');
-        $project = $request->file('project');
-        $department = $request->file('department');
-        $position = $request->file('position');
-        $employee = $request->file('employee');
-        $family = $request->file('family');
-        $insurance = $request->file('insurance');
-        $license = $request->file('license');
-        $termination = $request->file('termination');
+    // public function importComplete(Request $request)
+    // {
+    //     $failures = collect();
 
-        if ($request->hasFile('bank')) {
-            $import_bank = new BankImport;
-            $import_bank->import($bank);
+    //     try {
+    //         $import = new MultipleSheetImport();
+    //         $import->import($request->file('employee'));
+    //         // Excel::import($import, $request->file('employee'));
 
-            if ($import_bank->failures()->isNotEmpty()) {
-                return back()->withFailures($import_bank->failures());
-            }
-        }
-        if ($request->hasFile('project')) {
-            $import_project = new ProjectImport;
-            $import_project->import($project);
+    //         // Ambil semua failure dari tiap sheet
+    //         foreach ($import->sheets() as $sheetImport) {
+    //             foreach ($sheetImport->failures() as $failure) {
+    //                 $failures->push([
+    //                     'sheet'     => method_exists($sheetImport, 'getSheetName') ? $sheetImport->getSheetName() : 'Unknown',
+    //                     'row'       => $failure->row(),
+    //                     'attribute' => $failure->attribute(),
+    //                     'value'     => $failure->values()[$failure->attribute()] ?? null,
+    //                     'errors'    => implode(', ', $failure->errors()),
+    //                 ]);
+    //             }
+    //         }
 
-            if ($import_project->failures()->isNotEmpty()) {
-                return back()->withFailures($import_project->failures());
-            }
-        }
-        if ($request->hasFile('department')) {
-            $import_department = new DepartmentImport;
-            $import_department->import($department);
-
-            if ($import_department->failures()->isNotEmpty()) {
-                return back()->withFailures($import_department->failures());
-            }
-        }
-        if ($request->hasFile('position')) {
-            $import_position = new PositionImport;
-            $import_position->import($position);
-
-            if ($import_position->failures()->isNotEmpty()) {
-                return back()->withFailures($import_position->failures());
-            }
-        }
-        if ($request->hasFile('employee')) {
-            $import_employee = new EmployeeImport;
-            $import_employee->import($employee);
-
-            if ($import_employee->failures()->isNotEmpty()) {
-                return back()->withFailures($import_employee->failures());
-            }
-        }
-        if ($request->hasFile('family')) {
-            $import_family = new FamilyImport;
-            $import_family->import($family);
-
-            if ($import_family->failures()->isNotEmpty()) {
-                return back()->withFailures($import_family->failures());
-            }
-        }
-        if ($request->hasFile('insurance')) {
-            $import_insurance = new InsuranceImport;
-            $import_insurance->import($insurance);
-
-            if ($import_insurance->failures()->isNotEmpty()) {
-                return back()->withFailures($import_insurance->failures());
-            }
-        }
-        if ($request->hasFile('license')) {
-            $import_license = new LicenseImport;
-            $import_license->import($license);
-
-            if ($import_license->failures()->isNotEmpty()) {
-                return back()->withFailures($import_license->failures());
-            }
-        }
-        if ($request->hasFile('termination')) {
-            $import_termination = new TerminationImport;
-            $import_termination->import($termination);
-
-            if ($import_termination->failures()->isNotEmpty()) {
-                return back()->withFailures($import_termination->failures());
-            }
-        }
-
-        return redirect('employees')->with('toast_success', 'Data imported successfully');
-    }
+    //         return redirect('employees')->with('toast_success', 'Data imported successfully');
+    //     } catch (ValidationException $e) {
+    //         // Menangkap error dari Laravel Excel (bukan yang dalam SkipsFailures)
+    //         foreach ($e->failures() as $failure) {
+    //             $failures->push([
+    //                 'sheet'     => 'Unknown (validation exception)',
+    //                 'row'       => $failure->row(),
+    //                 'attribute' => $failure->attribute(),
+    //                 'value'     => $failure->values()[$failure->attribute()] ?? null,
+    //                 'errors'    => implode(', ', $failure->errors()),
+    //             ]);
+    //         }
+    //         dd($failures);
+    //         return redirect('employees')->withFailures($failures);
+    //     } catch (\Throwable $e) {
+    //         // Menangkap error tak terduga lain (misalnya file corrupt, format salah, dll)
+    //         return redirect('employees')->with('toast_error', 'Terjadi kesalahan saat import: ' . $e->getMessage());
+    //     }
+    // }
 
     public function export()
     {
-        return (new MultipleSheetExport())->download('export.xlsx');
+        return (new MultipleSheetExport())->download('export-' . date('Y-m-d') . '.xlsx');
+    }
+
+    public function import(Request $request)
+    {
+        $this->validate($request, [
+            'employee' => 'required|mimes:xls,xlsx',
+        ], [
+            'employee.required' => 'Please select a file to import',
+            'employee.mimes' => 'The file must be a file of type: xls, xlsx',
+        ]);
+
+        try {
+            $import_employee = new PersonalImport;
+            Excel::import($import_employee, $request->file('employee'));
+
+            // Cek apakah ada validation failures manual
+            $failures = collect();
+
+            if (method_exists($import_employee, 'sheets')) {
+                foreach ($import_employee->sheets() as $sheetImport) {
+                    foreach ($sheetImport->failures() as $failure) {
+                        $failures->push([
+                            'sheet'     => method_exists($sheetImport, 'getSheetName') ? $sheetImport->getSheetName() : 'Unknown',
+                            'row'       => $failure->row(),
+                            'attribute' => $failure->attribute(),
+                            'value'     => $failure->values()[$failure->attribute()] ?? null,
+                            'errors'    => implode(', ', $failure->errors()),
+                        ]);
+                    }
+                }
+            }
+
+            if ($failures->isNotEmpty()) {
+                return back()->with('failures', $failures);
+            }
+
+            return redirect('employees')->with('toast_success', 'Data imported successfully');
+        } catch (ValidationException $e) {
+            $failures = collect();
+            $sheetName = 'Unknown';
+            // Coba dapatkan nama sheet dari import_employee jika tersedia
+            if (method_exists($import_employee, 'getSheetName')) {
+                $sheetName = $import_employee->getSheetName();
+            }
+
+            foreach ($e->failures() as $failure) {
+                $failures->push([
+                    'sheet'     => $sheetName,
+                    'row'       => $failure->row(),
+                    'attribute' => $failure->attribute(),
+                    'value'     => $failure->values()[$failure->attribute()] ?? null,
+                    'errors'    => implode(', ', $failure->errors()),
+                ]);
+            }
+
+            return back()->with('failures', $failures);
+        } catch (\Throwable $e) {
+            $failures = collect([
+                [
+                    'sheet' => 'Unknown',
+                    'row' => '-',
+                    'attribute' => 'System Error',
+                    'value' => null,
+                    'errors' => 'An error occurred during import: ' . $e->getMessage()
+                ]
+            ]);
+            return back()->with('failures', $failures);
+        }
     }
 }

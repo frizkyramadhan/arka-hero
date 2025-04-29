@@ -13,15 +13,20 @@ use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 use PhpOffice\PhpSpreadsheet\Style\NumberFormat;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 use Maatwebsite\Excel\Concerns\WithColumnFormatting;
+use PhpOffice\PhpSpreadsheet\Cell\Cell;
+use PhpOffice\PhpSpreadsheet\Cell\DataType;
+use Maatwebsite\Excel\Concerns\WithCustomValueBinder;
+use PhpOffice\PhpSpreadsheet\Cell\DefaultValueBinder;
 
-class LicenseExport implements
+class LicenseExport extends DefaultValueBinder implements
     FromQuery,
     ShouldAutoSize,
     WithMapping,
     WithHeadings,
     WithTitle,
     WithColumnFormatting,
-    WithStyles
+    WithStyles,
+    WithCustomValueBinder
 {
     use Exportable;
 
@@ -33,8 +38,8 @@ class LicenseExport implements
     public function headings(): array
     {
         return [
-            'ID No',
             'Full Name',
+            'ID No',
             'Driver License',
             'Driver License No',
             'Valid Date'
@@ -44,7 +49,7 @@ class LicenseExport implements
     public function columnFormats(): array
     {
         return [
-            'A' => NumberFormat::FORMAT_NUMBER,
+            'B' => '@',
             'D' => NumberFormat::FORMAT_NUMBER
         ];
     }
@@ -68,11 +73,21 @@ class LicenseExport implements
     public function map($license): array
     {
         return [
-            $license->identity_card,
             $license->fullname,
+            $license->identity_card,
             $license->driver_license_type,
             $license->driver_license_no,
             $license->driver_license_exp ? date('d F Y', strtotime($license->driver_license_exp)) : 'n/a'
         ];
+    }
+
+    public function bindValue(Cell $cell, $value)
+    {
+        if ($cell->getColumn() === 'B') {
+            $cell->setValueExplicit($value, DataType::TYPE_STRING);
+            return true;
+        }
+
+        return parent::bindValue($cell, $value);
     }
 }

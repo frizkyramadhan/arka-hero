@@ -13,15 +13,20 @@ use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 use PhpOffice\PhpSpreadsheet\Style\NumberFormat;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 use Maatwebsite\Excel\Concerns\WithColumnFormatting;
+use PhpOffice\PhpSpreadsheet\Cell\Cell;
+use PhpOffice\PhpSpreadsheet\Cell\DataType;
+use Maatwebsite\Excel\Concerns\WithCustomValueBinder;
+use PhpOffice\PhpSpreadsheet\Cell\DefaultValueBinder;
 
-class HealthInsuranceExport implements
+class HealthInsuranceExport extends DefaultValueBinder implements
     FromQuery,
     ShouldAutoSize,
     WithMapping,
     WithHeadings,
     WithTitle,
     WithColumnFormatting,
-    WithStyles
+    WithStyles,
+    WithCustomValueBinder
 {
     use Exportable;
 
@@ -33,8 +38,8 @@ class HealthInsuranceExport implements
     public function headings(): array
     {
         return [
-            'ID No',
             'Full Name',
+            'ID No',
             'Health Insurance',
             'Health Insurance No',
             'Health Facility',
@@ -45,7 +50,7 @@ class HealthInsuranceExport implements
     public function columnFormats(): array
     {
         return [
-            'A' => NumberFormat::FORMAT_NUMBER,
+            'B' => '@',
             'D' => NumberFormat::FORMAT_NUMBER
         ];
     }
@@ -69,12 +74,22 @@ class HealthInsuranceExport implements
     public function map($insurance): array
     {
         return [
-            $insurance->identity_card,
             $insurance->fullname,
+            $insurance->identity_card,
             $insurance->health_insurance_type == 'bpjsks' ? 'BPJS Kesehatan' : 'BPJS Ketenagakerjaan',
             $insurance->health_insurance_no,
             $insurance->health_facility,
             $insurance->health_insurance_remarks
         ];
+    }
+
+    public function bindValue(Cell $cell, $value)
+    {
+        if ($cell->getColumn() === 'B') {
+            $cell->setValueExplicit($value, DataType::TYPE_STRING);
+            return true;
+        }
+
+        return parent::bindValue($cell, $value);
     }
 }

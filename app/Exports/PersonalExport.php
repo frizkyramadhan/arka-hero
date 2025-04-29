@@ -13,15 +13,20 @@ use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 use PhpOffice\PhpSpreadsheet\Style\NumberFormat;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 use Maatwebsite\Excel\Concerns\WithColumnFormatting;
+use PhpOffice\PhpSpreadsheet\Cell\DataType;
+use PhpOffice\PhpSpreadsheet\Cell\Cell;
+use Maatwebsite\Excel\Concerns\WithCustomValueBinder;
+use PhpOffice\PhpSpreadsheet\Cell\DefaultValueBinder;
 
-class PersonalExport implements
+class PersonalExport extends DefaultValueBinder implements
     FromQuery,
     ShouldAutoSize,
     WithMapping,
     WithHeadings,
     WithTitle,
     WithColumnFormatting,
-    WithStyles
+    WithStyles,
+    WithCustomValueBinder
 {
     use Exportable;
 
@@ -33,8 +38,8 @@ class PersonalExport implements
     public function headings(): array
     {
         return [
-            'ID No',
             'Full Name',
+            'Identity Card No',
             'Place of Birth',
             'Date of Birth',
             'Blood Type',
@@ -55,7 +60,7 @@ class PersonalExport implements
     public function columnFormats(): array
     {
         return [
-            'A' => NumberFormat::FORMAT_NUMBER
+            'B' => '@'
         ];
     }
 
@@ -75,8 +80,8 @@ class PersonalExport implements
     public function map($employee): array
     {
         return [
-            $employee->identity_card,
             $employee->fullname,
+            $employee->identity_card,
             $employee->emp_pob,
             $employee->emp_dob ? date('d F Y', strtotime($employee->emp_dob)) : 'n/a',
             $employee->blood_type,
@@ -92,5 +97,15 @@ class PersonalExport implements
             $employee->phone,
             $employee->email,
         ];
+    }
+
+    public function bindValue(Cell $cell, $value)
+    {
+        if ($cell->getColumn() === 'B') {
+            $cell->setValueExplicit($value, DataType::TYPE_STRING);
+            return true;
+        }
+
+        return parent::bindValue($cell, $value);
     }
 }
