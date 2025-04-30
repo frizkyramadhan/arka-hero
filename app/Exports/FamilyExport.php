@@ -39,7 +39,7 @@ class FamilyExport extends DefaultValueBinder implements
     {
         return [
             'Full Name',
-            'ID No',
+            'Identity Card No',
             'Family Relationship',
             'Family Name',
             'Family Birthplace',

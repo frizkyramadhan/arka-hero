@@ -39,7 +39,7 @@ class EducationExport extends DefaultValueBinder implements
     {
         return [
             'Full Name',
-            'ID No',
+            'Identity Card No',
             'Education Name',
             'Education Address',
             'Education Year',

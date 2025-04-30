@@ -39,7 +39,7 @@ class EmergencycallExport extends DefaultValueBinder implements
     {
         return [
             'Full Name',
-            'ID No',
+            'Identity Card No',
             'Status',
             'Name',
             'Address',

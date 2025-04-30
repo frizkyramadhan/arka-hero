@@ -39,7 +39,7 @@ class AdditionaldataExport extends DefaultValueBinder implements
     {
         return [
             'Full Name',
-            'ID No',
+            'Identity Card No',
             'Cloth Size',
             'Pants Size',
             'Shoes Size',

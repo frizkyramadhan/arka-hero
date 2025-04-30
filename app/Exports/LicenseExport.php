@@ -39,7 +39,7 @@ class LicenseExport extends DefaultValueBinder implements
     {
         return [
             'Full Name',
-            'ID No',
+            'Identity Card No',
             'Driver License',
             'Driver License No',
             'Valid Date'

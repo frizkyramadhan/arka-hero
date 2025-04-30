@@ -39,7 +39,7 @@ class CourseExport extends DefaultValueBinder implements
     {
         return [
             'Full Name',
-            'ID No',
+            'Identity Card No',
             'Course Name',
             'Course Address',
             'Course Year',

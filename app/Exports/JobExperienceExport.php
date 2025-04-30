@@ -39,7 +39,7 @@ class JobExperienceExport extends DefaultValueBinder implements
     {
         return [
             'Full Name',
-            'ID No',
+            'Identity Card No',
             'Company Name',
             'Company Address',
             'Position',

@@ -39,7 +39,7 @@ class HealthInsuranceExport extends DefaultValueBinder implements
     {
         return [
             'Full Name',
-            'ID No',
+            'Identity Card No',
             'Health Insurance',
             'Health Insurance No',
             'Health Facility',

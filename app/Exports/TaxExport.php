@@ -39,7 +39,7 @@ class TaxExport extends DefaultValueBinder implements
     {
         return [
             'Full Name',
-            'ID No',
+            'Identity Card No',
             'Tax Identification No',
             'Valid Date'
         ];

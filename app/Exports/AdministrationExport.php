@@ -89,7 +89,7 @@ class AdministrationExport extends DefaultValueBinder implements
     {
         return [
             'Full Name',
-            'ID No',
+            'Identity Card No',
             'NIK',
             'POH',
             'DOH',

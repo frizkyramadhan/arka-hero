@@ -39,7 +39,7 @@ class OperableunitExport extends DefaultValueBinder implements
     {
         return [
             'Full Name',
-            'ID No',
+            'Identity Card No',
             'Unit Name',
             'Unit Type',
             'Remarks'

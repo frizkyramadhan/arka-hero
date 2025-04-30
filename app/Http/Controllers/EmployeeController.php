@@ -37,6 +37,7 @@ use App\Exports\MultipleSheetExport;
 use App\Imports\MultipleSheetImport;
 use Illuminate\Support\Facades\File;
 use Maatwebsite\Excel\Facades\Excel;
+use App\Imports\AdministrationImport;
 use Illuminate\Support\Facades\Storage;
 use Maatwebsite\Excel\Validators\ValidationException;
 
@@ -866,22 +867,31 @@ class EmployeeController extends Controller
         ]);
 
         try {
-            $import_employee = new PersonalImport;
-            Excel::import($import_employee, $request->file('employee'));
+            // $import = new MultipleSheetImport();
+            $import = new AdministrationImport();
+            Excel::import($import, $request->file('employee'));
 
             // Cek apakah ada validation failures manual
             $failures = collect();
 
-            if (method_exists($import_employee, 'sheets')) {
-                foreach ($import_employee->sheets() as $sheetImport) {
-                    foreach ($sheetImport->failures() as $failure) {
-                        $failures->push([
-                            'sheet'     => method_exists($sheetImport, 'getSheetName') ? $sheetImport->getSheetName() : 'Unknown',
-                            'row'       => $failure->row(),
-                            'attribute' => $failure->attribute(),
-                            'value'     => $failure->values()[$failure->attribute()] ?? null,
-                            'errors'    => implode(', ', $failure->errors()),
-                        ]);
+            if (method_exists($import, 'sheets')) {
+                foreach ($import->sheets() as $sheetName => $sheetImport) {
+                    if (method_exists($sheetImport, 'failures')) {
+                        foreach ($sheetImport->failures() as $failure) {
+                            // Jika failure adalah objek Failure dari Laravel Excel
+                            if (method_exists($failure, 'row')) {
+                                $failures->push([
+                                    'sheet'     => method_exists($sheetImport, 'getSheetName') ? $sheetImport->getSheetName() : $sheetName,
+                                    'row'       => $failure->row(),
+                                    'attribute' => $failure->attribute(),
+                                    'value'     => $failure->values()[$failure->attribute()] ?? null,
+                                    'errors'    => implode(', ', $failure->errors()),
+                                ]);
+                            } else {
+                                // Jika failure adalah array dari manual failures
+                                $failures->push($failure);
+                            }
+                        }
                     }
                 }
             }
@@ -895,8 +905,8 @@ class EmployeeController extends Controller
             $failures = collect();
             $sheetName = 'Unknown';
             // Coba dapatkan nama sheet dari import_employee jika tersedia
-            if (method_exists($import_employee, 'getSheetName')) {
-                $sheetName = $import_employee->getSheetName();
+            if (method_exists($import, 'getSheetName')) {
+                $sheetName = $import->getSheetName();
             }
 
             foreach ($e->failures() as $failure) {
