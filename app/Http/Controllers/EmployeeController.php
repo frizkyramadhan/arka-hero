@@ -867,8 +867,8 @@ class EmployeeController extends Controller
         ]);
 
         try {
-            // $import = new MultipleSheetImport();
-            $import = new AdministrationImport();
+            $import = new MultipleSheetImport();
+            // $import = new AdministrationImport();
             Excel::import($import, $request->file('employee'));
 
             // Cek apakah ada validation failures manual

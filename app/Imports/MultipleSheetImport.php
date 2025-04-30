@@ -32,10 +32,11 @@ class MultipleSheetImport implements WithMultipleSheets, WithValidation, SkipsOn
 
     private $sheetName;
     private $personalImport;
-
+    private $administrationImport;
     public function __construct()
     {
         $this->personalImport = new PersonalImport();
+        $this->administrationImport = new AdministrationImport();
     }
 
     public function getSheetName()
@@ -56,6 +57,7 @@ class MultipleSheetImport implements WithMultipleSheets, WithValidation, SkipsOn
     {
         return [
             'personal' => $this->personalImport,
+            'administration' => $this->administrationImport,
         ];
     }
 
@@ -68,5 +70,6 @@ class MultipleSheetImport implements WithMultipleSheets, WithValidation, SkipsOn
     {
         // Forward failures to the PersonalImport instance
         $this->personalImport->onFailure(...$failures);
+        $this->administrationImport->onFailure(...$failures);
     }
 }
