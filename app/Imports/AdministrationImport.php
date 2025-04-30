@@ -18,10 +18,8 @@ use Maatwebsite\Excel\Concerns\SkipsOnError;
 use Maatwebsite\Excel\Concerns\Importable;
 use Maatwebsite\Excel\Concerns\WithEvents;
 use Maatwebsite\Excel\Events\BeforeSheet;
-use Maatwebsite\Excel\Concerns\WithChunkReading;
-use Maatwebsite\Excel\Concerns\WithBatchInserts;
 
-class AdministrationImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnFailure, SkipsOnError, WithEvents, WithChunkReading, WithBatchInserts
+class AdministrationImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnFailure, SkipsOnError, WithEvents
 {
     use Importable, SkipsFailures, SkipsErrors;
 
@@ -123,7 +121,7 @@ class AdministrationImport implements ToModel, WithHeadingRow, WithValidation, S
                 if (!$employee) {
                     $validator->errors()->add(
                         $rowIndex . '.full_name',
-                        "No employee found with name '{$row['full_name']}' and Identity Card No '{$row['identity_card_no']}. Please check at personal sheet."
+                        "No employee found with name '{$row['full_name']}' and Identity Card No '{$row['identity_card_no']}'"
                     );
                     continue;
                 }
@@ -178,7 +176,11 @@ class AdministrationImport implements ToModel, WithHeadingRow, WithValidation, S
                         $rowIndex . '.project_code',
                         "Project with code '{$row['project_code']}' does not exist"
                     );
-                } else if (!empty($row['project_name']) && $row['project_name'] !== $correctProjectName) {
+                    continue;
+                }
+
+                // Validate project name if provided
+                if (!empty($row['project_name']) && $row['project_name'] !== $correctProjectName) {
                     $validator->errors()->add(
                         $rowIndex . '.project_name',
                         "Project name '{$row['project_name']}' does not match the expected name for code '{$row['project_code']}'. It should be '{$correctProjectName}'"
@@ -186,6 +188,19 @@ class AdministrationImport implements ToModel, WithHeadingRow, WithValidation, S
                 }
             }
         });
+    }
+
+    // Implementasi SkipsOnFailure
+    public function onFailure(\Maatwebsite\Excel\Validators\Failure ...$failures)
+    {
+        foreach ($failures as $failure) {
+            $this->failures[] = $failure;
+        }
+    }
+
+    public function failures(): array
+    {
+        return $this->failures;
     }
 
     public function model(array $row)
@@ -198,59 +213,110 @@ class AdministrationImport implements ToModel, WithHeadingRow, WithValidation, S
         }
 
         try {
-            // Find the employee - withValidator() has already validated the existence
+            // Find the employee based on name and identity card
             $employee = Employee::where('fullname', $row['full_name'])
                 ->where('identity_card', $row['identity_card_no'])
                 ->first();
 
             if (!$employee) {
-                // This should rarely happen because withValidator() already checked this
+                $this->failures[] = new \Maatwebsite\Excel\Validators\Failure(
+                    $this->getRowNumber(),
+                    'full_name',
+                    ["No employee found with name '{$row['full_name']}' and Identity Card No '{$row['identity_card_no']}'"],
+                    [$row['full_name']]
+                );
                 return null;
             }
 
-            // Find the project by code - withValidator() has already validated the code and name
+            // Find the project by project code
+            $projectFound = false;
             $project = null;
+            $correctProjectName = '';
+
             foreach ($this->projects as $proj) {
                 if ($proj->project_code === $row['project_code']) {
+                    $projectFound = true;
                     $project = $proj;
+                    $correctProjectName = $proj->project_name;
                     break;
                 }
             }
 
-            if (!$project) {
-                // This should rarely happen because withValidator() already checked this
+            if (!$projectFound) {
+                $this->failures[] = new \Maatwebsite\Excel\Validators\Failure(
+                    $this->getRowNumber(),
+                    'project_code',
+                    ["Project with code '{$row['project_code']}' does not exist"],
+                    [$row['project_code']]
+                );
                 return null;
             }
 
-            // Find the position - withValidator() has already validated the position and department
-            $position = null;
+            // Validate project name if provided
+            if (!empty($row['project_name']) && $row['project_name'] !== $correctProjectName) {
+                $this->failures[] = new \Maatwebsite\Excel\Validators\Failure(
+                    $this->getRowNumber(),
+                    'project_name',
+                    ["Project name '{$row['project_name']}' does not match the expected name for code '{$row['project_code']}'. It should be '{$correctProjectName}'"],
+                    [$row['project_name']]
+                );
+                return null;
+            }
 
+            // Find the position by name and department if provided
+            $positionQuery = $this->positions->filter(function ($item) use ($row) {
+                return $item->position_name === $row['position'];
+            })->values();
+
+            if ($positionQuery->isEmpty()) {
+                $this->failures[] = new \Maatwebsite\Excel\Validators\Failure(
+                    $this->getRowNumber(),
+                    'position',
+                    ["Position '{$row['position']}' does not exist"],
+                    [$row['position']]
+                );
+                return null;
+            }
+
+            $position = null;
             if (!empty($row['department'])) {
-                // Department specified, find department ID
+                // Find department ID for given name
                 $department = $this->departments->where('department_name', $row['department'])->first();
 
-                if ($department) {
-                    // Find position matching both name and department
-                    foreach ($this->positions as $pos) {
-                        if ($pos->position_name === $row['position'] && $pos->department_id === $department->id) {
-                            $position = $pos;
-                            break;
-                        }
-                    }
+                if (!$department) {
+                    $this->failures[] = new \Maatwebsite\Excel\Validators\Failure(
+                        $this->getRowNumber(),
+                        'department',
+                        ["Department '{$row['department']}' does not exist"],
+                        [$row['department']]
+                    );
+                    return null;
+                }
+
+                // Filter positions by department
+                $specificPosition = $positionQuery->first(function ($item) use ($department) {
+                    return $item->department_id == $department->id;
+                });
+
+                if ($specificPosition) {
+                    $position = $specificPosition;
+                } else {
+                    // Get all valid departments for this position
+                    $validDepartmentIds = $positionQuery->pluck('department_id')->unique()->filter()->toArray();
+                    $validDepartments = $this->departments->whereIn('id', $validDepartmentIds)->pluck('department_name')->toArray();
+                    $validDepartmentsStr = implode(', ', $validDepartments);
+
+                    $this->failures[] = new \Maatwebsite\Excel\Validators\Failure(
+                        $this->getRowNumber(),
+                        'department',
+                        ["Department '{$row['department']}' is not valid for position '{$row['position']}'. Valid departments are: {$validDepartmentsStr}"],
+                        [$row['department']]
+                    );
+                    return null;
                 }
             } else {
-                // No department specified, take the first matching position
-                foreach ($this->positions as $pos) {
-                    if ($pos->position_name === $row['position']) {
-                        $position = $pos;
-                        break;
-                    }
-                }
-            }
-
-            if (!$position) {
-                // This should rarely happen because withValidator() already checked this
-                return null;
+                // If no department specified, take the first position with that name
+                $position = $positionQuery->first();
             }
 
             // Prepare data for administration record
@@ -304,49 +370,29 @@ class AdministrationImport implements ToModel, WithHeadingRow, WithValidation, S
                 return new Administration($administrationData);
             }
         } catch (\Illuminate\Database\QueryException $e) {
-            $error = strpos($e->getMessage(), 'Duplicate entry') !== false
-                ? [
-                    'attribute' => 'nik',
-                    'value' => $row['nik'],
-                    'errors' => "Duplicate NIK '{$row['nik']}' found. Please check if this administration record already exists."
-                ]
-                : [
-                    'attribute' => 'system_error',
-                    'value' => null,
-                    'errors' => 'Database error: ' . $e->getMessage()
-                ];
+            $message = strpos($e->getMessage(), 'Duplicate entry') !== false
+                ? "Duplicate NIK '{$row['nik']}' found. Please check if this administration record already exists."
+                : 'Database error: ' . $e->getMessage();
 
-            $this->failures[] = array_merge([
-                'sheet' => $this->getSheetName(),
-                'row' => $this->getRowNumber()
-            ], $error);
+            $attribute = strpos($e->getMessage(), 'Duplicate entry') !== false ? 'nik' : 'system_error';
+            $value = strpos($e->getMessage(), 'Duplicate entry') !== false ? $row['nik'] : null;
+
+            $this->failures[] = new \Maatwebsite\Excel\Validators\Failure(
+                $this->getRowNumber(),
+                $attribute,
+                [$message],
+                [$value]
+            );
 
             return null;
         } catch (\Exception $e) {
-            $this->failures[] = [
-                'sheet' => $this->getSheetName(),
-                'row' => $this->getRowNumber(),
-                'attribute' => 'system_error',
-                'value' => null,
-                'errors' => 'Error: ' . $e->getMessage()
-            ];
+            $this->failures[] = new \Maatwebsite\Excel\Validators\Failure(
+                $this->getRowNumber(),
+                'system_error',
+                ['Error: ' . $e->getMessage()],
+                [null]
+            );
             return null;
         }
-    }
-
-    /**
-     * @return int
-     */
-    public function chunkSize(): int
-    {
-        return 500;
-    }
-
-    /**
-     * @return int
-     */
-    public function batchSize(): int
-    {
-        return 500;
     }
 }

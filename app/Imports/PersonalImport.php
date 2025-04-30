@@ -16,10 +16,8 @@ use Maatwebsite\Excel\Concerns\WithMultipleSheets;
 use Maatwebsite\Excel\Events\BeforeSheet;
 use Maatwebsite\Excel\Concerns\SkipsOnError;
 use Maatwebsite\Excel\Concerns\SkipsOnFailure;
-use Maatwebsite\Excel\Concerns\WithChunkReading;
-use Maatwebsite\Excel\Concerns\WithBatchInserts;
 
-class PersonalImport implements ToModel, WithHeadingRow, WithMultipleSheets, WithEvents, SkipsOnFailure, SkipsOnError, WithValidation, WithChunkReading, WithBatchInserts
+class PersonalImport implements ToModel, WithHeadingRow, WithMultipleSheets, WithEvents, SkipsOnFailure, SkipsOnError, WithValidation
 {
     use Importable, SkipsErrors, SkipsFailures;
 
@@ -225,21 +223,5 @@ class PersonalImport implements ToModel, WithHeadingRow, WithMultipleSheets, Wit
             ];
             return null;
         }
-    }
-
-    /**
-     * @return int
-     */
-    public function chunkSize(): int
-    {
-        return 500;
-    }
-
-    /**
-     * @return int
-     */
-    public function batchSize(): int
-    {
-        return 500;
     }
 }
