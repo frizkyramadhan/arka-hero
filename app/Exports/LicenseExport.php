@@ -38,9 +38,10 @@ class LicenseExport extends DefaultValueBinder implements
     public function headings(): array
     {
         return [
+            'ID',
             'Full Name',
             'Identity Card No',
-            'Driver License',
+            'Driver License Type',
             'Driver License No',
             'Valid Date'
         ];
@@ -73,6 +74,7 @@ class LicenseExport extends DefaultValueBinder implements
     public function map($license): array
     {
         return [
+            $license->id,
             $license->fullname,
             $license->identity_card,
             $license->driver_license_type,

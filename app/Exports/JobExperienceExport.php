@@ -38,6 +38,7 @@ class JobExperienceExport extends DefaultValueBinder implements
     public function headings(): array
     {
         return [
+            'ID',
             'Full Name',
             'Identity Card No',
             'Company Name',
@@ -74,6 +75,7 @@ class JobExperienceExport extends DefaultValueBinder implements
     public function map($jobexperience): array
     {
         return [
+            $jobexperience->id,
             $jobexperience->fullname,
             $jobexperience->identity_card,
             $jobexperience->company_name,

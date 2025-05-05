@@ -38,6 +38,7 @@ class EducationExport extends DefaultValueBinder implements
     public function headings(): array
     {
         return [
+            'ID',
             'Full Name',
             'Identity Card No',
             'Education Name',
@@ -73,6 +74,7 @@ class EducationExport extends DefaultValueBinder implements
     public function map($education): array
     {
         return [
+            $education->id,
             $education->fullname,
             $education->identity_card,
             $education->education_name,

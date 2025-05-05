@@ -40,7 +40,7 @@
             <tbody>
                 @forelse ($insurances as $insurance)
                     <tr>
-                        <td>{{ $insurance->health_insurance_type == 'bpjskt' ? 'BPJS Ketenagakerjaan' : 'BPJS Kesehatan' }}
+                        <td>{{ $insurance->health_insurance_type == 'BPJS Ketenagakerjaan' ? 'BPJS Ketenagakerjaan' : 'BPJS Kesehatan' }}
                         </td>
                         <td>{{ $insurance->health_insurance_no }}</td>
                         <td>{{ $insurance->health_facility }}</td>

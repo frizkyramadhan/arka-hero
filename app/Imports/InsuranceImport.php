@@ -12,68 +12,180 @@ use Maatwebsite\Excel\Concerns\SkipsFailures;
 use Maatwebsite\Excel\Concerns\SkipsOnFailure;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
 use Maatwebsite\Excel\Concerns\WithValidation;
-use Maatwebsite\Excel\Concerns\WithBatchInserts;
+use Maatwebsite\Excel\Concerns\WithEvents;
+use Maatwebsite\Excel\Events\BeforeSheet;
 use Maatwebsite\Excel\Concerns\WithChunkReading;
+use Maatwebsite\Excel\Concerns\WithBatchInserts;
 
-class InsuranceImport implements
-    ToModel,
-    WithHeadingRow,
-    WithValidation,
-    SkipsOnError,
-    SkipsOnFailure,
-    WithBatchInserts,
-    WithChunkReading
+class InsuranceImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnError, SkipsOnFailure, WithEvents, WithChunkReading, WithBatchInserts
 {
     use Importable, SkipsErrors, SkipsFailures;
 
     private $employees;
+    private $rowNumber = 0;
+    private $sheetName;
 
     public function __construct()
     {
         $this->employees = Employee::select('id', 'fullname', 'identity_card')->get();
     }
 
-    public function headingRow(): int
+    public function sheets(): array
     {
-        return 2;
+        return [
+            'health insurance' => $this,
+        ];
     }
 
-    public function model(array $row)
+    public function registerEvents(): array
     {
-        $employee = $this->employees->where('identity_card', $row['identity_card'])->where('fullname', $row['fullname'])->first();
+        return [
+            BeforeSheet::class => function (BeforeSheet $event) {
+                $this->sheetName = $event->getSheet()->getTitle();
+            }
+        ];
+    }
 
-        $insurance = new Insurance();
-        $insurance->employee_id = $employee->id ?? NULL;
-        if ($row['health_insurance_type'] == 'BPJS Kesehatan') {
-            $insurance->health_insurance_type = 'bpjsks';
-        } elseif ($row['health_insurance_type'] == 'BPJS Ketenagakerjaan') {
-            $insurance->health_insurance_type = 'bpjskt';
-        } else {
-            $insurance->health_insurance_type = NULL;
-        }
-        $insurance->health_insurance_no = $row['health_insurance_no'] ?? NULL;
-        $insurance->health_facility = $row['health_facility'] ?? NULL;
-        $insurance->health_insurance_remarks = $row['health_insurance_remarks'] ?? NULL;
-        $insurance->save();
+    public function getSheetName()
+    {
+        return $this->sheetName;
+    }
+
+    public function getRowNumber()
+    {
+        return $this->rowNumber;
     }
 
     public function rules(): array
     {
         return [
-            '*.fullname' => ['required', 'exists:employees,fullname'],
-            '*.identity_card' => ['required', 'exists:employees,identity_card'],
-            '*.health_insurance_type' => ['required'],
-            '*.health_insurance_no' => ['required']
+            'full_name' => ['required', 'string', 'exists:employees,fullname'],
+            'identity_card_no' => ['required', 'string', 'exists:employees,identity_card'],
+            'health_insurance' => ['required', 'in:BPJS Kesehatan,BPJS Ketenagakerjaan'],
+            'health_insurance_no' => ['required'],
         ];
     }
 
-    public function batchSize(): int
+    public function customValidationMessages()
     {
-        return 1000;
+        return [
+            'full_name.required' => 'Full Name is required',
+            'full_name.exists' => 'Employee with this name does not exist',
+            'identity_card_no.required' => 'Identity Card No is required',
+            'identity_card_no.exists' => 'Employee with this Identity Card does not exist',
+            'health_insurance.required' => 'Health Insurance Type is required',
+            'health_insurance.in' => 'Health Insurance Type must be either "BPJS Kesehatan" or "BPJS Ketenagakerjaan"',
+            'health_insurance_no.required' => 'Health Insurance Number is required',
+        ];
+    }
+
+    public function withValidator($validator)
+    {
+        $validator->after(function ($validator) {
+            $rows = $validator->getData();
+
+            foreach ($rows as $rowIndex => $row) {
+                // Skip if essential data is missing
+                if (
+                    empty($row['full_name']) || empty($row['identity_card_no']) ||
+                    empty($row['health_insurance'])
+                ) {
+                    continue;
+                }
+
+                // Validate employee exists with matching name and identity card
+                $employee = $this->employees->where('fullname', $row['full_name'])
+                    ->where('identity_card', $row['identity_card_no'])
+                    ->first();
+
+                if (!$employee) {
+                    $validator->errors()->add(
+                        $rowIndex . '.full_name',
+                        "No employee found with name '{$row['full_name']}' and Identity Card No '{$row['identity_card_no']}'. Please check the employee data in the personal sheet."
+                    );
+                    continue;
+                }
+
+                // If ID is provided, validate that the insurance record exists
+                if (!empty($row['id'])) {
+                    $existingInsurance = Insurance::where('id', $row['id'])->first();
+
+                    if (!$existingInsurance) {
+                        $validator->errors()->add(
+                            $rowIndex . '.id',
+                            "Insurance record with ID {$row['id']} not found"
+                        );
+                    }
+                }
+            }
+        });
+    }
+
+    public function model(array $row)
+    {
+        $this->rowNumber++;
+
+        // Skip empty rows
+        if (empty($row['full_name']) || empty($row['identity_card_no']) || empty($row['health_insurance'])) {
+            return null;
+        }
+
+        try {
+            // Find the employee based on name and identity card
+            $employee = $this->employees->where('fullname', $row['full_name'])
+                ->where('identity_card', $row['identity_card_no'])
+                ->first();
+
+            // Prepare data for insurance record
+            $insuranceData = [
+                'employee_id' => $employee->id,
+                'health_insurance_type' => $row['health_insurance'],
+                'health_insurance_no' => $row['health_insurance_no'],
+                'health_facility' => $row['health_facility'] ?? null,
+                'health_insurance_remarks' => $row['remarks'] ?? null,
+            ];
+
+            // Use updateOrCreate to handle both new and existing records
+            return Insurance::updateOrCreate(
+                ['id' => $row['id'] ?? null],
+                $insuranceData
+            );
+        } catch (\Illuminate\Database\QueryException $e) {
+            $message = strpos($e->getMessage(), 'Duplicate entry') !== false
+                ? "Duplicate health insurance record found. Please check if this insurance record already exists."
+                : 'Database error: ' . $e->getMessage();
+
+            $attribute = strpos($e->getMessage(), 'Duplicate entry') !== false ? 'health_insurance_no' : 'system_error';
+            $value = strpos($e->getMessage(), 'Duplicate entry') !== false ? $row['health_insurance_no'] : null;
+
+            $this->failures[] = [
+                'sheet' => $this->getSheetName(),
+                'row' => $this->getRowNumber(),
+                'attribute' => $attribute,
+                'value' => $value,
+                'errors' => $message
+            ];
+
+            return null;
+        } catch (\Exception $e) {
+            $this->failures[] = [
+                'sheet' => $this->getSheetName(),
+                'row' => $this->getRowNumber(),
+                'attribute' => 'system_error',
+                'value' => null,
+                'errors' => 'Error: ' . $e->getMessage()
+            ];
+            return null;
+        }
     }
 
     public function chunkSize(): int
     {
-        return 1000;
+        return 500;
+    }
+
+    public function batchSize(): int
+    {
+        return 500;
     }
 }

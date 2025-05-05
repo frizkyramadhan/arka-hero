@@ -38,6 +38,7 @@ class HealthInsuranceExport extends DefaultValueBinder implements
     public function headings(): array
     {
         return [
+            'ID',
             'Full Name',
             'Identity Card No',
             'Health Insurance',
@@ -50,8 +51,8 @@ class HealthInsuranceExport extends DefaultValueBinder implements
     public function columnFormats(): array
     {
         return [
-            'B' => '@',
-            'D' => NumberFormat::FORMAT_NUMBER
+            'C' => '@',
+            'E' => NumberFormat::FORMAT_NUMBER
         ];
     }
 
@@ -67,16 +68,17 @@ class HealthInsuranceExport extends DefaultValueBinder implements
     {
         return Insurance::query()
             ->leftJoin('employees', 'employees.id', '=', 'insurances.employee_id')
-            ->select('employees.identity_card', 'employees.fullname', 'insurances.health_insurance_type', 'insurances.health_insurance_no', 'insurances.health_facility', 'insurances.health_insurance_remarks')
+            ->select('insurances.id', 'employees.identity_card', 'employees.fullname', 'insurances.health_insurance_type', 'insurances.health_insurance_no', 'insurances.health_facility', 'insurances.health_insurance_remarks')
             ->orderBy('fullname', 'asc');
     }
 
     public function map($insurance): array
     {
         return [
+            $insurance->id,
             $insurance->fullname,
             $insurance->identity_card,
-            $insurance->health_insurance_type == 'bpjsks' ? 'BPJS Kesehatan' : 'BPJS Ketenagakerjaan',
+            $insurance->health_insurance_type,
             $insurance->health_insurance_no,
             $insurance->health_facility,
             $insurance->health_insurance_remarks
@@ -85,7 +87,7 @@ class HealthInsuranceExport extends DefaultValueBinder implements
 
     public function bindValue(Cell $cell, $value)
     {
-        if ($cell->getColumn() === 'B') {
+        if ($cell->getColumn() === 'C') {
             $cell->setValueExplicit($value, DataType::TYPE_STRING);
             return true;
         }

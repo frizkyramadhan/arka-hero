@@ -14,6 +14,7 @@ use App\Models\Position;
 use App\Models\Religion;
 use App\Models\Education;
 use App\Models\Insurance;
+use App\Imports\TaxImport;
 use App\Models\Department;
 use App\Imports\BankImport;
 use Illuminate\Support\Arr;
@@ -868,6 +869,11 @@ class EmployeeController extends Controller
 
         try {
             $import = new MultipleSheetImport();
+            // $import = new PersonalImport(); ok
+            // $import = new AdministrationImport(); ok
+            // $import = new BankImport(); ok
+            // $import = new TaxImport(); ok
+            // $import = new InsuranceImport();
             Excel::import($import, $request->file('employee'));
 
             // Cek apakah ada validation failures manual

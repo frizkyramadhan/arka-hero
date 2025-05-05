@@ -1871,8 +1871,8 @@
                     <td>
                         <select name="health_insurance_type[]" class="form-control select2bs4" data-placeholder="Select Insurance" required>
                             <option value=""></option>
-                    <option value="bpjsks">BPJS Kesehatan</option>
-                    <option value="bpjskt">BPJS Ketenagakerjaan</option>
+                    <option value="BPJS Kesehatan">BPJS Kesehatan</option>
+                    <option value="BPJS Ketenagakerjaan">BPJS Ketenagakerjaan</option>
                 </select>
               </td>
                     <td><input type="text" class="form-control" name="health_insurance_no[]" placeholder="Insurance No" required></td>
@@ -1912,12 +1912,12 @@
                     <td>
                         <select name="unit_name[]" class="form-control select2bs4" data-placeholder="Select Unit" required>
                             <option value=""></option>
-                    <option value="LV / SARANA">LV / SARANA</option>
-                    <option value="DUMP TRUCK">DUMP TRUCK</option>
-                    <option value="ADT">ADT</option>
-                    <option value="EXCAVATOR">EXCAVATOR</option>
-                    <option value="DOZER">DOZER</option>
-                    <option value="GRADER">GRADER</option>
+                            <option value="LV / SARANA">LV / SARANA</option>
+                            <option value="DUMP TRUCK">DUMP TRUCK</option>
+                            <option value="ADT">ADT</option>
+                            <option value="EXCAVATOR">EXCAVATOR</option>
+                            <option value="DOZER">DOZER</option>
+                            <option value="GRADER">GRADER</option>
                             <option value="COMPACTOR">COMPACTOR</option>
                             <option value="CRANE">CRANE</option>
                             <option value="OTHER">OTHER</option>

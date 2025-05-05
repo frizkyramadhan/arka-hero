@@ -9,8 +9,10 @@ use Maatwebsite\Excel\Concerns\WithValidation;
 use Maatwebsite\Excel\Concerns\SkipsFailures;
 use Maatwebsite\Excel\Concerns\SkipsOnFailure;
 use Maatwebsite\Excel\Concerns\Importable;
+use Maatwebsite\Excel\Concerns\WithChunkReading;
+use Maatwebsite\Excel\Concerns\WithBatchInserts;
 
-class HealthInsuranceImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnFailure
+class HealthInsuranceImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnFailure, WithChunkReading, WithBatchInserts
 {
     use Importable, SkipsFailures;
 
@@ -44,5 +46,15 @@ class HealthInsuranceImport implements ToModel, WithHeadingRow, WithValidation, 
             'insurance_number.required' => 'Insurance Number is required',
             'facility.required' => 'Health Facility is required',
         ];
+    }
+
+    public function chunkSize(): int
+    {
+        return 500;
+    }
+
+    public function batchSize(): int
+    {
+        return 500;
     }
 }

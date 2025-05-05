@@ -38,6 +38,7 @@ class CourseExport extends DefaultValueBinder implements
     public function headings(): array
     {
         return [
+            'ID',
             'Full Name',
             'Identity Card No',
             'Course Name',
@@ -73,6 +74,7 @@ class CourseExport extends DefaultValueBinder implements
     public function map($course): array
     {
         return [
+            $course->id,
             $course->fullname,
             $course->identity_card,
             $course->course_name,

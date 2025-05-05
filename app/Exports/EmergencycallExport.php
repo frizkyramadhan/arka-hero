@@ -38,9 +38,10 @@ class EmergencycallExport extends DefaultValueBinder implements
     public function headings(): array
     {
         return [
+            'ID',
             'Full Name',
             'Identity Card No',
-            'Status',
+            'Relationship',
             'Name',
             'Address',
             'Phone'
@@ -73,6 +74,7 @@ class EmergencycallExport extends DefaultValueBinder implements
     public function map($emrgcall): array
     {
         return [
+            $emrgcall->id,
             $emrgcall->fullname,
             $emrgcall->identity_card,
             $emrgcall->emrg_call_relation,

@@ -27,28 +27,27 @@
                     <div id="accordion">
                         <div class="card">
                             <div class="card-header">
-                                <h3 class="card-title">
-                                    <strong>{{ $subtitle }}</strong>
-                                </h3>
-                                <div class="card-tools">
-                                    <ul class="nav nav-pills ml-auto">
-                                        <li class="nav-item mr-2">
-                                            <a href="{{ url('terminations') }}" class="btn btn-danger"><i
-                                                    class="fas fa-ban"></i>
-                                                Terminated</a>
-                                            <a class="btn btn-primary" href="{{ url('employees/export/') }}"><i
-                                                    class="fas fa-download"></i>
-                                                Export</a>
-                                            @role('administrator')
-                                                <a class="btn btn-success" data-toggle="modal" data-target="#modal-import"><i
-                                                        class="fas fa-upload"></i>
-                                                    Import</a>
-                                            @endrole
-                                            <a href="{{ url('employees/create') }}" class="btn btn-warning"><i
-                                                    class="fas fa-plus"></i>
-                                                Add</a>
-                                        </li>
-                                    </ul>
+                                <div class="d-flex flex-row justify-content-between align-items-start mb-1">
+                                    <h3 class="card-title mb-0">
+                                        <strong>{{ $subtitle }}</strong>
+                                    </h3>
+                                    <div class="d-flex flex-column flex-md-row ms-auto gap-2">
+                                        <a href="{{ url('terminations') }}" class="btn btn-danger mb-2 mb-md-0 mr-2">
+                                            <i class="fas fa-ban"></i> Terminated
+                                        </a>
+                                        <a href="{{ url('employees/export/') }}" class="btn btn-primary mb-2 mb-md-0 mr-2">
+                                            <i class="fas fa-download"></i> Export
+                                        </a>
+                                        @role('administrator')
+                                            <a class="btn btn-success mb-2 mb-md-0 mr-2" data-toggle="modal"
+                                                data-target="#modal-import">
+                                                <i class="fas fa-upload"></i> Import
+                                            </a>
+                                        @endrole
+                                        <a href="{{ url('employees/create') }}" class="btn btn-warning mb-2 mb-md-0 mr-2">
+                                            <i class="fas fa-plus"></i> Add
+                                        </a>
+                                    </div>
                                 </div>
                             </div><!-- /.card-header -->
                             <div class="card-body">
@@ -314,12 +313,11 @@
                                     <div class="form-group row">
                                         <label class="col-sm-5 col-form-label">Import Employee</label>
                                         <div class="col-sm-7">
-                                            <input type="file" name="employee">
-                                            @error('employee')
-                                                <div class="error invalid-feedback">
-                                                    {{ $message }}
-                                                </div>
-                                            @enderror
+                                            <div class="custom-file">
+                                                <input type="file" name="employee" class="custom-file-input"
+                                                    id="customFile">
+                                                <label class="custom-file-label" for="customFile">Choose file</label>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -350,6 +348,10 @@
 @endsection
 
 @section('scripts')
+    <!-- Bootstrap 4 -->
+    <script src="{{ asset('assets/plugins/bootstrap/js/bootstrap.bundle.min.js') }}"></script>
+    <!-- bs-custom-file-input -->
+    <script src="{{ asset('assets/plugins/bs-custom-file-input/bs-custom-file-input.min.js') }}"></script>
     <!-- DataTables  & Plugins -->
     <script src="{{ asset('assets/plugins/datatables/jquery.dataTables.min.js') }}"></script>
     <script src="{{ asset('assets/plugins/datatables-bs4/js/dataTables.bootstrap4.min.js') }}"></script>
@@ -363,6 +365,8 @@
     <script src="{{ asset('assets/plugins/datatables-buttons/js/buttons.html5.min.js') }}"></script>
     <script src="{{ asset('assets/plugins/datatables-buttons/js/buttons.print.min.js') }}"></script>
     <script src="{{ asset('assets/plugins/datatables-buttons/js/buttons.colVis.min.js') }}"></script>
+    <!-- Select2 -->
+    <script src="{{ asset('assets/plugins/select2/js/select2.full.min.js') }}"></script>
     <!-- Page specific script -->
     <script>
         $(function() {
@@ -457,8 +461,7 @@
         });
     </script>
 
-    <!-- Select2 -->
-    <script src="{{ asset('assets/plugins/select2/js/select2.full.min.js') }}"></script>
+
     <script>
         $(function() {
             //Initialize Select2 Elements
@@ -472,6 +475,8 @@
             $(document).on('select2:open', () => {
                 document.querySelector('.select2-search__field').focus();
             })
+
+            bsCustomFileInput.init();
         })
     </script>
 @endsection

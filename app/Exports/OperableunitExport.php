@@ -38,6 +38,7 @@ class OperableunitExport extends DefaultValueBinder implements
     public function headings(): array
     {
         return [
+            'ID',
             'Full Name',
             'Identity Card No',
             'Unit Name',
@@ -72,6 +73,7 @@ class OperableunitExport extends DefaultValueBinder implements
     public function map($jobexperience): array
     {
         return [
+            $jobexperience->id,
             $jobexperience->fullname,
             $jobexperience->identity_card,
             $jobexperience->unit_name,

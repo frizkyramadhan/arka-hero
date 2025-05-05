@@ -38,6 +38,7 @@ class FamilyExport extends DefaultValueBinder implements
     public function headings(): array
     {
         return [
+            'ID',
             'Full Name',
             'Identity Card No',
             'Family Relationship',
@@ -76,6 +77,7 @@ class FamilyExport extends DefaultValueBinder implements
     public function map($family): array
     {
         return [
+            $family->id,
             $family->fullname,
             $family->identity_card,
             $family->family_relationship,

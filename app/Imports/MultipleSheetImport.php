@@ -15,7 +15,6 @@ use App\Imports\EmergencycallImport;
 use App\Imports\JobExperienceImport;
 use App\Imports\AdditionaldataImport;
 use App\Imports\AdministrationImport;
-use App\Imports\HealthInsuranceImport;
 use Maatwebsite\Excel\Concerns\Importable;
 use Maatwebsite\Excel\Concerns\SkipsErrors;
 use Maatwebsite\Excel\Concerns\SkipsOnError;
@@ -33,10 +32,35 @@ class MultipleSheetImport implements WithMultipleSheets, WithValidation, SkipsOn
     private $sheetName;
     private $personalImport;
     private $administrationImport;
+    private $bankImport;
+    private $taxImport;
+    private $insuranceImport;
+    private $licenseImport;
+    private $familyImport;
+    private $educationImport;
+    private $courseImport;
+    private $jobExperienceImport;
+    private $operableunitImport;
+    private $emergencycallImport;
+    private $additionaldataImport;
+    private $terminationImport;
+
     public function __construct()
     {
         $this->personalImport = new PersonalImport();
         $this->administrationImport = new AdministrationImport();
+        $this->bankImport = new BankImport();
+        $this->taxImport = new TaxImport();
+        $this->insuranceImport = new InsuranceImport();
+        $this->licenseImport = new LicenseImport();
+        $this->familyImport = new FamilyImport();
+        $this->educationImport = new EducationImport();
+        $this->courseImport = new CourseImport();
+        $this->jobExperienceImport = new JobExperienceImport();
+        $this->operableunitImport = new OperableunitImport();
+        $this->emergencycallImport = new EmergencycallImport();
+        $this->additionaldataImport = new AdditionaldataImport();
+        $this->terminationImport = new TerminationImport();
     }
 
     public function getSheetName()
@@ -58,6 +82,18 @@ class MultipleSheetImport implements WithMultipleSheets, WithValidation, SkipsOn
         return [
             'personal' => $this->personalImport,
             'administration' => $this->administrationImport,
+            'bank accounts' => $this->bankImport,
+            'tax identification no' => $this->taxImport,
+            'health insurance' => $this->insuranceImport,
+            'license' => $this->licenseImport,
+            'family' => $this->familyImport,
+            'education' => $this->educationImport,
+            'course' => $this->courseImport,
+            'job experience' => $this->jobExperienceImport,
+            'operable unit' => $this->operableunitImport,
+            'emergency call' => $this->emergencycallImport,
+            'additional data' => $this->additionaldataImport,
+            'termination' => $this->terminationImport,
         ];
     }
 
@@ -71,5 +107,17 @@ class MultipleSheetImport implements WithMultipleSheets, WithValidation, SkipsOn
         // Forward failures to the PersonalImport instance
         $this->personalImport->onFailure(...$failures);
         $this->administrationImport->onFailure(...$failures);
+        $this->bankImport->onFailure(...$failures);
+        $this->taxImport->onFailure(...$failures);
+        $this->insuranceImport->onFailure(...$failures);
+        $this->licenseImport->onFailure(...$failures);
+        $this->familyImport->onFailure(...$failures);
+        $this->educationImport->onFailure(...$failures);
+        $this->courseImport->onFailure(...$failures);
+        $this->jobExperienceImport->onFailure(...$failures);
+        $this->operableunitImport->onFailure(...$failures);
+        $this->emergencycallImport->onFailure(...$failures);
+        $this->additionaldataImport->onFailure(...$failures);
+        $this->terminationImport->onFailure(...$failures);
     }
 }
