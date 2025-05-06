@@ -15,4 +15,9 @@ class Department extends Model
     {
         return $this->hasMany(Position::class);
     }
+
+    public function administrations()
+    {
+        return $this->hasManyThrough(Administration::class, Position::class);
+    }
 }

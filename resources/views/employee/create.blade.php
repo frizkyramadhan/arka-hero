@@ -417,7 +417,7 @@
                                         </div>
                                     </div>
                                     <div class="d-flex justify-content-end mt-2">
-                                        <button type="button" class="btn btn-primary" onclick="stepper.next()"><i
+                                        <button type="button" class="btn btn-primary btn-next"><i
                                                 class="fas fa-arrow-right mr-1"></i> Next</button>
                                     </div>
                                     {{-- END Removing inner card div --}}
@@ -520,7 +520,7 @@
                                     <div class="row">
                                         <div class="col-md-6">
                                             <div class="form-group">
-                                                <label for="foc" class="form-label">First of Contract</label>
+                                                <label for="foc" class="form-label">FOC Date</label>
                                                 <div class="input-group date">
                                                     <div class="input-group-prepend">
                                                         <span class="input-group-text"><i
@@ -722,10 +722,10 @@
                                         </div>
                                     </div>
                                     <div class="d-flex justify-content-between mt-4">
-                                        <button type="button" class="btn btn-secondary" onclick="stepper.previous()"><i
+                                        <button type="button" class="btn btn-secondary btn-previous"><i
                                                 class="fas fa-arrow-left mr-1"></i>
                                             Previous</button>
-                                        <button type="button" class="btn btn-primary" onclick="stepper.next()"><i
+                                        <button type="button" class="btn btn-primary btn-next"><i
                                                 class="fas fa-arrow-right mr-1"></i> Next</button>
                                     </div>
                                     {{-- END Removing inner card div --}}
@@ -828,10 +828,10 @@
                                         </div>
                                     </div>
                                     <div class="d-flex justify-content-between mt-4">
-                                        <button type="button" class="btn btn-secondary" onclick="stepper.previous()"><i
+                                        <button type="button" class="btn btn-secondary btn-previous"><i
                                                 class="fas fa-arrow-left mr-1"></i>
                                             Previous</button>
-                                        <button type="button" class="btn btn-primary" onclick="stepper.next()"><i
+                                        <button type="button" class="btn btn-primary btn-next"><i
                                                 class="fas fa-arrow-right mr-1"></i> Next</button>
                                     </div>
                                     {{-- END Removing inner card div --}}
@@ -890,10 +890,10 @@
                                         </div>
                                     </div>
                                     <div class="d-flex justify-content-between mt-4">
-                                        <button type="button" class="btn btn-secondary" onclick="stepper.previous()"><i
+                                        <button type="button" class="btn btn-secondary btn-previous"><i
                                                 class="fas fa-arrow-left mr-1"></i>
                                             Previous</button>
-                                        <button type="button" class="btn btn-primary" onclick="stepper.next()"><i
+                                        <button type="button" class="btn btn-primary btn-next"><i
                                                 class="fas fa-arrow-right mr-1"></i> Next</button>
                                     </div>
                                     {{-- END Removing inner card div --}}
@@ -938,10 +938,10 @@
                                         Insurance types typically include BPJS Kesehatan and BPJS Ketenagakerjaan
                                     </div>
                                     <div class="d-flex justify-content-between mt-4">
-                                        <button type="button" class="btn btn-secondary" onclick="stepper.previous()"><i
+                                        <button type="button" class="btn btn-secondary btn-previous"><i
                                                 class="fas fa-arrow-left mr-1"></i>
                                             Previous</button>
-                                        <button type="button" class="btn btn-primary" onclick="stepper.next()"><i
+                                        <button type="button" class="btn btn-primary btn-next"><i
                                                 class="fas fa-arrow-right mr-1"></i> Next</button>
                                     </div>
                                     {{-- END Removing inner card div --}}
@@ -984,10 +984,10 @@
                                         Remember to track expiration dates to ensure timely renewals
                                     </div>
                                     <div class="d-flex justify-content-between mt-4">
-                                        <button type="button" class="btn btn-secondary" onclick="stepper.previous()"><i
+                                        <button type="button" class="btn btn-secondary btn-previous"><i
                                                 class="fas fa-arrow-left mr-1"></i>
                                             Previous</button>
-                                        <button type="button" class="btn btn-primary" onclick="stepper.next()"><i
+                                        <button type="button" class="btn btn-primary btn-next"><i
                                                 class="fas fa-arrow-right mr-1"></i> Next</button>
                                     </div>
                                     {{-- END Removing inner card div --}}
@@ -1034,10 +1034,10 @@
                                         contacts
                                     </div>
                                     <div class="d-flex justify-content-between mt-4">
-                                        <button type="button" class="btn btn-secondary" onclick="stepper.previous()"><i
+                                        <button type="button" class="btn btn-secondary btn-previous"><i
                                                 class="fas fa-arrow-left mr-1"></i>
                                             Previous</button>
-                                        <button type="button" class="btn btn-primary" onclick="stepper.next()"><i
+                                        <button type="button" class="btn btn-primary btn-next"><i
                                                 class="fas fa-arrow-right mr-1"></i> Next</button>
                                     </div>
                                     {{-- END Removing inner card div --}}
@@ -1081,10 +1081,10 @@
                                         List education from the most recent to the oldest
                                     </div>
                                     <div class="d-flex justify-content-between mt-4">
-                                        <button type="button" class="btn btn-secondary" onclick="stepper.previous()"><i
+                                        <button type="button" class="btn btn-secondary btn-previous"><i
                                                 class="fas fa-arrow-left mr-1"></i>
                                             Previous</button>
-                                        <button type="button" class="btn btn-primary" onclick="stepper.next()"><i
+                                        <button type="button" class="btn btn-primary btn-next"><i
                                                 class="fas fa-arrow-right mr-1"></i> Next</button>
                                     </div>
                                     {{-- END Removing inner card div --}}
@@ -1128,10 +1128,10 @@
                                         Include relevant certifications and specialized training
                                     </div>
                                     <div class="d-flex justify-content-between mt-4">
-                                        <button type="button" class="btn btn-secondary" onclick="stepper.previous()"><i
+                                        <button type="button" class="btn btn-secondary btn-previous"><i
                                                 class="fas fa-arrow-left mr-1"></i>
                                             Previous</button>
-                                        <button type="button" class="btn btn-primary" onclick="stepper.next()"><i
+                                        <button type="button" class="btn btn-primary btn-next"><i
                                                 class="fas fa-arrow-right mr-1"></i> Next</button>
                                     </div>
                                     {{-- END Removing inner card div --}}
@@ -1176,10 +1176,10 @@
                                         List work experience from the most recent to the oldest
                                     </div>
                                     <div class="d-flex justify-content-between mt-4">
-                                        <button type="button" class="btn btn-secondary" onclick="stepper.previous()"><i
+                                        <button type="button" class="btn btn-secondary btn-previous"><i
                                                 class="fas fa-arrow-left mr-1"></i>
                                             Previous</button>
-                                        <button type="button" class="btn btn-primary" onclick="stepper.next()"><i
+                                        <button type="button" class="btn btn-primary btn-next"><i
                                                 class="fas fa-arrow-right mr-1"></i> Next</button>
                                     </div>
                                     {{-- END Removing inner card div --}}
@@ -1221,10 +1221,10 @@
                                         Add relevant qualifications and equipment skills
                                     </div>
                                     <div class="d-flex justify-content-between mt-4">
-                                        <button type="button" class="btn btn-secondary" onclick="stepper.previous()"><i
+                                        <button type="button" class="btn btn-secondary btn-previous"><i
                                                 class="fas fa-arrow-left mr-1"></i>
                                             Previous</button>
-                                        <button type="button" class="btn btn-primary" onclick="stepper.next()"><i
+                                        <button type="button" class="btn btn-primary btn-next"><i
                                                 class="fas fa-arrow-right mr-1"></i> Next</button>
                                     </div>
                                     {{-- END Removing inner card div --}}
@@ -1268,10 +1268,10 @@
                                         Emergency contacts are important for safety and emergency situations
                                     </div>
                                     <div class="d-flex justify-content-between mt-4">
-                                        <button type="button" class="btn btn-secondary"
-                                            onclick="stepper.previous()"><i class="fas fa-arrow-left mr-1"></i>
+                                        <button type="button" class="btn btn-secondary btn-previous"><i
+                                                class="fas fa-arrow-left mr-1"></i>
                                             Previous</button>
-                                        <button type="button" class="btn btn-primary" onclick="stepper.next()"><i
+                                        <button type="button" class="btn btn-primary btn-next"><i
                                                 class="fas fa-arrow-right mr-1"></i> Next</button>
                                     </div>
                                     {{-- END Removing inner card div --}}
@@ -1410,11 +1410,11 @@
                                             </div>
                                         </div>
                                     </div>
-                                    <div class="d-flex justify-content-end mt-4">
-                                        <button type="button" class="btn btn-secondary"
-                                            onclick="stepper.previous()"><i class="fas fa-arrow-left mr-1"></i>
+                                    <div class="d-flex justify-content-between mt-4">
+                                        <button type="button" class="btn btn-secondary btn-previous"><i
+                                                class="fas fa-arrow-left mr-1"></i>
                                             Previous</button>
-                                        <button type="button" class="btn btn-primary" onclick="stepper.next()"><i
+                                        <button type="button" class="btn btn-primary btn-next"><i
                                                 class="fas fa-arrow-right mr-1"></i> Next</button>
                                     </div>
                                     {{-- END Removing inner card div --}}
@@ -1454,8 +1454,8 @@
                                         </div>
                                     </div>
                                     <div class="d-flex justify-content-end mt-4">
-                                        <button type="button" class="btn btn-secondary"
-                                            onclick="stepper.previous()"><i class="fas fa-arrow-left mr-1"></i>
+                                        <button type="button" class="btn btn-secondary btn-previous"><i
+                                                class="fas fa-arrow-left mr-1"></i>
                                             Previous</button>
                                     </div>
                                     {{-- END Removing inner card div --}}
@@ -1763,9 +1763,12 @@
     <script src="{{ asset('assets/plugins/bs-custom-file-input/bs-custom-file-input.min.js') }}" defer></script>
 
     <script>
+        // Declare stepper globally
+        let stepper;
+
         $(document).ready(function() {
             // Initialize stepper
-            var stepper = new Stepper(document.querySelector('.bs-stepper'), {
+            stepper = new Stepper(document.querySelector('.bs-stepper'), {
                 linear: false,
                 animation: true,
                 selectors: {
@@ -1773,6 +1776,15 @@
                     trigger: '.step-trigger',
                     stepper: '.bs-stepper'
                 }
+            });
+
+            // Add click handlers for navigation buttons
+            $('.btn-previous').on('click', function() {
+                stepper.previous();
+            });
+
+            $('.btn-next').on('click', function() {
+                stepper.next();
             });
 
             // Handle hash-based navigation

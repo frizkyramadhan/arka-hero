@@ -52,26 +52,45 @@ Route::post('login', [AuthController::class, 'postLogin']);
 
 Route::group(['middleware' => ['auth']], function () {
     // Route::get('/', [ProfileController::class, 'dashboard'])->name('dashboard');
-    // Route::get('dashboard/getHobpn', [ProfileController::class, 'getHobpn'])->name('hobpn.list');
-    // Route::get('dashboard/getBojkt', [ProfileController::class, 'getBojkt'])->name('bojkt.list');
-    // Route::get('dashboard/getKpuc', [ProfileController::class, 'getKpuc'])->name('kpuc.list');
-    // Route::get('dashboard/getSbi', [ProfileController::class, 'getSbi'])->name('sbi.list');
-    // Route::get('dashboard/getGpk', [ProfileController::class, 'getGpk'])->name('gpk.list');
-    // Route::get('dashboard/getBek', [ProfileController::class, 'getBek'])->name('bek.list');
-    // Route::get('dashboard/getAps', [ProfileController::class, 'getAps'])->name('aps.list');
+    Route::get('dashboard/getHobpn', [ProfileController::class, 'getHobpn'])->name('hobpn.list');
+    Route::get('dashboard/getBojkt', [ProfileController::class, 'getBojkt'])->name('bojkt.list');
+    Route::get('dashboard/getKpuc', [ProfileController::class, 'getKpuc'])->name('kpuc.list');
+    Route::get('dashboard/getSbi', [ProfileController::class, 'getSbi'])->name('sbi.list');
+    Route::get('dashboard/getGpk', [ProfileController::class, 'getGpk'])->name('gpk.list');
+    Route::get('dashboard/getBek', [ProfileController::class, 'getBek'])->name('bek.list');
+    Route::get('dashboard/getAps', [ProfileController::class, 'getAps'])->name('aps.list');
     // Route::get('dashboard/getEmployee', [ProfileController::class, 'getEmployee'])->name('employee.list');
     // Route::get('dashboard/getTermination', [ProfileController::class, 'getTermination'])->name('termination.list');
     // Route::get('dashboard/getContract', [ProfileController::class, 'getContract'])->name('contract.list');
     // Route::post('dashboard/sendEmail', [ProfileController::class, 'sendEmail'])->name('sendEmail');
 
+    // New project summary routes
+    Route::get('summary/project/{projectId}', [ProfileController::class, 'projectSummary'])->name('projects.summary');
+    Route::get('summary/project/{projectId}/employees', [ProfileController::class, 'getEmployeesByProject'])->name('projects.employees');
+
+    // New department summary routes
+    Route::get('summary/department/{departmentId}', [ProfileController::class, 'departmentSummary'])->name('departments.summary');
+    Route::get('summary/department/{departmentId}/employees', [ProfileController::class, 'getEmployeesByDepartment'])->name('departments.employees');
+
+    // New employee classification routes
+    Route::get('summary/staff', [ProfileController::class, 'staffSummary'])->name('employees.staff');
+    Route::get('summary/staff/employees', [ProfileController::class, 'getStaffEmployees'])->name('employees.staff.list');
+    Route::get('summary/employment', [ProfileController::class, 'employmentSummary'])->name('employees.employment');
+    Route::get('summary/employment/employees', [ProfileController::class, 'getEmploymentEmployees'])->name('employees.employment.list');
+    Route::get('summary/birthday', [ProfileController::class, 'birthdaySummary'])->name('employees.birthday');
+    Route::get('summary/birthday/employees', [ProfileController::class, 'getBirthdayEmployees'])->name('employees.birthday.list');
 
     Route::get('/', [DashboardController::class, 'dashboard'])->name('dashboard');
-    // OFFICIAL TRAVEL DASHBOARD ROUTES
-    Route::get('officialtravel-dashboard', [DashboardController::class, 'dashboard'])->name('officialtravel.dashboard');
-    Route::get('officialtravel-dashboard/pending-recommendations', [DashboardController::class, 'pendingRecommendations'])->name('officialtravel.pending-recommendations');
-    Route::get('officialtravel-dashboard/pending-approvals', [DashboardController::class, 'pendingApprovals'])->name('officialtravel.pending-approvals');
-    Route::get('officialtravel-dashboard/pending-arrivals', [DashboardController::class, 'pendingArrivals'])->name('officialtravel.pending-arrivals');
-    Route::get('officialtravel-dashboard/pending-departures', [DashboardController::class, 'pendingDepartures'])->name('officialtravel.pending-departures');
+    Route::get('/dashboard', [DashboardController::class, 'dashboard'])->name('dashboard');
+    Route::get('/dashboard/pending-recommendations', [DashboardController::class, 'pendingRecommendations'])->name('dashboard.pendingRecommendations');
+    Route::get('/dashboard/pending-approvals', [DashboardController::class, 'pendingApprovals'])->name('dashboard.pendingApprovals');
+    Route::get('/dashboard/pending-arrivals', [DashboardController::class, 'pendingArrivals'])->name('dashboard.pendingArrivals');
+    Route::get('/dashboard/pending-departures', [DashboardController::class, 'pendingDepartures'])->name('dashboard.pendingDepartures');
+
+    // Dashboard Employee routes
+    Route::get('/dashboard/employees-by-department', [DashboardController::class, 'employeesByDepartment'])->name('dashboard.employeesByDepartment');
+    Route::get('/dashboard/employees-by-project', [DashboardController::class, 'employeesByProject'])->name('dashboard.employeesByProject');
+    Route::get('/dashboard/recent-employees', [DashboardController::class, 'recentEmployees'])->name('dashboard.recentEmployees');
 
     Route::post('logout', [AuthController::class, 'logout']);
 

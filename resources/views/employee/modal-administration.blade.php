@@ -102,7 +102,7 @@
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="form-group">
-                                    <label for="foc_add" class="form-label">First of Contract</label>
+                                    <label for="foc_add" class="form-label">FOC Date</label>
                                     <div class="input-group date">
                                         <div class="input-group-prepend">
                                             <span class="input-group-text"><i class="fas fa-calendar-alt"></i></span>
@@ -485,8 +485,8 @@
                             <div class="row">
                                 <div class="col-md-6">
                                     <div class="form-group">
-                                        <label for="foc_edit_{{ $administration->id }}" class="form-label">First of
-                                            Contract</label>
+                                        <label for="foc_edit_{{ $administration->id }}" class="form-label">FOC
+                                            Date</label>
                                         <div class="input-group date">
                                             <div class="input-group-prepend">
                                                 <span class="input-group-text"><i

@@ -6,20 +6,30 @@ use Illuminate\Http\Request;
 use App\Models\Officialtravel;
 use App\Models\User;
 use App\Models\Permission;
+use App\Models\Employee;
+use App\Models\Department;
+use App\Models\Position;
+use App\Models\Education;
+use App\Models\License;
+use App\Models\Administration;
+use App\Models\Project;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Yajra\DataTables\DataTables;
 
 class DashboardController extends Controller
 {
     /**
-     * Display the official travel dashboard.
+     * Display the dashboard page with both Official Travel and Employee data.
      *
      * @return \Illuminate\Http\Response
      */
     public function dashboard()
     {
-        // Get counts for the dashboard
+        // Get the authenticated user
         $user = Auth::user();
+
+        // === OFFICIAL TRAVEL DATA ===
 
         // Count pending recommendations for this user
         $pendingRecommendations = 0;
@@ -64,17 +74,96 @@ class DashboardController extends Controller
         $openTravels = Officialtravel::with('traveler.employee')
             ->where('official_travel_status', 'open')
             ->orderBy('created_at', 'desc')
+            ->limit(5)
             ->get();
 
-        return view('officialtravels.dashboard', [
+        // === EMPLOYEE DATA ===
+
+        // Get total employees count
+        $totalEmployees = Employee::whereHas('administration', function ($query) {
+            $query->where('is_active', '1');
+        })->count();
+
+        // Get employees by department
+        $employeesByDepartment = Department::withCount(['administrations' => function ($query) {
+            $query->where('is_active', '1');
+        }])
+            ->where('department_status', '1')
+            ->orderBy('administrations_count', 'desc')
+            // ->limit(5)
+            ->get();
+
+        // Get employees by project
+        $employeesByProject = Project::where('project_status', '1')
+            ->withCount(['administrations' => function ($query) {
+                $query->where('is_active', '1');
+            }])
+            ->orderBy('administrations_count', 'desc')
+            // ->limit(5)
+            ->get();
+
+        // Get newest employees (joined in last 30 days)
+        $newEmployees = Employee::join('administrations', 'employees.id', '=', 'administrations.employee_id')
+            ->join('positions', 'administrations.position_id', '=', 'positions.id')
+            ->join('projects', 'administrations.project_id', '=', 'projects.id')
+            ->select('employees.*', 'administrations.doh', 'administrations.nik', 'positions.position_name', 'projects.project_code')
+            ->where('administrations.is_active', '1')
+            ->where('doh', '>=', now()->subDays(30))
+            ->orderBy('administrations.doh', 'desc')
+            ->limit(5)
+            ->get();
+
+        // Get employees with contract ending in next 30 days
+        $expiringContracts = Administration::with(['employee', 'position'])
+            ->where('administrations.is_active', '1')
+            ->whereNotNull('administrations.foc')
+            ->whereRaw('foc <= DATE_ADD(CURDATE(), INTERVAL 30 DAY)')
+            ->orderBy('administrations.foc', 'asc')
+            ->get();
+
+
+        // Get staff employees
+        $staffEmployees = Administration::where('is_active', '1')->where('class', 'staff')->count();
+
+        // Get non-staff employees
+        $nonStaffEmployees = Administration::where('is_active', '1')->where('class', '!=', 'staff')->count();
+
+        // Get permanent employees
+        $permanentEmployees = Administration::where('is_active', '1')->whereNull('foc')->count();
+
+        // Get contract employees
+        $contractEmployees = Administration::where('is_active', '1')->whereNotNull('foc')->count();
+
+        // Get employees with license
+        $employeesWithLicense = License::distinct('employee_id')->count('employee_id');
+
+        // Get employees with birthday in this month
+        $birthdayEmployees = Employee::with(['administration' => function ($query) {
+            $query->where('is_active', '1');
+        }])->where('emp_dob', 'like', '%' . date('m') . '%')->count();
+
+        return view('dashboard', [
             'title' => 'Dashboard',
             'subtitle' => 'Dashboard',
+            // Official Travel data
             'pendingRecommendations' => $pendingRecommendations,
             'pendingApprovals' => $pendingApprovals,
             'pendingArrivals' => $pendingArrivals,
             'pendingDepartures' => $pendingDepartures,
             'openTravel' => $openTravel,
             'openTravels' => $openTravels,
+            // Employee data
+            'totalEmployees' => $totalEmployees,
+            'employeesByDepartment' => $employeesByDepartment,
+            'employeesByProject' => $employeesByProject,
+            'newEmployees' => $newEmployees,
+            'expiringContracts' => $expiringContracts,
+            'employeesWithLicense' => $employeesWithLicense,
+            'birthdayEmployees' => $birthdayEmployees,
+            'staffEmployees' => $staffEmployees,
+            'nonStaffEmployees' => $nonStaffEmployees,
+            'permanentEmployees' => $permanentEmployees,
+            'contractEmployees' => $contractEmployees
         ]);
     }
 
@@ -203,6 +292,102 @@ class DashboardController extends Controller
             ->addColumn('action', function ($row) {
                 $btn = '<a href="' . route('officialtravels.showDepartureForm', $row->id) . '" class="btn btn-sm btn-purple">
                             <i class="fas fa-plane-departure"></i> Stamp Departure
+                        </a>';
+                return $btn;
+            })
+            ->rawColumns(['action'])
+            ->make(true);
+    }
+
+    /**
+     * Get employees by department for DataTable.
+     *
+     * @return \Illuminate\Http\Response
+     */
+    public function employeesByDepartment()
+    {
+        $query = Department::withCount(['administrations' => function ($query) {
+            $query->where('is_active', '1');
+        }])
+            ->where('department_status', '1')
+            ->orderBy('administrations_count', 'desc');
+
+        return DataTables::of($query)
+            ->addIndexColumn()
+            ->addColumn('department', function ($row) {
+                return $row->department_name;
+            })
+            ->addColumn('total_employees', function ($row) {
+                return $row->administrations_count;
+            })
+            ->addColumn('action', function ($row) {
+                $btn = '<a href="' . route('departments.summary', $row->id) . '" class="btn btn-sm btn-info">
+                            <i class="fas fa-info-circle"></i> Details
+                        </a>';
+                return $btn;
+            })
+            ->rawColumns(['action'])
+            ->make(true);
+    }
+
+    /**
+     * Get employees by project for DataTable.
+     *
+     * @return \Illuminate\Http\Response
+     */
+    public function employeesByProject()
+    {
+        $query = Project::where('project_status', '1')
+            ->withCount(['administrations' => function ($query) {
+                $query->where('is_active', '1');
+            }])
+            ->orderBy('administrations_count', 'desc');
+
+        return DataTables::of($query)
+            ->addIndexColumn()
+            ->addColumn('project', function ($row) {
+                return $row->project_code . ' - ' . $row->project_name;
+            })
+            ->addColumn('total_employees', function ($row) {
+                return $row->administrations_count;
+            })
+            ->addColumn('action', function ($row) {
+                $btn = '<a href="' . route('projects.summary', $row->id) . '" class="btn btn-sm btn-info">
+                            <i class="fas fa-info-circle"></i> Details
+                        </a>';
+                return $btn;
+            })
+            ->rawColumns(['action'])
+            ->make(true);
+    }
+
+    /**
+     * Get recent employees for DataTable.
+     *
+     * @return \Illuminate\Http\Response
+     */
+    public function recentEmployees()
+    {
+        $query = Employee::join('administrations', 'employees.id', '=', 'administrations.employee_id')
+            ->select('employees.*', 'administrations.doh', 'administrations.nik', 'administrations.position_id')
+            ->with(['religion', 'administration.position'])
+            ->where('administrations.is_active', '1')
+            ->orderBy('administrations.doh', 'desc');
+
+        return DataTables::of($query)
+            ->addIndexColumn()
+            ->addColumn('nik', function ($row) {
+                return $row->nik;
+            })
+            ->addColumn('fullname', function ($row) {
+                return $row->fullname;
+            })
+            ->addColumn('hire_date', function ($row) {
+                return date('d M Y', strtotime($row->doh));
+            })
+            ->addColumn('action', function ($row) {
+                $btn = '<a href="' . route('employees.show', $row->id) . '" class="btn btn-sm btn-info">
+                            <i class="fas fa-eye"></i> Details
                         </a>';
                 return $btn;
             })
