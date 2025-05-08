@@ -45,6 +45,9 @@ class MultipleSheetImport implements WithMultipleSheets, WithValidation, SkipsOn
     private $additionaldataImport;
     private $terminationImport;
 
+    // Store rows from personal sheet for other imports to access
+    private $pendingPersonalRows = [];
+
     public function __construct()
     {
         $this->personalImport = new PersonalImport();
@@ -61,6 +64,40 @@ class MultipleSheetImport implements WithMultipleSheets, WithValidation, SkipsOn
         $this->emergencycallImport = new EmergencycallImport();
         $this->additionaldataImport = new AdditionaldataImport();
         $this->terminationImport = new TerminationImport();
+
+        // Set reference to this parent in each import
+        $this->bankImport->setParent($this);
+        $this->taxImport->setParent($this);
+        $this->insuranceImport->setParent($this);
+        $this->licenseImport->setParent($this);
+        $this->familyImport->setParent($this);
+        $this->educationImport->setParent($this);
+        $this->courseImport->setParent($this);
+        $this->jobExperienceImport->setParent($this);
+        $this->operableunitImport->setParent($this);
+        $this->emergencycallImport->setParent($this);
+        $this->additionaldataImport->setParent($this);
+        $this->administrationImport->setParent($this);
+        $this->terminationImport->setParent($this);
+
+        // Have personal import collect rows during validation
+        $this->personalImport->setParent($this);
+    }
+
+    /**
+     * Add a personal sheet row to be tracked during import
+     */
+    public function addPendingPersonalRow($row)
+    {
+        $this->pendingPersonalRows[] = $row;
+    }
+
+    /**
+     * Get all pending personal rows being imported
+     */
+    public function getPendingPersonalRows()
+    {
+        return $this->pendingPersonalRows;
     }
 
     public function getSheetName()

@@ -50,8 +50,8 @@ class LicenseExport extends DefaultValueBinder implements
     public function columnFormats(): array
     {
         return [
-            'B' => '@',
-            'D' => NumberFormat::FORMAT_NUMBER
+            'C' => '@',
+            'E' => '@'
         ];
     }
 
@@ -85,7 +85,12 @@ class LicenseExport extends DefaultValueBinder implements
 
     public function bindValue(Cell $cell, $value)
     {
-        if ($cell->getColumn() === 'B') {
+        if ($cell->getColumn() === 'C') {
+            $cell->setValueExplicit($value, DataType::TYPE_STRING);
+            return true;
+        }
+
+        if ($cell->getColumn() === 'E') {
             $cell->setValueExplicit($value, DataType::TYPE_STRING);
             return true;
         }

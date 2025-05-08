@@ -18,20 +18,29 @@ use Maatwebsite\Excel\Concerns\SkipsOnError;
 use Maatwebsite\Excel\Concerns\SkipsOnFailure;
 use Maatwebsite\Excel\Concerns\WithChunkReading;
 use Maatwebsite\Excel\Concerns\WithBatchInserts;
+use Maatwebsite\Excel\Validators\Failure;
 
 class PersonalImport implements ToModel, WithHeadingRow, WithMultipleSheets, WithEvents, SkipsOnFailure, SkipsOnError, WithValidation, WithChunkReading, WithBatchInserts
 {
     use Importable, SkipsErrors, SkipsFailures;
 
     private $sheetName;
-
     private $religions;
-
     private $rowNumber = 0;
+    private $parent = null;
 
     public function __construct()
     {
         $this->religions = Religion::select('id', 'religion_name')->get();
+    }
+
+    /**
+     * Set the parent import
+     */
+    public function setParent($parent)
+    {
+        $this->parent = $parent;
+        return $this;
     }
 
     public function sheets(): array
@@ -90,6 +99,11 @@ class PersonalImport implements ToModel, WithHeadingRow, WithMultipleSheets, Wit
                     continue;
                 }
 
+                // Store this row for other imports to access
+                if ($this->parent) {
+                    $this->parent->addPendingPersonalRow($row);
+                }
+
                 $existingEmployee = Employee::where('identity_card', trim($row['identity_card_no']))->first();
 
                 if ($existingEmployee) {
@@ -101,14 +115,6 @@ class PersonalImport implements ToModel, WithHeadingRow, WithMultipleSheets, Wit
                         strtolower($row['full_name'] ?? ''),
                         $percent
                     );
-
-                    // dd([
-                    //     'existing_name' => $existingEmployee->fullname,
-                    //     'uploaded_name' => $row['full_name'] ?? '',
-                    //     'similarity_percent' => $percent,
-                    //     'threshold' => $nameThreshold,
-                    //     'is_same_person' => $percent >= $nameThreshold
-                    // ]);
 
                     // If name similarity is below threshold, it's likely a different person
                     if ($percent < $nameThreshold) {
@@ -197,32 +203,30 @@ class PersonalImport implements ToModel, WithHeadingRow, WithMultipleSheets, Wit
 
             return $employee;
         } catch (\Illuminate\Database\QueryException $e) {
-            $error = strpos($e->getMessage(), 'Duplicate entry') !== false
-                ? [
-                    'attribute' => 'identity_card_no',
-                    'value' => $row['identity_card_no'],
-                    'errors' => "Duplicate Identity Card No '{$row['identity_card_no']}' found. Please check if this employee already exists in the system."
-                ]
-                : [
-                    'attribute' => 'system_error',
-                    'value' => null,
-                    'errors' => 'Database error: ' . $e->getMessage()
-                ];
+            $attribute = 'identity_card_no';
+            $errorMessage = "Duplicate Identity Card No '{$row['identity_card_no']}' found. Please check if this employee already exists in the system.";
 
-            $this->failures[] = array_merge([
-                'sheet' => $this->getSheetName(),
-                'row' => $this->getRowNumber()
-            ], $error);
+            if (strpos($e->getMessage(), 'Duplicate entry') === false) {
+                $attribute = 'system_error';
+                $errorMessage = 'Database error: ' . $e->getMessage();
+            }
+
+            $this->onFailure(new Failure(
+                $this->rowNumber,
+                $attribute,
+                [$errorMessage],
+                $row
+            ));
 
             return null;
         } catch (\Exception $e) {
-            $this->failures[] = [
-                'sheet' => $this->getSheetName(),
-                'row' => $this->getRowNumber(),
-                'attribute' => 'system_error',
-                'value' => null,
-                'errors' => 'Error: ' . $e->getMessage()
-            ];
+            $this->onFailure(new Failure(
+                $this->rowNumber,
+                'system_error',
+                ['Error: ' . $e->getMessage()],
+                $row
+            ));
+
             return null;
         }
     }

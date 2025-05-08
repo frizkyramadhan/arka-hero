@@ -45,6 +45,9 @@ class RoleAndPermissionSeeder extends Seeder
             'employees.create',
             'employees.edit',
             'employees.delete',
+            'employees.export',
+            'employees.import',
+            'employees.termination',
 
             // Official Travel Management
             'official-travels.show',
@@ -53,8 +56,7 @@ class RoleAndPermissionSeeder extends Seeder
             'official-travels.delete',
             'official-travels.approve',
             'official-travels.recommend',
-            'official-travels.edit-approval',
-            'official-travels.edit-recommendation',
+            'official-travels.stamp',
 
             // Master Data Management
             'master-data.show',

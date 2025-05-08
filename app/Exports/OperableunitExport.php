@@ -50,7 +50,7 @@ class OperableunitExport extends DefaultValueBinder implements
     public function columnFormats(): array
     {
         return [
-            'B' => '@'  // Using @ format to preserve exact string
+            'C' => '@'
         ];
     }
 
@@ -84,7 +84,7 @@ class OperableunitExport extends DefaultValueBinder implements
 
     public function bindValue(Cell $cell, $value)
     {
-        if ($cell->getColumn() === 'B') {
+        if ($cell->getColumn() === 'C') {
             $cell->setValueExplicit($value, DataType::TYPE_STRING);
             return true;
         }

@@ -52,7 +52,7 @@ class JobExperienceExport extends DefaultValueBinder implements
     public function columnFormats(): array
     {
         return [
-            'B' => NumberFormat::FORMAT_TEXT
+            'C' => '@'
         ];
     }
 
@@ -88,7 +88,7 @@ class JobExperienceExport extends DefaultValueBinder implements
 
     public function bindValue(Cell $cell, $value)
     {
-        if ($cell->getColumn() === 'B') {
+        if ($cell->getColumn() === 'C') {
             $cell->setValueExplicit($value, DataType::TYPE_STRING);
             return true;
         }

@@ -17,6 +17,7 @@ use Maatwebsite\Excel\Concerns\WithEvents;
 use Maatwebsite\Excel\Events\BeforeSheet;
 use Maatwebsite\Excel\Concerns\WithChunkReading;
 use Maatwebsite\Excel\Concerns\WithBatchInserts;
+use Maatwebsite\Excel\Validators\Failure;
 
 class TaxImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnFailure, SkipsOnError, WithEvents, WithChunkReading, WithBatchInserts
 {
@@ -25,10 +26,20 @@ class TaxImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnFailu
     private $employees;
     private $rowNumber = 0;
     private $sheetName;
+    private $parent = null;
 
     public function __construct()
     {
         $this->employees = Employee::select('id', 'fullname', 'identity_card')->get();
+    }
+
+    /**
+     * Set the parent import
+     */
+    public function setParent($parent)
+    {
+        $this->parent = $parent;
+        return $this;
     }
 
     public function sheets(): array
@@ -85,6 +96,9 @@ class TaxImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnFailu
         $validator->after(function ($validator) {
             $rows = $validator->getData();
 
+            // Get pending personal rows if parent is available
+            $pendingPersonalRows = $this->parent ? $this->parent->getPendingPersonalRows() : [];
+
             foreach ($rows as $rowIndex => $row) {
                 // Skip if essential data is missing
                 if (
@@ -94,17 +108,30 @@ class TaxImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnFailu
                     continue;
                 }
 
-                // Validate employee exists with matching name and identity card
+                // First check if employee exists in database
                 $employee = $this->employees->where('fullname', $row['full_name'])
                     ->where('identity_card', $row['identity_card_no'])
                     ->first();
 
+                // If not in database, check if it's in the pending personal rows
+                if (!$employee && !empty($pendingPersonalRows)) {
+                    $existsInPending = collect($pendingPersonalRows)->first(function ($pendingRow) use ($row) {
+                        return ($pendingRow['full_name'] ?? null) === $row['full_name'] &&
+                            ($pendingRow['identity_card_no'] ?? null) === $row['identity_card_no'];
+                    });
+
+                    // If found in pending rows, consider it valid
+                    if ($existsInPending) {
+                        continue;
+                    }
+                }
+
+                // Only add error if employee doesn't exist in database or pending rows
                 if (!$employee) {
                     $validator->errors()->add(
                         $rowIndex . '.full_name',
                         "No employee found with name '{$row['full_name']}' and Identity Card No '{$row['identity_card_no']}'. Please check the employee data in the personal sheet."
                     );
-                    continue;
                 }
             }
         });
@@ -124,6 +151,19 @@ class TaxImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnFailu
             $employee = $this->employees->where('fullname', $row['full_name'])
                 ->where('identity_card', $row['identity_card_no'])
                 ->first();
+
+            // If employee is not found in database, it might be a new one from personal sheet
+            // We need to query for it again as it may have been created by now
+            if (!$employee) {
+                $employee = Employee::where('fullname', $row['full_name'])
+                    ->where('identity_card', $row['identity_card_no'])
+                    ->first();
+
+                if (!$employee) {
+                    // Still not found, skip this row
+                    return null;
+                }
+            }
 
             // Prepare data for tax record
             $taxData = [
@@ -148,30 +188,30 @@ class TaxImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnFailu
 
             return $tax;
         } catch (\Illuminate\Database\QueryException $e) {
-            $message = strpos($e->getMessage(), 'Duplicate entry') !== false
-                ? "Duplicate tax identification number found. Please check if this tax record already exists."
-                : 'Database error: ' . $e->getMessage();
+            $attribute = 'tax_identification_no';
+            $errorMessage = "Duplicate tax identification number found. Please check if this tax record already exists.";
 
-            $attribute = strpos($e->getMessage(), 'Duplicate entry') !== false ? 'tax_identification_no' : 'system_error';
-            $value = strpos($e->getMessage(), 'Duplicate entry') !== false ? $row['tax_identification_no'] : null;
+            if (strpos($e->getMessage(), 'Duplicate entry') === false) {
+                $attribute = 'system_error';
+                $errorMessage = 'Database error: ' . $e->getMessage();
+            }
 
-            $this->failures[] = [
-                'sheet' => $this->getSheetName(),
-                'row' => $this->getRowNumber(),
-                'attribute' => $attribute,
-                'value' => $value,
-                'errors' => $message
-            ];
+            $this->onFailure(new Failure(
+                $this->rowNumber,
+                $attribute,
+                [$errorMessage],
+                $row
+            ));
 
             return null;
         } catch (\Exception $e) {
-            $this->failures[] = [
-                'sheet' => $this->getSheetName(),
-                'row' => $this->getRowNumber(),
-                'attribute' => 'system_error',
-                'value' => null,
-                'errors' => 'Error: ' . $e->getMessage()
-            ];
+            $this->onFailure(new Failure(
+                $this->rowNumber,
+                'system_error',
+                ['Error: ' . $e->getMessage()],
+                $row
+            ));
+
             return null;
         }
     }

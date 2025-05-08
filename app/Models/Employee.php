@@ -94,6 +94,11 @@ class Employee extends Model
         return $this->hasMany(Administration::class);
     }
 
+    public function administrations()
+    {
+        return $this->hasMany(Administration::class);
+    }
+
     public function image()
     {
         return $this->hasMany(Image::class);

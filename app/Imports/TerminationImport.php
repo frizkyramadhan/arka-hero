@@ -19,6 +19,7 @@ use Maatwebsite\Excel\Concerns\WithEvents;
 use Maatwebsite\Excel\Events\BeforeSheet;
 use Maatwebsite\Excel\Concerns\WithBatchInserts;
 use Maatwebsite\Excel\Concerns\WithChunkReading;
+use Maatwebsite\Excel\Validators\Failure;
 
 class TerminationImport implements
     ToModel,
@@ -37,12 +38,22 @@ class TerminationImport implements
     private $projects;
     private $rowNumber = 0;
     private $sheetName;
+    private $parent = null;
 
     public function __construct()
     {
         $this->employees = Employee::select('id', 'identity_card', 'fullname')->get();
         $this->positions = Position::select('id', 'position_name')->get();
         $this->projects = Project::select('id', 'project_code', 'project_name')->get();
+    }
+
+    /**
+     * Set the parent import
+     */
+    public function setParent($parent)
+    {
+        $this->parent = $parent;
+        return $this;
     }
 
     public function sheets(): array
@@ -116,63 +127,41 @@ class TerminationImport implements
         $validator->after(function ($validator) {
             $rows = $validator->getData();
 
+            // Get pending personal rows if parent is available
+            $pendingPersonalRows = $this->parent ? $this->parent->getPendingPersonalRows() : [];
+
             foreach ($rows as $rowIndex => $row) {
                 // Skip if essential data is missing
                 if (
                     empty($row['full_name']) || empty($row['identity_card_no']) ||
-                    empty($row['position']) || empty($row['project_code'])
+                    empty($row['termination_date']) || empty($row['reason'])
                 ) {
                     continue;
                 }
 
-                // Validate employee exists with matching name and identity card
+                // First check if employee exists in database
                 $employee = $this->employees->where('fullname', $row['full_name'])
                     ->where('identity_card', $row['identity_card_no'])
                     ->first();
 
+                // If not in database, check if it's in the pending personal rows
+                if (!$employee && !empty($pendingPersonalRows)) {
+                    $existsInPending = collect($pendingPersonalRows)->first(function ($pendingRow) use ($row) {
+                        return ($pendingRow['full_name'] ?? null) === $row['full_name'] &&
+                            ($pendingRow['identity_card_no'] ?? null) === $row['identity_card_no'];
+                    });
+
+                    // If found in pending rows, consider it valid
+                    if ($existsInPending) {
+                        continue;
+                    }
+                }
+
+                // Only add error if employee doesn't exist in database or pending rows
                 if (!$employee) {
                     $validator->errors()->add(
                         $rowIndex . '.full_name',
-                        "No employee found with name '{$row['full_name']}' and Identity Card No '{$row['identity_card_no']}'. Please check at personal sheet."
-                    );
-                    continue;
-                }
-
-                // Validate NIK uniqueness only for new records
-                if (empty($row['id'])) {
-                    $existingNik = Administration::where('nik', $row['nik'])
-                        ->where('employee_id', '!=', $employee->id)
-                        ->first();
-
-                    if ($existingNik) {
-                        $validator->errors()->add(
-                            $rowIndex . '.nik',
-                            "NIK '{$row['nik']}' already exists for another employee"
-                        );
-                    }
-                }
-
-                // Validate project code and project name consistency
-                $projectFound = false;
-                $correctProjectName = '';
-
-                foreach ($this->projects as $proj) {
-                    if ($proj->project_code === $row['project_code']) {
-                        $projectFound = true;
-                        $correctProjectName = $proj->project_name;
-                        break;
-                    }
-                }
-
-                if (!$projectFound) {
-                    $validator->errors()->add(
-                        $rowIndex . '.project_code',
-                        "Project with code '{$row['project_code']}' does not exist"
-                    );
-                } else if (!empty($row['project_name']) && $row['project_name'] !== $correctProjectName) {
-                    $validator->errors()->add(
-                        $rowIndex . '.project_name',
-                        "Project name '{$row['project_name']}' does not match the expected name for code '{$row['project_code']}'. It should be '{$correctProjectName}'"
+                        "No employee found with name '{$row['full_name']}' and Identity Card No '{$row['identity_card_no']}'. Please check the employee data in the personal sheet."
                     );
                 }
             }
@@ -184,7 +173,7 @@ class TerminationImport implements
         $this->rowNumber++;
 
         // Skip empty rows
-        if (empty($row['full_name']) || empty($row['identity_card_no'])) {
+        if (empty($row['full_name']) || empty($row['identity_card_no']) || empty($row['termination_date']) || empty($row['reason'])) {
             return null;
         }
 
@@ -193,6 +182,19 @@ class TerminationImport implements
             $employee = $this->employees->where('fullname', $row['full_name'])
                 ->where('identity_card', $row['identity_card_no'])
                 ->first();
+
+            // If employee is not found in database, it might be a new one from personal sheet
+            // We need to query for it again as it may have been created by now
+            if (!$employee) {
+                $employee = Employee::where('fullname', $row['full_name'])
+                    ->where('identity_card', $row['identity_card_no'])
+                    ->first();
+
+                if (!$employee) {
+                    // Still not found, skip this row
+                    return null;
+                }
+            }
 
             // Find the project by project code
             $project = null;
@@ -269,14 +271,21 @@ class TerminationImport implements
             );
 
             return $administration;
+        } catch (\Illuminate\Database\QueryException $e) {
+            $this->onFailure(new Failure(
+                $this->rowNumber,
+                'system_error',
+                ['Database error: ' . $e->getMessage()],
+                $row
+            ));
+            return null;
         } catch (\Exception $e) {
-            $this->failures[] = [
-                'sheet' => $this->getSheetName(),
-                'row' => $this->getRowNumber(),
-                'attribute' => 'system_error',
-                'value' => null,
-                'errors' => 'Error: ' . $e->getMessage()
-            ];
+            $this->onFailure(new Failure(
+                $this->rowNumber,
+                'system_error',
+                ['Error: ' . $e->getMessage()],
+                $row
+            ));
             return null;
         }
     }

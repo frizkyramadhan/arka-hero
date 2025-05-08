@@ -53,8 +53,8 @@ class FamilyExport extends DefaultValueBinder implements
     public function columnFormats(): array
     {
         return [
-            'B' => '@',
-            'H' => NumberFormat::FORMAT_NUMBER
+            'C' => '@',
+            'H' => '@'
         ];
     }
 
@@ -91,7 +91,12 @@ class FamilyExport extends DefaultValueBinder implements
 
     public function bindValue(Cell $cell, $value)
     {
-        if ($cell->getColumn() === 'B') {
+        if ($cell->getColumn() === 'C') {
+            $cell->setValueExplicit($value, DataType::TYPE_STRING);
+            return true;
+        }
+
+        if ($cell->getColumn() === 'H') {
             $cell->setValueExplicit($value, DataType::TYPE_STRING);
             return true;
         }

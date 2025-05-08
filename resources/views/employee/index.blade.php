@@ -32,18 +32,22 @@
                                         <strong>{{ $subtitle }}</strong>
                                     </h3>
                                     <div class="d-flex flex-column flex-md-row ms-auto gap-2">
-                                        <a href="{{ url('terminations') }}" class="btn btn-danger mb-2 mb-md-0 mr-2">
-                                            <i class="fas fa-ban"></i> Terminated
-                                        </a>
-                                        <a href="{{ url('employees/export/') }}" class="btn btn-primary mb-2 mb-md-0 mr-2">
-                                            <i class="fas fa-download"></i> Export
-                                        </a>
-                                        @role('administrator')
+                                        @can('employees.termination')
+                                            <a href="{{ url('terminations') }}" class="btn btn-danger mb-2 mb-md-0 mr-2">
+                                                <i class="fas fa-ban"></i> Terminated
+                                            </a>
+                                        @endcan
+                                        @can('employees.export')
+                                            <a href="{{ url('employees/export/') }}" class="btn btn-primary mb-2 mb-md-0 mr-2">
+                                                <i class="fas fa-download"></i> Export
+                                            </a>
+                                        @endcan
+                                        @can('employees.import')
                                             <a class="btn btn-success mb-2 mb-md-0 mr-2" data-toggle="modal"
                                                 data-target="#modal-import">
                                                 <i class="fas fa-upload"></i> Import
                                             </a>
-                                        @endrole
+                                        @endcan
                                         <a href="{{ url('employees/create') }}" class="btn btn-warning mb-2 mb-md-0 mr-2">
                                             <i class="fas fa-plus"></i> Add
                                         </a>
@@ -105,51 +109,6 @@
                                             </div>
                                         </div>
                                     </div>
-
-                                    {{-- <div class="alert alert-warning alert-dismissible">
-                                        <button type="button" class="close" data-dismiss="alert"
-                                            aria-hidden="true">&times;</button>
-                                        <h5 class="mb-3"><i class="icon fas fa-exclamation-triangle"></i> Import
-                                            Validation Errors</h5>
-                                        <div class="table-responsive">
-                                            <table class="table table-sm table-striped">
-                                                <thead>
-                                                    <tr>
-                                                        <th style="width: 15%">Sheet</th>
-                                                        <th style="width: 10%">Row</th>
-                                                        <th style="width: 20%">Column</th>
-                                                        <th style="width: 20%">Value</th>
-                                                        <th style="width: 50%">Error Message</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
-                                                    @foreach (session()->get('failures') as $failure)
-                                                        <tr>
-                                                            <td class="text-center">{{ $failure['sheet'] }}</td>
-                                                            <td class="text-center">{{ $failure['row'] }}</td>
-                                                            <td>
-                                                                <strong>{{ ucwords(str_replace('_', ' ', $failure['attribute'])) }}</strong>
-                                                            </td>
-                                                            <td>
-                                                                @if (isset($failure['value']))
-                                                                    {{ $failure['value'] }}
-                                                                @endif
-                                                            </td>
-                                                            <td>
-                                                                {{ $failure['errors'] }}
-                                                            </td>
-                                                        </tr>
-                                                    @endforeach
-                                                </tbody>
-                                            </table>
-                                        </div>
-                                        <div class="mt-1">
-                                            <small class="text-muted">
-                                                <i class="fas fa-info-circle"></i>
-                                                Please correct these errors in your Excel file and try importing again.
-                                            </small>
-                                        </div>
-                                    </div> --}}
                                 @endif
                                 <div class="card card-primary">
                                     <div class="card-header">

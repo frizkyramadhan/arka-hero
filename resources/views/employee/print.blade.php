@@ -306,7 +306,6 @@
                 </div>
                 <div class="header-meta">
                     <div>Generated on {{ $printDate }} at {{ $printTime }}</div>
-                    <div class="document-id">ID: {{ uniqid() }}</div>
                 </div>
             </div>
 
@@ -321,17 +320,22 @@
                 </div>
                 <div class="profile-info">
                     <h2>{{ $employee->fullname }}</h2>
-                    <p class="subtitle">{{ $administrations->first()->position_name ?? 'N/A' }} ·
-                        {{ $administrations->first()->department_name ?? 'N/A' }}</p>
+                    <p class="subtitle">{{ $activeAdministration->position->position_name ?? 'N/A' }} ·
+                        {{ $activeAdministration->position->department->department_name ?? 'N/A' }}</p>
 
                     <div class="profile-meta">
-                        <div class="profile-meta-item">
+                        {{-- <div class="profile-meta-item">
                             <span class="profile-meta-label">Employee ID</span>
                             <span class="profile-meta-value">{{ $employee->id }}</span>
+                        </div> --}}
+                        <div class="profile-meta-item">
+                            <span class="profile-meta-label">NIK</span>
+                            <span class="profile-meta-value">{{ $activeAdministration->nik }}</span>
                         </div>
                         <div class="profile-meta-item">
-                            <span class="profile-meta-label">ID Card</span>
-                            <span class="profile-meta-value">{{ $employee->identity_card }}</span>
+                            <span class="profile-meta-label">Gender</span>
+                            <span
+                                class="profile-meta-value">{{ $employee->gender == 'male' ? 'Male' : 'Female' }}</span>
                         </div>
                         <div class="profile-meta-item">
                             <span class="profile-meta-label">Date of Birth</span>
@@ -339,10 +343,11 @@
                                 class="profile-meta-value">{{ date('d-M-Y', strtotime($employee->emp_dob)) ?? '-' }}</span>
                         </div>
                         <div class="profile-meta-item">
-                            <span class="profile-meta-label">Gender</span>
+                            <span class="profile-meta-label">Project</span>
                             <span
-                                class="profile-meta-value">{{ $employee->gender == 'male' ? 'Male' : 'Female' }}</span>
+                                class="profile-meta-value">{{ $activeAdministration->project->project_code ?? '-' }}</span>
                         </div>
+
                         <div class="profile-meta-item">
                             <span class="profile-meta-label">Blood Type</span>
                             <span class="profile-meta-value">{{ $employee->blood_type ?? '-' }}</span>

@@ -98,7 +98,7 @@
                                     <div class="small-box bg-birthday">
                                         <div class="inner">
                                             <h3>{{ $birthdayEmployees }}</h3>
-                                            <p>Birth in this {{ date('F') }}</p>
+                                            <p>Born this {{ date('F') }}</p>
                                         </div>
                                         <div class="icon">
                                             <i class="fas fa-birthday-cake"></i>

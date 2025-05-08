@@ -13,6 +13,10 @@ use Illuminate\Support\Facades\DB;
 
 class TerminationController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('role_or_permission:employees.termination')->only('index');
+    }
     /**
      * Display a listing of the resource.
      *
@@ -48,33 +52,33 @@ class TerminationController extends Controller
      * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\Response
      */
-    public function store(Request $request)
-    {
-        $request->validate([
-            'termination_date' => 'required',
-            'termination_reason' => 'required',
-            'coe_no' => 'required',
-        ]);
+    // public function store(Request $request)
+    // {
+    //     $request->validate([
+    //         'termination_date' => 'required',
+    //         'termination_reason' => 'required',
+    //         'coe_no' => 'required',
+    //     ]);
 
-        $termination = new Termination();
-        $termination->termination_date = $request->termination_date;
-        $termination->termination_reason = $request->termination_reason;
-        $termination->coe_no = $request->coe_no;
-        $termination->user_id = auth()->user()->id;
-        $termination->save();
+    //     $termination = new Termination();
+    //     $termination->termination_date = $request->termination_date;
+    //     $termination->termination_reason = $request->termination_reason;
+    //     $termination->coe_no = $request->coe_no;
+    //     $termination->user_id = auth()->user()->id;
+    //     $termination->save();
 
-        return redirect('employees')->with('toast_success', 'Employee Terminated Successfully');
-    }
+    //     return redirect('employees')->with('toast_success', 'Employee Terminated Successfully');
+    // }
 
-    public function show(Termination $termination)
-    {
-        //
-    }
+    // public function show(Termination $termination)
+    // {
+    //     //
+    // }
 
-    public function edit(Termination $termination)
-    {
-        //
-    }
+    // public function edit(Termination $termination)
+    // {
+    //     //
+    // }
 
     public function update(Request $request, $id)
     {

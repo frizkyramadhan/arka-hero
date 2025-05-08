@@ -44,13 +44,15 @@ use Maatwebsite\Excel\Validators\ValidationException;
 
 class EmployeeController extends Controller
 {
-    // public function __construct()
-    // {
-    //     $this->middleware('role_or_permission:employees.show')->only('index', 'show');
-    //     $this->middleware('role_or_permission:employees.create')->only('create');
-    //     $this->middleware('role_or_permission:employees.edit')->only('edit');
-    //     $this->middleware('role_or_permission:employees.delete')->only('destroy');
-    // }
+    public function __construct()
+    {
+        $this->middleware('role_or_permission:employees.show')->only('index', 'show');
+        $this->middleware('role_or_permission:employees.create')->only('create');
+        $this->middleware('role_or_permission:employees.edit')->only('edit');
+        $this->middleware('role_or_permission:employees.delete')->only('destroy');
+        $this->middleware('role_or_permission:employees.export')->only('export');
+        $this->middleware('role_or_permission:employees.import')->only('import');
+    }
 
     public function index(Request $request)
     {
@@ -564,6 +566,7 @@ class EmployeeController extends Controller
             ->where('employee_id', $id)
             ->orderBy('administrations.nik', 'desc')
             ->get();
+        $activeAdministration = Administration::with('position.department', 'project')->where('employee_id', $id)->where('is_active', '1')->first();
         $images = Image::where('employee_id', $id)->get();
         $profile = Image::where('employee_id', $id)->where('is_profile', '=', '1')->first();
         // for select option
@@ -572,7 +575,7 @@ class EmployeeController extends Controller
         $positions = Position::with('department')->orderBy('position_name', 'asc')->get();
         $projects = Project::orderBy('project_code', 'asc')->get();
 
-        return view('employee.print', compact('title', 'subtitle', 'employee', 'bank', 'tax', 'insurances', 'families', 'educations', 'courses', 'jobs', 'units', 'licenses', 'emergencies', 'additional', 'administrations', 'images', 'religions', 'getBanks', 'positions', 'projects', 'profile'));
+        return view('employee.print', compact('title', 'subtitle', 'employee', 'bank', 'tax', 'insurances', 'families', 'educations', 'courses', 'jobs', 'units', 'licenses', 'emergencies', 'additional', 'administrations', 'images', 'religions', 'getBanks', 'positions', 'projects', 'profile', 'activeAdministration'));
     }
 
     public function addImages($id, Request $request)
