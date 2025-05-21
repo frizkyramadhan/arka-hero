@@ -808,8 +808,8 @@
                         name: 'official_travel_number'
                     },
                     {
-                        data: 'created_at',
-                        name: 'created_at'
+                        data: 'official_travel_date',
+                        name: 'official_travel_date'
                     },
                     {
                         data: 'traveler',
@@ -822,6 +822,7 @@
                     {
                         data: 'action',
                         name: 'action',
+                        className: 'text-center',
                         orderable: false,
                         searchable: false
                     },
@@ -846,8 +847,8 @@
                         name: 'official_travel_number'
                     },
                     {
-                        data: 'created_at',
-                        name: 'created_at'
+                        data: 'official_travel_date',
+                        name: 'official_travel_date'
                     },
                     {
                         data: 'traveler',
@@ -860,6 +861,7 @@
                     {
                         data: 'action',
                         name: 'action',
+                        className: 'text-center',
                         orderable: false,
                         searchable: false
                     },
@@ -884,8 +886,8 @@
                         name: 'official_travel_number'
                     },
                     {
-                        data: 'created_at',
-                        name: 'created_at'
+                        data: 'official_travel_date',
+                        name: 'official_travel_date'
                     },
                     {
                         data: 'traveler',
@@ -898,6 +900,7 @@
                     {
                         data: 'action',
                         name: 'action',
+                        className: 'text-center',
                         orderable: false,
                         searchable: false
                     },
@@ -922,8 +925,8 @@
                         name: 'official_travel_number'
                     },
                     {
-                        data: 'created_at',
-                        name: 'created_at'
+                        data: 'official_travel_date',
+                        name: 'official_travel_date'
                     },
                     {
                         data: 'traveler',
@@ -936,6 +939,7 @@
                     {
                         data: 'action',
                         name: 'action',
+                        className: 'text-center',
                         orderable: false,
                         searchable: false
                     },

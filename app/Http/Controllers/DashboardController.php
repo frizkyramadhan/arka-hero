@@ -187,6 +187,9 @@ class DashboardController extends Controller
 
         return DataTables::of($query)
             ->addIndexColumn()
+            ->addColumn('official_travel_date', function ($row) {
+                return date('d M Y', strtotime($row->official_travel_date));
+            })
             ->addColumn('traveler', function ($row) {
                 return $row->traveler->employee->fullname ?? 'N/A';
             })
@@ -221,6 +224,9 @@ class DashboardController extends Controller
 
         return DataTables::of($query)
             ->addIndexColumn()
+            ->addColumn('official_travel_date', function ($row) {
+                return date('d M Y', strtotime($row->official_travel_date));
+            })
             ->addColumn('traveler', function ($row) {
                 return $row->traveler->employee->fullname ?? 'N/A';
             })
@@ -253,6 +259,9 @@ class DashboardController extends Controller
 
         return DataTables::of($query)
             ->addIndexColumn()
+            ->addColumn('official_travel_date', function ($row) {
+                return date('d M Y', strtotime($row->official_travel_date));
+            })
             ->addColumn('traveler', function ($row) {
                 return $row->traveler->employee->fullname ?? 'N/A';
             })
@@ -286,6 +295,9 @@ class DashboardController extends Controller
 
         return DataTables::of($query)
             ->addIndexColumn()
+            ->addColumn('official_travel_date', function ($row) {
+                return date('d M Y', strtotime($row->official_travel_date));
+            })
             ->addColumn('traveler', function ($row) {
                 return $row->traveler->employee->fullname ?? 'N/A';
             })

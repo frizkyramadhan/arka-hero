@@ -429,19 +429,21 @@ class OfficialtravelController extends Controller
             'employee',
             'position.department',
             'project'
-        ])->orderBy('nik', 'asc')->get()->map(function ($employee) {
-            return [
-                'id' => $employee->id,
-                'nik' => $employee->nik,
-                'fullname' => $employee->employee->fullname ?? 'Unknown',
-                'position' => $employee->position->position_name ?? '-',
-                'project' => $employee->project->project_name ?? '-',
-                'department' => $employee->position->department->department_name ?? '-',
-                'position_id' => $employee->position_id,
-                'project_id' => $employee->project_id,
-                'department_id' => $employee->position->department_id
-            ];
-        });
+        ])
+            ->where('is_active', 1)
+            ->orderBy('nik', 'asc')->get()->map(function ($employee) {
+                return [
+                    'id' => $employee->id,
+                    'nik' => $employee->nik,
+                    'fullname' => $employee->employee->fullname ?? 'Unknown',
+                    'position' => $employee->position->position_name ?? '-',
+                    'project' => $employee->project->project_name ?? '-',
+                    'department' => $employee->position->department->department_name ?? '-',
+                    'position_id' => $employee->position_id,
+                    'project_id' => $employee->project_id,
+                    'department_id' => $employee->position->department_id
+                ];
+            });
 
         // Get users with recommend and approve permissions
         $recommenders = User::permission('official-travels.recommend')
@@ -487,7 +489,7 @@ class OfficialtravelController extends Controller
     {
         try {
             $this->validate($request, [
-                'official_travel_number' => 'required|unique:officialtravels,official_travel_number',
+                'official_travel_number' => 'required',
                 'official_travel_date' => 'required|date',
                 'official_travel_origin' => 'required|exists:projects,id',
                 'traveler_id' => 'required|exists:administrations,id',
@@ -505,9 +507,36 @@ class OfficialtravelController extends Controller
 
             DB::beginTransaction();
 
+            // Check if travel number exists and get new number if needed
+            $travelNumber = $request->official_travel_number;
+            $exists = Officialtravel::where('official_travel_number', $travelNumber)->exists();
+
+            if ($exists) {
+                // Extract the sequence number from the travel number
+                preg_match('/ARKA\/B(\d{4})\/HR/', $travelNumber, $matches);
+                $sequence = isset($matches[1]) ? (int)$matches[1] : 0;
+
+                // Find the latest travel number for the current year
+                $latestTravel = Officialtravel::whereYear('created_at', now()->year)
+                    ->orderBy('created_at', 'desc')
+                    ->first();
+
+                if ($latestTravel) {
+                    preg_match('/ARKA\/B(\d{4})\/HR/', $latestTravel->official_travel_number, $latestMatches);
+                    $latestSequence = isset($latestMatches[1]) ? (int)$latestMatches[1] : 0;
+                    $sequence = max($sequence, $latestSequence) + 1;
+                } else {
+                    $sequence = 1;
+                }
+
+                // Generate new travel number
+                $romanMonth = $this->numberToRoman(now()->month);
+                $travelNumber = sprintf("ARKA/B%04d/HR/%s/%s", $sequence, $romanMonth, now()->year);
+            }
+
             // Create new official travel
             $officialtravel = Officialtravel::create([
-                'official_travel_number' => $request->official_travel_number,
+                'official_travel_number' => $travelNumber,
                 'official_travel_date' => $request->official_travel_date,
                 'official_travel_origin' => $request->official_travel_origin,
                 'official_travel_status' => 'draft',

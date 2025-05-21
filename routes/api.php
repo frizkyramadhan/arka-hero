@@ -35,6 +35,7 @@ Route::prefix('employees')->group(function () {
 // Official Travel API Routes
 Route::prefix('official-travels')->group(function () {
     Route::post('/search', [OfficialtravelApiController::class, 'search']);
+    Route::post('/search-claimed', [OfficialtravelApiController::class, 'search_claimed']);
     Route::get('/{id}', [OfficialtravelApiController::class, 'show']);
-    Route::put('/{id}/claim', [OfficialtravelApiController::class, 'updateClaim']);
+    Route::put('/claim', [OfficialtravelApiController::class, 'updateClaim']);
 });
