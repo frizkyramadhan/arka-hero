@@ -196,12 +196,16 @@ class OfficialtravelApiController extends Controller
     /**
      * Get official travel details
      *
-     * @param int $id
+     * @param Request $request
      * @return \Illuminate\Http\JsonResponse
      */
-    public function show($id)
+    public function show(Request $request)
     {
         try {
+            $this->validate($request, [
+                'travel_number' => 'required|string'
+            ]);
+
             $query = Officialtravel::query();
 
             $officialtravel = $query->with([
@@ -219,7 +223,7 @@ class OfficialtravelApiController extends Controller
                 'recommender',
                 'approver',
                 'creator'
-            ])->find($id);
+            ])->where('official_travel_number', $request->travel_number)->first();
 
             if (!$officialtravel) {
                 return response()->json([
@@ -233,6 +237,12 @@ class OfficialtravelApiController extends Controller
                 'status' => 'success',
                 'data' => new OfficialtravelResource($officialtravel)
             ], 200);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Validation error',
+                'errors' => $e->getMessage()
+            ], 422);
         } catch (\Exception $e) {
             return response()->json([
                 'status' => 'error',
