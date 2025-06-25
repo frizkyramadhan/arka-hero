@@ -57,6 +57,33 @@
                         </p>
                     </a>
                 </li>
+                @can('employees.create')
+                    <li class="nav-item {{ Request::is('employee-registrations*') ? 'menu-open' : '' }}">
+                        <a href="#" class="nav-link {{ Request::is('employee-registrations*') ? 'active' : '' }}">
+                            <i class="nav-icon fas fa-user-plus"></i>
+                            <p>
+                                Employee Registration
+                                <i class="fas fa-angle-left right"></i>
+                            </p>
+                        </a>
+                        <ul class="nav nav-treeview">
+                            <li class="nav-item">
+                                <a href="{{ route('employee.registration.admin.index') }}"
+                                    class="nav-link {{ Request::is('employee-registrations') || Request::is('employee-registrations/pending*') ? 'active' : '' }}">
+                                    <i class="far fa-circle nav-icon"></i>
+                                    <p>Manage Registrations</p>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="{{ route('employee.registration.admin.invite') }}"
+                                    class="nav-link {{ Request::is('employee-registrations/invite*') ? 'active' : '' }}">
+                                    <i class="far fa-circle nav-icon"></i>
+                                    <p>Send Invitations</p>
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+                @endcan
                 <li class="nav-item">
                     <a href="{{ url('officialtravels') }}"
                         class="nav-link {{ Request::is('officialtravels*') ? 'active' : '' }}">

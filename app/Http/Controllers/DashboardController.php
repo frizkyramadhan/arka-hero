@@ -140,7 +140,7 @@ class DashboardController extends Controller
         // Get employees with birthday in this month
         $birthdayEmployees = Employee::with(['administration' => function ($query) {
             $query->where('is_active', '1');
-        }])->where('emp_dob', 'like', '%' . date('m') . '%')->count();
+        }])->whereMonth('emp_dob', date('m'))->count();
 
         return view('dashboard', [
             'title' => 'Dashboard',

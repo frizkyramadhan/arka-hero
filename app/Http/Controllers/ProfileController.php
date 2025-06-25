@@ -378,10 +378,10 @@ class ProfileController extends Controller
         $title = 'Birthday Summary';
         $subtitle = 'Employees with Birthday in ' . date('F');
 
-        // Get birthday count
+        // Get birthday count - using proper month format with leading zero
         $birthdayCount = Employee::with(['administration' => function ($query) {
             $query->where('is_active', '1');
-        }])->where('emp_dob', 'like', '%' . date('m') . '%')->count();
+        }])->whereMonth('emp_dob', date('m'))->count();
 
         return view('summary.birthday', compact('title', 'subtitle', 'birthdayCount'));
     }
@@ -409,7 +409,7 @@ class ProfileController extends Controller
                 'administrations.class'
             )
             ->where('administrations.is_active', '1')
-            ->where('employees.emp_dob', 'like', '%' . date('m') . '%');
+            ->whereMonth('employees.emp_dob', date('m'));
 
         return DataTables::of($query)
             ->addIndexColumn()

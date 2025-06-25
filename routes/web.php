@@ -16,6 +16,7 @@ use App\Http\Controllers\EmrgcallController;
 use App\Http\Controllers\PositionController;
 use App\Http\Controllers\RegisterController;
 use App\Http\Controllers\ReligionController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EducationController;
 use App\Http\Controllers\InsuranceController;
 use App\Http\Controllers\PHPMailerController;
@@ -31,7 +32,8 @@ use App\Http\Controllers\AdministrationController;
 use App\Http\Controllers\OfficialtravelController;
 use App\Http\Controllers\TransportationController;
 use App\Http\Controllers\TaxidentificationController;
-use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\EmployeeRegistrationController;
+use App\Http\Controllers\EmployeeRegistrationAdminController;
 
 /*
 |--------------------------------------------------------------------------
@@ -49,6 +51,15 @@ Route::post('register', [RegisterController::class, 'store']);
 
 Route::get('login', [AuthController::class, 'getLogin'])->name('login')->middleware('guest');
 Route::post('login', [AuthController::class, 'postLogin']);
+
+// PUBLIC EMPLOYEE SELF-SERVICE REGISTRATION ROUTES
+Route::prefix('employee-registration')->group(function () {
+    Route::get('/expired', [EmployeeRegistrationController::class, 'expired'])->name('employee.registration.expired');
+    Route::get('/{token}', [EmployeeRegistrationController::class, 'showForm'])->name('employee.registration.form');
+    Route::post('/{token}', [EmployeeRegistrationController::class, 'store'])->name('employee.registration.store');
+    Route::post('/{token}/upload', [EmployeeRegistrationController::class, 'uploadDocument'])->name('employee.registration.upload');
+    Route::get('/{token}/success', [EmployeeRegistrationController::class, 'success'])->name('employee.registration.success');
+})->middleware(['throttle:10,1']); // Rate limiting
 
 Route::group(['middleware' => ['auth']], function () {
     // Route::get('/', [ProfileController::class, 'dashboard'])->name('dashboard');
@@ -148,6 +159,26 @@ Route::group(['middleware' => ['auth']], function () {
     Route::post('officialtravels/export', [OfficialtravelController::class, 'exportExcel'])->name('officialtravels.export');
 
     // EMPLOYEE ROUTES
+
+    // EMPLOYEE REGISTRATION ADMIN ROUTES
+    Route::prefix('employee-registrations')->name('employee.registration.admin.')->group(function () {
+        Route::get('/', [EmployeeRegistrationAdminController::class, 'index'])->name('index');
+        Route::get('/pending', [EmployeeRegistrationAdminController::class, 'getPendingRegistrations'])->name('pending');
+        Route::get('/tokens', [EmployeeRegistrationAdminController::class, 'getTokens'])->name('tokens');
+        Route::get('/invite', [EmployeeRegistrationAdminController::class, 'showInviteForm'])->name('invite');
+        Route::post('/invite', [EmployeeRegistrationAdminController::class, 'invite'])->name('invite');
+        Route::post('/bulk-invite', [EmployeeRegistrationAdminController::class, 'bulkInvite'])->name('bulk-invite');
+        Route::post('/tokens/{tokenId}/resend', [EmployeeRegistrationAdminController::class, 'resendInvitation'])->name('resend');
+        Route::delete('/tokens/{tokenId}', [EmployeeRegistrationAdminController::class, 'deleteToken'])->name('delete-token');
+        Route::get('/stats', [EmployeeRegistrationAdminController::class, 'getStats'])->name('stats');
+        Route::post('/cleanup', [EmployeeRegistrationAdminController::class, 'cleanupExpiredTokens'])->name('cleanup');
+        Route::get('/{id}', [EmployeeRegistrationAdminController::class, 'show'])->name('show');
+        Route::post('/{id}/approve', [EmployeeRegistrationAdminController::class, 'approve'])->name('approve');
+        Route::post('/{id}/reject', [EmployeeRegistrationAdminController::class, 'reject'])->name('reject');
+        Route::post('/{id}/approve-form', [EmployeeRegistrationAdminController::class, 'approveForm'])->name('approve.form');
+        Route::post('/{id}/reject-form', [EmployeeRegistrationAdminController::class, 'rejectForm'])->name('reject.form');
+        Route::get('/{registrationId}/documents/{documentId}', [EmployeeRegistrationAdminController::class, 'downloadDocument'])->name('download.document');
+    });
 
     Route::get('employees/data', [EmployeeController::class, 'getEmployees'])->name('employees.data');
     Route::get('employees/print/{id}', [EmployeeController::class, 'print'])->name('employees.print');

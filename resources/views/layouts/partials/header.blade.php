@@ -10,6 +10,8 @@
         <link rel="stylesheet" href="{{ asset('assets/dist/css/font.css') }}">
         <!-- Font Awesome -->
         <link rel="stylesheet" href="{{ asset('assets/plugins/fontawesome-free/css/all.min.css') }}">
+        <!-- SweetAlert2 -->
+        <link rel="stylesheet" href="{{ asset('assets/plugins/sweetalert2-theme-bootstrap-4/bootstrap-4.min.css') }}">
         <!-- Theme style -->
         <link rel="stylesheet" href="{{ asset('assets/dist/css/adminlte.min.css') }}">
         <!-- pace-progress -->

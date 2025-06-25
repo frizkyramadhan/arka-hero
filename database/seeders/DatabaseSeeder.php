@@ -5,7 +5,9 @@ namespace Database\Seeders;
 // use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use App\Models\User;
 use Illuminate\Database\Seeder;
+use Database\Seeders\PositionSeeder;
 use Illuminate\Support\Facades\Hash;
+use Database\Seeders\OfficialTravelSeeder;
 
 class DatabaseSeeder extends Seeder
 {
@@ -20,14 +22,19 @@ class DatabaseSeeder extends Seeder
         $this->call(BankSeeder::class);
         $this->call(ProjectSeeder::class);
         $this->call(DepartmentSeeder::class);
+        $this->call(PositionSeeder::class);
         $this->call(RoleAndPermissionSeeder::class);
+        $this->call(OfficialTravelSeeder::class);
 
         User::factory()->create([
+            'id' => 1,
             'name' => 'Administrator',
             'email' => 'admin@arka.co.id',
-            'level' => 'superadmin',
+            // 'level' => 'superadmin',
             'user_status' => 1,
             'password' => Hash::make('admin'),
         ]);
+
+        User::where('email', 'admin@arka.co.id')->first()->assignRole('administrator');
     }
 }
