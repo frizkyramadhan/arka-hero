@@ -4,7 +4,8 @@
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
-        <title>{{ $title }} - Human Capital & Support Information System</title>
+        <meta name="csrf-token" content="{{ csrf_token() }}">
+        <title>{{ $title }} - ARKA Human Experience & Resource Optimization</title>
 
         <!-- Google Font: Source Sans Pro -->
         <link rel="stylesheet" href="{{ asset('assets/dist/css/font.css') }}">

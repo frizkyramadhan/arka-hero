@@ -58,6 +58,12 @@ class RoleAndPermissionSeeder extends Seeder
             'official-travels.recommend',
             'official-travels.stamp',
 
+            // Letter Number Management
+            'letter-numbers.show',
+            'letter-numbers.create',
+            'letter-numbers.edit',
+            'letter-numbers.delete',
+
             // Master Data Management
             'master-data.show',
             'master-data.create',
@@ -94,6 +100,10 @@ class RoleAndPermissionSeeder extends Seeder
             'official-travels.show',
             'official-travels.create',
             'official-travels.edit',
+            'letter-numbers.show',
+            'letter-numbers.create',
+            'letter-numbers.edit',
+            'letter-numbers.delete',
             'project.000h',
         ]);
 
@@ -110,6 +120,10 @@ class RoleAndPermissionSeeder extends Seeder
             'official-travels.edit',
             'official-travels.delete',
             'official-travels.approve',
+            'letter-numbers.show',
+            'letter-numbers.create',
+            'letter-numbers.edit',
+            'letter-numbers.delete',
             'master-data.show',
             'master-data.create',
             'master-data.edit',
@@ -134,6 +148,10 @@ class RoleAndPermissionSeeder extends Seeder
             'official-travels.edit',
             'official-travels.delete',
             'official-travels.approve',
+            'letter-numbers.show',
+            'letter-numbers.create',
+            'letter-numbers.edit',
+            'letter-numbers.delete',
             'master-data.show',
             'master-data.create',
             'master-data.edit',

@@ -7,6 +7,9 @@ use App\Http\Controllers\Api\v1\PositionController;
 use App\Http\Controllers\Api\v1\EmployeeApiController;
 use App\Http\Controllers\Api\v1\DepartmentController;
 use App\Http\Controllers\Api\v1\OfficialtravelApiController;
+use App\Http\Controllers\Api\v1\LetterNumberApiController;
+use App\Http\Controllers\LetterSubjectController;
+use App\Http\Controllers\LetterNumberController;
 
 /*
 |--------------------------------------------------------------------------
@@ -39,3 +42,24 @@ Route::prefix('official-travels')->group(function () {
     Route::post('/detail', [OfficialtravelApiController::class, 'show']);
     Route::put('/claim', [OfficialtravelApiController::class, 'updateClaim']);
 });
+
+// Letter Numbering API Routes v1
+Route::prefix('v1/letter-numbers')->middleware(['auth:sanctum'])->group(function () {
+    // Core Integration Endpoints
+    Route::post('/request', [LetterNumberApiController::class, 'requestNumber']);
+    Route::post('/{id}/mark-as-used', [LetterNumberApiController::class, 'markAsUsed']);
+    Route::post('/{id}/cancel', [LetterNumberApiController::class, 'cancelNumber']);
+
+    // Data Retrieval Endpoints
+    Route::get('/available/{categoryCode}', [LetterNumberApiController::class, 'getAvailableNumbers']);
+    Route::get('/subjects/{categoryCode}', [LetterNumberApiController::class, 'getSubjectsByCategory']);
+    Route::get('/{id}', [LetterNumberApiController::class, 'getLetterNumber']);
+
+    // Utility Endpoints
+    Route::post('/check-availability', [LetterNumberApiController::class, 'checkAvailability']);
+});
+
+// Additional API routes for letter management
+Route::get('letter-subjects/{categoryCode}', [LetterSubjectController::class, 'getByCategory']);
+Route::get('letter-subjects/available/{documentType}/{categoryCode}', [LetterSubjectController::class, 'getAvailableSubjectsForDocument']);
+Route::get('letter-numbers/available/{categoryCode}', [LetterNumberController::class, 'getAvailableNumbers']);

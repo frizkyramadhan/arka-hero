@@ -34,6 +34,9 @@ use App\Http\Controllers\TransportationController;
 use App\Http\Controllers\TaxidentificationController;
 use App\Http\Controllers\EmployeeRegistrationController;
 use App\Http\Controllers\EmployeeRegistrationAdminController;
+use App\Http\Controllers\LetterNumberController;
+use App\Http\Controllers\LetterSubjectController;
+use App\Http\Controllers\LetterCategoryController;
 
 /*
 |--------------------------------------------------------------------------
@@ -92,7 +95,6 @@ Route::group(['middleware' => ['auth']], function () {
     Route::get('summary/birthday/employees', [ProfileController::class, 'getBirthdayEmployees'])->name('employees.birthday.list');
 
     Route::get('/', [DashboardController::class, 'dashboard'])->name('dashboard');
-    Route::get('/dashboard', [DashboardController::class, 'dashboard'])->name('dashboard');
     Route::get('/dashboard/pending-recommendations', [DashboardController::class, 'pendingRecommendations'])->name('dashboard.pendingRecommendations');
     Route::get('/dashboard/pending-approvals', [DashboardController::class, 'pendingApprovals'])->name('dashboard.pendingApprovals');
     Route::get('/dashboard/pending-arrivals', [DashboardController::class, 'pendingArrivals'])->name('dashboard.pendingArrivals');
@@ -145,6 +147,8 @@ Route::group(['middleware' => ['auth']], function () {
 
     // OFFICIAL TRAVEL ROUTES
     Route::get('officialtravels/data', [OfficialtravelController::class, 'getOfficialtravels'])->name('officialtravels.data');
+    // Test route for letter number integration (development only)
+    Route::get('officialtravels/test-letter-integration', [OfficialtravelController::class, 'testLetterNumberIntegration'])->name('officialtravels.testLetterIntegration');
     Route::resource('officialtravels', OfficialtravelController::class);
     Route::get('officialtravels/{officialtravel}/recommend', [OfficialtravelController::class, 'showRecommendForm'])->name('officialtravels.showRecommendForm');
     Route::post('officialtravels/{officialtravel}/recommend', [OfficialtravelController::class, 'recommend'])->name('officialtravels.recommend');
@@ -157,6 +161,40 @@ Route::group(['middleware' => ['auth']], function () {
     Route::get('officialtravels/{officialtravel}/print', [OfficialtravelController::class, 'print'])->name('officialtravels.print');
     Route::patch('officialtravels/{officialtravel}/close', [OfficialtravelController::class, 'close'])->name('officialtravels.close');
     Route::post('officialtravels/export', [OfficialtravelController::class, 'exportExcel'])->name('officialtravels.export');
+
+    // LETTER NUMBERING SYSTEM ROUTES
+    Route::prefix('letter-numbers')->name('letter-numbers.')->group(function () {
+        Route::get('/', [LetterNumberController::class, 'index'])->name('index');
+        Route::get('/data', [LetterNumberController::class, 'getLetterNumbers'])->name('data');
+        Route::get('/create/{categoryCode?}', [LetterNumberController::class, 'create'])->name('create');
+        Route::post('/', [LetterNumberController::class, 'store'])->name('store');
+        Route::get('/{id}', [LetterNumberController::class, 'show'])->name('show');
+        Route::get('/{id}/edit', [LetterNumberController::class, 'edit'])->name('edit');
+        Route::put('/{id}', [LetterNumberController::class, 'update'])->name('update');
+        Route::delete('/{id}', [LetterNumberController::class, 'destroy'])->name('destroy');
+        Route::post('/{id}/cancel', [LetterNumberController::class, 'cancel'])->name('cancel');
+        Route::post('/{id}/mark-as-used-manually', [LetterNumberController::class, 'markAsUsedManually'])->name('mark-as-used-manually');
+    });
+
+    // LETTER CATEGORY MANAGEMENT ROUTES
+    Route::prefix('letter-categories')->name('letter-categories.')->group(function () {
+        Route::get('/', [LetterCategoryController::class, 'index'])->name('index');
+        Route::get('/data', [LetterCategoryController::class, 'getLetterCategories'])->name('data');
+        Route::post('/', [LetterCategoryController::class, 'store'])->name('store');
+        Route::patch('/{id}', [LetterCategoryController::class, 'update'])->name('update');
+        Route::delete('/{id}', [LetterCategoryController::class, 'destroy'])->name('destroy');
+    });
+
+    // LETTER SUBJECT MANAGEMENT ROUTES (Category specific)
+    Route::prefix('letter-subjects')->name('letter-subjects.')->group(function () {
+        Route::get('/{categoryCode}', [LetterSubjectController::class, 'indexByCategory'])->name('index-by-category');
+        Route::get('/{categoryCode}/data', [LetterSubjectController::class, 'getSubjectsByCategory'])->name('data-by-category');
+        Route::post('/{categoryCode}', [LetterSubjectController::class, 'storeByCategory'])->name('store-by-category');
+        Route::patch('/{categoryCode}/{id}', [LetterSubjectController::class, 'updateByCategory'])->name('update-by-category');
+        Route::delete('/{id}', [LetterSubjectController::class, 'destroy'])->name('destroy');
+    });
+
+
 
     // EMPLOYEE ROUTES
 
@@ -270,4 +308,12 @@ Route::group(['middleware' => ['auth']], function () {
 
     Route::resource('emails', EmailController::class)->except(['create', 'show', 'edit']);
     Route::post("emails", [EmailController::class, "sendMail"])->name("sendMail");
+});
+
+// Model Discovery API Routes (Outside auth middleware for testing)
+Route::prefix('api/model-discovery')->group(function () {
+    Route::get('available-models', [LetterSubjectController::class, 'getAvailableModels']);
+    Route::post('model-info', [LetterSubjectController::class, 'getModelInfo']);
+    Route::post('clear-cache', [LetterSubjectController::class, 'clearModelCache']);
+    Route::get('integration-stats', [LetterSubjectController::class, 'getIntegrationStats']);
 });

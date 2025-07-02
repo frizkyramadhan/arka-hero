@@ -2,8 +2,9 @@
 <aside class="main-sidebar main-sidebar-custom sidebar-dark-primary elevation-4">
     <!-- Brand Logo -->
     <a href="{{ url('/') }}" class="brand-link">
-        <img src="{{ asset('assets/dist/img/logo.png') }}" alt="Logo" class="brand-image mt-1 ml-4" style="width:50%">
-        <span class="brand-text font-weight-light"><b>HCS</b>SIS</span>
+        <img src="{{ asset('assets/dist/img/AdminLTELogo.png') }}" alt="AdminLTE Logo"
+            class="brand-image img-circle elevation-3" style="opacity: .8">
+        <span class="brand-text font-weight-light">Arka <b>HERO</b></span>
     </a>
 
     <!-- Sidebar -->
@@ -57,7 +58,7 @@
                         </p>
                     </a>
                 </li>
-                @can('employees.create')
+                {{-- @can('employees.create')
                     <li class="nav-item {{ Request::is('employee-registrations*') ? 'menu-open' : '' }}">
                         <a href="#" class="nav-link {{ Request::is('employee-registrations*') ? 'active' : '' }}">
                             <i class="nav-icon fas fa-user-plus"></i>
@@ -83,13 +84,23 @@
                             </li>
                         </ul>
                     </li>
-                @endcan
+                @endcan --}}
                 <li class="nav-item">
                     <a href="{{ url('officialtravels') }}"
                         class="nav-link {{ Request::is('officialtravels*') ? 'active' : '' }}">
                         <i class="nav-icon fas fa-compass"></i>
                         <p>
                             Official Travels
+                        </p>
+                    </a>
+                </li>
+
+                <li class="nav-item">
+                    <a href="{{ route('letter-numbers.index') }}"
+                        class="nav-link {{ Request::is('letter-numbers*') ? 'active' : '' }}">
+                        <i class="nav-icon fas fa-file-alt"></i>
+                        <p>
+                            Letter Administration
                         </p>
                     </a>
                 </li>
@@ -171,6 +182,25 @@
                                     class="nav-link {{ Request::is('accommodations*') ? 'active' : '' }}">
                                     <i class="nav-icon fas fa-hotel"></i>
                                     <p>Accommodations</p>
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+
+                    <li class="nav-item {{ Request::is('letter-categories*') ? 'menu-open' : '' }}">
+                        <a href="#" class="nav-link {{ Request::is('letter-categories*') ? 'active' : '' }}">
+                            <i class="nav-icon fas fa-database"></i>
+                            <p>
+                                Letter Management
+                                <i class="fas fa-angle-left right"></i>
+                            </p>
+                        </a>
+                        <ul class="nav nav-treeview">
+                            <li class="nav-item">
+                                <a href="{{ url('letter-categories') }}"
+                                    class="nav-link {{ Request::is('letter-categories*') ? 'active' : '' }}">
+                                    <i class="nav-icon fas fa-tags"></i>
+                                    <p>Letter Categories</p>
                                 </a>
                             </li>
                         </ul>

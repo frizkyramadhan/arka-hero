@@ -24,7 +24,6 @@ class DatabaseSeeder extends Seeder
         $this->call(DepartmentSeeder::class);
         $this->call(PositionSeeder::class);
         $this->call(RoleAndPermissionSeeder::class);
-        $this->call(OfficialTravelSeeder::class);
 
         User::factory()->create([
             'id' => 1,
@@ -36,5 +35,11 @@ class DatabaseSeeder extends Seeder
         ]);
 
         User::where('email', 'admin@arka.co.id')->first()->assignRole('administrator');
+
+        // Letter numbering system seeders
+        $this->call(LetterCategorySeeder::class);
+        $this->call(LetterSubjectSeeder::class);
+
+        $this->call(OfficialTravelSeeder::class);
     }
 }

@@ -8,9 +8,11 @@ use App\Models\Administration;
 use App\Models\Officialtravel;
 use App\Models\Transportation;
 use App\Models\Officialtravel_detail;
+use App\Models\LetterNumber;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use App\Models\User;
 use Spatie\Activitylog\Facades\LogActivity;
 use Maatwebsite\Excel\Facades\Excel;
@@ -415,14 +417,9 @@ class OfficialtravelController extends Controller
         $accommodations = Accommodation::where('accommodation_status', 1)->get();
         $transportations = Transportation::where('transportation_status', 1)->get();
 
-        // Generate Travel Number
-        $lastTravel = Officialtravel::whereYear('created_at', now()->year)
-            ->orderBy('created_at', 'desc')
-            ->first();
-
-        $sequence = $lastTravel ? (int)substr($lastTravel->official_travel_number, 6, 4) + 1 : 1;
+        // Travel Number will be generated based on selected letter number
         $romanMonth = $this->numberToRoman(now()->month);
-        $travelNumber = sprintf("ARKA/B%04d/HR/%s/%s", $sequence, $romanMonth, now()->year);
+        $travelNumber = sprintf("ARKA/[Letter Number]/HR/%s/%s", $romanMonth, now()->year);
 
         // Load employees with their relationships
         $employees = Administration::with([
@@ -475,7 +472,8 @@ class OfficialtravelController extends Controller
             'employees',
             'recommenders',
             'approvers',
-            'travelNumber'
+            'travelNumber',
+            'romanMonth'
         ));
     }
 
@@ -489,53 +487,91 @@ class OfficialtravelController extends Controller
     {
         try {
             $this->validate($request, [
-                'official_travel_number' => 'required',
+                'official_travel_number' => 'nullable',
                 'official_travel_date' => 'required|date',
                 'official_travel_origin' => 'required|exists:projects,id',
                 'traveler_id' => 'required|exists:administrations,id',
                 'purpose' => 'required|string',
-                'destination' => 'required|string',
-                'duration' => 'required|string',
-                'departure_from' => 'required|date',
+                'destination' => 'required|string|min:3',
+                'duration' => 'required|string|min:1',
+                'departure_from' => 'required|date|after_or_equal:today',
                 'transportation_id' => 'required|exists:transportations,id',
                 'accommodation_id' => 'required|exists:accommodations,id',
                 'followers' => 'nullable|array',
                 'followers.*' => 'exists:administrations,id',
                 'recommendation_by' => 'required|exists:users,id',
                 'approval_by' => 'required|exists:users,id|different:recommendation_by',
+                // Letter numbering integration fields
+                'number_option' => 'nullable|in:existing',
+                'letter_number_id' => 'nullable|exists:letter_numbers,id',
+            ], [
+                'official_travel_date.required' => 'LOT Date is required.',
+                'official_travel_date.date' => 'LOT Date must be a valid date.',
+                'official_travel_origin.required' => 'LOT Origin is required.',
+                'official_travel_origin.exists' => 'Selected LOT Origin is invalid.',
+                'traveler_id.required' => 'Main Traveler is required.',
+                'traveler_id.exists' => 'Selected Main Traveler is invalid.',
+                'purpose.required' => 'Purpose is required.',
+                'destination.required' => 'Destination is required.',
+                'destination.min' => 'Destination must be at least 3 characters.',
+                'duration.required' => 'Duration is required.',
+                'duration.min' => 'Duration cannot be empty.',
+                'departure_from.required' => 'Departure Date is required.',
+                'departure_from.date' => 'Departure Date must be a valid date.',
+                'departure_from.after_or_equal' => 'Departure Date cannot be in the past.',
+                'transportation_id.required' => 'Transportation is required.',
+                'transportation_id.exists' => 'Selected Transportation is invalid.',
+                'accommodation_id.required' => 'Accommodation is required.',
+                'accommodation_id.exists' => 'Selected Accommodation is invalid.',
+                'followers.*.exists' => 'One or more selected followers are invalid.',
+                'recommendation_by.required' => 'Recommended By is required.',
+                'recommendation_by.exists' => 'Selected Recommender is invalid.',
+                'approval_by.required' => 'Approved By is required.',
+                'approval_by.exists' => 'Selected Approver is invalid.',
+                'approval_by.different' => 'Approver must be different from Recommender.',
+                'letter_number_id.exists' => 'Selected Letter Number is invalid.',
             ]);
 
             DB::beginTransaction();
 
-            // Check if travel number exists and get new number if needed
-            $travelNumber = $request->official_travel_number;
-            $exists = Officialtravel::where('official_travel_number', $travelNumber)->exists();
+            // Handle letter number integration and generate LOT number
+            $letterNumberId = null;
+            $letterNumberString = null;
+            $letterNumberRecord = null;
+            $romanMonth = $this->numberToRoman(now()->month);
 
-            if ($exists) {
-                // Extract the sequence number from the travel number
-                preg_match('/ARKA\/B(\d{4})\/HR/', $travelNumber, $matches);
-                $sequence = isset($matches[1]) ? (int)$matches[1] : 0;
+            if ($request->letter_number_id) {
+                // Use existing letter number
+                $letterNumberRecord = LetterNumber::find($request->letter_number_id);
+                if ($letterNumberRecord && $letterNumberRecord->status === 'reserved') {
+                    $letterNumberId = $letterNumberRecord->id;
+                    $letterNumberString = $letterNumberRecord->letter_number;
 
-                // Find the latest travel number for the current year
-                $latestTravel = Officialtravel::whereYear('created_at', now()->year)
+                    // Generate LOT number using selected letter number
+                    $travelNumber = sprintf("ARKA/%s/HR/%s/%s", $letterNumberString, $romanMonth, now()->year);
+                } else {
+                    throw new \Exception('Selected letter number is not available or not reserved. Current status: ' . ($letterNumberRecord ? $letterNumberRecord->status : 'not found'));
+                }
+            } else {
+                // Generate LOT number with auto sequence if no letter number selected
+                $lastTravel = Officialtravel::whereYear('created_at', now()->year)
                     ->orderBy('created_at', 'desc')
                     ->first();
 
-                if ($latestTravel) {
-                    preg_match('/ARKA\/B(\d{4})\/HR/', $latestTravel->official_travel_number, $latestMatches);
-                    $latestSequence = isset($latestMatches[1]) ? (int)$latestMatches[1] : 0;
-                    $sequence = max($sequence, $latestSequence) + 1;
-                } else {
-                    $sequence = 1;
-                }
-
-                // Generate new travel number
-                $romanMonth = $this->numberToRoman(now()->month);
+                $sequence = $lastTravel ? (int)substr($lastTravel->official_travel_number, 6, 4) + 1 : 1;
                 $travelNumber = sprintf("ARKA/B%04d/HR/%s/%s", $sequence, $romanMonth, now()->year);
             }
 
+            // Check if generated travel number already exists
+            $exists = Officialtravel::where('official_travel_number', $travelNumber)->exists();
+            if ($exists) {
+                throw new \Exception('Generated LOT number already exists: ' . $travelNumber . '. Please try again or select a different letter number.');
+            }
+
             // Create new official travel
-            $officialtravel = Officialtravel::create([
+            $officialtravel = new Officialtravel([
+                'letter_number_id' => $letterNumberId,
+                'letter_number' => $letterNumberString,
                 'official_travel_number' => $travelNumber,
                 'official_travel_date' => $request->official_travel_date,
                 'official_travel_origin' => $request->official_travel_origin,
@@ -557,6 +593,20 @@ class OfficialtravelController extends Controller
                 'approval_date' => null,
                 'created_by' => auth()->id(),
             ]);
+            $officialtravel->save();
+
+            // Mark letter number as used jika ada
+            if ($letterNumberRecord) {
+                $letterNumberRecord->markAsUsed('officialtravel', $officialtravel->id);
+
+                // Log the letter number usage for debugging
+                Log::info('Letter Number marked as used', [
+                    'letter_number_id' => $letterNumberRecord->id,
+                    'letter_number' => $letterNumberRecord->letter_number,
+                    'officialtravel_id' => $officialtravel->id,
+                    'official_travel_number' => $officialtravel->official_travel_number
+                ]);
+            }
 
             // Add followers if any
             if ($request->has('followers') && is_array($request->followers)) {
@@ -570,9 +620,14 @@ class OfficialtravelController extends Controller
 
             DB::commit();
 
-            return redirect('officialtravels')->with('toast_success', 'Official Travel created successfully!');
+            $message = 'Official Travel created successfully!';
+            if ($letterNumberString) {
+                $message .= ' Letter Number: ' . $letterNumberString . ' (Status changed to Used)';
+            }
+            $message .= ' LOT Number: ' . $travelNumber;
+
+            return redirect('officialtravels')->with('toast_success', $message);
         } catch (\Illuminate\Validation\ValidationException $e) {
-            DB::rollback();
             return redirect()->back()
                 ->withErrors($e->validator)
                 ->withInput();
@@ -1216,6 +1271,45 @@ class OfficialtravelController extends Controller
             return redirect()->back()
                 ->with('toast_error', 'Failed to close official travel. ' . $e->getMessage());
         }
+    }
+
+    /**
+     * Test Letter Number Integration (for debugging)
+     */
+    public function testLetterNumberIntegration()
+    {
+        // Get letter numbers with status reserved
+        $reservedLetters = LetterNumber::where('status', 'reserved')
+            ->where('category_code', 'B')
+            ->with(['category', 'subject'])
+            ->get();
+
+        // Get official travels with letter numbers
+        $officialtravelsWithLetters = Officialtravel::whereNotNull('letter_number_id')
+            ->with(['letterNumber'])
+            ->get();
+
+        return response()->json([
+            'reserved_letter_numbers' => $reservedLetters->map(function ($letter) {
+                return [
+                    'id' => $letter->id,
+                    'letter_number' => $letter->letter_number,
+                    'status' => $letter->status,
+                    'subject' => $letter->subject->subject_name ?? 'No Subject',
+                    'created_at' => $letter->created_at
+                ];
+            }),
+            'official_travels_with_letters' => $officialtravelsWithLetters->map(function ($travel) {
+                return [
+                    'id' => $travel->id,
+                    'official_travel_number' => $travel->official_travel_number,
+                    'letter_number_id' => $travel->letter_number_id,
+                    'letter_number' => $travel->letter_number,
+                    'letter_number_status' => $travel->letterNumber ? $travel->letterNumber->status : 'No Letter Number',
+                    'created_at' => $travel->created_at
+                ];
+            })
+        ]);
     }
 
     /**

@@ -15,6 +15,11 @@ return new class extends Migration
     {
         Schema::create('officialtravels', function (Blueprint $table) {
             $table->uuid('id')->primary();
+
+            // Letter numbering integration fields
+            $table->foreignId('letter_number_id')->nullable()->constrained('letter_numbers');
+            $table->string('letter_number', 50)->nullable();
+
             $table->string('official_travel_number');
             $table->date('official_travel_date');
             $table->foreignId('official_travel_origin')->nullable()->constrained('projects');

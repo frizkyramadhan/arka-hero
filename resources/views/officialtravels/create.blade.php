@@ -26,6 +26,21 @@
                 <div class="row">
                     <!-- Left Column -->
                     <div class="col-md-8">
+                        <!-- Letter Number Selection Card -->
+                        <div class="card card-info card-outline elevation-2">
+                            <div class="card-header py-2">
+                                <h3 class="card-title">
+                                    <i class="fas fa-hashtag mr-2"></i>
+                                    <strong>Letter Number</strong>
+                                </h3>
+                            </div>
+                            <div class="card-body py-2">
+                                @include('components.smart-letter-number-selector', [
+                                    'categoryCode' => 'B',
+                                ])
+                            </div>
+                        </div>
+
                         <!-- Main Travel Info Card -->
                         <div class="card card-primary card-outline elevation-3">
                             <div class="card-header">
@@ -45,14 +60,18 @@
                                                     <span class="input-group-text"><i class="fas fa-hashtag"></i></span>
                                                 </div>
                                                 <input type="text"
-                                                    class="form-control @error('official_travel_number') is-invalid @enderror"
+                                                    class="form-control alert-warning @error('official_travel_number') is-invalid @enderror"
                                                     name="official_travel_number" id="official_travel_number"
                                                     value="{{ old('official_travel_number', $travelNumber) }}"
-                                                    placeholder="Enter Travel Number" readonly>
+                                                    placeholder="Select Letter Number to Generate LOT" readonly>
                                                 @error('official_travel_number')
                                                     <div class="invalid-feedback">{{ $message }}</div>
                                                 @enderror
                                             </div>
+                                            <small class="form-text text-muted">
+                                                <i class="fas fa-info-circle"></i>
+                                                LOT number will be auto-generated when you select a letter number above
+                                            </small>
                                         </div>
                                     </div>
                                     <div class="col-md-6">
@@ -68,8 +87,7 @@
                                                 <input type="date"
                                                     class="form-control @error('official_travel_date') is-invalid @enderror"
                                                     name="official_travel_date"
-                                                    value="{{ old('official_travel_date', now()->format('Y-m-d')) }}"
-                                                    required />
+                                                    value="{{ old('official_travel_date', now()->format('Y-m-d')) }}" />
                                                 @error('official_travel_date')
                                                     <div class="invalid-feedback">{{ $message }}</div>
                                                 @enderror
@@ -86,7 +104,7 @@
                                             <select
                                                 class="form-control select2-primary @error('official_travel_origin') is-invalid @enderror"
                                                 name="official_travel_origin" id="official_travel_origin"
-                                                style="width: 100%;" required>
+                                                style="width: 100%;">
                                                 <option value="">Select Origin Project</option>
                                                 @foreach ($projects as $project)
                                                     <option value="{{ $project->id }}"
@@ -106,7 +124,7 @@
                                                     class="text-danger">*</span></label>
                                             <select
                                                 class="form-control select2-info @error('traveler_id') is-invalid @enderror"
-                                                name="traveler_id" id="traveler_id" style="width: 100%;" required>
+                                                name="traveler_id" id="traveler_id" style="width: 100%;">
                                                 <option value="">Select Main Traveler</option>
                                                 @foreach ($employees as $employee)
                                                     <option value="{{ $employee['id'] }}"
@@ -129,19 +147,52 @@
                                     <div class="col-md-4">
                                         <div class="form-group">
                                             <label class="font-weight-bold">Title</label>
-                                            <div class="main-traveler-position">-</div>
+                                            <div class="main-traveler-position">
+                                                @if (old('traveler_id'))
+                                                    @php
+                                                        $selectedEmployee = $employees
+                                                            ->where('id', old('traveler_id'))
+                                                            ->first();
+                                                    @endphp
+                                                    {{ $selectedEmployee ? $selectedEmployee['position'] : '-' }}
+                                                @else
+                                                    -
+                                                @endif
+                                            </div>
                                         </div>
                                     </div>
                                     <div class="col-md-4">
                                         <div class="form-group">
                                             <label class="font-weight-bold">Business Unit</label>
-                                            <div class="main-traveler-project">-</div>
+                                            <div class="main-traveler-project">
+                                                @if (old('traveler_id'))
+                                                    @php
+                                                        $selectedEmployee = $employees
+                                                            ->where('id', old('traveler_id'))
+                                                            ->first();
+                                                    @endphp
+                                                    {{ $selectedEmployee ? $selectedEmployee['project'] : '-' }}
+                                                @else
+                                                    -
+                                                @endif
+                                            </div>
                                         </div>
                                     </div>
                                     <div class="col-md-4">
                                         <div class="form-group">
                                             <label class="font-weight-bold">Department</label>
-                                            <div class="main-traveler-department">-</div>
+                                            <div class="main-traveler-department">
+                                                @if (old('traveler_id'))
+                                                    @php
+                                                        $selectedEmployee = $employees
+                                                            ->where('id', old('traveler_id'))
+                                                            ->first();
+                                                    @endphp
+                                                    {{ $selectedEmployee ? $selectedEmployee['department'] : '-' }}
+                                                @else
+                                                    -
+                                                @endif
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -149,7 +200,7 @@
                                 <div class="form-group">
                                     <label for="purpose">Purpose <span class="text-danger">*</span></label>
                                     <textarea class="form-control @error('purpose') is-invalid @enderror" name="purpose" id="purpose" rows="3"
-                                        placeholder="Enter Purpose of Travel" required>{{ old('purpose') }}</textarea>
+                                        placeholder="Enter Purpose of Travel">{{ old('purpose') }}</textarea>
                                     @error('purpose')
                                         <div class="invalid-feedback">{{ $message }}</div>
                                     @enderror
@@ -168,7 +219,7 @@
                                                 <input type="text"
                                                     class="form-control @error('destination') is-invalid @enderror"
                                                     name="destination" id="destination" value="{{ old('destination') }}"
-                                                    placeholder="Enter Destination" required>
+                                                    placeholder="Enter Destination">
                                                 @error('destination')
                                                     <div class="invalid-feedback">{{ $message }}</div>
                                                 @enderror
@@ -187,7 +238,7 @@
                                                 </div>
                                                 <input type="date"
                                                     class="form-control @error('departure_from') is-invalid @enderror"
-                                                    name="departure_from" value="{{ old('departure_from') }}" required />
+                                                    name="departure_from" value="{{ old('departure_from') }}" />
                                                 @error('departure_from')
                                                     <div class="invalid-feedback">{{ $message }}</div>
                                                 @enderror
@@ -204,7 +255,7 @@
                                                 <input type="text"
                                                     class="form-control @error('duration') is-invalid @enderror"
                                                     name="duration" id="duration" value="{{ old('duration') }}"
-                                                    placeholder="e.g. 5 days" required>
+                                                    placeholder="e.g. 5 days">
                                                 @error('duration')
                                                     <div class="invalid-feedback">{{ $message }}</div>
                                                 @enderror
@@ -241,7 +292,53 @@
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            <!-- Dynamic rows will be added here -->
+                                            <!-- Old data followers will be restored here -->
+                                            @if (old('followers'))
+                                                @foreach (old('followers') as $followerId)
+                                                    @php
+                                                        $followerData = $employees->where('id', $followerId)->first();
+                                                    @endphp
+                                                    @if ($followerData)
+                                                        <tr>
+                                                            <td>
+                                                                <select
+                                                                    class="form-control select2-follower @error('followers.*') is-invalid @enderror"
+                                                                    name="followers[]" style="width: 100%;">
+                                                                    <option value="">Select Employee</option>
+                                                                    @foreach ($employees as $employee)
+                                                                        <option value="{{ $employee['id'] }}"
+                                                                            data-position="{{ $employee['position'] }}"
+                                                                            data-project="{{ $employee['project'] }}"
+                                                                            data-department="{{ $employee['department'] }}"
+                                                                            {{ $employee['id'] == $followerId ? 'selected' : '' }}>
+                                                                            {{ $employee['nik'] }} -
+                                                                            {{ $employee['fullname'] }}
+                                                                        </option>
+                                                                    @endforeach
+                                                                </select>
+                                                                @error('followers.*')
+                                                                    <div class="invalid-feedback">{{ $message }}</div>
+                                                                @enderror
+                                                            </td>
+                                                            <td><span
+                                                                    class="employee-position">{{ $followerData['position'] }}</span>
+                                                            </td>
+                                                            <td><span
+                                                                    class="employee-project">{{ $followerData['project'] }}</span>
+                                                            </td>
+                                                            <td><span
+                                                                    class="employee-department">{{ $followerData['department'] }}</span>
+                                                            </td>
+                                                            <td class="text-center">
+                                                                <a href="javascript:void(0)" class="remove-follower"
+                                                                    title="Remove">
+                                                                    <i class="fas fa-times-circle"></i>
+                                                                </a>
+                                                            </td>
+                                                        </tr>
+                                                    @endif
+                                                @endforeach
+                                            @endif
                                         </tbody>
                                     </table>
                                 </div>
@@ -265,7 +362,7 @@
                                             class="text-danger">*</span></label>
                                     <select
                                         class="form-control select2-warning @error('transportation_id') is-invalid @enderror"
-                                        name="transportation_id" id="transportation_id" style="width: 100%;" required>
+                                        name="transportation_id" id="transportation_id" style="width: 100%;">
                                         <option value="">Select Transportation</option>
                                         @foreach ($transportations as $transportation)
                                             <option value="{{ $transportation->id }}"
@@ -283,7 +380,7 @@
                                     <label for="accommodation_id">Accommodation <span class="text-danger">*</span></label>
                                     <select
                                         class="form-control select2-warning @error('accommodation_id') is-invalid @enderror"
-                                        name="accommodation_id" id="accommodation_id" style="width: 100%;" required>
+                                        name="accommodation_id" id="accommodation_id" style="width: 100%;">
                                         <option value="">Select Accommodation</option>
                                         @foreach ($accommodations as $accommodation)
                                             <option value="{{ $accommodation->id }}"
@@ -313,7 +410,7 @@
                                             class="text-danger">*</span></label>
                                     <select
                                         class="form-control select2-secondary @error('recommendation_by') is-invalid @enderror"
-                                        name="recommendation_by" id="recommendation_by" style="width: 100%;" required>
+                                        name="recommendation_by" id="recommendation_by" style="width: 100%;">
                                         <option value="">Select Recommender</option>
                                         @foreach ($recommenders as $recommender)
                                             <option value="{{ $recommender['id'] }}"
@@ -331,7 +428,7 @@
                                     <label for="approval_by">Approved By <span class="text-danger">*</span></label>
                                     <select
                                         class="form-control select2-secondary @error('approval_by') is-invalid @enderror"
-                                        name="approval_by" id="approval_by" style="width: 100%;" required>
+                                        name="approval_by" id="approval_by" style="width: 100%;">
                                         <option value="">Select Approver</option>
                                         @foreach ($approvers as $approver)
                                             <option value="{{ $approver['id'] }}"
@@ -453,6 +550,40 @@
         .remove-follower:hover {
             color: #bd2130;
         }
+
+        /* Compact styles for letter number integration */
+        .alert-sm {
+            padding: 0.375rem 0.75rem;
+            margin-bottom: 0.5rem;
+            font-size: 0.875rem;
+        }
+
+        .letter-number-selector .form-label {
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+
+        .letter-number-selector .btn-group-vertical .btn {
+            margin-bottom: 0.25rem;
+        }
+
+        /* Reduce card body padding for compact look */
+        .card.elevation-2 .card-body {
+            padding: 0.75rem;
+        }
+
+        /* LOT Number feedback styles */
+        #official_travel_number.alert-success {
+            background-color: #d4edda;
+            border-color: #c3e6cb;
+            color: #155724;
+        }
+
+        #official_travel_number.alert-warning {
+            background-color: #fff3cd;
+            border-color: #ffeaa7;
+            color: #856404;
+        }
     </style>
 @endsection
 
@@ -497,6 +628,38 @@
                 document.querySelector('.select2-search__field').focus();
             });
 
+            // Initialize existing followers Select2 (from old data)
+            $('.select2-follower').select2({
+                theme: 'bootstrap4',
+                placeholder: 'Select Employee'
+            }).on('select2:open', function() {
+                document.querySelector('.select2-search__field').focus();
+            }).on('change', function() {
+                const $row = $(this).closest('tr');
+                const $option = $(this).find(':selected');
+
+                // Update employee details
+                $row.find('.employee-position').text($option.data('position') || '-');
+                $row.find('.employee-project').text($option.data('project') || '-');
+                $row.find('.employee-department').text($option.data('department') || '-');
+            });
+
+            // Letter Number Selector is now self-contained in component
+
+            // Update LOT Number when letter number is selected
+            updateLOTNumberDisplay();
+
+            // Handle old data restoration for letter number selection
+            @if (old('letter_number_id'))
+                // Restore letter number selection after page load
+                setTimeout(function() {
+                    const oldLetterNumberId = '{{ old('letter_number_id') }}';
+                    if (oldLetterNumberId) {
+                        $('[name="letter_number_id"]').val(oldLetterNumberId).trigger('change');
+                    }
+                }, 1000);
+            @endif
+
             // Handle adding new follower row
             $('#addFollowerRow').click(function() {
                 addFollowerRow();
@@ -507,7 +670,7 @@
                 const rowHtml = `
             <tr class="follower-row-new">
                 <td>
-                    <select class="form-control select2-follower" name="followers[]" style="width: 100%;" required>
+                    <select class="form-control select2-follower" name="followers[]" style="width: 100%;">
                         <option value="">Select Employee</option>
                         @foreach ($employees as $employee)
                             <option value="{{ $employee['id'] }}"
@@ -518,6 +681,7 @@
                             </option>
                         @endforeach
                     </select>
+                    <div class="invalid-feedback" style="display: none;">This field is required</div>
                 </td>
                 <td><span class="employee-position">-</span></td>
                 <td><span class="employee-project">-</span></td>
@@ -560,29 +724,35 @@
                 });
             });
 
-            // Form validation
-            $('#officialTravelForm').on('submit', function(e) {
-                let isValid = true;
+            // LOT Number Update Functions
+            function updateLOTNumberDisplay() {
+                // Listen for letter number selection changes
+                $(document).on('change', '[name="letter_number_id"]', function() {
+                    const selectedOption = $(this).find('option:selected');
+                    const letterNumber = selectedOption.text().split(' - ')[
+                        0]; // Extract letter number part
 
-                // Check required fields
-                $(this).find('[required]').each(function() {
-                    if (!$(this).val()) {
-                        isValid = false;
-                        $(this).addClass('is-invalid');
+                    if (selectedOption.val() && letterNumber) {
+                        // Generate LOT number with selected letter number
+                        const currentMonth = '{{ $romanMonth }}';
+                        const currentYear = '{{ now()->year }}';
+                        const lotNumber = `ARKA/${letterNumber}/HR/${currentMonth}/${currentYear}`;
+
+                        $('#official_travel_number').val(lotNumber);
+
+                        // Visual feedback
+                        $('#official_travel_number').addClass('alert-success').removeClass('alert-warning');
                     } else {
-                        $(this).removeClass('is-invalid');
+                        // Reset to placeholder if no letter number selected
+                        const currentMonth = '{{ $romanMonth }}';
+                        const currentYear = '{{ now()->year }}';
+                        const defaultLot = `ARKA/[Letter Number]/HR/${currentMonth}/${currentYear}`;
+
+                        $('#official_travel_number').val(defaultLot);
+                        $('#official_travel_number').addClass('alert-warning').removeClass('alert-success');
                     }
                 });
-
-                if (!isValid) {
-                    e.preventDefault();
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Validation Error',
-                        text: 'Please fill in all required fields marked with *'
-                    });
-                }
-            });
+            }
         });
     </script>
 @endsection
