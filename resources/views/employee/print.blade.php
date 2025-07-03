@@ -416,6 +416,8 @@
                             <th>POH/DOH</th>
                             <th>Department</th>
                             <th>Position</th>
+                            <th>Grade</th>
+                            <th>Level</th>
                             <th>Project</th>
                             <th>Class</th>
                         </tr>
@@ -440,6 +442,8 @@
                                     </td>
                                     <td>{{ $administration->department_name }}</td>
                                     <td>{{ $administration->position_name }}</td>
+                                    <td>{{ $administration->grade_name }}</td>
+                                    <td>{{ $administration->level_name }}</td>
                                     <td>{{ $administration->project_code }}</td>
                                     <td>{{ $administration->class }}</td>
                                 </tr>

@@ -8,6 +8,7 @@ use Illuminate\Database\Seeder;
 use Database\Seeders\PositionSeeder;
 use Illuminate\Support\Facades\Hash;
 use Database\Seeders\OfficialTravelSeeder;
+use Database\Seeders\GradeLevelSeeder;
 
 class DatabaseSeeder extends Seeder
 {
@@ -41,5 +42,7 @@ class DatabaseSeeder extends Seeder
         $this->call(LetterSubjectSeeder::class);
 
         $this->call(OfficialTravelSeeder::class);
+
+        $this->call(GradeLevelSeeder::class);
     }
 }

@@ -607,6 +607,43 @@
                                     <div class="row">
                                         <div class="col-md-6">
                                             <div class="form-group">
+                                                <label for="grade_id" class="form-label">Grade</label>
+                                                <select id="grade_id" name="grade_id"
+                                                    class="form-control select2bs4 @error('grade_id') is-invalid @enderror">
+                                                    <option value="">-Select Grade-</option>
+                                                    @foreach ($grades as $grade)
+                                                        <option value="{{ $grade->id }}"
+                                                            {{ old('grade_id') == $grade->id ? 'selected' : '' }}>
+                                                            {{ $grade->name }}</option>
+                                                    @endforeach
+                                                </select>
+                                                @if ($errors->any('grade_id'))
+                                                    <span class="text-danger">{{ $errors->first('grade_id') }}</span>
+                                                @endif
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="form-group">
+                                                <label for="level_id" class="form-label">Level</label>
+                                                <select id="level_id" name="level_id"
+                                                    class="form-control select2bs4 @error('level_id') is-invalid @enderror">
+                                                    <option value="">-Select Level-</option>
+                                                    @foreach ($levels as $level)
+                                                        <option value="{{ $level->id }}"
+                                                            {{ old('level_id') == $level->id ? 'selected' : '' }}>
+                                                            {{ $level->name }}</option>
+                                                    @endforeach
+                                                </select>
+                                                @if ($errors->any('level_id'))
+                                                    <span class="text-danger">{{ $errors->first('level_id') }}</span>
+                                                @endif
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="form-group">
                                                 <label for="project_id" class="form-label required-field">Project</label>
                                                 <select name="project_id"
                                                     class="form-control select2bs4 @error('project_id') is-invalid @enderror">

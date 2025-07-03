@@ -32,6 +32,16 @@ class Administration extends Model
         return $this->belongsTo(User::class);
     }
 
+    public function grade()
+    {
+        return $this->belongsTo(Grade::class);
+    }
+
+    public function level()
+    {
+        return $this->belongsTo(Level::class);
+    }
+
     // Integration dengan Letter Number System
     public function letterNumbers()
     {

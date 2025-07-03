@@ -38,6 +38,8 @@
                     <th>DOH</th>
                     <th>Department</th>
                     <th>Position</th>
+                    <th>Grade</th>
+                    <th>Level</th>
                     <th class="text-center">Project</th>
                     <th>Class</th>
                     <th class="text-center">Action</th>
@@ -65,6 +67,8 @@
                         </td>
                         <td>{{ $administration->department_name }}</td>
                         <td>{{ $administration->position_name }}</td>
+                        <td>{{ $administration->grade_name }}</td>
+                        <td>{{ $administration->level_name }}</td>
                         <td>{{ $administration->project_code }}</td>
                         <td>{{ $administration->class }}</td>
                         <td class="action-buttons">
@@ -85,7 +89,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="9">
+                        <td colspan="11">
                             <div class="empty-state">
                                 <i class="fas fa-exclamation-circle"></i>
                                 <h6>No Data Available</h6>

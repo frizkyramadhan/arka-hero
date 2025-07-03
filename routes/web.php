@@ -37,6 +37,8 @@ use App\Http\Controllers\EmployeeRegistrationAdminController;
 use App\Http\Controllers\LetterNumberController;
 use App\Http\Controllers\LetterSubjectController;
 use App\Http\Controllers\LetterCategoryController;
+use App\Http\Controllers\GradeController;
+use App\Http\Controllers\LevelController;
 
 /*
 |--------------------------------------------------------------------------
@@ -137,11 +139,22 @@ Route::group(['middleware' => ['auth']], function () {
     Route::post('positions/import', [PositionController::class, 'import'])->name('positions.import');
     Route::resource('positions', PositionController::class)->except(['show', 'create', 'edit']);
 
+    Route::get('grades/data', [GradeController::class, 'getGrades'])->name('grades.data');
+    Route::get('levels/data', [LevelController::class, 'getLevels'])->name('levels.data');
+
     Route::get('transportations/data', [TransportationController::class, 'getTransportations'])->name('transportations.data');
     Route::resource('transportations', TransportationController::class)->except(['show', 'create', 'edit']);
 
     Route::get('accommodations/data', [AccommodationController::class, 'getAccommodations'])->name('accommodations.data');
     Route::resource('accommodations', AccommodationController::class);
+
+    Route::get('grades/data', [GradeController::class, 'getGrades'])->name('grades.data');
+    Route::post('grades/status/{id}', [GradeController::class, 'changeStatus'])->name('grades.status');
+    Route::resource('grades', GradeController::class);
+
+    Route::get('levels/data', [LevelController::class, 'getLevels'])->name('levels.data');
+    Route::post('levels/status/{id}', [LevelController::class, 'changeStatus'])->name('levels.status');
+    Route::resource('levels', LevelController::class);
 
     // APPS
 
@@ -193,8 +206,6 @@ Route::group(['middleware' => ['auth']], function () {
         Route::patch('/{categoryCode}/{id}', [LetterSubjectController::class, 'updateByCategory'])->name('update-by-category');
         Route::delete('/{id}', [LetterSubjectController::class, 'destroy'])->name('destroy');
     });
-
-
 
     // EMPLOYEE ROUTES
 
@@ -308,12 +319,4 @@ Route::group(['middleware' => ['auth']], function () {
 
     Route::resource('emails', EmailController::class)->except(['create', 'show', 'edit']);
     Route::post("emails", [EmailController::class, "sendMail"])->name("sendMail");
-});
-
-// Model Discovery API Routes (Outside auth middleware for testing)
-Route::prefix('api/model-discovery')->group(function () {
-    Route::get('available-models', [LetterSubjectController::class, 'getAvailableModels']);
-    Route::post('model-info', [LetterSubjectController::class, 'getModelInfo']);
-    Route::post('clear-cache', [LetterSubjectController::class, 'clearModelCache']);
-    Route::get('integration-stats', [LetterSubjectController::class, 'getIntegrationStats']);
 });

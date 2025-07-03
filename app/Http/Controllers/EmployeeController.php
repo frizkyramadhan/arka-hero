@@ -41,6 +41,8 @@ use Maatwebsite\Excel\Facades\Excel;
 use App\Imports\AdministrationImport;
 use Illuminate\Support\Facades\Storage;
 use Maatwebsite\Excel\Validators\ValidationException;
+use App\Models\Grade;
+use App\Models\Level;
 
 class EmployeeController extends Controller
 {
@@ -61,8 +63,10 @@ class EmployeeController extends Controller
         $departments = Department::where('department_status', '1')->orderBy('department_name', 'asc')->get();
         $positions = Position::where('position_status', '1')->orderBy('position_name', 'asc')->get();
         $projects = Project::where('project_status', '1')->orderBy('project_code', 'asc')->get();
+        $grades = Grade::where('is_active', 1)->orderBy('name', 'asc')->get();
+        $levels = Level::where('is_active', 1)->orderBy('name', 'asc')->get();
 
-        return view('employee.index', compact('subtitle', 'title', 'departments', 'positions', 'projects'));
+        return view('employee.index', compact('subtitle', 'title', 'departments', 'positions', 'projects', 'grades', 'levels'));
     }
 
     public function getEmployees(Request $request)
@@ -71,7 +75,9 @@ class EmployeeController extends Controller
             ->leftJoin('projects', 'administrations.project_id', '=', 'projects.id')
             ->leftJoin('positions', 'administrations.position_id', '=', 'positions.id')
             ->leftJoin('departments', 'positions.department_id', '=', 'departments.id')
-            ->select('employees.*', 'employees.created_at as created_date', 'administrations.nik', 'administrations.poh', 'administrations.doh', 'administrations.class', 'projects.project_code', 'positions.position_name', 'departments.department_name')
+            ->leftJoin('grades', 'administrations.grade_id', '=', 'grades.id')
+            ->leftJoin('levels', 'administrations.level_id', '=', 'levels.id')
+            ->select('employees.*', 'administrations.nik', 'administrations.poh', 'administrations.doh', 'administrations.class', 'projects.project_code', 'positions.position_name', 'departments.department_name', 'grades.name as grade_name', 'levels.name as level_name')
             ->where('administrations.is_active', '1')
             // ->whereNotExists(function ($query) {
             //     $query->select(DB::raw(1))
@@ -103,14 +109,17 @@ class EmployeeController extends Controller
             ->addColumn('position_name', function ($employee) {
                 return $employee->position_name;
             })
+            ->addColumn('grade_name', function ($employee) {
+                return $employee->grade_name;
+            })
+            ->addColumn('level_name', function ($employee) {
+                return $employee->level_name;
+            })
             ->addColumn('project_code', function ($employee) {
                 return $employee->project_code;
             })
             ->addColumn('class', function ($employee) {
                 return $employee->class;
-            })
-            ->addColumn('created_date', function ($employee) {
-                return date('d-M-Y', strtotime($employee->created_date));
             })
             ->filter(function ($instance) use ($request) {
                 if (!empty($request->get('date1') && !empty($request->get('date2')))) {
@@ -150,6 +159,12 @@ class EmployeeController extends Controller
                         $w->orWhere('position_name', 'LIKE', '%' . $position_name . '%');
                     });
                 }
+                if (!empty($request->get('grade_id'))) {
+                    $instance->where('administrations.grade_id', $request->get('grade_id'));
+                }
+                if (!empty($request->get('level_id'))) {
+                    $instance->where('administrations.level_id', $request->get('level_id'));
+                }
                 if (!empty($request->get('project_code'))) {
                     $instance->where(function ($w) use ($request) {
                         $project_code = $request->get('project_code');
@@ -171,6 +186,8 @@ class EmployeeController extends Controller
                             ->orWhere('doh', 'LIKE', "%$search%")
                             ->orWhere('department_name', 'LIKE', "%$search%")
                             ->orWhere('position_name', 'LIKE', "%$search%")
+                            ->orWhere('grades.name', 'LIKE', "%$search%")
+                            ->orWhere('levels.name', 'LIKE', "%$search%")
                             ->orWhere('project_code', 'LIKE', "%$search%")
                             ->orWhere('class', 'LIKE', "%$search%")
                             ->orWhere('employees.created_at', 'LIKE', "%$search%");
@@ -190,7 +207,9 @@ class EmployeeController extends Controller
         $banks = Bank::orderBy('bank_name', 'asc')->get();
         $positions = Position::with('department')->orderBy('position_name', 'asc')->get();
         $projects = Project::orderBy('project_code', 'asc')->get();
-        return view('employee.create', compact('title', 'subtitle', 'religions', 'banks', 'positions', 'projects'));
+        $grades = Grade::where('is_active', 1)->orderBy('name', 'asc')->get();
+        $levels = Level::where('is_active', 1)->orderBy('name', 'asc')->get();
+        return view('employee.create', compact('title', 'subtitle', 'religions', 'banks', 'positions', 'projects', 'grades', 'levels'));
     }
 
     public function store(Request $request)
@@ -206,6 +225,8 @@ class EmployeeController extends Controller
             'class' => 'required',
             'position_id' => 'required',
             'project_id' => 'required',
+            'grade_id' => 'nullable|exists:grades,id',
+            'level_id' => 'nullable|exists:levels,id',
             'filename.*' => 'image|mimes:jpeg,png,jpg,gif,svg|max:2048'
         ], [
             'fullname.required' => 'Full Name is required',
@@ -387,6 +408,8 @@ class EmployeeController extends Controller
             $administration->employee_id = $employee->id;
             $administration->project_id = $data['project_id'];
             $administration->position_id = $data['position_id'];
+            $administration->grade_id = $data['grade_id'] ?? null;
+            $administration->level_id = $data['level_id'] ?? null;
             $administration->nik = $data['nik'];
             $administration->class = $data['class'];
             $administration->doh = $data['doh'];
@@ -454,7 +477,9 @@ class EmployeeController extends Controller
         $administrations = Administration::leftJoin('projects', 'administrations.project_id', '=', 'projects.id')
             ->leftJoin('positions', 'administrations.position_id', '=', 'positions.id')
             ->leftJoin('departments', 'positions.department_id', '=', 'departments.id')
-            ->select('administrations.*', 'projects.project_code', 'positions.position_name', 'departments.department_name')
+            ->leftJoin('grades', 'administrations.grade_id', '=', 'grades.id')
+            ->leftJoin('levels', 'administrations.level_id', '=', 'levels.id')
+            ->select('administrations.*', 'projects.project_code', 'positions.position_name', 'departments.department_name', 'grades.name as grade_name', 'levels.name as level_name')
             ->where('employee_id', $id)
             ->orderBy('administrations.nik', 'desc')
             ->get();
@@ -465,8 +490,10 @@ class EmployeeController extends Controller
         $getBanks = Bank::orderBy('bank_name', 'asc')->get();
         $positions = Position::with('department')->orderBy('position_name', 'asc')->get();
         $projects = Project::orderBy('project_code', 'asc')->get();
+        $grades = Grade::where('is_active', 1)->orderBy('name', 'asc')->get();
+        $levels = Level::where('is_active', 1)->orderBy('name', 'asc')->get();
 
-        return view('employee.detail', compact('title', 'subtitle', 'employee', 'banks', 'bank', 'tax', 'insurances', 'families', 'educations', 'courses', 'jobs', 'units', 'licenses', 'emergencies', 'additional', 'administrations', 'images', 'religions', 'getBanks', 'positions', 'projects', 'profile'));
+        return view('employee.detail', compact('title', 'subtitle', 'employee', 'banks', 'bank', 'tax', 'insurances', 'families', 'educations', 'courses', 'jobs', 'units', 'licenses', 'emergencies', 'additional', 'administrations', 'images', 'religions', 'getBanks', 'positions', 'projects', 'grades', 'levels', 'profile'));
     }
 
     public function edit($id)
@@ -475,8 +502,27 @@ class EmployeeController extends Controller
         $subtitle = 'Detail Employee';
         $employees = Employee::where('id', $id)->first();
         $religions = Religion::orderBy('religion_name', 'asc')->get();
+        $emergencies = Emrgcall::where('employee_id', $id)->get();
+        $additional = Additionaldata::where('employee_id', $id)->first();
+        $administrations = Administration::leftJoin('projects', 'administrations.project_id', '=', 'projects.id')
+            ->leftJoin('positions', 'administrations.position_id', '=', 'positions.id')
+            ->leftJoin('departments', 'positions.department_id', '=', 'departments.id')
+            ->leftJoin('grades', 'administrations.grade_id', '=', 'grades.id')
+            ->leftJoin('levels', 'administrations.level_id', '=', 'levels.id')
+            ->select('administrations.*', 'projects.project_code', 'positions.position_name', 'departments.department_name', 'grades.name as grade_name', 'levels.name as level_name')
+            ->where('employee_id', $id)
+            ->orderBy('administrations.nik', 'desc')
+            ->get();
+        $activeAdministration = Administration::with('position.department', 'project', 'grade', 'level')->where('employee_id', $id)->where('is_active', '1')->first();
+        $images = Image::where('employee_id', $id)->get();
+        $profile = Image::where('employee_id', $id)->where('is_profile', '=', '1')->first();
+        // for select option
+        $religions = Religion::orderBy('id', 'asc')->get();
+        $getBanks = Bank::orderBy('bank_name', 'asc')->get();
+        $positions = Position::with('department')->orderBy('position_name', 'asc')->get();
+        $projects = Project::orderBy('project_code', 'asc')->get();
 
-        return view('employee.edit', compact('religions', 'employees', 'title', 'subtitle'));
+        return view('employee.edit', compact('religions', 'employees', 'title', 'subtitle', 'emergencies', 'additional', 'administrations', 'activeAdministration', 'images', 'religions', 'getBanks', 'positions', 'projects', 'profile'));
     }
 
     public function update(Request $request, $id)
@@ -562,11 +608,13 @@ class EmployeeController extends Controller
         $administrations = Administration::leftJoin('projects', 'administrations.project_id', '=', 'projects.id')
             ->leftJoin('positions', 'administrations.position_id', '=', 'positions.id')
             ->leftJoin('departments', 'positions.department_id', '=', 'departments.id')
-            ->select('administrations.*', 'projects.project_code', 'positions.position_name', 'departments.department_name')
+            ->leftJoin('grades', 'administrations.grade_id', '=', 'grades.id')
+            ->leftJoin('levels', 'administrations.level_id', '=', 'levels.id')
+            ->select('administrations.*', 'projects.project_code', 'positions.position_name', 'departments.department_name', 'grades.name as grade_name', 'levels.name as level_name')
             ->where('employee_id', $id)
             ->orderBy('administrations.nik', 'desc')
             ->get();
-        $activeAdministration = Administration::with('position.department', 'project')->where('employee_id', $id)->where('is_active', '1')->first();
+        $activeAdministration = Administration::with('position.department', 'project', 'grade', 'level')->where('employee_id', $id)->where('is_active', '1')->first();
         $images = Image::where('employee_id', $id)->get();
         $profile = Image::where('employee_id', $id)->where('is_profile', '=', '1')->first();
         // for select option
