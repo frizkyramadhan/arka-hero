@@ -21,7 +21,7 @@ class LetterNumberApiController extends Controller
     {
         try {
             $request->validate([
-                'category_code' => 'required|exists:letter_categories,category_code',
+                'letter_category_id' => 'required|exists:letter_categories,id',
                 'letter_date' => 'required|date',
                 'custom_subject' => 'nullable|string|max:200',
                 'administration_id' => 'nullable|exists:administrations,id',
@@ -31,7 +31,7 @@ class LetterNumberApiController extends Controller
             ]);
 
             $letterNumber = LetterNumber::create([
-                'category_code' => $request->category_code,
+                'letter_category_id' => $request->letter_category_id,
                 'letter_date' => $request->letter_date,
                 'custom_subject' => $request->custom_subject,
                 'administration_id' => $request->administration_id,
@@ -41,13 +41,15 @@ class LetterNumberApiController extends Controller
                 'user_id' => auth()->id(),
             ]);
 
+            $letterNumber->load('category');
+
             return response()->json([
                 'success' => true,
                 'message' => 'Letter number created successfully',
                 'data' => [
                     'id' => $letterNumber->id,
                     'letter_number' => $letterNumber->letter_number,
-                    'category_code' => $letterNumber->category_code,
+                    'category_code' => $letterNumber->category->category_code,
                     'sequence_number' => $letterNumber->sequence_number,
                     'year' => $letterNumber->year,
                     'status' => $letterNumber->status,
@@ -135,17 +137,17 @@ class LetterNumberApiController extends Controller
      * Get available letter numbers untuk dropdown
      *
      * @param Request $request
-     * @param string $categoryCode
+     * @param int $categoryId
      * @return JsonResponse
      */
-    public function getAvailableNumbers(Request $request, string $categoryCode): JsonResponse
+    public function getAvailableNumbers(Request $request, int $categoryId): JsonResponse
     {
         try {
             $limit = $request->get('limit', 50);
             $limit = min($limit, 100); // Maximum 100 records
 
             $numbers = LetterNumber::with(['category', 'subject'])
-                ->where('category_code', $categoryCode)
+                ->where('letter_category_id', $categoryId)
                 ->where('status', 'reserved')
                 ->orderBy('sequence_number', 'desc')
                 ->limit($limit)
@@ -167,7 +169,7 @@ class LetterNumberApiController extends Controller
                 'message' => 'Available letter numbers retrieved successfully',
                 'data' => $numbers,
                 'meta' => [
-                    'category_code' => $categoryCode,
+                    'category_id' => $categoryId,
                     'count' => $numbers->count(),
                     'limit' => $limit,
                 ]
@@ -226,13 +228,13 @@ class LetterNumberApiController extends Controller
     /**
      * Get letter subjects by category
      *
-     * @param string $categoryCode
+     * @param int $categoryId
      * @return JsonResponse
      */
-    public function getSubjectsByCategory(string $categoryCode): JsonResponse
+    public function getSubjectsByCategory(int $categoryId): JsonResponse
     {
         try {
-            $subjects = LetterSubject::where('category_code', $categoryCode)
+            $subjects = LetterSubject::where('letter_category_id', $categoryId)
                 ->where('is_active', 1)
                 ->orderBy('subject_name')
                 ->get()
@@ -240,7 +242,7 @@ class LetterNumberApiController extends Controller
                     return [
                         'id' => $item->id,
                         'subject_name' => $item->subject_name,
-                        'category_code' => $item->category_code,
+                        'letter_category_id' => $item->letter_category_id,
                     ];
                 });
 
@@ -249,7 +251,7 @@ class LetterNumberApiController extends Controller
                 'message' => 'Letter subjects retrieved successfully',
                 'data' => $subjects,
                 'meta' => [
-                    'category_code' => $categoryCode,
+                    'category_id' => $categoryId,
                     'count' => $subjects->count(),
                 ]
             ]);
@@ -286,7 +288,7 @@ class LetterNumberApiController extends Controller
                 'data' => [
                     'id' => $letterNumber->id,
                     'letter_number' => $letterNumber->letter_number,
-                    'category_code' => $letterNumber->category_code,
+                    'category_code' => $letterNumber->category->category_code,
                     'category_name' => $letterNumber->category->category_name ?? null,
                     'sequence_number' => $letterNumber->sequence_number,
                     'year' => $letterNumber->year,
@@ -332,31 +334,31 @@ class LetterNumberApiController extends Controller
     {
         try {
             $request->validate([
-                'category_code' => 'required|exists:letter_categories,category_code',
+                'letter_category_id' => 'required|exists:letter_categories,id',
             ]);
 
-            $categoryCode = $request->category_code;
+            $categoryId = $request->letter_category_id;
             $currentYear = now()->year;
 
             $stats = [
-                'category_code' => $categoryCode,
+                'category_id' => $categoryId,
                 'year' => $currentYear,
-                'total_numbers' => LetterNumber::where('category_code', $categoryCode)
+                'total_numbers' => LetterNumber::where('letter_category_id', $categoryId)
                     ->where('year', $currentYear)
                     ->count(),
-                'reserved_numbers' => LetterNumber::where('category_code', $categoryCode)
+                'reserved_numbers' => LetterNumber::where('letter_category_id', $categoryId)
                     ->where('year', $currentYear)
                     ->where('status', 'reserved')
                     ->count(),
-                'used_numbers' => LetterNumber::where('category_code', $categoryCode)
+                'used_numbers' => LetterNumber::where('letter_category_id', $categoryId)
                     ->where('year', $currentYear)
                     ->where('status', 'used')
                     ->count(),
-                'cancelled_numbers' => LetterNumber::where('category_code', $categoryCode)
+                'cancelled_numbers' => LetterNumber::where('letter_category_id', $categoryId)
                     ->where('year', $currentYear)
                     ->where('status', 'cancelled')
                     ->count(),
-                'next_sequence' => LetterNumber::where('category_code', $categoryCode)
+                'next_sequence' => LetterNumber::where('letter_category_id', $categoryId)
                     ->where('year', $currentYear)
                     ->max('sequence_number') + 1,
             ];

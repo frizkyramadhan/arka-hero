@@ -160,7 +160,7 @@
                     @endif
 
                     <!-- Category Specific Data -->
-                    @if ($letterNumber->category_code === 'PKWT' && ($letterNumber->pkwt_type || $letterNumber->duration))
+                    @if ($letterNumber->category->category_code === 'PKWT' && ($letterNumber->pkwt_type || $letterNumber->duration))
                         <div class="card">
                             <div class="card-header">
                                 <h3 class="card-title">PKWT Data</h3>
@@ -200,7 +200,7 @@
                         </div>
                     @endif
 
-                    @if ($letterNumber->category_code === 'PAR' && $letterNumber->par_type)
+                    @if ($letterNumber->category->category_code === 'PAR' && $letterNumber->par_type)
                         <div class="card">
                             <div class="card-header">
                                 <h3 class="card-title">PAR Data</h3>
@@ -216,7 +216,7 @@
                         </div>
                     @endif
 
-                    @if (in_array($letterNumber->category_code, ['A', 'B']) && $letterNumber->classification)
+                    @if (in_array($letterNumber->category->category_code, ['A', 'B']) && $letterNumber->classification)
                         <div class="card">
                             <div class="card-header">
                                 <h3 class="card-title">Letter Classification</h3>

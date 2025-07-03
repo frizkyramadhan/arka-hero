@@ -24,7 +24,7 @@ class LetterNumber extends Model
     // Relationships
     public function category()
     {
-        return $this->belongsTo(LetterCategory::class, 'category_code', 'category_code');
+        return $this->belongsTo(LetterCategory::class, 'letter_category_id');
     }
 
     public function subject()
@@ -105,14 +105,19 @@ class LetterNumber extends Model
     // Generate letter number
     public function generateLetterNumber()
     {
+        $this->load('category'); // Ensure category is loaded
+
         $year = date('Y');
-        $sequence = static::where('category_code', $this->category_code)
+        $sequence = static::where('letter_category_id', $this->letter_category_id)
             ->where('year', $year)
             ->max('sequence_number') + 1;
 
         $this->sequence_number = $sequence;
         $this->year = $year;
-        $this->letter_number = $this->category_code . sprintf('%04d', $sequence);
+
+        if ($this->category) {
+            $this->letter_number = $this->category->category_code . sprintf('%04d', $sequence);
+        }
     }
 
     // Mark nomor sebagai used
@@ -156,9 +161,9 @@ class LetterNumber extends Model
         return $query->where('is_active', 1);
     }
 
-    public function scopeByCategory($query, $categoryCode)
+    public function scopeByCategory($query, $categoryId)
     {
-        return $query->where('category_code', $categoryCode);
+        return $query->where('letter_category_id', $categoryId);
     }
 
     public function scopeByYear($query, $year)
@@ -167,10 +172,10 @@ class LetterNumber extends Model
     }
 
     // Get next sequence number for a category
-    public static function getNextSequenceNumber($categoryCode)
+    public static function getNextSequenceNumber($categoryId)
     {
         $currentYear = date('Y');
-        $lastNumber = static::byCategory($categoryCode)
+        $lastNumber = static::byCategory($categoryId)
             ->where('year', $currentYear)
             ->orderBy('sequence_number', 'desc')
             ->first();

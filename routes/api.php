@@ -51,15 +51,19 @@ Route::prefix('v1/letter-numbers')->middleware(['auth:sanctum'])->group(function
     Route::post('/{id}/cancel', [LetterNumberApiController::class, 'cancelNumber']);
 
     // Data Retrieval Endpoints
-    Route::get('/available/{categoryCode}', [LetterNumberApiController::class, 'getAvailableNumbers']);
-    Route::get('/subjects/{categoryCode}', [LetterNumberApiController::class, 'getSubjectsByCategory']);
+    Route::get('/available/{categoryId}', [LetterNumberApiController::class, 'getAvailableNumbers']);
+    Route::get('/subjects/{categoryId}', [LetterNumberApiController::class, 'getSubjectsByCategory']);
     Route::get('/{id}', [LetterNumberApiController::class, 'getLetterNumber']);
 
     // Utility Endpoints
     Route::post('/check-availability', [LetterNumberApiController::class, 'checkAvailability']);
 });
 
+Route::prefix('v1/letter-subjects')->middleware(['auth:sanctum'])->group(function () {
+    Route::get('/by-category/{categoryId}', [LetterSubjectController::class, 'getByCategory']);
+});
+
 // Additional API routes for letter management
-Route::get('letter-subjects/{categoryCode}', [LetterSubjectController::class, 'getByCategory']);
-Route::get('letter-subjects/available/{documentType}/{categoryCode}', [LetterSubjectController::class, 'getAvailableSubjectsForDocument']);
-Route::get('letter-numbers/available/{categoryCode}', [LetterNumberController::class, 'getAvailableNumbers']);
+Route::get('letter-subjects/{categoryId}', [LetterSubjectController::class, 'getByCategory']);
+Route::get('letter-subjects/available/{documentType}/{categoryId}', [LetterSubjectController::class, 'getAvailableSubjectsForDocument']);
+Route::get('letter-numbers/available/{categoryId}', [LetterNumberController::class, 'getAvailableNumbers']);

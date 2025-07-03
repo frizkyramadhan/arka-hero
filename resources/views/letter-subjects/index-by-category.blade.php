@@ -180,7 +180,7 @@
                 processing: true,
                 serverSide: true,
                 ajax: {
-                    url: "{{ route('letter-subjects.data-by-category', $category->category_code) }}",
+                    url: "{{ route('letter-subjects.data-by-category', $category->id) }}",
                     data: function(d) {
                         d.search = $("input[type=search][aria-controls=subjects-table]").val();
                     }
@@ -230,7 +230,7 @@
                 var formData = new FormData(this);
 
                 $.ajax({
-                    url: "{{ route('letter-subjects.store-by-category', $category->category_code) }}",
+                    url: "{{ route('letter-subjects.store-by-category', $category->id) }}",
                     type: 'POST',
                     data: formData,
                     processData: false,

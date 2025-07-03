@@ -15,11 +15,13 @@ class LetterSubjectSeeder extends Seeder
      */
     public function run()
     {
+        $categories = DB::table('letter_categories')->pluck('id', 'category_code');
+
         $subjects = [
             // Surat Eksternal (A)
             [
                 'subject_name' => 'Surat Pengantar MCU',
-                'category_code' => 'A',
+                'letter_category_id' => $categories['A'],
                 'is_active' => 1,
                 'user_id' => 1,
                 'created_at' => now(),
@@ -27,7 +29,7 @@ class LetterSubjectSeeder extends Seeder
             ],
             [
                 'subject_name' => 'Surat Penawaran Kerja',
-                'category_code' => 'A',
+                'letter_category_id' => $categories['A'],
                 'is_active' => 1,
                 'user_id' => 1,
                 'created_at' => now(),
@@ -35,7 +37,7 @@ class LetterSubjectSeeder extends Seeder
             ],
             [
                 'subject_name' => 'Surat Keterangan',
-                'category_code' => 'A',
+                'letter_category_id' => $categories['A'],
                 'is_active' => 1,
                 'user_id' => 1,
                 'created_at' => now(),
@@ -43,7 +45,7 @@ class LetterSubjectSeeder extends Seeder
             ],
             [
                 'subject_name' => 'Surat Penonaktifan BPJS',
-                'category_code' => 'A',
+                'letter_category_id' => $categories['A'],
                 'is_active' => 1,
                 'user_id' => 1,
                 'created_at' => now(),
@@ -53,7 +55,7 @@ class LetterSubjectSeeder extends Seeder
             // Surat Internal (B)
             [
                 'subject_name' => 'Surat Pengantar Karyawan',
-                'category_code' => 'B',
+                'letter_category_id' => $categories['B'],
                 'is_active' => 1,
                 'user_id' => 1,
                 'created_at' => now(),
@@ -61,7 +63,7 @@ class LetterSubjectSeeder extends Seeder
             ],
             [
                 'subject_name' => 'LOT',
-                'category_code' => 'B',
+                'letter_category_id' => $categories['B'],
                 'is_active' => 1,
                 'user_id' => 1,
                 'created_at' => now(),
@@ -69,7 +71,7 @@ class LetterSubjectSeeder extends Seeder
             ],
             [
                 'subject_name' => 'Perjanjian Ikatan Dinas',
-                'category_code' => 'B',
+                'letter_category_id' => $categories['B'],
                 'is_active' => 1,
                 'user_id' => 1,
                 'created_at' => now(),
@@ -77,7 +79,7 @@ class LetterSubjectSeeder extends Seeder
             ],
             [
                 'subject_name' => 'Surat Pemberitahuan Daily',
-                'category_code' => 'B',
+                'letter_category_id' => $categories['B'],
                 'is_active' => 1,
                 'user_id' => 1,
                 'created_at' => now(),
@@ -85,7 +87,7 @@ class LetterSubjectSeeder extends Seeder
             ],
             [
                 'subject_name' => 'Perjanjian Ikatan Dinas OJT',
-                'category_code' => 'B',
+                'letter_category_id' => $categories['B'],
                 'is_active' => 1,
                 'user_id' => 1,
                 'created_at' => now(),
@@ -93,7 +95,7 @@ class LetterSubjectSeeder extends Seeder
             ],
             [
                 'subject_name' => 'Berita Acara',
-                'category_code' => 'B',
+                'letter_category_id' => $categories['B'],
                 'is_active' => 1,
                 'user_id' => 1,
                 'created_at' => now(),
@@ -101,7 +103,7 @@ class LetterSubjectSeeder extends Seeder
             ],
             [
                 'subject_name' => 'Surat Pengajuan Cuti Khusus',
-                'category_code' => 'B',
+                'letter_category_id' => $categories['B'],
                 'is_active' => 1,
                 'user_id' => 1,
                 'created_at' => now(),
@@ -109,7 +111,7 @@ class LetterSubjectSeeder extends Seeder
             ],
             [
                 'subject_name' => 'Internal Memo',
-                'category_code' => 'B',
+                'letter_category_id' => $categories['B'],
                 'is_active' => 1,
                 'user_id' => 1,
                 'created_at' => now(),
@@ -117,7 +119,7 @@ class LetterSubjectSeeder extends Seeder
             ],
             [
                 'subject_name' => 'Surat Permohonan Mutasi',
-                'category_code' => 'B',
+                'letter_category_id' => $categories['B'],
                 'is_active' => 1,
                 'user_id' => 1,
                 'created_at' => now(),
@@ -127,7 +129,7 @@ class LetterSubjectSeeder extends Seeder
             // PKWT
             [
                 'subject_name' => 'Perjanjian Kerja Waktu Tertentu - PKWT I',
-                'category_code' => 'PKWT',
+                'letter_category_id' => $categories['PKWT'],
                 'is_active' => 1,
                 'user_id' => 1,
                 'created_at' => now(),
@@ -135,7 +137,7 @@ class LetterSubjectSeeder extends Seeder
             ],
             [
                 'subject_name' => 'Perjanjian Kerja Waktu Tertentu - PKWT II',
-                'category_code' => 'PKWT',
+                'letter_category_id' => $categories['PKWT'],
                 'is_active' => 1,
                 'user_id' => 1,
                 'created_at' => now(),
@@ -143,7 +145,7 @@ class LetterSubjectSeeder extends Seeder
             ],
             [
                 'subject_name' => 'Perjanjian Kerja Waktu Tertentu - PKWT III',
-                'category_code' => 'PKWT',
+                'letter_category_id' => $categories['PKWT'],
                 'is_active' => 1,
                 'user_id' => 1,
                 'created_at' => now(),
@@ -153,7 +155,7 @@ class LetterSubjectSeeder extends Seeder
             // PAR
             [
                 'subject_name' => 'Personal Action Request - New Hire',
-                'category_code' => 'PAR',
+                'letter_category_id' => $categories['PAR'],
                 'is_active' => 1,
                 'user_id' => 1,
                 'created_at' => now(),
@@ -161,7 +163,7 @@ class LetterSubjectSeeder extends Seeder
             ],
             [
                 'subject_name' => 'Personal Action Request - Promosi',
-                'category_code' => 'PAR',
+                'letter_category_id' => $categories['PAR'],
                 'is_active' => 1,
                 'user_id' => 1,
                 'created_at' => now(),
@@ -169,7 +171,7 @@ class LetterSubjectSeeder extends Seeder
             ],
             [
                 'subject_name' => 'Personal Action Request - Mutasi',
-                'category_code' => 'PAR',
+                'letter_category_id' => $categories['PAR'],
                 'is_active' => 1,
                 'user_id' => 1,
                 'created_at' => now(),
@@ -177,7 +179,7 @@ class LetterSubjectSeeder extends Seeder
             ],
             [
                 'subject_name' => 'Personal Action Request - Demosi',
-                'category_code' => 'PAR',
+                'letter_category_id' => $categories['PAR'],
                 'is_active' => 1,
                 'user_id' => 1,
                 'created_at' => now(),
@@ -187,7 +189,7 @@ class LetterSubjectSeeder extends Seeder
             // Certificate of Employment
             [
                 'subject_name' => 'Surat Pengalaman Kerja',
-                'category_code' => 'CRTE',
+                'letter_category_id' => $categories['CRTE'],
                 'is_active' => 1,
                 'user_id' => 1,
                 'created_at' => now(),
@@ -197,7 +199,7 @@ class LetterSubjectSeeder extends Seeder
             // SKPK
             [
                 'subject_name' => 'Surat Keterangan Pengalaman Kerja',
-                'category_code' => 'SKPK',
+                'letter_category_id' => $categories['SKPK'],
                 'is_active' => 1,
                 'user_id' => 1,
                 'created_at' => now(),
@@ -207,7 +209,7 @@ class LetterSubjectSeeder extends Seeder
             // Memo
             [
                 'subject_name' => 'Memorandum Internal',
-                'category_code' => 'MEMO',
+                'letter_category_id' => $categories['MEMO'],
                 'is_active' => 1,
                 'user_id' => 1,
                 'created_at' => now(),
@@ -217,7 +219,7 @@ class LetterSubjectSeeder extends Seeder
             // FPTK
             [
                 'subject_name' => 'Form Permintaan Tenaga Kerja',
-                'category_code' => 'FPTK',
+                'letter_category_id' => $categories['FPTK'],
                 'is_active' => 1,
                 'user_id' => 1,
                 'created_at' => now(),
@@ -227,7 +229,7 @@ class LetterSubjectSeeder extends Seeder
             // Form Request
             [
                 'subject_name' => 'Permintaan Tiket Pesawat',
-                'category_code' => 'FR',
+                'letter_category_id' => $categories['FR'],
                 'is_active' => 1,
                 'user_id' => 1,
                 'created_at' => now(),
@@ -235,7 +237,7 @@ class LetterSubjectSeeder extends Seeder
             ],
             [
                 'subject_name' => 'Permintaan Tiket Kereta Api',
-                'category_code' => 'FR',
+                'letter_category_id' => $categories['FR'],
                 'is_active' => 1,
                 'user_id' => 1,
                 'created_at' => now(),
@@ -243,7 +245,7 @@ class LetterSubjectSeeder extends Seeder
             ],
             [
                 'subject_name' => 'Permintaan Tiket Bus',
-                'category_code' => 'FR',
+                'letter_category_id' => $categories['FR'],
                 'is_active' => 1,
                 'user_id' => 1,
                 'created_at' => now(),

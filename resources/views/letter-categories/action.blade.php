@@ -1,4 +1,4 @@
-<a class="btn btn-icon btn-info mr-1" href="{{ route('letter-subjects.index-by-category', $model->category_code) }}"
+<a class="btn btn-icon btn-info mr-1" href="{{ route('letter-subjects.index-by-category', $model->id) }}"
     title="Manage Subjects">
     <i class="fas fa-list"></i>
 </a>

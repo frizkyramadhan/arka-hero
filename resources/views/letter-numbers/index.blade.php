@@ -67,7 +67,7 @@
                                                         <select class="form-control select2bs4" id="filter-category">
                                                             <option value="">- All -</option>
                                                             @foreach ($categories as $category)
-                                                                <option value="{{ $category->category_code }}">
+                                                                <option value="{{ $category->id }}">
                                                                     {{ $category->category_name }}
                                                                 </option>
                                                             @endforeach
@@ -167,7 +167,7 @@
                 ajax: {
                     url: "{{ route('letter-numbers.data') }}",
                     data: function(d) {
-                        d.category_code = $('#filter-category').val();
+                        d.letter_category_id = $('#filter-category').val();
                         d.status = $('#filter-status').val();
                         d.date_from = $('#filter-date-from').val();
                         d.date_to = $('#filter-date-to').val();

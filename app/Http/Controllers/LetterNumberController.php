@@ -40,8 +40,8 @@ class LetterNumberController extends Controller
             'reservedBy',
             'usedBy'
         ])
-            ->when($request->category_code, function ($query, $category) {
-                return $query->where('category_code', $category);
+            ->when($request->letter_category_id, function ($query, $category) {
+                return $query->where('letter_category_id', $category);
             })
             ->when($request->status, function ($query, $status) {
                 return $query->where('status', $status);
@@ -111,7 +111,7 @@ class LetterNumberController extends Controller
             ->toJson();
     }
 
-    public function create($categoryCode = null)
+    public function create($categoryId = null)
     {
         $title = 'Create Letter Number';
         $categories = LetterCategory::where('is_active', 1)->get();
@@ -126,11 +126,13 @@ class LetterNumberController extends Controller
         $selectedCategory = null;
         $subjects = collect();
 
-        if ($categoryCode) {
-            $selectedCategory = LetterCategory::where('category_code', $categoryCode)->first();
-            $subjects = LetterSubject::where('category_code', $categoryCode)
-                ->where('is_active', 1)
-                ->get();
+        if ($categoryId) {
+            $selectedCategory = LetterCategory::find($categoryId);
+            if ($selectedCategory) {
+                $subjects = LetterSubject::where('letter_category_id', $categoryId)
+                    ->where('is_active', 1)
+                    ->get();
+            }
         }
 
         return view('letter-numbers.create', compact(
@@ -146,40 +148,43 @@ class LetterNumberController extends Controller
     public function store(Request $request)
     {
         $rules = [
-            'category_code' => 'required|exists:letter_categories,category_code',
+            'letter_category_id' => 'required|exists:letter_categories,id',
             'letter_date' => 'required|date',
             'destination' => 'nullable|string|max:200',
             'remarks' => 'nullable|string',
         ];
 
         // Dynamic validation based on category
-        switch ($request->category_code) {
-            case 'A':
-            case 'B':
-                $rules['classification'] = 'nullable|in:Umum,Lembaga Pendidikan,Pemerintah';
-                break;
+        $category = LetterCategory::find($request->letter_category_id);
+        if ($category) {
+            switch ($category->category_code) {
+                case 'A':
+                case 'B':
+                    $rules['classification'] = 'nullable|in:Umum,Lembaga Pendidikan,Pemerintah';
+                    break;
 
-            case 'PKWT':
-                $rules['administration_id'] = 'required|exists:administrations,id';
-                $rules['duration'] = 'required|string';
-                $rules['start_date'] = 'required|date';
-                $rules['end_date'] = 'required|date|after:start_date';
-                $rules['pkwt_type'] = 'required|in:PKWT I,PKWT II,PKWT III';
-                break;
+                case 'PKWT':
+                    $rules['administration_id'] = 'required|exists:administrations,id';
+                    $rules['duration'] = 'required|string';
+                    $rules['start_date'] = 'required|date';
+                    $rules['end_date'] = 'required|date|after:start_date';
+                    $rules['pkwt_type'] = 'required|in:PKWT I,PKWT II,PKWT III';
+                    break;
 
-            case 'PAR':
-                $rules['administration_id'] = 'required|exists:administrations,id';
-                $rules['par_type'] = 'required|in:new hire,promosi,mutasi,demosi';
-                break;
+                case 'PAR':
+                    $rules['administration_id'] = 'required|exists:administrations,id';
+                    $rules['par_type'] = 'required|in:new hire,promosi,mutasi,demosi';
+                    break;
 
-            case 'CRTE':
-            case 'SKPK':
-                $rules['administration_id'] = 'required|exists:administrations,id';
-                break;
+                case 'CRTE':
+                case 'SKPK':
+                    $rules['administration_id'] = 'required|exists:administrations,id';
+                    break;
 
-            case 'FR':
-                $rules['ticket_classification'] = 'required|in:Pesawat,Kereta Api,Bus';
-                break;
+                case 'FR':
+                    $rules['ticket_classification'] = 'required|in:Pesawat,Kereta Api,Bus';
+                    break;
+            }
         }
 
         $request->validate($rules);
@@ -229,7 +234,7 @@ class LetterNumberController extends Controller
             ->orderBy('nik')
             ->get();
         $projects = Project::orderBy('project_name')->get();
-        $subjects = LetterSubject::where('category_code', $letterNumber->category_code)
+        $subjects = LetterSubject::where('letter_category_id', $letterNumber->letter_category_id)
             ->where('is_active', 1)
             ->get();
 
@@ -259,25 +264,33 @@ class LetterNumberController extends Controller
             'remarks' => 'nullable|string',
         ];
 
-        // Dynamic validation berdasarkan kategori yang sudah ada
-        switch ($letterNumber->category_code) {
-            case 'PKWT':
-                $rules['administration_id'] = 'required|exists:administrations,id';
-                $rules['duration'] = 'required|string';
-                $rules['start_date'] = 'required|date';
-                $rules['end_date'] = 'required|date|after:start_date';
-                $rules['pkwt_type'] = 'required|in:PKWT I,PKWT II,PKWT III';
-                break;
+        // Dynamic validation based on category
+        $category = LetterCategory::find($request->letter_category_id);
+        if ($category) {
+            switch ($category->category_code) {
+                case 'A':
+                case 'B':
+                    $rules['classification'] = 'nullable|in:Umum,Lembaga Pendidikan,Pemerintah';
+                    break;
 
-            case 'PAR':
-                $rules['administration_id'] = 'required|exists:administrations,id';
-                $rules['par_type'] = 'required|in:new hire,promosi,mutasi,demosi';
-                break;
+                case 'PKWT':
+                    $rules['administration_id'] = 'required|exists:administrations,id';
+                    $rules['duration'] = 'required|string';
+                    $rules['start_date'] = 'required|date';
+                    $rules['end_date'] = 'required|date|after:start_date';
+                    $rules['pkwt_type'] = 'required|in:PKWT I,PKWT II,PKWT III';
+                    break;
 
-            case 'CRTE':
-            case 'SKPK':
-                $rules['administration_id'] = 'required|exists:administrations,id';
-                break;
+                case 'PAR':
+                    $rules['administration_id'] = 'required|exists:administrations,id';
+                    $rules['par_type'] = 'required|in:new hire,promosi,mutasi,demosi';
+                    break;
+
+                case 'CRTE':
+                case 'SKPK':
+                    $rules['administration_id'] = 'required|exists:administrations,id';
+                    break;
+            }
         }
 
         $request->validate($rules);
@@ -286,7 +299,7 @@ class LetterNumberController extends Controller
         $letterNumber->save();
 
         return redirect()->route('letter-numbers.index')
-            ->with('toast_success', 'Letter number updated successfully');
+            ->with('toast_success', 'Letter number updated successfully: ' . $letterNumber->letter_number);
     }
 
     public function destroy($id)
@@ -353,41 +366,32 @@ class LetterNumberController extends Controller
     /**
      * API: Get available letter numbers for specific category
      */
-    public function getAvailableNumbers($categoryCode)
+    public function getAvailableNumbers($categoryId)
     {
-        try {
-            $letterNumbers = LetterNumber::with(['subject', 'administration.employee'])
-                ->where('category_code', $categoryCode)
-                ->where('status', 'reserved')
-                ->orderBy('sequence_number', 'desc')
-                ->limit(20)
-                ->get()
-                ->map(function ($number) {
-                    return [
-                        'id' => $number->id,
-                        'letter_number' => $number->letter_number,
-                        'subject_name' => $number->subject->subject_name ?? null,
-                        'remarks' => $number->remarks ?? null,
-                        'letter_date' => $number->letter_date ? $number->letter_date->format('d/m/Y') : null,
-                        'employee_name' => $number->administration && $number->administration->employee
-                            ? $number->administration->employee->fullname
-                            : null,
-                    ];
-                });
+        $numbers = LetterNumber::byCategory($categoryId)
+            ->available()
+            ->active()
+            ->orderBy('sequence_number')
+            ->get(['id', 'letter_number', 'destination', 'remarks']);
 
-            return response()->json([
-                'success' => true,
-                'data' => $letterNumbers,
-                'count' => $letterNumbers->count(),
-                'category_code' => $categoryCode
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'error' => 'Failed to load available letter numbers',
-                'message' => $e->getMessage()
-            ], 500);
-        }
+        return response()->json($numbers);
+    }
+
+    public function getSubjectsForCategory($categoryId)
+    {
+        $subjects = LetterSubject::where('letter_category_id', $categoryId)
+            ->active()
+            ->ordered()
+            ->get(['id', 'subject_name']);
+
+        return response()->json($subjects);
+    }
+
+    public function getNextSequenceNumber($categoryId)
+    {
+        $nextSequence = LetterNumber::getNextSequenceNumber($categoryId);
+
+        return response()->json(['next_sequence' => $nextSequence]);
     }
 
     public function markAsUsedManually($id)
