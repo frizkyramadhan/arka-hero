@@ -203,6 +203,36 @@
                                                 </div>
                                                 <div class="col-3">
                                                     <div class="form-group">
+                                                        <label class="form-control-label">Grade</label>
+                                                        <select name="grade_id" class="form-control select2bs4"
+                                                            id="grade_id" style="width: 100%;">
+                                                            <option value="">- All -</option>
+                                                            @foreach ($grades as $grade)
+                                                                <option value="{{ $grade->id }}"
+                                                                    {{ request('grade_id') == $grade->id ? 'selected' : '' }}>
+                                                                    {{ $grade->name }}
+                                                                </option>
+                                                            @endforeach
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                                <div class="col-3">
+                                                    <div class="form-group">
+                                                        <label class="form-control-label">Level</label>
+                                                        <select name="level_id" class="form-control select2bs4"
+                                                            id="level_id" style="width: 100%;">
+                                                            <option value="">- All -</option>
+                                                            @foreach ($levels as $level)
+                                                                <option value="{{ $level->id }}"
+                                                                    {{ request('level_id') == $level->id ? 'selected' : '' }}>
+                                                                    {{ $level->name }}
+                                                                </option>
+                                                            @endforeach
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                                <div class="col-3">
+                                                    <div class="form-group">
                                                         <label class="form-control-label">Staff</label>
                                                         <select name="class" class="form-control select2bs4"
                                                             id="class" style="width: 100%;">
@@ -234,9 +264,10 @@
                                                 <th class="align-middle">DOH</th>
                                                 <th class="align-middle">Department</th>
                                                 <th class="align-middle">Position</th>
+                                                <th class="align-middle">Grade</th>
+                                                <th class="align-middle">Level</th>
                                                 <th class="align-middle">Project</th>
                                                 <th class="align-middle">Class</th>
-                                                <th class="align-middle text-center">Created Date</th>
                                                 <th class="align-middle text-center">Action</th>
                                             </tr>
                                         </thead>
@@ -299,7 +330,6 @@
 @section('styles')
     <!-- DataTables -->
     <link rel="stylesheet" href="{{ asset('assets/plugins/datatables-bs4/css/dataTables.bootstrap4.min.css') }}">
-    {{-- <link rel="stylesheet" href="{{ asset('assets/plugins/datatables-responsive/css/responsive.bootstrap4.min.css') }}"> --}}
     <link rel="stylesheet" href="{{ asset('assets/plugins/datatables-buttons/css/buttons.bootstrap4.min.css') }}">
     <!-- Select2 -->
     <link rel="stylesheet" href="{{ asset('assets/plugins/select2/css/select2.min.css') }}">
@@ -314,8 +344,6 @@
     <!-- DataTables  & Plugins -->
     <script src="{{ asset('assets/plugins/datatables/jquery.dataTables.min.js') }}"></script>
     <script src="{{ asset('assets/plugins/datatables-bs4/js/dataTables.bootstrap4.min.js') }}"></script>
-    {{-- <script src="{{ asset('assets/plugins/datatables-responsive/js/dataTables.responsive.min.js') }}"></script> --}}
-    {{-- <script src="{{ asset('assets/plugins/datatables-responsive/js/responsive.bootstrap4.min.js') }}"></script> --}}
     <script src="{{ asset('assets/plugins/datatables-buttons/js/dataTables.buttons.min.js') }}"></script>
     <script src="{{ asset('assets/plugins/datatables-buttons/js/buttons.bootstrap4.min.js') }}"></script>
     <script src="{{ asset('assets/plugins/jszip/jszip.min.js') }}"></script>
@@ -350,6 +378,7 @@
                             .val(), d.fullname = $('#fullname').val(), d.poh = $('#poh').val(), d
                             .department_name = $('#department_name').val(), d.position_name = $(
                                 '#position_name').val(), d.project_code = $('#project_code').val(), d
+                            .grade_id = $('#grade_id').val(), d.level_id = $('#level_id').val(), d
                             .class = $('#class').val(), d.search = $(
                                 "input[type=search][aria-controls=example1]").val()
                     }
@@ -384,6 +413,14 @@
                     name: "position_name",
                     orderable: false,
                 }, {
+                    data: "grade_name",
+                    name: "grade_name",
+                    orderable: false,
+                }, {
+                    data: "level_name",
+                    name: "level_name",
+                    orderable: false,
+                }, {
                     data: "project_code",
                     name: "project_code",
                     orderable: false,
@@ -391,11 +428,6 @@
                     data: "class",
                     name: "class",
                     orderable: false,
-                }, {
-                    data: "created_date",
-                    name: "created_date",
-                    orderable: false,
-                    className: "text-center",
                 }, {
                     data: "action",
                     name: "action",
@@ -405,17 +437,19 @@
                 }],
                 fixedColumns: true,
             })
-            $('#date1, #date2, #nik, #fullname, #poh, #department_name, #position_name, #project_code, #class')
+            $('#date1, #date2, #nik, #fullname, #poh, #department_name, #position_name, #project_code, #class, #grade_id, #level_id')
                 .keyup(function() {
                     table.draw();
                 });
-            $('#date1, #date2, #department_name, #position_name, #project_code, #class').change(function() {
-                table.draw();
-            });
+            $('#date1, #date2, #department_name, #position_name, #project_code, #class, #grade_id, #level_id')
+                .change(function() {
+                    table.draw();
+                });
             $('#btn-reset').click(function() {
-                $('#date1, #date2, #nik, #fullname, #poh, #department_name, #position_name, #project_code, #class')
+                $('#date1, #date2, #nik, #fullname, #poh, #department_name, #position_name, #project_code, #class, #grade_id, #level_id')
                     .val('');
-                $('#date1, #date2, #department_name, #position_name, #project_code, #class').change();
+                $('#date1, #date2, #department_name, #position_name, #project_code, #class, #grade_id, #level_id')
+                    .change();
             });
         });
     </script>

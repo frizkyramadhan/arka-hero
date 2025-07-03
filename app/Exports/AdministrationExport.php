@@ -56,8 +56,10 @@ class AdministrationExport extends DefaultValueBinder implements
             ->leftJoin('projects', 'projects.id', '=', 'administrations.project_id')
             ->leftJoin('positions', 'positions.id', '=', 'administrations.position_id')
             ->leftJoin('departments', 'departments.id', '=', 'positions.department_id')
-            ->select('administrations.*', 'employees.identity_card', 'employees.fullname', 'positions.position_name', 'projects.project_code', 'projects.project_name', 'departments.department_name')
-            ->where('is_active', 1)
+            ->leftJoin('grades', 'grades.id', '=', 'administrations.grade_id')
+            ->leftJoin('levels', 'levels.id', '=', 'administrations.level_id')
+            ->select('administrations.*', 'employees.identity_card', 'employees.fullname', 'positions.position_name', 'projects.project_code', 'projects.project_name', 'departments.department_name', 'grades.name as grade_name', 'levels.name as level_name')
+            ->where('administrations.is_active', 1)
             ->orderBy('nik', 'asc');
     }
 
@@ -72,6 +74,8 @@ class AdministrationExport extends DefaultValueBinder implements
             $administration->foc ? date('d F Y', strtotime($administration->foc)) : '',
             $administration->department_name,
             $administration->position_name,
+            $administration->grade_name,
+            $administration->level_name,
             $administration->project_code,
             $administration->project_name,
             $administration->class,
@@ -96,6 +100,8 @@ class AdministrationExport extends DefaultValueBinder implements
             'FOC',
             'Department',
             'Position',
+            'Grade',
+            'Level',
             'Project Code',
             'Project Name',
             'Class',

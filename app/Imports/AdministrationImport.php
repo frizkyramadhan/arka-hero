@@ -7,6 +7,8 @@ use App\Models\Employee;
 use App\Models\Project;
 use App\Models\Position;
 use App\Models\Department;
+use App\Models\Grade;
+use App\Models\Level;
 use PhpOffice\PhpSpreadsheet\Shared\Date;
 use Maatwebsite\Excel\Concerns\ToModel;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
@@ -30,6 +32,8 @@ class AdministrationImport implements ToModel, WithHeadingRow, WithValidation, S
     private $positions;
     private $departments;
     private $employees;
+    private $grades;
+    private $levels;
     private $rowNumber = 0;
     private $sheetName;
     private $parent = null;
@@ -40,6 +44,8 @@ class AdministrationImport implements ToModel, WithHeadingRow, WithValidation, S
         $this->positions = Position::select('id', 'position_name', 'department_id')->get();
         $this->departments = Department::select('id', 'department_name')->get();
         $this->employees = Employee::select('id', 'fullname', 'identity_card')->get();
+        $this->grades = Grade::select('id', 'name')->get();
+        $this->levels = Level::select('id', 'name')->get();
     }
 
     /**
@@ -84,6 +90,8 @@ class AdministrationImport implements ToModel, WithHeadingRow, WithValidation, S
             'identity_card_no' => ['required', 'string', 'exists:employees,identity_card'],
             'project_code' => ['required', 'string', 'exists:projects,project_code'],
             'position' => ['required', 'string', 'exists:positions,position_name'],
+            'grade' => ['nullable', 'string', 'exists:grades,name'],
+            'level' => ['nullable', 'string', 'exists:levels,name'],
             'nik' => ['required'],
             'class' => ['required', 'in:Staff,Non Staff'],
             'doh' => ['required'],
@@ -103,6 +111,8 @@ class AdministrationImport implements ToModel, WithHeadingRow, WithValidation, S
             'project_code.exists' => 'Project Code does not exist',
             'position.required' => 'Position is required',
             'position.exists' => 'Position does not exist',
+            'grade.exists' => 'Grade does not exist',
+            'level.exists' => 'Level does not exist',
             'nik.required' => 'NIK is required',
             'class.required' => 'Class is required',
             'class.in' => 'Class must be either "Staff" or "Non Staff" (case sensitive)',
@@ -293,11 +303,17 @@ class AdministrationImport implements ToModel, WithHeadingRow, WithValidation, S
                 $position = $positionQuery->first();
             }
 
+            // Find grade and level
+            $grade = !empty($row['grade']) ? $this->grades->where('name', $row['grade'])->first() : null;
+            $level = !empty($row['level']) ? $this->levels->where('name', $row['level'])->first() : null;
+
             // Prepare data for administration record
             $administrationData = [
                 'employee_id' => $employee->id,
                 'project_id' => $project->id,
                 'position_id' => $position->id,
+                'grade_id' => $grade ? $grade->id : null,
+                'level_id' => $level ? $level->id : null,
                 'nik' => $row['nik'],
                 'class' => $row['class'],
                 'poh' => $row['poh'],

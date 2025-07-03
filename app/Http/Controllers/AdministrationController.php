@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Grade;
+use App\Models\Level;
 use App\Models\Project;
 use App\Models\Employee;
 use App\Models\Position;
@@ -25,7 +27,9 @@ class AdministrationController extends Controller
         $administrations = Administration::join('projects', 'administrations.project_id', '=', 'projects.id')
             ->join('employees', 'administrations.employee_id', '=', 'employees.id')
             ->join('positions', 'administrations.position_id', '=', 'positions.id')
-            ->select('administrations.*', 'fullname', 'position_name', 'project_name')
+            ->leftJoin('grades', 'administrations.grade_id', '=', 'grades.id')
+            ->leftJoin('levels', 'administrations.level_id', '=', 'levels.id')
+            ->select('administrations.*', 'fullname', 'position_name', 'project_name', 'grades.name as grade_name', 'levels.name as level_name')
             ->orderBy('nik', 'desc');
 
         return datatables()->of($administrations)
@@ -38,6 +42,12 @@ class AdministrationController extends Controller
             })
             ->addColumn('position_name', function ($administrations) {
                 return $administrations->position_name;
+            })
+            ->addColumn('grade_name', function ($administrations) {
+                return $administrations->grade_name;
+            })
+            ->addColumn('level_name', function ($administrations) {
+                return $administrations->level_name;
             })
             ->addColumn('nik', function ($administrations) {
                 return $administrations->nik;
@@ -99,6 +109,8 @@ class AdministrationController extends Controller
                         $w->orWhere('fullname', 'LIKE', "%$search%")
                             ->orWhere('project_name', 'LIKE', "%$search%")
                             ->orWhere('position_name', 'LIKE', "%$search%")
+                            ->orWhere('grades.name', 'LIKE', "%$search%")
+                            ->orWhere('levels.name', 'LIKE', "%$search%")
                             ->orWhere('nik', 'LIKE', "%$search%")
                             ->orWhere('doh', 'LIKE', "%$search%")
                             ->orWhere('class', 'LIKE', "%$search%")
@@ -128,6 +140,8 @@ class AdministrationController extends Controller
             'employee_id' => 'required',
             'project_id' => 'required',
             'position_id' => 'required',
+            'grade_id' => 'nullable|exists:grades,id',
+            'level_id' => 'nullable|exists:levels,id',
             'nik' => 'required|unique:administrations',
             'class' => 'required',
             'doh' => 'required',
@@ -138,6 +152,8 @@ class AdministrationController extends Controller
         $administration->employee_id = $request->employee_id;
         $administration->project_id = $request->project_id;
         $administration->position_id = $request->position_id;
+        $administration->grade_id = $request->grade_id;
+        $administration->level_id = $request->level_id;
         $administration->nik = $request->nik;
         $administration->class = $request->class;
         $administration->doh = $request->doh;
@@ -165,6 +181,8 @@ class AdministrationController extends Controller
             'employee_id' => 'required',
             'project_id' => 'required',
             'position_id' => 'required',
+            'grade_id' => 'nullable|exists:grades,id',
+            'level_id' => 'nullable|exists:levels,id',
             'nik' => 'required',
             'class' => 'required',
             'doh' => 'required',
@@ -175,6 +193,8 @@ class AdministrationController extends Controller
         $administration->employee_id = $request->employee_id;
         $administration->project_id = $request->project_id;
         $administration->position_id = $request->position_id;
+        $administration->grade_id = $request->grade_id;
+        $administration->level_id = $request->level_id;
         $administration->nik = $request->nik;
         $administration->class = $request->class;
         $administration->doh = $request->doh;

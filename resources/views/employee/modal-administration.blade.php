@@ -177,6 +177,45 @@
                             </div>
                         </div>
 
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="grade_id_add" class="form-label">Grade</label>
+                                    <select name="grade_id" id="grade_id_add"
+                                        class="form-control @error('grade_id') is-invalid @enderror">
+                                        <option value="">-Select Grade-</option>
+                                        @foreach ($grades as $grade)
+                                            <option value="{{ $grade->id }}"
+                                                {{ old('grade_id') == $grade->id ? 'selected' : '' }}>
+                                                {{ $grade->name }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                    @error('grade_id')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                    @enderror
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="level_id_add" class="form-label">Level</label>
+                                    <select name="level_id" id="level_id_add"
+                                        class="form-control @error('level_id') is-invalid @enderror">
+                                        <option value="">-Select Level-</option>
+                                        @foreach ($levels as $level)
+                                            <option value="{{ $level->id }}"
+                                                {{ old('level_id') == $level->id ? 'selected' : '' }}>
+                                                {{ $level->name }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                    @error('level_id')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                    @enderror
+                                </div>
+                            </div>
+                        </div>
+
                         <!-- Project Information Section -->
                         <div class="row">
                             <div class="col-md-6">
@@ -570,6 +609,47 @@
                                         @enderror
                                         <small class="form-text text-muted">Department will be automatically filled
                                             based on position selection</small>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label for="grade_id_edit_{{ $administration->id }}"
+                                            class="form-label">Grade</label>
+                                        <select name="grade_id" id="grade_id_edit_{{ $administration->id }}"
+                                            class="form-control @error('grade_id') is-invalid @enderror">
+                                            <option value="">-Select Grade-</option>
+                                            @foreach ($grades as $grade)
+                                                <option value="{{ $grade->id }}"
+                                                    {{ old('grade_id', $administration->grade_id) == $grade->id ? 'selected' : '' }}>
+                                                    {{ $grade->name }}
+                                                </option>
+                                            @endforeach
+                                        </select>
+                                        @error('grade_id')
+                                            <div class="invalid-feedback">{{ $message }}</div>
+                                        @enderror
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label for="level_id_edit_{{ $administration->id }}"
+                                            class="form-label">Level</label>
+                                        <select name="level_id" id="level_id_edit_{{ $administration->id }}"
+                                            class="form-control @error('level_id') is-invalid @enderror">
+                                            <option value="">-Select Level-</option>
+                                            @foreach ($levels as $level)
+                                                <option value="{{ $level->id }}"
+                                                    {{ old('level_id', $administration->level_id) == $level->id ? 'selected' : '' }}>
+                                                    {{ $level->name }}
+                                                </option>
+                                            @endforeach
+                                        </select>
+                                        @error('level_id')
+                                            <div class="invalid-feedback">{{ $message }}</div>
+                                        @enderror
                                     </div>
                                 </div>
                             </div>

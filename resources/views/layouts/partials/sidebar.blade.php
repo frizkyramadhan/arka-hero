@@ -88,7 +88,7 @@
                 <li class="nav-item">
                     <a href="{{ url('officialtravels') }}"
                         class="nav-link {{ Request::is('officialtravels*') ? 'active' : '' }}">
-                        <i class="nav-icon fas fa-compass"></i>
+                        <i class="nav-icon fas fa-route"></i>
                         <p>
                             Official Travels
                         </p>
@@ -109,9 +109,9 @@
                     {{-- MASTER DATA --}}
                     <li class="nav-header">MASTER DATA</li>
                     <li
-                        class="nav-item {{ Request::is('banks*') || Request::is('religions*') || Request::is('positions*') || Request::is('departments*') || Request::is('projects*') ? 'menu-open' : '' }}">
+                        class="nav-item {{ Request::is('banks*') || Request::is('religions*') || Request::is('positions*') || Request::is('departments*') || Request::is('projects*') || Request::is('grades*') || Request::is('levels*') ? 'menu-open' : '' }}">
                         <a href="#"
-                            class="nav-link {{ Request::is('banks*') || Request::is('religions*') || Request::is('positions*') || Request::is('departments*') || Request::is('projects*') ? 'active' : '' }}">
+                            class="nav-link {{ Request::is('banks*') || Request::is('religions*') || Request::is('positions*') || Request::is('departments*') || Request::is('projects*') || Request::is('grades*') || Request::is('levels*') ? 'active' : '' }}">
                             <i class="nav-icon fas fa-database"></i>
                             <p>
                                 Employee
@@ -134,16 +134,30 @@
                                 </a>
                             </li>
                             <li class="nav-item">
+                                <a href="{{ url('grades') }}"
+                                    class="nav-link {{ Request::is('grades*') ? 'active' : '' }}">
+                                    <i class="nav-icon fas fa-medal"></i>
+                                    <p>Grades</p>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="{{ url('levels') }}"
+                                    class="nav-link {{ Request::is('levels*') ? 'active' : '' }}">
+                                    <i class="nav-icon fas fa-layer-group"></i>
+                                    <p>Levels</p>
+                                </a>
+                            </li>
+                            <li class="nav-item">
                                 <a href="{{ url('projects') }}"
                                     class="nav-link {{ Request::is('projects*') ? 'active' : '' }}">
-                                    <i class="nav-icon fas fa-globe"></i>
+                                    <i class="nav-icon fas fa-project-diagram"></i>
                                     <p>Projects</p>
                                 </a>
                             </li>
                             <li class="nav-item">
                                 <a href="{{ url('religions') }}"
                                     class="nav-link {{ Request::is('religions*') ? 'active' : '' }}">
-                                    <i class="nav-icon fas fa-heart"></i>
+                                    <i class="nav-icon fas fa-praying-hands"></i>
                                     <p>Religions</p>
                                 </a>
                             </li>
@@ -171,7 +185,7 @@
                             <li class="nav-item">
                                 <a href="{{ url('transportations') }}"
                                     class="nav-link {{ Request::is('transportations*') ? 'active' : '' }}">
-                                    <i class="nav-icon fas fa-car-side"></i>
+                                    <i class="nav-icon fas fa-shuttle-van"></i>
                                     <p>Transportations</p>
                                 </a>
                             </li>
