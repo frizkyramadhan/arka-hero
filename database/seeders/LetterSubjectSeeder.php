@@ -218,7 +218,15 @@ class LetterSubjectSeeder extends Seeder
 
             // FPTK
             [
-                'subject_name' => 'Form Permintaan Tenaga Kerja',
+                'subject_name' => 'Tenaga Kerja Karyawan',
+                'letter_category_id' => $categories['FPTK'],
+                'is_active' => 1,
+                'user_id' => 1,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'subject_name' => 'Tenaga Kerja Magang',
                 'letter_category_id' => $categories['FPTK'],
                 'is_active' => 1,
                 'user_id' => 1,

@@ -2,12 +2,17 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Project;
 use App\Models\LetterNumber;
-use App\Models\LetterCategory;
+use Illuminate\Http\Request;
 use App\Models\LetterSubject;
 use App\Models\Administration;
-use App\Models\Project;
-use Illuminate\Http\Request;
+use App\Models\LetterCategory;
+use Maatwebsite\Excel\Facades\Excel;
+use App\Exports\LetterAdministrationExport;
+use App\Imports\LetterAdministrationImport;
+use App\Imports\Sheets\InternalSheetImport;
+use Maatwebsite\Excel\Validators\ValidationException;
 
 class LetterNumberController extends Controller
 {
@@ -111,10 +116,10 @@ class LetterNumberController extends Controller
             ->toJson();
     }
 
-    public function create($categoryId = null)
+    public function create($categoryCode = null)
     {
         $title = 'Create Letter Number';
-        $categories = LetterCategory::where('is_active', 1)->get();
+        $categories = LetterCategory::where('is_active', 1)->orderBy('category_code', 'asc')->get();
 
         // Menggunakan administrations aktif untuk dropdown karyawan
         $administrations = Administration::with(['employee', 'project', 'position'])
@@ -126,10 +131,10 @@ class LetterNumberController extends Controller
         $selectedCategory = null;
         $subjects = collect();
 
-        if ($categoryId) {
-            $selectedCategory = LetterCategory::find($categoryId);
+        if ($categoryCode) {
+            $selectedCategory = LetterCategory::where('category_code', $categoryCode)->first();
             if ($selectedCategory) {
-                $subjects = LetterSubject::where('letter_category_id', $categoryId)
+                $subjects = LetterSubject::where('letter_category_id', $selectedCategory->id)
                     ->where('is_active', 1)
                     ->get();
             }
@@ -228,7 +233,7 @@ class LetterNumberController extends Controller
         }
 
         $title = 'Edit Letter Number';
-        $categories = LetterCategory::where('is_active', 1)->get();
+        $categories = LetterCategory::where('is_active', 1)->orderBy('category_code', 'asc')->get();
         $administrations = Administration::with(['employee', 'project', 'position'])
             ->active()
             ->orderBy('nik')
@@ -366,15 +371,34 @@ class LetterNumberController extends Controller
     /**
      * API: Get available letter numbers for specific category
      */
-    public function getAvailableNumbers($categoryId)
+    public function getAvailableNumbers($categoryCode)
     {
-        $numbers = LetterNumber::byCategory($categoryId)
-            ->available()
-            ->active()
-            ->orderBy('sequence_number')
-            ->get(['id', 'letter_number', 'destination', 'remarks']);
+        try {
+            $category = LetterCategory::where('category_code', $categoryCode)->firstOrFail();
 
-        return response()->json($numbers);
+            $numbers = LetterNumber::where('letter_category_id', $category->id)
+                ->where('status', 'reserved')
+                ->with('subject') // Eager load subject
+                ->orderBy('letter_date', 'desc')
+                ->get();
+
+            // Format data to match what the component expects
+            $formattedNumbers = $numbers->map(function ($number) {
+                return [
+                    'id' => $number->id,
+                    'letter_number' => $number->letter_number,
+                    'letter_date' => $number->letter_date,
+                    'subject_name' => $number->subject->subject_name ?? $number->custom_subject,
+                    'remarks' => $number->remarks,
+                ];
+            });
+
+            return response()->json(['success' => true, 'data' => $formattedNumbers]);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json(['success' => false, 'message' => "Category '{$categoryCode}' not found."], 404);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => 'An error occurred while fetching numbers.'], 500);
+        }
     }
 
     public function getSubjectsForCategory($categoryId)
@@ -420,6 +444,67 @@ class LetterNumberController extends Controller
         } catch (\Exception $e) {
             return redirect()->route('letter-numbers.show', $id)
                 ->with('toast_error', 'An error occurred: ' . $e->getMessage());
+        }
+    }
+
+    public function export()
+    {
+        return Excel::download(new LetterAdministrationExport, 'letter-numbers-' . date('Y-m-d') . '.xlsx');
+    }
+
+    public function import(Request $request)
+    {
+        $request->validate([
+            'file' => 'required|mimes:xls,xlsx'
+        ], [
+            'file.required' => 'Please select a file to import.',
+            'file.mimes'    => 'The file must be a file of type: xls, xlsx.'
+        ]);
+
+        try {
+            $import = new LetterAdministrationImport();
+            Excel::import($import, $request->file('file'));
+
+            $failures = $import->failures();
+
+            if ($failures->isNotEmpty()) {
+                $formattedFailures = collect();
+                foreach ($failures as $failure) {
+                    $formattedFailures->push([
+                        'sheet'     => 'Letter Import',
+                        'row'       => $failure->row(),
+                        'attribute' => $failure->attribute(),
+                        'value'     => $failure->values()[$failure->attribute()] ?? null,
+                        'errors'    => implode(', ', $failure->errors()),
+                    ]);
+                }
+                return back()->with('failures', $formattedFailures);
+            }
+
+            return redirect()->route('letter-numbers.index')->with('toast_success', 'Data imported successfully!');
+        } catch (ValidationException $e) {
+            $failures = collect();
+            foreach ($e->failures() as $failure) {
+                $failures->push([
+                    'sheet'     => 'Letter Import',
+                    'row'       => $failure->row(),
+                    'attribute' => $failure->attribute(),
+                    'value'     => $failure->values()[$failure->attribute()] ?? null,
+                    'errors'    => implode(', ', $failure->errors()),
+                ]);
+            }
+            return back()->with('failures', $failures);
+        } catch (\Throwable $e) {
+            $failures = collect([
+                [
+                    'sheet'     => 'System Error',
+                    'row'       => '-',
+                    'attribute' => 'General Error',
+                    'value'     => null,
+                    'errors'    => 'An error occurred during import: ' . $e->getMessage()
+                ]
+            ]);
+            return back()->with('failures', $failures);
         }
     }
 }

@@ -149,7 +149,7 @@ Fitur administrasi penomoran surat akan terintegrasi dengan sistem surat yang ad
 CREATE TABLE letter_numbers (
     id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     letter_number VARCHAR(50) NOT NULL UNIQUE,
-    category_code VARCHAR(10) NOT NULL,
+    letter_category_id BIGINT UNSIGNED NOT NULL,
     sequence_number INT NOT NULL,
     year YEAR NOT NULL,
     subject_id BIGINT UNSIGNED,
@@ -187,11 +187,12 @@ CREATE TABLE letter_numbers (
     FOREIGN KEY (user_id) REFERENCES users(id),
     FOREIGN KEY (reserved_by) REFERENCES users(id),
     FOREIGN KEY (used_by) REFERENCES users(id),
+    FOREIGN KEY (letter_category_id) REFERENCES letter_categories(id),
     FOREIGN KEY (subject_id) REFERENCES letter_subjects(id),
     FOREIGN KEY (administration_id) REFERENCES administrations(id),
     FOREIGN KEY (project_id) REFERENCES projects(id),
 
-    INDEX idx_category_year (category_code, year),
+    INDEX idx_category_year (letter_category_id, year),
     INDEX idx_letter_date (letter_date),
     INDEX idx_administration (administration_id),
     INDEX idx_status (status),
@@ -232,14 +233,15 @@ CREATE TABLE letter_categories (
 CREATE TABLE letter_subjects (
     id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     subject_name VARCHAR(200) NOT NULL,
-    category_code VARCHAR(10) NOT NULL,
+    letter_category_id BIGINT UNSIGNED NOT NULL,
     is_active BOOLEAN DEFAULT 1,
     user_id BIGINT UNSIGNED,
     created_at TIMESTAMP,
     updated_at TIMESTAMP,
 
     FOREIGN KEY (user_id) REFERENCES users(id),
-    INDEX idx_category_code (category_code)
+    FOREIGN KEY (letter_category_id) REFERENCES letter_categories(id),
+    INDEX idx_letter_category (letter_category_id)
 );
 ```
 
@@ -271,7 +273,7 @@ class LetterNumber extends Model
     // Relationships
     public function category()
     {
-        return $this->belongsTo(LetterCategory::class, 'category_code', 'category_code');
+        return $this->belongsTo(LetterCategory::class, 'letter_category_id');
     }
 
     public function subject()
@@ -342,14 +344,19 @@ class LetterNumber extends Model
     // Generate letter number
     public function generateLetterNumber()
     {
-        $year = date('Y');
-        $sequence = static::where('category_code', $this->category_code)
+        // Pastikan relasi category sudah di-load untuk mendapatkan category_code
+        if (!$this->relationLoaded('category')) {
+            $this->load('category');
+        }
+
+        $year = date('Y', strtotime($this->letter_date));
+        $sequence = static::where('letter_category_id', $this->letter_category_id)
                          ->where('year', $year)
                          ->max('sequence_number') + 1;
 
         $this->sequence_number = $sequence;
         $this->year = $year;
-        $this->letter_number = $this->category_code . sprintf('%04d', $sequence);
+        $this->letter_number = $this->category->category_code . sprintf('%04d', $sequence);
     }
 
     // Mark nomor sebagai used
@@ -393,9 +400,20 @@ class LetterNumber extends Model
         parent::boot();
 
         static::creating(function ($model) {
-            $model->generateLetterNumber();
-            $model->reserved_by = auth()->id();
-            $model->status = 'reserved';
+            if (empty($model->letter_number)) {
+                $model->generateLetterNumber();
+            }
+            if (auth()->check()) {
+                if (empty($model->user_id)) {
+                    $model->user_id = auth()->id();
+                }
+                if (empty($model->reserved_by)) {
+                    $model->reserved_by = auth()->id();
+                }
+            }
+            if (empty($model->status)) {
+                $model->status = 'reserved';
+            }
         });
     }
 }
@@ -463,14 +481,17 @@ class Officialtravel extends Model
             // Jika belum ada letter number, auto-assign (untuk backward compatibility)
             if (!$model->letter_number_id && !$model->letter_number) {
                 // Auto-create letter number untuk kategori B (Internal)
-                $letterNumber = LetterNumber::create([
-                    'category_code' => 'B',
-                    'letter_date' => $model->created_at->toDateString(),
-                    'custom_subject' => 'Surat Perjalanan Dinas',
-                    'user_id' => auth()->id() ?? $model->created_by,
-                ]);
+                $category = LetterCategory::where('category_code', 'B')->first();
+                if ($category) {
+                    $letterNumber = LetterNumber::create([
+                        'letter_category_id' => $category->id,
+                        'letter_date' => $model->created_at->toDateString(),
+                        'custom_subject' => 'Surat Perjalanan Dinas',
+                        'user_id' => auth()->id() ?? $model->created_by,
+                    ]);
 
-                $model->assignLetterNumber($letterNumber->id);
+                    $model->assignLetterNumber($letterNumber->id);
+                }
             }
         });
     }
@@ -495,12 +516,12 @@ class LetterCategory extends Model
 
     public function subjects()
     {
-        return $this->hasMany(LetterSubject::class, 'category_code', 'category_code');
+        return $this->hasMany(LetterSubject::class, 'letter_category_id');
     }
 
     public function letterNumbers()
     {
-        return $this->hasMany(LetterNumber::class, 'category_code', 'category_code');
+        return $this->hasMany(LetterNumber::class, 'letter_category_id');
     }
 
     public function user()
@@ -540,8 +561,8 @@ class LetterNumberController extends Controller
     public function getLetterNumbers(Request $request)
     {
         $letterNumbers = LetterNumber::with(['category', 'subject', 'employee', 'project', 'reservedBy', 'usedBy'])
-            ->when($request->category_code, function($query, $category) {
-                return $query->where('category_code', $category);
+            ->when($request->letter_category_id, function($query, $categoryId) {
+                return $query->where('letter_category_id', $categoryId);
             })
             ->when($request->status, function($query, $status) {
                 return $query->where('status', $status);
@@ -588,13 +609,18 @@ class LetterNumberController extends Controller
     public function store(Request $request)
     {
         $rules = [
-            'category_code' => 'required|exists:letter_categories,category_code',
+            'letter_category_id' => 'required|exists:letter_categories,id',
             'letter_date' => 'required|date',
             'destination' => 'nullable|string|max:200',
             'remarks' => 'nullable|string',
         ];
 
         // Dynamic validation based on category...
+        $category = LetterCategory::find($request->letter_category_id);
+        if ($category) {
+            // Lakukan validasi tambahan berdasarkan category->category_code
+        }
+
         $request->validate($rules);
 
         $letterNumber = new LetterNumber();
@@ -602,7 +628,7 @@ class LetterNumberController extends Controller
         $letterNumber->user_id = auth()->id();
 
         // Handle employee data for relevant categories
-        if (in_array($request->category_code, ['PKWT', 'PAR', 'CRTE', 'SKPK']) && $request->employee_id) {
+        if ($category && in_array($category->category_code, ['PKWT', 'PAR', 'CRTE', 'SKPK']) && $request->employee_id) {
             $employee = Employee::with('administrations')->find($request->employee_id);
             $letterNumber->employee_name = $employee->fullname;
             $letterNumber->nik = $employee->administrations->first()->nik ?? null;
@@ -629,7 +655,7 @@ class LetterNumberController extends Controller
     public function requestNumber(Request $request)
     {
         $request->validate([
-            'category_code' => 'required|exists:letter_categories,category_code',
+            'letter_category_id' => 'required|exists:letter_categories,id',
             'letter_date' => 'required|date',
             'custom_subject' => 'nullable|string|max:200',
             'employee_id' => 'nullable|exists:employees,id',
@@ -638,7 +664,7 @@ class LetterNumberController extends Controller
 
         try {
             $letterNumber = new LetterNumber();
-            $letterNumber->category_code = $request->category_code;
+            $letterNumber->letter_category_id = $request->letter_category_id;
             $letterNumber->letter_date = $request->letter_date;
             $letterNumber->custom_subject = $request->custom_subject;
             $letterNumber->employee_id = $request->employee_id;
@@ -651,7 +677,7 @@ class LetterNumberController extends Controller
                 'data' => [
                     'id' => $letterNumber->id,
                     'letter_number' => $letterNumber->letter_number,
-                    'category_code' => $letterNumber->category_code,
+                    'letter_category_id' => $letterNumber->letter_category_id,
                 ]
             ]);
         } catch (\Exception $e) {
@@ -710,10 +736,10 @@ class LetterNumberController extends Controller
     // API untuk get available numbers (untuk dropdown di form surat)
     public function getAvailableNumbers(Request $request)
     {
-        $categoryCode = $request->get('category_code');
+        $categoryId = $request->get('category_id');
 
         $numbers = LetterNumber::with(['category', 'subject'])
-                              ->where('category_code', $categoryCode)
+                              ->where('letter_category_id', $categoryId)
                               ->where('status', 'reserved')
                               ->orderBy('sequence_number', 'desc')
                               ->limit(50)
@@ -746,11 +772,15 @@ class OfficialtravelController extends Controller
         // ... existing code ...
 
         // Tambahan untuk integration
-        $availableLetterNumbers = LetterNumber::where('category_code', 'B')
-                                            ->where('status', 'reserved')
-                                            ->orderBy('sequence_number', 'desc')
-                                            ->limit(20)
-                                            ->get();
+        $categoryB = LetterCategory::where('category_code', 'B')->first();
+        $availableLetterNumbers = collect();
+        if ($categoryB) {
+            $availableLetterNumbers = LetterNumber::where('letter_category_id', $categoryB->id)
+                                                ->where('status', 'reserved')
+                                                ->orderBy('sequence_number', 'desc')
+                                                ->limit(20)
+                                                ->get();
+        }
 
         return view('officialtravels.create', compact(
             'title', /* ... existing variables ... */
@@ -775,16 +805,19 @@ class OfficialtravelController extends Controller
             }
         } elseif ($request->request_new_number) {
             // Request nomor baru via API
-            $letterNumber = LetterNumber::create([
-                'category_code' => 'B',
-                'letter_date' => $request->departure_date ?? now()->toDateString(),
-                'custom_subject' => 'Surat Perjalanan Dinas',
-                'project_id' => $request->official_travel_origin,
-                'user_id' => auth()->id(),
-            ]);
+            $categoryB = LetterCategory::where('category_code', 'B')->first();
+            if ($categoryB) {
+                $letterNumber = LetterNumber::create([
+                    'letter_category_id' => $categoryB->id,
+                    'letter_date' => $request->departure_date ?? now()->toDateString(),
+                    'custom_subject' => 'Surat Perjalanan Dinas',
+                    'project_id' => $request->official_travel_origin,
+                    'user_id' => auth()->id(),
+                ]);
 
-            $officialtravel->letter_number_id = $letterNumber->id;
-            $officialtravel->letter_number = $letterNumber->letter_number;
+                $officialtravel->letter_number_id = $letterNumber->id;
+                $officialtravel->letter_number = $letterNumber->letter_number;
+            }
         }
 
         $officialtravel->save();
@@ -852,7 +885,7 @@ return new class extends Migration
         Schema::create('letter_numbers', function (Blueprint $table) {
             $table->id();
             $table->string('letter_number', 50)->unique();
-            $table->string('category_code', 10);
+            $table->foreignId('letter_category_id')->constrained('letter_categories');
             $table->integer('sequence_number');
             $table->year('year');
             $table->foreignId('subject_id')->nullable()->constrained('letter_subjects');
@@ -878,7 +911,7 @@ return new class extends Migration
             $table->foreignId('user_id')->constrained('users');
             $table->timestamps();
 
-            $table->index(['category_code', 'year']);
+            $table->index(['letter_category_id', 'year']);
             $table->index('letter_date');
             $table->index('administration_id');
         });
@@ -921,8 +954,8 @@ class LetterNumberController extends Controller
     public function getLetterNumbers(Request $request)
     {
         $letterNumbers = LetterNumber::with(['category', 'subject', 'employee', 'project', 'user'])
-            ->when($request->category_code, function($query, $category) {
-                return $query->where('category_code', $category);
+            ->when($request->letter_category_id, function($query, $categoryId) {
+                return $query->where('letter_category_id', $categoryId);
             })
             ->when($request->date_from, function($query, $date) {
                 return $query->where('letter_date', '>=', $date);
@@ -954,7 +987,7 @@ class LetterNumberController extends Controller
             ->toJson();
     }
 
-    public function create($categoryCode = null)
+    public function create($categoryId = null)
     {
         $title = 'Buat Nomor Surat';
         $categories = LetterCategory::where('is_active', 1)->get();
@@ -964,11 +997,13 @@ class LetterNumberController extends Controller
         $selectedCategory = null;
         $subjects = collect();
 
-        if ($categoryCode) {
-            $selectedCategory = LetterCategory::where('category_code', $categoryCode)->first();
-            $subjects = LetterSubject::where('category_code', $categoryCode)
-                                   ->where('is_active', 1)
-                                   ->get();
+        if ($categoryId) {
+            $selectedCategory = LetterCategory::find($categoryId);
+            if($selectedCategory) {
+                $subjects = LetterSubject::where('letter_category_id', $categoryId)
+                                       ->where('is_active', 1)
+                                       ->get();
+            }
         }
 
         return view('letter-numbers.create', compact('title', 'categories', 'subjects', 'employees', 'projects', 'selectedCategory'));
@@ -977,29 +1012,34 @@ class LetterNumberController extends Controller
     public function store(Request $request)
     {
         $rules = [
-            'category_code' => 'required|exists:letter_categories,category_code',
+            'letter_category_id' => 'required|exists:letter_categories,id',
             'letter_date' => 'required|date',
             'destination' => 'nullable|string|max:200',
             'remarks' => 'nullable|string',
         ];
 
         // Dynamic validation based on category
-        switch ($request->category_code) {
-            case 'A':
-            case 'B':
-                $rules['classification'] = 'nullable|in:Umum,Lembaga Pendidikan,Pemerintah';
-                break;
+        $category = LetterCategory::find($request->letter_category_id);
+        if ($category) {
+            switch ($category->category_code) {
+                case 'PKWT':
+                    $rules['administration_id'] = 'required|exists:administrations,id';
+                    $rules['duration'] = 'required|string';
+                    $rules['start_date'] = 'required|date';
+                    $rules['end_date'] = 'required|date|after:start_date';
+                    $rules['pkwt_type'] = 'required|in:PKWT I,PKWT II,PKWT III';
+                    break;
 
-            case 'PKWT':
-                $rules['employee_id'] = 'required|exists:employees,id';
-                $rules['project_id'] = 'required|exists:projects,id';
-                $rules['duration'] = 'required|string';
-                $rules['start_date'] = 'required|date';
-                $rules['end_date'] = 'required|date|after:start_date';
-                $rules['pkwt_type'] = 'required|in:PKWT I,PKWT II,PKWT III';
-                break;
+                case 'PAR':
+                    $rules['administration_id'] = 'required|exists:administrations,id';
+                    $rules['par_type'] = 'required|in:new hire,promosi,mutasi,demosi';
+                    break;
 
-            // Add more cases for other categories
+                case 'CRTE':
+                case 'SKPK':
+                    $rules['administration_id'] = 'required|exists:administrations,id';
+                    break;
+            }
         }
 
         $request->validate($rules);
@@ -1009,7 +1049,7 @@ class LetterNumberController extends Controller
         $letterNumber->user_id = auth()->id();
 
         // Handle employee data for relevant categories
-        if (in_array($request->category_code, ['PKWT', 'PAR', 'CRTE', 'SKPK']) && $request->employee_id) {
+        if ($category && in_array($category->category_code, ['PKWT', 'PAR', 'CRTE', 'SKPK']) && $request->employee_id) {
             $employee = Employee::with('administrations')->find($request->employee_id);
             $letterNumber->employee_name = $employee->fullname;
             $letterNumber->nik = $employee->administrations->first()->nik ?? null;
@@ -1060,31 +1100,31 @@ class LetterNumberController extends Controller
                                     <i class="fas fa-plus"></i> Buat Surat
                                 </button>
                                 <div class="dropdown-menu">
-                                    <a class="dropdown-item" href="{{ route('letter-numbers.create', 'A') }}">
+                                    <a class="dropdown-item" href="{{ route('letter-numbers.create', ['categoryId' => 1]) }}">
                                         <i class="fas fa-file-alt"></i> Surat Eksternal (A)
                                     </a>
-                                    <a class="dropdown-item" href="{{ route('letter-numbers.create', 'B') }}">
+                                    <a class="dropdown-item" href="{{ route('letter-numbers.create', ['categoryId' => 2]) }}">
                                         <i class="fas fa-file-alt"></i> Surat Internal (B)
                                     </a>
-                                    <a class="dropdown-item" href="{{ route('letter-numbers.create', 'PKWT') }}">
+                                    <a class="dropdown-item" href="{{ route('letter-numbers.create', ['categoryId' => 3]) }}">
                                         <i class="fas fa-file-contract"></i> PKWT
                                     </a>
-                                    <a class="dropdown-item" href="{{ route('letter-numbers.create', 'PAR') }}">
+                                    <a class="dropdown-item" href="{{ route('letter-numbers.create', ['categoryId' => 4]) }}">
                                         <i class="fas fa-user-tie"></i> PAR
                                     </a>
-                                    <a class="dropdown-item" href="{{ route('letter-numbers.create', 'CRTE') }}">
+                                    <a class="dropdown-item" href="{{ route('letter-numbers.create', ['categoryId' => 5]) }}">
                                         <i class="fas fa-certificate"></i> Surat Pengalaman Kerja
                                     </a>
-                                    <a class="dropdown-item" href="{{ route('letter-numbers.create', 'SKPK') }}">
+                                    <a class="dropdown-item" href="{{ route('letter-numbers.create', ['categoryId' => 6]) }}">
                                         <i class="fas fa-certificate"></i> Surat Keterangan Pengalaman
                                     </a>
-                                    <a class="dropdown-item" href="{{ route('letter-numbers.create', 'MEMO') }}">
+                                    <a class="dropdown-item" href="{{ route('letter-numbers.create', ['categoryId' => 7]) }}">
                                         <i class="fas fa-sticky-note"></i> Memo
                                     </a>
-                                    <a class="dropdown-item" href="{{ route('letter-numbers.create', 'FPTK') }}">
+                                    <a class="dropdown-item" href="{{ route('letter-numbers.create', ['categoryId' => 8]) }}">
                                         <i class="fas fa-users"></i> FPTK
                                     </a>
-                                    <a class="dropdown-item" href="{{ route('letter-numbers.create', 'FR') }}">
+                                    <a class="dropdown-item" href="{{ route('letter-numbers.create', ['categoryId' => 9]) }}">
                                         <i class="fas fa-plane"></i> Permintaan Tiket
                                     </a>
                                 </div>
@@ -1110,7 +1150,7 @@ class LetterNumberController extends Controller
                                             <select class="form-control select2bs4" id="filter-category">
                                                 <option value="">- Semua Kategori -</option>
                                                 @foreach($categories as $category)
-                                                    <option value="{{ $category->category_code }}">
+                                                    <option value="{{ $category->id }}">
                                                         {{ $category->category_name }}
                                                     </option>
                                                 @endforeach
@@ -1194,7 +1234,7 @@ $(function() {
         ajax: {
             url: "{{ route('letter-numbers.data') }}",
             data: function(d) {
-                d.category_code = $('#filter-category').val();
+                d.letter_category_id = $('#filter-category').val();
                 d.date_from = $('#filter-date-from').val();
                 d.date_to = $('#filter-date-to').val();
             }
@@ -1240,7 +1280,7 @@ Route::group(['middleware' => ['auth']], function () {
     Route::prefix('letter-numbers')->name('letter-numbers.')->group(function () {
         Route::get('/', [LetterNumberController::class, 'index'])->name('index');
         Route::get('/data', [LetterNumberController::class, 'getLetterNumbers'])->name('data');
-        Route::get('/create/{categoryCode?}', [LetterNumberController::class, 'create'])->name('create');
+        Route::get('/create/{categoryId?}', [LetterNumberController::class, 'create'])->name('create');
         Route::post('/', [LetterNumberController::class, 'store'])->name('store');
         Route::get('/{id}', [LetterNumberController::class, 'show'])->name('show');
         Route::get('/{id}/edit', [LetterNumberController::class, 'edit'])->name('edit');
@@ -1251,7 +1291,7 @@ Route::group(['middleware' => ['auth']], function () {
         // Integration API Routes
         Route::post('/request-number', [LetterNumberController::class, 'requestNumber'])->name('request');
         Route::post('/{id}/mark-as-used', [LetterNumberController::class, 'markAsUsed'])->name('mark-used');
-        Route::get('/available/{categoryCode}', [LetterNumberController::class, 'getAvailableNumbers'])->name('available');
+        Route::get('/available', [LetterNumberController::class, 'getAvailableNumbers'])->name('available');
         Route::post('/{id}/cancel', [LetterNumberController::class, 'cancel'])->name('cancel');
     });
 
@@ -1260,7 +1300,7 @@ Route::group(['middleware' => ['auth']], function () {
     Route::resource('letter-subjects', LetterSubjectController::class);
 
     // API routes for dynamic dropdowns
-    Route::get('/api/letter-subjects/{categoryCode}', [LetterSubjectController::class, 'getByCategory']);
+    Route::get('/api/letter-subjects/{categoryId}', [LetterSubjectController::class, 'getByCategory']);
 });
 ```
 
@@ -1402,8 +1442,9 @@ class LetterNumberIntegration {
         }
     }
 
-    refreshAvailableNumbers(categoryCode = "B") {
-        $.get(`/letter-numbers/available/${categoryCode}`, (data) => {
+    refreshAvailableNumbers(categoryId = 2) {
+        // Default to category 'B'
+        $.get(`/letter-numbers/available?category_id=${categoryId}`, (data) => {
             var select = $("#letter_number_id");
             select
                 .empty()
@@ -1839,31 +1880,34 @@ class LetterNumberController extends Controller
     public function store(Request $request)
     {
         $rules = [
-            'category_code' => 'required|exists:letter_categories,category_code',
+            'letter_category_id' => 'required|exists:letter_categories,id',
             'letter_date' => 'required|date',
             'destination' => 'nullable|string|max:200',
             'remarks' => 'nullable|string',
         ];
 
         // Dynamic validation based on category
-        switch ($request->category_code) {
-            case 'PKWT':
-                $rules['administration_id'] = 'required|exists:administrations,id';
-                $rules['duration'] = 'required|string';
-                $rules['start_date'] = 'required|date';
-                $rules['end_date'] = 'required|date|after:start_date';
-                $rules['pkwt_type'] = 'required|in:PKWT I,PKWT II,PKWT III';
-                break;
+        $category = LetterCategory::find($request->letter_category_id);
+        if ($category) {
+            switch ($category->category_code) {
+                case 'PKWT':
+                    $rules['administration_id'] = 'required|exists:administrations,id';
+                    $rules['duration'] = 'required|string';
+                    $rules['start_date'] = 'required|date';
+                    $rules['end_date'] = 'required|date|after:start_date';
+                    $rules['pkwt_type'] = 'required|in:PKWT I,PKWT II,PKWT III';
+                    break;
 
-            case 'PAR':
-                $rules['administration_id'] = 'required|exists:administrations,id';
-                $rules['par_type'] = 'required|in:new hire,promosi,mutasi,demosi';
-                break;
+                case 'PAR':
+                    $rules['administration_id'] = 'required|exists:administrations,id';
+                    $rules['par_type'] = 'required|in:new hire,promosi,mutasi,demosi';
+                    break;
 
-            case 'CRTE':
-            case 'SKPK':
-                $rules['administration_id'] = 'required|exists:administrations,id';
-                break;
+                case 'CRTE':
+                case 'SKPK':
+                    $rules['administration_id'] = 'required|exists:administrations,id';
+                    break;
+            }
         }
 
         $request->validate($rules);
@@ -1871,6 +1915,14 @@ class LetterNumberController extends Controller
         $letterNumber = new LetterNumber();
         $letterNumber->fill($request->all());
         $letterNumber->user_id = auth()->id();
+
+        // Handle employee data for relevant categories
+        if ($category && in_array($category->category_code, ['PKWT', 'PAR', 'CRTE', 'SKPK']) && $request->employee_id) {
+            $employee = Employee::with('administrations')->find($request->employee_id);
+            $letterNumber->employee_name = $employee->fullname;
+            $letterNumber->nik = $employee->administrations->first()->nik ?? null;
+        }
+
         $letterNumber->save();
 
         return redirect()->route('letter-numbers.index')
@@ -1883,8 +1935,8 @@ class LetterNumberController extends Controller
                 'category', 'subject', 'administration.employee',
                 'administration.project', 'project', 'user', 'reservedBy', 'usedBy'
             ])
-            ->when($request->category_code, function($query, $category) {
-                return $query->where('category_code', $category);
+            ->when($request->letter_category_id, function($query, $categoryId) {
+                return $query->where('letter_category_id', $categoryId);
             })
             ->when($request->status, function($query, $status) {
                 return $query->where('status', $status);
@@ -1939,7 +1991,7 @@ class LetterNumberController extends Controller
     public function requestNumber(Request $request)
     {
         $request->validate([
-            'category_code' => 'required|exists:letter_categories,category_code',
+            'letter_category_id' => 'required|exists:letter_categories,id',
             'letter_date' => 'required|date',
             'custom_subject' => 'nullable|string|max:200',
             'administration_id' => 'nullable|exists:administrations,id',
@@ -1948,7 +2000,7 @@ class LetterNumberController extends Controller
 
         try {
             $letterNumber = new LetterNumber();
-            $letterNumber->category_code = $request->category_code;
+            $letterNumber->letter_category_id = $request->letter_category_id;
             $letterNumber->letter_date = $request->letter_date;
             $letterNumber->custom_subject = $request->custom_subject;
             $letterNumber->administration_id = $request->administration_id;
@@ -1961,7 +2013,7 @@ class LetterNumberController extends Controller
                 'data' => [
                     'id' => $letterNumber->id,
                     'letter_number' => $letterNumber->letter_number,
-                    'category_code' => $letterNumber->category_code,
+                    'letter_category_id' => $letterNumber->letter_category_id,
                 ]
             ]);
         } catch (\Exception $e) {
@@ -2110,3 +2162,433 @@ return new class extends Migration
 ```
 
 Dengan update ini, sistem penomoran surat akan fully integrated dengan data administrasi karyawan yang sudah ada, memastikan konsistensi data dan menghindari duplikasi informasi.
+
+## 7. UPDATE 2: FITUR BEHAVIOR PENOMORAN (ANNUAL RESET VS. CONTINUOUS)
+
+Berdasarkan permintaan untuk menambah fleksibilitas pada sistem penomoran surat, desain diperbarui untuk mendukung dua jenis "behavior" penomoran yang berbeda untuk setiap kategori surat.
+
+### 7.1 Analisis Kebutuhan & Dampak
+
+#### 7.1.1 Kebutuhan Bisnis
+
+Terdapat dua skenario kebutuhan untuk sequence nomor surat:
+
+1.  **Annual Reset**: Nomor urut (sequence) direset kembali ke `0001` setiap awal tahun. Ini adalah behavior standar untuk sebagian besar surat resmi. Contoh: `A0001/HC/I/2023` akan diikuti oleh `A0001/HC/I/2024` di tahun berikutnya.
+2.  **Continuous**: Nomor urut terus bertambah (increment) tanpa pernah direset, mengabaikan pergantian tahun. Ini berguna untuk dokumen internal seperti Memo atau dokumen lain yang memerlukan sequence unik berkelanjutan. Contoh: `MEMO0531` akan diikuti oleh `MEMO0532` terlepas dari tahun pembuatan.
+
+#### 7.1.2 Dampak Perubahan
+
+Untuk mengimplementasikan fitur ini, diperlukan perubahan pada komponen berikut:
+
+-   **Database**: Tabel `letter_categories` perlu kolom baru untuk menyimpan behavior penomoran.
+-   **Model**: Logika pada method `LetterNumber::generateLetterNumber()` perlu dimodifikasi secara signifikan untuk menangani kedua behavior.
+-   **Controller & View**: Form untuk mengelola `LetterCategory` (create & edit) perlu field baru untuk mengatur behavior ini.
+-   **Seeder**: Seeder untuk `letter_categories` perlu diupdate untuk mengisi nilai default behavior.
+
+### 7.2 Desain Perubahan Teknis
+
+#### 7.2.1 Update Skema Database: `letter_categories`
+
+Kolom baru `numbering_behavior` akan ditambahkan ke tabel `letter_categories`.
+
+```sql
+-- Perubahan pada tabel letter_categories
+ALTER TABLE letter_categories
+ADD COLUMN numbering_behavior ENUM('annual_reset', 'continuous') NOT NULL DEFAULT 'annual_reset' COMMENT 'Defines numbering reset behavior' AFTER description;
+```
+
+Struktur tabel `letter_categories` yang telah diperbarui:
+
+```sql
+CREATE TABLE letter_categories (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    category_code VARCHAR(10) NOT NULL UNIQUE,
+    category_name VARCHAR(100) NOT NULL,
+    description TEXT,
+    numbering_behavior ENUM('annual_reset', 'continuous') NOT NULL DEFAULT 'annual_reset',
+    is_active BOOLEAN DEFAULT 1,
+    user_id BIGINT UNSIGNED,
+    created_at TIMESTAMP,
+    updated_at TIMESTAMP,
+
+    FOREIGN KEY (user_id) REFERENCES users(id)
+);
+```
+
+#### 7.2.2 Update Logika Model: `LetterNumber::generateLetterNumber()`
+
+Method `generateLetterNumber()` di dalam model `LetterNumber` akan diubah untuk memeriksa `numbering_behavior` dari kategori terkait sebelum menentukan `sequence_number`.
+
+```php
+<?php
+// app/Models/LetterNumber.php
+
+// ...
+
+    // Generate letter number (Updated Logic)
+    public function generateLetterNumber()
+    {
+        // Pastikan relasi category sudah di-load untuk mendapatkan behavior dan code
+        if (!$this->relationLoaded('category')) {
+            $this->load('category');
+        }
+
+        $category = $this->category;
+        $year = date('Y', strtotime($this->letter_date));
+
+        $query = static::where('letter_category_id', $this->letter_category_id);
+
+        // Terapkan logika berdasarkan behavior penomoran
+        if ($category->numbering_behavior === 'annual_reset') {
+            // Reset setiap tahun
+            $query->where('year', $year);
+        }
+        // Untuk 'continuous', kita tidak membatasi berdasarkan tahun
+
+        $sequence = $query->max('sequence_number') + 1;
+
+        $this->sequence_number = $sequence;
+        $this->year = $year; // Kolom tahun tetap diisi untuk pencatatan
+        $this->letter_number = $this->category->category_code . sprintf('%04d', $sequence);
+    }
+
+// ...
+```
+
+#### 7.2.3 Update Seeder: `LetterCategorySeeder`
+
+Seeder untuk `letter_categories` diupdate untuk menyertakan nilai `numbering_behavior`. Sebagai contoh, kita akan mengatur `PKWT`, `PAR`, `CRTE`, dan `SKPK` untuk menggunakan penomoran _continuous_.
+
+```php
+<?php
+// database/seeders/LetterCategorySeeder.php
+
+$categories = [
+    ['category_code' => 'A', 'category_name' => 'Surat Eksternal', 'description' => 'Surat untuk pihak eksternal', 'numbering_behavior' => 'annual_reset'],
+    ['category_code' => 'B', 'category_name' => 'Surat Internal', 'description' => 'Surat untuk internal perusahaan', 'numbering_behavior' => 'annual_reset'],
+    ['category_code' => 'PKWT', 'category_name' => 'Surat PKWT', 'description' => 'Perjanjian Kerja Waktu Tertentu', 'numbering_behavior' => 'continuous'],
+    ['category_code' => 'PAR', 'category_name' => 'Surat PAR', 'description' => 'Personal Action Request', 'numbering_behavior' => 'continuous'],
+    ['category_code' => 'CRTE', 'category_name' => 'Surat Pengalaman Kerja', 'description' => 'Certificate of Employment', 'numbering_behavior' => 'continuous'],
+    ['category_code' => 'SKPK', 'category_name' => 'Surat Ket. Pengalaman Kerja', 'description' => 'Surat Keterangan Pengalaman Kerja', 'numbering_behavior' => 'continuous'],
+    ['category_code' => 'MEMO', 'category_name' => 'Surat Memo', 'description' => 'Internal Memo', 'numbering_behavior' => 'annual_reset'],
+    ['category_code' => 'FPTK', 'category_name' => 'Form Permintaan Tenaga Kerja', 'description' => 'FPTK', 'numbering_behavior' => 'annual_reset'],
+    ['category_code' => 'FR', 'category_name' => 'Form Request Tiket', 'description' => 'Permintaan Tiket Perjalanan', 'numbering_behavior' => 'annual_reset'],
+];
+
+// Logika untuk insert data...
+```
+
+#### 7.2.4 Update Controller & View: `LetterCategory` Management
+
+Untuk memungkinkan user mengelola behavior ini, form create dan edit untuk kategori surat harus diupdate.
+
+**Contoh Update pada `LetterCategoryController`:**
+
+```php
+<?php
+// app/Http/Controllers/LetterCategoryController.php
+
+// Pada method store() dan update()
+public function store(Request $request)
+{
+    $request->validate([
+        'category_code' => 'required|string|max:10|unique:letter_categories,category_code',
+        'category_name' => 'required|string|max:100',
+        'description' => 'nullable|string',
+        'numbering_behavior' => 'required|in:annual_reset,continuous', // Validasi input baru
+        'is_active' => 'required|boolean',
+    ]);
+
+    // ... logika create ...
+}
+
+public function update(Request $request, LetterCategory $letterCategory)
+{
+    $request->validate([
+        'category_code' => 'required|string|max:10|unique:letter_categories,category_code,' . $letterCategory->id,
+        'category_name' => 'required|string|max:100',
+        'description' => 'nullable|string',
+        'numbering_behavior' => 'required|in:annual_reset,continuous', // Validasi input baru
+        'is_active' => 'required|boolean',
+    ]);
+
+    // ... logika update ...
+}
+```
+
+**Contoh Update pada View `resources/views/letter-categories/create.blade.php`:**
+
+```blade
+{{-- ... Form fields lainnya ... --}}
+
+<div class="form-group">
+    <label for="description">Deskripsi</label>
+    <textarea name="description" id="description" class="form-control" rows="3">{{ old('description') }}</textarea>
+</div>
+
+<div class="form-group">
+    <label>Behavior Penomoran <span class="text-danger">*</span></label>
+    <div class="custom-control custom-radio">
+        <input class="custom-control-input" type="radio" id="annual_reset" name="numbering_behavior" value="annual_reset" {{ old('numbering_behavior', 'annual_reset') == 'annual_reset' ? 'checked' : '' }}>
+        <label for="annual_reset" class="custom-control-label">Annual Reset</label>
+        <small class="form-text text-muted">Nomor urut akan direset setiap awal tahun.</small>
+    </div>
+    <div class="custom-control custom-radio">
+        <input class="custom-control-input" type="radio" id="continuous" name="numbering_behavior" value="continuous" {{ old('numbering_behavior') == 'continuous' ? 'checked' : '' }}>
+        <label for="continuous" class="custom-control-label">Continuous</label>
+        <small class="form-text text-muted">Nomor urut akan terus bertambah tanpa reset.</small>
+    </div>
+</div>
+
+<div class="form-group">
+    <label>Status</label>
+    {{-- ... --}}
+</div>
+```
+
+### 7.3 Rencana Implementasi
+
+Implementasi fitur ini dapat dilakukan dalam beberapa langkah:
+
+1.  **Migration**: Buat file migration baru untuk menambahkan kolom `numbering_behavior` ke tabel `letter_categories`.
+    ```bash
+    php artisan make:migration add_numbering_behavior_to_letter_categories_table
+    ```
+2.  **Model Update**: Update method `generateLetterNumber()` di model `LetterNumber`.
+3.  **Seeder Update**: Update `LetterCategorySeeder` untuk menambahkan data `numbering_behavior`. Jalankan ulang seeder jika diperlukan.
+    ```bash
+    php artisan db:seed --class=LetterCategorySeeder
+    ```
+4.  **UI Update**: Modifikasi `LetterCategoryController` beserta view `create` dan `edit`-nya untuk bisa mengelola field baru.
+5.  **Testing**: Lakukan pengujian menyeluruh untuk kedua behavior (annual reset dan continuous) untuk memastikan logika penomoran berjalan sesuai harapan.
+
+## 8. LANGKAH-LANGKAH IMPLEMENTASI FITUR BEHAVIOR PENOMORAN
+
+Berikut adalah panduan langkah demi langkah untuk mengimplementasikan fitur behavior penomoran.
+
+### Langkah 1: Buat dan Jalankan Migration
+
+Pertama, buat file migration untuk menambahkan kolom `numbering_behavior` ke tabel `letter_categories`.
+
+1.  **Jalankan command Artisan** untuk membuat file migration:
+
+    ```bash
+    php artisan make:migration add_numbering_behavior_to_letter_categories_table --table=letter_categories
+    ```
+
+2.  **Edit file migration** yang baru dibuat di `database/migrations/`. Isi dengan kode berikut untuk menambahkan kolom `numbering_behavior` dan untuk menghapusnya saat rollback.
+
+    ```php
+    <?php
+
+    use Illuminate\Database\Migrations\Migration;
+    use Illuminate\Database\Schema\Blueprint;
+    use Illuminate\Support\Facades\Schema;
+
+    return new class extends Migration
+    {
+        public function up()
+        {
+            Schema::table('letter_categories', function (Blueprint $table) {
+                $table->enum('numbering_behavior', ['annual_reset', 'continuous'])
+                      ->default('annual_reset')
+                      ->after('description')
+                      ->comment('Defines numbering reset behavior');
+            });
+        }
+
+        public function down()
+        {
+            Schema::table('letter_categories', function (Blueprint $table) {
+                $table->dropColumn('numbering_behavior');
+            });
+        }
+    };
+    ```
+
+3.  **Jalankan migrasi** untuk menerapkan perubahan ke database:
+    ```bash
+    php artisan migrate
+    ```
+
+### Langkah 2: Update LetterCategory Seeder
+
+Update seeder untuk mengisi nilai default `numbering_behavior` pada kategori yang sudah ada.
+
+1.  **Buka file `database/seeders/LetterCategorySeeder.php`**.
+2.  **Modifikasi array `$categories`** untuk menyertakan key `numbering_behavior`. Atur `PKWT`, `PAR`, `CRTE`, dan `SKPK` ke `continuous` dan sisanya ke `annual_reset`.
+
+    ```php
+    // database/seeders/LetterCategorySeeder.php
+    <?php
+
+    namespace Database\Seeders;
+
+    use App\Models\User;
+    use App\Models\LetterCategory;
+    use Illuminate\Database\Seeder;
+
+    class LetterCategorySeeder extends Seeder
+    {
+        public function run()
+        {
+            $user = User::where('email', 'admin@mail.com')->first();
+            $categories = [
+                ['category_code' => 'A', 'category_name' => 'Surat Eksternal', 'description' => 'Surat untuk pihak eksternal', 'numbering_behavior' => 'annual_reset'],
+                ['category_code' => 'B', 'category_name' => 'Surat Internal', 'description' => 'Surat untuk internal perusahaan', 'numbering_behavior' => 'annual_reset'],
+                ['category_code' => 'PKWT', 'category_name' => 'Surat PKWT', 'description' => 'Perjanjian Kerja Waktu Tertentu', 'numbering_behavior' => 'continuous'],
+                ['category_code' => 'PAR', 'category_name' => 'Surat PAR', 'description' => 'Personal Action Request', 'numbering_behavior' => 'continuous'],
+                ['category_code' => 'CRTE', 'category_name' => 'Surat Pengalaman Kerja', 'description' => 'Certificate of Employment', 'numbering_behavior' => 'continuous'],
+                ['category_code' => 'SKPK', 'category_name' => 'Surat Ket. Pengalaman Kerja', 'description' => 'Surat Keterangan Pengalaman Kerja', 'numbering_behavior' => 'continuous'],
+                ['category_code' => 'MEMO', 'category_name' => 'Surat Memo', 'description' => 'Internal Memo', 'numbering_behavior' => 'annual_reset'],
+                ['category_code' => 'FPTK', 'category_name' => 'Form Permintaan Tenaga Kerja', 'description' => 'FPTK', 'numbering_behavior' => 'annual_reset'],
+                ['category_code' => 'FR', 'category_name' => 'Form Request Tiket', 'description' => 'Permintaan Tiket Perjalanan', 'numbering_behavior' => 'annual_reset'],
+            ];
+
+            foreach ($categories as $category) {
+                LetterCategory::updateOrCreate(
+                    ['category_code' => $category['category_code']],
+                    [
+                        'category_name' => $category['category_name'],
+                        'description' => $category['description'],
+                        'numbering_behavior' => $category['numbering_behavior'],
+                        'user_id' => $user->id,
+                    ]
+                );
+            }
+        }
+    }
+    ```
+
+3.  **Jalankan ulang seeder** untuk memperbarui data di database:
+    ```bash
+    php artisan db:seed --class=LetterCategorySeeder
+    ```
+
+### Langkah 3: Update Logika Model `LetterNumber`
+
+Modifikasi method `generateLetterNumber()` di `app/Models/LetterNumber.php` untuk menangani logika penomoran baru.
+
+```php
+// app/Models/LetterNumber.php
+// ...
+    public function generateLetterNumber()
+    {
+        // Pastikan relasi category sudah di-load untuk mendapatkan behavior dan code
+        if (!$this->relationLoaded('category')) {
+            $this->load('category');
+        }
+
+        $category = $this->category;
+        $year = date('Y', strtotime($this->letter_date));
+
+        $query = static::where('letter_category_id', $this->letter_category_id);
+
+        // Terapkan logika berdasarkan behavior penomoran
+        if ($category->numbering_behavior === 'annual_reset') {
+            // Reset setiap tahun
+            $query->where('year', $year);
+        }
+        // Untuk 'continuous', kita tidak membatasi query berdasarkan tahun
+
+        $sequence = $query->max('sequence_number') + 1;
+
+        $this->sequence_number = $sequence;
+        $this->year = $year; // Kolom tahun tetap diisi untuk pencatatan
+
+        // Format penomoran bisa disesuaikan jika perlu
+        $this->letter_number = $this->category->category_code . sprintf('%04d', $sequence);
+    }
+// ...
+```
+
+### Langkah 4: Update `LetterCategoryController`
+
+Tambahkan validasi untuk field `numbering_behavior` di method `store` dan `update`.
+
+```php
+// app/Http/Controllers/LetterCategoryController.php
+// ...
+    public function store(Request $request)
+    {
+        $request->validate([
+            'category_code' => 'required|string|max:10|unique:letter_categories,category_code',
+            'category_name' => 'required|string|max:100',
+            'description' => 'nullable|string',
+            'numbering_behavior' => 'required|in:annual_reset,continuous', // Validasi baru
+        ]);
+
+        // ... (logika store lainnya)
+    }
+
+    public function update(Request $request, LetterCategory $letterCategory)
+    {
+        $request->validate([
+            'category_code' => 'required|string|max:10|unique:letter_categories,category_code,' . $letterCategory->id,
+            'category_name' => 'required|string|max:100',
+            'description' => 'nullable|string',
+            'numbering_behavior' => 'required|in:annual_reset,continuous', // Validasi baru
+        ]);
+
+        // ... (logika update lainnya)
+    }
+// ...
+```
+
+### Langkah 5: Update View Letter Category
+
+Tambahkan input radio button di form create dan edit agar user dapat memilih behavior penomoran.
+
+1.  **Edit file `resources/views/letter-categories/create.blade.php`**:
+    Tambahkan kode berikut sebelum form group untuk "Status".
+
+    ```blade
+    <div class="form-group">
+        <label>Behavior Penomoran <span class="text-danger">*</span></label>
+        <div class="custom-control custom-radio">
+            <input class="custom-control-input" type="radio" id="annual_reset" name="numbering_behavior" value="annual_reset" checked>
+            <label for="annual_reset" class="custom-control-label">Annual Reset</label>
+            <small class="form-text text-muted">Nomor urut akan direset ke 1 setiap awal tahun.</small>
+        </div>
+        <div class="custom-control custom-radio">
+            <input class="custom-control-input" type="radio" id="continuous" name="numbering_behavior" value="continuous">
+            <label for="continuous" class="custom-control-label">Continuous</label>
+            <small class="form-text text-muted">Nomor urut akan terus bertambah tanpa direset.</small>
+        </div>
+    </div>
+    ```
+
+2.  **Edit file `resources/views/letter-categories/edit.blade.php`**:
+    Tambahkan kode berikut dengan logika untuk menampilkan value yang sudah ada.
+
+    ```blade
+    <div class="form-group">
+        <label>Behavior Penomoran <span class="text-danger">*</span></label>
+        <div class="custom-control custom-radio">
+            <input class="custom-control-input" type="radio" id="annual_reset" name="numbering_behavior" value="annual_reset" {{ $letterCategory->numbering_behavior == 'annual_reset' ? 'checked' : '' }}>
+            <label for="annual_reset" class="custom-control-label">Annual Reset</label>
+            <small class="form-text text-muted">Nomor urut akan direset ke 1 setiap awal tahun.</small>
+        </div>
+        <div class="custom-control custom-radio">
+            <input class="custom-control-input" type="radio" id="continuous" name="numbering_behavior" value="continuous" {{ $letterCategory->numbering_behavior == 'continuous' ? 'checked' : '' }}>
+            <label for="continuous" class="custom-control-label">Continuous</label>
+            <small class="form-text text-muted">Nomor urut akan terus bertambah tanpa direset.</small>
+        </div>
+    </div>
+    ```
+
+### Langkah 6: Pengujian Akhir
+
+Setelah semua perubahan diterapkan, lakukan pengujian untuk memverifikasi fungsionalitas:
+
+1.  **Buat Nomor Surat Baru (Annual Reset)**:
+    -   Pilih kategori dengan behavior `annual_reset` (misal: Surat Eksternal - A).
+    -   Buat beberapa surat di tahun ini. Pastikan nomor urutnya bertambah (A0001, A0002).
+    -   Ubah tanggal pembuatan surat ke tahun berikutnya. Pastikan nomor urutnya reset kembali ke A0001.
+2.  **Buat Nomor Surat Baru (Continuous)**:
+    -   Pilih kategori dengan behavior `continuous` (misal: Memo).
+    -   Buat beberapa surat di tahun ini. Catat nomor terakhir (misal: MEMO0123).
+    -   Ubah tanggal pembuatan ke tahun berikutnya. Pastikan nomor urutnya melanjutkan dari nomor terakhir (MEMO0124).
+3.  **CRUD Kategori Surat**:
+    -   Pastikan Anda dapat membuat kategori baru dengan memilih salah satu behavior.
+    -   Pastikan Anda dapat mengedit behavior kategori yang sudah ada dan perubahan tersebut terefleksi pada penomoran berikutnya.

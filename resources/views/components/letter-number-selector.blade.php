@@ -168,7 +168,8 @@
         function refreshAvailableNumbers() {
             const categoryCode = $('#letter_category').val() || '{{ $category ?? 'B' }}';
 
-            return $.get(`/hcssis/api/letter-numbers/available/${categoryCode}`)
+            return $.get("{{ route('api.letter-numbers.available', ['categoryCode' => ':categoryCode']) }}"
+                    .replace(':categoryCode', categoryCode))
                 .done(function(data) {
                     const select = $('#letter_number_id');
                     select.empty().append('<option value="">Select Number</option>');

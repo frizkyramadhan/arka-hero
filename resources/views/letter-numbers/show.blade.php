@@ -300,7 +300,7 @@
 
                                 @if (!$letterNumber->related_document_id)
                                     <form action="{{ route('letter-numbers.mark-as-used-manually', $letterNumber->id) }}"
-                                        method="POST" class="d-inline"
+                                        method="POST" class="d-block mt-2"
                                         onsubmit="return confirm('Are you sure you want to manually mark this letter number as used?');">
                                         @csrf
                                         <button type="submit" class="btn btn-success btn-block">
@@ -308,7 +308,7 @@
                                         </button>
                                     </form>
 
-                                    <button type="button" class="btn btn-danger btn-block btn-delete"
+                                    <button type="button" class="btn btn-danger btn-block btn-delete mt-2"
                                         data-id="{{ $letterNumber->id }}"
                                         data-letter-number="{{ $letterNumber->letter_number }}">
                                         <i class="fas fa-trash"></i> Delete

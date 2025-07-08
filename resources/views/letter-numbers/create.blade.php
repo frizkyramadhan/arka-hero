@@ -311,7 +311,7 @@
                 dynamicFieldsContainer.empty();
 
                 if (categoryCode) {
-                    if (['PKWT', 'PAR', 'CRTE', 'SKPK'].includes(categoryCode)) {
+                    if (['PKWT', 'CRTE', 'SKPK'].includes(categoryCode)) {
                         dynamicFieldsContainer.append($('#employee-template').html());
                         $('#administration_id').select2({
                             theme: 'bootstrap4'
@@ -323,7 +323,7 @@
                         dynamicFieldsContainer.append($('#par-template').html());
                     } else if (categoryCode === 'FR') {
                         dynamicFieldsContainer.append($('#fr-template').html());
-                    } else if (['A', 'B'].includes(categoryCode)) {
+                    } else if (['A'].includes(categoryCode)) {
                         dynamicFieldsContainer.append($('#classification-template').html());
                     }
                 }
@@ -344,8 +344,10 @@
                 subjectSelect.empty().append('<option value="">- Select Subject -</option>');
 
                 if (categoryId) {
-                    // This route should be created to fetch subjects based on category ID
-                    $.get('/api/v1/letter-subjects/by-category/' + categoryId, function(data) {
+                    var url = "{{ route('api.letter-subjects.by-category', ['categoryId' => ':id']) }}";
+                    url = url.replace(':id', categoryId);
+
+                    $.get(url, function(data) {
                         if (data) {
                             data.forEach(function(subject) {
                                 subjectSelect.append($('<option>', {

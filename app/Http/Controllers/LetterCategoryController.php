@@ -29,6 +29,14 @@ class LetterCategoryController extends Controller
             ->addColumn('description', function ($category) {
                 return $category->description ? $category->description : '-';
             })
+            ->addColumn('numbering_behavior', function ($category) {
+                if ($category->numbering_behavior == 'annual_reset') {
+                    return '<span class="badge badge-primary">Annual Reset</span>';
+                } elseif ($category->numbering_behavior == 'continuous') {
+                    return '<span class="badge badge-success">Continuous</span>';
+                }
+                return '<span class="badge badge-secondary">Not Set</span>';
+            })
             ->addColumn('subjects_count', function ($category) {
                 return '<span class="badge badge-info">' . $category->subjects_count . ' subjects</span>';
             })
@@ -50,7 +58,7 @@ class LetterCategoryController extends Controller
                 }
             })
             ->addColumn('action', 'letter-categories.action')
-            ->rawColumns(['category_code', 'subjects_count', 'is_active', 'action'])
+            ->rawColumns(['category_code', 'subjects_count', 'is_active', 'action', 'numbering_behavior'])
             ->toJson();
     }
 
@@ -60,6 +68,7 @@ class LetterCategoryController extends Controller
             'category_code' => 'required|unique:letter_categories,category_code|max:10',
             'category_name' => 'required|max:100',
             'description' => 'nullable',
+            'numbering_behavior' => 'required|in:annual_reset,continuous',
             'is_active' => 'required|boolean',
         ], [
             'category_code.required' => 'Category Code is required',
@@ -80,6 +89,7 @@ class LetterCategoryController extends Controller
             'category_code' => 'required|max:10|unique:letter_categories,category_code,' . $id,
             'category_name' => 'required|max:100',
             'description' => 'nullable',
+            'numbering_behavior' => 'required|in:annual_reset,continuous',
             'is_active' => 'required|boolean',
         ], [
             'category_code.required' => 'Category Code is required',
@@ -91,6 +101,7 @@ class LetterCategoryController extends Controller
         $category->category_code = $request->category_code;
         $category->category_name = $request->category_name;
         $category->description = $request->description;
+        $category->numbering_behavior = $request->numbering_behavior;
         $category->is_active = $request->is_active;
         $category->save();
 

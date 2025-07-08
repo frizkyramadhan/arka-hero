@@ -345,7 +345,7 @@
             dynamicFieldsContainer.empty(); // Kosongkan field
 
             // Tampilkan field berdasarkan kategori
-            if (categoryCode === 'PKWT' || categoryCode === 'PAR' || categoryCode === 'CRTE' || categoryCode === 'SKPK') {
+            if (categoryCode === 'PKWT' || categoryCode === 'CRTE' || categoryCode === 'SKPK') {
                 dynamicFieldsContainer.append($('#employee-template').html());
                 // Inisialisasi Select2 untuk field employee
                 $('#administration_id').select2({

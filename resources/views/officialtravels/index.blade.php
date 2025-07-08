@@ -27,14 +27,14 @@
                             <div class="card-header">
                                 <h3 class="card-title">{{ $title }}</h3>
                                 <div class="card-tools">
+                                    <button type="button" class="btn btn-success" id="exportExcel">
+                                        <i class="fas fa-file-excel"></i> Export Excel
+                                    </button>
                                     @can('official-travels.create')
                                         <a href="{{ route('officialtravels.create') }}" class="btn btn-warning">
                                             <i class="fas fa-plus"></i> Add
                                         </a>
                                     @endcan
-                                    <button type="button" class="btn btn-success" id="exportExcel">
-                                        <i class="fas fa-file-excel"></i> Export Excel
-                                    </button>
                                 </div>
                             </div>
                             <!-- /.card-header -->

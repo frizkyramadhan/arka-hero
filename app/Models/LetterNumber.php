@@ -105,19 +105,57 @@ class LetterNumber extends Model
     // Generate letter number
     public function generateLetterNumber()
     {
-        $this->load('category'); // Ensure category is loaded
+        // Pastikan relasi category sudah di-load untuk mendapatkan behavior dan code
+        if (!$this->relationLoaded('category')) {
+            $this->load('category');
+        }
 
-        $year = date('Y');
-        $sequence = static::where('letter_category_id', $this->letter_category_id)
-            ->where('year', $year)
-            ->max('sequence_number') + 1;
+        $category = $this->category;
+        $year = date('Y', strtotime($this->letter_date));
+        $month = date('m', strtotime($this->letter_date));
+
+        $query = static::where('letter_category_id', $this->letter_category_id);
+
+        // Terapkan logika berdasarkan behavior penomoran
+        if ($category->numbering_behavior === 'annual_reset') {
+            // Reset setiap tahun
+            $query->whereYear('letter_date', $year);
+        }
+        // Untuk 'continuous', kita tidak membatasi query berdasarkan tahun
+
+        $sequence = $query->max('sequence_number') + 1;
 
         $this->sequence_number = $sequence;
-        $this->year = $year;
+        $this->year = $year; // Kolom tahun tetap diisi untuk pencatatan
 
-        if ($this->category) {
-            $this->letter_number = $this->category->category_code . sprintf('%04d', $sequence);
-        }
+        // Format penomoran
+        $formattedSequence = sprintf('%04d', $sequence);
+        $this->letter_number = "{$category->category_code}{$formattedSequence}";
+    }
+
+    /**
+     * Converts a month number to its Roman numeral representation.
+     *
+     * @param int $month
+     * @return string
+     */
+    private function getRomanMonth($month)
+    {
+        $map = [
+            1 => 'I',
+            2 => 'II',
+            3 => 'III',
+            4 => 'IV',
+            5 => 'V',
+            6 => 'VI',
+            7 => 'VII',
+            8 => 'VIII',
+            9 => 'IX',
+            10 => 'X',
+            11 => 'XI',
+            12 => 'XII'
+        ];
+        return $map[(int)$month];
     }
 
     // Mark nomor sebagai used
@@ -188,7 +226,9 @@ class LetterNumber extends Model
         parent::boot();
 
         static::creating(function ($model) {
-            $model->generateLetterNumber();
+            if (empty($model->letter_number)) {
+                $model->generateLetterNumber();
+            }
             $model->reserved_by = auth()->id() ?? 1; // Default to user ID 1 if no auth
             $model->status = 'reserved';
         });

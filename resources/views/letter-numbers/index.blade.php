@@ -26,15 +26,76 @@
                         <div class="card-header">
                             <h3 class="card-title">Letter Numbers List</h3>
                             <div class="card-tools">
+                                <a href="{{ route('letter-numbers.export') }}" class="btn btn-success">
+                                    <i class="fas fa-file-excel"></i> Export
+                                </a>
+                                <button type="button" class="btn btn-info" data-toggle="modal" data-target="#importModal">
+                                    <i class="fas fa-file-upload"></i> Import
+                                </button>
                                 <div class="btn-group dropleft">
-                                    <a href="{{ route('letter-numbers.create') }}" class="btn btn-primary">
-                                        <i class="fas fa-plus"></i> Create Letter
+                                    <a href="{{ route('letter-numbers.create') }}" class="btn btn-warning">
+                                        <i class="fas fa-plus"></i> Add
                                     </a>
                                 </div>
                             </div>
                         </div>
 
                         <div class="card-body">
+                            @if (session()->has('failures'))
+                                <div class="card card-danger">
+                                    <div class="card-header">
+                                        <h3 class="card-title"><i class="icon fas fa-exclamation-triangle"></i> Import
+                                            Validation Errors</h3>
+
+                                        <div class="card-tools">
+                                            <button type="button" class="btn btn-tool" data-card-widget="collapse">
+                                                <i class="fas fa-minus"></i>
+                                            </button>
+                                        </div>
+                                        <!-- /.card-tools -->
+                                    </div>
+                                    <div class="card-body" style="display: block;">
+                                        <div class="table-responsive">
+                                            <table class="table table-sm table-striped">
+                                                <thead>
+                                                    <tr>
+                                                        <th style="width: 5%">Sheet</th>
+                                                        <th class="text-center" style="width: 5%">Row</th>
+                                                        <th style="width: 20%">Column</th>
+                                                        <th style="width: 20%">Value</th>
+                                                        <th>Error Message</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    @foreach (session()->get('failures') as $failure)
+                                                        <tr>
+                                                            <td>{{ $failure['sheet'] }}</td>
+                                                            <td class="text-center">{{ $failure['row'] }}</td>
+                                                            <td>
+                                                                <strong>{{ ucwords(str_replace('_', ' ', $failure['attribute'])) }}</strong>
+                                                            </td>
+                                                            <td>
+                                                                @if (isset($failure['value']))
+                                                                    {{ $failure['value'] }}
+                                                                @endif
+                                                            </td>
+                                                            <td>
+                                                                {!! nl2br(e($failure['errors'])) !!}
+                                                            </td>
+                                                        </tr>
+                                                    @endforeach
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                        <div class="mt-1">
+                                            <small class="text-muted">
+                                                <i class="fas fa-info-circle"></i>
+                                                Please correct these errors in your Excel file and try importing again.
+                                            </small>
+                                        </div>
+                                    </div>
+                                </div>
+                            @endif
                             <!-- Filter Card -->
                             <div id="accordion">
                                 <div class="card card-primary">
@@ -139,6 +200,44 @@
             </div>
         </div>
     </section>
+
+    <!-- Modal Import -->
+    <div class="modal fade" id="importModal" tabindex="-1" role="dialog" aria-labelledby="importModalLabel"
+        aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="importModalLabel">Import Data Nomor Surat</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <form action="{{ route('letter-numbers.import') }}" method="POST" enctype="multipart/form-data">
+                    @csrf
+                    <div class="modal-body">
+                        <div class="form-group">
+                            <label for="file">Pilih file Excel</label>
+                            <div class="input-group">
+                                <div class="custom-file">
+                                    <input type="file" class="custom-file-input" id="file" name="file"
+                                        required>
+                                    <label class="custom-file-label" for="file">Choose file</label>
+                                </div>
+                            </div>
+                            <small class="form-text text-muted">
+                                Pastikan file sesuai dengan template.
+                                <a href="#">Unduh Template</a>
+                            </small>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                        <button type="submit" class="btn btn-primary">Import</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 @endsection
 
 @section('styles')
@@ -148,6 +247,7 @@
 @endsection
 
 @section('scripts')
+    <script src="{{ asset('assets/plugins/bs-custom-file-input/bs-custom-file-input.min.js') }}"></script>
     <script src="{{ asset('assets/plugins/datatables/jquery.dataTables.min.js') }}"></script>
     <script src="{{ asset('assets/plugins/datatables-bs4/js/dataTables.bootstrap4.min.js') }}"></script>
     <script src="{{ asset('assets/plugins/select2/js/select2.full.min.js') }}"></script>
@@ -491,5 +591,10 @@
                 }
             });
         }
+
+        // bs-custom-file-input
+        $(document).ready(function() {
+            bsCustomFileInput.init();
+        });
     </script>
 @endsection
