@@ -179,8 +179,10 @@ Route::group(['middleware' => ['auth']], function () {
     Route::prefix('letter-numbers')->name('letter-numbers.')->group(function () {
         Route::get('/', [LetterNumberController::class, 'index'])->name('index');
         Route::get('/data', [LetterNumberController::class, 'getLetterNumbers'])->name('data');
-        Route::get('/create/{categoryCode?}', [LetterNumberController::class, 'create'])->name('create');
+        Route::get('/create/{categoryId?}', [LetterNumberController::class, 'create'])->name('create');
         Route::post('/', [LetterNumberController::class, 'store'])->name('store');
+        Route::get('/export', [LetterNumberController::class, 'export'])->name('export');
+        Route::post('/import', [LetterNumberController::class, 'import'])->name('import');
         Route::get('/{id}', [LetterNumberController::class, 'show'])->name('show');
         Route::get('/{id}/edit', [LetterNumberController::class, 'edit'])->name('edit');
         Route::put('/{id}', [LetterNumberController::class, 'update'])->name('update');

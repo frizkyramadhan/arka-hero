@@ -18,12 +18,12 @@ class LetterCategory extends Model
     // Relationships
     public function subjects()
     {
-        return $this->hasMany(LetterSubject::class, 'category_code', 'category_code');
+        return $this->hasMany(LetterSubject::class, 'letter_category_id');
     }
 
     public function letterNumbers()
     {
-        return $this->hasMany(LetterNumber::class, 'category_code', 'category_code');
+        return $this->hasMany(LetterNumber::class, 'letter_category_id');
     }
 
     public function user()

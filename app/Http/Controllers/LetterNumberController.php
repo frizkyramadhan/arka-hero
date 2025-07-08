@@ -2,12 +2,17 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Project;
 use App\Models\LetterNumber;
-use App\Models\LetterCategory;
+use Illuminate\Http\Request;
 use App\Models\LetterSubject;
 use App\Models\Administration;
-use App\Models\Project;
-use Illuminate\Http\Request;
+use App\Models\LetterCategory;
+use Maatwebsite\Excel\Facades\Excel;
+use App\Exports\LetterAdministrationExport;
+use App\Imports\LetterAdministrationImport;
+use App\Imports\Sheets\InternalSheetImport;
+use Maatwebsite\Excel\Validators\ValidationException;
 
 class LetterNumberController extends Controller
 {
@@ -40,8 +45,8 @@ class LetterNumberController extends Controller
             'reservedBy',
             'usedBy'
         ])
-            ->when($request->category_code, function ($query, $category) {
-                return $query->where('category_code', $category);
+            ->when($request->letter_category_id, function ($query, $category) {
+                return $query->where('letter_category_id', $category);
             })
             ->when($request->status, function ($query, $status) {
                 return $query->where('status', $status);
@@ -114,7 +119,7 @@ class LetterNumberController extends Controller
     public function create($categoryCode = null)
     {
         $title = 'Create Letter Number';
-        $categories = LetterCategory::where('is_active', 1)->get();
+        $categories = LetterCategory::where('is_active', 1)->orderBy('category_code', 'asc')->get();
 
         // Menggunakan administrations aktif untuk dropdown karyawan
         $administrations = Administration::with(['employee', 'project', 'position'])
@@ -128,9 +133,11 @@ class LetterNumberController extends Controller
 
         if ($categoryCode) {
             $selectedCategory = LetterCategory::where('category_code', $categoryCode)->first();
-            $subjects = LetterSubject::where('category_code', $categoryCode)
-                ->where('is_active', 1)
-                ->get();
+            if ($selectedCategory) {
+                $subjects = LetterSubject::where('letter_category_id', $selectedCategory->id)
+                    ->where('is_active', 1)
+                    ->get();
+            }
         }
 
         return view('letter-numbers.create', compact(
@@ -146,40 +153,43 @@ class LetterNumberController extends Controller
     public function store(Request $request)
     {
         $rules = [
-            'category_code' => 'required|exists:letter_categories,category_code',
+            'letter_category_id' => 'required|exists:letter_categories,id',
             'letter_date' => 'required|date',
             'destination' => 'nullable|string|max:200',
             'remarks' => 'nullable|string',
         ];
 
         // Dynamic validation based on category
-        switch ($request->category_code) {
-            case 'A':
-            case 'B':
-                $rules['classification'] = 'nullable|in:Umum,Lembaga Pendidikan,Pemerintah';
-                break;
+        $category = LetterCategory::find($request->letter_category_id);
+        if ($category) {
+            switch ($category->category_code) {
+                case 'A':
+                case 'B':
+                    $rules['classification'] = 'nullable|in:Umum,Lembaga Pendidikan,Pemerintah';
+                    break;
 
-            case 'PKWT':
-                $rules['administration_id'] = 'required|exists:administrations,id';
-                $rules['duration'] = 'required|string';
-                $rules['start_date'] = 'required|date';
-                $rules['end_date'] = 'required|date|after:start_date';
-                $rules['pkwt_type'] = 'required|in:PKWT I,PKWT II,PKWT III';
-                break;
+                case 'PKWT':
+                    $rules['administration_id'] = 'required|exists:administrations,id';
+                    $rules['duration'] = 'required|string';
+                    $rules['start_date'] = 'required|date';
+                    $rules['end_date'] = 'required|date|after:start_date';
+                    $rules['pkwt_type'] = 'required|in:PKWT I,PKWT II,PKWT III';
+                    break;
 
-            case 'PAR':
-                $rules['administration_id'] = 'required|exists:administrations,id';
-                $rules['par_type'] = 'required|in:new hire,promosi,mutasi,demosi';
-                break;
+                case 'PAR':
+                    $rules['administration_id'] = 'required|exists:administrations,id';
+                    $rules['par_type'] = 'required|in:new hire,promosi,mutasi,demosi';
+                    break;
 
-            case 'CRTE':
-            case 'SKPK':
-                $rules['administration_id'] = 'required|exists:administrations,id';
-                break;
+                case 'CRTE':
+                case 'SKPK':
+                    $rules['administration_id'] = 'required|exists:administrations,id';
+                    break;
 
-            case 'FR':
-                $rules['ticket_classification'] = 'required|in:Pesawat,Kereta Api,Bus';
-                break;
+                case 'FR':
+                    $rules['ticket_classification'] = 'required|in:Pesawat,Kereta Api,Bus';
+                    break;
+            }
         }
 
         $request->validate($rules);
@@ -223,13 +233,13 @@ class LetterNumberController extends Controller
         }
 
         $title = 'Edit Letter Number';
-        $categories = LetterCategory::where('is_active', 1)->get();
+        $categories = LetterCategory::where('is_active', 1)->orderBy('category_code', 'asc')->get();
         $administrations = Administration::with(['employee', 'project', 'position'])
             ->active()
             ->orderBy('nik')
             ->get();
         $projects = Project::orderBy('project_name')->get();
-        $subjects = LetterSubject::where('category_code', $letterNumber->category_code)
+        $subjects = LetterSubject::where('letter_category_id', $letterNumber->letter_category_id)
             ->where('is_active', 1)
             ->get();
 
@@ -259,25 +269,33 @@ class LetterNumberController extends Controller
             'remarks' => 'nullable|string',
         ];
 
-        // Dynamic validation berdasarkan kategori yang sudah ada
-        switch ($letterNumber->category_code) {
-            case 'PKWT':
-                $rules['administration_id'] = 'required|exists:administrations,id';
-                $rules['duration'] = 'required|string';
-                $rules['start_date'] = 'required|date';
-                $rules['end_date'] = 'required|date|after:start_date';
-                $rules['pkwt_type'] = 'required|in:PKWT I,PKWT II,PKWT III';
-                break;
+        // Dynamic validation based on category
+        $category = LetterCategory::find($request->letter_category_id);
+        if ($category) {
+            switch ($category->category_code) {
+                case 'A':
+                case 'B':
+                    $rules['classification'] = 'nullable|in:Umum,Lembaga Pendidikan,Pemerintah';
+                    break;
 
-            case 'PAR':
-                $rules['administration_id'] = 'required|exists:administrations,id';
-                $rules['par_type'] = 'required|in:new hire,promosi,mutasi,demosi';
-                break;
+                case 'PKWT':
+                    $rules['administration_id'] = 'required|exists:administrations,id';
+                    $rules['duration'] = 'required|string';
+                    $rules['start_date'] = 'required|date';
+                    $rules['end_date'] = 'required|date|after:start_date';
+                    $rules['pkwt_type'] = 'required|in:PKWT I,PKWT II,PKWT III';
+                    break;
 
-            case 'CRTE':
-            case 'SKPK':
-                $rules['administration_id'] = 'required|exists:administrations,id';
-                break;
+                case 'PAR':
+                    $rules['administration_id'] = 'required|exists:administrations,id';
+                    $rules['par_type'] = 'required|in:new hire,promosi,mutasi,demosi';
+                    break;
+
+                case 'CRTE':
+                case 'SKPK':
+                    $rules['administration_id'] = 'required|exists:administrations,id';
+                    break;
+            }
         }
 
         $request->validate($rules);
@@ -286,7 +304,7 @@ class LetterNumberController extends Controller
         $letterNumber->save();
 
         return redirect()->route('letter-numbers.index')
-            ->with('toast_success', 'Letter number updated successfully');
+            ->with('toast_success', 'Letter number updated successfully: ' . $letterNumber->letter_number);
     }
 
     public function destroy($id)
@@ -356,38 +374,48 @@ class LetterNumberController extends Controller
     public function getAvailableNumbers($categoryCode)
     {
         try {
-            $letterNumbers = LetterNumber::with(['subject', 'administration.employee'])
-                ->where('category_code', $categoryCode)
-                ->where('status', 'reserved')
-                ->orderBy('sequence_number', 'desc')
-                ->limit(20)
-                ->get()
-                ->map(function ($number) {
-                    return [
-                        'id' => $number->id,
-                        'letter_number' => $number->letter_number,
-                        'subject_name' => $number->subject->subject_name ?? null,
-                        'remarks' => $number->remarks ?? null,
-                        'letter_date' => $number->letter_date ? $number->letter_date->format('d/m/Y') : null,
-                        'employee_name' => $number->administration && $number->administration->employee
-                            ? $number->administration->employee->fullname
-                            : null,
-                    ];
-                });
+            $category = LetterCategory::where('category_code', $categoryCode)->firstOrFail();
 
-            return response()->json([
-                'success' => true,
-                'data' => $letterNumbers,
-                'count' => $letterNumbers->count(),
-                'category_code' => $categoryCode
-            ]);
+            $numbers = LetterNumber::where('letter_category_id', $category->id)
+                ->where('status', 'reserved')
+                ->with('subject') // Eager load subject
+                ->orderBy('letter_date', 'desc')
+                ->get();
+
+            // Format data to match what the component expects
+            $formattedNumbers = $numbers->map(function ($number) {
+                return [
+                    'id' => $number->id,
+                    'letter_number' => $number->letter_number,
+                    'letter_date' => $number->letter_date,
+                    'subject_name' => $number->subject->subject_name ?? $number->custom_subject,
+                    'remarks' => $number->remarks,
+                ];
+            });
+
+            return response()->json(['success' => true, 'data' => $formattedNumbers]);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json(['success' => false, 'message' => "Category '{$categoryCode}' not found."], 404);
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'error' => 'Failed to load available letter numbers',
-                'message' => $e->getMessage()
-            ], 500);
+            return response()->json(['success' => false, 'message' => 'An error occurred while fetching numbers.'], 500);
         }
+    }
+
+    public function getSubjectsForCategory($categoryId)
+    {
+        $subjects = LetterSubject::where('letter_category_id', $categoryId)
+            ->active()
+            ->ordered()
+            ->get(['id', 'subject_name']);
+
+        return response()->json($subjects);
+    }
+
+    public function getNextSequenceNumber($categoryId)
+    {
+        $nextSequence = LetterNumber::getNextSequenceNumber($categoryId);
+
+        return response()->json(['next_sequence' => $nextSequence]);
     }
 
     public function markAsUsedManually($id)
@@ -416,6 +444,67 @@ class LetterNumberController extends Controller
         } catch (\Exception $e) {
             return redirect()->route('letter-numbers.show', $id)
                 ->with('toast_error', 'An error occurred: ' . $e->getMessage());
+        }
+    }
+
+    public function export()
+    {
+        return Excel::download(new LetterAdministrationExport, 'letter-numbers-' . date('Y-m-d') . '.xlsx');
+    }
+
+    public function import(Request $request)
+    {
+        $request->validate([
+            'file' => 'required|mimes:xls,xlsx'
+        ], [
+            'file.required' => 'Please select a file to import.',
+            'file.mimes'    => 'The file must be a file of type: xls, xlsx.'
+        ]);
+
+        try {
+            $import = new LetterAdministrationImport();
+            Excel::import($import, $request->file('file'));
+
+            $failures = $import->failures();
+
+            if ($failures->isNotEmpty()) {
+                $formattedFailures = collect();
+                foreach ($failures as $failure) {
+                    $formattedFailures->push([
+                        'sheet'     => 'Letter Import',
+                        'row'       => $failure->row(),
+                        'attribute' => $failure->attribute(),
+                        'value'     => $failure->values()[$failure->attribute()] ?? null,
+                        'errors'    => implode(', ', $failure->errors()),
+                    ]);
+                }
+                return back()->with('failures', $formattedFailures);
+            }
+
+            return redirect()->route('letter-numbers.index')->with('toast_success', 'Data imported successfully!');
+        } catch (ValidationException $e) {
+            $failures = collect();
+            foreach ($e->failures() as $failure) {
+                $failures->push([
+                    'sheet'     => 'Letter Import',
+                    'row'       => $failure->row(),
+                    'attribute' => $failure->attribute(),
+                    'value'     => $failure->values()[$failure->attribute()] ?? null,
+                    'errors'    => implode(', ', $failure->errors()),
+                ]);
+            }
+            return back()->with('failures', $failures);
+        } catch (\Throwable $e) {
+            $failures = collect([
+                [
+                    'sheet'     => 'System Error',
+                    'row'       => '-',
+                    'attribute' => 'General Error',
+                    'value'     => null,
+                    'errors'    => 'An error occurred during import: ' . $e->getMessage()
+                ]
+            ]);
+            return back()->with('failures', $failures);
         }
     }
 }

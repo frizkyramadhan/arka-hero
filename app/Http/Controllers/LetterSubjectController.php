@@ -9,12 +9,12 @@ use Illuminate\Http\Request;
 class LetterSubjectController extends Controller
 {
     /**
-     * Get subjects by category code
+     * Get subjects by category id
      */
-    public function getByCategory($categoryCode)
+    public function getByCategory($categoryId)
     {
         try {
-            $subjects = LetterSubject::where('category_code', $categoryCode)
+            $subjects = LetterSubject::where('letter_category_id', $categoryId)
                 ->where('is_active', 1)
                 ->orderBy('subject_name')
                 ->get(['id', 'subject_name']);
@@ -31,10 +31,10 @@ class LetterSubjectController extends Controller
     /**
      * Get available subjects for specific document type and category
      */
-    public function getAvailableSubjectsForDocument($documentType, $categoryCode)
+    public function getAvailableSubjectsForDocument($documentType, $categoryId)
     {
         try {
-            $subjects = LetterSubject::where('category_code', $categoryCode)
+            $subjects = LetterSubject::where('letter_category_id', $categoryId)
                 ->where('is_active', 1)
                 ->orderBy('subject_name')
                 ->get(['id', 'subject_name']);
@@ -44,7 +44,7 @@ class LetterSubjectController extends Controller
                 'data' => $subjects,
                 'count' => $subjects->count(),
                 'document_type' => $documentType,
-                'category_code' => $categoryCode
+                'category_id' => $categoryId
             ]);
         } catch (\Exception $e) {
             return response()->json([
@@ -83,13 +83,13 @@ class LetterSubjectController extends Controller
     {
         $request->validate([
             'subject_name' => 'required|string|max:255',
-            'category_code' => 'required|exists:letter_categories,category_code',
+            'letter_category_id' => 'required|exists:letter_categories,id',
             'is_active' => 'required|boolean',
         ], [
             'subject_name.required' => 'Nama subject harus diisi',
             'subject_name.max' => 'Nama subject maksimal 255 karakter',
-            'category_code.required' => 'Category code harus diisi',
-            'category_code.exists' => 'Category code tidak valid',
+            'letter_category_id.required' => 'Category harus diisi',
+            'letter_category_id.exists' => 'Category tidak valid',
             'is_active.required' => 'Status aktif harus diisi',
             'is_active.boolean' => 'Status aktif harus berupa true/false',
         ]);
@@ -97,7 +97,7 @@ class LetterSubjectController extends Controller
         try {
             LetterSubject::create([
                 'subject_name' => $request->subject_name,
-                'category_code' => $request->category_code,
+                'letter_category_id' => $request->letter_category_id,
                 'is_active' => $request->is_active ?? 1,
                 'user_id' => auth()->id(),
             ]);
@@ -138,13 +138,13 @@ class LetterSubjectController extends Controller
     {
         $request->validate([
             'subject_name' => 'required|string|max:255',
-            'category_code' => 'required|exists:letter_categories,category_code',
+            'letter_category_id' => 'required|exists:letter_categories,id',
             'is_active' => 'required|boolean',
         ], [
             'subject_name.required' => 'Nama subject harus diisi',
             'subject_name.max' => 'Nama subject maksimal 255 karakter',
-            'category_code.required' => 'Category code harus diisi',
-            'category_code.exists' => 'Category code tidak valid',
+            'letter_category_id.required' => 'Category harus diisi',
+            'letter_category_id.exists' => 'Category tidak valid',
             'is_active.required' => 'Status aktif harus diisi',
             'is_active.boolean' => 'Status aktif harus berupa true/false',
         ]);
@@ -152,7 +152,7 @@ class LetterSubjectController extends Controller
         try {
             $letterSubject->update([
                 'subject_name' => $request->subject_name,
-                'category_code' => $request->category_code,
+                'letter_category_id' => $request->letter_category_id,
                 'is_active' => $request->is_active ?? 1,
             ]);
 
@@ -198,11 +198,11 @@ class LetterSubjectController extends Controller
     /**
      * Display subjects for specific category
      */
-    public function indexByCategory($categoryCode)
+    public function indexByCategory($categoryId)
     {
-        $category = LetterCategory::where('category_code', $categoryCode)->firstOrFail();
+        $category = LetterCategory::findOrFail($categoryId);
         $title = 'Letter Subjects - ' . $category->category_name;
-        $subtitle = 'Manage subjects for ' . $category->category_name . ' (' . $categoryCode . ')';
+        $subtitle = 'Manage subjects for ' . $category->category_name . ' (' . $category->category_code . ')';
 
         return view('letter-subjects.index-by-category', compact('title', 'subtitle', 'category'));
     }
@@ -210,10 +210,10 @@ class LetterSubjectController extends Controller
     /**
      * Get subjects data for DataTables (category specific)
      */
-    public function getSubjectsByCategory(Request $request, $categoryCode)
+    public function getSubjectsByCategory(Request $request, $categoryId)
     {
-        $subjects = LetterSubject::where('category_code', $categoryCode)
-            ->with('user')
+        $subjects = LetterSubject::where('letter_category_id', $categoryId)
+            ->with(['user', 'category'])
             ->orderBy('subject_name', 'asc');
 
         return datatables()->of($subjects)
@@ -250,74 +250,54 @@ class LetterSubjectController extends Controller
     }
 
     /**
-     * Store subject for specific category
+     * Store a new subject for a specific category.
      */
-    public function storeByCategory(Request $request, $categoryCode)
+    public function storeByCategory(Request $request, $categoryId)
     {
-        // Simplified validation rules for store (without user_id requirement)
         $request->validate([
             'subject_name' => 'required|string|max:255',
             'is_active' => 'required|boolean',
-        ], [
-            'subject_name.required' => 'Nama subject harus diisi',
-            'subject_name.max' => 'Nama subject maksimal 255 karakter',
-            'is_active.required' => 'Status aktif harus diisi',
-            'is_active.boolean' => 'Status aktif harus berupa true/false',
         ]);
 
         try {
             LetterSubject::create([
                 'subject_name' => $request->subject_name,
-                'category_code' => $categoryCode,
+                'letter_category_id' => $categoryId,
                 'is_active' => $request->is_active,
                 'user_id' => auth()->id(),
             ]);
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Letter subject added successfully'
-            ]);
+            return response()->json(['success' => true, 'message' => 'Subject added successfully.']);
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to add letter subject: ' . $e->getMessage()
-            ], 500);
+            return response()->json(['success' => false, 'message' => 'Failed to add subject: ' . $e->getMessage()], 500);
         }
     }
 
     /**
-     * Update subject for specific category
+     * Update an existing subject for a specific category.
      */
-    public function updateByCategory(Request $request, $categoryCode, $id)
+    public function updateByCategory(Request $request, $categoryId, $id)
     {
-        // Simplified validation rules for update (without user_id requirement)
         $request->validate([
             'subject_name' => 'required|string|max:255',
             'is_active' => 'required|boolean',
-        ], [
-            'subject_name.required' => 'Nama subject harus diisi',
-            'subject_name.max' => 'Nama subject maksimal 255 karakter',
-            'is_active.required' => 'Status aktif harus diisi',
-            'is_active.boolean' => 'Status aktif harus berupa true/false',
         ]);
 
         try {
-            $subject = LetterSubject::where('category_code', $categoryCode)->findOrFail($id);
+            $subject = LetterSubject::where('id', $id)
+                ->where('letter_category_id', $categoryId)
+                ->firstOrFail();
 
             $subject->update([
                 'subject_name' => $request->subject_name,
                 'is_active' => $request->is_active,
             ]);
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Letter subject updated successfully'
-            ]);
+            return response()->json(['success' => true, 'message' => 'Subject updated successfully.']);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json(['success' => false, 'message' => 'Subject not found.'], 404);
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to update letter subject: ' . $e->getMessage()
-            ], 500);
+            return response()->json(['success' => false, 'message' => 'Failed to update subject: ' . $e->getMessage()], 500);
         }
     }
 }

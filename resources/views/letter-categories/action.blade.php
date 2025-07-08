@@ -1,4 +1,4 @@
-<a class="btn btn-icon btn-info mr-1" href="{{ route('letter-subjects.index-by-category', $model->category_code) }}"
+<a class="btn btn-icon btn-info mr-1" href="{{ route('letter-subjects.index-by-category', $model->id) }}"
     title="Manage Subjects">
     <i class="fas fa-list"></i>
 </a>
@@ -63,6 +63,28 @@
                                             {{ $message }}
                                         </div>
                                     @enderror
+                                </div>
+                            </div>
+                            <div class="form-group row">
+                                <label class="col-sm-3 col-form-label">Numbering Behavior <span
+                                        class="text-danger">*</span></label>
+                                <div class="col-sm-9">
+                                    <div class="custom-control custom-radio">
+                                        <input class="custom-control-input" type="radio"
+                                            id="annual_reset_{{ $model->id }}" name="numbering_behavior"
+                                            value="annual_reset"
+                                            {{ old('numbering_behavior', $model->numbering_behavior) == 'annual_reset' ? 'checked' : '' }}>
+                                        <label for="annual_reset_{{ $model->id }}"
+                                            class="custom-control-label">Annual Reset</label>
+                                    </div>
+                                    <div class="custom-control custom-radio">
+                                        <input class="custom-control-input" type="radio"
+                                            id="continuous_{{ $model->id }}" name="numbering_behavior"
+                                            value="continuous"
+                                            {{ old('numbering_behavior', $model->numbering_behavior) == 'continuous' ? 'checked' : '' }}>
+                                        <label for="continuous_{{ $model->id }}"
+                                            class="custom-control-label">Continuous</label>
+                                    </div>
                                 </div>
                             </div>
                             <div class="form-group row">

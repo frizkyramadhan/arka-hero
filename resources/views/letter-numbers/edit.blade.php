@@ -45,8 +45,8 @@
                                             <input type="text" class="form-control"
                                                 value="{{ $letterNumber->category->category_code }} - {{ $letterNumber->category->category_name }}"
                                                 readonly>
-                                            <input type="hidden" name="category_code" id="category_code"
-                                                value="{{ $letterNumber->category_code }}">
+                                            <input type="hidden" name="letter_category_id" id="letter_category_id"
+                                                value="{{ $letterNumber->letter_category_id }}">
                                         </div>
                                     </div>
                                 </div>
@@ -314,187 +314,74 @@
     <script src="{{ asset('vendor/sweetalert/sweetalert.all.js') }}"></script>
 
     <script>
-        $(function() {
-            // Initialize Select2
+        $(document).ready(function() {
             $('.select2bs4').select2({
                 theme: 'bootstrap4'
             });
 
-            // Category definitions
-            var categoryInfo = {
-                'A': {
-                    description: 'External Letter - for communication with external parties',
-                    needsEmployee: false,
-                    needsClassification: true,
-                    template: 'classification'
-                },
-                'B': {
-                    description: 'Internal Letter - for internal company communication',
-                    needsEmployee: false,
-                    needsClassification: false,
-                    template: null
-                },
-                'PKWT': {
-                    description: 'Fixed-term Employment Contract - requires complete employee data',
-                    needsEmployee: true,
-                    needsClassification: false,
-                    template: 'pkwt'
-                },
-                'PAR': {
-                    description: 'Personal Action Request - for employee status changes',
-                    needsEmployee: true,
-                    needsClassification: false,
-                    template: 'par'
-                },
-                'CRTE': {
-                    description: 'Certificate of Employment - work experience certificate',
-                    needsEmployee: true,
-                    needsClassification: false,
-                    template: 'employee'
-                },
-                'SKPK': {
-                    description: 'Work Experience Certificate',
-                    needsEmployee: true,
-                    needsClassification: false,
-                    template: 'employee'
-                },
-                'MEMO': {
-                    description: 'Internal Memo - for brief internal communication',
-                    needsEmployee: false,
-                    needsClassification: false,
-                    template: null
-                },
-                'FPTK': {
-                    description: 'Workforce Request Form - for recruitment',
-                    needsEmployee: false,
-                    needsClassification: false,
-                    template: null
-                },
-                'FR': {
-                    description: 'Ticket Request Form - for travel ticket requests',
-                    needsEmployee: false,
-                    needsClassification: false,
-                    template: null
-                }
-            };
-
-            // Load dynamic fields based on current category
-            function loadDynamicFields() {
-                var categoryCode = $('#category_code').val();
-                var dynamicFields = $('#dynamic-fields');
-
-                // Clear existing dynamic fields
-                dynamicFields.empty();
-
-                if (categoryCode && categoryInfo[categoryCode]) {
-                    var info = categoryInfo[categoryCode];
-
-                    // Show category info
-                    $('#category-description').text(info.description);
-                    $('#category-info').show();
-
-                    // Add employee fields if needed
-                    if (info.needsEmployee) {
-                        var employeeTemplate = $('#employee-template').html();
-                        dynamicFields.append(employeeTemplate);
-                    }
-
-                    // Add specific template
-                    if (info.template) {
-                        var template = $('#' + info.template + '-template').html();
-                        dynamicFields.append(template);
-                    }
-
-                    // Re-initialize Select2 for new elements
-                    $('.select2bs4').select2({
-                        theme: 'bootstrap4'
-                    });
-
-                    // Set initial employee data if exists
-                    setTimeout(function() {
-                        if ($('#administration_id').length) {
-                            $('#administration_id').trigger('change');
-                        }
-                    }, 100);
-                } else {
-                    $('#category-info').hide();
-                }
+            // Initial dynamic fields based on existing category
+            var categoryId = $('#letter_category_id').val();
+            if (categoryId) {
+                updateDynamicFields(categoryId);
+                updateCategoryInfo(categoryId);
             }
 
-            // Handle employee selection
-            $(document).on('change', '#administration_id', function() {
+            // Employee dropdown change handler
+            $('#dynamic-fields').on('change', '#administration_id', function() {
                 var selectedOption = $(this).find('option:selected');
-                if (selectedOption.val()) {
-                    $('#display_nik').val(selectedOption.data('nik'));
-                    $('#display_project').val(selectedOption.data('project-name'));
-                } else {
-                    $('#display_nik').val('');
-                    $('#display_project').val('');
-                }
+                $('#display_nik').val(selectedOption.data('nik'));
+                $('#display_project').val(selectedOption.data('project-name'));
             });
+            // Trigger change on load if an employee is selected
+            if ($('#administration_id').val()) {
+                $('#administration_id').trigger('change');
+            }
 
-            // Load dynamic fields on page load
-            loadDynamicFields();
-
-            // Form validation
-            $('#letter-number-form').submit(function(e) {
-                var categoryCode = $('#category_code').val();
-                var isValid = true;
-                var errorMessage = '';
-
-                // Basic validation
-                if (!$('#letter_date').val()) {
-                    isValid = false;
-                    errorMessage = 'Letter date is required';
-                }
-
-                // Category-specific validation
-                if (categoryCode && categoryInfo[categoryCode] && categoryInfo[categoryCode]
-                    .needsEmployee) {
-                    if (!$('#administration_id').val()) {
-                        isValid = false;
-                        errorMessage = 'Employee data must be selected for this category';
-                    }
-                }
-
-                // PKWT specific validation
-                if (categoryCode === 'PKWT') {
-                    if (!$('select[name="pkwt_type"]').val()) {
-                        isValid = false;
-                        errorMessage = 'PKWT type is required';
-                    }
-                    if (!$('input[name="duration"]').val()) {
-                        isValid = false;
-                        errorMessage = 'Duration is required';
-                    }
-                    if (!$('input[name="start_date"]').val()) {
-                        isValid = false;
-                        errorMessage = 'Start date is required';
-                    }
-                    if (!$('input[name="end_date"]').val()) {
-                        isValid = false;
-                        errorMessage = 'End date is required';
-                    }
-                }
-
-                // PAR specific validation
-                if (categoryCode === 'PAR') {
-                    if (!$('select[name="par_type"]').val()) {
-                        isValid = false;
-                        errorMessage = 'PAR type is required';
-                    }
-                }
-
-                if (!isValid) {
-                    e.preventDefault();
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Validation Error',
-                        text: errorMessage,
-                        confirmButtonColor: '#3085d6'
-                    });
-                }
-            });
         });
+
+        function updateDynamicFields(categoryId) {
+            var categoryCode = getCategoryCodeById(categoryId);
+            var dynamicFieldsContainer = $('#dynamic-fields');
+            dynamicFieldsContainer.empty(); // Kosongkan field
+
+            // Tampilkan field berdasarkan kategori
+            if (categoryCode === 'PKWT' || categoryCode === 'CRTE' || categoryCode === 'SKPK') {
+                dynamicFieldsContainer.append($('#employee-template').html());
+                // Inisialisasi Select2 untuk field employee
+                $('#administration_id').select2({
+                    theme: 'bootstrap4'
+                });
+            }
+
+            if (categoryCode === 'PKWT') {
+                dynamicFieldsContainer.append($('#pkwt-template').html());
+            } else if (categoryCode === 'PAR') {
+                dynamicFieldsContainer.append($('#par-template').html());
+            } else if (categoryCode === 'FR') {
+                dynamicFieldsContainer.append($('#fr-template').html());
+            } else if (['A', 'B'].includes(categoryCode)) {
+                dynamicFieldsContainer.append($('#classification-template').html());
+            }
+        }
+
+        function updateCategoryInfo(categoryId) {
+            // Anda mungkin perlu AJAX call untuk mendapatkan deskripsi kategori
+            // Untuk sekarang, kita bisa gunakan data yang sudah ada jika memungkinkan
+            var category = categories.find(c => c.id == categoryId);
+            if (category && category.description) {
+                $('#category-description').text(category.description);
+                $('#category-info').show();
+            } else {
+                $('#category-info').hide();
+            }
+        }
+
+        function getCategoryCodeById(categoryId) {
+            var category = categories.find(c => c.id == categoryId);
+            return category ? category.category_code : null;
+        }
+
+        // Definisikan variabel categories dari data blade
+        var categories = @json($categories);
     </script>
 @endsection

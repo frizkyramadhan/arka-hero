@@ -51,6 +51,7 @@
                                                 <th class="text-center">Code</th>
                                                 <th>Category Name</th>
                                                 <th>Description</th>
+                                                <th class="text-center">Behavior</th>
                                                 <th class="text-center">Subjects</th>
                                                 <th class="text-center">Status</th>
                                                 <th class="text-center">Action</th>
@@ -126,6 +127,27 @@
                                                     {{ $message }}
                                                 </div>
                                             @enderror
+                                        </div>
+                                    </div>
+                                    <div class="form-group row">
+                                        <label class="col-sm-3 col-form-label">Numbering Behavior <span
+                                                class="text-danger">*</span></label>
+                                        <div class="col-sm-9">
+                                            <div class="custom-control custom-radio">
+                                                <input class="custom-control-input" type="radio" id="annual_reset"
+                                                    name="numbering_behavior" value="annual_reset" checked>
+                                                <label for="annual_reset" class="custom-control-label">Annual
+                                                    Reset</label>
+                                                <small class="form-text text-muted">Sequence number resets to 1 at the
+                                                    start of each year.</small>
+                                            </div>
+                                            <div class="custom-control custom-radio">
+                                                <input class="custom-control-input" type="radio" id="continuous"
+                                                    name="numbering_behavior" value="continuous">
+                                                <label for="continuous" class="custom-control-label">Continuous</label>
+                                                <small class="form-text text-muted">Sequence number keeps incrementing
+                                                    indefinitely.</small>
+                                            </div>
                                         </div>
                                     </div>
                                     <div class="form-group row">
@@ -223,6 +245,11 @@
                     data: "description",
                     name: "description",
                     orderable: false
+                }, {
+                    data: "numbering_behavior",
+                    name: "numbering_behavior",
+                    orderable: false,
+                    className: "text-center"
                 }, {
                     data: "subjects_count",
                     name: "subjects_count",

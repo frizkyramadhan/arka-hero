@@ -138,8 +138,10 @@
 
                 updateSelectionStatus('info', 'Loading available letter numbers...');
 
-                $.get(`/hcssis/api/letter-numbers/available/${categoryCode}`)
+                $.get("{{ route('api.letter-numbers.available', ['categoryCode' => ':categoryCode']) }}".replace(
+                        ':categoryCode', categoryCode))
                     .done(function(response) {
+                        console.log(response);
                         if (response.success) {
                             populateAvailableNumbers(response.data);
                             if (response.data.length > 0) {
@@ -166,9 +168,15 @@
                 $select.empty().append('<option value="">{{ $placeholder }}</option>');
 
                 numbers.forEach(number => {
+                    const letterDate = number.letter_date ? new Date(number.letter_date).toLocaleDateString(
+                        'en-GB', {
+                            day: '2-digit',
+                            month: 'long',
+                            year: 'numeric'
+                        }).replace(/ /g, '-') : 'No Date';
                     // Build display text with remarks
                     let displayText =
-                        `${number.letter_number} - ${number.subject_name || 'No Subject'} (${number.letter_date || 'No Date'})`;
+                        `${number.letter_number} - ${number.subject_name || 'No Subject'} (${letterDate})`;
 
                     // Add remarks if available (limit to 40 characters)
                     if (number.remarks && number.remarks.trim()) {

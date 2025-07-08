@@ -18,8 +18,8 @@
                 </button>
             </div>
             <form id="form-edit-subject-{{ $subject->id }}"
-                onsubmit="updateSubjectForm(event, {{ $subject->id }}, '{{ $subject->category_code }}')"
-                data-update-url="{{ route('letter-subjects.update-by-category', [$subject->category_code, $subject->id]) }}">
+                onsubmit="updateSubjectForm(event, {{ $subject->id }}, {{ $subject->letter_category_id }})"
+                data-update-url="{{ route('letter-subjects.update-by-category', [$subject->letter_category_id, $subject->id]) }}">
                 @csrf
                 @method('PATCH')
                 <div class="modal-body">
@@ -29,7 +29,7 @@
                                 <label class="col-sm-3 col-form-label">Category</label>
                                 <div class="col-sm-9">
                                     <input type="text" class="form-control"
-                                        value="{{ $subject->category->category_name ?? '' }} ({{ $subject->category_code }})"
+                                        value="{{ $subject->category->category_name ?? '' }} ({{ $subject->category->category_code ?? '' }})"
                                         readonly>
                                 </div>
                             </div>
@@ -72,7 +72,7 @@
 
 <script>
     // Update subject form submission
-    function updateSubjectForm(event, subjectId, categoryCode) {
+    function updateSubjectForm(event, subjectId, categoryId) {
         event.preventDefault();
 
         var form = $('#form-edit-subject-' + subjectId);

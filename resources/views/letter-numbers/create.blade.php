@@ -34,21 +34,22 @@
                                     <div class="col-md-6">
                                         <div class="form-group">
                                             <label>Letter Category <span class="text-danger">*</span></label>
-                                            <select class="form-control select2bs4" name="category_code" id="category_code"
-                                                required {{ $selectedCategory ? 'disabled' : '' }}>
+                                            <select class="form-control select2bs4" name="letter_category_id"
+                                                id="letter_category_id" required {{ $selectedCategory ? 'disabled' : '' }}>
                                                 <option value="">- Select Category -</option>
                                                 @foreach ($categories as $category)
-                                                    <option value="{{ $category->category_code }}"
-                                                        {{ $selectedCategory && $selectedCategory->category_code === $category->category_code ? 'selected' : '' }}>
+                                                    <option value="{{ $category->id }}"
+                                                        data-code="{{ $category->category_code }}"
+                                                        {{ $selectedCategory && $selectedCategory->id === $category->id ? 'selected' : '' }}>
                                                         {{ $category->category_code }} - {{ $category->category_name }}
                                                     </option>
                                                 @endforeach
                                             </select>
                                             @if ($selectedCategory)
-                                                <input type="hidden" name="category_code"
-                                                    value="{{ $selectedCategory->category_code }}">
+                                                <input type="hidden" name="letter_category_id"
+                                                    value="{{ $selectedCategory->id }}">
                                             @endif
-                                            @error('category_code')
+                                            @error('letter_category_id')
                                                 <span class="text-danger">{{ $message }}</span>
                                             @enderror
                                         </div>
@@ -297,175 +298,84 @@
     <script src="{{ asset('vendor/sweetalert/sweetalert.all.js') }}"></script>
 
     <script>
-        $(function() {
-            // Initialize Select2
+        $(document).ready(function() {
             $('.select2bs4').select2({
                 theme: 'bootstrap4'
             });
 
-            // Category definitions
-            var categoryInfo = {
-                'A': {
-                    description: 'External Letter - for communication with external parties',
-                    needsEmployee: false,
-                    needsClassification: true,
-                    template: 'classification'
-                },
-                'B': {
-                    description: 'Internal Letter - for internal company communication',
-                    needsEmployee: false,
-                    needsClassification: false,
-                    template: null
-                },
-                'PKWT': {
-                    description: 'Fixed-term Employment Contract - requires complete employee data',
-                    needsEmployee: true,
-                    needsClassification: false,
-                    template: 'pkwt'
-                },
-                'PAR': {
-                    description: 'Personal Action Request - for employee status changes',
-                    needsEmployee: true,
-                    needsClassification: false,
-                    template: 'par'
-                },
-                'CRTE': {
-                    description: 'Certificate of Employment - work experience certificate',
-                    needsEmployee: false,
-                    needsClassification: false,
-                    template: 'employee'
-                },
-                'SKPK': {
-                    description: 'Work Experience Certificate',
-                    needsEmployee: false,
-                    needsClassification: false,
-                    template: 'employee'
-                },
-                'MEMO': {
-                    description: 'Internal Memo - for brief internal communication',
-                    needsEmployee: false,
-                    needsClassification: false,
-                    template: null
-                },
-                'FPTK': {
-                    description: 'Workforce Request Form - for recruitment',
-                    needsEmployee: false,
-                    needsClassification: false,
-                    template: null
-                },
-                'FR': {
-                    description: 'Ticket Request Form - for travel ticket requests',
-                    needsEmployee: false,
-                    needsClassification: false,
-                    template: null
+            var categories = @json($categories->keyBy('id'));
+
+            function updateDynamicFields(categoryId) {
+                var categoryCode = categories[categoryId] ? categories[categoryId].category_code : null;
+                var dynamicFieldsContainer = $('#dynamic-fields');
+                dynamicFieldsContainer.empty();
+
+                if (categoryCode) {
+                    if (['PKWT', 'CRTE', 'SKPK'].includes(categoryCode)) {
+                        dynamicFieldsContainer.append($('#employee-template').html());
+                        $('#administration_id').select2({
+                            theme: 'bootstrap4'
+                        });
+                    }
+                    if (categoryCode === 'PKWT') {
+                        dynamicFieldsContainer.append($('#pkwt-template').html());
+                    } else if (categoryCode === 'PAR') {
+                        dynamicFieldsContainer.append($('#par-template').html());
+                    } else if (categoryCode === 'FR') {
+                        dynamicFieldsContainer.append($('#fr-template').html());
+                    } else if (['A'].includes(categoryCode)) {
+                        dynamicFieldsContainer.append($('#classification-template').html());
+                    }
                 }
-            };
+            }
 
-            // Handle category change
-            $('#category_code').change(function() {
-                var categoryCode = $(this).val();
-                var dynamicFields = $('#dynamic-fields');
-
-                // Clear existing dynamic fields
-                dynamicFields.empty();
-
-                if (categoryCode && categoryInfo[categoryCode]) {
-                    var info = categoryInfo[categoryCode];
-
-                    // Show category info
-                    $('#category-description').text(info.description);
+            function updateCategoryInfo(categoryId) {
+                var category = categories[categoryId];
+                if (category && category.description) {
+                    $('#category-description').text(category.description);
                     $('#category-info').show();
-
-                    // Load subjects for this category
-                    loadSubjects(categoryCode);
-
-                    // Add employee fields if needed
-                    if (info.needsEmployee) {
-                        var employeeTemplate = $('#employee-template').html();
-                        dynamicFields.append(employeeTemplate);
-                    }
-
-                    // Add specific template
-                    if (info.template) {
-                        var template = $('#' + info.template + '-template').html();
-                        dynamicFields.append(template);
-                    }
-
-                    // Re-initialize Select2 for new elements
-                    $('.select2bs4').select2({
-                        theme: 'bootstrap4'
-                    });
                 } else {
                     $('#category-info').hide();
-                    $('#subject_id').empty().append('<option value="">- Select Subject -</option>');
                 }
+            }
+
+            function updateSubjects(categoryId) {
+                var subjectSelect = $('#subject_id');
+                subjectSelect.empty().append('<option value="">- Select Subject -</option>');
+
+                if (categoryId) {
+                    var url = "{{ route('api.letter-subjects.by-category', ['categoryId' => ':id']) }}";
+                    url = url.replace(':id', categoryId);
+
+                    $.get(url, function(data) {
+                        if (data) {
+                            data.forEach(function(subject) {
+                                subjectSelect.append($('<option>', {
+                                    value: subject.id,
+                                    text: subject.subject_name
+                                }));
+                            });
+                        }
+                    });
+                }
+            }
+
+            $('#letter_category_id').change(function() {
+                var categoryId = $(this).val();
+                updateDynamicFields(categoryId);
+                updateCategoryInfo(categoryId);
+                updateSubjects(categoryId);
             });
 
-            // Handle employee selection
-            $(document).on('change', '#administration_id', function() {
+            // Initial call if a category is pre-selected
+            if ($('#letter_category_id').val()) {
+                $('#letter_category_id').trigger('change');
+            }
+
+            $('#dynamic-fields').on('change', '#administration_id', function() {
                 var selectedOption = $(this).find('option:selected');
-                if (selectedOption.val()) {
-                    $('#display_nik').val(selectedOption.data('nik'));
-                    $('#display_project').val(selectedOption.data('project-name'));
-                } else {
-                    $('#display_nik').val('');
-                    $('#display_project').val('');
-                }
-            });
-
-            // Load subjects based on category
-            function loadSubjects(categoryCode) {
-                $.get('/hcssis/api/letter-subjects/' + categoryCode, function(data) {
-                    var subjectSelect = $('#subject_id');
-                    subjectSelect.empty().append('<option value="">- Select Subject -</option>');
-
-                    $.each(data, function(index, subject) {
-                        subjectSelect.append('<option value="' + subject.id + '">' + subject
-                            .subject_name + '</option>');
-                    });
-                });
-            }
-
-            // Trigger category change if pre-selected
-            if ($('#category_code').val()) {
-                $('#category_code').trigger('change');
-            }
-
-            // Form validation
-            $('#letter-number-form').submit(function(e) {
-                var categoryCode = $('#category_code').val();
-                var isValid = true;
-                var errorMessage = '';
-
-                // Basic validation
-                if (!categoryCode) {
-                    isValid = false;
-                    errorMessage = 'Letter category must be selected';
-                }
-
-                if (!$('#letter_date').val()) {
-                    isValid = false;
-                    errorMessage = 'Letter date is required';
-                }
-
-                // Category-specific validation
-                if (categoryCode && categoryInfo[categoryCode] && categoryInfo[categoryCode]
-                    .needsEmployee) {
-                    if (!$('#administration_id').val()) {
-                        isValid = false;
-                        errorMessage = 'Employee data must be selected for this category';
-                    }
-                }
-
-                if (!isValid) {
-                    e.preventDefault();
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Validation Error',
-                        text: errorMessage,
-                        confirmButtonColor: '#3085d6'
-                    });
-                }
+                $('#display_nik').val(selectedOption.data('nik'));
+                $('#display_project').val(selectedOption.data('project-name'));
             });
         });
     </script>

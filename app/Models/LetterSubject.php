@@ -18,7 +18,7 @@ class LetterSubject extends Model
     // Relationships
     public function category()
     {
-        return $this->belongsTo(LetterCategory::class, 'category_code', 'category_code');
+        return $this->belongsTo(LetterCategory::class, 'letter_category_id');
     }
 
     public function letterNumbers()
@@ -37,9 +37,9 @@ class LetterSubject extends Model
         return $query->where('is_active', 1);
     }
 
-    public function scopeByCategory($query, $categoryCode)
+    public function scopeByCategory($query, $categoryId)
     {
-        return $query->where('category_code', $categoryCode);
+        return $query->where('letter_category_id', $categoryId);
     }
 
     public function scopeWithDocumentModel($query)
@@ -78,7 +78,7 @@ class LetterSubject extends Model
     {
         return [
             'subject_name' => 'required|string|max:255',
-            'category_code' => 'required|exists:letter_categories,category_code',
+            'letter_category_id' => 'required|exists:letter_categories,id',
             'document_model' => [
                 'nullable',
                 'string',
@@ -95,8 +95,8 @@ class LetterSubject extends Model
         return [
             'subject_name.required' => 'Nama subject harus diisi',
             'subject_name.max' => 'Nama subject maksimal 255 karakter',
-            'category_code.required' => 'Category code harus diisi',
-            'category_code.exists' => 'Category code tidak valid',
+            'letter_category_id.required' => 'Category harus diisi',
+            'letter_category_id.exists' => 'Category tidak valid',
             'document_model.unique' => 'Document model sudah digunakan oleh subject lain. Satu document model hanya boleh memiliki satu subject.',
             'document_model.max' => 'Document model maksimal 100 karakter',
             'is_active.required' => 'Status aktif harus diisi',
