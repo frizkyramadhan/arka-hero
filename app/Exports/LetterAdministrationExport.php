@@ -39,8 +39,7 @@ class LetterAdministrationExport implements FromQuery, WithHeadings, WithMapping
             'remarks',
             'nik',
             'employee_name',
-            'project_administration',
-            'project_direct',
+            'project_code',
             'duration',
             'start_date',
             'end_date',
@@ -56,6 +55,9 @@ class LetterAdministrationExport implements FromQuery, WithHeadings, WithMapping
 
     public function map($letterNumber): array
     {
+        // Determine project code - prioritize direct project, then administration project
+        $projectCode = $letterNumber->project?->project_code ?? $letterNumber->administration?->project?->project_code;
+
         return [
             $letterNumber->letter_number,
             $letterNumber->category?->category_code,
@@ -68,8 +70,7 @@ class LetterAdministrationExport implements FromQuery, WithHeadings, WithMapping
             $letterNumber->remarks,
             $letterNumber->administration?->nik,
             $letterNumber->administration?->employee?->fullname,
-            $letterNumber->administration?->project?->project_name,
-            $letterNumber->project?->project_name,
+            $projectCode,
             $letterNumber->duration,
             $letterNumber->start_date ? date('d F Y', strtotime($letterNumber->start_date)) : '',
             $letterNumber->end_date ? date('d F Y', strtotime($letterNumber->end_date)) : '',

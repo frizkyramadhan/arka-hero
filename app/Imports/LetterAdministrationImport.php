@@ -47,7 +47,7 @@ class LetterAdministrationImport implements ToModel, WithHeadingRow, WithValidat
         try {
             $category = $this->letterCategories->where('category_code', $row['category_code'])->first();
             $administration = isset($row['nik']) ? Administration::where('nik', $row['nik'])->first() : null;
-            $project = isset($row['project_direct']) ? Project::where('project_name', $row['project_direct'])->first() : null;
+            $project = isset($row['project_code']) ? Project::where('project_code', $row['project_code'])->first() : null;
             $subject = null;
             if ($category && !empty($row['subject_master'])) {
                 $subject = $this->letterSubjects->where('subject_name', $row['subject_master'])
@@ -173,8 +173,8 @@ class LetterAdministrationImport implements ToModel, WithHeadingRow, WithValidat
 
         // Project-related categories (FPTK) require project
         if ($categoryCode === 'FPTK') {
-            if (empty($row['project_direct'])) {
-                $validator->errors()->add($rowIndex . '.project_direct', 'Direct Project is required for category FPTK.');
+            if (empty($row['project_code'])) {
+                $validator->errors()->add($rowIndex . '.project_code', 'Project Code is required for category FPTK.');
             }
         }
 
@@ -226,12 +226,11 @@ class LetterAdministrationImport implements ToModel, WithHeadingRow, WithValidat
             'destination' => 'nullable|string',
             'remarks' => 'nullable|string',
             'subject_custom' => 'nullable|string',
-
             // Employee-related categories (PKWT, CRTE, SKPK) require NIK
             'nik' => 'nullable|exists:administrations,nik',
 
             // Project-related categories (FPTK) require project
-            'project_direct' => 'nullable|exists:projects,project_name',
+            'project_code' => 'nullable|exists:projects,project_code',
 
             // External letters (A) require classification
             'classification' => [
@@ -279,7 +278,7 @@ class LetterAdministrationImport implements ToModel, WithHeadingRow, WithValidat
             'nik.exists' => 'The selected NIK does not exist in administrations.',
 
             // Project-related validation
-            'project_direct.exists' => 'The selected Direct Project does not exist.',
+            'project_code.exists' => 'The selected Project Code does not exist.',
 
             // Classification validation
             'classification.in' => 'The selected Classification is invalid. Valid options: Umum, Lembaga Pendidikan, Pemerintah.',
