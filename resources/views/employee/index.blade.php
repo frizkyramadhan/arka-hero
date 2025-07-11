@@ -33,22 +33,22 @@
                                     </h3>
                                     <div class="d-flex flex-column flex-md-row ms-auto gap-2">
                                         @can('employees.termination')
-                                            <a href="{{ url('terminations') }}" class="btn btn-danger mb-2 mb-md-0 mr-2">
+                                            <a href="{{ url('terminations') }}" class="btn btn-danger mb-md-0 ml-1 mb-1">
                                                 <i class="fas fa-ban"></i> Terminated
                                             </a>
                                         @endcan
                                         @can('employees.export')
-                                            <a href="{{ url('employees/export/') }}" class="btn btn-primary mb-2 mb-md-0 mr-2">
+                                            <a href="{{ url('employees/export/') }}" class="btn btn-primary mb-md-0 ml-1 mb-1">
                                                 <i class="fas fa-download"></i> Export
                                             </a>
                                         @endcan
                                         @can('employees.import')
-                                            <a class="btn btn-success mb-2 mb-md-0 mr-2" data-toggle="modal"
+                                            <a class="btn btn-success mb-md-0 ml-1 mb-1" data-toggle="modal"
                                                 data-target="#modal-import">
                                                 <i class="fas fa-upload"></i> Import
                                             </a>
                                         @endcan
-                                        <a href="{{ url('employees/create') }}" class="btn btn-warning mb-2 mb-md-0 mr-2">
+                                        <a href="{{ url('employees/create') }}" class="btn btn-warning mb-md-0 ml-1 mb-1">
                                             <i class="fas fa-plus"></i> Add
                                         </a>
                                     </div>

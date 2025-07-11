@@ -26,11 +26,12 @@
                         <div class="card-header">
                             <h3 class="card-title">Letter Numbers List</h3>
                             <div class="card-tools">
-                                <a href="{{ route('letter-numbers.export') }}" class="btn btn-success">
-                                    <i class="fas fa-file-excel"></i> Export
+                                <a href="{{ route('letter-numbers.export') }}" class="btn btn-primary">
+                                    <i class="fas fa-download"></i> Export
                                 </a>
-                                <button type="button" class="btn btn-info" data-toggle="modal" data-target="#importModal">
-                                    <i class="fas fa-file-upload"></i> Import
+                                <button type="button" class="btn btn-success" data-toggle="modal"
+                                    data-target="#importModal">
+                                    <i class="fas fa-upload"></i> Import
                                 </button>
                                 <div class="btn-group dropleft">
                                     <a href="{{ route('letter-numbers.create') }}" class="btn btn-warning">

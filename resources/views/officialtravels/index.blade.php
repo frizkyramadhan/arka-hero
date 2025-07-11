@@ -27,8 +27,8 @@
                             <div class="card-header">
                                 <h3 class="card-title">{{ $title }}</h3>
                                 <div class="card-tools">
-                                    <button type="button" class="btn btn-success" id="exportExcel">
-                                        <i class="fas fa-file-excel"></i> Export Excel
+                                    <button type="button" class="btn btn-primary" id="exportExcel">
+                                        <i class="fas fa-download"></i> Export
                                     </button>
                                     @can('official-travels.create')
                                         <a href="{{ route('officialtravels.create') }}" class="btn btn-warning">
