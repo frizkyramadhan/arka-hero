@@ -412,7 +412,7 @@ class OfficialtravelController extends Controller
     public function create()
     {
         $title = 'Official Travels';
-        $subtitle = 'Add Official Travel';
+        $subtitle = 'Add Official Travel (LOT)';
         $projects = Project::where('project_status', 1)->get();
         $accommodations = Accommodation::where('accommodation_status', 1)->get();
         $transportations = Transportation::where('transportation_status', 1)->get();
