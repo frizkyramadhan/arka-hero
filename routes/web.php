@@ -39,6 +39,9 @@ use App\Http\Controllers\LetterSubjectController;
 use App\Http\Controllers\LetterCategoryController;
 use App\Http\Controllers\GradeController;
 use App\Http\Controllers\LevelController;
+use App\Http\Controllers\RecruitmentRequestController;
+use App\Http\Controllers\RecruitmentCandidateController;
+use App\Http\Controllers\RecruitmentSessionController;
 
 /*
 |--------------------------------------------------------------------------
@@ -209,8 +212,6 @@ Route::group(['middleware' => ['auth']], function () {
         Route::delete('/{id}', [LetterSubjectController::class, 'destroy'])->name('destroy');
     });
 
-    // EMPLOYEE ROUTES
-
     // EMPLOYEE REGISTRATION ADMIN ROUTES
     Route::prefix('employee-registrations')->name('employee.registration.admin.')->group(function () {
         Route::get('/', [EmployeeRegistrationAdminController::class, 'index'])->name('index');
@@ -230,6 +231,8 @@ Route::group(['middleware' => ['auth']], function () {
         Route::post('/{id}/reject-form', [EmployeeRegistrationAdminController::class, 'rejectForm'])->name('reject.form');
         Route::get('/{registrationId}/documents/{documentId}', [EmployeeRegistrationAdminController::class, 'downloadDocument'])->name('download.document');
     });
+
+    // EMPLOYEE ROUTES
 
     Route::get('employees/data', [EmployeeController::class, 'getEmployees'])->name('employees.data');
     Route::get('employees/print/{id}', [EmployeeController::class, 'print'])->name('employees.print');
@@ -321,4 +324,67 @@ Route::group(['middleware' => ['auth']], function () {
 
     Route::resource('emails', EmailController::class)->except(['create', 'show', 'edit']);
     Route::post("emails", [EmailController::class, "sendMail"])->name("sendMail");
+
+    // Recruitment Routes
+    Route::prefix('recruitment')->name('recruitment.')->group(function () {
+        // FPTK (Recruitment Request) Routes
+        Route::prefix('requests')->name('requests.')->group(function () {
+            Route::get('/', [RecruitmentRequestController::class, 'index'])->name('index');
+            Route::get('/data', [RecruitmentRequestController::class, 'getRecruitmentRequests'])->name('data');
+            Route::get('/{id}/data', [RecruitmentRequestController::class, 'getFPTKData'])->name('single-data');
+            Route::get('/create', [RecruitmentRequestController::class, 'create'])->name('create');
+            Route::post('/', [RecruitmentRequestController::class, 'store'])->name('store');
+            Route::get('/{id}', [RecruitmentRequestController::class, 'show'])->name('show');
+            Route::get('/{id}/edit', [RecruitmentRequestController::class, 'edit'])->name('edit');
+            Route::put('/{id}', [RecruitmentRequestController::class, 'update'])->name('update');
+            Route::delete('/{id}', [RecruitmentRequestController::class, 'destroy'])->name('destroy');
+
+            // FPTK Actions
+            Route::post('/{id}/submit', [RecruitmentRequestController::class, 'submit'])->name('submit');
+            Route::post('/{id}/approve', [RecruitmentRequestController::class, 'approve'])->name('approve');
+            Route::post('/{id}/reject', [RecruitmentRequestController::class, 'reject'])->name('reject');
+            Route::post('/{id}/assign-letter-number', [RecruitmentRequestController::class, 'assignLetterNumber'])->name('assign-letter-number');
+
+            // AJAX Routes
+        });
+
+        // Candidate Routes
+        Route::prefix('candidates')->name('candidates.')->group(function () {
+            Route::get('/', [RecruitmentCandidateController::class, 'index'])->name('index');
+            Route::get('/create', [RecruitmentCandidateController::class, 'create'])->name('create');
+            Route::post('/', [RecruitmentCandidateController::class, 'store'])->name('store');
+            Route::get('/{id}', [RecruitmentCandidateController::class, 'show'])->name('show');
+            Route::get('/{id}/edit', [RecruitmentCandidateController::class, 'edit'])->name('edit');
+            Route::put('/{id}', [RecruitmentCandidateController::class, 'update'])->name('update');
+
+            // Candidate Actions
+            Route::post('/{id}/apply-to-fptk', [RecruitmentCandidateController::class, 'applyToFPTK'])->name('apply-to-fptk');
+            Route::post('/{id}/blacklist', [RecruitmentCandidateController::class, 'blacklist'])->name('blacklist');
+            Route::post('/{id}/remove-from-blacklist', [RecruitmentCandidateController::class, 'removeFromBlacklist'])->name('remove-from-blacklist');
+            Route::get('/{id}/download-cv', [RecruitmentCandidateController::class, 'downloadCV'])->name('download-cv');
+
+            // AJAX Routes
+            Route::get('/{id}/data', [RecruitmentCandidateController::class, 'getCandidateData'])->name('data');
+            Route::get('/{id}/available-fptks', [RecruitmentCandidateController::class, 'getAvailableFPTKs'])->name('available-fptks');
+        });
+
+        // Session Routes
+        Route::prefix('sessions')->name('sessions.')->group(function () {
+            Route::get('/', [RecruitmentSessionController::class, 'index'])->name('index');
+            Route::get('/dashboard', [RecruitmentSessionController::class, 'dashboard'])->name('dashboard');
+            Route::get('/{id}', [RecruitmentSessionController::class, 'show'])->name('show');
+
+            // Session Actions
+            Route::post('/{id}/advance-stage', [RecruitmentSessionController::class, 'advanceStage'])->name('advance-stage');
+            Route::post('/{id}/reject', [RecruitmentSessionController::class, 'reject'])->name('reject');
+            Route::post('/{id}/complete', [RecruitmentSessionController::class, 'complete'])->name('complete');
+            Route::post('/{id}/cancel', [RecruitmentSessionController::class, 'cancel'])->name('cancel');
+            Route::post('/{id}/withdraw', [RecruitmentSessionController::class, 'withdraw'])->name('withdraw');
+
+            // AJAX Routes
+            Route::get('/{id}/data', [RecruitmentSessionController::class, 'getSessionData'])->name('data');
+            Route::get('/fptk/{fptkId}/sessions', [RecruitmentSessionController::class, 'getSessionsByFPTK'])->name('by-fptk');
+            Route::get('/candidate/{candidateId}/sessions', [RecruitmentSessionController::class, 'getSessionsByCandidate'])->name('by-candidate');
+        });
+    });
 });

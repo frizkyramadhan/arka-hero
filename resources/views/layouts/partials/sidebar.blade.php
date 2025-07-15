@@ -105,6 +105,56 @@
                     </a>
                 </li>
 
+                @canany(['recruitment-requests.show', 'recruitment-candidates.show', 'recruitment-sessions.show'])
+                    <li class="nav-item {{ Request::is('recruitment*') ? 'menu-open' : '' }}">
+                        <a href="#" class="nav-link {{ Request::is('recruitment*') ? 'active' : '' }}">
+                            <i class="nav-icon fas fa-user-tie"></i>
+                            <p>
+                                Recruitment
+                                <i class="fas fa-angle-left right"></i>
+                            </p>
+                        </a>
+                        <ul class="nav nav-treeview">
+                            @can('recruitment-requests.show')
+                                <li class="nav-item">
+                                    <a href="{{ route('recruitment.requests.index') }}"
+                                        class="nav-link {{ Request::is('recruitment/requests*') ? 'active' : '' }}">
+                                        <i class="far fa-circle nav-icon"></i>
+                                        <p>FPTK Management</p>
+                                    </a>
+                                </li>
+                            @endcan
+                            @can('recruitment-candidates.show')
+                                <li class="nav-item">
+                                    <a href="{{ route('recruitment.candidates.index') }}"
+                                        class="nav-link {{ Request::is('recruitment/candidates*') ? 'active' : '' }}">
+                                        <i class="far fa-circle nav-icon"></i>
+                                        <p>Candidates</p>
+                                    </a>
+                                </li>
+                            @endcan
+                            @can('recruitment-sessions.show')
+                                <li class="nav-item">
+                                    <a href="{{ route('recruitment.sessions.index') }}"
+                                        class="nav-link {{ Request::is('recruitment/sessions*') ? 'active' : '' }}">
+                                        <i class="far fa-circle nav-icon"></i>
+                                        <p>Sessions</p>
+                                    </a>
+                                </li>
+                            @endcan
+                            @can('recruitment-sessions.dashboard')
+                                <li class="nav-item">
+                                    <a href="{{ route('recruitment.sessions.dashboard') }}"
+                                        class="nav-link {{ Request::is('recruitment/sessions/dashboard*') ? 'active' : '' }}">
+                                        <i class="far fa-circle nav-icon"></i>
+                                        <p>Dashboard</p>
+                                    </a>
+                                </li>
+                            @endcan
+                        </ul>
+                    </li>
+                @endcanany
+
                 @canany(['master-data.show'])
                     {{-- MASTER DATA --}}
                     <li class="nav-header">MASTER DATA</li>
