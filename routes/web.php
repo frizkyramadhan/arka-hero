@@ -114,8 +114,10 @@ Route::group(['middleware' => ['auth']], function () {
 
     // ADMINISTRATOR ROUTES
 
+    Route::get('users/dashboard', [UserController::class, 'dashboard'])->name('users.dashboard');
+    Route::get('users/{id}/details', [UserController::class, 'getUserDetails'])->name('users.details');
     Route::get('users/data', [UserController::class, 'getUsers'])->name('users.data');
-    Route::resource('users', UserController::class)->except(['show', 'create', 'edit']);
+    Route::resource('users', UserController::class);
 
     Route::get('roles/data', [RoleController::class, 'getRoles'])->name('roles.data');
     Route::resource('roles', RoleController::class);

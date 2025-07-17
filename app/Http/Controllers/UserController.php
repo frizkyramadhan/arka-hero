@@ -9,6 +9,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Hash;
 use Spatie\Permission\Models\Role;
 use Illuminate\Support\Facades\DB;
+use Spatie\Permission\Models\Permission;
 
 class UserController extends Controller
 {
@@ -25,8 +26,27 @@ class UserController extends Controller
         $title = 'Users';
         $subtitle = 'List of Users';
         $roles = Role::orderBy('name', 'asc')->get();
+        $stats = [
+            'users' => User::count(),
+            'roles' => Role::count(),
+            'permissions' => Permission::count(),
+        ];
+        $rolesSummary = Role::withCount('users', 'permissions')->orderBy('name', 'asc')->get();
+        $permissionsSummary = Permission::withCount('roles')->orderBy('name', 'asc')->get();
+        return view('users.index', compact('title', 'subtitle', 'roles', 'stats', 'rolesSummary', 'permissionsSummary'));
+    }
 
-        return view('users.index', compact('title', 'subtitle', 'roles'));
+    public function getUserDetails($id)
+    {
+        $user = User::with(['roles'])->findOrFail($id);
+        $permissions = $user->getAllPermissions()->groupBy(function ($permission) {
+            return explode('.', $permission->name)[0];
+        });
+
+        return response()->json([
+            'user' => $user,
+            'permissions' => $permissions,
+        ]);
     }
 
     public function getUsers(Request $request)
@@ -99,7 +119,9 @@ class UserController extends Controller
      */
     public function create()
     {
-        //
+        $roles = Role::with('permissions')->orderBy('name', 'asc')->get();
+        $title = 'Create User';
+        return view('users.create', compact('roles', 'title'));
     }
 
     /**
@@ -162,7 +184,12 @@ class UserController extends Controller
      */
     public function show($id)
     {
-        //
+        $user = User::with('roles')->findOrFail($id);
+        $roles = Role::with('permissions')->orderBy('name', 'asc')->get();
+        // Permissions yang didapat user (dari role dan direct)
+        $permissions = $user->getAllPermissions();
+        $title = 'User Details';
+        return view('users.show', compact('user', 'roles', 'permissions', 'title'));
     }
 
     /**
@@ -173,7 +200,11 @@ class UserController extends Controller
      */
     public function edit($id)
     {
-        //
+        $user = User::with('roles')->findOrFail($id);
+        $roles = Role::with('permissions')->orderBy('name', 'asc')->get();
+        $userRoleNames = $user->roles->pluck('name')->toArray();
+        $title = 'Edit User';
+        return view('users.edit', compact('user', 'roles', 'userRoleNames', 'title'));
     }
 
     /**
