@@ -53,12 +53,14 @@ class RecruitmentRequestController extends Controller
             'project',
             'position',
             'level',
-            'requestedBy',
-            'approvedBy',
+            'createdBy',
             'letterNumber'
         ]);
 
         // Apply filters
+        if ($request->filled('request_number')) {
+            $query->where('request_number', 'LIKE', "%{$request->request_number}%");
+        }
         if ($request->filled('department_id')) {
             $query->where('department_id', $request->department_id);
         }
@@ -71,8 +73,8 @@ class RecruitmentRequestController extends Controller
             $query->where('level_id', $request->level_id);
         }
 
-        if ($request->filled('status')) {
-            $query->where('status', $request->status);
+        if ($request->filled('final_status')) {
+            $query->where('final_status', $request->final_status);
         }
 
         if ($request->filled('year')) {
@@ -85,27 +87,6 @@ class RecruitmentRequestController extends Controller
 
         if ($request->filled('date_to')) {
             $query->whereDate('created_at', '<=', $request->date_to);
-        }
-
-        // Global search
-        if ($request->filled('search')) {
-            $search = $request->search;
-            $query->where(function ($q) use ($search) {
-                $q->where('request_number', 'LIKE', "%{$search}%")
-                    ->orWhere('letter_number', 'LIKE', "%{$search}%")
-                    ->orWhereHas('position', function ($q) use ($search) {
-                        $q->where('position_name', 'LIKE', "%{$search}%");
-                    })
-                    ->orWhereHas('department', function ($q) use ($search) {
-                        $q->where('department_name', 'LIKE', "%{$search}%");
-                    })
-                    ->orWhereHas('level', function ($q) use ($search) {
-                        $q->where('name', 'LIKE', "%{$search}%");
-                    })
-                    ->orWhereHas('requestedBy', function ($q) use ($search) {
-                        $q->where('name', 'LIKE', "%{$search}%");
-                    });
-            });
         }
 
         $query->orderBy('created_at', 'desc');
@@ -137,23 +118,24 @@ class RecruitmentRequestController extends Controller
                 ];
                 return $types[$fptk->employment_type] ?? $fptk->employment_type;
             })
-            ->addColumn('status', function ($fptk) {
+            ->addColumn('final_status', function ($fptk) {
                 $badges = [
                     'draft' => '<span class="badge badge-secondary">Draft</span>',
                     'submitted' => '<span class="badge badge-warning">Submitted</span>',
                     'approved' => '<span class="badge badge-success">Approved</span>',
                     'rejected' => '<span class="badge badge-danger">Rejected</span>',
+                    'cancelled' => '<span class="badge badge-warning">Cancelled</span>',
                     'closed' => '<span class="badge badge-info">Closed</span>'
                 ];
-                return $badges[$fptk->status] ?? '<span class="badge badge-light">' . ucfirst($fptk->status) . '</span>';
+                return $badges[$fptk->final_status] ?? '<span class="badge badge-light">' . ucfirst($fptk->final_status) . '</span>';
             })
-            ->addColumn('requested_by', function ($fptk) {
-                return $fptk->requestedBy ? $fptk->requestedBy->name : '-';
+            ->addColumn('created_by', function ($fptk) {
+                return $fptk->createdBy ? $fptk->createdBy->name : '-';
             })
             ->addColumn('action', function ($fptk) {
                 return view('recruitment.requests.action', compact('fptk'))->render();
             })
-            ->rawColumns(['status', 'action'])
+            ->rawColumns(['final_status', 'action'])
             ->toJson();
     }
 
@@ -287,8 +269,8 @@ class RecruitmentRequestController extends Controller
                 'known_by' => $request->known_by,
                 'approved_by_pm' => $request->approved_by_pm,
                 'approved_by_director' => $request->approved_by_director,
-                'requested_by' => Auth::id(),
-                'status' => 'draft'
+                'created_by' => Auth::id(),
+                'final_status' => 'draft'
             ]);
 
             // Mark letter number as used if selected
@@ -311,15 +293,14 @@ class RecruitmentRequestController extends Controller
                 $message .= ' dengan Nomor Surat: ' . $letterNumberString;
             }
 
-            return redirect()->route('recruitment.requests.show', $fptk->id)
-                ->with('success', $message);
+            return redirect('recruitment/requests')->with('toast_success', $message);
         } catch (Exception $e) {
             DB::rollback();
             Log::error('Error creating FPTK: ' . $e->getMessage());
 
             return redirect()->back()
                 ->withInput()
-                ->with('error', 'Terjadi kesalahan saat membuat FPTK. Silakan coba lagi.');
+                ->with('toast_error', 'Terjadi kesalahan saat membuat FPTK. Silakan coba lagi.');
         }
     }
 
@@ -328,13 +309,17 @@ class RecruitmentRequestController extends Controller
      */
     public function show($id)
     {
+        $title = 'Recruitment Requests (FPTK)';
+        $subtitle = 'Detail Recruitment Request';
         $fptk = RecruitmentRequest::with([
             'department',
             'project',
             'position',
             'level',
-            'requestedBy',
-            'approvedBy',
+            'createdBy',
+            'acknowledger',
+            'projectManagerApprover',
+            'directorApprover',
             'letterNumber.category',
             'sessions.candidate',
             'sessions.assessments',
@@ -343,7 +328,32 @@ class RecruitmentRequestController extends Controller
 
         $letterInfo = $fptk->getLetterNumberInfo();
 
-        return view('recruitment.requests.show', compact('fptk', 'letterInfo'));
+        return view('recruitment.requests.show', compact('fptk', 'letterInfo', 'title', 'subtitle'));
+    }
+
+    /**
+     * Print FPTK as PDF or printer-friendly format
+     */
+    public function print($id)
+    {
+        $fptk = RecruitmentRequest::with([
+            'department',
+            'project',
+            'position',
+            'level',
+            'createdBy',
+            'acknowledger',
+            'projectManagerApprover',
+            'directorApprover',
+            'letterNumber.category',
+            'sessions.candidate',
+            'sessions.assessments',
+            'activeSessions'
+        ])->findOrFail($id);
+
+        $letterInfo = $fptk->getLetterNumberInfo();
+
+        return view('recruitment.requests.print', compact('fptk', 'letterInfo'));
     }
 
     /**
@@ -351,12 +361,15 @@ class RecruitmentRequestController extends Controller
      */
     public function edit($id)
     {
+        $title = 'Recruitment Requests (FPTK)';
+        $subtitle = 'Edit Recruitment Request';
+
         $fptk = RecruitmentRequest::findOrFail($id);
 
         // Only allow editing if status is draft
-        if ($fptk->status !== 'draft') {
+        if ($fptk->final_status !== 'draft') {
             return redirect()->route('recruitment.requests.show', $id)
-                ->with('error', 'FPTK hanya dapat diedit dalam status draft.');
+                ->with('toast_error', 'FPTK hanya dapat diedit dalam status draft.');
         }
 
         $departments = Department::get();
@@ -368,7 +381,7 @@ class RecruitmentRequestController extends Controller
         $acknowledgers = User::permission('recruitment-requests.acknowledge')->get();
         $approvers = User::permission('recruitment-requests.approve')->get();
 
-        return view('recruitment.requests.edit', compact('fptk', 'departments', 'projects', 'positions', 'levels', 'acknowledgers', 'approvers'));
+        return view('recruitment.requests.edit', compact('fptk', 'departments', 'projects', 'positions', 'levels', 'acknowledgers', 'approvers', 'title', 'subtitle'));
     }
 
     /**
@@ -379,9 +392,9 @@ class RecruitmentRequestController extends Controller
         $fptk = RecruitmentRequest::findOrFail($id);
 
         // Only allow updating if status is draft
-        if ($fptk->status !== 'draft') {
+        if ($fptk->final_status !== 'draft') {
             return redirect()->route('recruitment.requests.show', $id)
-                ->with('error', 'FPTK hanya dapat diupdate dalam status draft.');
+                ->with('toast_error', 'FPTK hanya dapat diupdate dalam status draft.');
         }
 
         $request->validate([
@@ -444,14 +457,14 @@ class RecruitmentRequestController extends Controller
             DB::commit();
 
             return redirect()->route('recruitment.requests.show', $fptk->id)
-                ->with('success', 'FPTK berhasil diupdate.');
+                ->with('toast_success', 'FPTK berhasil diupdate.');
         } catch (Exception $e) {
             DB::rollback();
             Log::error('Error updating FPTK: ' . $e->getMessage());
 
             return redirect()->back()
                 ->withInput()
-                ->with('error', 'Terjadi kesalahan saat mengupdate FPTK. Silakan coba lagi.');
+                ->with('toast_error', 'Terjadi kesalahan saat mengupdate FPTK. Silakan coba lagi.');
         }
     }
 
@@ -462,21 +475,21 @@ class RecruitmentRequestController extends Controller
     {
         $fptk = RecruitmentRequest::findOrFail($id);
 
-        if ($fptk->status !== 'draft') {
+        if ($fptk->final_status !== 'draft') {
             return redirect()->route('recruitment.requests.show', $id)
-                ->with('error', 'FPTK hanya dapat disubmit dalam status draft.');
+                ->with('toast_error', 'FPTK hanya dapat disubmit dalam status draft.');
         }
 
         try {
-            $fptk->update(['status' => 'submitted']);
+            $fptk->update(['final_status' => 'submitted']);
 
             return redirect()->route('recruitment.requests.show', $fptk->id)
-                ->with('success', 'FPTK berhasil disubmit untuk persetujuan.');
+                ->with('toast_success', 'FPTK berhasil disubmit untuk persetujuan.');
         } catch (Exception $e) {
             Log::error('Error submitting FPTK: ' . $e->getMessage());
 
             return redirect()->back()
-                ->with('error', 'Terjadi kesalahan saat submit FPTK. Silakan coba lagi.');
+                ->with('toast_error', 'Terjadi kesalahan saat submit FPTK. Silakan coba lagi.');
         }
     }
 
@@ -487,9 +500,9 @@ class RecruitmentRequestController extends Controller
     {
         $fptk = RecruitmentRequest::findOrFail($id);
 
-        if ($fptk->status !== 'submitted') {
+        if ($fptk->final_status !== 'submitted') {
             return redirect()->route('recruitment.requests.show', $id)
-                ->with('error', 'FPTK hanya dapat disetujui dalam status submitted.');
+                ->with('toast_error', 'FPTK hanya dapat disetujui dalam status submitted.');
         }
 
         try {
@@ -501,13 +514,13 @@ class RecruitmentRequestController extends Controller
             DB::commit();
 
             return redirect()->route('recruitment.requests.show', $fptk->id)
-                ->with('success', 'FPTK berhasil disetujui. Nomor surat: ' . $fptk->fresh()->getFPTKLetterNumber());
+                ->with('toast_success', 'FPTK berhasil disetujui. Nomor surat: ' . $fptk->fresh()->getFPTKLetterNumber());
         } catch (Exception $e) {
             DB::rollback();
             Log::error('Error approving FPTK: ' . $e->getMessage());
 
             return redirect()->back()
-                ->with('error', 'Terjadi kesalahan saat menyetujui FPTK. Silakan coba lagi.');
+                ->with('toast_error', 'Terjadi kesalahan saat menyetujui FPTK. Silakan coba lagi.');
         }
     }
 
@@ -522,21 +535,21 @@ class RecruitmentRequestController extends Controller
 
         $fptk = RecruitmentRequest::findOrFail($id);
 
-        if ($fptk->status !== 'submitted') {
+        if ($fptk->final_status !== 'submitted') {
             return redirect()->route('recruitment.requests.show', $id)
-                ->with('error', 'FPTK hanya dapat ditolak dalam status submitted.');
+                ->with('toast_error', 'FPTK hanya dapat ditolak dalam status submitted.');
         }
 
         try {
             $fptk->reject(Auth::id(), $request->rejection_reason);
 
             return redirect()->route('recruitment.requests.show', $fptk->id)
-                ->with('success', 'FPTK berhasil ditolak.');
+                ->with('toast_success', 'FPTK berhasil ditolak.');
         } catch (Exception $e) {
             Log::error('Error rejecting FPTK: ' . $e->getMessage());
 
             return redirect()->back()
-                ->with('error', 'Terjadi kesalahan saat menolak FPTK. Silakan coba lagi.');
+                ->with('toast_error', 'Terjadi kesalahan saat menolak FPTK. Silakan coba lagi.');
         }
     }
 
@@ -548,9 +561,9 @@ class RecruitmentRequestController extends Controller
         $fptk = RecruitmentRequest::findOrFail($id);
 
         // Only allow deletion if status is draft
-        if ($fptk->status !== 'draft') {
+        if ($fptk->final_status !== 'draft') {
             return redirect()->route('recruitment.requests.show', $id)
-                ->with('error', 'FPTK hanya dapat dihapus dalam status draft.');
+                ->with('toast_error', 'FPTK hanya dapat dihapus dalam status draft.');
         }
 
         try {
@@ -566,13 +579,13 @@ class RecruitmentRequestController extends Controller
             DB::commit();
 
             return redirect()->route('recruitment.requests.index')
-                ->with('success', 'FPTK berhasil dihapus.');
+                ->with('toast_success', 'FPTK berhasil dihapus.');
         } catch (Exception $e) {
             DB::rollback();
             Log::error('Error deleting FPTK: ' . $e->getMessage());
 
             return redirect()->back()
-                ->with('error', 'Terjadi kesalahan saat menghapus FPTK. Silakan coba lagi.');
+                ->with('toast_error', 'Terjadi kesalahan saat menghapus FPTK. Silakan coba lagi.');
         }
     }
 
@@ -585,7 +598,7 @@ class RecruitmentRequestController extends Controller
 
         if ($fptk->hasLetterNumber()) {
             return redirect()->route('recruitment.requests.show', $id)
-                ->with('error', 'FPTK sudah memiliki nomor surat.');
+                ->with('toast_error', 'FPTK sudah memiliki nomor surat.');
         }
 
         try {
@@ -593,16 +606,16 @@ class RecruitmentRequestController extends Controller
 
             if ($success) {
                 return redirect()->route('recruitment.requests.show', $id)
-                    ->with('success', 'Nomor surat berhasil di-assign: ' . $fptk->fresh()->getFPTKLetterNumber());
+                    ->with('toast_success', 'Nomor surat berhasil di-assign: ' . $fptk->fresh()->getFPTKLetterNumber());
             } else {
                 return redirect()->back()
-                    ->with('error', 'Gagal assign nomor surat. Silakan coba lagi.');
+                    ->with('toast_error', 'Gagal assign nomor surat. Silakan coba lagi.');
             }
         } catch (Exception $e) {
             Log::error('Error assigning letter number: ' . $e->getMessage());
 
             return redirect()->back()
-                ->with('error', 'Terjadi kesalahan saat assign nomor surat. Silakan coba lagi.');
+                ->with('toast_error', 'Terjadi kesalahan saat assign nomor surat. Silakan coba lagi.');
         }
     }
 
@@ -630,7 +643,7 @@ class RecruitmentRequestController extends Controller
                 'level' => $fptk->level->name,
                 'required_qty' => $fptk->required_qty,
                 'remaining_positions' => $fptk->remaining_positions,
-                'status' => $fptk->status,
+                'final_status' => $fptk->final_status,
                 'can_receive_applications' => $fptk->canReceiveApplications(),
                 'employment_type' => $fptk->employment_type,
                 'job_description' => $fptk->job_description,
