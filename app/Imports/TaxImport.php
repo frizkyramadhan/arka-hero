@@ -73,8 +73,8 @@ class TaxImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnFailu
         return [
             'full_name' => ['required', 'string', 'exists:employees,fullname'],
             'identity_card_no' => ['required', 'string', 'exists:employees,identity_card'],
-            'tax_identification_no' => ['required', 'string'],
-            'valid_date' => ['required', 'date'],
+            'tax_identification_no' => ['required'],
+            'valid_date' => ['nullable', 'date'],
         ];
     }
 
@@ -86,7 +86,6 @@ class TaxImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnFailu
             'identity_card_no.required' => 'Identity Card No is required',
             'identity_card_no.exists' => 'Employee with this Identity Card does not exist',
             'tax_identification_no.required' => 'Tax Identification Number is required',
-            'valid_date.required' => 'Valid Date is required',
             'valid_date.date' => 'Valid Date must be a valid date',
         ];
     }
@@ -168,7 +167,7 @@ class TaxImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnFailu
             // Prepare data for tax record
             $taxData = [
                 'employee_id' => $employee->id,
-                'tax_no' => $row['tax_identification_no'],
+                'tax_no' => (string) $row['tax_identification_no'],
             ];
 
             // Process valid date

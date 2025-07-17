@@ -375,6 +375,9 @@
                                         <option value="Termination"
                                             {{ old('termination_reason') == 'Termination' ? 'selected' : '' }}>
                                             Termination</option>
+                                        <option value="Retired"
+                                            {{ old('termination_reason') == 'Retired' ? 'selected' : '' }}>
+                                            Retired</option>
                                     </select>
                                     @error('termination_reason')
                                         <div class="invalid-feedback">{{ $message }}</div>
@@ -835,6 +838,9 @@
                                             <option value="Termination"
                                                 {{ old('termination_reason', $administration->termination_reason) == 'Termination' ? 'selected' : '' }}>
                                                 Termination</option>
+                                            <option value="Retired"
+                                                {{ old('termination_reason', $administration->termination_reason) == 'Retired' ? 'selected' : '' }}>
+                                                Retired</option>
                                         </select>
                                         @error('termination_reason')
                                             <div class="invalid-feedback">{{ $message }}</div>

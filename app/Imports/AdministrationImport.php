@@ -88,14 +88,14 @@ class AdministrationImport implements ToModel, WithHeadingRow, WithValidation, S
         return [
             'full_name' => ['required', 'string', 'exists:employees,fullname'],
             'identity_card_no' => ['required', 'string', 'exists:employees,identity_card'],
-            'project_code' => ['required', 'string', 'exists:projects,project_code'],
-            'position' => ['required', 'string', 'exists:positions,position_name'],
+            'project_code' => ['nullable', 'string', 'exists:projects,project_code'],
+            'position' => ['nullable', 'string', 'exists:positions,position_name'],
             'grade' => ['nullable', 'string', 'exists:grades,name'],
             'level' => ['nullable', 'string', 'exists:levels,name'],
             'nik' => ['required'],
             'class' => ['required', 'in:Staff,Non Staff'],
-            'doh' => ['required'],
-            'poh' => ['required', 'string'],
+            'doh' => ['nullable'],
+            'poh' => ['nullable', 'string'],
             'foc' => ['nullable'],
         ];
     }
@@ -107,17 +107,13 @@ class AdministrationImport implements ToModel, WithHeadingRow, WithValidation, S
             'full_name.exists' => 'Employee with this name does not exist',
             'identity_card_no.required' => 'Identity Card No is required',
             'identity_card_no.exists' => 'Employee with this Identity Card does not exist',
-            'project_code.required' => 'Project Code is required',
             'project_code.exists' => 'Project Code does not exist',
-            'position.required' => 'Position is required',
             'position.exists' => 'Position does not exist',
             'grade.exists' => 'Grade does not exist',
             'level.exists' => 'Level does not exist',
             'nik.required' => 'NIK is required',
             'class.required' => 'Class is required',
             'class.in' => 'Class must be either "Staff" or "Non Staff" (case sensitive)',
-            'doh.required' => 'Date of Hire is required',
-            'poh.required' => 'Place of Hire is required',
         ];
     }
 
