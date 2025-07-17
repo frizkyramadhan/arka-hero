@@ -76,7 +76,7 @@ class BankImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnFail
         return [
             'full_name' => ['required', 'string', 'exists:employees,fullname'],
             'identity_card_no' => ['required', 'string', 'exists:employees,identity_card'],
-            'bank_name' => ['required', 'string', 'exists:banks,bank_name']
+            'bank_name' => ['nullable', 'string', 'exists:banks,bank_name']
         ];
     }
 
@@ -87,7 +87,6 @@ class BankImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnFail
             'full_name.exists' => 'Employee with this name does not exist',
             'identity_card_no.required' => 'Identity Card No is required',
             'identity_card_no.exists' => 'Employee with this Identity Card does not exist',
-            'bank_name.required' => 'Bank Name is required',
             'bank_name.exists' => 'Bank Name does not exist'
         ];
     }

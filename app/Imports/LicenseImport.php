@@ -169,7 +169,7 @@ class LicenseImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnE
             // Prepare data for license record
             $licenseData = [
                 'employee_id' => $employee->id,
-                'driver_license_no' => $row['driver_license_no'],
+                'driver_license_no' => (string) $row['driver_license_no'],
                 'driver_license_type' => $row['driver_license_type'],
             ];
 

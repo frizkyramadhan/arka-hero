@@ -87,15 +87,12 @@ class TerminationImport implements
         return [
             'full_name' => ['required', 'string', 'exists:employees,fullname'],
             'identity_card_no' => ['required', 'string', 'exists:employees,identity_card'],
-            'project_code' => ['required', 'string', 'exists:projects,project_code'],
-            'position' => ['required', 'string', 'exists:positions,position_name'],
             'nik' => ['required'],
-            'class' => ['required', 'in:Staff,Non Staff'],
-            'doh' => ['required'],
-            'poh' => ['required', 'string'],
-            'foc' => ['nullable'],
-            'termination_date' => ['required'],
-            'termination_reason' => ['required', 'in:End of Contract,End of Project,Resign,Termination'],
+            'department' => ['nullable', 'string'],
+            'position' => ['nullable', 'string', 'exists:positions,position_name'],
+            'project_code' => ['nullable', 'string', 'exists:projects,project_code'],
+            'termination_date' => ['nullable'],
+            'termination_reason' => ['required', 'in:End of Contract,End of Project,Resign,Termination,Retired'],
             'coe_no' => ['nullable', 'string'],
         ];
     }
@@ -107,18 +104,11 @@ class TerminationImport implements
             'full_name.exists' => 'Employee with this name does not exist',
             'identity_card_no.required' => 'Identity Card No is required',
             'identity_card_no.exists' => 'Employee with this Identity Card does not exist',
-            'project_code.required' => 'Project Code is required',
-            'project_code.exists' => 'Project Code does not exist',
-            'position.required' => 'Position is required',
-            'position.exists' => 'Position does not exist',
             'nik.required' => 'NIK is required',
-            'class.required' => 'Class is required',
-            'class.in' => 'Class must be either "Staff" or "Non Staff" (case sensitive)',
-            'doh.required' => 'Date of Hire is required',
-            'poh.required' => 'Place of Hire is required',
-            'termination_date.required' => 'Termination Date is required',
+            'position.exists' => 'Position does not exist',
+            'project_code.exists' => 'Project Code does not exist',
             'termination_reason.required' => 'Termination Reason is required',
-            'termination_reason.in' => 'Termination Reason must be one of: End of Contract, End of Project, Resign, Termination',
+            'termination_reason.in' => 'Termination Reason must be one of: End of Contract, End of Project, Resign, Termination, Retired',
         ];
     }
 
@@ -134,7 +124,7 @@ class TerminationImport implements
                 // Skip if essential data is missing
                 if (
                     empty($row['full_name']) || empty($row['identity_card_no']) ||
-                    empty($row['termination_date']) || empty($row['reason'])
+                    empty($row['termination_date']) || empty($row['termination_reason'])
                 ) {
                     continue;
                 }
@@ -173,7 +163,7 @@ class TerminationImport implements
         $this->rowNumber++;
 
         // Skip empty rows
-        if (empty($row['full_name']) || empty($row['identity_card_no']) || empty($row['termination_date']) || empty($row['reason'])) {
+        if (empty($row['full_name']) || empty($row['identity_card_no']) || empty($row['termination_date']) || empty($row['termination_reason'])) {
             return null;
         }
 
@@ -196,79 +186,34 @@ class TerminationImport implements
                 }
             }
 
-            // Find the project by project code
-            $project = null;
-            $correctProjectName = '';
+            // Find existing administration record for this employee with matching NIK
+            $administration = Administration::where('employee_id', $employee->id)
+                ->where('nik', $row['nik'])
+                ->first();
 
-            foreach ($this->projects as $proj) {
-                if ($proj->project_code === $row['project_code']) {
-                    $project = $proj;
-                    $correctProjectName = $proj->project_name;
-                    break;
-                }
+            if (!$administration) {
+                // If no administration record found, skip this row
+                return null;
             }
 
-            // Find the position by name
-            $position = $this->positions->where('position_name', $row['position'])->first();
-
-            // Prepare data for administration record
-            $administrationData = [
-                'employee_id' => $employee->id,
-                'project_id' => $project->id,
-                'position_id' => $position->id,
-                'nik' => $row['nik'],
-                'class' => $row['class'],
-                'poh' => $row['poh'],
-                'agreement' => $row['agreement'] ?? null,
-                'company_program' => $row['company_program'] ?? null,
-                'no_fptk' => $row['fptk_no'] ?? null,
-                'no_sk_active' => $row['sk_active_no'] ?? null,
-                'basic_salary' => $row['basic_salary'] ?? null,
-                'site_allowance' => $row['site_allowance'] ?? null,
-                'other_allowance' => $row['other_allowance'] ?? null,
+            // Prepare termination data
+            $terminationData = [
                 'is_active' => 0, // Set to 0 for termination
-                'user_id' => auth()->user()->id
+                'termination_reason' => $row['termination_reason'],
+                'coe_no' => $row['coe_no'] ?? null,
             ];
-
-            // Process date of hire
-            if (!empty($row['doh'])) {
-                if (is_numeric($row['doh'])) {
-                    $administrationData['doh'] = Date::excelToDateTimeObject($row['doh']);
-                } else {
-                    $administrationData['doh'] = \Carbon\Carbon::parse($row['doh']);
-                }
-            }
-
-            // Process FOC date
-            if (!empty($row['foc'])) {
-                if (is_numeric($row['foc'])) {
-                    $administrationData['foc'] = Date::excelToDateTimeObject($row['foc']);
-                } else {
-                    $administrationData['foc'] = \Carbon\Carbon::parse($row['foc']);
-                }
-            }
 
             // Process termination date
             if (!empty($row['termination_date'])) {
                 if (is_numeric($row['termination_date'])) {
-                    $administrationData['termination_date'] = Date::excelToDateTimeObject($row['termination_date']);
+                    $terminationData['termination_date'] = Date::excelToDateTimeObject($row['termination_date']);
                 } else {
-                    $administrationData['termination_date'] = \Carbon\Carbon::parse($row['termination_date']);
+                    $terminationData['termination_date'] = \Carbon\Carbon::parse($row['termination_date']);
                 }
             }
 
-            // Add termination specific fields
-            $administrationData['termination_reason'] = $row['termination_reason'];
-            $administrationData['coe_no'] = $row['coe_no'] ?? null;
-
-            // Use updateOrCreate to handle both insert and update scenarios
-            $administration = Administration::updateOrCreate(
-                [
-                    'employee_id' => $employee->id,
-                    'is_active' => 0
-                ],
-                $administrationData
-            );
+            // Update the administration record with termination data
+            $administration->update($terminationData);
 
             return $administration;
         } catch (\Illuminate\Database\QueryException $e) {
