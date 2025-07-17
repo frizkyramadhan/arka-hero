@@ -35,33 +35,60 @@ class RecruitmentRequest extends Model
         'required_physical',
         'required_mental',
         'other_requirements',
-        'requested_by',
-        'status',
-        'approved_by',
-        'approved_at',
-        'rejection_reason',
+        'created_by',
+        'final_status',
         'positions_filled',
-        // Approval hierarchy fields
+        // HR Acknowledgment fields
         'known_by',
+        'known_status',
+        'known_at',
+        'known_remark',
+        'known_timestamps',
+        // PM Approval fields
         'approved_by_pm',
+        'pm_approval_status',
+        'pm_approved_at',
+        'pm_approval_remark',
+        'pm_approval_timestamps',
+        // Director Approval fields
         'approved_by_director',
+        'director_approval_status',
+        'director_approved_at',
+        'director_approval_remark',
+        'director_approval_timestamps',
     ];
 
     protected $casts = [
         'required_date' => 'date',
-        'approved_at' => 'datetime',
         'positions_filled' => 'integer',
         'required_qty' => 'integer',
         'required_age_min' => 'integer',
         'required_age_max' => 'integer',
+        // HR Acknowledgment casts
+        'known_at' => 'datetime',
+        'known_timestamps' => 'datetime',
+        // PM Approval casts
+        'pm_approved_at' => 'datetime',
+        'pm_approval_timestamps' => 'datetime',
+        // Director Approval casts
+        'director_approved_at' => 'datetime',
+        'director_approval_timestamps' => 'datetime',
     ];
 
     protected $dates = [
         'required_date',
-        'approved_at',
         'created_at',
         'updated_at',
         'deleted_at',
+        // HR Acknowledgment dates
+        'known_at',
+        'known_timestamps',
+        // PM Approval dates
+        'pm_approved_at',
+        'pm_approval_timestamps',
+        // Director Approval dates
+        'director_approved_at',
+        'director_approval_timestamps',
     ];
 
     // Enums for validation
@@ -69,7 +96,8 @@ class RecruitmentRequest extends Model
     public const REQUEST_REASONS = ['replacement_resign', 'replacement_promotion', 'additional_workplan', 'other'];
     public const GENDERS = ['male', 'female', 'any'];
     public const MARITAL_STATUSES = ['single', 'married', 'any'];
-    public const STATUSES = ['draft', 'submitted', 'approved', 'rejected', 'cancelled', 'closed'];
+    public const FINAL_STATUSES = ['draft', 'submitted', 'approved', 'rejected', 'cancelled', 'closed'];
+    public const APPROVAL_STATUSES = ['pending', 'approved', 'rejected'];
 
     /**
      * Relationships
@@ -94,14 +122,27 @@ class RecruitmentRequest extends Model
         return $this->belongsTo(Level::class);
     }
 
-    public function requestedBy()
+    public function createdBy()
     {
-        return $this->belongsTo(User::class, 'requested_by');
+        return $this->belongsTo(User::class, 'created_by');
     }
 
-    public function approvedBy()
+
+
+    // Approval hierarchy relationships
+    public function acknowledger()
     {
-        return $this->belongsTo(User::class, 'approved_by');
+        return $this->belongsTo(User::class, 'known_by');
+    }
+
+    public function projectManagerApprover()
+    {
+        return $this->belongsTo(User::class, 'approved_by_pm');
+    }
+
+    public function directorApprover()
+    {
+        return $this->belongsTo(User::class, 'approved_by_director');
     }
 
     // Core relationship: FPTK has many sessions

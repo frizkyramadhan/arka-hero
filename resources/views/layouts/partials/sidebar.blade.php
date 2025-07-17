@@ -86,21 +86,20 @@
                     </li>
                 @endcan --}}
                 <li class="nav-item">
-                    <a href="{{ url('officialtravels') }}"
-                        class="nav-link {{ Request::is('officialtravels*') ? 'active' : '' }}">
-                        <i class="nav-icon fas fa-route"></i>
-                        <p>
-                            Official Travels
-                        </p>
-                    </a>
-                </li>
-
-                <li class="nav-item">
                     <a href="{{ route('letter-numbers.index') }}"
                         class="nav-link {{ Request::is('letter-numbers*') ? 'active' : '' }}">
                         <i class="nav-icon fas fa-file-alt"></i>
                         <p>
                             Letter Administration
+                        </p>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{{ url('officialtravels') }}"
+                        class="nav-link {{ Request::is('officialtravels*') ? 'active' : '' }}">
+                        <i class="nav-icon fas fa-route"></i>
+                        <p>
+                            Official Travels (LOT)
                         </p>
                     </a>
                 </li>
@@ -111,8 +110,9 @@
                             <i class="nav-icon fas fa-user-tie"></i>
                             <p>
                                 Recruitment
-                                <i class="fas fa-angle-left right"></i>
+                                <small class="badge badge-warning ml-1">BETA</small>
                             </p>
+                            <i class="fas fa-angle-left right"></i>
                         </a>
                         <ul class="nav nav-treeview">
                             @can('recruitment-requests.show')
@@ -120,7 +120,7 @@
                                     <a href="{{ route('recruitment.requests.index') }}"
                                         class="nav-link {{ Request::is('recruitment/requests*') ? 'active' : '' }}">
                                         <i class="far fa-circle nav-icon"></i>
-                                        <p>FPTK Management</p>
+                                        <p>Requests (FPTK)</p>
                                     </a>
                                 </li>
                             @endcan
@@ -129,7 +129,7 @@
                                     <a href="{{ route('recruitment.candidates.index') }}"
                                         class="nav-link {{ Request::is('recruitment/candidates*') ? 'active' : '' }}">
                                         <i class="far fa-circle nav-icon"></i>
-                                        <p>Candidates</p>
+                                        <p>Candidates (CV)</p>
                                     </a>
                                 </li>
                             @endcan

@@ -5,14 +5,14 @@
         <div class="container-fluid">
             <div class="row mb-0">
                 <div class="col-sm-6">
-                    <h1 class="m-0">{{ $subtitle }}</h1>
+                    <h1 class="m-0">Edit Recruitment Request</h1>
                 </div>
                 <div class="col-sm-6">
                     <ol class="breadcrumb float-sm-right">
                         <li class="breadcrumb-item"><a href="{{ url('/') }}">Home</a></li>
-                        <li class="breadcrumb-item"><a
-                                href="{{ route('recruitment.requests.index') }}">{{ $title }}</a></li>
-                        <li class="breadcrumb-item active">Add New</li>
+                        <li class="breadcrumb-item"><a href="{{ route('recruitment.requests.index') }}">Recruitment
+                                Requests</a></li>
+                        <li class="breadcrumb-item active">Edit</li>
                     </ol>
                 </div>
             </div>
@@ -21,13 +21,14 @@
 
     <section class="content">
         <div class="container-fluid">
-            <form action="{{ route('recruitment.requests.store') }}" method="POST" id="fptkForm">
+            <form action="{{ route('recruitment.requests.update', $fptk->id) }}" method="POST" id="fptkForm">
                 @csrf
+                @method('PUT')
                 <div class="row">
                     <!-- Left Column -->
                     <div class="col-md-8">
                         <!-- Letter Number Selection Card -->
-                        <div class="card card-info card-outline elevation-2">
+                        {{-- <div class="card card-info card-outline elevation-2">
                             <div class="card-header py-2">
                                 <h3 class="card-title">
                                     <i class="fas fa-hashtag mr-2"></i>
@@ -37,9 +38,10 @@
                             <div class="card-body py-2">
                                 @include('components.smart-letter-number-selector', [
                                     'categoryCode' => 'FPTK',
+                                    'selectedId' => $fptk->letter_number_id,
                                 ])
                             </div>
-                        </div>
+                        </div> --}}
 
                         <!-- Main FPTK Info Card -->
                         <div class="card card-primary card-outline elevation-3">
@@ -58,12 +60,12 @@
                                                 <div class="input-group-prepend">
                                                     <span class="input-group-text"><i class="fas fa-hashtag"></i></span>
                                                 </div>
-                                                <input type="text" class="form-control alert-warning" id="fptk_number"
-                                                    placeholder="Select Letter Number to Generate FPTK Number" readonly>
+                                                <input type="text" class="form-control alert-success" id="fptk_number"
+                                                    value="{{ $fptk->request_number }}" readonly>
                                             </div>
                                             <small class="form-text text-muted">
                                                 <i class="fas fa-info-circle"></i>
-                                                FPTK number will be auto-generated when you select a letter number above
+                                                Current FPTK number (auto-generated)
                                             </small>
                                         </div>
                                     </div>
@@ -78,7 +80,8 @@
                                                 </div>
                                                 <input type="date" class="form-control" name="request_date"
                                                     id="request_date"
-                                                    value="{{ old('request_date', now()->format('Y-m-d')) }}" readonly>
+                                                    value="{{ old('request_date', $fptk->created_at->format('Y-m-d')) }}"
+                                                    readonly>
                                             </div>
                                         </div>
                                     </div>
@@ -94,7 +97,7 @@
                                                 <option value="">Select Department</option>
                                                 @foreach ($departments as $department)
                                                     <option value="{{ $department->id }}"
-                                                        {{ old('department_id') == $department->id ? 'selected' : '' }}>
+                                                        {{ old('department_id', $fptk->department_id) == $department->id ? 'selected' : '' }}>
                                                         {{ $department->department_name }}
                                                     </option>
                                                 @endforeach
@@ -113,7 +116,7 @@
                                                 <option value="">Select Project</option>
                                                 @foreach ($projects as $project)
                                                     <option value="{{ $project->id }}"
-                                                        {{ old('project_id') == $project->id ? 'selected' : '' }}>
+                                                        {{ old('project_id', $fptk->project_id) == $project->id ? 'selected' : '' }}>
                                                         {{ $project->project_code }} - {{ $project->project_name }}
                                                     </option>
                                                 @endforeach
@@ -135,7 +138,7 @@
                                                 <option value="">Select Position</option>
                                                 @foreach ($positions as $position)
                                                     <option value="{{ $position->id }}"
-                                                        {{ old('position_id') == $position->id ? 'selected' : '' }}>
+                                                        {{ old('position_id', $fptk->position_id) == $position->id ? 'selected' : '' }}>
                                                         {{ $position->position_name }}
                                                     </option>
                                                 @endforeach
@@ -154,7 +157,7 @@
                                                 <option value="">Select Level</option>
                                                 @foreach ($levels as $level)
                                                     <option value="{{ $level->id }}"
-                                                        {{ old('level_id') == $level->id ? 'selected' : '' }}>
+                                                        {{ old('level_id', $fptk->level_id) == $level->id ? 'selected' : '' }}>
                                                         {{ $level->name }}
                                                     </option>
                                                 @endforeach
@@ -167,11 +170,10 @@
                                 </div>
 
                                 <div class="form-group">
-                                    <label for="job_description">Job Description <span
-                                            class="text-danger">*</span></label>
+                                    <label for="job_description">Job Description <span class="text-danger">*</span></label>
                                     <textarea name="job_description" id="job_description"
                                         class="form-control @error('job_description') is-invalid @enderror" rows="3"
-                                        placeholder="Describe the job responsibilities and duties..." required>{{ old('job_description') }}</textarea>
+                                        placeholder="Describe the job responsibilities and duties..." required>{{ old('job_description', $fptk->job_description) }}</textarea>
                                     @error('job_description')
                                         <div class="invalid-feedback">{{ $message }}</div>
                                     @enderror
@@ -199,8 +201,8 @@
                                                 </div>
                                                 <input type="number" name="required_qty" id="required_qty"
                                                     class="form-control @error('required_qty') is-invalid @enderror"
-                                                    min="1" max="50" value="{{ old('required_qty', 1) }}"
-                                                    required>
+                                                    min="1" max="50"
+                                                    value="{{ old('required_qty', $fptk->required_qty) }}" required>
                                                 @error('required_qty')
                                                     <div class="invalid-feedback">{{ $message }}</div>
                                                 @enderror
@@ -218,7 +220,8 @@
                                                 </div>
                                                 <input type="date" name="required_date" id="required_date"
                                                     class="form-control @error('required_date') is-invalid @enderror"
-                                                    value="{{ old('required_date') }}" required>
+                                                    value="{{ old('required_date', $fptk->required_date->format('Y-m-d')) }}"
+                                                    required>
                                                 @error('required_date')
                                                     <div class="invalid-feedback">{{ $message }}</div>
                                                 @enderror
@@ -234,16 +237,16 @@
                                                 style="width: 100%;" required>
                                                 <option value="">Select Employment Type</option>
                                                 <option value="pkwtt"
-                                                    {{ old('employment_type') == 'pkwtt' ? 'selected' : '' }}>
+                                                    {{ old('employment_type', $fptk->employment_type) == 'pkwtt' ? 'selected' : '' }}>
                                                     PKWTT (Permanent)</option>
                                                 <option value="pkwt"
-                                                    {{ old('employment_type') == 'pkwt' ? 'selected' : '' }}>
+                                                    {{ old('employment_type', $fptk->employment_type) == 'pkwt' ? 'selected' : '' }}>
                                                     PKWT (Contract)</option>
                                                 <option value="harian"
-                                                    {{ old('employment_type') == 'harian' ? 'selected' : '' }}>
+                                                    {{ old('employment_type', $fptk->employment_type) == 'harian' ? 'selected' : '' }}>
                                                     Daily Worker</option>
                                                 <option value="magang"
-                                                    {{ old('employment_type') == 'magang' ? 'selected' : '' }}>
+                                                    {{ old('employment_type', $fptk->employment_type) == 'magang' ? 'selected' : '' }}>
                                                     Internship</option>
                                             </select>
                                             @error('employment_type')
@@ -263,16 +266,16 @@
                                                 style="width: 100%;" required>
                                                 <option value="">Select Request Reason</option>
                                                 <option value="replacement_resign"
-                                                    {{ old('request_reason') == 'replacement_resign' ? 'selected' : '' }}>
+                                                    {{ old('request_reason', $fptk->request_reason) == 'replacement_resign' ? 'selected' : '' }}>
                                                     Replacement - Resignation</option>
                                                 <option value="replacement_promotion"
-                                                    {{ old('request_reason') == 'replacement_promotion' ? 'selected' : '' }}>
+                                                    {{ old('request_reason', $fptk->request_reason) == 'replacement_promotion' ? 'selected' : '' }}>
                                                     Replacement - Promotion</option>
                                                 <option value="additional_workplan"
-                                                    {{ old('request_reason') == 'additional_workplan' ? 'selected' : '' }}>
+                                                    {{ old('request_reason', $fptk->request_reason) == 'additional_workplan' ? 'selected' : '' }}>
                                                     Additional - Work Plan</option>
                                                 <option value="other"
-                                                    {{ old('request_reason') == 'other' ? 'selected' : '' }}>
+                                                    {{ old('request_reason', $fptk->request_reason) == 'other' ? 'selected' : '' }}>
                                                     Other</option>
                                             </select>
                                             @error('request_reason')
@@ -285,8 +288,9 @@
                                             <label for="other_reason">Other Reason</label>
                                             <input type="text" name="other_reason" id="other_reason"
                                                 class="form-control @error('other_reason') is-invalid @enderror"
-                                                value="{{ old('other_reason') }}"
-                                                placeholder="Please specify if reason is 'Other'" disabled>
+                                                value="{{ old('other_reason', $fptk->other_reason) }}"
+                                                placeholder="Please specify if reason is 'Other'"
+                                                {{ $fptk->request_reason != 'other' ? 'disabled' : '' }}>
                                             @error('other_reason')
                                                 <div class="invalid-feedback">{{ $message }}</div>
                                             @enderror
@@ -314,13 +318,13 @@
                                                 style="width: 100%;" required>
                                                 <option value="">Select Gender</option>
                                                 <option value="male"
-                                                    {{ old('required_gender') == 'male' ? 'selected' : '' }}>
+                                                    {{ old('required_gender', $fptk->required_gender) == 'male' ? 'selected' : '' }}>
                                                     Male</option>
                                                 <option value="female"
-                                                    {{ old('required_gender') == 'female' ? 'selected' : '' }}>
+                                                    {{ old('required_gender', $fptk->required_gender) == 'female' ? 'selected' : '' }}>
                                                     Female</option>
                                                 <option value="any"
-                                                    {{ old('required_gender') == 'any' ? 'selected' : '' }}>
+                                                    {{ old('required_gender', $fptk->required_gender) == 'any' ? 'selected' : '' }}>
                                                     Any</option>
                                             </select>
                                             @error('required_gender')
@@ -337,13 +341,13 @@
                                                 style="width: 100%;" required>
                                                 <option value="">Select Marital Status</option>
                                                 <option value="single"
-                                                    {{ old('required_marital_status') == 'single' ? 'selected' : '' }}>
+                                                    {{ old('required_marital_status', $fptk->required_marital_status) == 'single' ? 'selected' : '' }}>
                                                     Single</option>
                                                 <option value="married"
-                                                    {{ old('required_marital_status') == 'married' ? 'selected' : '' }}>
+                                                    {{ old('required_marital_status', $fptk->required_marital_status) == 'married' ? 'selected' : '' }}>
                                                     Married</option>
                                                 <option value="any"
-                                                    {{ old('required_marital_status') == 'any' ? 'selected' : '' }}>
+                                                    {{ old('required_marital_status', $fptk->required_marital_status) == 'any' ? 'selected' : '' }}>
                                                     Any</option>
                                             </select>
                                             @error('required_marital_status')
@@ -359,7 +363,8 @@
                                             <label for="required_age_min">Min Age</label>
                                             <input type="number" name="required_age_min" id="required_age_min"
                                                 class="form-control @error('required_age_min') is-invalid @enderror"
-                                                min="17" max="65" value="{{ old('required_age_min') }}"
+                                                min="17" max="65"
+                                                value="{{ old('required_age_min', $fptk->required_age_min) }}"
                                                 placeholder="17">
                                             @error('required_age_min')
                                                 <div class="invalid-feedback">{{ $message }}</div>
@@ -371,7 +376,8 @@
                                             <label for="required_age_max">Max Age</label>
                                             <input type="number" name="required_age_max" id="required_age_max"
                                                 class="form-control @error('required_age_max') is-invalid @enderror"
-                                                min="17" max="65" value="{{ old('required_age_max') }}"
+                                                min="17" max="65"
+                                                value="{{ old('required_age_max', $fptk->required_age_max) }}"
                                                 placeholder="65">
                                             @error('required_age_max')
                                                 <div class="invalid-feedback">{{ $message }}</div>
@@ -384,7 +390,8 @@
                                     <label for="required_education">Education</label>
                                     <input type="text" name="required_education" id="required_education"
                                         class="form-control @error('required_education') is-invalid @enderror"
-                                        value="{{ old('required_education') }}" placeholder="e.g., Bachelor's Degree">
+                                        value="{{ old('required_education', $fptk->required_education) }}"
+                                        placeholder="e.g., Bachelor's Degree">
                                     @error('required_education')
                                         <div class="invalid-feedback">{{ $message }}</div>
                                     @enderror
@@ -396,7 +403,7 @@
                                             <label for="required_skills">Required Skills</label>
                                             <textarea name="required_skills" id="required_skills"
                                                 class="form-control @error('required_skills') is-invalid @enderror" rows="3"
-                                                placeholder="List specific skills required...">{{ old('required_skills') }}</textarea>
+                                                placeholder="List specific skills required...">{{ old('required_skills', $fptk->required_skills) }}</textarea>
                                             @error('required_skills')
                                                 <div class="invalid-feedback">{{ $message }}</div>
                                             @enderror
@@ -407,7 +414,7 @@
                                             <label for="required_experience">Required Experience</label>
                                             <textarea name="required_experience" id="required_experience"
                                                 class="form-control @error('required_experience') is-invalid @enderror" rows="3"
-                                                placeholder="Describe minimum experience...">{{ old('required_experience') }}</textarea>
+                                                placeholder="Describe minimum experience...">{{ old('required_experience', $fptk->required_experience) }}</textarea>
                                             @error('required_experience')
                                                 <div class="invalid-feedback">{{ $message }}</div>
                                             @enderror
@@ -420,8 +427,6 @@
 
                     <!-- Right Column -->
                     <div class="col-md-4">
-
-
                         <!-- Additional Requirements Card -->
                         <div class="card card-secondary card-outline elevation-3">
                             <div class="card-header">
@@ -435,7 +440,7 @@
                                     <label for="required_physical">Physical Requirements</label>
                                     <textarea name="required_physical" id="required_physical"
                                         class="form-control @error('required_physical') is-invalid @enderror" rows="3"
-                                        placeholder="Any physical requirements...">{{ old('required_physical') }}</textarea>
+                                        placeholder="Any physical requirements...">{{ old('required_physical', $fptk->required_physical) }}</textarea>
                                     @error('required_physical')
                                         <div class="invalid-feedback">{{ $message }}</div>
                                     @enderror
@@ -445,7 +450,7 @@
                                     <label for="required_mental">Mental Requirements</label>
                                     <textarea name="required_mental" id="required_mental"
                                         class="form-control @error('required_mental') is-invalid @enderror" rows="3"
-                                        placeholder="Any mental/cognitive requirements...">{{ old('required_mental') }}</textarea>
+                                        placeholder="Any mental/cognitive requirements...">{{ old('required_mental', $fptk->required_mental) }}</textarea>
                                     @error('required_mental')
                                         <div class="invalid-feedback">{{ $message }}</div>
                                     @enderror
@@ -455,7 +460,7 @@
                                     <label for="other_requirements">Other Requirements</label>
                                     <textarea name="other_requirements" id="other_requirements"
                                         class="form-control @error('other_requirements') is-invalid @enderror" rows="3"
-                                        placeholder="Any other specific requirements...">{{ old('other_requirements') }}</textarea>
+                                        placeholder="Any other specific requirements...">{{ old('other_requirements', $fptk->other_requirements) }}</textarea>
                                     @error('other_requirements')
                                         <div class="invalid-feedback">{{ $message }}</div>
                                     @enderror
@@ -480,7 +485,7 @@
                                         <option value="">Select HR&GA Section Head</option>
                                         @foreach ($acknowledgers as $user)
                                             <option value="{{ $user->id }}"
-                                                {{ old('known_by') == $user->id ? 'selected' : '' }}>
+                                                {{ old('known_by', $fptk->known_by) == $user->id ? 'selected' : '' }}>
                                                 {{ $user->name }}
                                             </option>
                                         @endforeach
@@ -499,7 +504,7 @@
                                         <option value="">Select Project Manager</option>
                                         @foreach ($approvers as $user)
                                             <option value="{{ $user->id }}"
-                                                {{ old('approved_by_pm') == $user->id ? 'selected' : '' }}>
+                                                {{ old('approved_by_pm', $fptk->approved_by_pm) == $user->id ? 'selected' : '' }}>
                                                 {{ $user->name }}
                                             </option>
                                         @endforeach
@@ -518,7 +523,7 @@
                                         <option value="">Select Director/Manager</option>
                                         @foreach ($approvers as $user)
                                             <option value="{{ $user->id }}"
-                                                {{ old('approved_by_director') == $user->id ? 'selected' : '' }}>
+                                                {{ old('approved_by_director', $fptk->approved_by_director) == $user->id ? 'selected' : '' }}>
                                                 {{ $user->name }}
                                             </option>
                                         @endforeach
@@ -534,8 +539,12 @@
                         <div class="card elevation-3">
                             <div class="card-body">
                                 <button type="submit" class="btn btn-primary btn-block">
-                                    <i class="fas fa-save mr-2"></i> Create FPTK
+                                    <i class="fas fa-save mr-2"></i> Update FPTK
                                 </button>
+                                <a href="{{ route('recruitment.requests.show', $fptk->id) }}"
+                                    class="btn btn-info btn-block">
+                                    <i class="fas fa-eye mr-2"></i> View Details
+                                </a>
                                 <a href="{{ route('recruitment.requests.index') }}" class="btn btn-secondary btn-block">
                                     <i class="fas fa-times-circle mr-2"></i> Cancel
                                 </a>
@@ -673,6 +682,16 @@
             background-color: #545b62;
             border-color: #545b62;
         }
+
+        .btn-info {
+            background-color: #17a2b8;
+            border-color: #17a2b8;
+        }
+
+        .btn-info:hover {
+            background-color: #138496;
+            border-color: #117a8b;
+        }
     </style>
 @endsection
 
@@ -722,9 +741,17 @@
             var tomorrow = new Date();
             tomorrow.setDate(tomorrow.getDate() + 1);
             var minDate = tomorrow.toISOString().split('T')[0];
-            $('#required_date').attr('min', minDate);
+            // $('#required_date').attr('min', minDate);
 
-            // Enable/disable other reason field
+            // Enable/disable other reason field based on existing data
+            var currentReason = $('#request_reason').val();
+            if (currentReason === 'other') {
+                $('#other_reason').prop('disabled', false).prop('required', true);
+            } else {
+                $('#other_reason').prop('disabled', true).prop('required', false);
+            }
+
+            // Show/hide other reason field
             $('#request_reason').on('change', function() {
                 var selectedValue = $(this).val();
                 if (selectedValue === 'other') {
@@ -792,7 +819,8 @@
                         const letterData = selectedOption.data('number');
                         generateFPTKNumber(letterData);
                     } else {
-                        clearFPTKNumber();
+                        // Keep current FPTK number if no letter selected
+                        $('#fptk_number').val('{{ $fptk->request_number }}');
                     }
                 });
 
@@ -843,14 +871,8 @@
                         $('#fptk_number').removeClass('alert-warning').addClass('alert-success');
 
                         // Show success message
-                        showLetterNumberStatus('success', `FPTK Number generated: ${fptkNumber}`);
+                        showLetterNumberStatus('success', `FPTK Number updated: ${fptkNumber}`);
                     }
-                }
-
-                // Clear FPTK number
-                function clearFPTKNumber() {
-                    $('#fptk_number').val('').removeClass('alert-success').addClass('alert-warning');
-                    $('#fptk_number').attr('placeholder', 'Select Letter Number to Generate FPTK Number');
                 }
 
                 // Convert number to Roman numeral

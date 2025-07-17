@@ -49,16 +49,29 @@ return new class extends Migration
             $table->text('other_requirements')->nullable();
 
             // Approval Workflow
-            $table->unsignedBigInteger('requested_by');
-            $table->enum('status', ['draft', 'submitted', 'approved', 'rejected', 'cancelled', 'closed'])->default('draft');
-            $table->unsignedBigInteger('approved_by')->nullable();
-            $table->timestamp('approved_at')->nullable();
-            $table->text('rejection_reason')->nullable();
+            $table->unsignedBigInteger('created_by');
+            $table->enum('final_status', ['draft', 'submitted', 'approved', 'rejected', 'cancelled', 'closed'])->default('draft');
 
-            // Approval Hierarchy
+            // HR Acknowledgment Tracking (known_by)
             $table->unsignedBigInteger('known_by')->nullable()->comment('HR&GA Section Head who acknowledges');
+            $table->enum('known_status', ['pending', 'approved', 'rejected'])->default('pending');
+            $table->timestamp('known_at')->nullable();
+            $table->text('known_remark')->nullable();
+            $table->timestamp('known_timestamps')->nullable();
+
+            // Project Manager Approval Tracking
             $table->unsignedBigInteger('approved_by_pm')->nullable()->comment('Project Manager who approves');
+            $table->enum('pm_approval_status', ['pending', 'approved', 'rejected'])->default('pending');
+            $table->timestamp('pm_approved_at')->nullable();
+            $table->text('pm_approval_remark')->nullable();
+            $table->timestamp('pm_approval_timestamps')->nullable();
+
+            // Director Approval Tracking
             $table->unsignedBigInteger('approved_by_director')->nullable()->comment('Director/Manager who approves');
+            $table->enum('director_approval_status', ['pending', 'approved', 'rejected'])->default('pending');
+            $table->timestamp('director_approved_at')->nullable();
+            $table->text('director_approval_remark')->nullable();
+            $table->timestamp('director_approval_timestamps')->nullable();
 
             // Position Tracking
             $table->integer('positions_filled')->default(0)->comment('Tracking filled positions');
@@ -70,8 +83,7 @@ return new class extends Migration
             $table->foreign('project_id')->references('id')->on('projects');
             $table->foreign('position_id')->references('id')->on('positions');
             $table->foreign('level_id')->references('id')->on('levels');
-            $table->foreign('requested_by')->references('id')->on('users');
-            $table->foreign('approved_by')->references('id')->on('users');
+            $table->foreign('created_by')->references('id')->on('users');
             $table->foreign('known_by')->references('id')->on('users');
             $table->foreign('approved_by_pm')->references('id')->on('users');
             $table->foreign('approved_by_director')->references('id')->on('users');
@@ -79,7 +91,7 @@ return new class extends Migration
             // Indexes
             $table->index('letter_number_id');
             $table->index('letter_number');
-            $table->index('status');
+            $table->index('final_status');
             $table->index('required_date');
             $table->index('department_id');
             $table->index('position_id');

@@ -338,6 +338,7 @@ Route::group(['middleware' => ['auth']], function () {
             Route::get('/{id}/edit', [RecruitmentRequestController::class, 'edit'])->name('edit');
             Route::put('/{id}', [RecruitmentRequestController::class, 'update'])->name('update');
             Route::delete('/{id}', [RecruitmentRequestController::class, 'destroy'])->name('destroy');
+            Route::get('/{id}/print', [RecruitmentRequestController::class, 'print'])->name('print');
 
             // FPTK Actions
             Route::post('/{id}/submit', [RecruitmentRequestController::class, 'submit'])->name('submit');
