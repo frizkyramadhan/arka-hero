@@ -11,7 +11,7 @@ class AuthController extends Controller
 {
     public function getLogin()
     {
-        $title = "Login - ARKA Human Experience & Resource Optimization";
+        $title = "Login";
         $subtitle = "Arka HERO";
 
         return view('auth.login', compact('title', 'subtitle'));

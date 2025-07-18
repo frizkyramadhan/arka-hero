@@ -56,8 +56,21 @@
                             <h5>Permissions</h5>
                             <div class="border rounded p-2" style="background: #f8f9fa;">
                                 @if ($permissions->count())
-                                    @foreach ($permissions->sortBy('name') as $perm)
-                                        <span class="badge badge-secondary mr-1 mb-1">{{ $perm->name }}</span>
+                                    @php
+                                        $groupedPermissions = $permissions->groupBy(function ($permission) {
+                                            return explode('.', $permission->name)[0];
+                                        });
+                                    @endphp
+                                    @foreach ($groupedPermissions as $category => $permissionList)
+                                        <div class="mb-3">
+                                            <small
+                                                class="text-muted text-capitalize">{{ str_replace('-', ' ', $category) }}</small><br>
+                                            <div class="ml-3">
+                                                @foreach ($permissionList->sortBy('name') as $perm)
+                                                    <span class="badge badge-secondary mr-1 mb-1">{{ $perm->name }}</span>
+                                                @endforeach
+                                            </div>
+                                        </div>
                                     @endforeach
                                 @else
                                     <span class="text-muted">No permissions</span>

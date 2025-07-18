@@ -11,7 +11,7 @@ class RegisterController extends Controller
 {
     public function index()
     {
-        $title = 'Register - ARKA Human Experience & Resource Optimization';
+        $title = 'Register';
         $subtitle = 'Arka HERO';
 
         return view('auth.register', compact('title', 'subtitle'));
