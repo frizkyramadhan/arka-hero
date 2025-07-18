@@ -117,7 +117,7 @@
                             <h3 class="card-title"><strong>Roles Overview</strong></h3>
                         </div>
                         <div class="card-body">
-                            <table class="table table-bordered table-striped">
+                            <table id="roles-overview-table" class="table table-bordered table-striped">
                                 <thead>
                                     <tr>
                                         <th>Role Name</th>
@@ -150,7 +150,7 @@
                             <h3 class="card-title"><strong>Permissions Overview</strong></h3>
                         </div>
                         <div class="card-body">
-                            <table class="table table-bordered table-striped">
+                            <table id="permissions-overview-table" class="table table-bordered table-striped">
                                 <thead>
                                     <tr>
                                         <th>Permission Name</th>
@@ -265,6 +265,36 @@
 
             // Enable tooltips
             $('[data-toggle="tooltip"]').tooltip();
+        });
+
+        // Initialize DataTables for Roles Overview
+        $('#roles-overview-table').DataTable({
+            responsive: true,
+            autoWidth: false,
+            lengthChange: true,
+            lengthMenu: [
+                [5, 10, 25, 50, -1],
+                ['5', '10', '25', '50', 'Show all']
+            ],
+            pageLength: 5,
+            dom: 'frtpi',
+            columnDefs: [{
+                targets: [3],
+                orderable: false
+            }]
+        });
+
+        // Initialize DataTables for Permissions Overview
+        $('#permissions-overview-table').DataTable({
+            responsive: true,
+            autoWidth: false,
+            lengthChange: true,
+            lengthMenu: [
+                [5, 10, 25, 50, -1],
+                ['5', '10', '25', '50', 'Show all']
+            ],
+            pageLength: 5,
+            dom: 'frtpi'
         });
 
         // Function to handle edit user

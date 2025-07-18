@@ -42,6 +42,15 @@
                             <div class="card-body">
                                 <div class="form-group">
                                     <label>Role Name</label>
+                                    @php
+                                        $isAdministrator = auth()->user()->hasRole('administrator');
+                                    @endphp
+                                    @if (!$isAdministrator)
+                                        <div class="alert alert-warning py-2 mb-3">
+                                            <i class="fas fa-exclamation-triangle"></i>
+                                            <strong>Note:</strong> Only administrators can create administrator roles.
+                                        </div>
+                                    @endif
                                     <input type="text" class="form-control @error('name') is-invalid @enderror"
                                         name="name" value="{{ old('name') }}" placeholder="Enter role name">
                                     @error('name')
@@ -64,8 +73,8 @@
                                 </h3>
                                 <div class="card-tools">
                                     <div class="form-check">
-                                        <input class="form-check-input" type="checkbox" id="select_all_permissions">
-                                        <label class="form-check-label" for="select_all_permissions">Select All</label>
+                                        <input class="form-check-input" type="checkbox" id="select_all">
+                                        <label class="form-check-label" for="select_all">Select All</label>
                                     </div>
                                 </div>
                             </div>
@@ -75,6 +84,17 @@
                                         {{ $message }}
                                     </div>
                                 @enderror
+
+                                @php
+                                    $isAdministrator = auth()->user()->hasRole('administrator');
+                                @endphp
+                                @if (!$isAdministrator)
+                                    <div class="alert alert-info py-2 mb-3">
+                                        <i class="fas fa-info-circle"></i>
+                                        <strong>Note:</strong> Permission management features are only available to
+                                        administrators.
+                                    </div>
+                                @endif
 
                                 @php
                                     use Illuminate\Support\Str;
@@ -91,15 +111,13 @@
                                                     <h3 class="card-title text-capitalize">
                                                         {{ str_replace('-', ' ', $category) }}</h3>
                                                     <div class="card-tools">
-                                                        <input type="checkbox" class="select-all-category"
-                                                            data-category="{{ $catId }}"
-                                                            id="select_all_{{ $catId }}">
-                                                        <label class="mr-2 mb-0"
-                                                            for="select_all_{{ $catId }}">Select All</label>
-                                                        <button type="button" class="btn btn-tool"
-                                                            data-card-widget="collapse">
-                                                            <i class="fas fa-minus"></i>
-                                                        </button>
+                                                        <div class="form-check">
+                                                            <input type="checkbox" class="select-all-category"
+                                                                data-category="{{ $catId }}"
+                                                                id="select_all_{{ $catId }}">
+                                                            <label class="mr-2 mb-0"
+                                                                for="select_all_{{ $catId }}">Select All</label>
+                                                        </div>
                                                     </div>
                                                 </div>
                                                 <div class="card-body">
@@ -164,46 +182,62 @@
     <script>
         $(document).ready(function() {
             // Global "Select All"
-            $('#select_all_permissions').on('change', function() {
-                $('.permission-checkbox, .select-all-category').prop('checked', $(this).is(':checked'))
-                    .trigger('change');
+            $('#select_all').on('change', function() {
+                var isChecked = $(this).is(':checked');
+                $('.permission-checkbox').prop('checked', isChecked);
+                $('.select-all-category').prop('checked', isChecked);
             });
 
             // Category-specific "Select All"
-            $('.select-all-category').on('change', function() {
+            $('.select-all-category').on('change', function(e) {
+                e.preventDefault();
                 var category = $(this).data('category');
-                $('.permission-checkbox[data-category="' + category + '"]').prop('checked', $(this).is(
-                    ':checked')).trigger('change');
+                var isChecked = $(this).is(':checked');
+
+                // Only affect permissions in this specific category
+                $('.permission-checkbox[data-category="' + category + '"]').prop('checked', isChecked);
+
+                // Update global select all state
                 updateGlobalSelectAllState();
             });
 
             // Single permission checkbox
             $('.permission-checkbox').on('change', function() {
                 var category = $(this).data('category');
-                if ($('.permission-checkbox[data-category="' + category + '"]:checked').length == $(
-                        '.permission-checkbox[data-category="' + category + '"]').length) {
+                updateCategorySelectAllState(category);
+                updateGlobalSelectAllState();
+            });
+
+            function updateCategorySelectAllState(category) {
+                var totalInCategory = $('.permission-checkbox[data-category="' + category + '"]').length;
+                var checkedInCategory = $('.permission-checkbox[data-category="' + category + '"]:checked').length;
+
+                if (checkedInCategory === 0) {
+                    $('.select-all-category[data-category="' + category + '"]').prop('checked', false);
+                } else if (checkedInCategory === totalInCategory) {
                     $('.select-all-category[data-category="' + category + '"]').prop('checked', true);
                 } else {
                     $('.select-all-category[data-category="' + category + '"]').prop('checked', false);
                 }
-                updateGlobalSelectAllState();
-            });
+            }
 
             function updateGlobalSelectAllState() {
-                if ($('.permission-checkbox:checked').length == $('.permission-checkbox').length) {
-                    $('#select_all_permissions').prop('checked', true);
+                var totalPermissions = $('.permission-checkbox').length;
+                var checkedPermissions = $('.permission-checkbox:checked').length;
+
+                if (checkedPermissions === 0) {
+                    $('#select_all').prop('checked', false);
+                } else if (checkedPermissions === totalPermissions) {
+                    $('#select_all').prop('checked', true);
                 } else {
-                    $('#select_all_permissions').prop('checked', false);
+                    $('#select_all').prop('checked', false);
                 }
             }
 
             // Initialize state on page load
             $('.select-all-category').each(function() {
                 var category = $(this).data('category');
-                if ($('.permission-checkbox[data-category="' + category + '"]:checked').length == $(
-                        '.permission-checkbox[data-category="' + category + '"]').length) {
-                    $(this).prop('checked', true);
-                }
+                updateCategorySelectAllState(category);
             });
             updateGlobalSelectAllState();
         });

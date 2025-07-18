@@ -13,12 +13,45 @@ use Spatie\Permission\Models\Permission;
 
 class UserController extends Controller
 {
+    // Define protected administrator roles
+    private $protectedRoles = ['administrator'];
+
     public function __construct()
     {
         $this->middleware('permission:users.show')->only('index', 'show');
         $this->middleware('permission:users.create')->only('create');
         $this->middleware('permission:users.edit')->only('edit');
         $this->middleware('permission:users.delete')->only('destroy');
+    }
+
+    /**
+     * Check if current user is administrator
+     */
+    private function isAdministrator()
+    {
+        return auth()->user()->hasRole('administrator');
+    }
+
+    /**
+     * Check if role is protected (administrator role)
+     */
+    private function isProtectedRole($roleName)
+    {
+        return in_array($roleName, $this->protectedRoles);
+    }
+
+    /**
+     * Validate administrator role assignment
+     */
+    private function validateAdministratorRoleAssignment($requestedRoles)
+    {
+        if (!$this->isAdministrator()) {
+            foreach ($requestedRoles as $roleName) {
+                if ($this->isProtectedRole($roleName)) {
+                    throw new \Exception('Only administrators can assign administrator roles to users.');
+                }
+            }
+        }
     }
 
     public function index()
@@ -56,42 +89,25 @@ class UserController extends Controller
 
         return datatables()->of($users)
             ->addIndexColumn()
-            ->addColumn('name', function ($user) {
-                return $user->name;
+            ->addColumn('name', function ($model) {
+                return $model->name;
             })
-            ->addColumn('email', function ($user) {
-                return $user->email;
+            ->addColumn('email', function ($model) {
+                return $model->email;
             })
-            ->addColumn('roles', function ($user) {
-                $roles = $user->roles->pluck('name')->toArray();
+            ->addColumn('roles', function ($model) {
+                $roles = $model->roles->pluck('name');
                 $html = '';
-
-                // Show first 4 roles as badges
-                $count = 0;
                 foreach ($roles as $role) {
-                    if ($count < 4) {
-                        $html .= '<span class="badge badge-info mr-1">' . $role . '</span>';
-                    }
-                    $count++;
+                    $badgeClass = in_array($role, ['administrator']) ? 'badge-danger' : 'badge-primary';
+                    $html .= '<span class="badge ' . $badgeClass . ' mr-1">' . $role . '</span>';
                 }
-
-                // If more than 4 roles, show more+ badge with tooltip
-                if ($count > 4) {
-                    $remaining = array_slice($roles, 4);
-                    $tooltip = collect($remaining)->map(function ($role) {
-                        return "• " . $role;
-                    })->implode("\n");
-                    $html .= '<span class="badge badge-secondary" data-toggle="tooltip" data-html="true" title="' . e($tooltip) . '">+' . ($count - 4) . ' more</span>';
-                }
-
                 return $html;
             })
-            ->addColumn('user_status', function ($user) {
-                if ($user->user_status == '1') {
-                    return '<span class="badge badge-success">Active</span>';
-                } elseif ($user->user_status == '0') {
-                    return '<span class="badge badge-danger">Inactive</span>';
-                }
+            ->addColumn('user_status', function ($model) {
+                $statusClass = $model->user_status == '1' ? 'badge-success' : 'badge-danger';
+                $statusText = $model->user_status == '1' ? 'Active' : 'Inactive';
+                return '<span class="badge ' . $statusClass . '">' . $statusText . '</span>';
             })
             ->filter(function ($instance) use ($request) {
                 if (!empty($request->get('search'))) {
@@ -149,6 +165,15 @@ class UserController extends Controller
                 'roles.required' => 'Please select at least one role',
                 'roles.min' => 'Please select at least one role'
             ]);
+
+            // Validate administrator role assignment
+            try {
+                $this->validateAdministratorRoleAssignment($request->roles);
+            } catch (\Exception $e) {
+                return redirect()->back()
+                    ->with('toast_error', $e->getMessage())
+                    ->withInput();
+            }
 
             DB::beginTransaction();
 
@@ -231,6 +256,15 @@ class UserController extends Controller
                 'roles.min' => 'Please select at least one role'
             ]);
 
+            // Validate administrator role assignment
+            try {
+                $this->validateAdministratorRoleAssignment($request->roles);
+            } catch (\Exception $e) {
+                return redirect()->back()
+                    ->with('toast_error', $e->getMessage())
+                    ->withInput();
+            }
+
             DB::beginTransaction();
 
             $input = $request->all();
@@ -281,6 +315,13 @@ class UserController extends Controller
             DB::beginTransaction();
 
             $user = User::findOrFail($id);
+
+            // Check if trying to delete a user with administrator role
+            if ($user->hasRole('administrator') && !$this->isAdministrator()) {
+                return redirect()->back()
+                    ->with('toast_error', 'Only administrators can delete users with administrator roles.');
+            }
+
             $user->roles()->detach(); // Remove all roles first
             $user->delete();
 

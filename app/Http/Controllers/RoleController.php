@@ -9,12 +9,41 @@ use Illuminate\Support\Facades\DB;
 
 class RoleController extends Controller
 {
+    // Define protected administrator roles
+    private $protectedRoles = ['administrator'];
+
     public function __construct()
     {
         $this->middleware('permission:roles.show')->only('index', 'getRoles');
         $this->middleware('permission:roles.create')->only('create');
         $this->middleware('permission:roles.edit')->only('edit');
         $this->middleware('permission:roles.delete')->only('destroy');
+    }
+
+    /**
+     * Check if current user is administrator
+     */
+    private function isAdministrator()
+    {
+        return auth()->user()->hasRole('administrator');
+    }
+
+    /**
+     * Check if role is protected (administrator role)
+     */
+    private function isProtectedRole($roleName)
+    {
+        return in_array($roleName, $this->protectedRoles);
+    }
+
+    /**
+     * Validate administrator role access
+     */
+    private function validateAdministratorAccess($roleName, $action = 'modify')
+    {
+        if ($this->isProtectedRole($roleName) && !$this->isAdministrator()) {
+            throw new \Exception("Only administrators can {$action} administrator roles.");
+        }
     }
 
     public function index()
@@ -80,6 +109,13 @@ class RoleController extends Controller
         $subtitle = 'Add Role';
         $permissions = Permission::orderBy('name', 'asc')->get();
 
+        // Filter permissions for non-administrator users
+        if (!$this->isAdministrator()) {
+            $permissions = $permissions->filter(function ($permission) {
+                return !str_starts_with($permission->name, 'permissions.');
+            });
+        }
+
         return view('roles.create', compact('title', 'subtitle', 'permissions'));
     }
 
@@ -94,6 +130,24 @@ class RoleController extends Controller
                 'name.unique' => 'Role name already exists',
                 'permissions.required' => 'Please select at least one permission'
             ]);
+
+            // Check if trying to create administrator role
+            if ($this->isProtectedRole($request->name) && !$this->isAdministrator()) {
+                return redirect()->back()
+                    ->with('toast_error', 'Only administrators can create administrator roles.')
+                    ->withInput();
+            }
+
+            // Validate permission assignments for non-administrators
+            if (!$this->isAdministrator()) {
+                foreach ($request->permissions as $permissionName) {
+                    if (str_starts_with($permissionName, 'permissions.')) {
+                        return redirect()->back()
+                            ->with('toast_error', 'Only administrators can assign permission management roles.')
+                            ->withInput();
+                    }
+                }
+            }
 
             DB::beginTransaction();
 
@@ -120,7 +174,21 @@ class RoleController extends Controller
         $title = 'Roles';
         $subtitle = 'Edit Role';
         $role = Role::findOrFail($id);
+
+        // Check if trying to edit administrator role
+        if ($this->isProtectedRole($role->name) && !$this->isAdministrator()) {
+            return redirect('roles')->with('toast_error', 'Only administrators can edit administrator roles.');
+        }
+
         $permissions = Permission::orderBy('name', 'asc')->get();
+
+        // Filter permissions for non-administrator users
+        if (!$this->isAdministrator()) {
+            $permissions = $permissions->filter(function ($permission) {
+                return !str_starts_with($permission->name, 'permissions.');
+            });
+        }
+
         $rolePermissions = $role->permissions->pluck('id')->toArray();
 
         return view('roles.edit', compact('title', 'subtitle', 'role', 'permissions', 'rolePermissions'));
@@ -141,6 +209,32 @@ class RoleController extends Controller
             DB::beginTransaction();
 
             $role = Role::findOrFail($id);
+
+            // Check if trying to modify administrator role
+            if ($this->isProtectedRole($role->name) && !$this->isAdministrator()) {
+                return redirect()->back()
+                    ->with('toast_error', 'Only administrators can modify administrator roles.')
+                    ->withInput();
+            }
+
+            // Check if trying to rename to administrator role
+            if ($this->isProtectedRole($request->name) && !$this->isAdministrator()) {
+                return redirect()->back()
+                    ->with('toast_error', 'Only administrators can create administrator roles.')
+                    ->withInput();
+            }
+
+            // Validate permission assignments for non-administrators
+            if (!$this->isAdministrator()) {
+                foreach ($request->permissions as $permissionName) {
+                    if (str_starts_with($permissionName, 'permissions.')) {
+                        return redirect()->back()
+                            ->with('toast_error', 'Only administrators can assign permission management roles.')
+                            ->withInput();
+                    }
+                }
+            }
+
             $role->update(['name' => $request->name]);
             $role->syncPermissions($request->permissions);
 
@@ -165,14 +259,25 @@ class RoleController extends Controller
 
     public function destroy($id)
     {
-        $role = Role::findOrFail($id);
+        try {
+            $role = Role::findOrFail($id);
 
-        // Cek apakah role sedang digunakan
-        if ($role->users()->count() > 0) {
-            return redirect('roles')->with('toast_error', 'Role cannot be deleted because it is being used by users');
+            // Check if trying to delete administrator role
+            if ($this->isProtectedRole($role->name) && !$this->isAdministrator()) {
+                return redirect('roles')->with('toast_error', 'Only administrators can delete administrator roles.');
+            }
+
+            // Check if role is being used
+            if ($role->users()->count() > 0) {
+                return redirect('roles')->with('toast_error', 'Role cannot be deleted because it is being used by users');
+            }
+
+            $role->delete();
+            return redirect('roles')->with('toast_success', 'Role deleted successfully');
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return redirect('roles')->with('toast_error', 'Role not found.');
+        } catch (\Exception $e) {
+            return redirect('roles')->with('toast_error', 'Failed to delete role. Please try again.');
         }
-
-        $role->delete();
-        return redirect('roles')->with('toast_success', 'Role deleted successfully');
     }
 }

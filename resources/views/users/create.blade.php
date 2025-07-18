@@ -69,17 +69,26 @@
                                 <div class="form-group">
                                     <label>Roles</label>
                                     <div class="row">
+                                        @php
+                                            $isAdministrator = auth()->user()->hasRole('administrator');
+                                        @endphp
                                         @foreach ($roles as $role)
-                                            <div class="col-md-6">
-                                                <div class="form-check mb-2">
-                                                    <input class="form-check-input role-checkbox" type="checkbox"
-                                                        name="roles[]" id="role_{{ $role->id }}"
-                                                        value="{{ $role->name }}"
-                                                        {{ is_array(old('roles')) && in_array($role->name, old('roles')) ? 'checked' : '' }}>
-                                                    <label class="form-check-label"
-                                                        for="role_{{ $role->id }}">{{ $role->name }}</label>
+                                            @php
+                                                $isProtectedRole = in_array($role->name, ['administrator']);
+                                                $shouldShow = $isAdministrator || !$isProtectedRole;
+                                            @endphp
+                                            @if ($shouldShow)
+                                                <div class="col-md-6">
+                                                    <div class="form-check mb-2">
+                                                        <input class="form-check-input role-checkbox" type="checkbox"
+                                                            name="roles[]" id="role_{{ $role->id }}"
+                                                            value="{{ $role->name }}"
+                                                            {{ is_array(old('roles')) && in_array($role->name, old('roles')) ? 'checked' : '' }}>
+                                                        <label class="form-check-label"
+                                                            for="role_{{ $role->id }}">{{ $role->name }}</label>
+                                                    </div>
                                                 </div>
-                                            </div>
+                                            @endif
                                         @endforeach
                                     </div>
                                     @error('roles')
@@ -127,10 +136,29 @@
             permissions = [...new Set(permissions)];
             // Sort
             permissions.sort();
+
+            // Group permissions by category
+            let groupedPermissions = {};
+            permissions.forEach(function(perm) {
+                let category = perm.split('.')[0];
+                if (!groupedPermissions[category]) {
+                    groupedPermissions[category] = [];
+                }
+                groupedPermissions[category].push(perm);
+            });
+
             let html = '';
-            if (permissions.length > 0) {
-                permissions.forEach(function(perm) {
-                    html += '<span class="badge badge-secondary mr-1 mb-1">' + perm + '</span>';
+            if (Object.keys(groupedPermissions).length > 0) {
+                Object.keys(groupedPermissions).forEach(function(category) {
+                    html += '<div class="mb-3">';
+                    html += '<small class="text-muted text-capitalize">' + category.replace('-', ' ') +
+                        '</small><br>';
+                    html += '<div class="ml-3">';
+                    groupedPermissions[category].forEach(function(perm) {
+                        html += '<span class="badge badge-secondary mr-1 mb-1">' + perm + '</span>';
+                    });
+                    html += '</div>';
+                    html += '</div>';
                 });
             } else {
                 html = '<span class="text-muted">No permissions</span>';
