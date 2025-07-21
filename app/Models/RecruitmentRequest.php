@@ -6,10 +6,13 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Log;
 use App\Traits\Uuids;
 use App\Traits\HasLetterNumber;
+use App\Traits\HasApproval;
+use App\Models\ApprovalFlow;
+use App\Models\DocumentApproval;
 
 class RecruitmentRequest extends Model
 {
-    use Uuids, HasLetterNumber;
+    use Uuids, HasLetterNumber, HasApproval;
 
     protected $fillable = [
         'letter_number_id',
@@ -143,6 +146,215 @@ class RecruitmentRequest extends Model
     public function directorApprover()
     {
         return $this->belongsTo(User::class, 'approved_by_director');
+    }
+
+    // Approval System Integration
+    public function approvalFlow()
+    {
+        return $this->belongsTo(ApprovalFlow::class, 'approval_flow_id');
+    }
+
+    /**
+     * Get approval document type for approval system
+     *
+     * @return string
+     */
+    public function getApprovalDocumentType(): string
+    {
+        return 'recruitment_request';
+    }
+
+    /**
+     * Get approval document ID
+     *
+     * @return string
+     */
+    public function getApprovalDocumentId(): string
+    {
+        return $this->id;
+    }
+
+    /**
+     * Get approval metadata
+     *
+     * @return array
+     */
+    public function getApprovalMetadata(): array
+    {
+        return [
+            'request_number' => $this->request_number,
+            'department_name' => $this->department->name ?? 'Unknown',
+            'project_name' => $this->project->name ?? 'Unknown',
+            'position_name' => $this->position->name ?? 'Unknown',
+            'required_qty' => $this->required_qty,
+            'required_date' => $this->required_date?->toISOString(),
+            'employment_type' => $this->employment_type,
+            'request_reason' => $this->request_reason,
+            'job_description' => $this->job_description,
+            'created_by' => $this->created_by,
+            'created_at' => $this->created_at->toISOString()
+        ];
+    }
+
+    /**
+     * Check if document can be approved
+     *
+     * @return bool
+     */
+    public function canBeApproved(): bool
+    {
+        // Check if document is in draft or submitted status
+        return in_array($this->final_status, ['draft', 'submitted']) ||
+            in_array($this->known_status, ['pending']) ||
+            in_array($this->pm_approval_status, ['pending']) ||
+            in_array($this->director_approval_status, ['pending']);
+    }
+
+    /**
+     * Handle approval completion
+     */
+    public function onApprovalCompleted(): void
+    {
+        // Update existing approval status to approved
+        $this->update([
+            'known_status' => 'approved',
+            'pm_approval_status' => 'approved',
+            'director_approval_status' => 'approved',
+            'final_status' => 'approved',
+            'known_at' => now(),
+            'pm_approved_at' => now(),
+            'director_approved_at' => now()
+        ]);
+
+        // Log the approval completion
+        Log::info('Recruitment Request approval completed', [
+            'document_id' => $this->id,
+            'request_number' => $this->request_number,
+            'approved_at' => now()
+        ]);
+    }
+
+    /**
+     * Handle approval rejection
+     */
+    public function onApprovalRejected(): void
+    {
+        // Update existing approval status to rejected
+        $this->update([
+            'known_status' => 'rejected',
+            'pm_approval_status' => 'rejected',
+            'director_approval_status' => 'rejected',
+            'final_status' => 'rejected',
+            'known_at' => now(),
+            'pm_approved_at' => now(),
+            'director_approved_at' => now()
+        ]);
+
+        // Log the approval rejection
+        Log::info('Recruitment Request approval rejected', [
+            'document_id' => $this->id,
+            'request_number' => $this->request_number,
+            'rejected_at' => now()
+        ]);
+    }
+
+    /**
+     * Get current approval status
+     *
+     * @return string
+     */
+    public function getCurrentApprovalStatus(): string
+    {
+        if (
+            $this->director_approval_status === 'rejected' ||
+            $this->pm_approval_status === 'rejected' ||
+            $this->known_status === 'rejected'
+        ) {
+            return 'rejected';
+        }
+
+        if (
+            $this->director_approval_status === 'approved' &&
+            $this->pm_approval_status === 'approved' &&
+            $this->known_status === 'approved'
+        ) {
+            return 'approved';
+        }
+
+        if (
+            $this->director_approval_status === 'pending' &&
+            $this->pm_approval_status === 'approved' &&
+            $this->known_status === 'approved'
+        ) {
+            return 'pending_director';
+        }
+
+        if (
+            $this->pm_approval_status === 'pending' &&
+            $this->known_status === 'approved'
+        ) {
+            return 'pending_pm';
+        }
+
+        if ($this->known_status === 'pending') {
+            return 'pending_hr';
+        }
+
+        return 'pending';
+    }
+
+    /**
+     * Get approval progress percentage
+     *
+     * @return int
+     */
+    public function getApprovalProgress(): int
+    {
+        $progress = 0;
+
+        if ($this->known_status === 'approved') {
+            $progress += 33;
+        }
+
+        if ($this->pm_approval_status === 'approved') {
+            $progress += 33;
+        }
+
+        if ($this->director_approval_status === 'approved') {
+            $progress += 34;
+        }
+
+        return $progress;
+    }
+
+    /**
+     * Check if approval is overdue
+     *
+     * @return bool
+     */
+    public function isApprovalOverdue(): bool
+    {
+        $overdueHours = 72; // 3 days
+
+        if ($this->known_status === 'pending' && $this->created_at->diffInHours(now()) > $overdueHours) {
+            return true;
+        }
+
+        if (
+            $this->pm_approval_status === 'pending' && $this->known_at &&
+            $this->known_at->diffInHours(now()) > $overdueHours
+        ) {
+            return true;
+        }
+
+        if (
+            $this->director_approval_status === 'pending' && $this->pm_approved_at &&
+            $this->pm_approved_at->diffInHours(now()) > $overdueHours
+        ) {
+            return true;
+        }
+
+        return false;
     }
 
     // Core relationship: FPTK has many sessions

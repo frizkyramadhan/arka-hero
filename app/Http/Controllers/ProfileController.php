@@ -379,9 +379,27 @@ class ProfileController extends Controller
         $subtitle = 'Employees with Birthday in ' . date('F');
 
         // Get birthday count - using proper month format with leading zero
-        $birthdayCount = Employee::with(['administration' => function ($query) {
-            $query->where('is_active', '1');
-        }])->whereMonth('emp_dob', date('m'))->count();
+        // $birthdayCount = Employee::with(['administration' => function ($query) {
+        //     $query->where('is_active', '1');
+        // }])->whereMonth('emp_dob', date('m'))->count();
+
+        $birthdayCount = DB::table('employees')
+            ->join('administrations', 'employees.id', '=', 'administrations.employee_id',)
+            ->join('positions', 'administrations.position_id', '=', 'positions.id')
+            ->join('departments', 'positions.department_id', '=', 'departments.id')
+            ->join('projects', 'administrations.project_id', '=', 'projects.id')
+            ->select(
+                'employees.id',
+                'administrations.nik',
+                'employees.fullname',
+                'employees.emp_dob',
+                'projects.project_code',
+                'positions.position_name',
+                'administrations.class'
+            )
+            ->where('administrations.is_active', '1')
+            ->whereMonth('employees.emp_dob', date('m'))
+            ->count();
 
         return view('summary.birthday', compact('title', 'subtitle', 'birthdayCount'));
     }
@@ -395,7 +413,7 @@ class ProfileController extends Controller
     public function getBirthdayEmployees(Request $request)
     {
         $query = DB::table('employees')
-            ->join('administrations', 'employees.id', '=', 'administrations.employee_id')
+            ->join('administrations', 'employees.id', '=', 'administrations.employee_id',)
             ->join('positions', 'administrations.position_id', '=', 'positions.id')
             ->join('departments', 'positions.department_id', '=', 'departments.id')
             ->join('projects', 'administrations.project_id', '=', 'projects.id')

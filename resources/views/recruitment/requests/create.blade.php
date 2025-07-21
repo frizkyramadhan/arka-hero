@@ -722,7 +722,7 @@
             var tomorrow = new Date();
             tomorrow.setDate(tomorrow.getDate() + 1);
             var minDate = tomorrow.toISOString().split('T')[0];
-            $('#required_date').attr('min', minDate);
+            // $('#required_date').attr('min', minDate);
 
             // Enable/disable other reason field
             $('#request_reason').on('change', function() {
@@ -740,7 +740,7 @@
                 var maxAge = parseInt($('#required_age_max').val());
 
                 if (minAge && maxAge && minAge > maxAge) {
-                    $('#required_age_max').val(minAge);
+                    $('#required_age_max').val();
                 }
             });
 

@@ -396,50 +396,88 @@
                             </div>
                         </div>
 
-                        <!-- Notes Card -->
-                        <div class="card card-secondary card-outline elevation-3">
+                        <!-- Approval Flow Information Card -->
+                        <div class="card card-info card-outline elevation-3">
                             <div class="card-header">
                                 <h3 class="card-title">
-                                    <i class="fas fa-user-check mr-2"></i>
-                                    <strong>Recommendation & Approval</strong>
+                                    <i class="fas fa-share-alt mr-2"></i>
+                                    <strong>Approval Flow</strong>
+                                </h3>
+                            </div>
+                            <div class="card-body">
+                                @if ($approvalFlow)
+                                    <div class="approval-flow-info">
+                                        <h6 class="text-info mb-3">
+                                            <i class="fas fa-info-circle"></i>
+                                            Approval Flow: {{ $approvalFlow->name }}
+                                        </h6>
+
+                                        <div class="approval-stages">
+                                            @foreach ($approvalFlow->stages as $index => $stage)
+                                                <div class="stage-item mb-2">
+                                                    <div class="d-flex align-items-center">
+                                                        <span class="badge badge-primary mr-2">{{ $index + 1 }}</span>
+                                                        <div class="flex-grow-1">
+                                                            <strong>{{ $stage->stage_name }}</strong>
+                                                            <br>
+                                                            <small class="text-muted">
+                                                                @if ($stage->approvers->count() > 0)
+                                                                    Approvers:
+                                                                    @foreach ($stage->approvers as $approver)
+                                                                        @if ($approver->approver_type === 'user')
+                                                                            {{ $approver->user->name ?? 'Unknown User' }}
+                                                                        @elseif($approver->approver_type === 'role')
+                                                                            {{ $approver->role->name ?? 'Unknown Role' }}
+                                                                        @elseif($approver->approver_type === 'department')
+                                                                            {{ $approver->department->name ?? 'Unknown Department' }}
+                                                                        @endif
+                                                                        @if (!$loop->last)
+                                                                            ,
+                                                                        @endif
+                                                                    @endforeach
+                                                                @else
+                                                                    No approvers assigned
+                                                                @endif
+                                                            </small>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            @endforeach
+                                        </div>
+                                    </div>
+                                @else
+                                    <div class="alert alert-warning">
+                                        <i class="fas fa-exclamation-triangle"></i>
+                                        No approval flow configured for official travel documents.
+                                    </div>
+                                @endif
+                            </div>
+                        </div>
+
+                        <!-- Submit for Approval Card -->
+                        <div class="card card-success card-outline elevation-3">
+                            <div class="card-header">
+                                <h3 class="card-title">
+                                    <i class="fas fa-paper-plane mr-2"></i>
+                                    <strong>Submit for Approval</strong>
                                 </h3>
                             </div>
                             <div class="card-body">
                                 <div class="form-group">
-                                    <label for="recommendation_by">Recommended By <span
-                                            class="text-danger">*</span></label>
-                                    <select
-                                        class="form-control select2-secondary @error('recommendation_by') is-invalid @enderror"
-                                        name="recommendation_by" id="recommendation_by" style="width: 100%;">
-                                        <option value="">Select Recommender</option>
-                                        @foreach ($recommenders as $recommender)
-                                            <option value="{{ $recommender['id'] }}"
-                                                {{ old('recommendation_by') == $recommender['id'] ? 'selected' : '' }}>
-                                                {{ $recommender['name'] }}
-                                            </option>
-                                        @endforeach
-                                    </select>
-                                    @error('recommendation_by')
-                                        <div class="invalid-feedback">{{ $message }}</div>
-                                    @enderror
-                                </div>
-
-                                <div class="form-group mt-4">
-                                    <label for="approval_by">Approved By <span class="text-danger">*</span></label>
-                                    <select
-                                        class="form-control select2-secondary @error('approval_by') is-invalid @enderror"
-                                        name="approval_by" id="approval_by" style="width: 100%;">
-                                        <option value="">Select Approver</option>
-                                        @foreach ($approvers as $approver)
-                                            <option value="{{ $approver['id'] }}"
-                                                {{ old('approval_by') == $approver['id'] ? 'selected' : '' }}>
-                                                {{ $approver['name'] }}
-                                            </option>
-                                        @endforeach
-                                    </select>
-                                    @error('approval_by')
-                                        <div class="invalid-feedback">{{ $message }}</div>
-                                    @enderror
+                                    <div class="custom-control custom-checkbox">
+                                        <input type="checkbox" class="custom-control-input" id="submit_for_approval"
+                                            name="submit_for_approval" value="1"
+                                            {{ old('submit_for_approval') ? 'checked' : '' }}>
+                                        <label class="custom-control-label" for="submit_for_approval">
+                                            Submit document for approval after creation
+                                        </label>
+                                    </div>
+                                    <small class="form-text text-muted">
+                                        <i class="fas fa-info-circle"></i>
+                                        If checked, the document will be automatically submitted for approval after
+                                        creation.
+                                        You can also submit for approval later from the document details page.
+                                    </small>
                                 </div>
                             </div>
                         </div>
@@ -584,6 +622,29 @@
             border-color: #ffeaa7;
             color: #856404;
         }
+
+        /* Approval flow styling */
+        .approval-flow-info {
+            background-color: #f8f9fa;
+            border-radius: 0.25rem;
+            padding: 1rem;
+        }
+
+        .stage-item {
+            background-color: white;
+            border: 1px solid #dee2e6;
+            border-radius: 0.25rem;
+            padding: 0.75rem;
+        }
+
+        .stage-item:hover {
+            background-color: #f8f9fa;
+        }
+
+        .custom-control-input:checked~.custom-control-label::before {
+            background-color: #28a745;
+            border-color: #28a745;
+        }
     </style>
 @endsection
 
@@ -619,29 +680,6 @@
                 placeholder: 'Select an option'
             }).on('select2:open', function() {
                 document.querySelector('.select2-search__field').focus();
-            });
-
-            $('.select2-secondary').select2({
-                theme: 'bootstrap4',
-                placeholder: 'Select an option'
-            }).on('select2:open', function() {
-                document.querySelector('.select2-search__field').focus();
-            });
-
-            // Initialize existing followers Select2 (from old data)
-            $('.select2-follower').select2({
-                theme: 'bootstrap4',
-                placeholder: 'Select Employee'
-            }).on('select2:open', function() {
-                document.querySelector('.select2-search__field').focus();
-            }).on('change', function() {
-                const $row = $(this).closest('tr');
-                const $option = $(this).find(':selected');
-
-                // Update employee details
-                $row.find('.employee-position').text($option.data('position') || '-');
-                $row.find('.employee-project').text($option.data('project') || '-');
-                $row.find('.employee-department').text($option.data('department') || '-');
             });
 
             // Letter Number Selector is now self-contained in component
