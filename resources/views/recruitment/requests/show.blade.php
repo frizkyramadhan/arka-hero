@@ -123,6 +123,107 @@
                         </div>
                     </div>
 
+                    <!-- Approval Progress Section -->
+                    @if ($fptk->approval)
+                        <div class="fptk-card approval-progress-card">
+                            <div class="card-head">
+                                <h2><i class="fas fa-tasks"></i> Approval Progress</h2>
+                            </div>
+                            <div class="card-body">
+                                <!-- Approval Flow Progress -->
+                                <div class="approval-flow-progress">
+                                    @php
+                                        $progress = $fptk->getApprovalProgress();
+                                        $timeline = $fptk->getApprovalTimeline();
+                                    @endphp
+
+                                    <div class="progress-bar-container">
+                                        <div class="progress-bar">
+                                            <div class="progress-fill" style="width: {{ $progress['percentage'] }}%"></div>
+                                        </div>
+                                        <div class="progress-text">{{ $progress['percentage'] }}% Complete</div>
+                                    </div>
+
+                                    <!-- Current Stage Info -->
+                                    @if ($progress['current_stage'])
+                                        <div class="current-stage-info">
+                                            <h4>Current Stage: {{ $progress['current_stage']->stage_name }}</h4>
+                                            <p>Stage {{ $progress['completed_stages'] + 1 }} of
+                                                {{ $progress['total_stages'] }}</p>
+
+                                            @if ($fptk->isApprovalOverdue())
+                                                <div class="alert alert-warning">
+                                                    <i class="fas fa-exclamation-triangle"></i>
+                                                    This approval is overdue and may need escalation.
+                                                </div>
+                                            @endif
+                                        </div>
+                                    @endif
+
+                                    <!-- Approval Timeline -->
+                                    <div class="approval-timeline">
+                                        <h4>Approval Timeline</h4>
+                                        <div class="timeline">
+                                            @foreach ($timeline as $event)
+                                                <div class="timeline-item">
+                                                    <div
+                                                        class="timeline-marker {{ $event['action'] === 'approved' ? 'approved' : ($event['action'] === 'rejected' ? 'rejected' : 'pending') }}">
+                                                        <i
+                                                            class="fas fa-{{ $event['action'] === 'approved' ? 'check' : ($event['action'] === 'rejected' ? 'times' : 'clock') }}"></i>
+                                                    </div>
+                                                    <div class="timeline-content">
+                                                        <div class="timeline-header">
+                                                            <h6>{{ ucfirst($event['action']) }}</h6>
+                                                            <small>{{ $event['date']->format('M d, Y H:i') }}</small>
+                                                        </div>
+                                                        <div class="timeline-body">
+                                                            <p>{{ $event['description'] }}</p>
+                                                            @if ($event['user'])
+                                                                <small>By: {{ $event['user']->name }}</small>
+                                                            @endif
+                                                            @if ($event['comments'])
+                                                                <div class="comments">
+                                                                    <strong>Comments:</strong> {{ $event['comments'] }}
+                                                                </div>
+                                                            @endif
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            @endforeach
+                                        </div>
+                                    </div>
+
+                                    <!-- Next Approvers -->
+                                    @php
+                                        $nextApprovers = $fptk->getNextApprovers();
+                                    @endphp
+                                    @if (count($nextApprovers) > 0)
+                                        <div class="next-approvers">
+                                            <h4>Next Approvers</h4>
+                                            <div class="approvers-list">
+                                                @foreach ($nextApprovers as $approver)
+                                                    <div class="approver-item">
+                                                        <div class="approver-icon">
+                                                            <i class="fas fa-user"></i>
+                                                        </div>
+                                                        <div class="approver-info">
+                                                            <div class="approver-name">{{ $approver['name'] }}</div>
+                                                            <div class="approver-type">{{ ucfirst($approver['type']) }}
+                                                            </div>
+                                                            @if ($approver['is_backup'])
+                                                                <span class="badge badge-warning">Backup</span>
+                                                            @endif
+                                                        </div>
+                                                    </div>
+                                                @endforeach
+                                            </div>
+                                        </div>
+                                    @endif
+                                </div>
+                            </div>
+                        </div>
+                    @endif
+
                     <!-- Requirements -->
                     <div class="fptk-card requirements-card">
                         <div class="card-head">

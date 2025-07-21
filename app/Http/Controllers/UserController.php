@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use Illuminate\Support\Arr;
 use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Hash;
 use Spatie\Permission\Models\Role;
@@ -335,6 +336,36 @@ class UserController extends Controller
             DB::rollback();
             return redirect()->back()
                 ->with('toast_error', 'Failed to delete user. Please try again.');
+        }
+    }
+
+    /**
+     * Get users list for approval actions
+     */
+    public function getUsersList(): JsonResponse
+    {
+        try {
+            $users = User::select('id', 'name', 'email')
+                ->where('is_active', true)
+                ->orderBy('name')
+                ->get()
+                ->map(function ($user) {
+                    return [
+                        'id' => $user->id,
+                        'name' => $user->name,
+                        'email' => $user->email
+                    ];
+                });
+
+            return response()->json([
+                'success' => true,
+                'users' => $users
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to load users'
+            ], 500);
         }
     }
 }

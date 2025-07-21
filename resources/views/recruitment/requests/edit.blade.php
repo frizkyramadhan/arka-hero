@@ -767,7 +767,7 @@
                 var maxAge = parseInt($('#required_age_max').val());
 
                 if (minAge && maxAge && minAge > maxAge) {
-                    $('#required_age_max').val(minAge);
+                    $('#required_age_max').val();
                 }
             });
 

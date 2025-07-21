@@ -36,7 +36,38 @@ class DatabaseSeeder extends Seeder
             'password' => Hash::make('admin'),
         ]);
 
+        User::factory()->create([
+            'id' => 2,
+            'name' => 'Gusti Permana',
+            'email' => 'gusti.permana@arka.co.id',
+            // 'level' => 'superadmin',
+            'user_status' => 1,
+            'password' => Hash::make('Password'),
+        ]);
+
+        User::factory()->create([
+            'id' => 3,
+            'name' => 'Eddy Nasri',
+            'email' => 'eddy.nasri@arka.co.id',
+            // 'level' => 'superadmin',
+            'user_status' => 1,
+            'password' => Hash::make('Password'),
+        ]);
+
+        User::factory()->create([
+            'id' => 4,
+            'name' => 'Rachman Yulikiswanto',
+            'email' => 'rachman.yulikiswanto@arka.co.id',
+            // 'level' => 'superadmin',
+            'user_status' => 1,
+            'password' => Hash::make('Password'),
+        ]);
+
+
         User::where('email', 'admin@arka.co.id')->first()->assignRole('administrator');
+        User::where('email', 'gusti.permana@arka.co.id')->first()->assignRole('hr-supervisor');
+        User::where('email', 'eddy.nasri@arka.co.id')->first()->assignRole('hr-manager');
+        User::where('email', 'rachman.yulikiswanto@arka.co.id')->first()->assignRole('div-manager');
         $this->call(RecruitmentRolePermissionSeeder::class);
 
         // Letter numbering system seeders
@@ -46,5 +77,8 @@ class DatabaseSeeder extends Seeder
         $this->call(OfficialTravelSeeder::class);
 
         $this->call(GradeLevelSeeder::class);
+        $this->call(OfficialTravelApprovalFlowSeeder::class);
+        $this->call(RecruitmentRequestApprovalFlowSeeder::class);
+        $this->call(EmployeeRegistrationApprovalFlowSeeder::class);
     }
 }

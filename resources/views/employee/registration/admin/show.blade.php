@@ -97,6 +97,133 @@
                 </div>
             </div>
 
+            <!-- Approval Progress Section -->
+            @if ($registration->approval)
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title">
+                                    <i class="fas fa-tasks mr-2"></i>
+                                    Approval Progress
+                                </h3>
+                            </div>
+                            <div class="card-body">
+                                <!-- Approval Flow Progress -->
+                                <div class="approval-flow-progress">
+                                    @php
+                                        $progress = $registration->getApprovalProgress();
+                                        $timeline = $registration->getApprovalTimeline();
+                                    @endphp
+
+                                    <div class="progress-bar-container mb-3">
+                                        <div class="progress">
+                                            <div class="progress-bar bg-success" role="progressbar"
+                                                style="width: {{ $progress }}%" aria-valuenow="{{ $progress }}"
+                                                aria-valuemin="0" aria-valuemax="100">
+                                                {{ $progress }}%
+                                            </div>
+                                        </div>
+                                        <small class="text-muted">Approval Progress</small>
+                                    </div>
+
+                                    <!-- Current Stage Info -->
+                                    <div class="current-stage-info mb-3">
+                                        <h5>Current Status: {{ ucfirst($registration->getCurrentApprovalStatus()) }}</h5>
+
+                                        @if ($registration->isApprovalOverdue())
+                                            <div class="alert alert-warning">
+                                                <i class="fas fa-exclamation-triangle"></i>
+                                                This approval is overdue and may need escalation.
+                                            </div>
+                                        @endif
+                                    </div>
+
+                                    <!-- Approval Timeline -->
+                                    <div class="approval-timeline">
+                                        <h5>Approval Timeline</h5>
+                                        <div class="timeline">
+                                            @foreach ($timeline as $event)
+                                                <div class="timeline-item mb-3">
+                                                    <div class="d-flex">
+                                                        <div class="timeline-marker mr-3">
+                                                            @php
+                                                                $markerClass = match ($event['action']) {
+                                                                    'approved' => 'bg-success',
+                                                                    'rejected' => 'bg-danger',
+                                                                    default => 'bg-warning',
+                                                                };
+                                                                $icon = match ($event['action']) {
+                                                                    'approved' => 'fa-check',
+                                                                    'rejected' => 'fa-times',
+                                                                    default => 'fa-clock',
+                                                                };
+                                                            @endphp
+                                                            <div class="rounded-circle {{ $markerClass }} text-white d-flex align-items-center justify-content-center"
+                                                                style="width: 30px; height: 30px;">
+                                                                <i class="fas {{ $icon }}"></i>
+                                                            </div>
+                                                        </div>
+                                                        <div class="timeline-content flex-grow-1">
+                                                            <div class="d-flex justify-content-between">
+                                                                <h6 class="mb-1">{{ ucfirst($event['action']) }}</h6>
+                                                                <small
+                                                                    class="text-muted">{{ $event['date']->format('M d, Y H:i') }}</small>
+                                                            </div>
+                                                            <p class="mb-1">{{ $event['description'] }}</p>
+                                                            @if ($event['user'])
+                                                                <small class="text-muted">By:
+                                                                    {{ $event['user']->name }}</small>
+                                                            @endif
+                                                            @if ($event['comments'])
+                                                                <div class="comments mt-2">
+                                                                    <strong>Comments:</strong> {{ $event['comments'] }}
+                                                                </div>
+                                                            @endif
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            @endforeach
+                                        </div>
+                                    </div>
+
+                                    <!-- Next Approvers -->
+                                    @php
+                                        $nextApprovers = $registration->getNextApprovers();
+                                    @endphp
+                                    @if (count($nextApprovers) > 0)
+                                        <div class="next-approvers mt-4">
+                                            <h5>Next Approvers</h5>
+                                            <div class="approvers-list">
+                                                @foreach ($nextApprovers as $approver)
+                                                    <div class="approver-item d-flex align-items-center mb-2">
+                                                        <div class="approver-icon mr-3">
+                                                            <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center"
+                                                                style="width: 30px; height: 30px;">
+                                                                <i class="fas fa-user"></i>
+                                                            </div>
+                                                        </div>
+                                                        <div class="approver-info flex-grow-1">
+                                                            <div class="approver-name font-weight-bold">
+                                                                {{ $approver['name'] }}</div>
+                                                            <div class="approver-type text-muted">
+                                                                {{ ucfirst($approver['type']) }}</div>
+                                                            @if ($approver['is_backup'])
+                                                                <span class="badge badge-warning">Backup</span>
+                                                            @endif
+                                                        </div>
+                                                    </div>
+                                                @endforeach
+                                            </div>
+                                        </div>
+                                    @endif
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            @endif
+
             <div class="row">
                 <!-- Personal Information -->
                 <div class="col-md-6">

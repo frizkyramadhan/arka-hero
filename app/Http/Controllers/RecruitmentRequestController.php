@@ -403,7 +403,7 @@ class RecruitmentRequestController extends Controller
             'position_id' => 'required|exists:positions,id',
             'level_id' => 'required|exists:levels,id',
             'required_qty' => 'required|integer|min:1|max:50',
-            'required_date' => 'required|date|after:today',
+            'required_date' => 'required|date',
             'employment_type' => 'required|in:pkwtt,pkwt,harian,magang',
             'request_reason' => 'required|in:replacement_resign,replacement_promotion,additional_workplan,other',
             'other_reason' => 'required_if:request_reason,other|nullable|string|max:1000',
@@ -511,6 +511,18 @@ class RecruitmentRequestController extends Controller
             // Approve FPTK (will auto-assign letter number)
             $fptk->approve(Auth::id(), $request->notes);
 
+            // Integrate with approval system if available
+            if ($fptk->approval) {
+                // Process approval action through approval system
+                $approvalEngine = app(\App\Services\ApprovalEngineService::class);
+                $approvalEngine->processApproval(
+                    $fptk->approval->id,
+                    Auth::id(),
+                    'approve',
+                    $request->notes
+                );
+            }
+
             DB::commit();
 
             return redirect()->route('recruitment.requests.show', $fptk->id)
@@ -541,11 +553,28 @@ class RecruitmentRequestController extends Controller
         }
 
         try {
+            DB::beginTransaction();
+
             $fptk->reject(Auth::id(), $request->rejection_reason);
+
+            // Integrate with approval system if available
+            if ($fptk->approval) {
+                // Process rejection action through approval system
+                $approvalEngine = app(\App\Services\ApprovalEngineService::class);
+                $approvalEngine->processApproval(
+                    $fptk->approval->id,
+                    Auth::id(),
+                    'reject',
+                    $request->rejection_reason
+                );
+            }
+
+            DB::commit();
 
             return redirect()->route('recruitment.requests.show', $fptk->id)
                 ->with('toast_success', 'FPTK berhasil ditolak.');
         } catch (Exception $e) {
+            DB::rollback();
             Log::error('Error rejecting FPTK: ' . $e->getMessage());
 
             return redirect()->back()

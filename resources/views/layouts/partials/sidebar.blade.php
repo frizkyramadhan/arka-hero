@@ -418,6 +418,41 @@
                             <p>Permissions</p>
                         </a>
                     </li>
+
+                    {{-- Approval System --}}
+                    <li class="nav-item {{ Request::is('approval*') ? 'menu-open' : '' }}">
+                        <a href="#" class="nav-link {{ Request::is('approval*') ? 'active' : '' }}">
+                            <i class="nav-icon fas fa-check-double"></i>
+                            <p>
+                                Approval System
+                                <small class="badge badge-info ml-1">NEW</small>
+                            </p>
+                            <i class="fas fa-angle-left right"></i>
+                        </a>
+                        <ul class="nav nav-treeview">
+                            <li class="nav-item">
+                                <a href="{{ route('approval.flows.index') }}"
+                                    class="nav-link {{ Request::is('approval/flows*') && !Request::is('approval/flows/*/stages*') ? 'active' : '' }}">
+                                    <i class="far fa-circle nav-icon"></i>
+                                    <p>Approval Flows</p>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="#"
+                                    class="nav-link {{ Request::is('approval/flows/*/stages*') ? 'active' : '' }}">
+                                    <i class="far fa-circle nav-icon"></i>
+                                    <p>Stage Management</p>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="{{ route('approval.flows.index') }}"
+                                    class="nav-link {{ Request::is('approval/dashboard*') ? 'active' : '' }}">
+                                    <i class="far fa-circle nav-icon"></i>
+                                    <p>Approval Dashboard</p>
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
                 @endcanany
             </ul>
         </nav>

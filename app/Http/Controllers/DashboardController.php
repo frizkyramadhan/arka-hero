@@ -138,9 +138,27 @@ class DashboardController extends Controller
         $employeesWithLicense = License::distinct('employee_id')->count('employee_id');
 
         // Get employees with birthday in this month
-        $birthdayEmployees = Employee::with(['administration' => function ($query) {
-            $query->where('is_active', '1');
-        }])->whereMonth('emp_dob', date('m'))->count();
+        // $birthdayEmployees = Employee::with(['administration' => function ($query) {
+        //     $query->where('is_active', '1');
+        // }])->whereMonth('emp_dob', date('m'))->count();
+
+        $birthdayEmployees = DB::table('employees')
+            ->join('administrations', 'employees.id', '=', 'administrations.employee_id',)
+            ->join('positions', 'administrations.position_id', '=', 'positions.id')
+            ->join('departments', 'positions.department_id', '=', 'departments.id')
+            ->join('projects', 'administrations.project_id', '=', 'projects.id')
+            ->select(
+                'employees.id',
+                'administrations.nik',
+                'employees.fullname',
+                'employees.emp_dob',
+                'projects.project_code',
+                'positions.position_name',
+                'administrations.class'
+            )
+            ->where('administrations.is_active', '1')
+            ->whereMonth('employees.emp_dob', date('m'))
+            ->count();
 
         return view('dashboard', [
             'title' => 'Dashboard',
