@@ -133,14 +133,7 @@
                                                 </div>
                                                 <div class="col-md-3">
                                                     <div class="form-group">
-                                                        <label>Approval</label>
-                                                        <select class="form-control select2bs4" id="approval"
-                                                            name="approval">
-                                                            <option value="">- All -</option>
-                                                            <option value="pending">Pending</option>
-                                                            <option value="approved">Approved</option>
-                                                            <option value="rejected">Rejected</option>
-                                                        </select>
+
                                                     </div>
                                                 </div>
                                                 <div class="col-md-3">
@@ -169,7 +162,7 @@
                                                 <th>Destination</th>
                                                 <th>Status</th>
                                                 <th>Recommendation</th>
-                                                <th>Approval</th>
+
                                                 <th>Creator</th>
                                                 <th>Action</th>
                                             </tr>
@@ -246,7 +239,7 @@
                             d.project = $('#project').val(),
                             d.status = $('#status').val(),
                             d.recommendation = $('#recommendation').val(),
-                            d.approval = $('#approval').val(),
+
                             d.search = $("input[type=search][aria-controls=officialtravel-table]").val()
                     }
                 },
@@ -292,12 +285,6 @@
                         className: 'text-center'
                     },
                     {
-                        data: 'approval',
-                        name: 'approval',
-                        orderable: false,
-                        className: 'text-center'
-                    },
-                    {
                         data: 'created_by',
                         name: 'created_by',
                         orderable: false,
@@ -314,7 +301,7 @@
             });
 
             // Handle filter changes
-            $('#date1, #date2, #travel_number, #destination, #project, #status, #recommendation, #approval').change(
+            $('#date1, #date2, #travel_number, #destination, #project, #status, #recommendation').change(
                 function() {
                     table.draw();
                 });
@@ -327,7 +314,7 @@
             $('#btn-reset').click(function() {
                 $('#date1, #date2').val('');
                 $('#travel_number, #destination, #nik, #fullname').val('');
-                $('#project, #status, #recommendation, #approval').val('').trigger('change');
+                $('#project, #status, #recommendation').val('').trigger('change');
                 table.draw();
             });
 
@@ -344,7 +331,7 @@
                     project: $('#project').val(),
                     status: $('#status').val(),
                     recommendation: $('#recommendation').val(),
-                    approval: $('#approval').val(),
+
                     search: $("input[type=search][aria-controls=officialtravel-table]").val(),
                     _token: '{{ csrf_token() }}'
                 };

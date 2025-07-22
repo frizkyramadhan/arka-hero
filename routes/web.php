@@ -6,6 +6,8 @@ use App\Http\Controllers\BankController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\EmailController;
+use App\Http\Controllers\GradeController;
+use App\Http\Controllers\LevelController;
 use App\Http\Controllers\CourseController;
 use App\Http\Controllers\FamilieController;
 use App\Http\Controllers\LicenseController;
@@ -23,25 +25,30 @@ use App\Http\Controllers\PHPMailerController;
 use App\Http\Controllers\DepartmentController;
 use App\Http\Controllers\PermissionController;
 use App\Http\Controllers\TerminationController;
+
 use App\Http\Controllers\EmployeebankController;
+// Removed import for deleted controller
+use App\Http\Controllers\LetterNumberController;
 use App\Http\Controllers\OperableunitController;
 use App\Http\Controllers\AccommodationController;
+
 use App\Http\Controllers\JobexperienceController;
+use App\Http\Controllers\LetterSubjectController;
 use App\Http\Controllers\AdditionaldataController;
 use App\Http\Controllers\AdministrationController;
+use App\Http\Controllers\LetterCategoryController;
 use App\Http\Controllers\OfficialtravelController;
 use App\Http\Controllers\TransportationController;
+
+// Removed import for deleted controller
 use App\Http\Controllers\TaxidentificationController;
-use App\Http\Controllers\EmployeeRegistrationController;
-use App\Http\Controllers\EmployeeRegistrationAdminController;
-use App\Http\Controllers\LetterNumberController;
-use App\Http\Controllers\LetterSubjectController;
-use App\Http\Controllers\LetterCategoryController;
-use App\Http\Controllers\GradeController;
-use App\Http\Controllers\LevelController;
+
 use App\Http\Controllers\RecruitmentRequestController;
-use App\Http\Controllers\RecruitmentCandidateController;
 use App\Http\Controllers\RecruitmentSessionController;
+use App\Http\Controllers\EmployeeRegistrationController;
+use App\Http\Controllers\RecruitmentCandidateController;
+// Removed import for deleted controller
+use App\Http\Controllers\EmployeeRegistrationAdminController;
 
 /*
 |--------------------------------------------------------------------------
@@ -101,7 +108,7 @@ Route::group(['middleware' => ['auth']], function () {
 
     Route::get('/', [DashboardController::class, 'dashboard'])->name('dashboard');
     Route::get('/dashboard/pending-recommendations', [DashboardController::class, 'pendingRecommendations'])->name('dashboard.pendingRecommendations');
-    Route::get('/dashboard/pending-approvals', [DashboardController::class, 'pendingApprovals'])->name('dashboard.pendingApprovals');
+
     Route::get('/dashboard/pending-arrivals', [DashboardController::class, 'pendingArrivals'])->name('dashboard.pendingArrivals');
     Route::get('/dashboard/pending-departures', [DashboardController::class, 'pendingDepartures'])->name('dashboard.pendingDepartures');
 
@@ -168,7 +175,7 @@ Route::group(['middleware' => ['auth']], function () {
     Route::resource('officialtravels', OfficialtravelController::class);
     Route::get('officialtravels/{officialtravel}/recommend', [OfficialtravelController::class, 'showRecommendForm'])->name('officialtravels.showRecommendForm');
     Route::post('officialtravels/{officialtravel}/recommend', [OfficialtravelController::class, 'recommend'])->name('officialtravels.recommend');
-    Route::get('officialtravels/{officialtravel}/approve', [OfficialtravelController::class, 'showApprovalForm'])->name('officialtravels.showApprovalForm');
+
     Route::post('officialtravels/{officialtravel}/approve', [OfficialtravelController::class, 'approve'])->name('officialtravels.approve');
     Route::get('officialtravels/{officialtravel}/arrival', [OfficialtravelController::class, 'showArrivalForm'])->name('officialtravels.showArrivalForm');
     Route::post('officialtravels/{officialtravel}/arrival', [OfficialtravelController::class, 'arrivalStamp'])->name('officialtravels.arrivalStamp');
@@ -386,119 +393,6 @@ Route::group(['middleware' => ['auth']], function () {
             Route::get('/{id}/data', [RecruitmentSessionController::class, 'getSessionData'])->name('data');
             Route::get('/fptk/{fptkId}/sessions', [RecruitmentSessionController::class, 'getSessionsByFPTK'])->name('by-fptk');
             Route::get('/candidate/{candidateId}/sessions', [RecruitmentSessionController::class, 'getSessionsByCandidate'])->name('by-candidate');
-        });
-    });
-
-    // APPROVAL SYSTEM ROUTES
-    Route::prefix('approval')->name('approval.')->group(function () {
-        // Approval Flow Management
-        Route::prefix('flows')->name('flows.')->group(function () {
-            Route::get('/', [App\Http\Controllers\ApprovalFlowController::class, 'index'])->name('index');
-            Route::get('/create', [App\Http\Controllers\ApprovalFlowController::class, 'create'])->name('create');
-            Route::post('/', [App\Http\Controllers\ApprovalFlowController::class, 'store'])->name('store');
-            Route::get('/{flow}', [App\Http\Controllers\ApprovalFlowController::class, 'show'])->name('show');
-            Route::get('/{flow}/edit', [App\Http\Controllers\ApprovalFlowController::class, 'edit'])->name('edit');
-            Route::put('/{flow}', [App\Http\Controllers\ApprovalFlowController::class, 'update'])->name('update');
-            Route::delete('/{flow}', [App\Http\Controllers\ApprovalFlowController::class, 'destroy'])->name('destroy');
-            Route::post('/{flow}/clone', [App\Http\Controllers\ApprovalFlowController::class, 'clone'])->name('clone');
-        });
-
-        // Approval Stage Management
-        Route::prefix('flows/{flow}/stages')->name('stages.')->group(function () {
-            Route::get('/', [App\Http\Controllers\ApprovalStageController::class, 'index'])->name('index');
-            Route::get('/create', [App\Http\Controllers\ApprovalStageController::class, 'create'])->name('create');
-            Route::post('/', [App\Http\Controllers\ApprovalStageController::class, 'store'])->name('store');
-            Route::get('/{stage}', [App\Http\Controllers\ApprovalStageController::class, 'show'])->name('show');
-            Route::get('/{stage}/edit', [App\Http\Controllers\ApprovalStageController::class, 'edit'])->name('edit');
-            Route::put('/{stage}', [App\Http\Controllers\ApprovalStageController::class, 'update'])->name('update');
-            Route::delete('/{stage}', [App\Http\Controllers\ApprovalStageController::class, 'destroy'])->name('destroy');
-            Route::post('/reorder', [App\Http\Controllers\ApprovalStageController::class, 'reorder'])->name('reorder');
-            Route::get('/{stage}/configuration', [App\Http\Controllers\ApprovalStageController::class, 'getConfiguration'])->name('configuration');
-            Route::post('/{stage}/duplicate', [App\Http\Controllers\ApprovalStageController::class, 'duplicate'])->name('duplicate');
-        });
-
-        // Approver Assignment Routes
-        Route::prefix('stages/{stage}/approvers')->name('approvers.')->group(function () {
-            Route::get('/', [App\Http\Controllers\ApproverAssignmentController::class, 'index'])->name('index');
-            Route::post('/assign', [App\Http\Controllers\ApproverAssignmentController::class, 'assign'])->name('assign');
-            Route::get('/list', [App\Http\Controllers\ApproverAssignmentController::class, 'getApprovers'])->name('list');
-            Route::get('/matrix', [App\Http\Controllers\ApproverAssignmentController::class, 'getApprovalMatrix'])->name('matrix');
-        });
-
-        Route::prefix('approvers')->name('approvers.')->group(function () {
-            Route::put('/{approver}', [App\Http\Controllers\ApproverAssignmentController::class, 'update'])->name('update');
-            Route::delete('/{approver}', [App\Http\Controllers\ApproverAssignmentController::class, 'remove'])->name('remove');
-            Route::get('/search-users', [App\Http\Controllers\ApproverAssignmentController::class, 'searchUsers'])->name('search-users');
-        });
-
-        // Flow Designer Routes
-        Route::prefix('designer')->name('designer.')->group(function () {
-            Route::get('/{flow}', [App\Http\Controllers\FlowDesignerController::class, 'index'])->name('index');
-            Route::get('/create', [App\Http\Controllers\FlowDesignerController::class, 'create'])->name('create');
-            Route::post('/store', [App\Http\Controllers\FlowDesignerController::class, 'store'])->name('store');
-            Route::post('/{flow}/update', [App\Http\Controllers\FlowDesignerController::class, 'update'])->name('update');
-            Route::get('/{flow}/data', [App\Http\Controllers\FlowDesignerController::class, 'getFlowData'])->name('data');
-            Route::post('/{flow}/test', [App\Http\Controllers\FlowDesignerController::class, 'testFlow'])->name('test');
-        });
-
-        // Admin Dashboard Routes
-        Route::prefix('admin/dashboard')->name('admin.dashboard.')->group(function () {
-            Route::get('/', [App\Http\Controllers\ApprovalAdminDashboardController::class, 'index'])->name('index');
-            Route::get('/flows', [App\Http\Controllers\ApprovalAdminDashboardController::class, 'flows'])->name('flows');
-            Route::get('/active-approvals', [App\Http\Controllers\ApprovalAdminDashboardController::class, 'activeApprovals'])->name('active-approvals');
-            Route::get('/analytics', [App\Http\Controllers\ApprovalAdminDashboardController::class, 'analytics'])->name('analytics');
-            Route::get('/audit-trail', [App\Http\Controllers\ApprovalAdminDashboardController::class, 'auditTrail'])->name('audit-trail');
-            Route::get('/configuration', [App\Http\Controllers\ApprovalAdminDashboardController::class, 'configuration'])->name('configuration');
-
-            // AJAX Routes
-            Route::get('/stats', [App\Http\Controllers\ApprovalAdminDashboardController::class, 'getStats'])->name('stats');
-            Route::get('/active-approvals-data', [App\Http\Controllers\ApprovalAdminDashboardController::class, 'getActiveApprovals'])->name('active-approvals-data');
-            Route::get('/performance-metrics', [App\Http\Controllers\ApprovalAdminDashboardController::class, 'getPerformanceMetricsAjax'])->name('performance-metrics');
-
-            // Configuration Routes
-            Route::post('/save-system-settings', [App\Http\Controllers\ApprovalAdminDashboardController::class, 'saveSystemSettings'])->name('save-system-settings');
-            Route::post('/save-notification-config', [App\Http\Controllers\ApprovalAdminDashboardController::class, 'saveNotificationConfig'])->name('save-notification-config');
-            Route::post('/assign-flow', [App\Http\Controllers\ApprovalAdminDashboardController::class, 'assignFlow'])->name('assign-flow');
-            Route::post('/add-document-type', [App\Http\Controllers\ApprovalAdminDashboardController::class, 'addDocumentType'])->name('add-document-type');
-            Route::post('/add-escalation-rule', [App\Http\Controllers\ApprovalAdminDashboardController::class, 'addEscalationRule'])->name('add-escalation-rule');
-            Route::post('/add-template', [App\Http\Controllers\ApprovalAdminDashboardController::class, 'addTemplate'])->name('add-template');
-            Route::get('/get-stages', [App\Http\Controllers\ApprovalAdminDashboardController::class, 'getStages'])->name('get-stages');
-        });
-
-        // Unified Approval Dashboard Routes
-        Route::prefix('dashboard')->name('dashboard.')->group(function () {
-            Route::get('/', [App\Http\Controllers\ApprovalDashboardController::class, 'index'])->name('index');
-            Route::get('/pending', [App\Http\Controllers\ApprovalDashboardController::class, 'pending'])->name('pending');
-            Route::get('/history', [App\Http\Controllers\ApprovalDashboardController::class, 'history'])->name('history');
-            Route::post('/process/{approval}', [App\Http\Controllers\ApprovalDashboardController::class, 'process'])->name('process');
-            Route::post('/bulk', [App\Http\Controllers\ApprovalDashboardController::class, 'bulk'])->name('bulk');
-            Route::get('/show/{approval}', [App\Http\Controllers\ApprovalDashboardController::class, 'show'])->name('show');
-
-            // AJAX Routes
-            Route::get('/pending-data', [App\Http\Controllers\ApprovalDashboardController::class, 'getPendingData'])->name('pending-data');
-            Route::get('/user-stats', [App\Http\Controllers\ApprovalDashboardController::class, 'getUserStatsData'])->name('user-stats');
-            Route::get('/document-info/{approval}', [App\Http\Controllers\ApprovalDashboardController::class, 'getDocumentInfo'])->name('document-info');
-            Route::get('/action-details/{action}', [App\Http\Controllers\ApprovalDashboardController::class, 'getActionDetails'])->name('action-details');
-            Route::get('/export-history', [App\Http\Controllers\ApprovalDashboardController::class, 'exportHistory'])->name('export-history');
-        });
-
-        // Users API
-        Route::get('/users/list', [App\Http\Controllers\UserController::class, 'getUsersList'])->name('users.list');
-
-        // Document Approval Actions
-        Route::prefix('actions')->name('actions.')->group(function () {
-            Route::get('/show/{approval}', [App\Http\Controllers\DocumentApprovalController::class, 'show'])->name('show');
-            Route::post('/approve/{approval}', [App\Http\Controllers\DocumentApprovalController::class, 'approve'])->name('approve');
-            Route::post('/reject/{approval}', [App\Http\Controllers\DocumentApprovalController::class, 'reject'])->name('reject');
-            Route::post('/forward/{approval}', [App\Http\Controllers\DocumentApprovalController::class, 'forward'])->name('forward');
-            Route::post('/delegate/{approval}', [App\Http\Controllers\DocumentApprovalController::class, 'delegate'])->name('delegate');
-            Route::post('/request-info/{approval}', [App\Http\Controllers\DocumentApprovalController::class, 'requestInfo'])->name('request-info');
-            Route::post('/escalate/{approval}', [App\Http\Controllers\DocumentApprovalController::class, 'escalate'])->name('escalate');
-            Route::post('/cancel/{approval}', [App\Http\Controllers\DocumentApprovalController::class, 'cancel'])->name('cancel');
-
-            // AJAX Routes
-            Route::get('/get-form/{approval}', [App\Http\Controllers\DocumentApprovalController::class, 'getActionForm'])->name('get-form');
-            Route::get('/stats/{approval}', [App\Http\Controllers\DocumentApprovalController::class, 'getApprovalStats'])->name('stats');
         });
     });
 });

@@ -342,123 +342,10 @@
                             </div>
                         </div>
 
-                        <!-- Approval Flow Information Card -->
-                        <div class="card card-info card-outline elevation-3">
-                            <div class="card-header">
-                                <h3 class="card-title">
-                                    <i class="fas fa-share-alt mr-2"></i>
-                                    <strong>Approval Flow</strong>
-                                </h3>
-                            </div>
-                            <div class="card-body">
-                                @if ($approvalFlow)
-                                    <div class="approval-flow-info">
-                                        <h6 class="text-info mb-3">
-                                            <i class="fas fa-info-circle"></i>
-                                            Approval Flow: {{ $approvalFlow->name }}
-                                        </h6>
+                        <!-- Approver Selection Card -->
 
-                                        <div class="approval-stages">
-                                            @foreach ($approvalFlow->stages as $index => $stage)
-                                                <div class="stage-item mb-2">
-                                                    <div class="d-flex align-items-center">
-                                                        <span class="badge badge-primary mr-2">{{ $index + 1 }}</span>
-                                                        <div class="flex-grow-1">
-                                                            <strong>{{ $stage->stage_name }}</strong>
-                                                            <br>
-                                                            <small class="text-muted">
-                                                                @if ($stage->approvers->count() > 0)
-                                                                    Approvers:
-                                                                    @foreach ($stage->approvers as $approver)
-                                                                        @if ($approver->approver_type === 'user')
-                                                                            {{ $approver->user->name ?? 'Unknown User' }}
-                                                                        @elseif($approver->approver_type === 'role')
-                                                                            {{ $approver->role->name ?? 'Unknown Role' }}
-                                                                        @elseif($approver->approver_type === 'department')
-                                                                            {{ $approver->department->name ?? 'Unknown Department' }}
-                                                                        @endif
-                                                                        @if (!$loop->last)
-                                                                            ,
-                                                                        @endif
-                                                                    @endforeach
-                                                                @else
-                                                                    No approvers assigned
-                                                                @endif
-                                                            </small>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            @endforeach
-                                        </div>
-                                    </div>
-                                @else
-                                    <div class="alert alert-warning">
-                                        <i class="fas fa-exclamation-triangle"></i>
-                                        No approval flow configured for official travel documents.
-                                    </div>
-                                @endif
-                            </div>
-                        </div>
 
-                        <!-- Current Approval Status Card -->
-                        <div class="card card-secondary card-outline elevation-3">
-                            <div class="card-header">
-                                <h3 class="card-title">
-                                    <i class="fas fa-clipboard-check mr-2"></i>
-                                    <strong>Current Status</strong>
-                                </h3>
-                            </div>
-                            <div class="card-body">
-                                @if ($officialtravel->approval)
-                                    <div class="approval-status-info">
-                                        <div class="mb-3">
-                                            <strong>Approval Status:</strong>
-                                            @if ($officialtravel->approval->overall_status === 'pending')
-                                                <span class="badge badge-warning">Pending</span>
-                                            @elseif($officialtravel->approval->overall_status === 'approved')
-                                                <span class="badge badge-success">Approved</span>
-                                            @elseif($officialtravel->approval->overall_status === 'rejected')
-                                                <span class="badge badge-danger">Rejected</span>
-                                            @elseif($officialtravel->approval->overall_status === 'cancelled')
-                                                <span class="badge badge-secondary">Cancelled</span>
-                                            @endif
-                                        </div>
 
-                                        @if ($officialtravel->approval->currentStage)
-                                            <div class="mb-3">
-                                                <strong>Current Stage:</strong>
-                                                <br>
-                                                <span
-                                                    class="text-info">{{ $officialtravel->approval->currentStage->stage_name }}</span>
-                                            </div>
-                                        @endif
-
-                                        <div class="mb-3">
-                                            <strong>Submitted:</strong>
-                                            <br>
-                                            <small class="text-muted">
-                                                {{ $officialtravel->approval->submitted_at ? $officialtravel->approval->submitted_at->format('d/m/Y H:i') : 'Not submitted' }}
-                                            </small>
-                                        </div>
-
-                                        @if ($officialtravel->approval->overall_status !== 'pending')
-                                            <div class="mb-3">
-                                                <strong>Completed:</strong>
-                                                <br>
-                                                <small class="text-muted">
-                                                    {{ $officialtravel->approval->completed_at ? $officialtravel->approval->completed_at->format('d/m/Y H:i') : 'Not completed' }}
-                                                </small>
-                                            </div>
-                                        @endif
-                                    </div>
-                                @else
-                                    <div class="alert alert-info">
-                                        <i class="fas fa-info-circle"></i>
-                                        This document has not been submitted for approval yet.
-                                    </div>
-                                @endif
-                            </div>
-                        </div>
 
                         <!-- Action Buttons -->
                         <div class="card elevation-3">
@@ -569,28 +456,6 @@
         }
 
         /* Approval flow styling */
-        .approval-flow-info {
-            background-color: #f8f9fa;
-            border-radius: 0.25rem;
-            padding: 1rem;
-        }
-
-        .stage-item {
-            background-color: white;
-            border: 1px solid #dee2e6;
-            border-radius: 0.25rem;
-            padding: 0.75rem;
-        }
-
-        .stage-item:hover {
-            background-color: #f8f9fa;
-        }
-
-        .approval-status-info {
-            background-color: #f8f9fa;
-            border-radius: 0.25rem;
-            padding: 1rem;
-        }
     </style>
 @endsection
 
@@ -721,6 +586,8 @@
                     });
                 }
             });
+
+
         });
     </script>
 @endsection
