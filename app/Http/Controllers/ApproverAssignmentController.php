@@ -6,7 +6,7 @@ use App\Models\ApprovalStage;
 use App\Models\ApprovalStageApprover;
 use App\Models\User;
 use Spatie\Permission\Models\Role;
-use App\Models\Department;
+// Department import removed - system simplified
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
@@ -20,13 +20,12 @@ class ApproverAssignmentController extends Controller
      */
     public function index(ApprovalStage $stage)
     {
-        $stage->load(['approvers.user', 'approvers.role', 'approvers.department']);
+        $stage->load(['approvers.user', 'approvers.role']);
 
         $users = User::where('is_active', true)->orderBy('name')->get();
         $roles = Role::orderBy('name')->get();
-        $departments = Department::orderBy('name')->get();
 
-        return view('approval.approvers.index', compact('stage', 'users', 'roles', 'departments'));
+        return view('approval.approvers.index', compact('stage', 'users', 'roles'));
     }
 
     /**
@@ -36,7 +35,7 @@ class ApproverAssignmentController extends Controller
     {
         try {
             $validator = Validator::make($request->all(), [
-                'approver_type' => 'required|in:user,role,department',
+                'approver_type' => 'required|in:user,role',
                 'approver_id' => 'required|integer',
                 'is_backup' => 'boolean',
                 'approval_condition' => 'nullable|json',
@@ -75,7 +74,7 @@ class ApproverAssignmentController extends Controller
             ]);
 
             // Load relationships for response
-            $approver->load(['user', 'role', 'department']);
+            $approver->load(['user', 'role']);
 
             DB::commit();
 
@@ -135,7 +134,7 @@ class ApproverAssignmentController extends Controller
             ]);
 
             // Load relationships for response
-            $approver->load(['user', 'role', 'department']);
+            $approver->load(['user', 'role']);
 
             DB::commit();
 
@@ -213,7 +212,7 @@ class ApproverAssignmentController extends Controller
     public function getApprovers(ApprovalStage $stage): JsonResponse
     {
         try {
-            $approvers = $stage->approvers()->with(['user', 'role', 'department'])->get();
+            $approvers = $stage->approvers()->with(['user', 'role'])->get();
 
             return response()->json([
                 'success' => true,
@@ -274,7 +273,7 @@ class ApproverAssignmentController extends Controller
     public function getApprovalMatrix(ApprovalStage $stage): JsonResponse
     {
         try {
-            $approvers = $stage->approvers()->with(['user', 'role', 'department'])->get();
+            $approvers = $stage->approvers()->with(['user', 'role'])->get();
 
             $matrix = [
                 'primary_approvers' => $approvers->where('is_backup', false),

@@ -396,91 +396,7 @@
                             </div>
                         </div>
 
-                        <!-- Approval Flow Information Card -->
-                        <div class="card card-info card-outline elevation-3">
-                            <div class="card-header">
-                                <h3 class="card-title">
-                                    <i class="fas fa-share-alt mr-2"></i>
-                                    <strong>Approval Flow</strong>
-                                </h3>
-                            </div>
-                            <div class="card-body">
-                                @if ($approvalFlow)
-                                    <div class="approval-flow-info">
-                                        <h6 class="text-info mb-3">
-                                            <i class="fas fa-info-circle"></i>
-                                            Approval Flow: {{ $approvalFlow->name }}
-                                        </h6>
-
-                                        <div class="approval-stages">
-                                            @foreach ($approvalFlow->stages as $index => $stage)
-                                                <div class="stage-item mb-2">
-                                                    <div class="d-flex align-items-center">
-                                                        <span class="badge badge-primary mr-2">{{ $index + 1 }}</span>
-                                                        <div class="flex-grow-1">
-                                                            <strong>{{ $stage->stage_name }}</strong>
-                                                            <br>
-                                                            <small class="text-muted">
-                                                                @if ($stage->approvers->count() > 0)
-                                                                    Approvers:
-                                                                    @foreach ($stage->approvers as $approver)
-                                                                        @if ($approver->approver_type === 'user')
-                                                                            {{ $approver->user->name ?? 'Unknown User' }}
-                                                                        @elseif($approver->approver_type === 'role')
-                                                                            {{ $approver->role->name ?? 'Unknown Role' }}
-                                                                        @elseif($approver->approver_type === 'department')
-                                                                            {{ $approver->department->name ?? 'Unknown Department' }}
-                                                                        @endif
-                                                                        @if (!$loop->last)
-                                                                            ,
-                                                                        @endif
-                                                                    @endforeach
-                                                                @else
-                                                                    No approvers assigned
-                                                                @endif
-                                                            </small>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            @endforeach
-                                        </div>
-                                    </div>
-                                @else
-                                    <div class="alert alert-warning">
-                                        <i class="fas fa-exclamation-triangle"></i>
-                                        No approval flow configured for official travel documents.
-                                    </div>
-                                @endif
-                            </div>
-                        </div>
-
-                        <!-- Submit for Approval Card -->
-                        <div class="card card-success card-outline elevation-3">
-                            <div class="card-header">
-                                <h3 class="card-title">
-                                    <i class="fas fa-paper-plane mr-2"></i>
-                                    <strong>Submit for Approval</strong>
-                                </h3>
-                            </div>
-                            <div class="card-body">
-                                <div class="form-group">
-                                    <div class="custom-control custom-checkbox">
-                                        <input type="checkbox" class="custom-control-input" id="submit_for_approval"
-                                            name="submit_for_approval" value="1"
-                                            {{ old('submit_for_approval') ? 'checked' : '' }}>
-                                        <label class="custom-control-label" for="submit_for_approval">
-                                            Submit document for approval after creation
-                                        </label>
-                                    </div>
-                                    <small class="form-text text-muted">
-                                        <i class="fas fa-info-circle"></i>
-                                        If checked, the document will be automatically submitted for approval after
-                                        creation.
-                                        You can also submit for approval later from the document details page.
-                                    </small>
-                                </div>
-                            </div>
-                        </div>
+                        <!-- Approver Selection Card -->
 
                         <!-- Action Buttons -->
                         <div class="card elevation-3">
@@ -621,29 +537,6 @@
             background-color: #fff3cd;
             border-color: #ffeaa7;
             color: #856404;
-        }
-
-        /* Approval flow styling */
-        .approval-flow-info {
-            background-color: #f8f9fa;
-            border-radius: 0.25rem;
-            padding: 1rem;
-        }
-
-        .stage-item {
-            background-color: white;
-            border: 1px solid #dee2e6;
-            border-radius: 0.25rem;
-            padding: 0.75rem;
-        }
-
-        .stage-item:hover {
-            background-color: #f8f9fa;
-        }
-
-        .custom-control-input:checked~.custom-control-label::before {
-            background-color: #28a745;
-            border-color: #28a745;
         }
     </style>
 @endsection
@@ -791,6 +684,8 @@
                     }
                 });
             }
+
+
         });
     </script>
 @endsection

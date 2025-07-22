@@ -40,15 +40,7 @@ class DashboardController extends Controller
                 ->count();
         }
 
-        // Count pending approvals for this user
-        $pendingApprovals = 0;
-        if ($user->can('official-travels.approve')) {
-            $pendingApprovals = Officialtravel::where('official_travel_status', 'draft')
-                ->where('recommendation_status', 'approved')
-                ->where('approval_status', 'pending')
-                ->where('approval_by', $user->id)
-                ->count();
-        }
+
 
         // Count pending arrivals
         $pendingArrivals = 0;
@@ -165,7 +157,7 @@ class DashboardController extends Controller
             'subtitle' => 'Dashboard',
             // Official Travel data
             'pendingRecommendations' => $pendingRecommendations,
-            'pendingApprovals' => $pendingApprovals,
+            'pendingApprovals' => 0,
             'pendingArrivals' => $pendingArrivals,
             'pendingDepartures' => $pendingDepartures,
             'openTravel' => $openTravel,
@@ -221,42 +213,7 @@ class DashboardController extends Controller
             ->make(true);
     }
 
-    /**
-     * Get pending approvals data for DataTable.
-     *
-     * @return \Illuminate\Http\Response
-     */
-    public function pendingApprovals()
-    {
-        $user = Auth::user();
 
-        // if (!$user->can('official-travels.approve')) {
-        //     return response()->json(['error' => 'Unauthorized'], 403);
-        // }
-
-        $query = Officialtravel::with('traveler.employee')
-            ->where('official_travel_status', 'draft')
-            ->where('recommendation_status', 'approved')
-            ->where('approval_status', 'pending')
-            ->where('approval_by', $user->id);
-
-        return DataTables::of($query)
-            ->addIndexColumn()
-            ->addColumn('official_travel_date', function ($row) {
-                return date('d M Y', strtotime($row->official_travel_date));
-            })
-            ->addColumn('traveler', function ($row) {
-                return $row->traveler->employee->fullname ?? 'N/A';
-            })
-            ->addColumn('action', function ($row) {
-                $btn = '<a href="' . route('officialtravels.showApprovalForm', $row->id) . '" class="btn btn-sm btn-success">
-                            <i class="fas fa-check-circle"></i> Approve
-                        </a>';
-                return $btn;
-            })
-            ->rawColumns(['action'])
-            ->make(true);
-    }
 
     /**
      * Get pending arrivals data for DataTable.

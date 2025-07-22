@@ -4,7 +4,7 @@
     <div class="content-wrapper-custom">
         <div class="travel-header">
             <div class="travel-header-content">
-                <div class="travel-number">{{ $officialtravel->project->project_name }}</div>
+                <div class="travel-number">{{ $officialtravel->project->project_name ?? 'No Project' }}</div>
                 <h1 class="travel-destination">{{ $officialtravel->official_travel_number }}</h1>
                 <div class="travel-date">
                     <i class="far fa-calendar-alt"></i> {{ date('d F Y', strtotime($officialtravel->official_travel_date)) }}
@@ -37,7 +37,7 @@
                                     </div>
                                     <div class="info-content">
                                         <div class="info-label">Origin Project</div>
-                                        <div class="info-value">{{ $officialtravel->project->project_name }}</div>
+                                        <div class="info-value">{{ $officialtravel->project->project_name ?? 'No Project' }}</div>
                                     </div>
                                 </div> --}}
                                 <div class="info-item">
@@ -83,7 +83,8 @@
                                     </div>
                                     <div class="info-content">
                                         <div class="info-label">Transportation</div>
-                                        <div class="info-value">{{ $officialtravel->transportation->transportation_name }}
+                                        <div class="info-value">
+                                            {{ $officialtravel->transportation->transportation_name ?? 'No Transportation' }}
                                         </div>
                                     </div>
                                 </div>
@@ -93,7 +94,8 @@
                                     </div>
                                     <div class="info-content">
                                         <div class="info-label">Accommodation</div>
-                                        <div class="info-value">{{ $officialtravel->accommodation->accommodation_name }}
+                                        <div class="info-value">
+                                            {{ $officialtravel->accommodation->accommodation_name ?? 'No Accommodation' }}
                                         </div>
                                     </div>
                                 </div>
@@ -112,7 +114,7 @@
                                 <div class="detail-content">
                                     <div class="detail-label">NIK - Name</div>
                                     <div class="detail-value">{{ $officialtravel->traveler->nik }} -
-                                        {{ $officialtravel->traveler->employee->fullname }}
+                                        {{ $officialtravel->traveler->employee->fullname ?? 'Unknown Employee' }}
                                     </div>
                                 </div>
                             </div>
@@ -120,7 +122,8 @@
                                 <i class="fas fa-sitemap detail-icon"></i>
                                 <div class="detail-content">
                                     <div class="detail-label">Title</div>
-                                    <div class="detail-value">{{ $officialtravel->traveler->position->position_name }}
+                                    <div class="detail-value">
+                                        {{ $officialtravel->traveler->position->position_name ?? 'No Position' }}
                                     </div>
                                 </div>
                             </div>
@@ -129,8 +132,8 @@
                                 <div class="detail-content">
                                     <div class="detail-label">Business Unit</div>
                                     <div class="detail-value">
-                                        {{ $officialtravel->traveler->project->project_code }} :
-                                        {{ $officialtravel->traveler->project->project_name }}</div>
+                                        {{ $officialtravel->traveler->project->project_code ?? 'No Code' }} :
+                                        {{ $officialtravel->traveler->project->project_name ?? 'No Project' }}</div>
                                 </div>
                             </div>
                             <div class="traveler-detail-item">
@@ -138,112 +141,14 @@
                                 <div class="detail-content">
                                     <div class="detail-label">Division / Department</div>
                                     <div class="detail-value">
-                                        {{ $officialtravel->traveler->position->department->department_name }}</div>
+                                        {{ $officialtravel->traveler->position->department->department_name ?? 'No Department' }}
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Approval Progress Section -->
-                    @if ($officialtravel->approval)
-                        <div class="travel-card approval-progress-card">
-                            <div class="card-head">
-                                <h2><i class="fas fa-tasks"></i> Approval Progress</h2>
-                            </div>
-                            <div class="card-body">
-                                <!-- Approval Flow Progress -->
-                                <div class="approval-flow-progress">
-                                    @php
-                                        $progress = $officialtravel->getApprovalProgress();
-                                        $timeline = $officialtravel->getApprovalTimeline();
-                                    @endphp
 
-                                    <div class="progress-bar-container">
-                                        <div class="progress-bar">
-                                            <div class="progress-fill" style="width: {{ $progress['percentage'] }}%"></div>
-                                        </div>
-                                        <div class="progress-text">{{ $progress['percentage'] }}% Complete</div>
-                                    </div>
-
-                                    <!-- Current Stage Info -->
-                                    @if ($progress['current_stage'])
-                                        <div class="current-stage-info">
-                                            <h4>Current Stage: {{ $progress['current_stage']->stage_name }}</h4>
-                                            <p>Stage {{ $progress['completed_stages'] + 1 }} of
-                                                {{ $progress['total_stages'] }}</p>
-
-                                            @if ($officialtravel->isApprovalOverdue())
-                                                <div class="alert alert-warning">
-                                                    <i class="fas fa-exclamation-triangle"></i>
-                                                    This approval is overdue and may need escalation.
-                                                </div>
-                                            @endif
-                                        </div>
-                                    @endif
-
-                                    <!-- Approval Timeline -->
-                                    <div class="approval-timeline">
-                                        <h4>Approval Timeline</h4>
-                                        <div class="timeline">
-                                            @foreach ($timeline as $event)
-                                                <div class="timeline-item">
-                                                    <div
-                                                        class="timeline-marker {{ $event['action'] === 'approved' ? 'approved' : ($event['action'] === 'rejected' ? 'rejected' : 'pending') }}">
-                                                        <i
-                                                            class="fas fa-{{ $event['action'] === 'approved' ? 'check' : ($event['action'] === 'rejected' ? 'times' : 'clock') }}"></i>
-                                                    </div>
-                                                    <div class="timeline-content">
-                                                        <div class="timeline-header">
-                                                            <h6>{{ ucfirst($event['action']) }}</h6>
-                                                            <small>{{ $event['date']->format('M d, Y H:i') }}</small>
-                                                        </div>
-                                                        <div class="timeline-body">
-                                                            <p>{{ $event['description'] }}</p>
-                                                            @if ($event['user'])
-                                                                <small>By: {{ $event['user']->name }}</small>
-                                                            @endif
-                                                            @if ($event['comments'])
-                                                                <div class="comments">
-                                                                    <strong>Comments:</strong> {{ $event['comments'] }}
-                                                                </div>
-                                                            @endif
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            @endforeach
-                                        </div>
-                                    </div>
-
-                                    <!-- Next Approvers -->
-                                    @php
-                                        $nextApprovers = $officialtravel->getNextApprovers();
-                                    @endphp
-                                    @if (count($nextApprovers) > 0)
-                                        <div class="next-approvers">
-                                            <h4>Next Approvers</h4>
-                                            <div class="approvers-list">
-                                                @foreach ($nextApprovers as $approver)
-                                                    <div class="approver-item">
-                                                        <div class="approver-icon">
-                                                            <i class="fas fa-user"></i>
-                                                        </div>
-                                                        <div class="approver-info">
-                                                            <div class="approver-name">{{ $approver['name'] }}</div>
-                                                            <div class="approver-type">{{ ucfirst($approver['type']) }}
-                                                            </div>
-                                                            @if ($approver['is_backup'])
-                                                                <span class="badge badge-warning">Backup</span>
-                                                            @endif
-                                                        </div>
-                                                    </div>
-                                                @endforeach
-                                            </div>
-                                        </div>
-                                    @endif
-                                </div>
-                            </div>
-                        </div>
-                    @endif
 
                     <!-- Followers List -->
                     @if ($officialtravel->details->isNotEmpty())
@@ -257,20 +162,21 @@
                                     @foreach ($officialtravel->details as $detail)
                                         <div class="follower-item">
                                             <div class="follower-info">
-                                                <div class="follower-name">{{ $detail->follower->employee->fullname }}
+                                                <div class="follower-name">
+                                                    {{ $detail->follower->employee->fullname ?? 'Unknown Employee' }}
                                                 </div>
                                                 <div class="follower-position">
-                                                    {{ $detail->follower->position->position_name }}</div>
+                                                    {{ $detail->follower->position->position_name ?? 'No Position' }}</div>
                                                 <div class="follower-meta">
                                                     <span class="follower-nik"><i class="fas fa-id-card"></i>
                                                         {{ $detail->follower->nik }}</span>
                                                     <span class="follower-department"><i class="fas fa-sitemap"></i>
-                                                        {{ $detail->follower->position->department->department_name }}</span>
+                                                        {{ $detail->follower->position->department->department_name ?? 'No Department' }}</span>
                                                 </div>
                                                 <div class="follower-project">
                                                     <i class="fas fa-project-diagram"></i>
-                                                    {{ $detail->follower->project->project_code }} :
-                                                    {{ $detail->follower->project->project_name }}
+                                                    {{ $detail->follower->project->project_code ?? 'No Code' }} :
+                                                    {{ $detail->follower->project->project_name ?? 'No Project' }}
                                                 </div>
                                             </div>
                                         </div>
@@ -283,151 +189,10 @@
 
                 <!-- Right Column -->
                 <div class="col-lg-4">
-                    <!-- Approval Process -->
-                    <div class="travel-card approval-process-card">
-                        <div class="card-head">
-                            <h2><i class="fas fa-stream"></i> Approval Flow</h2>
-                        </div>
-                        <div class="card-body">
-                            <div class="approval-flow">
-                                <!-- Recommendation -->
-                                <div class="approval-step">
-                                    <div
-                                        class="step-icon {{ $officialtravel->recommendation_status == 'approved'
-                                            ? 'approved'
-                                            : ($officialtravel->recommendation_status == 'rejected'
-                                                ? 'rejected'
-                                                : 'pending') }}">
-                                        <i class="fas fa-user-check"></i>
-                                    </div>
-                                    <div class="step-content">
-                                        <div class="step-header">
-                                            <h4>Recommendation</h4>
-                                            <div class="step-status {{ $officialtravel->recommendation_status }}">
-                                                {{ ucfirst($officialtravel->recommendation_status) }}
-                                            </div>
-                                        </div>
-                                        <div class="step-details">
-                                            <div class="step-person">
-                                                <i class="fas fa-user"></i>
-                                                {{ $officialtravel->recommender->name ?? 'Not assigned' }}
-                                            </div>
-                                            <div class="step-date">
-                                                <i class="fas fa-calendar-check"></i>
-                                                {{ $officialtravel->recommendation_date ? date('d M Y H:i', strtotime($officialtravel->recommendation_date)) : 'Pending' }}
-                                            </div>
-                                        </div>
-                                        <div class="step-remark">
-                                            <blockquote class="remark-text">
-                                                {{ $officialtravel->recommendation_remark ?? 'Waiting for recommendation' }}
-                                            </blockquote>
-                                        </div>
-                                    </div>
-                                </div>
 
-                                <!-- Approval -->
-                                <div class="approval-step">
-                                    <div
-                                        class="step-icon {{ $officialtravel->approval_status == 'approved'
-                                            ? 'approved'
-                                            : ($officialtravel->approval_status == 'rejected'
-                                                ? 'rejected'
-                                                : 'pending') }}">
-                                        <i class="fas fa-user-shield"></i>
-                                    </div>
-                                    <div class="step-content">
-                                        <div class="step-header">
-                                            <h4>Approval</h4>
-                                            <div class="step-status {{ $officialtravel->approval_status }}">
-                                                {{ ucfirst($officialtravel->approval_status) }}
-                                            </div>
-                                        </div>
-                                        <div class="step-details">
-                                            <div class="step-person">
-                                                <i class="fas fa-user"></i>
-                                                {{ $officialtravel->approver->name ?? 'Not assigned' }}
-                                            </div>
-                                            <div class="step-date">
-                                                <i class="fas fa-calendar-check"></i>
-                                                {{ $officialtravel->approval_date ? date('d M Y H:i', strtotime($officialtravel->approval_date)) : 'Pending' }}
-                                            </div>
-                                        </div>
-                                        <div class="step-remark">
-                                            <blockquote class="remark-text">
-                                                {{ $officialtravel->approval_remark ?? 'Waiting for approval' }}
-                                            </blockquote>
-                                        </div>
-                                    </div>
-                                </div>
 
-                                @if ($officialtravel->official_travel_status != 'draft' && $officialtravel->official_travel_status != 'canceled')
-                                    <!-- Travel Status -->
-                                    <div class="approval-step">
-                                        <div
-                                            class="step-icon {{ $officialtravel->arrival_check_by ? 'approved' : 'pending' }}">
-                                            <i class="fas fa-plane-arrival"></i>
-                                        </div>
-                                        <div class="step-content">
-                                            <div class="step-header">
-                                                <h4>Arrival Check</h4>
-                                                <div
-                                                    class="step-status {{ $officialtravel->arrival_check_by ? 'approved' : 'pending' }}">
-                                                    {{ $officialtravel->arrival_check_by ? 'Completed' : 'Pending' }}
-                                                </div>
-                                            </div>
-                                            <div class="step-details">
-                                                <div class="step-person">
-                                                    <i class="fas fa-user"></i>
-                                                    {{ $officialtravel->arrivalChecker->name ?? 'Not stamped yet' }}
-                                                </div>
-                                                <div class="step-date">
-                                                    <i class="fas fa-calendar-check"></i>
-                                                    {{ $officialtravel->arrival_at_destination ? date('d M Y H:i', strtotime($officialtravel->arrival_at_destination)) : 'Not arrived' }}
-                                                </div>
-                                            </div>
-                                            <div class="step-remark">
-                                                <blockquote class="remark-text">
-                                                    {{ $officialtravel->arrival_remark ?? 'No arrival information' }}
-                                                </blockquote>
-                                            </div>
-                                        </div>
-                                    </div>
 
-                                    <!-- Departure -->
-                                    <div class="approval-step">
-                                        <div
-                                            class="step-icon {{ $officialtravel->departure_check_by ? 'approved' : 'pending' }}">
-                                            <i class="fas fa-plane-departure"></i>
-                                        </div>
-                                        <div class="step-content">
-                                            <div class="step-header">
-                                                <h4>Departure Check</h4>
-                                                <div
-                                                    class="step-status {{ $officialtravel->departure_check_by ? 'approved' : 'pending' }}">
-                                                    {{ $officialtravel->departure_check_by ? 'Completed' : 'Pending' }}
-                                                </div>
-                                            </div>
-                                            <div class="step-details">
-                                                <div class="step-person">
-                                                    <i class="fas fa-user"></i>
-                                                    {{ $officialtravel->departureChecker->name ?? 'Not stamped yet' }}
-                                                </div>
-                                                <div class="step-date">
-                                                    <i class="fas fa-calendar-check"></i>
-                                                    {{ $officialtravel->departure_from_destination ? date('d M Y H:i', strtotime($officialtravel->departure_from_destination)) : 'Not departed' }}
-                                                </div>
-                                            </div>
-                                            <div class="step-remark">
-                                                <blockquote class="remark-text">
-                                                    {{ $officialtravel->departure_remark ?? 'No departure information' }}
-                                                </blockquote>
-                                            </div>
-                                        </div>
-                                    </div>
-                                @endif
-                            </div>
-                        </div>
-                    </div>
+
 
                     <!-- Action Buttons -->
                     <div class="travel-action-buttons">
@@ -452,30 +217,9 @@
                                 @endcan
                             @endif
 
-                            @can('official-travels.recommend')
-                                @if (Auth::id() == $officialtravel->recommendation_by && $officialtravel->approval_status == 'pending')
-                                    <a href="{{ route('officialtravels.recommend', $officialtravel->id) }}"
-                                        class="btn-action recommend-btn">
-                                        <i
-                                            class="fas fa-{{ $officialtravel->recommendation_status == 'pending' ? 'user-check' : 'edit' }}"></i>
-                                        {{ $officialtravel->recommendation_status == 'pending' ? 'Recommend' : 'Edit Recommendation' }}
-                                    </a>
-                                @endif
-                            @endcan
 
-                            @can('official-travels.approve')
-                                @if (Auth::id() == $officialtravel->approval_by &&
-                                        $officialtravel->recommendation_status == 'approved' &&
-                                        ($officialtravel->approval_status == 'pending' ||
-                                            ($officialtravel->approval_status != 'pending' && !$officialtravel->arrival_at_destination)))
-                                    <a href="{{ route('officialtravels.approve', $officialtravel->id) }}"
-                                        class="btn-action approve-btn">
-                                        <i
-                                            class="fas fa-{{ $officialtravel->approval_status == 'pending' ? 'user-shield' : 'edit' }}"></i>
-                                        {{ $officialtravel->approval_status == 'pending' ? 'Approve' : 'Edit Approval' }}
-                                    </a>
-                                @endif
-                            @endcan
+
+
 
                             @if ($officialtravel->official_travel_status == 'open')
                                 @can('official-travels.stamp')
@@ -781,35 +525,7 @@
             flex: 1;
         }
 
-        /* Approval Flow */
-        .approval-process-card {
-            margin-top: 0;
-        }
 
-        .approval-flow {
-            position: relative;
-            padding: 10px 0;
-        }
-
-        .approval-flow::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            bottom: 0;
-            left: 20px;
-            width: 3px;
-            background: #e0e0e0;
-        }
-
-        .approval-step {
-            position: relative;
-            padding-left: 60px;
-            margin-bottom: 30px;
-        }
-
-        .approval-step:last-child {
-            margin-bottom: 0;
-        }
 
         .step-icon {
             position: absolute;

@@ -77,8 +77,5 @@ class DatabaseSeeder extends Seeder
         $this->call(OfficialTravelSeeder::class);
 
         $this->call(GradeLevelSeeder::class);
-        $this->call(OfficialTravelApprovalFlowSeeder::class);
-        $this->call(RecruitmentRequestApprovalFlowSeeder::class);
-        $this->call(EmployeeRegistrationApprovalFlowSeeder::class);
     }
 }

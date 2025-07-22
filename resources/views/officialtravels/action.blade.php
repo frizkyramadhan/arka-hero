@@ -35,14 +35,7 @@
     @endcan
 @endif
 
-<!-- Approve button - for recommended status -->
-@if ($model->recommendation_status == 'approved' && $model->approval_status == 'pending')
-    @can('officialtravel.approve')
-        <a href="{{ route('officialtravels.showApprovalForm', $model->id) }}" class="btn btn-icon btn-success btn-sm">
-            <i class="fas fa-check-circle"></i>
-        </a>
-    @endcan
-@endif
+
 
 <!-- Arrival Stamp button - for open status without arrival -->
 @if ($model->official_travel_status == 'open' && !$model->arrival_check_by)
