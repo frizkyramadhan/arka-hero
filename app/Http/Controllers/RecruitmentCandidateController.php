@@ -20,7 +20,11 @@ class RecruitmentCandidateController extends Controller
     public function __construct(RecruitmentSessionService $sessionService)
     {
         $this->sessionService = $sessionService;
-        $this->middleware('auth');
+
+        $this->middleware('permission:recruitment-candidates.show')->only(['index', 'show']);
+        $this->middleware('permission:recruitment-candidates.create')->only('create');
+        $this->middleware('permission:recruitment-candidates.edit')->only('edit');
+        $this->middleware('permission:recruitment-candidates.delete')->only('destroy');
     }
 
     /**
