@@ -3,7 +3,7 @@
     <i class="fas fa-eye"></i>
 </a>
 
-<!-- Edit button - only for draft status -->
+{{-- <!-- Edit button - only for draft status -->
 @if ($model->official_travel_status == 'draft')
     @can('officialtravel.edit')
         <a href="{{ route('officialtravels.edit', $model->id) }}" class="btn btn-icon btn-primary btn-sm">
@@ -66,4 +66,4 @@
             <i class="fas fa-plane-departure"></i>
         </a>
     @endcan
-@endif
+@endif --}}

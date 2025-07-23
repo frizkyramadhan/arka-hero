@@ -539,7 +539,7 @@
                         <div class="card elevation-3">
                             <div class="card-body">
                                 <button type="submit" class="btn btn-primary btn-block">
-                                    <i class="fas fa-save mr-2"></i> Update FPTK
+                                    <i class="fas fa-save mr-2"></i> Update Recruitment Request
                                 </button>
                                 <a href="{{ route('recruitment.requests.show', $fptk->id) }}"
                                     class="btn btn-info btn-block">
