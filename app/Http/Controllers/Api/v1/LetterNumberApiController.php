@@ -30,7 +30,7 @@ class LetterNumberApiController extends Controller
                 'remarks' => 'nullable|string',
             ]);
 
-            $letterNumber = LetterNumber::create([
+            $letterNumber = LetterNumber::createWithRetry([
                 'letter_category_id' => $request->letter_category_id,
                 'letter_date' => $request->letter_date,
                 'custom_subject' => $request->custom_subject,

@@ -396,7 +396,49 @@
                             </div>
                         </div>
 
-                        <!-- Approver Selection Card -->
+                        <!-- Recommendation & Approval Card -->
+                        <div class="card card-info card-outline elevation-3">
+                            <div class="card-header">
+                                <h3 class="card-title">
+                                    <i class="fas fa-user-check mr-2"></i>
+                                    <strong>Recommendation & Approval</strong>
+                                </h3>
+                            </div>
+                            <div class="card-body">
+                                <div class="form-group">
+                                    <label for="recommendation_by">Recommender <span class="text-danger">*</span></label>
+                                    <select class="form-control select2-warning" name="recommendation_by"
+                                        id="recommendation_by" style="width: 100%;">
+                                        <option value="">Select Recommender</option>
+                                        @foreach ($recommenders as $recommender)
+                                            <option value="{{ $recommender['id'] }}"
+                                                {{ old('recommendation_by') == $recommender['id'] ? 'selected' : '' }}>
+                                                {{ $recommender['name'] }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                    @error('recommendation_by')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                    @enderror
+                                </div>
+                                <div class="form-group">
+                                    <label for="approval_by">Approver <span class="text-danger">*</span></label>
+                                    <select class="form-control select2-success" name="approval_by" id="approval_by"
+                                        style="width: 100%;">
+                                        <option value="">Select Approver</option>
+                                        @foreach ($approvers as $approver)
+                                            <option value="{{ $approver['id'] }}"
+                                                {{ old('approval_by') == $approver['id'] ? 'selected' : '' }}>
+                                                {{ $approver['name'] }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                    @error('approval_by')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                    @enderror
+                                </div>
+                            </div>
+                        </div>
 
                         <!-- Action Buttons -->
                         <div class="card elevation-3">
@@ -460,6 +502,14 @@
 
         .select2-container--bootstrap4.select2-container--info .select2-selection {
             border-color: #17a2b8;
+        }
+
+        .select2-container--bootstrap4.select2-container--warning .select2-selection {
+            border-color: #ffc107;
+        }
+
+        .select2-container--bootstrap4.select2-container--success .select2-selection {
+            border-color: #28a745;
         }
 
         .select2-container--bootstrap4.select2-container--warning .select2-selection {
@@ -575,7 +625,22 @@
                 document.querySelector('.select2-search__field').focus();
             });
 
+            $('.select2-success').select2({
+                theme: 'bootstrap4',
+                placeholder: 'Select an option'
+            }).on('select2:open', function() {
+                document.querySelector('.select2-search__field').focus();
+            });
+
             // Letter Number Selector is now self-contained in component
+
+            // Initialize recommendation and approval select2
+            $('#recommendation_by, #approval_by').select2({
+                theme: 'bootstrap4',
+                placeholder: 'Select an option'
+            }).on('select2:open', function() {
+                document.querySelector('.select2-search__field').focus();
+            });
 
             // Update LOT Number when letter number is selected
             updateLOTNumberDisplay();

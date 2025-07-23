@@ -33,6 +33,8 @@ class OfficialtravelController extends Controller
         $this->middleware('permission:official-travels.delete')->only('destroy');
 
         $this->middleware('permission:official-travels.stamp')->only(['showArrivalForm', 'showDepartureForm']);
+        $this->middleware('permission:official-travels.recommend')->only(['showRecommendForm', 'recommend']);
+        $this->middleware('permission:official-travels.approve')->only(['showApprovalForm', 'approve']);
     }
 
     /**
@@ -106,8 +108,6 @@ class OfficialtravelController extends Controller
         if (!empty($request->get('status'))) {
             $officialtravels->where('official_travel_status', $request->get('status'));
         }
-
-
 
         // Global search
         if (!empty($request->get('search'))) {
@@ -411,6 +411,28 @@ class OfficialtravelController extends Controller
                 ];
             });
 
+        // Get recommenders for recommendation
+        $recommenders = User::permission('official-travels.recommend')
+            ->select('id', 'name')
+            ->get()
+            ->map(function ($user) {
+                return [
+                    'id' => $user->id,
+                    'name' => $user->name
+                ];
+            });
+
+        // Get approvers for approval
+        $approvers = User::permission('official-travels.approve')
+            ->select('id', 'name')
+            ->get()
+            ->map(function ($user) {
+                return [
+                    'id' => $user->id,
+                    'name' => $user->name
+                ];
+            });
+
         return view('officialtravels.create', compact(
             'title',
             'subtitle',
@@ -418,6 +440,8 @@ class OfficialtravelController extends Controller
             'accommodations',
             'transportations',
             'employees',
+            'recommenders',
+            'approvers',
             'travelNumber',
             'romanMonth'
         ));
@@ -445,6 +469,12 @@ class OfficialtravelController extends Controller
                 'accommodation_id' => 'required|exists:accommodations,id',
                 'followers' => 'nullable|array',
                 'followers.*' => 'exists:administrations,id',
+                // Recommendation fields
+                'recommendation_by' => 'required|exists:users,id',
+                'recommendation_remark' => 'nullable|string',
+                // Approval fields
+                'approval_by' => 'required|exists:users,id',
+                'approval_remark' => 'nullable|string',
                 // Letter numbering integration fields
                 'number_option' => 'nullable|in:existing',
                 'letter_number_id' => 'nullable|exists:letter_numbers,id',
@@ -468,6 +498,10 @@ class OfficialtravelController extends Controller
                 'accommodation_id.required' => 'Accommodation is required.',
                 'accommodation_id.exists' => 'Selected Accommodation is invalid.',
                 'followers.*.exists' => 'One or more selected followers are invalid.',
+                'recommendation_by.required' => 'Recommender is required.',
+                'recommendation_by.exists' => 'Selected Recommender is invalid.',
+                'approval_by.required' => 'Approver is required.',
+                'approval_by.exists' => 'Selected Approver is invalid.',
                 'letter_number_id.exists' => 'Selected Letter Number is invalid.',
             ]);
 
@@ -522,6 +556,12 @@ class OfficialtravelController extends Controller
                 'departure_from' => $request->departure_from,
                 'transportation_id' => $request->transportation_id,
                 'accommodation_id' => $request->accommodation_id,
+                'recommendation_by' => $request->recommendation_by,
+                'recommendation_remark' => $request->recommendation_remark,
+                'recommendation_status' => 'pending',
+                'approval_by' => $request->approval_by,
+                'approval_remark' => $request->approval_remark,
+                'approval_status' => 'pending',
                 'created_by' => auth()->id(),
             ]);
             $officialtravel->save();
@@ -589,7 +629,9 @@ class OfficialtravelController extends Controller
             'accommodation',
             'details.follower.employee',
             'arrivalChecker',
-            'departureChecker'
+            'departureChecker',
+            'recommender',
+            'approver'
         ])->findOrFail($id);
 
         return view('officialtravels.show', compact('title', 'subtitle', 'officialtravel'));
@@ -629,6 +671,28 @@ class OfficialtravelController extends Controller
             ];
         });
 
+        // Get recommenders for recommendation
+        $recommenders = User::permission('official-travels.recommend')
+            ->select('id', 'name')
+            ->get()
+            ->map(function ($user) {
+                return [
+                    'id' => $user->id,
+                    'name' => $user->name
+                ];
+            });
+
+        // Get approvers for approval
+        $approvers = User::permission('official-travels.approve')
+            ->select('id', 'name')
+            ->get()
+            ->map(function ($user) {
+                return [
+                    'id' => $user->id,
+                    'name' => $user->name
+                ];
+            });
+
         // Get selected followers
         $selectedFollowers = $officialtravel->details->pluck('follower_id')->toArray();
 
@@ -640,7 +704,9 @@ class OfficialtravelController extends Controller
             'accommodations',
             'transportations',
             'employees',
-            'selectedFollowers'
+            'selectedFollowers',
+            'recommenders',
+            'approvers'
         ));
     }
 
@@ -666,6 +732,12 @@ class OfficialtravelController extends Controller
                 'transportation_id' => 'required',
                 'accommodation_id' => 'required',
                 'followers' => 'nullable|array',
+                // Recommendation fields
+                'recommendation_by' => 'required|exists:users,id',
+                'recommendation_remark' => 'nullable|string',
+                // Approval fields
+                'approval_by' => 'required|exists:users,id',
+                'approval_remark' => 'nullable|string',
             ]);
 
             DB::beginTransaction();
@@ -687,6 +759,10 @@ class OfficialtravelController extends Controller
                 'departure_from' => $request->departure_from,
                 'transportation_id' => $request->transportation_id,
                 'accommodation_id' => $request->accommodation_id,
+                'recommendation_by' => $request->recommendation_by,
+                'recommendation_remark' => $request->recommendation_remark,
+                'approval_by' => $request->approval_by,
+                'approval_remark' => $request->approval_remark,
                 'arrival_at_destination' => $request->arrival_at_destination,
                 'arrival_remark' => $request->arrival_remark ?? $officialtravel->arrival_remark,
                 'departure_from_destination' => $request->departure_from_destination,
@@ -754,13 +830,183 @@ class OfficialtravelController extends Controller
     }
 
     /**
-     * Submit document for approval
+     * Show recommendation form
      */
+    public function showRecommendForm($id)
+    {
+        $officialtravel = Officialtravel::with([
+            'traveler.employee',
+            'project',
+            'transportation',
+            'accommodation',
+            'details.follower.employee'
+        ])->findOrFail($id);
 
+        // Check if user can recommend
+        if (!auth()->user()->can('official-travels.recommend')) {
+            return redirect()->back()->with('toast_error', 'You do not have permission to recommend this official travel');
+        }
+
+        // Check if user is assigned as recommender
+        if (auth()->id() != $officialtravel->recommendation_by) {
+            return redirect()->back()->with('toast_error', 'You are not assigned as recommender for this official travel');
+        }
+
+        // Check if already recommended
+        if ($officialtravel->recommendation_status != 'pending') {
+            return redirect()->back()->with('toast_error', 'This official travel has already been recommended');
+        }
+
+        $title = 'Official Travels';
+        $subtitle = 'Recommend Official Travel';
+
+        return view('officialtravels.recommend', compact('title', 'subtitle', 'officialtravel'));
+    }
 
     /**
-     * Show approval action form
+     * Process recommendation
      */
+    public function recommend(Request $request, $id)
+    {
+        try {
+            $officialtravel = Officialtravel::findOrFail($id);
+
+            // Check if user can recommend
+            if (!auth()->user()->can('official-travels.recommend')) {
+                return redirect()->back()->with('toast_error', 'You do not have permission to recommend this official travel');
+            }
+
+            // Check if user is assigned as recommender
+            if (auth()->id() != $officialtravel->recommendation_by) {
+                return redirect()->back()->with('toast_error', 'You are not assigned as recommender for this official travel');
+            }
+
+            // Check if already recommended
+            if ($officialtravel->recommendation_status != 'pending') {
+                return redirect()->back()->with('toast_error', 'This official travel has already been recommended');
+            }
+
+            $this->validate($request, [
+                'recommendation_status' => 'required|in:approved,rejected',
+                'recommendation_remark' => 'required|string|min:3',
+            ]);
+
+            DB::beginTransaction();
+
+            $officialtravel->update([
+                'recommendation_status' => $request->recommendation_status,
+                'recommendation_remark' => $request->recommendation_remark,
+                'recommendation_date' => now(),
+                'recommendation_timestamps' => now(),
+            ]);
+
+            DB::commit();
+
+            $status = $request->recommendation_status == 'approved' ? 'recommended' : 'rejected';
+            return redirect()->route('officialtravels.show', $officialtravel->id)
+                ->with('toast_success', "Official travel has been {$status} successfully");
+        } catch (\Exception $e) {
+            DB::rollback();
+            return redirect()->back()
+                ->with('toast_error', 'Failed to process recommendation. ' . $e->getMessage())
+                ->withInput();
+        }
+    }
+
+    /**
+     * Show approval form
+     */
+    public function showApprovalForm($id)
+    {
+        $officialtravel = Officialtravel::with([
+            'traveler.employee',
+            'project',
+            'transportation',
+            'accommodation',
+            'details.follower.employee'
+        ])->findOrFail($id);
+
+        // Check if user can approve
+        if (!auth()->user()->can('official-travels.approve')) {
+            return redirect()->back()->with('toast_error', 'You do not have permission to approve this official travel');
+        }
+
+        // Check if user is assigned as approver
+        if (auth()->id() != $officialtravel->approval_by) {
+            return redirect()->back()->with('toast_error', 'You are not assigned as approver for this official travel');
+        }
+
+        // Check if recommendation is approved
+        if ($officialtravel->recommendation_status != 'approved') {
+            return redirect()->back()->with('toast_error', 'Cannot approve official travel that has not been recommended');
+        }
+
+        // Check if already approved
+        if ($officialtravel->approval_status != 'pending') {
+            return redirect()->back()->with('toast_error', 'This official travel has already been approved');
+        }
+
+        $title = 'Official Travels';
+        $subtitle = 'Approve Official Travel';
+
+        return view('officialtravels.approve', compact('title', 'subtitle', 'officialtravel'));
+    }
+
+    /**
+     * Process approval
+     */
+    public function approve(Request $request, $id)
+    {
+        try {
+            $officialtravel = Officialtravel::findOrFail($id);
+
+            // Check if user can approve
+            if (!auth()->user()->can('official-travels.approve')) {
+                return redirect()->back()->with('toast_error', 'You do not have permission to approve this official travel');
+            }
+
+            // Check if user is assigned as approver
+            if (auth()->id() != $officialtravel->approval_by) {
+                return redirect()->back()->with('toast_error', 'You are not assigned as approver for this official travel');
+            }
+
+            // Check if recommendation is approved
+            if ($officialtravel->recommendation_status != 'approved') {
+                return redirect()->back()->with('toast_error', 'Cannot approve official travel that has not been recommended');
+            }
+
+            // Check if already approved
+            if ($officialtravel->approval_status != 'pending') {
+                return redirect()->back()->with('toast_error', 'This official travel has already been approved');
+            }
+
+            $this->validate($request, [
+                'approval_status' => 'required|in:approved,rejected',
+                'approval_remark' => 'required|string|min:3',
+            ]);
+
+            DB::beginTransaction();
+
+            $officialtravel->update([
+                'approval_status' => $request->approval_status,
+                'approval_remark' => $request->approval_remark,
+                'approval_date' => now(),
+                'approval_timestamps' => now(),
+                'official_travel_status' => $request->approval_status == 'approved' ? 'open' : 'draft',
+            ]);
+
+            DB::commit();
+
+            $status = $request->approval_status == 'approved' ? 'approved' : 'rejected';
+            return redirect()->route('officialtravels.show', $officialtravel->id)
+                ->with('toast_success', "Official travel has been {$status} successfully");
+        } catch (\Exception $e) {
+            DB::rollback();
+            return redirect()->back()
+                ->with('toast_error', 'Failed to process approval. ' . $e->getMessage())
+                ->withInput();
+        }
+    }
 
 
 

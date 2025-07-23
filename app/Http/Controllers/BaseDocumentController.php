@@ -124,7 +124,7 @@ abstract class BaseDocumentController extends Controller
                 'reserved_by' => auth()->id(),
             ];
 
-            $letterNumber = LetterNumber::create($letterNumberData);
+            $letterNumber = LetterNumber::createWithRetry($letterNumberData);
 
             if ($letterNumber) {
                 return $letterNumber->id;
@@ -162,7 +162,7 @@ abstract class BaseDocumentController extends Controller
      */
     protected function createNewLetterNumber(Request $request)
     {
-        return LetterNumber::create([
+        return LetterNumber::createWithRetry([
             'category_code' => $request->letter_category ?? $this->getDefaultCategory(),
             'subject_id' => $this->getOrCreateSubject(
                 $request->letter_subject,

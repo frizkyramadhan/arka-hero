@@ -28,10 +28,23 @@
 
 <!-- Recommend button - for draft status and pending recommendation -->
 @if ($model->official_travel_status == 'draft' && $model->recommendation_status == 'pending')
-    @can('officialtravel.recommend')
-        <a href="{{ route('officialtravels.showRecommendForm', $model->id) }}" class="btn btn-icon btn-warning btn-sm">
-            <i class="fas fa-thumbs-up"></i>
-        </a>
+    @can('official-travels.recommend')
+        @if (Auth::id() == $model->recommendation_by)
+            <a href="{{ route('officialtravels.showRecommendForm', $model->id) }}" class="btn btn-icon btn-warning btn-sm">
+                <i class="fas fa-thumbs-up"></i>
+            </a>
+        @endif
+    @endcan
+@endif
+
+<!-- Approve button - for recommended status and pending approval -->
+@if ($model->recommendation_status == 'approved' && $model->approval_status == 'pending')
+    @can('official-travels.approve')
+        @if (Auth::id() == $model->approval_by)
+            <a href="{{ route('officialtravels.showApprovalForm', $model->id) }}" class="btn btn-icon btn-success btn-sm">
+                <i class="fas fa-check-circle"></i>
+            </a>
+        @endif
     @endcan
 @endif
 

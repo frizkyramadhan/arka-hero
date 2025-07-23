@@ -1,8 +1,5 @@
 @extends('layouts.main')
 
-@section('title', $title)
-@section('subtitle', $subtitle)
-
 @section('content')
     <div class="content-wrapper-custom">
         <!-- Travel Header -->
@@ -13,11 +10,9 @@
                 <div class="travel-date">
                     <i class="far fa-calendar-alt"></i> {{ date('d F Y', strtotime($officialtravel->official_travel_date)) }}
                 </div>
-                <div
-                    class="travel-status-pill {{ $officialtravel->recommendation_status == 'pending' ? 'status-draft' : ($officialtravel->recommendation_status == 'approved' ? 'status-open' : 'status-closed') }}">
-                    <i
-                        class="fas {{ $officialtravel->recommendation_status == 'pending' ? 'fa-clock' : ($officialtravel->recommendation_status == 'approved' ? 'fa-check-circle' : 'fa-times-circle') }}"></i>
-                    {{ ucfirst($officialtravel->recommendation_status) }}
+                <div class="travel-status-pill status-pending">
+                    <i class="fas fa-thumbs-up"></i>
+                    Pending Recommendation
                 </div>
             </div>
         </div>
@@ -38,9 +33,11 @@
                                         <i class="fas fa-user"></i>
                                     </div>
                                     <div class="info-content">
-                                        <div class="info-label">Traveler</div>
-                                        <div class="info-value">
-                                            {{ $officialtravel->traveler->employee->fullname ?? 'N/A' }}</div>
+                                        <div class="info-label">Main Traveler</div>
+                                        <div class="info-value">{{ $officialtravel->traveler->employee->fullname ?? 'N/A' }}
+                                        </div>
+                                        <div class="info-meta">
+                                            {{ $officialtravel->traveler->position->position_name ?? 'N/A' }}</div>
                                     </div>
                                 </div>
 
@@ -51,55 +48,47 @@
                                     <div class="info-content">
                                         <div class="info-label">Destination</div>
                                         <div class="info-value">{{ $officialtravel->destination }}</div>
-                                    </div>
-                                </div>
-
-                                <div class="info-item">
-                                    <div class="info-icon" style="background-color: #9b59b6;">
-                                        <i class="fas fa-tasks"></i>
-                                    </div>
-                                    <div class="info-content">
-                                        <div class="info-label">Purpose</div>
-                                        <div class="info-value">{{ $officialtravel->purpose }}</div>
+                                        <div class="info-meta">Duration: {{ $officialtravel->duration }}</div>
                                     </div>
                                 </div>
 
                                 <div class="info-item">
                                     <div class="info-icon" style="background-color: #f1c40f;">
-                                        <i class="fas fa-clock"></i>
+                                        <i class="fas fa-calendar-check"></i>
                                     </div>
                                     <div class="info-content">
-                                        <div class="info-label">Duration</div>
-                                        <div class="info-value">{{ $officialtravel->duration }}</div>
+                                        <div class="info-label">Departure Date</div>
+                                        <div class="info-value">
+                                            {{ date('d M Y', strtotime($officialtravel->departure_from)) }}</div>
+                                        <div class="info-meta">Expected Return:
+                                            {{ $officialtravel->arrival_at_destination }}</div>
                                     </div>
                                 </div>
 
                                 <div class="info-item">
-                                    <div class="info-icon" style="background-color: #1abc9c;">
-                                        <i class="fas fa-bus"></i>
+                                    <div class="info-icon" style="background-color: #27ae60;">
+                                        <i class="fas fa-plane"></i>
                                     </div>
                                     <div class="info-content">
                                         <div class="info-label">Transportation</div>
                                         <div class="info-value">
                                             {{ $officialtravel->transportation->transportation_name ?? 'N/A' }}</div>
-                                    </div>
-                                </div>
-
-                                <div class="info-item">
-                                    <div class="info-icon" style="background-color: #e67e22;">
-                                        <i class="fas fa-hotel"></i>
-                                    </div>
-                                    <div class="info-content">
-                                        <div class="info-label">Accommodation</div>
-                                        <div class="info-value">
+                                        <div class="info-meta">
                                             {{ $officialtravel->accommodation->accommodation_name ?? 'N/A' }}</div>
                                     </div>
                                 </div>
                             </div>
 
+                            <div class="purpose-section mt-4">
+                                <h3><i class="fas fa-bullseye"></i> Travel Purpose</h3>
+                                <div class="purpose-content">
+                                    {{ $officialtravel->purpose }}
+                                </div>
+                            </div>
+
                             @if ($officialtravel->details->count() > 0)
                                 <div class="additional-travelers mt-4">
-                                    <h3 class="mb-3"><i class="fas fa-users"></i> Additional Travelers</h3>
+                                    <h3><i class="fas fa-users"></i> Accompanying Travelers</h3>
                                     <div class="traveler-list">
                                         @foreach ($officialtravel->details as $detail)
                                             <div class="traveler-item">
@@ -116,68 +105,73 @@
 
                 <!-- Recommendation Form -->
                 <div class="col-lg-4">
-                    <form action="{{ route('officialtravels.recommend', $officialtravel->id) }}" method="POST">
-                        @csrf
-                        <div class="travel-card recommendation-card">
-                            <div class="card-head">
-                                <h2><i class="fas fa-clipboard-check"></i> Make Recommendation</h2>
+                    <div class="travel-card recommendation-card">
+                        <div class="card-head">
+                            <h2><i class="fas fa-user-check"></i> Recommendation Decision</h2>
+                        </div>
+                        <div class="card-body">
+                            <!-- Decision Buttons -->
+                            <div class="decision-buttons mb-4">
+                                <div class="decision-header">
+                                    <h3>Choose Your Decision</h3>
+                                    <p>Select one of the options below to proceed</p>
+                                </div>
+                                <div class="decision-options">
+                                    <button type="button" class="decision-btn approve-btn" data-status="approved">
+                                        <div class="btn-icon">
+                                            <i class="fas fa-thumbs-up"></i>
+                                        </div>
+                                        <div class="btn-content">
+                                            <div class="btn-title">Approve</div>
+                                        </div>
+                                    </button>
+                                    <button type="button" class="decision-btn reject-btn" data-status="rejected">
+                                        <div class="btn-icon">
+                                            <i class="fas fa-thumbs-down"></i>
+                                        </div>
+                                        <div class="btn-content">
+                                            <div class="btn-title">Reject</div>
+                                        </div>
+                                    </button>
+                                </div>
                             </div>
-                            <div class="card-body">
-                                <div class="recommendation-options mb-4">
-                                    <label class="d-block mb-3">Recommendation Status <span
-                                            class="text-danger">*</span></label>
-                                    <div class="recommendation-buttons">
-                                        <label class="recommendation-btn approve">
-                                            <input type="radio" name="recommendation_status" value="approved"
-                                                {{ old('recommendation_status') || $officialtravel->recommendation_status == 'approved' ? 'checked' : '' }}
-                                                required>
-                                            <i class="fas fa-check-circle"></i> Approve
-                                        </label>
-                                        <label class="recommendation-btn reject">
-                                            <input type="radio" name="recommendation_status" value="rejected"
-                                                {{ old('recommendation_status') || $officialtravel->recommendation_status == 'rejected' ? 'checked' : '' }}>
-                                            <i class="fas fa-times-circle"></i> Reject
-                                        </label>
-                                    </div>
-                                    @error('recommendation_status')
-                                        <div class="text-danger mt-2">{{ $message }}</div>
-                                    @enderror
-                                </div>
+
+                            <!-- Recommendation Form -->
+                            <form action="{{ route('officialtravels.recommend', $officialtravel->id) }}" method="POST"
+                                id="recommendationForm">
+                                @csrf
+                                <input type="hidden" name="recommendation_status" id="recommendation_status"
+                                    value="">
 
                                 <div class="form-group">
-                                    <label for="recommendation_date">Recommendation Date <span
+                                    <label for="recommendation_remark">Recommendation Notes <span
                                             class="text-danger">*</span></label>
-                                    <input type="datetime-local"
-                                        class="form-control @error('recommendation_date') is-invalid @enderror"
-                                        name="recommendation_date" id="recommendation_date"
-                                        value="{{ old('recommendation_date', $officialtravel->recommendation_date ? date('Y-m-d\TH:i', strtotime($officialtravel->recommendation_date)) : date('Y-m-d\TH:i')) }}"
-                                        required>
-                                    @error('recommendation_date')
-                                        <div class="invalid-feedback">{{ $message }}</div>
-                                    @enderror
-                                </div>
-
-                                <div class="form-group">
-                                    <label for="recommendation_remark">Remarks <span class="text-danger">*</span></label>
                                     <textarea class="form-control @error('recommendation_remark') is-invalid @enderror" name="recommendation_remark"
-                                        id="recommendation_remark" rows="4" placeholder="Enter your recommendation remarks" required>{{ old('recommendation_remark') ?? $officialtravel->recommendation_remark }}</textarea>
+                                        id="recommendation_remark" rows="4"
+                                        placeholder="Please provide your recommendation details:
+• Decision rationale
+• Any conditions or requirements
+• Additional notes or observations"
+                                        required>{{ old('recommendation_remark') }}</textarea>
                                     @error('recommendation_remark')
                                         <div class="invalid-feedback">{{ $message }}</div>
                                     @enderror
                                 </div>
 
                                 <div class="form-actions">
-                                    <button type="submit" class="btn btn-primary btn-block">
-                                        <i class="fas fa-save"></i> Submit Recommendation
+                                    <button type="submit" class="btn btn-primary btn-block submit-btn" disabled>
+                                        <i class="fas fa-paper-plane"></i>
+                                        Submit Recommendation
                                     </button>
                                     <a href="{{ route('officialtravels.show', $officialtravel->id) }}"
                                         class="btn btn-secondary btn-block mt-2">
-                                        <i class="fas fa-times-circle"></i> Cancel
+                                        <i class="fas fa-times"></i>
+                                        Cancel
                                     </a>
                                 </div>
-                            </div>
+                            </form>
                         </div>
-                    </form>
+                    </div>
                 </div>
             </div>
         </div>
@@ -243,41 +237,14 @@
             font-size: 13px;
         }
 
-        .status-draft {
-            background-color: #f1c40f;
-            color: #000000;
-        }
-
-        .status-open {
-            background-color: #2ecc71;
+        .status-pending {
+            background-color: #f39c12;
             color: #ffffff;
         }
 
         /* Content Styles */
         .travel-content {
             padding: 0 20px;
-        }
-
-        .status-closed {
-            background-color: #e74c3c;
-            color: #ffffff;
-        }
-
-        @media (max-width: 768px) {
-            .travel-header {
-                height: auto;
-                padding: 15px;
-            }
-
-            .travel-destination {
-                font-size: 20px;
-            }
-
-            .travel-status-pill {
-                position: static;
-                margin-top: 10px;
-                align-self: flex-start;
-            }
         }
 
         .travel-card {
@@ -342,6 +309,30 @@
             color: #2c3e50;
         }
 
+        .info-meta {
+            color: #718096;
+            font-size: 0.875rem;
+        }
+
+        .purpose-section {
+            border-top: 1px solid #eee;
+            padding-top: 20px;
+        }
+
+        .purpose-section h3 {
+            font-size: 1.1rem;
+            color: #2c3e50;
+            margin-bottom: 15px;
+        }
+
+        .purpose-content {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 6px;
+            color: #2c3e50;
+            line-height: 1.6;
+        }
+
         .additional-travelers {
             border-top: 1px solid #eee;
             padding-top: 20px;
@@ -362,64 +353,173 @@
             gap: 10px;
         }
 
-        .recommendation-options {
-            text-align: center;
-        }
-
-        .recommendation-buttons {
-            display: flex;
-            gap: 15px;
-            justify-content: center;
-        }
-
-        .recommendation-btn {
-            flex: 1;
-            padding: 15px;
-            border: 2px solid #eee;
+        /* Decision Buttons */
+        .decision-buttons {
+            background: #f8f9fa;
             border-radius: 8px;
+            padding: 20px;
+        }
+
+        .decision-header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .decision-header h3 {
+            font-size: 1.1rem;
+            color: #2c3e50;
+            margin-bottom: 5px;
+        }
+
+        .decision-header p {
+            color: #666;
+            font-size: 0.9rem;
+            margin: 0;
+        }
+
+        .decision-options {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .decision-btn {
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 15px;
             cursor: pointer;
             transition: all 0.3s ease;
             display: flex;
             align-items: center;
+            gap: 12px;
+            text-align: left;
+        }
+
+        .decision-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .decision-btn.active {
+            border-color: #3498db;
+            background: #ebf8ff;
+        }
+
+        .decision-btn.approve-btn.active {
+            border-color: #27ae60;
+            background: #d4edda;
+        }
+
+        .decision-btn.reject-btn.active {
+            border-color: #e74c3c;
+            background: #f8d7da;
+        }
+
+        .btn-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
             justify-content: center;
-            gap: 10px;
-            position: relative;
-        }
-
-        .recommendation-btn input[type="radio"] {
-            position: absolute;
-            opacity: 0;
-        }
-
-        .recommendation-btn.approve:hover,
-        .recommendation-btn.approve input[type="radio"]:checked~* {
-            background: #2ecc71;
+            font-size: 1.2rem;
             color: white;
-            border-color: #27ae60;
         }
 
-        .recommendation-btn.reject:hover,
-        .recommendation-btn.reject input[type="radio"]:checked~* {
+        .approve-btn .btn-icon {
+            background: #27ae60;
+        }
+
+        .reject-btn .btn-icon {
             background: #e74c3c;
-            color: white;
-            border-color: #c0392b;
         }
 
-        /* Add active state styles */
-        .recommendation-btn.approve.active {
-            background: #2ecc71;
-            color: white;
-            border-color: #27ae60;
+        .btn-content {
+            flex: 1;
         }
 
-        .recommendation-btn.reject.active {
-            background: #e74c3c;
-            color: white;
-            border-color: #c0392b;
+        .btn-title {
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 2px;
+        }
+
+        .btn-subtitle {
+            font-size: 0.8rem;
+            color: #666;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #2c3e50;
+            font-weight: 500;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 10px 15px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .form-control:focus {
+            border-color: #3498db;
+            box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+            outline: none;
+        }
+
+        .form-control::placeholder {
+            color: #95a5a6;
+        }
+
+        .text-danger {
+            color: #e74c3c;
         }
 
         .form-actions {
             margin-top: 30px;
+        }
+
+        .submit-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        @media (max-width: 768px) {
+            .travel-header {
+                height: auto;
+                padding: 15px;
+            }
+
+            .travel-destination {
+                font-size: 20px;
+            }
+
+            .travel-status-pill {
+                position: static;
+                margin-top: 10px;
+                align-self: flex-start;
+            }
+
+            .info-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .traveler-list {
+                grid-template-columns: 1fr;
+            }
+
+            .decision-options {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 @endsection
@@ -427,28 +527,82 @@
 @section('scripts')
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            const radioButtons = document.querySelectorAll('input[name="recommendation_status"]');
+            const approveBtn = document.querySelector('.approve-btn');
+            const rejectBtn = document.querySelector('.reject-btn');
+            const statusInput = document.getElementById('recommendation_status');
+            const submitBtn = document.querySelector('.submit-btn');
+            const remarkTextarea = document.getElementById('recommendation_remark');
 
-            // Set initial state
-            radioButtons.forEach(radio => {
-                if (radio.checked) {
-                    radio.closest('.recommendation-btn').classList.add('active');
+            // Handle decision button clicks
+            function selectDecision(status) {
+                // Remove active class from all buttons
+                approveBtn.classList.remove('active');
+                rejectBtn.classList.remove('active');
+
+                // Add active class to selected button
+                if (status === 'approved') {
+                    approveBtn.classList.add('active');
+                } else if (status === 'rejected') {
+                    rejectBtn.classList.add('active');
                 }
+
+                // Update hidden input
+                statusInput.value = status;
+
+                // Enable submit button if remark is filled
+                checkFormValidity();
+            }
+
+            // Handle button clicks
+            approveBtn.addEventListener('click', function() {
+                selectDecision('approved');
             });
 
-            // Handle changes
-            radioButtons.forEach(radio => {
-                radio.addEventListener('change', function() {
-                    // Remove active class from all buttons
-                    document.querySelectorAll('.recommendation-btn').forEach(btn => {
-                        btn.classList.remove('active');
-                    });
+            rejectBtn.addEventListener('click', function() {
+                selectDecision('rejected');
+            });
 
-                    // Add active class to selected button
-                    if (this.checked) {
-                        this.closest('.recommendation-btn').classList.add('active');
-                    }
-                });
+            // Check form validity
+            function checkFormValidity() {
+                const hasStatus = statusInput.value !== '';
+                const hasRemark = remarkTextarea.value.trim() !== '';
+
+                if (hasStatus && hasRemark) {
+                    submitBtn.disabled = false;
+                    submitBtn.classList.remove('btn-secondary');
+                    submitBtn.classList.add('btn-primary');
+                } else {
+                    submitBtn.disabled = true;
+                    submitBtn.classList.remove('btn-primary');
+                    submitBtn.classList.add('btn-secondary');
+                }
+            }
+
+            // Listen for remark changes
+            remarkTextarea.addEventListener('input', checkFormValidity);
+
+            // Form submission
+            document.getElementById('recommendationForm').addEventListener('submit', function(e) {
+                if (!statusInput.value) {
+                    e.preventDefault();
+                    alert('Please select a decision first.');
+                    return;
+                }
+
+                if (!remarkTextarea.value.trim()) {
+                    e.preventDefault();
+                    alert('Please provide recommendation notes.');
+                    return;
+                }
+
+                const status = statusInput.value;
+                const confirmMessage = status === 'approved' ?
+                    'Are you sure you want to approve this travel request?' :
+                    'Are you sure you want to reject this travel request?';
+
+                if (!confirm(confirmMessage)) {
+                    e.preventDefault();
+                }
             });
         });
     </script>

@@ -284,6 +284,25 @@
     </div>
 </script>
 
+    <script type="text/template" id="fr-template">
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">Ticket Classification Data</h3>
+        </div>
+        <div class="card-body">
+            <div class="form-group">
+                <label>Ticket Classification <span class="text-danger">*</span></label>
+                <select class="form-control" name="ticket_classification" required>
+                    <option value="">- Select Type -</option>
+                    <option value="Pesawat" {{ old('ticket_classification', $letterNumber->ticket_classification) == 'Pesawat' ? 'selected' : '' }}>Pesawat</option>
+                    <option value="Kereta Api" {{ old('ticket_classification', $letterNumber->ticket_classification) == 'Kereta Api' ? 'selected' : '' }}>Kereta Api</option>
+                    <option value="Bus" {{ old('ticket_classification', $letterNumber->ticket_classification) == 'Bus' ? 'selected' : '' }}>Bus</option>
+                </select>
+            </div>
+        </div>
+    </div>
+</script>
+
     <script type="text/template" id="classification-template">
     <div class="card">
         <div class="card-header">

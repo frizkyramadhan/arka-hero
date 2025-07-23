@@ -22,6 +22,21 @@ class Officialtravel extends Model
 
     protected $guarded = [];
 
+    protected $casts = [
+        'official_travel_date' => 'date',
+        'departure_from' => 'date',
+        'arrival_at_destination' => 'datetime',
+        'departure_from_destination' => 'datetime',
+        'recommendation_date' => 'datetime',
+        'recommendation_timestamps' => 'datetime',
+        'approval_date' => 'datetime',
+        'approval_timestamps' => 'datetime',
+    ];
+
+    // Constants
+    public const RECOMMENDATION_STATUSES = ['pending', 'approved', 'rejected'];
+    public const APPROVAL_STATUSES = ['pending', 'approved', 'rejected'];
+
     // Relationships
     public function traveler()
     {
@@ -63,11 +78,14 @@ class Officialtravel extends Model
         return $this->belongsTo(User::class, 'recommendation_by');
     }
 
-
-
     public function creator()
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function approver()
+    {
+        return $this->belongsTo(User::class, 'approval_by');
     }
 
 
@@ -118,7 +136,7 @@ class Officialtravel extends Model
             // Jika belum ada letter number, auto-assign (untuk backward compatibility)
             if (!$model->letter_number_id && !$model->letter_number) {
                 // Auto-create letter number untuk kategori B (Internal)
-                $letterNumber = LetterNumber::create([
+                $letterNumber = LetterNumber::createWithRetry([
                     'category_code' => 'B',
                     'letter_date' => $model->created_at->toDateString(),
                     'custom_subject' => 'Surat Perjalanan Dinas',

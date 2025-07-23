@@ -4,6 +4,8 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class LetterNumber extends Model
 {
@@ -102,35 +104,75 @@ class LetterNumber extends Model
         return $this->project;
     }
 
-    // Generate letter number
-    public function generateLetterNumber()
+    /**
+     * Generate letter number dengan pendekatan yang lebih reliable
+     * Menggunakan database sequence untuk menghindari race condition
+     */
+    public function generateLetterNumberReliable()
     {
-        // Pastikan relasi category sudah di-load untuk mendapatkan behavior dan code
+        // Pastikan relasi category sudah di-load
         if (!$this->relationLoaded('category')) {
             $this->load('category');
         }
 
         $category = $this->category;
         $year = date('Y', strtotime($this->letter_date));
-        $month = date('m', strtotime($this->letter_date));
 
-        $query = static::where('letter_category_id', $this->letter_category_id);
+        // Gunakan database transaction dengan retry logic
+        return DB::transaction(function () use ($category, $year) {
+            $maxAttempts = 5;
+            $attempt = 0;
 
-        // Terapkan logika berdasarkan behavior penomoran
-        if ($category->numbering_behavior === 'annual_reset') {
-            // Reset setiap tahun
-            $query->whereYear('letter_date', $year);
-        }
-        // Untuk 'continuous', kita tidak membatasi query berdasarkan tahun
+            do {
+                $attempt++;
 
-        $sequence = $query->max('sequence_number') + 1;
+                // Dapatkan sequence number terbaru dengan lock
+                $query = static::where('letter_category_id', $this->letter_category_id);
 
-        $this->sequence_number = $sequence;
-        $this->year = $year; // Kolom tahun tetap diisi untuk pencatatan
+                if ($category->numbering_behavior === 'annual_reset') {
+                    $query->whereYear('letter_date', $year);
+                }
 
-        // Format penomoran
-        $formattedSequence = sprintf('%04d', $sequence);
-        $this->letter_number = "{$category->category_code}{$formattedSequence}";
+                // Gunakan lockForUpdate untuk mencegah race condition
+                $lastNumber = $query->lockForUpdate()
+                    ->orderBy('sequence_number', 'desc')
+                    ->first();
+
+                $nextSequence = $lastNumber ? $lastNumber->sequence_number + 1 : 1;
+
+                // Set sequence dan generate letter number
+                $this->sequence_number = $nextSequence;
+                $this->year = $year;
+                $formattedSequence = sprintf('%04d', $nextSequence);
+
+                // Format letter number (format asli tanpa tahun)
+                $this->letter_number = "{$category->category_code}{$formattedSequence}";
+
+                // Cek apakah letter number sudah ada untuk tahun yang sama (double check)
+                $exists = static::where('letter_number', $this->letter_number)
+                    ->where('year', $year)
+                    ->exists();
+
+                if (!$exists) {
+                    return true; // Berhasil generate unique number
+                }
+
+                // Jika masih ada, tunggu dan coba lagi
+                if ($attempt < $maxAttempts) {
+                    usleep(200000); // Tunggu 0.2 detik
+                }
+            } while ($attempt < $maxAttempts);
+
+            throw new \Exception("Failed to generate unique letter number after {$maxAttempts} attempts");
+        });
+    }
+
+    /**
+     * Generate letter number (legacy method - now uses generateLetterNumberReliable)
+     */
+    public function generateLetterNumber()
+    {
+        return $this->generateLetterNumberReliable();
     }
 
     /**
@@ -209,6 +251,37 @@ class LetterNumber extends Model
         return $query->where('year', $year);
     }
 
+    /**
+     * Get next sequence number dengan cara yang aman untuk menghindari race condition
+     *
+     * @param int $categoryId
+     * @param string|null $year
+     * @return int
+     */
+    public static function getNextSequenceNumberSafe($categoryId, $year = null)
+    {
+        $year = $year ?? date('Y');
+
+        return DB::transaction(function () use ($categoryId, $year) {
+            $category = LetterCategory::find($categoryId);
+            if (!$category) {
+                throw new \Exception('Letter category not found');
+            }
+
+            $query = static::where('letter_category_id', $categoryId);
+
+            if ($category->numbering_behavior === 'annual_reset') {
+                $query->whereYear('letter_date', $year);
+            }
+
+            $lastNumber = $query->lockForUpdate()
+                ->orderBy('sequence_number', 'desc')
+                ->first();
+
+            return $lastNumber ? $lastNumber->sequence_number + 1 : 1;
+        });
+    }
+
     // Get next sequence number for a category
     public static function getNextSequenceNumber($categoryId)
     {
@@ -221,13 +294,56 @@ class LetterNumber extends Model
         return $lastNumber ? $lastNumber->sequence_number + 1 : 1;
     }
 
+    /**
+     * Create letter number dengan retry logic untuk menghindari duplicate entry
+     *
+     * @param array $attributes
+     * @return static
+     * @throws \Exception
+     */
+    public static function createWithRetry(array $attributes)
+    {
+        $maxAttempts = 5;
+        $attempt = 0;
+
+        do {
+            $attempt++;
+
+            try {
+                return static::create($attributes);
+            } catch (\Illuminate\Database\QueryException $e) {
+                // Cek apakah error adalah duplicate entry
+                if ($e->getCode() == 23000 && strpos($e->getMessage(), 'Duplicate entry') !== false) {
+                    if ($attempt >= $maxAttempts) {
+                        throw new \Exception("Failed to create letter number after {$maxAttempts} attempts due to duplicate entry");
+                    }
+
+                    // Tunggu sebentar sebelum retry
+                    usleep(300000); // 0.3 detik
+                    continue;
+                }
+
+                // Jika bukan duplicate entry, throw exception asli
+                throw $e;
+            }
+        } while ($attempt < $maxAttempts);
+
+        throw new \Exception("Failed to create letter number after {$maxAttempts} attempts");
+    }
+
     protected static function boot()
     {
         parent::boot();
 
         static::creating(function ($model) {
             if (empty($model->letter_number)) {
-                $model->generateLetterNumber();
+                try {
+                    $model->generateLetterNumberReliable();
+                } catch (\Exception $e) {
+                    // Log error dan throw kembali untuk handling di controller
+                    Log::error('Failed to generate letter number: ' . $e->getMessage());
+                    throw $e;
+                }
             }
             $model->reserved_by = auth()->id() ?? 1; // Default to user ID 1 if no auth
             $model->status = 'reserved';
