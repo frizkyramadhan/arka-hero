@@ -130,6 +130,7 @@
                                                             <option value="">- All -</option>
                                                             @foreach ($categories as $category)
                                                                 <option value="{{ $category->id }}">
+                                                                    {{ $category->category_code }} -
                                                                     {{ $category->category_name }}
                                                                 </option>
                                                             @endforeach

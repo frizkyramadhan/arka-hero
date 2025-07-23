@@ -365,7 +365,22 @@
                                     </div>
                                 </div>
 
-
+                                <!-- Pending Approvals -->
+                                <div class="col-lg-3 col-6">
+                                    <div class="small-box bg-success">
+                                        <div class="inner">
+                                            <h3>{{ $pendingApprovals }}</h3>
+                                            <p>Pending Approvals</p>
+                                        </div>
+                                        <div class="icon">
+                                            <i class="fas fa-check-circle"></i>
+                                        </div>
+                                        <a href="#" class="small-box-footer" data-toggle="modal"
+                                            data-target="#modal-approvals">
+                                            Take action <i class="fas fa-arrow-circle-right"></i>
+                                        </a>
+                                    </div>
+                                </div>
 
                                 <!-- Pending Arrivals -->
                                 <div class="col-lg-3 col-6">
@@ -548,6 +563,39 @@
                 <div class="modal-body">
                     <div class="table-responsive">
                         <table id="pending-recommendations-table" class="table table-sm table-bordered table-striped"
+                            style="width: 100%;">
+                            <thead>
+                                <tr>
+                                    <th class="text-center align-middle">No</th>
+                                    <th class="align-middle">Travel Number</th>
+                                    <th class="align-middle">Date</th>
+                                    <th class="align-middle">Traveler</th>
+                                    <th class="align-middle">Destination</th>
+                                    <th class="text-center align-middle">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pending Approvals Modal -->
+    <div class="modal fade" id="modal-approvals">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header bg-success">
+                    <h4 class="modal-title">Pending Approvals</h4>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="table-responsive">
+                        <table id="pending-approvals-table" class="table table-sm table-bordered table-striped"
                             style="width: 100%;">
                             <thead>
                                 <tr>
@@ -751,6 +799,45 @@
                 processing: true,
                 serverSide: true,
                 ajax: "{{ route('dashboard.pendingRecommendations') }}",
+                columns: [{
+                        data: 'DT_RowIndex',
+                        name: 'DT_RowIndex',
+                        orderable: false,
+                        searchable: false
+                    },
+                    {
+                        data: 'official_travel_number',
+                        name: 'official_travel_number'
+                    },
+                    {
+                        data: 'official_travel_date',
+                        name: 'official_travel_date'
+                    },
+                    {
+                        data: 'traveler',
+                        name: 'traveler'
+                    },
+                    {
+                        data: 'destination',
+                        name: 'destination'
+                    },
+                    {
+                        data: 'action',
+                        name: 'action',
+                        className: 'text-center',
+                        orderable: false,
+                        searchable: false
+                    },
+                ],
+                order: [
+                    [1, 'asc']
+                ]
+            });
+
+            $('#pending-approvals-table').DataTable({
+                processing: true,
+                serverSide: true,
+                ajax: "{{ route('dashboard.pendingApprovals') }}",
                 columns: [{
                         data: 'DT_RowIndex',
                         name: 'DT_RowIndex',

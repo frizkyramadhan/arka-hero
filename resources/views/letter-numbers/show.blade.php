@@ -232,6 +232,22 @@
                         </div>
                     @endif
 
+                    @if (in_array($letterNumber->category->category_code, ['FR']) && $letterNumber->ticket_classification)
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title">Ticket Classification</h3>
+                            </div>
+                            <div class="card-body">
+                                <table class="table table-borderless">
+                                    <tr>
+                                        <td width="20%"><strong>Ticket Classification</strong></td>
+                                        <td>: {{ $letterNumber->ticket_classification }}</td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+                    @endif
+
                     <!-- Integration Info -->
                     @if ($letterNumber->related_document_type && $letterNumber->related_document_id)
                         <div class="card">

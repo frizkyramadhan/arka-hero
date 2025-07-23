@@ -28,7 +28,7 @@ class LetterNumberController extends Controller
     {
         $title = 'Letter Number Administration';
         $subtitle = 'Letter Numbers List';
-        $categories = LetterCategory::where('is_active', 1)->get();
+        $categories = LetterCategory::where('is_active', 1)->orderBy('category_code', 'asc')->get();
 
         return view('letter-numbers.index', compact('title', 'subtitle', 'categories'));
     }

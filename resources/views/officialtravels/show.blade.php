@@ -189,10 +189,35 @@
 
                 <!-- Right Column -->
                 <div class="col-lg-4">
-
-
-
-
+                    <!-- Recommendation & Approval Card -->
+                    <div class="card card-info card-outline elevation-3">
+                        <div class="card-header">
+                            <h3 class="card-title">
+                                <i class="fas fa-user-check mr-2"></i>
+                                <strong>Recommendation & Approval</strong>
+                            </h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-group">
+                                <label><strong>Recommender:</strong></label>
+                                <p>{{ $officialtravel->recommender->name ?? 'Not assigned' }}</p>
+                                <label><strong>Status:</strong></label>
+                                <span
+                                    class="badge badge-{{ $officialtravel->recommendation_status == 'approved' ? 'success' : ($officialtravel->recommendation_status == 'rejected' ? 'danger' : 'warning') }}">
+                                    {{ ucfirst($officialtravel->recommendation_status ?? 'pending') }}
+                                </span>
+                            </div>
+                            <div class="form-group">
+                                <label><strong>Approver:</strong></label>
+                                <p>{{ $officialtravel->approver->name ?? 'Not assigned' }}</p>
+                                <label><strong>Status:</strong></label>
+                                <span
+                                    class="badge badge-{{ $officialtravel->approval_status == 'approved' ? 'success' : ($officialtravel->approval_status == 'rejected' ? 'danger' : 'warning') }}">
+                                    {{ ucfirst($officialtravel->approval_status ?? 'pending') }}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
 
                     <!-- Action Buttons -->
                     <div class="travel-action-buttons">
@@ -215,6 +240,30 @@
                                         <i class="fas fa-trash"></i> Delete
                                     </button>
                                 @endcan
+
+                                <!-- Recommend button -->
+                                @if ($officialtravel->recommendation_status == 'pending')
+                                    @can('official-travels.recommend')
+                                        @if (Auth::id() == $officialtravel->recommendation_by)
+                                            <a href="{{ route('officialtravels.showRecommendForm', $officialtravel->id) }}"
+                                                class="btn-action recommend-btn">
+                                                <i class="fas fa-thumbs-up"></i> Recommend
+                                            </a>
+                                        @endif
+                                    @endcan
+                                @endif
+
+                                <!-- Approve button -->
+                                @if ($officialtravel->recommendation_status == 'approved' && $officialtravel->approval_status == 'pending')
+                                    @can('official-travels.approve')
+                                        @if (Auth::id() == $officialtravel->approval_by)
+                                            <a href="{{ route('officialtravels.showApprovalForm', $officialtravel->id) }}"
+                                                class="btn-action approve-btn">
+                                                <i class="fas fa-check-circle"></i> Approve
+                                            </a>
+                                        @endif
+                                    @endcan
+                                @endif
                             @endif
 
 
@@ -899,6 +948,15 @@
                 flex: 0 0 33.333333%;
                 max-width: 33.333333%;
             }
+        }
+
+        .btn-action.recommend-btn {
+            background: linear-gradient(135deg, #ffc107, #fd7e14);
+            color: white;
+        }
+
+        .btn-action.recommend-btn:hover {
+            background: linear-gradient(135deg, #e0a800, #e8590c);
         }
 
         .recommend-btn {

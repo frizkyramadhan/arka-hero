@@ -84,7 +84,7 @@ class LetterAdministrationImport implements ToModel, WithHeadingRow, WithValidat
             } else {
                 // If letter_number is not provided, create a new record.
                 // The 'creating' event on the LetterNumber model will generate the number.
-                return LetterNumber::create($letterData);
+                return LetterNumber::createWithRetry($letterData);
             }
         } catch (\Exception $e) {
             $this->onFailure(new Failure(
