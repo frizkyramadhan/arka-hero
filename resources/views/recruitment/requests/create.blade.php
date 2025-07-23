@@ -534,7 +534,7 @@
                         <div class="card elevation-3">
                             <div class="card-body">
                                 <button type="submit" class="btn btn-primary btn-block">
-                                    <i class="fas fa-save mr-2"></i> Create FPTK
+                                    <i class="fas fa-save mr-2"></i> Create Recruitment Request
                                 </button>
                                 <a href="{{ route('recruitment.requests.index') }}" class="btn btn-secondary btn-block">
                                     <i class="fas fa-times-circle mr-2"></i> Cancel

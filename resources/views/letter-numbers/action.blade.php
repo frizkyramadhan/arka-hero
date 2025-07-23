@@ -29,6 +29,9 @@
                 case 'officialtravel':
                     $documentLink = route('officialtravels.show', $row->related_document_id);
                     break;
+                case 'recruitment_request':
+                    $documentLink = route('recruitment.requests.show', $row->related_document_id);
+                    break;
             }
         @endphp
         <a href="{{ $documentLink }}" class="btn btn-sm btn-success" title="View Document">

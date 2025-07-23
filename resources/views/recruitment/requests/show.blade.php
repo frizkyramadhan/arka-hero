@@ -10,9 +10,9 @@
                     <i class="far fa-calendar-alt"></i> {{ date('d F Y', strtotime($fptk->created_at)) }}
                 </div>
                 <div
-                    class="fptk-status-pill {{ $fptk->final_status == 'draft' ? 'status-draft' : ($fptk->final_status == 'pending' ? 'status-pending' : ($fptk->final_status == 'approved' ? 'status-approved' : 'status-rejected')) }}">
+                    class="fptk-status-pill {{ $fptk->final_status == 'draft' ? 'status-draft' : ($fptk->final_status == 'submitted' ? 'status-submitted' : ($fptk->final_status == 'pending' ? 'status-pending' : ($fptk->final_status == 'approved' ? 'status-approved' : 'status-rejected'))) }}">
                     <i
-                        class="fas {{ $fptk->final_status == 'draft' ? 'fa-edit' : ($fptk->final_status == 'pending' ? 'fa-clock' : ($fptk->final_status == 'approved' ? 'fa-check-circle' : 'fa-times-circle')) }}"></i>
+                        class="fas {{ $fptk->final_status == 'draft' ? 'fa-edit' : ($fptk->final_status == 'submitted' ? 'fa-paper-plane' : ($fptk->final_status == 'pending' ? 'fa-clock' : ($fptk->final_status == 'approved' ? 'fa-check-circle' : 'fa-times-circle'))) }}"></i>
                     {{ ucfirst($fptk->final_status) }}
                 </div>
             </div>
@@ -111,19 +111,150 @@
                         </div>
                     </div>
 
-                    <!-- Job Description -->
-                    <div class="fptk-card description-card">
+                    <!-- Job Description & Requirements -->
+                    <div class="fptk-card requirements-card">
                         <div class="card-head">
-                            <h2><i class="fas fa-clipboard-list"></i> Job Description</h2>
+                            <h2><i class="fas fa-clipboard-list"></i> Job Description & Requirements</h2>
                         </div>
                         <div class="card-body">
-                            <div class="job-description">
-                                {!! nl2br(e($fptk->job_description)) !!}
+                            <!-- Job Description -->
+                            <div class="requirement-section">
+                                <div class="section-header">
+                                    <div class="section-icon" style="background-color: #3498db;">
+                                        <i class="fas fa-clipboard-list"></i>
+                                    </div>
+                                    <div class="section-title">Job Description</div>
+                                </div>
+                                <div class="section-content">
+                                    {!! nl2br(e($fptk->job_description)) !!}
+                                </div>
                             </div>
+
+                            <!-- Basic Requirements Grid -->
+                            <div class="requirements-grid">
+                                <div class="requirement-item">
+                                    <div class="requirement-icon" style="background-color: #3498db;">
+                                        <i class="fas fa-venus-mars"></i>
+                                    </div>
+                                    <div class="requirement-content">
+                                        <div class="requirement-label">Gender</div>
+                                        <div class="requirement-value">{{ ucfirst($fptk->required_gender) }}</div>
+                                    </div>
+                                </div>
+                                <div class="requirement-item">
+                                    <div class="requirement-icon" style="background-color: #e74c3c;">
+                                        <i class="fas fa-heart"></i>
+                                    </div>
+                                    <div class="requirement-content">
+                                        <div class="requirement-label">Marital Status</div>
+                                        <div class="requirement-value">{{ ucfirst($fptk->required_marital_status) }}</div>
+                                    </div>
+                                </div>
+                                @if ($fptk->required_age_min || $fptk->required_age_max)
+                                    <div class="requirement-item">
+                                        <div class="requirement-icon" style="background-color: #f1c40f;">
+                                            <i class="fas fa-birthday-cake"></i>
+                                        </div>
+                                        <div class="requirement-content">
+                                            <div class="requirement-label">Age Range</div>
+                                            <div class="requirement-value">
+                                                @if ($fptk->required_age_min && $fptk->required_age_max)
+                                                    {{ $fptk->required_age_min }} - {{ $fptk->required_age_max }} years
+                                                @elseif($fptk->required_age_min)
+                                                    Min {{ $fptk->required_age_min }} years
+                                                @elseif($fptk->required_age_max)
+                                                    Max {{ $fptk->required_age_max }} years
+                                                @endif
+                                            </div>
+                                        </div>
+                                    </div>
+                                @endif
+                                @if ($fptk->required_education)
+                                    <div class="requirement-item">
+                                        <div class="requirement-icon" style="background-color: #9b59b6;">
+                                            <i class="fas fa-graduation-cap"></i>
+                                        </div>
+                                        <div class="requirement-content">
+                                            <div class="requirement-label">Education</div>
+                                            <div class="requirement-value">{{ $fptk->required_education }}</div>
+                                        </div>
+                                    </div>
+                                @endif
+                            </div>
+
+                            <!-- Detailed Requirements -->
+                            @if (
+                                $fptk->required_skills ||
+                                    $fptk->required_experience ||
+                                    $fptk->required_physical ||
+                                    $fptk->required_mental ||
+                                    $fptk->other_requirements)
+                                <div class="detailed-requirements">
+                                    @if ($fptk->required_skills)
+                                        <div class="requirement-section">
+                                            <div class="section-header">
+                                                <div class="section-icon" style="background-color: #e67e22;">
+                                                    <i class="fas fa-tools"></i>
+                                                </div>
+                                                <div class="section-title">Required Skills</div>
+                                            </div>
+                                            <div class="section-content">{{ $fptk->required_skills }}</div>
+                                        </div>
+                                    @endif
+
+                                    @if ($fptk->required_experience)
+                                        <div class="requirement-section">
+                                            <div class="section-header">
+                                                <div class="section-icon" style="background-color: #27ae60;">
+                                                    <i class="fas fa-briefcase"></i>
+                                                </div>
+                                                <div class="section-title">Required Experience</div>
+                                            </div>
+                                            <div class="section-content">{{ $fptk->required_experience }}</div>
+                                        </div>
+                                    @endif
+
+                                    @if ($fptk->required_physical)
+                                        <div class="requirement-section">
+                                            <div class="section-header">
+                                                <div class="section-icon" style="background-color: #f39c12;">
+                                                    <i class="fas fa-dumbbell"></i>
+                                                </div>
+                                                <div class="section-title">Physical Requirements</div>
+                                            </div>
+                                            <div class="section-content">{{ $fptk->required_physical }}</div>
+                                        </div>
+                                    @endif
+
+                                    @if ($fptk->required_mental)
+                                        <div class="requirement-section">
+                                            <div class="section-header">
+                                                <div class="section-icon" style="background-color: #8e44ad;">
+                                                    <i class="fas fa-brain"></i>
+                                                </div>
+                                                <div class="section-title">Mental Requirements</div>
+                                            </div>
+                                            <div class="section-content">{{ $fptk->required_mental }}</div>
+                                        </div>
+                                    @endif
+
+                                    @if ($fptk->other_requirements)
+                                        <div class="requirement-section">
+                                            <div class="section-header">
+                                                <div class="section-icon" style="background-color: #34495e;">
+                                                    <i class="fas fa-plus-circle"></i>
+                                                </div>
+                                                <div class="section-title">Other Requirements</div>
+                                            </div>
+                                            <div class="section-content">{{ $fptk->other_requirements }}</div>
+                                        </div>
+                                    @endif
+                                </div>
+                            @endif
                         </div>
                     </div>
 
-                    <!-- Approval Progress Section -->
+                    {{-- <!-- Approval Progress Section -->
                     @if ($fptk->approval)
                         <div class="fptk-card approval-progress-card">
                             <div class="card-head">
@@ -139,7 +270,8 @@
 
                                     <div class="progress-bar-container">
                                         <div class="progress-bar">
-                                            <div class="progress-fill" style="width: {{ $progress['percentage'] }}%"></div>
+                                            <div class="progress-fill" style="width: {{ $progress['percentage'] }}%">
+                                            </div>
                                         </div>
                                         <div class="progress-text">{{ $progress['percentage'] }}% Complete</div>
                                     </div>
@@ -222,101 +354,7 @@
                                 </div>
                             </div>
                         </div>
-                    @endif
-
-                    <!-- Requirements -->
-                    <div class="fptk-card requirements-card">
-                        <div class="card-head">
-                            <h2><i class="fas fa-user-check"></i> Requirements</h2>
-                        </div>
-                        <div class="card-body">
-                            <div class="requirements-grid">
-                                <div class="requirement-item">
-                                    <div class="requirement-icon" style="background-color: #3498db;">
-                                        <i class="fas fa-venus-mars"></i>
-                                    </div>
-                                    <div class="requirement-content">
-                                        <div class="requirement-label">Gender</div>
-                                        <div class="requirement-value">{{ ucfirst($fptk->required_gender) }}</div>
-                                    </div>
-                                </div>
-                                <div class="requirement-item">
-                                    <div class="requirement-icon" style="background-color: #e74c3c;">
-                                        <i class="fas fa-heart"></i>
-                                    </div>
-                                    <div class="requirement-content">
-                                        <div class="requirement-label">Marital Status</div>
-                                        <div class="requirement-value">{{ ucfirst($fptk->required_marital_status) }}</div>
-                                    </div>
-                                </div>
-                                @if ($fptk->required_age_min || $fptk->required_age_max)
-                                    <div class="requirement-item">
-                                        <div class="requirement-icon" style="background-color: #f1c40f;">
-                                            <i class="fas fa-birthday-cake"></i>
-                                        </div>
-                                        <div class="requirement-content">
-                                            <div class="requirement-label">Age Range</div>
-                                            <div class="requirement-value">
-                                                @if ($fptk->required_age_min && $fptk->required_age_max)
-                                                    {{ $fptk->required_age_min }} - {{ $fptk->required_age_max }} years
-                                                @elseif($fptk->required_age_min)
-                                                    Min {{ $fptk->required_age_min }} years
-                                                @elseif($fptk->required_age_max)
-                                                    Max {{ $fptk->required_age_max }} years
-                                                @endif
-                                            </div>
-                                        </div>
-                                    </div>
-                                @endif
-                                @if ($fptk->required_education)
-                                    <div class="requirement-item">
-                                        <div class="requirement-icon" style="background-color: #9b59b6;">
-                                            <i class="fas fa-graduation-cap"></i>
-                                        </div>
-                                        <div class="requirement-content">
-                                            <div class="requirement-label">Education</div>
-                                            <div class="requirement-value">{{ $fptk->required_education }}</div>
-                                        </div>
-                                    </div>
-                                @endif
-                            </div>
-
-                            @if ($fptk->required_skills)
-                                <div class="requirement-section">
-                                    <h4><i class="fas fa-tools"></i> Required Skills</h4>
-                                    <div class="requirement-text">{{ $fptk->required_skills }}</div>
-                                </div>
-                            @endif
-
-                            @if ($fptk->required_experience)
-                                <div class="requirement-section">
-                                    <h4><i class="fas fa-briefcase"></i> Required Experience</h4>
-                                    <div class="requirement-text">{{ $fptk->required_experience }}</div>
-                                </div>
-                            @endif
-
-                            @if ($fptk->required_physical)
-                                <div class="requirement-section">
-                                    <h4><i class="fas fa-dumbbell"></i> Physical Requirements</h4>
-                                    <div class="requirement-text">{{ $fptk->required_physical }}</div>
-                                </div>
-                            @endif
-
-                            @if ($fptk->required_mental)
-                                <div class="requirement-section">
-                                    <h4><i class="fas fa-brain"></i> Mental Requirements</h4>
-                                    <div class="requirement-text">{{ $fptk->required_mental }}</div>
-                                </div>
-                            @endif
-
-                            @if ($fptk->other_requirements)
-                                <div class="requirement-section">
-                                    <h4><i class="fas fa-plus-circle"></i> Other Requirements</h4>
-                                    <div class="requirement-text">{{ $fptk->other_requirements }}</div>
-                                </div>
-                            @endif
-                        </div>
-                    </div>
+                    @endif --}}
 
                     <!-- Recruitment Sessions -->
                     @if ($fptk->sessions->isNotEmpty())
@@ -355,7 +393,7 @@
                 <!-- Right Column -->
                 <div class="col-lg-4">
                     <!-- Approval Process -->
-                    <div class="fptk-card approval-process-card">
+                    <div class="fptk-card approval-process-card card-info card-outline elevation-3">
                         <div class="card-head">
                             <h2><i class="fas fa-stream"></i> Approval Hierarchy</h2>
                         </div>
@@ -434,7 +472,7 @@
                                 <!-- Approved By Director -->
                                 <div class="approval-step">
                                     <div class="step-icon {{ $fptk->director_approval_status }}">
-                                        <i class="fas fa-user-tie"></i>
+                                        <i class="fas fa-crown"></i>
                                     </div>
                                     <div class="step-content">
                                         <div class="step-header">
@@ -491,19 +529,87 @@
                             <i class="fas fa-arrow-left"></i> Back to List
                         </a>
 
-                        @if ($fptk->final_status == 'draft')
-                            @can('recruitment-requests.edit')
-                                <a href="{{ route('recruitment.requests.edit', $fptk->id) }}" class="btn-action edit-btn">
-                                    <i class="fas fa-edit"></i> Edit
-                                </a>
-                            @endcan
+                        @if ($fptk->final_status != 'rejected' && $fptk->final_status != 'cancelled')
+                            @if ($fptk->final_status == 'draft')
+                                @can('recruitment-requests.edit')
+                                    <a href="{{ route('recruitment.requests.edit', $fptk->id) }}"
+                                        class="btn-action edit-btn">
+                                        <i class="fas fa-edit"></i> Edit
+                                    </a>
+                                @endcan
 
-                            @can('recruitment-requests.delete')
-                                <button type="button" class="btn-action delete-btn" data-toggle="modal"
-                                    data-target="#deleteModal">
-                                    <i class="fas fa-trash"></i> Delete
-                                </button>
-                            @endcan
+                                @can('recruitment-requests.delete')
+                                    <button type="button" class="btn-action delete-btn" data-toggle="modal"
+                                        data-target="#deleteModal">
+                                        <i class="fas fa-trash"></i> Delete
+                                    </button>
+                                @endcan
+
+                                <!-- Submit button -->
+                                @can('recruitment-requests.submit')
+                                    <form action="{{ route('recruitment.requests.submit', $fptk->id) }}" method="post"
+                                        onsubmit="return confirm('Are you sure you want to submit this FPTK for approval?')">
+                                        @csrf
+                                        <button type="submit" class="btn-action submit-btn">
+                                            <i class="fas fa-paper-plane"></i> Submit for Approval
+                                        </button>
+                                    </form>
+                                @endcan
+                            @endif
+
+                            @if ($fptk->final_status == 'submitted')
+                                <!-- HR Acknowledgment button -->
+                                @if ($fptk->known_status == 'pending')
+                                    @can('recruitment-requests.acknowledge')
+                                        @if (Auth::id() == $fptk->known_by)
+                                            <a href="{{ route('recruitment.requests.acknowledge-form', $fptk->id) }}"
+                                                class="btn-action acknowledge-btn">
+                                                <i class="fas fa-user-check"></i> HR Acknowledgment
+                                            </a>
+                                        @endif
+                                    @endcan
+                                @endif
+
+                                <!-- Project Manager Approval button -->
+                                @if ($fptk->known_status == 'approved' && $fptk->pm_approval_status == 'pending')
+                                    @can('recruitment-requests.approve')
+                                        @if (Auth::id() == $fptk->approved_by_pm)
+                                            <a href="{{ route('recruitment.requests.approve-pm-form', $fptk->id) }}"
+                                                class="btn-action pm-approve-btn">
+                                                <i class="fas fa-user-shield"></i> PM Approval
+                                            </a>
+                                        @endif
+                                    @endcan
+                                @endif
+
+                                <!-- Director Approval button -->
+                                @if ($fptk->pm_approval_status == 'approved' && $fptk->director_approval_status == 'pending')
+                                    @can('recruitment-requests.approve')
+                                        @if (Auth::id() == $fptk->approved_by_director)
+                                            <a href="{{ route('recruitment.requests.approve-director-form', $fptk->id) }}"
+                                                class="btn-action director-approve-btn">
+                                                <i class="fas fa-crown"></i> Director Approval
+                                            </a>
+                                        @endif
+                                    @endcan
+                                @endif
+                            @endif
+
+                            @if ($fptk->final_status == 'approved')
+                                <!-- Assign Letter Number button -->
+                                @if (!$fptk->hasLetterNumber())
+                                    @can('recruitment-requests.assign-letter-number')
+                                        <form action="{{ route('recruitment.requests.assign-letter-number', $fptk->id) }}"
+                                            method="post"
+                                            onsubmit="return confirm('Are you sure you want to assign a letter number to this FPTK?')">
+                                            @csrf
+                                            <button type="submit" class="btn-action assign-letter-btn">
+                                                <i class="fas fa-hashtag"></i> Assign Letter Number
+                                            </button>
+                                        </form>
+                                    @endcan
+                                @endif
+                            @endif
                         @endif
 
                         <a href="{{ route('recruitment.requests.print', $fptk->id) }}" class="btn-action print-btn"
@@ -621,6 +727,11 @@
             color: #ffffff;
         }
 
+        .status-submitted {
+            background-color: #3498db;
+            color: #ffffff;
+        }
+
         .status-approved {
             background-color: #27ae60;
             color: #ffffff;
@@ -705,17 +816,6 @@
             color: #333;
         }
 
-        /* Job Description */
-        .job-description {
-            font-size: 14px;
-            line-height: 1.6;
-            color: #2c3e50;
-            background-color: #f8f9fa;
-            padding: 15px;
-            border-radius: 4px;
-            border-left: 4px solid #3498db;
-        }
-
         /* Requirements */
         .requirements-grid {
             display: grid;
@@ -760,27 +860,52 @@
             font-size: 14px;
         }
 
+        /* Section Headers */
+        .section-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .section-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 14px;
+        }
+
+        .section-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .section-content {
+            font-size: 14px;
+            line-height: 1.6;
+            color: #555;
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 6px;
+            border-left: 4px solid #3498db;
+        }
+
         .requirement-section {
             margin-bottom: 20px;
         }
 
-        .requirement-section h4 {
-            font-size: 15px;
-            color: #2c3e50;
-            margin-bottom: 8px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
+        .requirement-section:last-child {
+            margin-bottom: 0;
         }
 
-        .requirement-text {
-            font-size: 14px;
-            line-height: 1.5;
-            color: #555;
-            background-color: #f8f9fa;
-            padding: 12px;
-            border-radius: 4px;
-            border-left: 3px solid #3498db;
+        .detailed-requirements {
+            border-top: 1px solid #e9ecef;
+            padding-top: 20px;
         }
 
         /* Sessions */
@@ -1047,6 +1172,17 @@
             text-decoration: none;
             border: none;
             cursor: pointer;
+            width: 100%;
+            min-height: 44px;
+        }
+
+        /* Ensure form buttons have same width */
+        .fptk-action-buttons form {
+            width: 100%;
+        }
+
+        .fptk-action-buttons form .btn-action {
+            width: 100%;
         }
 
         .back-btn {
@@ -1141,6 +1277,120 @@
             border: none;
         }
 
+        /* Action Button Styles */
+        .btn-action.submit-btn {
+            background: linear-gradient(135deg, #ffc107, #fd7e14);
+            color: white;
+        }
+
+        .btn-action.submit-btn:hover {
+            background: linear-gradient(135deg, #e0a800, #e8590c);
+        }
+
+        .btn-action.acknowledge-btn {
+            background: linear-gradient(135deg, #17a2b8, #138496);
+            color: white;
+        }
+
+        .btn-action.acknowledge-btn:hover {
+            background: linear-gradient(135deg, #138496, #117a8b);
+        }
+
+        .btn-action.pm-approve-btn {
+            background: linear-gradient(135deg, #fd7e14, #e8590c);
+            color: white;
+        }
+
+        .btn-action.pm-approve-btn:hover {
+            background: linear-gradient(135deg, #e8590c, #d63384);
+        }
+
+        .btn-action.director-approve-btn {
+            background: linear-gradient(135deg, #28a745, #20c997);
+            color: white;
+        }
+
+        .btn-action.director-approve-btn:hover {
+            background: linear-gradient(135deg, #20c997, #17a2b8);
+        }
+
+        .btn-action.assign-letter-btn {
+            background: linear-gradient(135deg, #6f42c1, #e83e8c);
+            color: white;
+        }
+
+        .btn-action.assign-letter-btn:hover {
+            background: linear-gradient(135deg, #e83e8c, #fd7e14);
+        }
+
+        /* Ensure all buttons have consistent styling */
+        .btn-action:focus {
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.3);
+        }
+
+        .btn-action:active {
+            transform: translateY(0);
+        }
+
+        /* Button text alignment */
+        .btn-action i {
+            flex-shrink: 0;
+        }
+
+        .btn-action span {
+            flex: 1;
+            text-align: center;
+        }
+
+        /* Modal Styles */
+        .custom-modal .modal-content {
+            border-radius: 10px;
+            border: none;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .custom-modal .modal-header {
+            border-bottom: 1px solid #e9ecef;
+            padding: 20px;
+        }
+
+        .custom-modal .modal-title {
+            color: #2c3e50;
+            font-weight: 600;
+        }
+
+        .custom-modal .modal-body {
+            padding: 30px 20px;
+            text-align: center;
+        }
+
+        .delete-icon {
+            text-align: center;
+            font-size: 48px;
+            margin-bottom: 15px;
+            color: #e74c3c;
+        }
+
+        .delete-message {
+            font-size: 16px;
+            color: #2c3e50;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .delete-warning {
+            font-size: 13px;
+            color: #e74c3c;
+            text-align: center;
+        }
+
+        .custom-modal .modal-footer {
+            border-top: 1px solid #e9ecef;
+            padding: 20px;
+            justify-content: center;
+        }
+
         /* Responsive Adjustments */
         @media (max-width: 992px) {
             .info-grid {
@@ -1233,3 +1483,40 @@
         }
     </style>
 @endsection
+
+<!-- Delete Modal -->
+@if ($fptk->final_status == 'draft')
+    <div class="modal fade custom-modal" id="deleteModal" tabindex="-1" role="dialog"
+        aria-labelledby="deleteModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="deleteModalLabel">Delete FPTK</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="delete-icon">
+                        <i class="fas fa-exclamation-triangle"></i>
+                    </div>
+                    <div class="delete-message">
+                        Are you sure you want to delete this FPTK?
+                    </div>
+                    <div class="delete-warning">
+                        This action cannot be undone. All data will be permanently removed.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                    <form action="{{ route('recruitment.requests.destroy', $fptk->id) }}" method="POST"
+                        class="d-inline">
+                        @csrf
+                        @method('DELETE')
+                        <button type="submit" class="btn-confirm-delete">Delete FPTK</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+@endif

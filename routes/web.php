@@ -350,6 +350,16 @@ Route::group(['middleware' => ['auth']], function () {
 
             // FPTK Actions
             Route::post('/{id}/submit', [RecruitmentRequestController::class, 'submit'])->name('submit');
+
+            // Approval Routes - New 3-level approval system
+            Route::get('/{id}/acknowledge', [RecruitmentRequestController::class, 'showAcknowledgmentForm'])->name('acknowledge-form');
+            Route::post('/{id}/acknowledge', [RecruitmentRequestController::class, 'acknowledge'])->name('acknowledge');
+            Route::get('/{id}/approve-pm', [RecruitmentRequestController::class, 'showPMApprovalForm'])->name('approve-pm-form');
+            Route::post('/{id}/approve-pm', [RecruitmentRequestController::class, 'approveByPM'])->name('approve-pm');
+            Route::get('/{id}/approve-director', [RecruitmentRequestController::class, 'showDirectorApprovalForm'])->name('approve-director-form');
+            Route::post('/{id}/approve-director', [RecruitmentRequestController::class, 'approveByDirector'])->name('approve-director');
+
+            // Legacy approval routes (kept for backward compatibility)
             Route::post('/{id}/approve', [RecruitmentRequestController::class, 'approve'])->name('approve');
             Route::post('/{id}/reject', [RecruitmentRequestController::class, 'reject'])->name('reject');
             Route::post('/{id}/assign-letter-number', [RecruitmentRequestController::class, 'assignLetterNumber'])->name('assign-letter-number');

@@ -46,7 +46,18 @@ class RecruitmentRequest extends Model
         'known_at',
         'known_remark',
         'known_timestamps',
-
+        // Project Manager Approval fields
+        'approved_by_pm',
+        'pm_approval_status',
+        'pm_approved_at',
+        'pm_approval_remark',
+        'pm_approval_timestamps',
+        // Director Approval fields
+        'approved_by_director',
+        'director_approval_status',
+        'director_approved_at',
+        'director_approval_remark',
+        'director_approval_timestamps',
     ];
 
     protected $casts = [
@@ -58,7 +69,12 @@ class RecruitmentRequest extends Model
         // HR Acknowledgment casts
         'known_at' => 'datetime',
         'known_timestamps' => 'datetime',
-
+        // Project Manager Approval casts
+        'pm_approved_at' => 'datetime',
+        'pm_approval_timestamps' => 'datetime',
+        // Director Approval casts
+        'director_approved_at' => 'datetime',
+        'director_approval_timestamps' => 'datetime',
     ];
 
     protected $dates = [
@@ -69,7 +85,12 @@ class RecruitmentRequest extends Model
         // HR Acknowledgment dates
         'known_at',
         'known_timestamps',
-
+        // Project Manager Approval dates
+        'pm_approved_at',
+        'pm_approval_timestamps',
+        // Director Approval dates
+        'director_approved_at',
+        'director_approval_timestamps',
     ];
 
     // Enums for validation
@@ -169,12 +190,12 @@ class RecruitmentRequest extends Model
 
     public function scopeApproved($query)
     {
-        return $query->where('status', 'approved');
+        return $query->where('final_status', 'approved');
     }
 
     public function scopeOpen($query)
     {
-        return $query->where('status', 'approved')
+        return $query->where('final_status', 'approved')
             ->whereRaw('positions_filled < required_qty');
     }
 
@@ -193,7 +214,7 @@ class RecruitmentRequest extends Model
      */
     public function getIsOpenAttribute()
     {
-        return $this->status === 'approved' && $this->positions_filled < $this->required_qty;
+        return $this->final_status === 'approved' && $this->positions_filled < $this->required_qty;
     }
 
     public function getRemainingPositionsAttribute()
@@ -220,7 +241,7 @@ class RecruitmentRequest extends Model
      */
     public function canReceiveApplications()
     {
-        return $this->status === 'approved' && $this->positions_filled < $this->required_qty;
+        return $this->final_status === 'approved' && $this->positions_filled < $this->required_qty;
     }
 
     public function incrementPositionsFilled()
@@ -229,7 +250,7 @@ class RecruitmentRequest extends Model
 
         // Auto-close if all positions filled
         if ($this->positions_filled >= $this->required_qty) {
-            $this->update(['status' => 'closed']);
+            $this->update(['final_status' => 'closed']);
         }
     }
 
@@ -239,8 +260,8 @@ class RecruitmentRequest extends Model
             $this->decrement('positions_filled');
 
             // Reopen if was closed and now has available positions
-            if ($this->status === 'closed' && $this->positions_filled < $this->required_qty) {
-                $this->update(['status' => 'approved']);
+            if ($this->final_status === 'closed' && $this->positions_filled < $this->required_qty) {
+                $this->update(['final_status' => 'approved']);
             }
         }
     }
@@ -252,26 +273,19 @@ class RecruitmentRequest extends Model
             try {
                 $this->assignFPTKLetterNumber();
             } catch (\Exception $e) {
-
                 Log::error('Failed to assign letter number to FPTK: ' . $e->getMessage());
             }
         }
 
         $this->update([
-            'status' => 'approved',
-            'approved_by' => $approverId,
-            'approved_at' => now(),
-            'rejection_reason' => null,
+            'final_status' => 'approved',
         ]);
     }
 
     public function reject($approverId, $reason)
     {
         $this->update([
-            'status' => 'rejected',
-            'approved_by' => $approverId,
-            'approved_at' => now(),
-            'rejection_reason' => $reason,
+            'final_status' => 'rejected',
         ]);
     }
 
@@ -306,7 +320,7 @@ class RecruitmentRequest extends Model
             'subject_id' => null, // FPTK tidak memerlukan subject
             'administration_id' => null, // FPTK tidak terkait dengan employee
             'project_id' => $this->project_id,
-            'user_id' => $this->requested_by,
+            'user_id' => $this->created_by,
             'is_active' => 1,
         ]);
 

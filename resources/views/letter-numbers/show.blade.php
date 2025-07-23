@@ -280,6 +280,13 @@
                                             );
                                             $documentName = 'Official Travel Letter';
                                             break;
+                                        case 'recruitment_request':
+                                            $documentLink = route(
+                                                'recruitment.requests.show',
+                                                $letterNumber->related_document_id,
+                                            );
+                                            $documentName = 'Recruitment Request';
+                                            break;
                                     }
                                 @endphp
 
