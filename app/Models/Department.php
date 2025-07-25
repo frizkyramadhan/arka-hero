@@ -20,4 +20,12 @@ class Department extends Model
     {
         return $this->hasManyThrough(Administration::class, Position::class);
     }
+
+    /**
+     * Get the users that belong to the department.
+     */
+    public function users()
+    {
+        return $this->belongsToMany(User::class, 'user_department');
+    }
 }

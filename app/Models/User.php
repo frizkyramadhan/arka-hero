@@ -50,4 +50,20 @@ class User extends Authenticatable
     {
         return $this->hasMany(Employee::class);
     }
+
+    /**
+     * Get the projects that belong to the user.
+     */
+    public function projects()
+    {
+        return $this->belongsToMany(Project::class, 'user_project');
+    }
+
+    /**
+     * Get the departments that belong to the user.
+     */
+    public function departments()
+    {
+        return $this->belongsToMany(Department::class, 'user_department');
+    }
 }

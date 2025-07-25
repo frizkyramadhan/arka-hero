@@ -43,6 +43,25 @@
                                     @endif
                                 </dd>
 
+                                <dt class="col-sm-3">Projects</dt>
+                                <dd class="col-sm-9">
+                                    @forelse($user->projects as $project)
+                                        <span class="badge badge-primary mr-1">{{ $project->project_code }} :
+                                            {{ $project->project_name }}</span>
+                                    @empty
+                                        <span class="text-muted">No projects assigned</span>
+                                    @endforelse
+                                </dd>
+
+                                <dt class="col-sm-3">Departments</dt>
+                                <dd class="col-sm-9">
+                                    @forelse($user->departments as $department)
+                                        <span class="badge badge-warning mr-1">{{ $department->department_name }}</span>
+                                    @empty
+                                        <span class="text-muted">No departments assigned</span>
+                                    @endforelse
+                                </dd>
+
                                 <dt class="col-sm-3">Roles</dt>
                                 <dd class="col-sm-9">
                                     @forelse($user->roles as $role)
@@ -78,7 +97,8 @@
                             </div>
                         </div>
                         <div class="card-footer text-right">
-                            <a href="{{ route('users.index') }}" class="btn btn-secondary"><i class="fas fa-arrow-left"></i>
+                            <a href="{{ route('users.index') }}" class="btn btn-secondary"><i
+                                    class="fas fa-arrow-left"></i>
                                 Back</a>
                             <a href="{{ route('users.edit', $user->id) }}" class="btn btn-warning"><i
                                     class="fas fa-edit"></i> Edit</a>

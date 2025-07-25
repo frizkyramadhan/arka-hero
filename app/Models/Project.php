@@ -16,4 +16,12 @@ class Project extends Model
     {
         return $this->hasMany(Administration::class);
     }
+
+    /**
+     * Get the users that belong to the project.
+     */
+    public function users()
+    {
+        return $this->belongsToMany(User::class, 'user_project');
+    }
 }

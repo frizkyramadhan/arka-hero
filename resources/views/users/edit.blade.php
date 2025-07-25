@@ -71,6 +71,46 @@
                                     @enderror
                                 </div>
                                 <div class="form-group">
+                                    <label>Projects</label>
+                                    <div class="row">
+                                        @foreach ($projects as $project)
+                                            <div class="col-md-6">
+                                                <div class="form-check mb-2">
+                                                    <input class="form-check-input" type="checkbox" name="projects[]"
+                                                        id="project_{{ $project->id }}" value="{{ $project->id }}"
+                                                        {{ is_array(old('projects', $userProjectIds)) && in_array($project->id, old('projects', $userProjectIds)) ? 'checked' : '' }}>
+                                                    <label class="form-check-label"
+                                                        for="project_{{ $project->id }}">{{ $project->project_code }} :
+                                                        {{ $project->project_name }}</label>
+                                                </div>
+                                            </div>
+                                        @endforeach
+                                    </div>
+                                    @error('projects')
+                                        <div class="text-danger">{{ $message }}</div>
+                                    @enderror
+                                </div>
+                                <div class="form-group">
+                                    <label>Departments</label>
+                                    <div class="row">
+                                        @foreach ($departments as $department)
+                                            <div class="col-md-6">
+                                                <div class="form-check mb-2">
+                                                    <input class="form-check-input" type="checkbox" name="departments[]"
+                                                        id="department_{{ $department->id }}"
+                                                        value="{{ $department->id }}"
+                                                        {{ is_array(old('departments', $userDepartmentIds)) && in_array($department->id, old('departments', $userDepartmentIds)) ? 'checked' : '' }}>
+                                                    <label class="form-check-label"
+                                                        for="department_{{ $department->id }}">{{ $department->department_name }}</label>
+                                                </div>
+                                            </div>
+                                        @endforeach
+                                    </div>
+                                    @error('departments')
+                                        <div class="text-danger">{{ $message }}</div>
+                                    @enderror
+                                </div>
+                                <div class="form-group">
                                     <label>Roles</label>
                                     <div class="row">
                                         @php
