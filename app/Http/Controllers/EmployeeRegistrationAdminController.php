@@ -168,17 +168,8 @@ class EmployeeRegistrationAdminController extends Controller
                 'reviewed_at' => now()
             ]);
 
-            // Integrate with approval system if available
-            if ($registration->approval) {
-                // Process approval action through approval system
-                $approvalEngine = app(\App\Services\ApprovalEngineService::class);
-                $approvalEngine->processApproval(
-                    $registration->approval->id,
-                    Auth::id(),
-                    'approve',
-                    $request->admin_notes
-                );
-            }
+            // TODO: Integrate with approval system if needed
+            // Approval system integration removed
 
             // TODO: Create actual employee record from registration data
             // $this->createEmployeeFromRegistration($registration);
@@ -212,17 +203,8 @@ class EmployeeRegistrationAdminController extends Controller
                 'reviewed_at' => now()
             ]);
 
-            // Integrate with approval system if available
-            if ($registration->approval) {
-                // Process rejection action through approval system
-                $approvalEngine = app(\App\Services\ApprovalEngineService::class);
-                $approvalEngine->processApproval(
-                    $registration->approval->id,
-                    Auth::id(),
-                    'reject',
-                    $request->admin_notes
-                );
-            }
+            // TODO: Integrate with approval system if needed
+            // Approval system integration removed
 
             DB::commit();
 
