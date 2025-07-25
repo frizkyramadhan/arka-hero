@@ -69,14 +69,6 @@ class RoleAndPermissionSeeder extends Seeder
             'master-data.create',
             'master-data.edit',
             'master-data.delete',
-
-            // Project Based Permissions
-            'project.000h',
-            'project.001h',
-            'project.017c',
-            'project.021c',
-            'project.022c',
-            'project.023c',
         ];
 
         // Create permissions if they don't exist

@@ -93,6 +93,8 @@
                                                 <th style="width: 5%" class="text-center">No</th>
                                                 <th>Name</th>
                                                 <th>Email</th>
+                                                <th>Projects</th>
+                                                <th>Departments</th>
                                                 <th>Roles</th>
                                                 <th style="width: 10%" class="text-center">Status</th>
                                                 <th style="width: 15%" class="text-center">Action</th>
@@ -239,6 +241,16 @@
                     {
                         data: "email",
                         name: "email",
+                        orderable: false,
+                    },
+                    {
+                        data: "projects",
+                        name: "projects",
+                        orderable: false,
+                    },
+                    {
+                        data: "departments",
+                        name: "departments",
                         orderable: false,
                     },
                     {

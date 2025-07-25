@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Models\Project;
+use App\Models\Department;
 use Illuminate\Support\Arr;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
@@ -60,6 +62,8 @@ class UserController extends Controller
         $title = 'Users';
         $subtitle = 'List of Users';
         $roles = Role::orderBy('name', 'asc')->get();
+        $projects = Project::where('project_status', 1)->orderBy('project_code', 'asc')->get();
+        $departments = Department::where('department_status', 1)->orderBy('department_name', 'asc')->get();
         $stats = [
             'users' => User::count(),
             'roles' => Role::count(),
@@ -67,12 +71,12 @@ class UserController extends Controller
         ];
         $rolesSummary = Role::withCount('users', 'permissions')->orderBy('name', 'asc')->get();
         $permissionsSummary = Permission::withCount('roles')->orderBy('name', 'asc')->get();
-        return view('users.index', compact('title', 'subtitle', 'roles', 'stats', 'rolesSummary', 'permissionsSummary'));
+        return view('users.index', compact('title', 'subtitle', 'roles', 'projects', 'departments', 'stats', 'rolesSummary', 'permissionsSummary'));
     }
 
     public function getUserDetails($id)
     {
-        $user = User::with(['roles'])->findOrFail($id);
+        $user = User::with(['roles', 'projects', 'departments'])->findOrFail($id);
         $permissions = $user->getAllPermissions()->groupBy(function ($permission) {
             return explode('.', $permission->name)[0];
         });
@@ -85,7 +89,7 @@ class UserController extends Controller
 
     public function getUsers(Request $request)
     {
-        $users = User::with('roles')->orderBy('name', 'asc');
+        $users = User::with(['roles', 'projects', 'departments'])->orderBy('name', 'asc');
         $roles = Role::orderBy('name', 'asc')->get();
 
         return datatables()->of($users)
@@ -105,6 +109,22 @@ class UserController extends Controller
                 }
                 return $html;
             })
+            ->addColumn('projects', function ($model) {
+                $projects = $model->projects->pluck('project_name', 'project_code');
+                $html = '';
+                foreach ($projects as $projectCode => $projectName) {
+                    $html .= '<span class="badge badge-info mr-1">' . $projectCode . ' : ' . $projectName . '</span>';
+                }
+                return $html;
+            })
+            ->addColumn('departments', function ($model) {
+                $departments = $model->departments->pluck('department_name');
+                $html = '';
+                foreach ($departments as $department) {
+                    $html .= '<span class="badge badge-warning mr-1">' . $department . '</span>';
+                }
+                return $html;
+            })
             ->addColumn('user_status', function ($model) {
                 $statusClass = $model->user_status == '1' ? 'badge-success' : 'badge-danger';
                 $statusText = $model->user_status == '1' ? 'Active' : 'Inactive';
@@ -116,6 +136,14 @@ class UserController extends Controller
                         $search = $request->get('search');
                         $w->orWhere('name', 'LIKE', "%$search%")
                             ->orWhere('email', 'LIKE', "%$search%")
+                            ->orWhereHas('projects', function ($q) use ($search) {
+                                $q->where('project_code', 'LIKE', "%$search%")
+                                    ->orWhere('project_name', 'LIKE', "%$search%");
+                            })
+                            ->orWhereHas('departments', function ($q) use ($search) {
+                                $q->where('department_name', 'LIKE', "%$search%")
+                                    ->orWhere('slug', 'LIKE', "%$search%");
+                            })
                             ->orWhereHas('roles', function ($q) use ($search) {
                                 $q->where('name', 'LIKE', "%$search%");
                             });
@@ -125,7 +153,7 @@ class UserController extends Controller
             ->addColumn('action', function ($model) use ($roles) {
                 return view('users.action', compact('model', 'roles'))->render();
             })
-            ->rawColumns(['roles', 'user_status', 'action'])
+            ->rawColumns(['roles', 'projects', 'departments', 'user_status', 'action'])
             ->toJson();
     }
 
@@ -137,8 +165,10 @@ class UserController extends Controller
     public function create()
     {
         $roles = Role::with('permissions')->orderBy('name', 'asc')->get();
+        $projects = Project::where('project_status', 1)->orderBy('project_code', 'asc')->get();
+        $departments = Department::where('department_status', 1)->orderBy('department_name', 'asc')->get();
         $title = 'Create User';
-        return view('users.create', compact('roles', 'title'));
+        return view('users.create', compact('roles', 'projects', 'departments', 'title'));
     }
 
     /**
@@ -156,6 +186,8 @@ class UserController extends Controller
                 'password' => 'required|min:5',
                 'user_status' => 'required',
                 'roles' => 'required|array|min:1',
+                'projects' => 'nullable|array',
+                'departments' => 'nullable|array',
             ], [
                 'name.required' => 'Name is required',
                 'email.required' => 'Email is required',
@@ -187,6 +219,15 @@ class UserController extends Controller
 
             $user->syncRoles($request->roles);
 
+            // Sync projects and departments
+            if ($request->has('projects')) {
+                $user->projects()->sync($request->projects);
+            }
+
+            if ($request->has('departments')) {
+                $user->departments()->sync($request->departments);
+            }
+
             DB::commit();
 
             return redirect('users')->with('toast_success', 'User added successfully!');
@@ -210,12 +251,14 @@ class UserController extends Controller
      */
     public function show($id)
     {
-        $user = User::with('roles')->findOrFail($id);
+        $user = User::with(['roles', 'projects', 'departments'])->findOrFail($id);
         $roles = Role::with('permissions')->orderBy('name', 'asc')->get();
+        $projects = Project::where('project_status', 1)->orderBy('project_code', 'asc')->get();
+        $departments = Department::where('department_status', 1)->orderBy('department_name', 'asc')->get();
         // Permissions yang didapat user (dari role dan direct)
         $permissions = $user->getAllPermissions();
         $title = 'User Details';
-        return view('users.show', compact('user', 'roles', 'permissions', 'title'));
+        return view('users.show', compact('user', 'roles', 'projects', 'departments', 'permissions', 'title'));
     }
 
     /**
@@ -226,11 +269,15 @@ class UserController extends Controller
      */
     public function edit($id)
     {
-        $user = User::with('roles')->findOrFail($id);
+        $user = User::with(['roles', 'projects', 'departments'])->findOrFail($id);
         $roles = Role::with('permissions')->orderBy('name', 'asc')->get();
+        $projects = Project::where('project_status', 1)->orderBy('project_code', 'asc')->get();
+        $departments = Department::where('department_status', 1)->orderBy('department_name', 'asc')->get();
         $userRoleNames = $user->roles->pluck('name')->toArray();
+        $userProjectIds = $user->projects->pluck('id')->toArray();
+        $userDepartmentIds = $user->departments->pluck('id')->toArray();
         $title = 'Edit User';
-        return view('users.edit', compact('user', 'roles', 'userRoleNames', 'title'));
+        return view('users.edit', compact('user', 'roles', 'projects', 'departments', 'userRoleNames', 'userProjectIds', 'userDepartmentIds', 'title'));
     }
 
     /**
@@ -247,7 +294,9 @@ class UserController extends Controller
                 'name' => 'required',
                 'email' => 'required|email:dns|ends_with:@arka.co.id|unique:users,email,' . $id,
                 'roles' => 'required|array|min:1',
-                'user_status' => 'required'
+                'user_status' => 'required',
+                'projects' => 'nullable|array',
+                'departments' => 'nullable|array',
             ], [
                 'name.required' => 'Name is required',
                 'email.required' => 'Email is required',
@@ -284,6 +333,19 @@ class UserController extends Controller
 
             $user->update($input);
             $user->syncRoles($request->roles);
+
+            // Sync projects and departments
+            if ($request->has('projects')) {
+                $user->projects()->sync($request->projects);
+            } else {
+                $user->projects()->detach();
+            }
+
+            if ($request->has('departments')) {
+                $user->departments()->sync($request->departments);
+            } else {
+                $user->departments()->detach();
+            }
 
             DB::commit();
 
