@@ -482,16 +482,28 @@ class RecruitmentRequestController extends Controller
     {
         $fptk = RecruitmentRequest::findOrFail($id);
 
-        if ($fptk->final_status !== 'draft') {
+        if ($fptk->status !== 'draft') {
             return redirect()->route('recruitment.requests.show', $id)
                 ->with('toast_error', 'FPTK hanya dapat disubmit dalam status draft.');
         }
 
         try {
-            $fptk->update(['final_status' => 'submitted']);
+            // Create approval plans using new system
+            $approvalPlanController = new \App\Http\Controllers\ApprovalPlanController();
+            $result = $approvalPlanController->create_approval_plan('recruitment_request', $fptk->id);
 
-            return redirect()->route('recruitment.requests.show', $fptk->id)
-                ->with('toast_success', 'FPTK berhasil disubmit untuk persetujuan.');
+            if ($result) {
+                // Update status to submitted
+                $fptk->update([
+                    'status' => 'submitted',
+                    'submit_at' => now(),
+                ]);
+
+                return redirect()->route('recruitment.requests.show', $fptk->id)
+                    ->with('toast_success', 'FPTK berhasil disubmit untuk persetujuan. ' . $result . ' approver(s) akan meninjau permintaan Anda.');
+            } else {
+                return redirect()->back()->with('toast_error', 'Tidak ada approver yang ditemukan untuk dokumen ini. Silakan hubungi administrator untuk mengkonfigurasi approval stages.');
+            }
         } catch (Exception $e) {
             Log::error('Error submitting FPTK: ' . $e->getMessage());
 

@@ -113,27 +113,12 @@
                                                             name="status">
                                                             <option value="">- All -</option>
                                                             <option value="draft">Draft</option>
-                                                            <option value="open">Open</option>
+                                                            <option value="submitted">Submitted</option>
+                                                            <option value="approved">Approved</option>
+                                                            <option value="rejected">Rejected</option>
                                                             <option value="closed">Closed</option>
                                                             <option value="canceled">Canceled</option>
                                                         </select>
-                                                    </div>
-                                                </div>
-                                                <div class="col-md-3">
-                                                    <div class="form-group">
-                                                        <label>Recommendation</label>
-                                                        <select class="form-control select2bs4" id="recommendation"
-                                                            name="recommendation">
-                                                            <option value="">- All -</option>
-                                                            <option value="pending">Pending</option>
-                                                            <option value="approved">Approved</option>
-                                                            <option value="rejected">Rejected</option>
-                                                        </select>
-                                                    </div>
-                                                </div>
-                                                <div class="col-md-3">
-                                                    <div class="form-group">
-
                                                     </div>
                                                 </div>
                                                 <div class="col-md-3">
@@ -161,7 +146,6 @@
                                                 <th>Project</th>
                                                 <th>Destination</th>
                                                 <th>Status</th>
-                                                <th>Recommendation</th>
                                                 <th>Creator</th>
                                                 <th class="text-center">Action</th>
                                             </tr>
@@ -237,7 +221,6 @@
                             d.fullname = $('#fullname').val(),
                             d.project = $('#project').val(),
                             d.status = $('#status').val(),
-                            d.recommendation = $('#recommendation').val(),
 
                             d.search = $("input[type=search][aria-controls=officialtravel-table]").val()
                     }
@@ -274,12 +257,6 @@
                     {
                         data: 'status',
                         name: 'status',
-                        orderable: false,
-                        className: 'text-center'
-                    },
-                    {
-                        data: 'recommendation',
-                        name: 'recommendation',
                         orderable: false,
                         className: 'text-center'
                     },

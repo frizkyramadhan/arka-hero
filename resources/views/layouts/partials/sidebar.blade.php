@@ -155,6 +155,31 @@
                     </li>
                 @endcanany
 
+                <li class="nav-item">
+                    <a href="{{ route('approval.requests.index') }}"
+                        class="nav-link {{ Request::is('approval/requests*') ? 'active' : '' }}">
+                        <i class="nav-icon fas fa-check-circle"></i>
+                        <p>
+                            Approval Requests
+                            @php
+                                $pendingApprovals = cache()->remember(
+                                    'pending_approvals_' . auth()->id(),
+                                    60,
+                                    function () {
+                                        return \App\Models\ApprovalPlan::where('approver_id', auth()->id())
+                                            ->where('is_open', true)
+                                            ->where('status', 0)
+                                            ->count();
+                                    },
+                                );
+                            @endphp
+                            @if ($pendingApprovals > 0)
+                                <span class="badge badge-warning ml-1 approval-badge">{{ $pendingApprovals }}</span>
+                            @endif
+                        </p>
+                    </a>
+                </li>
+
                 @canany(['master-data.show'])
                     {{-- MASTER DATA --}}
                     <li class="nav-header">MASTER DATA</li>
@@ -416,6 +441,13 @@
                             class="nav-link {{ Request::is('permissions*') ? 'active' : '' }}">
                             <i class="nav-icon fas fa-user-lock"></i>
                             <p>Permissions</p>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{{ route('approval.stages.index') }}"
+                            class="nav-link {{ Request::is('approval/stages*') ? 'active' : '' }}">
+                            <i class="nav-icon fas fa-layer-group"></i>
+                            <p>Approval Stages</p>
                         </a>
                     </li>
                 @endcanany

@@ -9,12 +9,38 @@
                 <div class="travel-date">
                     <i class="far fa-calendar-alt"></i> {{ date('d F Y', strtotime($officialtravel->official_travel_date)) }}
                 </div>
-                <div
-                    class="travel-status-pill {{ $officialtravel->official_travel_status == 'draft' ? 'status-draft' : ($officialtravel->official_travel_status == 'open' ? 'status-open' : ($officialtravel->official_travel_status == 'canceled' ? 'status-canceled' : 'status-closed')) }}">
-                    <i
-                        class="fas {{ $officialtravel->official_travel_status == 'draft' ? 'fa-edit' : ($officialtravel->official_travel_status == 'open' ? 'fa-plane' : ($officialtravel->official_travel_status == 'canceled' ? 'fa-times-circle' : 'fa-check-circle')) }}"></i>
-                    {{ ucfirst($officialtravel->official_travel_status) }}
-
+                @php
+                    $statusMap = [
+                        'draft' => ['label' => 'Draft', 'class' => 'badge badge-secondary', 'icon' => 'fa-edit'],
+                        'submitted' => [
+                            'label' => 'Submitted',
+                            'class' => 'badge badge-info',
+                            'icon' => 'fa-paper-plane',
+                        ],
+                        'approved' => ['label' => 'Open', 'class' => 'badge badge-success', 'icon' => 'fa-plane'],
+                        'rejected' => [
+                            'label' => 'Rejected',
+                            'class' => 'badge badge-danger',
+                            'icon' => 'fa-times-circle',
+                        ],
+                        'closed' => [
+                            'label' => 'Closed',
+                            'class' => 'badge badge-primary',
+                            'icon' => 'fa-check-circle',
+                        ],
+                        'cancelled' => ['label' => 'Cancelled', 'class' => 'badge badge-warning', 'icon' => 'fa-ban'],
+                    ];
+                    $status = $officialtravel->status;
+                    $pill = $statusMap[$status] ?? [
+                        'label' => ucfirst($status),
+                        'class' => 'badge badge-secondary',
+                        'icon' => 'fa-question-circle',
+                    ];
+                @endphp
+                <div class="travel-status-pill">
+                    <span class="{{ $pill['class'] }}">
+                        <i class="fas {{ $pill['icon'] }}"></i> {{ $pill['label'] }}
+                    </span>
                 </div>
             </div>
         </div>
@@ -189,33 +215,70 @@
 
                 <!-- Right Column -->
                 <div class="col-lg-4">
-                    <!-- Recommendation & Approval Card -->
+                    <!-- Approval Status Card -->
                     <div class="card card-info card-outline elevation-3">
                         <div class="card-header">
                             <h3 class="card-title">
-                                <i class="fas fa-user-check mr-2"></i>
-                                <strong>Recommendation & Approval</strong>
+                                <i class="fas fa-clipboard-check mr-2"></i>
+                                <strong>Approval Status</strong>
                             </h3>
                         </div>
                         <div class="card-body">
-                            <div class="form-group">
-                                <label><strong>Recommender:</strong></label>
-                                <p>{{ $officialtravel->recommender->name ?? 'Not assigned' }}</p>
-                                <label><strong>Status:</strong></label>
-                                <span
-                                    class="badge badge-{{ $officialtravel->recommendation_status == 'approved' ? 'success' : ($officialtravel->recommendation_status == 'rejected' ? 'danger' : 'warning') }}">
-                                    {{ ucfirst($officialtravel->recommendation_status ?? 'pending') }}
-                                </span>
-                            </div>
-                            <div class="form-group">
-                                <label><strong>Approver:</strong></label>
-                                <p>{{ $officialtravel->approver->name ?? 'Not assigned' }}</p>
-                                <label><strong>Status:</strong></label>
-                                <span
-                                    class="badge badge-{{ $officialtravel->approval_status == 'approved' ? 'success' : ($officialtravel->approval_status == 'rejected' ? 'danger' : 'warning') }}">
-                                    {{ ucfirst($officialtravel->approval_status ?? 'pending') }}
-                                </span>
-                            </div>
+                            @php
+                                $approvalPlans = \App\Models\ApprovalPlan::with(['approver'])
+                                    ->where('document_type', 'officialtravel')
+                                    ->where('document_id', $officialtravel->id)
+                                    ->orderBy('id', 'asc')
+                                    ->get();
+                            @endphp
+
+                            @if ($approvalPlans->count() > 0)
+                                <div class="approval-flow">
+                                    @foreach ($approvalPlans as $index => $plan)
+                                        <div class="approval-step mb-3">
+                                            <div class="d-flex align-items-center mb-2">
+                                                <span class="badge badge-primary mr-2">{{ $index + 1 }}</span>
+                                                <div class="flex-grow-1">
+                                                    <strong>{{ $plan->approver->name ?? 'Unknown' }}</strong>
+                                                    <small class="text-muted d-block">
+                                                        @if ($plan->approver && $plan->approver->departments->first())
+                                                            {{ $plan->approver->departments->first()->department_name }}
+                                                        @else
+                                                            No Department
+                                                        @endif
+                                                    </small>
+                                                </div>
+                                                <span
+                                                    class="badge badge-{{ $plan->status == 1 ? 'success' : ($plan->status == 2 ? 'danger' : 'warning') }}">
+                                                    {{ $plan->status == 1 ? 'Approved' : ($plan->status == 2 ? 'Rejected' : 'Pending') }}
+                                                </span>
+                                            </div>
+
+                                            @if ($plan->status != 0 && $plan->remarks)
+                                                <div class="approval-remark">
+                                                    <small class="text-muted">
+                                                        <i class="fas fa-comment"></i> {{ $plan->remarks }}
+                                                    </small>
+                                                </div>
+                                            @endif
+
+                                            @if ($plan->status != 0 && $plan->updated_at)
+                                                <div class="approval-time">
+                                                    <small class="text-muted">
+                                                        <i class="fas fa-clock"></i>
+                                                        {{ $plan->updated_at->format('d/m/Y H:i') }}
+                                                    </small>
+                                                </div>
+                                            @endif
+                                        </div>
+                                    @endforeach
+                                </div>
+                            @else
+                                <div class="text-center text-muted py-3">
+                                    <i class="fas fa-info-circle"></i>
+                                    <div class="mt-2">No approval flow configured</div>
+                                </div>
+                            @endif
                         </div>
                     </div>
 
@@ -225,8 +288,8 @@
                             <i class="fas fa-arrow-left"></i> Back to List
                         </a>
 
-                        @if ($officialtravel->official_travel_status != 'canceled')
-                            @if ($officialtravel->official_travel_status == 'draft')
+                        @if ($officialtravel->status != 'canceled')
+                            @if ($officialtravel->status == 'draft')
                                 @can('official-travels.edit')
                                     <a href="{{ route('officialtravels.edit', $officialtravel->id) }}"
                                         class="btn-action edit-btn">
@@ -241,7 +304,15 @@
                                     </button>
                                 @endcan
 
-                                <!-- Recommend button -->
+                                <!-- Submit for Approval button (New Approval System) -->
+                                @if ($officialtravel->status == 'draft')
+                                    <button type="button" class="btn-action submit-btn" data-toggle="modal"
+                                        data-target="#submitModal">
+                                        <i class="fas fa-paper-plane"></i> Submit for Approval
+                                    </button>
+                                @endif
+
+                                {{-- <!-- Recommend button (Legacy System) -->
                                 @if ($officialtravel->recommendation_status == 'pending')
                                     @can('official-travels.recommend')
                                         @if (Auth::id() == $officialtravel->recommendation_by)
@@ -253,7 +324,7 @@
                                     @endcan
                                 @endif
 
-                                <!-- Approve button -->
+                                <!-- Approve button (Legacy System) -->
                                 @if ($officialtravel->recommendation_status == 'approved' && $officialtravel->approval_status == 'pending')
                                     @can('official-travels.approve')
                                         @if (Auth::id() == $officialtravel->approval_by)
@@ -263,14 +334,10 @@
                                             </a>
                                         @endif
                                     @endcan
-                                @endif
+                                @endif --}}
                             @endif
 
-
-
-
-
-                            @if ($officialtravel->official_travel_status == 'open')
+                            @if ($officialtravel->status == 'approved')
                                 @can('official-travels.stamp')
                                     @if (!$officialtravel->arrival_check_by)
                                         <a href="{{ route('officialtravels.showArrivalForm', $officialtravel->id) }}"
@@ -303,7 +370,7 @@
     </div>
 
     <!-- Delete Modal -->
-    @if ($officialtravel->official_travel_status == 'draft')
+    @if ($officialtravel->status == 'draft')
         <div class="modal fade custom-modal" id="deleteModal" tabindex="-1" role="dialog"
             aria-labelledby="deleteModalLabel" aria-hidden="true">
             <div class="modal-dialog" role="document">
@@ -336,10 +403,7 @@
     @endif
 
     <!-- Close Modal -->
-    @if (
-        $officialtravel->official_travel_status == 'open' &&
-            $officialtravel->arrival_check_by &&
-            $officialtravel->departure_check_by)
+    @if ($officialtravel->status == 'approved' && $officialtravel->arrival_check_by && $officialtravel->departure_check_by)
         <div class="modal fade custom-modal" id="closeModal" tabindex="-1" role="dialog"
             aria-labelledby="closeModalLabel" aria-hidden="true">
             <div class="modal-dialog" role="document">
@@ -424,33 +488,16 @@
             position: absolute;
             top: 20px;
             right: 20px;
-            padding: 6px 12px;
-            border-radius: 4px;
+        }
+
+        .travel-status-pill .badge {
+            font-size: 0.875rem;
+            padding: 0.5rem 0.75rem;
+            border-radius: 0.375rem;
             font-weight: 500;
-            display: flex;
+            display: inline-flex;
             align-items: center;
-            gap: 6px;
-            font-size: 13px;
-        }
-
-        .status-draft {
-            background-color: #f1c40f;
-            color: #000000;
-        }
-
-        .status-open {
-            background-color: #3498db;
-            color: #ffffff;
-        }
-
-        .status-closed {
-            background-color: #27ae60;
-            color: #ffffff;
-        }
-
-        .status-canceled {
-            background-color: #e74c3c;
-            color: #ffffff;
+            gap: 0.5rem;
         }
 
         /* Content Styles */
@@ -1010,5 +1057,124 @@
             color: #e74c3c;
             text-align: center;
         }
+
+        .btn-action.submit-btn {
+            background: linear-gradient(135deg, #28a745, #20c997);
+            color: white;
+        }
+
+        .btn-action.submit-btn:hover {
+            background: linear-gradient(135deg, #218838, #1ea085);
+        }
+
+        .submit-icon {
+            text-align: center;
+            font-size: 48px;
+            margin-bottom: 15px;
+            color: #28a745;
+        }
+
+        .submit-message {
+            font-size: 16px;
+            color: #2c3e50;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .submit-warning {
+            font-size: 13px;
+            color: #e74c3c;
+            text-align: center;
+        }
+
+        /* Approval Flow Styling */
+        .approval-flow {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .approval-step {
+            padding: 12px;
+            border-left: 3px solid #007bff;
+            background: #f8f9fa;
+            border-radius: 6px;
+            margin-bottom: 12px;
+        }
+
+        .approval-step:last-child {
+            border-left-color: #28a745;
+        }
+
+        .approval-step .badge {
+            min-width: 25px;
+            height: 25px;
+            line-height: 15px;
+            font-size: 0.75rem;
+        }
+
+        .approval-remark {
+            margin-top: 8px;
+            padding: 8px 12px;
+            background: #e9ecef;
+            border-radius: 4px;
+            border-left: 3px solid #6c757d;
+        }
+
+        .approval-time {
+            margin-top: 4px;
+            font-size: 0.8rem;
+        }
+
+        .approval-step .badge.badge-success {
+            background-color: #28a745;
+        }
+
+        .approval-step .badge.badge-danger {
+            background-color: #dc3545;
+        }
+
+        .approval-step .badge.badge-warning {
+            background-color: #ffc107;
+            color: #212529;
+        }
     </style>
+
+    <!-- Submit for Approval Modal -->
+    @if ($officialtravel->status == 'draft')
+        <div class="modal fade custom-modal" id="submitModal" tabindex="-1" role="dialog"
+            aria-labelledby="submitModalLabel" aria-hidden="true">
+            <div class="modal-dialog" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="submitModalLabel">Submit for Approval</h5>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="submit-icon">
+                            <i class="fas fa-paper-plane"></i>
+                        </div>
+                        <div class="submit-message">
+                            Are you sure you want to submit this Official Travel for approval?
+                        </div>
+                        <div class="submit-warning">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            This action will submit the document to the approval workflow and cannot be undone.
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                        <form action="{{ route('officialtravels.submit', $officialtravel->id) }}" method="POST"
+                            style="display: inline;">
+                            @csrf
+                            <button type="submit" class="btn btn-success">
+                                <i class="fas fa-paper-plane"></i> Submit for Approval
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    @endif
 @endsection

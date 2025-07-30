@@ -4,7 +4,7 @@
 </a>
 
 {{-- <!-- Edit button - only for draft status -->
-@if ($model->official_travel_status == 'draft')
+@if ($model->status == 'draft')
     @can('officialtravel.edit')
         <a href="{{ route('officialtravels.edit', $model->id) }}" class="btn btn-icon btn-primary btn-sm">
             <i class="fas fa-pen-square"></i>
@@ -13,7 +13,7 @@
 @endif
 
 <!-- Delete button - only for draft status -->
-@if ($model->official_travel_status == 'draft')
+@if ($model->status == 'draft')
     @can('officialtravel.delete')
         <form action="{{ route('officialtravels.destroy', $model->id) }}" method="post"
             onsubmit="return confirm('Are you sure you want to delete this official travel?')" class="d-inline">
@@ -27,7 +27,7 @@
 @endif
 
 <!-- Recommend button - for draft status and pending recommendation -->
-@if ($model->official_travel_status == 'draft' && $model->recommendation_status == 'pending')
+@if ($model->status == 'draft' && $model->recommendation_status == 'pending')
     @can('official-travels.recommend')
         @if (Auth::id() == $model->recommendation_by)
             <a href="{{ route('officialtravels.showRecommendForm', $model->id) }}" class="btn btn-icon btn-warning btn-sm">
@@ -51,7 +51,7 @@
 
 
 <!-- Arrival Stamp button - for open status without arrival -->
-@if ($model->official_travel_status == 'open' && !$model->arrival_check_by)
+@if ($model->status == 'approved' && !$model->arrival_check_by)
     @can('officialtravel.stamp')
         <a href="{{ route('officialtravels.showArrivalForm', $model->id) }}" class="btn btn-icon btn-secondary btn-sm">
             <i class="fas fa-plane-arrival"></i>
@@ -60,7 +60,7 @@
 @endif
 
 <!-- Departure Stamp button - for open status with arrival but without departure -->
-@if ($model->official_travel_status == 'open' && $model->arrival_check_by && !$model->departure_check_by)
+@if ($model->status == 'approved' && $model->arrival_check_by && !$model->departure_check_by)
     @can('officialtravel.stamp')
         <a href="{{ route('officialtravels.showDepartureForm', $model->id) }}" class="btn btn-icon btn-dark btn-sm">
             <i class="fas fa-plane-departure"></i>

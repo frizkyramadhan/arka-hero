@@ -414,6 +414,11 @@ class RecruitmentRequest extends Model
     /**
      * Boot method
      */
+    public function approval_plans()
+    {
+        return $this->hasMany(ApprovalPlan::class, 'document_id', 'id');
+    }
+
     protected static function boot()
     {
         parent::boot();

@@ -1,4 +1,4 @@
-# Sistem Approval Payreq-X v3
+# Sistem Approval ArkaHERO
 
 ## 📋 Daftar Isi
 
@@ -17,11 +17,10 @@
 
 ## 🎯 Overview Sistem Approval
 
-Sistem approval di Payreq-X v3 adalah sistem workflow yang kompleks untuk mengelola persetujuan dokumen keuangan. Sistem ini mendukung 3 jenis dokumen utama:
+Sistem approval di ArkaHERO adalah sistem workflow yang kompleks untuk mengelola persetujuan dokumen keuangan. Sistem ini mendukung 2 jenis dokumen utama:
 
--   **Payment Request (Payreq)** - Permintaan pembayaran
--   **Realization** - Realisasi pengeluaran
--   **RAB (Anggaran)** - Rencana Anggaran Biaya
+-   **Official Travel (LOT)**
+-   **Recruitment Request (FPTK)**
 
 ### Karakteristik Utama
 
@@ -44,7 +43,7 @@ CREATE TABLE approval_stages (
     project VARCHAR(255) NOT NULL,
     department_id VARCHAR(255) NOT NULL,
     approver_id VARCHAR(255) NOT NULL,
-    document_type VARCHAR(20) NULL, -- payreq / realization / rab
+    document_type VARCHAR(20) NULL, -- officialtravel / recruitment_request
     created_at TIMESTAMP NULL,
     updated_at TIMESTAMP NULL
 );
@@ -57,8 +56,8 @@ CREATE TABLE approval_stages (
 ```sql
 CREATE TABLE approval_plans (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
-    document_id INT NOT NULL,
-    document_type VARCHAR(255) NOT NULL, -- payreq | realization | rab
+    document_id CHAR NOT NULL, -- uuid
+    document_type VARCHAR(255) NOT NULL, -- officialtravel / recruitment_request
     approver_id BIGINT UNSIGNED NOT NULL,
     status INT DEFAULT 0, -- pending=0 | approved=1 | revised=2 | rejected=3 | cancelled=4
     remarks VARCHAR(255) NULL,
@@ -73,40 +72,22 @@ CREATE TABLE approval_plans (
 
 ### 3. Tabel Dokumen Utama
 
-#### `payreqs`
+#### `officialtravels`
 
 ```sql
 -- Fields terkait approval
-status VARCHAR(20) NULL, -- draft/submitted/approved/rejected/paid/realized/verified/canceled
-submit_at TIMESTAMP NULL,
-approved_at TIMESTAMP NULL,
-editable BOOLEAN DEFAULT TRUE,
-deletable BOOLEAN DEFAULT TRUE,
-printable BOOLEAN DEFAULT FALSE
+status VARCHAR(50) NULL, -- draft/submitted/approved/rejected/closed/canceled
+submit_at TIMESTAMP NULL
+approved_at TIMESTAMP NULL
 ```
 
-#### `realizations`
+#### `recruitment_requests`
 
 ```sql
 -- Fields terkait approval
-status VARCHAR(50) NULL, -- draft/approved/reject/cancel/pending/verified
+status VARCHAR(50) NULL, -- draft/submitted/approved/rejected/closed/canceled
 submit_at TIMESTAMP NULL,
 approved_at TIMESTAMP NULL,
-editable BOOLEAN DEFAULT TRUE,
-deletable BOOLEAN DEFAULT TRUE,
-printable BOOLEAN DEFAULT FALSE
-```
-
-#### `anggarans`
-
-```sql
--- Fields terkait approval
-status VARCHAR(50) NULL,
-submit_at TIMESTAMP NULL,
-approved_at TIMESTAMP NULL,
-editable BOOLEAN DEFAULT TRUE,
-deletable BOOLEAN DEFAULT TRUE,
-printable BOOLEAN DEFAULT FALSE
 ```
 
 ---
@@ -142,30 +123,25 @@ class ApprovalPlan extends Model
     public function approver()
     {
         return $this->belongsTo(User::class, 'approver_id')->withDefault([
-            'name' => 'N/A',
+            'name' => 'Not Available',
         ]);
     }
 
-    public function payreq()
+    public function officialtravel()
     {
-        return $this->belongsTo(PayReq::class, 'document_id', 'id');
+        return $this->belongsTo(Officialtravel::class, 'document_id', 'id');
     }
 
-    public function realization()
+    public function recruitment_request()
     {
-        return $this->belongsTo(Realization::class, 'document_id', 'id');
-    }
-
-    public function anggaran()
-    {
-        return $this->belongsTo(Anggaran::class, 'document_id', 'id');
+        return $this->belongsTo(RecruitmentRequest::class, 'document_id', 'id');
     }
 }
 ```
 
 ### 3. Model Dokumen dengan Approval
 
-#### `Payreq`
+#### `Officialtravel`
 
 ```php
 public function approval_plans()
@@ -174,16 +150,7 @@ public function approval_plans()
 }
 ```
 
-#### `Realization`
-
-```php
-public function approval_plans()
-{
-    return $this->hasMany(ApprovalPlan::class);
-}
-```
-
-#### `Anggaran`
+#### `RecruitmentRequest`
 
 ```php
 public function approval_plans()
@@ -219,19 +186,17 @@ Controller utama yang menangani workflow approval untuk semua jenis dokumen.
  * It identifies the appropriate approvers from the ApprovalStage model and
  * creates an approval plan entry for each approver.
  *
- * @param string $document_type Type of document ('payreq', 'realization', 'rab')
+ * @param string $document_type Type of document ('officialtravel', 'recruitment_request', 'rab')
  * @param int $document_id ID of the document
  * @return int|bool Number of approvers created or false if failed
  */
 public function create_approval_plan($document_type, $document_id)
 {
     // Retrieve the document based on its type
-    if ($document_type == 'payreq') {
-        $document = Payreq::findOrFail($document_id);
-    } elseif ($document_type == 'realization') {
-        $document = Realization::findOrFail($document_id);
-    } elseif ($document_type == 'rab') {
-        $document = Anggaran::findOrFail($document_id);
+    if ($document_type == 'officialtravel') {
+        $document = Officialtravel::findOrFail($document_id);
+    } elseif ($document_type == 'recruitment_request') {
+        $document = RecruitmentRequest::findOrFail($document_id);
     } else {
         return false; // Invalid document type
     }
@@ -255,8 +220,6 @@ public function create_approval_plan($document_type, $document_id)
 
         // Update document to mark it as submitted and no longer editable
         $document->submit_at = Carbon::now();
-        $document->editable = 0;
-        $document->deletable = 0;
         $document->save();
 
         return $approvers->count(); // Return number of approvers
@@ -300,12 +263,10 @@ public function update(Request $request, $id)
     // Get document type and retrieve the associated document
     $document_type = $approval_plan->document_type;
 
-    if ($document_type == 'payreq') {
-        $document = Payreq::where('id', $approval_plan->document_id)->first();
-    } elseif ($document_type == 'realization') {
-        $document = Realization::findOrFail($approval_plan->document_id);
-    } elseif ($document_type == 'rab') {
-        $document = Anggaran::findOrFail($approval_plan->document_id);
+    if ($document_type == 'officialtravel') {
+        $document = Officialtravel::where('id', $approval_plan->document_id)->first();
+    } elseif ($document_type == 'recruitment_request') {
+        $document = RecruitmentRequest::findOrFail($approval_plan->document_id);
     } else {
         return false; // Invalid document type
     }
@@ -337,17 +298,7 @@ public function update(Request $request, $id)
     if ($revised_count > 0) {
         $document->update([
             'status' => 'revise',
-            'editable' => 1,
-            'deletable' => 1,
         ]);
-
-        // find its payment request if it exists
-        $payment_request = Payreq::where('id', $document->payreq_id)->first();
-        if ($payment_request) {
-            $payment_request->update([
-                'status' => 'paid'
-            ]);
-        }
 
         // Close all open approval plans for this document
         $this->closeOpenApprovalPlans($document_type, $document->id);
@@ -357,16 +308,7 @@ public function update(Request $request, $id)
     if ($rejected_count > 0) {
         $document->update([
             'status' => 'rejected',
-            'deletable' => 1,
         ]);
-
-        // find its payment request if it exists
-        $payment_request = Payreq::where('id', $document->payreq_id)->first();
-        if ($payment_request) {
-            $payment_request->update([
-                'status' => 'paid'
-            ]);
-        }
 
         // Close all open approval plans for this document
         $this->closeOpenApprovalPlans($document_type, $document->id);
@@ -374,66 +316,13 @@ public function update(Request $request, $id)
 
     // Handle document approval (when all approvers have approved)
     if ($approved_count === $approval_plans->count()) {
-        // Set printable = 1 untuk semua dokumen
-        $printable_value = 1;
-
         // Update document status to approved
         $updateData = [
             'status' => 'approved',
-            'printable' => $printable_value,
-            'editable' => 0,
             'approved_at' => $approval_plan->updated_at,
         ];
 
-        // Generate official number hanya untuk payreq advance (bukan reimburse)
-        if ($document_type === 'payreq' && $document->type !== 'reimburse') {
-            $updateData['draft_no'] = $document->nomor;
-            $updateData['nomor'] = app(DocumentNumberController::class)->generate_document_number($document_type, auth()->user()->project);
-        }
-
         $document->update($updateData);
-
-        // Find its payment request if it exists
-        $payment_request = Payreq::where('id', $document->payreq_id)->first();
-        if ($payment_request) {
-            $payment_request->update([
-                'status' => 'realization',
-            ]);
-        }
-
-        // Special handling for reimbursement type payment requests
-        if ($document_type === 'payreq') {
-            if ($document->type === 'reimburse') {
-                $realization = Realization::where('payreq_id', $document->id)->first();
-                if ($realization) {
-                    $realization->update([
-                        'status' => 'reimburse-approved',
-                        'approved_at' => $approval_plan->updated_at,
-                    ]);
-                }
-            }
-        }
-
-        // Special handling for realization documents
-        if ($document_type === 'realization') {
-            // Set due date for realization (3 days from now)
-            $realization = Realization::findOrFail($document->id);
-            $realization->update([
-                'due_date' => Carbon::now()->addDays(3),
-            ]);
-
-            // Check variance between payment request and realization amounts
-            app(UserRealizationController::class)->check_realization_amount($document->id);
-        }
-
-        // Special handling for budget (RAB) documents
-        if ($document_type === 'rab') {
-            $document->update([
-                'periode_ofr' => $request->periode_ofr ?? null,
-                'usage' => $request->usage ?? null,
-                'periode_anggaran' => $request->periode_anggaran ?? null,
-            ]);
-        }
     }
 
     // Determine the appropriate success message based on the approval status
@@ -458,15 +347,8 @@ public function update(Request $request, $id)
     }
 
     // Redirect to appropriate page based on document type for non-AJAX requests
-    if ($document_type === 'payreq') {
-        return redirect()->route('approvals.request.payreqs.index')->with('success', 'Payment Request has been ' . $status_text);
-    } elseif ($document_type === 'realization') {
-        return redirect()->route('approvals.request.realizations.index')->with('success', 'Realization has been ' . $status_text);
-    } elseif ($document_type === 'rab') {
-        return redirect()->route('approvals.request.anggarans.index')->with('success', 'Budget (RAB) has been ' . $status_text);
-    } else {
-        return false; // Invalid document type
-    }
+
+    return redirect()->route('approvals.request.requests.index')->with('success', ucfirst($document_type) . ' has been ' . $status_text);
 }
 ```
 
@@ -551,7 +433,7 @@ public function bulkApprove(Request $request)
     $request->validate([
         'ids' => 'required|array',
         'ids.*' => 'required|integer',
-        'document_type' => 'required|string|in:payreq,realization,rab',
+        'document_type' => 'required|string|in:officialtravel,recruitment_request,rab',
         'remarks' => 'nullable|string',
     ]);
 
@@ -577,12 +459,10 @@ public function bulkApprove(Request $request)
         ]);
 
         // Get the document
-        if ($document_type == 'payreq') {
-            $document = Payreq::where('id', $approval_plan->document_id)->first();
-        } elseif ($document_type == 'realization') {
-            $document = Realization::findOrFail($approval_plan->document_id);
-        } elseif ($document_type == 'rab') {
-            $document = Anggaran::findOrFail($approval_plan->document_id);
+        if ($document_type == 'officialtravel') {
+            $document = Officialtravel::where('id', $approval_plan->document_id)->first();
+        } elseif ($document_type == 'recruitment_request') {
+            $document = RecruitmentRequest::findOrFail($approval_plan->document_id);
         } else {
             $failCount++;
             continue;
@@ -605,60 +485,11 @@ public function bulkApprove(Request $request)
             // Update document status to approved
             $updateData = [
                 'status' => 'approved',
-                'printable' => $printable_value,
-                'editable' => 0,
                 'approved_at' => now(),
             ];
 
-            // Generate official number hanya untuk payreq advance (bukan reimburse)
-            if ($document_type === 'payreq' && $document->type !== 'reimburse') {
-                $updateData['draft_no'] = $document->nomor;
-                $updateData['nomor'] = app(DocumentNumberController::class)->generate_document_number($document_type, auth()->user()->project);
-            }
 
             $document->update($updateData);
-
-            // Find its payment request if it exists
-            $payment_request = Payreq::where('id', $document->payreq_id)->first();
-            if ($payment_request) {
-                $payment_request->update([
-                    'status' => 'realization',
-                ]);
-            }
-
-            // Special handling for reimbursement type payment requests
-            if ($document_type === 'payreq') {
-                if ($document->type === 'reimburse') {
-                    $realization = Realization::where('payreq_id', $document->id)->first();
-                    if ($realization) {
-                        $realization->update([
-                            'status' => 'reimburse-approved',
-                            'approved_at' => now(),
-                        ]);
-                    }
-                }
-            }
-
-            // Special handling for realization documents
-            if ($document_type === 'realization') {
-                // Set due date for realization (3 days from now)
-                $realization = Realization::findOrFail($document->id);
-                $realization->update([
-                    'due_date' => Carbon::now()->addDays(3),
-                ]);
-
-                // Check variance between payment request and realization amounts
-                app(UserRealizationController::class)->check_realization_amount($document->id);
-            }
-
-            // Special handling for budget (RAB) documents
-            if ($document_type === 'rab') {
-                $document->update([
-                    'periode_ofr' => $request->periode_ofr ?? null,
-                    'usage' => $request->usage ?? null,
-                    'periode_anggaran' => $request->periode_anggaran ?? null,
-                ]);
-            }
         }
 
         $successCount++;
@@ -667,10 +498,10 @@ public function bulkApprove(Request $request)
     // Return response
     if ($successCount > 0) {
         $documentTypeLabel = ucfirst($document_type);
-        if ($document_type === 'payreq') {
-            $documentTypeLabel = 'Payment Request';
-        } elseif ($document_type === 'rab') {
-            $documentTypeLabel = 'Budget (RAB)';
+        if ($document_type === 'officialtravel') {
+            $documentTypeLabel = 'Official Travel';
+        } elseif ($document_type === 'recruitment_request') {
+            $documentTypeLabel = 'Recruitment Request';
         }
 
         return response()->json([
@@ -696,8 +527,8 @@ Controller untuk mengelola konfigurasi approval stages.
 public function index()
 {
     // $approvers = User::role('approver')->select('id', 'name')->get();
-    $approvers = User::role('manager')->select('id', 'name')->get();
-    $projects = Project::orderBy('code', 'asc')->get();
+    $approvers = User::select('id', 'name')->get();
+    $projects = Project::orderBy('project_code', 'asc')->get();
     $departments = Department::orderBy('department_name', 'asc')->get();
 
     return view('approval-stages.index', compact('approvers', 'projects', 'departments'));
@@ -757,7 +588,7 @@ public function auto_generate(Request $request)
     ]);
 
     $departments = Department::all();
-    $documents = ['payreq', 'realization', 'rab'];
+    $documents = ['officialtravel', 'recruitment_request'];
 
     foreach ($departments as $department) {
         foreach ($documents as $document) {
@@ -827,7 +658,7 @@ public function data()
                 //     $documents .= ucfirst($stage_document->document_type) . ', ';
                 // }
                 $delete_button = '<button type="button" class="btn btn-danger btn-xs" onclick="deleteApprovalStage(' . $stage->id . ')"><i class="fas fa-trash"></i></button>';
-                $html .= '<li class="list-group-item d-flex justify-content-between align-items-center">' . $stage->project . ' - ' . $stage->department->department_name . ' - ' . ucfirst($stage->document_type === 'payreq' ? 'Payment Request' : $stage->document_type) . $delete_button . '</li>';
+                $html .= '<li class="list-group-item d-flex justify-content-between align-items-center">' . $stage->project . ' - ' . $stage->department->department_name . ' - ' . ucfirst($stage->document_type === 'officialtravel' ? 'Officiial Travel' : $stage->document_type) . $delete_button . '</li>';
             }
             $html .= '</ul>';
             return $html;
@@ -839,20 +670,18 @@ public function data()
 }
 ```
 
-### 3. Controller Request Approval
+### 3. Controller Request Approval (Unified Controller)
 
-#### `ApprovalRequestPayreqController`
+#### `ApprovalRequestController`
 
-Controller untuk menangani approval request untuk Payment Request.
+Controller terpadu untuk menangani approval request untuk semua jenis dokumen.
 
 ##### Method `index()`
 
 ```php
 public function index()
 {
-    $document_count = app(ToolController::class)->approval_documents_count();
-
-    return view('approvals-request.payreqs.index', compact('document_count'));
+    return view('approvals-request.index', compact('document_count'));
 }
 ```
 
@@ -862,95 +691,33 @@ public function index()
 public function show($id)
 {
     $document = ApprovalPlan::find($id);
-    $payreq = $document->payreq;
-    $realization = $payreq->realization;
-    $realization_details = $realization->realizationDetails;
+    $document_type = $document->document_type;
 
-    return view('approvals-request.payreqs.show', compact([
-        'document',
-        'payreq',
-        'realization',
-        'realization_details',
-    ]));
-}
-```
+    // Get document data based on type
+    switch ($document_type) {
+        case 'officialtravel':
+            $document_data = $document->officialtravel;
+            $view_data = [
+                'document' => $document,
+                'document_data' => $document_data,
+                'document_type' => $document_type
+            ];
+            break;
 
-##### Method `data()`
+        case 'recruitment_request':
+            $document_data = $document->recruitment_request;
+            $view_data = [
+                'document' => $document,
+                'document_data' => $document_data,
+                'document_type' => $document_type
+            ];
+            break;
 
-```php
-public function data()
-{
-    $approval_requests = ApprovalPlan::where('document_type', 'payreq')
-        ->where('is_open', 1)
-        ->where('status', 0)
-        ->where('approver_id', auth()->user()->id)
-        ->get();
+        default:
+            abort(404, 'Document type not found');
+    }
 
-    return datatables()->of($approval_requests)
-        ->addColumn('id', function ($approval_request) {
-            return $approval_request->id;
-        })
-        ->addColumn('nomor', function ($approval_request) {
-            return $approval_request->payreq->nomor;
-        })
-        ->addColumn('created_at', function ($approval_request) {
-            return $approval_request->payreq->created_at->addHours(8)->format('d-M-Y H:i:s');
-        })
-        ->addColumn('type', function ($approval_request) {
-            return ucfirst($approval_request->payreq->type);
-        })
-        ->addColumn('amount', function ($approval_request) {
-            // if payreq type is advance
-            if ($approval_request->payreq->type == 'advance') {
-                return number_format($approval_request->payreq->amount, 2);
-            } else {
-                // $realization_details = $approval_request->payreq->realization->realizationDetails;
-                // $amount = $realization_details->sum('amount');
-                return number_format($approval_request->payreq->realization->realizationDetails->sum('amount'), 2);
-            }
-        })
-        ->addColumn('requestor', function ($approval_request) {
-            return $approval_request->payreq->requestor->name;
-        })
-        ->addColumn('days', function ($approval_request) {
-            return $approval_request->payreq->created_at->diffInDays(now());
-        })
-        ->addIndexColumn()
-        ->addColumn('action', 'approvals-request.payreqs.action')
-        ->rawColumns(['action'])
-        ->toJson();
-}
-```
-
-#### `ApprovalRequestRealizationController`
-
-Controller untuk menangani approval request untuk Realization.
-
-##### Method `index()`
-
-```php
-public function index()
-{
-    $document_count = app(ToolController::class)->approval_documents_count();
-
-    return view('approvals-request.realizations.index', compact('document_count'));
-}
-```
-
-##### Method `show($id)`
-
-```php
-public function show($id)
-{
-    $document = ApprovalPlan::find($id);
-    $document_details = $document->realization->realizationDetails;
-    $payreq = $document->realization->payreq;
-
-    return view('approvals-request.realizations.show', compact([
-        'document',
-        'document_details',
-        'payreq'
-    ]));
+    return view('approvals-request.show', $view_data);
 }
 ```
 
@@ -960,7 +727,6 @@ public function show($id)
 public function data()
 {
     $approval_requests = ApprovalPlan::where('is_open', 1)
-        ->where('document_type', 'realization')
         ->where('status', 0)
         ->where('approver_id', auth()->user()->id)
         ->get();
@@ -969,87 +735,121 @@ public function data()
         ->addColumn('id', function ($approval_request) {
             return $approval_request->id;
         })
-        ->addColumn('nomor', function ($approval_request) {
-            return $approval_request->realization->nomor;
-        })
-        ->addColumn('payreq_no', function ($approval_request) {
-            return $approval_request->realization->payreq->nomor;
-        })
-        ->addColumn('submit_at', function ($approval_request) {
-            $date = new \Carbon\Carbon($approval_request->realization->submit_at);
-            return $date->addHours(8)->format('d-M-Y H:i:s') . ' wita';
-        })
-        ->addColumn('amount', function ($approval_request) {
-            return number_format($approval_request->realization->realizationDetails->sum('amount'), 2);
-        })
-        ->addColumn('requestor', function ($approval_request) {
-            return $approval_request->realization->requestor->name;
-        })
-        ->addColumn('days', function ($approval_request) {
-            return $approval_request->realization->created_at->diffInDays(now());
-        })
-        ->addIndexColumn()
-        ->addColumn('action', 'approvals-request.realizations.action')
-        ->rawColumns(['action'])
-        ->toJson();
-}
-```
-
-#### `ApprovalRequestAnggaranController`
-
-Controller untuk menangani approval request untuk RAB (Anggaran).
-
-##### Method `index()`
-
-```php
-public function index()
-{
-    $document_count = app(ToolController::class)->approval_documents_count();
-
-    return view('approvals-request.anggarans.index', compact('document_count'));
-}
-```
-
-##### Method `data()`
-
-```php
-public function data()
-{
-    $approval_requests = ApprovalPlan::where('document_type', 'rab')
-        ->where('is_open', 1)
-        ->where('status', 0)
-        ->where('approver_id', auth()->user()->id)
-        ->get();
-
-    return datatables()->of($approval_requests)
-        ->addColumn('id', function ($approval_request) {
-            return $approval_request->id;
+        ->addColumn('document_type', function ($approval_request) {
+            return ucfirst(str_replace('_', ' ', $approval_request->document_type));
         })
         ->addColumn('nomor', function ($approval_request) {
-            return $approval_request->anggaran->nomor;
-        })
-        ->addColumn('project', function ($approval_request) {
-            return $approval_request->anggaran->rab_project;
+            switch ($approval_request->document_type) {
+                case 'officialtravel':
+                    return $approval_request->officialtravel->nomor ?? 'N/A';
+                case 'recruitment_request':
+                    return $approval_request->recruitment_request->nomor ?? 'N/A';
+                default:
+                    return 'N/A';
+            }
         })
         ->addColumn('created_at', function ($approval_request) {
-            return $approval_request->anggaran->created_at->addHours(8)->format('d-M-Y H:i:s');
+            switch ($approval_request->document_type) {
+                case 'officialtravel':
+                    return $approval_request->officialtravel->created_at->addHours(8)->format('d-M-Y H:i:s');
+                case 'recruitment_request':
+                    return $approval_request->recruitment_request->created_at->addHours(8)->format('d-M-Y H:i:s');
+                default:
+                    return 'N/A';
+            }
         })
-        ->addColumn('type', function ($approval_request) {
-            return ucfirst($approval_request->anggaran->type);
-        })
-        ->addColumn('amount', function ($approval_request) {
-            return number_format($approval_request->anggaran->amount, 2);
+        ->addColumn('submit_at', function ($approval_request) {
+            switch ($approval_request->document_type) {
+                case 'officialtravel':
+                    return $approval_request->officialtravel->submit_at ?
+                        \Carbon\Carbon::parse($approval_request->officialtravel->submit_at)->addHours(8)->format('d-M-Y H:i:s') . ' wita' :
+                        'N/A';
+                case 'recruitment_request':
+                    return $approval_request->recruitment_request->submit_at ?
+                        \Carbon\Carbon::parse($approval_request->recruitment_request->submit_at)->addHours(8)->format('d-M-Y H:i:s') . ' wita' :
+                        'N/A';
+                default:
+                    return 'N/A';
+            }
         })
         ->addColumn('requestor', function ($approval_request) {
-            return $approval_request->anggaran->createdBy->name;
+            switch ($approval_request->document_type) {
+                case 'officialtravel':
+                    return $approval_request->officialtravel->requestor->name ?? 'N/A';
+                case 'recruitment_request':
+                    return $approval_request->recruitment_request->requestor->name ?? 'N/A';
+                default:
+                    return 'N/A';
+            }
         })
+
         ->addColumn('days', function ($approval_request) {
-            return $approval_request->anggaran->created_at->diffInDays(now());
+            switch ($approval_request->document_type) {
+                case 'officialtravel':
+                    return $approval_request->officialtravel->created_at->diffInDays(now());
+                case 'recruitment_request':
+                    return $approval_request->recruitment_request->created_at->diffInDays(now());
+                default:
+                    return 0;
+            }
+        })
+        ->addColumn('status_badge', function ($approval_request) {
+            $status_class = 'badge badge-warning';
+            $status_text = 'Pending';
+
+            switch ($approval_request->status) {
+                case 0:
+                    $status_class = 'badge badge-warning';
+                    $status_text = 'Pending';
+                    break;
+                case 1:
+                    $status_class = 'badge badge-success';
+                    $status_text = 'Approved';
+                    break;
+                case 2:
+                    $status_class = 'badge badge-info';
+                    $status_text = 'Revised';
+                    break;
+                case 3:
+                    $status_class = 'badge badge-danger';
+                    $status_text = 'Rejected';
+                    break;
+                case 4:
+                    $status_class = 'badge badge-secondary';
+                    $status_text = 'Cancelled';
+                    break;
+            }
+
+            return '<span class="' . $status_class . '">' . $status_text . '</span>';
         })
         ->addIndexColumn()
-        ->addColumn('action', 'approvals-request.anggarans.action')
-        ->rawColumns(['action'])
+        ->addColumn('action', 'approvals-request.action')
+        ->rawColumns(['action', 'status_badge'])
         ->toJson();
+}
+```
+
+##### Method `filterByType(Request $request)`
+
+```php
+public function filterByType(Request $request)
+{
+    $document_type = $request->get('document_type', 'all');
+
+    $query = ApprovalPlan::where('is_open', 1)
+        ->where('status', 0)
+        ->where('approver_id', auth()->user()->id);
+
+    if ($document_type !== 'all') {
+        $query->where('document_type', $document_type);
+    }
+
+    $approval_requests = $query->get();
+
+    return response()->json([
+        'success' => true,
+        'data' => $approval_requests
+    ]);
 }
 ```
 
@@ -1068,27 +868,30 @@ public function data()
 
 ### 2. Approval Request Interface
 
-#### `resources/views/approvals-request/payreqs/index.blade.php`
+#### `resources/views/approvals-request/index.blade.php`
 
--   DataTable dengan dokumen yang perlu diapprove
+-   DataTable dengan semua dokumen yang perlu diapprove
+-   Filter dropdown untuk document type (All, Official Travel, Recruitment Request)
 -   Bulk approval functionality
--   Filter dan search
+-   Search dan pagination
 -   Badge counter untuk pending documents
+-   Status badges untuk setiap dokumen
 
-#### `resources/views/approvals-request/payreqs/action.blade.php`
+#### `resources/views/approvals-request/action.blade.php`
 
 -   Modal untuk approval decision
 -   Form dengan status options (Approve/Revise/Reject)
 -   Remarks field
--   Document details display
+-   Document details display berdasarkan tipe dokumen
 
 ### 3. Document Show Views
 
-#### `resources/views/approvals-request/payreqs/show.blade.php`
+#### `resources/views/approvals-request/show.blade.php`
 
--   Detail lengkap dokumen
+-   Detail lengkap dokumen berdasarkan tipe
 -   Approval history
 -   Action buttons untuk approval
+-   Dynamic content berdasarkan document_type
 
 ### 4. Menu Navigation
 
@@ -1099,9 +902,7 @@ public function data()
 <li><a href="{{ route('approval-stages.index') }}">Approval Stages</a></li>
 @endcan
 @can('akses_approval_request')
-<li><a href="{{ route('approvals.request.payreqs.index') }}">Payment Request</a></li>
-<li><a href="{{ route('approvals.request.realizations.index') }}">Realizations</a></li>
-<li><a href="{{ route('approvals.request.anggarans.index') }}">RAB</a></li>
+<li><a href="{{ route('approvals.request.requests.index') }}">Approval Requests</a></li>
 @endcan
 ```
 
@@ -1151,7 +952,7 @@ draft → submitted → approved → paid → close
             rejected/revise
 ```
 
-#### Realization
+#### RecruitmentRequest
 
 ```
 draft → submitted → approved → verification-complete
@@ -1208,7 +1009,7 @@ Sistem menggunakan **Spatie Laravel Permission** package.
 
 ```php
 // ApprovalStageController.php
-$approvers = User::role('manager')->select('id', 'name')->get();
+$approvers = User::select('id', 'name')->get();
 ```
 
 #### Approver Selection
@@ -1228,380 +1029,8 @@ $approvers = User::select('id', 'name')
 @endcan
 
 @can('akses_approval_request')
-<li><a href="{{ route('approvals.request.payreqs.index') }}">Payment Request</a></li>
+<li><a href="{{ route('approvals.request.index') }}">Approval Request</a></li>
 @endcan
-```
-
----
-
-## 📄 Penerapan pada Dokumen
-
-### 1. Payment Request (Payreq)
-
-#### Submission Process
-
-```php
-// PayreqAdvanceController.php
-public function submit($id)
-{
-    $response = app(ApprovalPlanController::class)->create_approval_plan('payreq', $id);
-
-    if ($response) {
-        $payreq->update([
-            'status' => 'submitted',
-            'editable' => '0',
-            'deletable' => '0',
-        ]);
-    }
-}
-```
-
-#### Special Handling
-
-```php
-// ApprovalPlanController.php - update method
-if ($document_type === 'payreq') {
-    if ($document->type === 'reimburse') {
-        $realization = Realization::where('payreq_id', $document->id)->first();
-        if ($realization) {
-            $realization->update([
-                'status' => 'reimburse-approved',
-                'approved_at' => $approval_plan->updated_at,
-            ]);
-        }
-    }
-}
-```
-
-### 2. Realization
-
-#### Submission Process
-
-```php
-// UserRealizationController.php
-public function submit_realization(Request $request)
-{
-    $approval_plan = app(ApprovalPlanController::class)->create_approval_plan('realization', $realization->id);
-
-    $realization->update([
-        'status' => 'submitted',
-        'printable' => 1,
-        'draft_no' => $realization->nomor,
-        'nomor' => app(DocumentNumberController::class)->generate_document_number('realization', auth()->user()->project),
-    ]);
-}
-```
-
-#### Special Handling
-
-```php
-if ($document_type === 'realization') {
-    // Set due date for realization (3 days from now)
-    $realization = Realization::findOrFail($document->id);
-    $realization->update([
-        'due_date' => Carbon::now()->addDays(3),
-    ]);
-
-    // Check variance between payment request and realization amounts
-    app(UserRealizationController::class)->check_realization_amount($document->id);
-}
-```
-
-### 3. RAB (Anggaran)
-
-#### Submission Process
-
-```php
-// UserAnggaranController.php
-public function submit($id)
-{
-    $response = app(ApprovalPlanController::class)->create_approval_plan('rab', $id);
-
-    if ($response) {
-        $anggaran = Anggaran::find($id);
-        $anggaran->update([
-            'status' => 'submitted',
-        ]);
-    }
-}
-```
-
-#### Special Handling
-
-```php
-if ($document_type === 'rab') {
-    $document->update([
-        'periode_ofr' => $request->periode_ofr ?? null,
-        'usage' => $request->usage ?? null,
-        'periode_anggaran' => $request->periode_anggaran ?? null,
-    ]);
-}
-```
-
----
-
-## ⚡ Fitur Khusus
-
-### 1. Bulk Approval
-
-```php
-// ApprovalPlanController.php
-public function bulkApprove(Request $request)
-{
-    $request->validate([
-        'ids' => 'required|array',
-        'ids.*' => 'required|integer',
-        'document_type' => 'required|string|in:payreq,realization,rab',
-        'remarks' => 'nullable|string',
-    ]);
-
-    foreach ($request->ids as $id) {
-        $approval_plan = ApprovalPlan::findOrFail($id);
-        $approval_plan->update([
-            'status' => 1, // Approved
-            'remarks' => $request->remarks,
-        ]);
-
-        // Check if all approvers approved
-        // Update document status if needed
-    }
-}
-```
-
-### 2. Document Number Generation
-
-```php
-// Generate official number hanya untuk payreq advance (bukan reimburse)
-if ($document_type === 'payreq' && $document->type !== 'reimburse') {
-    $updateData['draft_no'] = $document->nomor;
-    $updateData['nomor'] = app(DocumentNumberController::class)->generate_document_number($document_type, auth()->user()->project);
-}
-```
-
-### 3. LOT Integration
-
-```php
-// If payreq has LOT number, try to claim it
-if ($realization->payreq->lot_no) {
-    $lotService = app(LotService::class);
-    $claimResult = $lotService->claim($realization->payreq->lot_no);
-
-    if (!$claimResult['success']) {
-        throw new \Exception('Failed to claim LOT: ' . $claimResult['message']);
-    }
-}
-```
-
-### 4. Variance Checking
-
-```php
-// Check variance between payment request and realization amounts
-app(UserRealizationController::class)->check_realization_amount($document->id);
-```
-
-### 5. Auto-generate Approval Stages
-
-```php
-public function auto_generate(Request $request)
-{
-    $departments = Department::all();
-    $documents = ['payreq', 'realization', 'rab'];
-
-    foreach ($departments as $department) {
-        foreach ($documents as $document) {
-            // Check for duplication
-            $check = ApprovalStage::where('department_id', $department->id)
-                ->where('approver_id', $request->approver_id)
-                ->where('project', $request->project)
-                ->where('document_type', $document)
-                ->first();
-
-            if (!$check) {
-                ApprovalStage::create([
-                    'department_id' => $department->id,
-                    'approver_id' => $request->approver_id,
-                    'project' => $request->project,
-                    'document_type' => $document,
-                ]);
-            }
-        }
-    }
-}
-```
-
----
-
-## 🔌 API dan Integration
-
-### 1. Document Count API
-
-```php
-// ToolController.php
-public function approval_documents_count_api()
-{
-    $counts = [
-        'payreq' => ApprovalPlan::where('document_type', 'payreq')
-            ->where('is_open', 1)
-            ->where('status', 0)
-            ->where('approver_id', auth()->user()->id)
-            ->count(),
-        'realization' => ApprovalPlan::where('document_type', 'realization')
-            ->where('is_open', 1)
-            ->where('status', 0)
-            ->where('approver_id', auth()->user()->id)
-            ->count(),
-        'rab' => ApprovalPlan::where('document_type', 'rab')
-            ->where('is_open', 1)
-            ->where('status', 0)
-            ->where('approver_id', auth()->user()->id)
-            ->count(),
-    ];
-
-    return response()->json($counts);
-}
-```
-
-### 2. Routes
-
-```php
-// routes/approvals.php
-Route::prefix('approvals')->name('approvals.')->group(function () {
-    Route::prefix('request')->name('request.')->group(function () {
-        Route::get('/document-count', [ToolController::class, 'approval_documents_count_api']);
-
-        Route::prefix('payreqs')->name('payreqs.')->group(function () {
-            Route::get('/data', [ApprovalRequestPayreqController::class, 'data']);
-            Route::get('/', [ApprovalRequestPayreqController::class, 'index']);
-            Route::get('/{id}', [ApprovalRequestPayreqController::class, 'show']);
-        });
-
-        Route::prefix('realizations')->name('realizations.')->group(function () {
-            Route::get('/data', [ApprovalRequestRealizationController::class, 'data']);
-            Route::get('/', [ApprovalRequestRealizationController::class, 'index']);
-            Route::get('/{id}', [ApprovalRequestRealizationController::class, 'show']);
-        });
-
-        Route::prefix('anggarans')->name('anggarans.')->group(function () {
-            Route::get('/data', [ApprovalRequestAnggaranController::class, 'data']);
-            Route::get('/', [ApprovalRequestAnggaranController::class, 'index']);
-        });
-    });
-
-    Route::prefix('plan')->name('plan.')->group(function () {
-        Route::put('/{id}/update', [ApprovalPlanController::class, 'update']);
-        Route::post('/bulk-approve', [ApprovalPlanController::class, 'bulkApprove']);
-    });
-});
-
-// APPROVAL STAGES
-Route::prefix('approval-stages')->name('approval-stages.')->group(function () {
-    Route::get('/data', [ApprovalStageController::class, 'data']);
-    Route::post('/auto-generate', [ApprovalStageController::class, 'auto_generate']);
-});
-Route::resource('approval-stages', ApprovalStageController::class);
-```
-
-### 3. AJAX Responses
-
-```php
-// AJAX response untuk approval update
-if ($request->ajax()) {
-    return response()->json([
-        'success' => true,
-        'message' => ucfirst($document_type) . ' has been ' . $status_text,
-        'document_type' => $document_type
-    ]);
-}
-```
-
----
-
-## 📊 Monitoring dan Reporting
-
-### 1. Approval Status Tracking
-
--   **Pending**: Dokumen menunggu approval
--   **In Progress**: Sebagian approver sudah approve
--   **Completed**: Semua approver sudah approve
--   **Rejected**: Ada approver yang reject
--   **Revised**: Ada approver yang minta revise
-
-### 2. Performance Metrics
-
--   Approval time per document type
--   Approval time per approver
--   Rejection rate
--   Revision rate
--   Document throughput
-
-### 3. Audit Trail
-
--   Timestamp untuk setiap approval decision
--   Remarks history
--   Approver identification
--   Document status changes
-
----
-
-## 🔧 Maintenance dan Troubleshooting
-
-### 1. Common Issues
-
-#### No Approvers Found
-
-```php
-// Check if approval stages exist for the document
-$approvers = ApprovalStage::where('project', $document->project)
-    ->where('department_id', $document->department_id)
-    ->where('document_type', $document_type)
-    ->get();
-
-if ($approvers->count() == 0) {
-    // Handle no approvers found
-    return false;
-}
-```
-
-#### Stuck Approval Plans
-
-```php
-// Close stuck approval plans
-public function closeOpenApprovalPlans($document_type, $document_id)
-{
-    $approval_plans = ApprovalPlan::where('document_id', $document_id)
-        ->where('document_type', $document_type)
-        ->where('is_open', 1)
-        ->get();
-
-    foreach ($approval_plans as $approval_plan) {
-        $approval_plan->update(['is_open' => 0]);
-    }
-}
-```
-
-### 2. Database Maintenance
-
-#### Indexes
-
-```sql
--- Recommended indexes for performance
-CREATE INDEX idx_approval_plans_document ON approval_plans(document_id, document_type);
-CREATE INDEX idx_approval_plans_approver ON approval_plans(approver_id, status);
-CREATE INDEX idx_approval_stages_config ON approval_stages(project, department_id, document_type);
-```
-
-#### Cleanup Queries
-
-```sql
--- Clean up old approval plans
-DELETE FROM approval_plans
-WHERE created_at < DATE_SUB(NOW(), INTERVAL 1 YEAR)
-AND status IN (1, 3); -- approved or rejected
-
--- Archive old approval stages
-INSERT INTO approval_stages_archive
-SELECT * FROM approval_stages
-WHERE updated_at < DATE_SUB(NOW(), INTERVAL 6 MONTHS);
 ```
 
 ---
@@ -1627,9 +1056,9 @@ WHERE updated_at < DATE_SUB(NOW(), INTERVAL 6 MONTHS);
 
 ## 📝 Kesimpulan
 
-Sistem approval Payreq-X v3 adalah sistem yang kompleks dan fleksibel yang mendukung:
+Sistem approval ArkaHERO adalah sistem yang kompleks dan fleksibel yang mendukung:
 
-1. **Multi-document Type**: Payreq, Realization, dan RAB
+1. **Multi-document Type**: Officialtravel, RecruitmentRequest, dan RAB
 2. **Flexible Configuration**: Approval stages per project, department, dan document type
 3. **Comprehensive Tracking**: Status tracking dengan remarks dan timestamps
 4. **Bulk Operations**: Support untuk bulk approval

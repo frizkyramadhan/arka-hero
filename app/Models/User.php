@@ -66,4 +66,9 @@ class User extends Authenticatable
     {
         return $this->belongsToMany(Department::class, 'user_department');
     }
+
+    public function approval_stages()
+    {
+        return $this->hasMany(ApprovalStage::class, 'approver_id', 'id');
+    }
 }
