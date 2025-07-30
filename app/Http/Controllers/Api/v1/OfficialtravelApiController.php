@@ -81,7 +81,7 @@ class OfficialtravelApiController extends Controller
                 'approver',
                 'creator'
             ])
-                ->whereNot('official_travel_status', 'draft')
+                ->whereNot('status', 'draft')
                 ->where('is_claimed', 'no')
                 ->orderBy('created_at', 'desc')->get();
 

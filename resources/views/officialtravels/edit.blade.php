@@ -342,46 +342,20 @@
                             </div>
                         </div>
 
-                        <!-- Recommendation & Approval Card -->
+                        <!-- Approval Preview Card -->
                         <div class="card card-info card-outline elevation-3">
                             <div class="card-header">
                                 <h3 class="card-title">
-                                    <i class="fas fa-user-check mr-2"></i>
-                                    <strong>Recommendation & Approval</strong>
+                                    <i class="fas fa-eye mr-2"></i>
+                                    <strong>Approval Preview</strong>
                                 </h3>
                             </div>
                             <div class="card-body">
-                                <div class="form-group">
-                                    <label for="recommendation_by">Recommender <span class="text-danger">*</span></label>
-                                    <select class="form-control select2-warning" name="recommendation_by"
-                                        id="recommendation_by" style="width: 100%;">
-                                        <option value="">Select Recommender</option>
-                                        @foreach ($recommenders as $recommender)
-                                            <option value="{{ $recommender['id'] }}"
-                                                {{ old('recommendation_by', $officialtravel->recommendation_by) == $recommender['id'] ? 'selected' : '' }}>
-                                                {{ $recommender['name'] }}
-                                            </option>
-                                        @endforeach
-                                    </select>
-                                    @error('recommendation_by')
-                                        <div class="invalid-feedback">{{ $message }}</div>
-                                    @enderror
-                                </div>
-                                <div class="form-group">
-                                    <label for="approval_by">Approver <span class="text-danger">*</span></label>
-                                    <select class="form-control select2-success" name="approval_by" id="approval_by"
-                                        style="width: 100%;">
-                                        <option value="">Select Approver</option>
-                                        @foreach ($approvers as $approver)
-                                            <option value="{{ $approver['id'] }}"
-                                                {{ old('approval_by', $officialtravel->approval_by) == $approver['id'] ? 'selected' : '' }}>
-                                                {{ $approver['name'] }}
-                                            </option>
-                                        @endforeach
-                                    </select>
-                                    @error('approval_by')
-                                        <div class="invalid-feedback">{{ $message }}</div>
-                                    @enderror
+                                <div id="approvalPreview">
+                                    <div class="text-muted text-center py-3">
+                                        <i class="fas fa-info-circle"></i>
+                                        Select project to see approval flow
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -506,6 +480,30 @@
             color: #bd2130;
         }
 
+        /* Approval Preview Styling */
+        .approval-flow {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .approval-step {
+            padding: 0.5rem;
+            border-left: 3px solid #007bff;
+            background: #f8f9fa;
+            border-radius: 0.25rem;
+        }
+
+        .approval-step:last-child {
+            border-left-color: #28a745;
+        }
+
+        .approval-step .badge {
+            min-width: 25px;
+            height: 25px;
+            line-height: 15px;
+            font-size: 0.75rem;
+        }
+
         /* Approval flow styling */
     </style>
 @endsection
@@ -627,6 +625,117 @@
                 $(this).closest('tr').fadeOut(300, function() {
                     $(this).remove();
                 });
+            });
+
+            // Approval Preview Functions
+            function loadApprovalPreview() {
+                const projectId = $('#official_travel_origin').val();
+
+                if (!projectId) {
+                    $('#approvalPreview').html(`
+                        <div class="text-muted text-center py-3">
+                            <i class="fas fa-info-circle"></i>
+                            Select project to see approval flow
+                        </div>
+                    `);
+                    return;
+                }
+
+                // Show loading
+                $('#approvalPreview').html(`
+                    <div class="text-center py-3">
+                        <i class="fas fa-spinner fa-spin text-info"></i>
+                        <div class="mt-2">Loading approval flow...</div>
+                    </div>
+                `);
+
+                // Fetch approval stages
+                $.ajax({
+                    url: '{{ route('approval.stages.preview') }}',
+                    method: 'GET',
+                    data: {
+                        project_id: projectId,
+                        document_type: 'officialtravel'
+                    },
+                    success: function(response) {
+                        if (response.success && response.approvers.length > 0) {
+                            let html = '<div class="approval-flow">';
+                            html +=
+                                '<h6 class="text-info mb-3"><i class="fas fa-route"></i> Approval Flow</h6>';
+
+                            response.approvers.forEach((approver, index) => {
+                                html += `
+                                    <div class="approval-step mb-2">
+                                        <div class="d-flex align-items-center">
+                                            <span class="badge badge-primary mr-2">${index + 1}</span>
+                                            <div class="flex-grow-1">
+                                                <strong>${approver.name}</strong>
+                                                <small class="text-muted d-block">${approver.department}</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                `;
+                            });
+
+                            html += '</div>';
+                            $('#approvalPreview').html(html);
+                        } else {
+                            $('#approvalPreview').html(`
+                                <div class="text-warning text-center py-3">
+                                    <i class="fas fa-exclamation-triangle"></i>
+                                    <div class="mt-2">No approval flow configured for this project/department</div>
+                                </div>
+                            `);
+                        }
+                    },
+                    error: function() {
+                        $('#approvalPreview').html(`
+                            <div class="text-danger text-center py-3">
+                                <i class="fas fa-times-circle"></i>
+                                <div class="mt-2">Failed to load approval flow</div>
+                            </div>
+                        `);
+                    }
+                });
+            }
+
+            // Listen for project changes
+            $('#official_travel_origin').on('change', function() {
+                loadApprovalPreview();
+            });
+
+            // Load approval preview on page load if project is selected
+            $(document).ready(function() {
+                // Check if there's old input from validation errors
+                const hasOldInput = {{ json_encode(old('official_travel_origin') ? true : false) }};
+                const projectValue = $('#official_travel_origin').val();
+
+                if (hasOldInput || projectValue) {
+                    // Small delay to ensure all elements are loaded
+                    setTimeout(function() {
+                        loadApprovalPreview();
+                    }, 100);
+                }
+            });
+
+            // Ensure approval preview is loaded when form has validation errors
+            @if ($errors->any())
+                $(document).ready(function() {
+                    if ($('#official_travel_origin').val()) {
+                        setTimeout(function() {
+                            loadApprovalPreview();
+                        }, 200);
+                    }
+                });
+            @endif
+
+            // Load approval preview when returning from other pages or after form submission
+            $(window).on('load', function() {
+                if ($('#official_travel_origin').val()) {
+                    setTimeout(function() {
+                        loadApprovalPreview();
+                    }, 300);
+                }
             });
 
             // Form validation

@@ -22,4 +22,21 @@
 
         @stack('styles')
 
+        <style>
+            /* Fix approval badge color when sidebar item is active */
+            .nav-link.active .approval-badge.badge-warning {
+                background-color: #ffc107 !important;
+                color: #212529 !important;
+                border-color: #ffc107 !important;
+                font-size: 0.75em !important;
+                font-weight: 700 !important;
+                line-height: 1 !important;
+                text-align: center !important;
+                white-space: nowrap !important;
+                vertical-align: baseline !important;
+                border-radius: 0.25rem !important;
+                padding: 0.25em 0.4em !important;
+            }
+        </style>
+
     </head>

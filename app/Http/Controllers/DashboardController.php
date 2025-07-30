@@ -32,13 +32,13 @@ class DashboardController extends Controller
         // === OFFICIAL TRAVEL DATA ===
 
         // Count pending recommendations for this user
-        $pendingRecommendations = 0;
-        if ($user->can('official-travels.recommend')) {
-            $pendingRecommendations = Officialtravel::where('official_travel_status', 'draft')
-                ->where('recommendation_status', 'pending')
-                ->where('recommendation_by', $user->id)
-                ->count();
-        }
+        // $pendingRecommendations = 0;
+        // if ($user->can('official-travels.recommend')) {
+        //     $pendingRecommendations = Officialtravel::where('status', 'draft')
+        //         ->where('recommendation_status', 'pending')
+        //         ->where('recommendation_by', $user->id)
+        //         ->count();
+        // }
 
         // Count pending approvals for this user
         $pendingApprovals = 0;
@@ -49,12 +49,10 @@ class DashboardController extends Controller
                 ->count();
         }
 
-
-
         // Count pending arrivals
         $pendingArrivals = 0;
         if ($user->can('official-travels.stamp')) {
-            $pendingArrivals = Officialtravel::where('official_travel_status', 'open')
+            $pendingArrivals = Officialtravel::where('status', 'approved')
                 ->whereNull('arrival_at_destination')
                 ->count();
         }
@@ -62,18 +60,59 @@ class DashboardController extends Controller
         // Count pending departures
         $pendingDepartures = 0;
         if ($user->can('official-travels.stamp')) {
-            $pendingDepartures = Officialtravel::where('official_travel_status', 'open')
+            $pendingDepartures = Officialtravel::where('status', 'approved')
                 ->whereNotNull('arrival_at_destination')
                 ->whereNull('departure_from_destination')
                 ->count();
         }
 
-        // Count open travels
-        $openTravel = Officialtravel::where('official_travel_status', 'open')->count();
+        // Count total travels
+        $totalTravels = Officialtravel::count();
+
+        // Count active travels (approved and not closed)
+        $activeTravels = Officialtravel::where('status', 'approved')->count();
+
+        // Count travels by status
+        $draftTravels = Officialtravel::where('status', 'draft')->count();
+        $submittedTravels = Officialtravel::where('status', 'submitted')->count();
+        $approvedTravels = Officialtravel::where('status', 'approved')->count();
+        $rejectedTravels = Officialtravel::where('status', 'rejected')->count();
+
+        // Count this month travels
+        $thisMonthTravels = Officialtravel::whereMonth('created_at', now()->month)
+            ->whereYear('created_at', now()->year)
+            ->count();
+
+        // Calculate monthly growth
+        $lastMonthTravels = Officialtravel::whereMonth('created_at', now()->subMonth()->month)
+            ->whereYear('created_at', now()->subMonth()->year)
+            ->count();
+
+        $monthlyGrowth = $lastMonthTravels > 0 ? round((($thisMonthTravels - $lastMonthTravels) / $lastMonthTravels) * 100, 1) : 0;
+
+        // Get top destinations
+        $topDestinations = Officialtravel::select('destination', DB::raw('count(*) as count'))
+            ->groupBy('destination')
+            ->orderBy('count', 'desc')
+            ->limit(5)
+            ->get();
+
+        // Get department stats
+        $departmentStats = Officialtravel::join('employees', 'officialtravels.traveler_id', '=', 'employees.id')
+            ->join('administrations', 'employees.id', '=', 'administrations.employee_id')
+            ->join('positions', 'administrations.position_id', '=', 'positions.id')
+            ->join('departments', 'positions.department_id', '=', 'departments.id')
+            ->select('departments.department_name', DB::raw('count(*) as count'))
+            ->groupBy('departments.id', 'departments.department_name')
+            ->orderBy('count', 'desc')
+            ->limit(5)
+            ->get();
+
+        // Count open travels (for backward compatibility)
+        $openTravel = Officialtravel::where('status', 'approved')->count();
 
         // Get recent travels
         $openTravels = Officialtravel::with('traveler.employee')
-            ->where('official_travel_status', 'open')
             ->orderBy('created_at', 'desc')
             ->limit(5)
             ->get();
@@ -165,7 +204,16 @@ class DashboardController extends Controller
             'title' => 'Dashboard',
             'subtitle' => 'Dashboard',
             // Official Travel data
-            'pendingRecommendations' => $pendingRecommendations,
+            'totalTravels' => $totalTravels,
+            'activeTravels' => $activeTravels,
+            'draftTravels' => $draftTravels,
+            'submittedTravels' => $submittedTravels,
+            'approvedTravels' => $approvedTravels,
+            'rejectedTravels' => $rejectedTravels,
+            'thisMonthTravels' => $thisMonthTravels,
+            'monthlyGrowth' => $monthlyGrowth,
+            'topDestinations' => $topDestinations,
+            'departmentStats' => $departmentStats,
             'pendingApprovals' => $pendingApprovals,
             'pendingArrivals' => $pendingArrivals,
             'pendingDepartures' => $pendingDepartures,
@@ -200,7 +248,7 @@ class DashboardController extends Controller
         // }
 
         $query = Officialtravel::with('traveler.employee')
-            ->where('official_travel_status', 'draft')
+            ->where('status', 'draft')
             ->where('recommendation_status', 'pending')
             ->where('recommendation_by', $user->id);
 
@@ -274,7 +322,7 @@ class DashboardController extends Controller
         // }
 
         $query = Officialtravel::with('traveler.employee')
-            ->where('official_travel_status', 'open')
+            ->where('status', 'approved')
             ->whereNull('arrival_at_destination');
 
         return DataTables::of($query)
@@ -309,7 +357,7 @@ class DashboardController extends Controller
         // }
 
         $query = Officialtravel::with('traveler.employee')
-            ->where('official_travel_status', 'open')
+            ->where('status', 'approved')
             ->whereNotNull('arrival_at_destination')
             ->whereNull('departure_from_destination');
 

@@ -10,10 +10,38 @@
                 <div class="travel-date">
                     <i class="far fa-calendar-alt"></i> {{ date('d F Y', strtotime($officialtravel->official_travel_date)) }}
                 </div>
-                <div
-                    class="travel-status-pill {{ $officialtravel->official_travel_status == 'open' ? 'status-open' : 'status-closed' }}">
-                    <i class="fas fa-plane-departure"></i>
-                    {{ ucfirst($officialtravel->official_travel_status) }}
+                @php
+                    $statusMap = [
+                        'draft' => ['label' => 'Draft', 'class' => 'badge badge-secondary', 'icon' => 'fa-edit'],
+                        'submitted' => [
+                            'label' => 'Submitted',
+                            'class' => 'badge badge-info',
+                            'icon' => 'fa-paper-plane',
+                        ],
+                        'approved' => ['label' => 'Open', 'class' => 'badge badge-success', 'icon' => 'fa-plane'],
+                        'rejected' => [
+                            'label' => 'Rejected',
+                            'class' => 'badge badge-danger',
+                            'icon' => 'fa-times-circle',
+                        ],
+                        'closed' => [
+                            'label' => 'Closed',
+                            'class' => 'badge badge-primary',
+                            'icon' => 'fa-check-circle',
+                        ],
+                        'cancelled' => ['label' => 'Cancelled', 'class' => 'badge badge-warning', 'icon' => 'fa-ban'],
+                    ];
+                    $status = $officialtravel->status;
+                    $pill = $statusMap[$status] ?? [
+                        'label' => ucfirst($status),
+                        'class' => 'badge badge-secondary',
+                        'icon' => 'fa-question-circle',
+                    ];
+                @endphp
+                <div class="travel-status-pill">
+                    <span class="{{ $pill['class'] }}">
+                        <i class="fas {{ $pill['icon'] }}"></i> {{ $pill['label'] }}
+                    </span>
                 </div>
             </div>
         </div>
@@ -236,23 +264,16 @@
             position: absolute;
             top: 20px;
             right: 20px;
-            padding: 6px 12px;
-            border-radius: 4px;
+        }
+
+        .travel-status-pill .badge {
+            font-size: 0.875rem;
+            padding: 0.5rem 0.75rem;
+            border-radius: 0.375rem;
             font-weight: 500;
-            display: flex;
+            display: inline-flex;
             align-items: center;
-            gap: 6px;
-            font-size: 13px;
-        }
-
-        .status-open {
-            background-color: #2ecc71;
-            color: #ffffff;
-        }
-
-        .status-closed {
-            background-color: #e74c3c;
-            color: #ffffff;
+            gap: 0.5rem;
         }
 
         /* Content Styles */

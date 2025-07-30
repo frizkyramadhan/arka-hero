@@ -96,7 +96,6 @@ class RoleAndPermissionSeeder extends Seeder
             'letter-numbers.create',
             'letter-numbers.edit',
             'letter-numbers.delete',
-            'project.000h',
         ]);
 
         // HR Supervisor Role
@@ -119,12 +118,6 @@ class RoleAndPermissionSeeder extends Seeder
             'master-data.show',
             'master-data.create',
             'master-data.edit',
-            'project.000h',
-            'project.001h',
-            'project.017c',
-            'project.021c',
-            'project.022c',
-            'project.023c',
         ]);
 
         // HR Manager Role
@@ -147,12 +140,6 @@ class RoleAndPermissionSeeder extends Seeder
             'master-data.show',
             'master-data.create',
             'master-data.edit',
-            'project.000h',
-            'project.001h',
-            'project.017c',
-            'project.021c',
-            'project.022c',
-            'project.023c',
         ]);
 
         // Project Manager Role

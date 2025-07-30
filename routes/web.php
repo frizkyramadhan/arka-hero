@@ -50,6 +50,11 @@ use App\Http\Controllers\RecruitmentCandidateController;
 // Removed import for deleted controller
 use App\Http\Controllers\EmployeeRegistrationAdminController;
 
+// Approval System Controllers
+use App\Http\Controllers\ApprovalStageController;
+use App\Http\Controllers\ApprovalPlanController;
+use App\Http\Controllers\ApprovalRequestController;
+
 /*
 |--------------------------------------------------------------------------
 | Web Routes
@@ -173,6 +178,7 @@ Route::group(['middleware' => ['auth']], function () {
     // Test route for letter number integration (development only)
     Route::get('officialtravels/test-letter-integration', [OfficialtravelController::class, 'testLetterNumberIntegration'])->name('officialtravels.testLetterIntegration');
     Route::resource('officialtravels', OfficialtravelController::class);
+    Route::post('officialtravels/{officialtravel}/submit', [OfficialtravelController::class, 'submitForApproval'])->name('officialtravels.submit');
     Route::get('officialtravels/{officialtravel}/recommend', [OfficialtravelController::class, 'showRecommendForm'])->name('officialtravels.showRecommendForm');
     Route::post('officialtravels/{officialtravel}/recommend', [OfficialtravelController::class, 'recommend'])->name('officialtravels.recommend');
 
@@ -404,6 +410,37 @@ Route::group(['middleware' => ['auth']], function () {
             Route::get('/{id}/data', [RecruitmentSessionController::class, 'getSessionData'])->name('data');
             Route::get('/fptk/{fptkId}/sessions', [RecruitmentSessionController::class, 'getSessionsByFPTK'])->name('by-fptk');
             Route::get('/candidate/{candidateId}/sessions', [RecruitmentSessionController::class, 'getSessionsByCandidate'])->name('by-candidate');
+        });
+    });
+
+    // Approval System Routes
+    Route::prefix('approval')->name('approval.')->group(function () {
+        // Approval Stages Management
+        Route::prefix('stages')->name('stages.')->group(function () {
+            Route::get('/', [ApprovalStageController::class, 'index'])->name('index');
+            Route::get('/create', [ApprovalStageController::class, 'create'])->name('create');
+            Route::post('/', [ApprovalStageController::class, 'store'])->name('store');
+            Route::get('/{id}/edit', [ApprovalStageController::class, 'edit'])->name('edit');
+            Route::put('/{id}', [ApprovalStageController::class, 'update'])->name('update');
+            Route::delete('/{id}', [ApprovalStageController::class, 'destroy'])->name('destroy');
+            Route::get('/data', [ApprovalStageController::class, 'data'])->name('data');
+            Route::get('/preview', [ApprovalStageController::class, 'preview'])->name('preview');
+        });
+
+        // Approval Plans
+        Route::prefix('plans')->name('plans.')->group(function () {
+            Route::put('/{id}', [ApprovalPlanController::class, 'update'])->name('update');
+            Route::post('/bulk-approve', [ApprovalPlanController::class, 'bulkApprove'])->name('bulk-approve');
+        });
+
+        // Approval Requests
+        Route::prefix('requests')->name('requests.')->group(function () {
+            Route::get('/', [ApprovalRequestController::class, 'index'])->name('index');
+            Route::get('/data', [ApprovalRequestController::class, 'getApprovalRequests'])->name('data');
+            Route::get('/{id}', [ApprovalRequestController::class, 'show'])->name('show');
+            Route::post('/{id}/process', [ApprovalRequestController::class, 'processApproval'])->name('process');
+            Route::post('/bulk-approve', [ApprovalRequestController::class, 'bulkApprove'])->name('bulk-approve');
+            Route::post('/filter-by-type', [ApprovalRequestController::class, 'filterByType'])->name('filter-by-type');
         });
     });
 });

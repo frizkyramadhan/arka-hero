@@ -19,7 +19,7 @@ class OfficialtravelResource extends JsonResource
             'id' => $this->id,
             'official_travel_number' => $this->official_travel_number,
             'official_travel_date' => $this->official_travel_date,
-            'official_travel_status' => $this->official_travel_status,
+            'status' => $this->status,
             'purpose' => $this->purpose,
             'destination' => $this->destination,
             'duration' => $this->duration,

@@ -37,6 +37,26 @@ class Officialtravel extends Model
     public const RECOMMENDATION_STATUSES = ['pending', 'approved', 'rejected'];
     public const APPROVAL_STATUSES = ['pending', 'approved', 'rejected'];
 
+    // Status enum values
+    public const STATUS_DRAFT = 'draft';
+    public const STATUS_SUBMITTED = 'submitted';
+    public const STATUS_APPROVED = 'approved';
+    public const STATUS_REJECTED = 'rejected';
+    public const STATUS_CANCELLED = 'cancelled';
+    public const STATUS_CLOSED = 'closed';
+
+    public static function getStatusOptions()
+    {
+        return [
+            self::STATUS_DRAFT => 'Draft',
+            self::STATUS_SUBMITTED => 'Submitted',
+            self::STATUS_APPROVED => 'Approved',
+            self::STATUS_REJECTED => 'Rejected',
+            self::STATUS_CANCELLED => 'Cancelled',
+            self::STATUS_CLOSED => 'Closed',
+        ];
+    }
+
     // Relationships
     public function traveler()
     {
@@ -86,6 +106,11 @@ class Officialtravel extends Model
     public function approver()
     {
         return $this->belongsTo(User::class, 'approval_by');
+    }
+
+    public function approval_plans()
+    {
+        return $this->hasMany(ApprovalPlan::class, 'document_id', 'id');
     }
 
 
