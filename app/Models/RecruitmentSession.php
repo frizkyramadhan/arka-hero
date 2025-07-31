@@ -22,7 +22,7 @@ class RecruitmentSession extends Model
         'overall_progress',
         'next_action',
         'responsible_person_id',
-        'final_status',
+        'status',
         'final_decision_date',
         'final_decision_by',
         'final_decision_notes',
@@ -61,7 +61,7 @@ class RecruitmentSession extends Model
     ];
 
     public const STAGE_STATUSES = ['pending', 'in_progress', 'completed', 'failed', 'skipped'];
-    public const FINAL_STATUSES = ['in_process', 'hired', 'rejected', 'withdrawn', 'cancelled'];
+    public const statusES = ['in_process', 'hired', 'rejected', 'withdrawn', 'cancelled'];
 
     // Stage progress percentages
     public const STAGE_PROGRESS = [
@@ -150,17 +150,17 @@ class RecruitmentSession extends Model
      */
     public function scopeActive($query)
     {
-        return $query->where('final_status', 'in_process');
+        return $query->where('status', 'in_process');
     }
 
     public function scopeHired($query)
     {
-        return $query->where('final_status', 'hired');
+        return $query->where('status', 'hired');
     }
 
     public function scopeRejected($query)
     {
-        return $query->where('final_status', 'rejected');
+        return $query->where('status', 'rejected');
     }
 
     public function scopeByStage($query, $stage)
@@ -189,12 +189,12 @@ class RecruitmentSession extends Model
      */
     public function getIsActiveAttribute()
     {
-        return $this->final_status === 'in_process';
+        return $this->status === 'in_process';
     }
 
     public function getIsCompletedAttribute()
     {
-        return in_array($this->final_status, ['hired', 'rejected', 'withdrawn', 'cancelled']);
+        return in_array($this->status, ['hired', 'rejected', 'withdrawn', 'cancelled']);
     }
 
     public function getNextStageAttribute()
@@ -261,7 +261,7 @@ class RecruitmentSession extends Model
             return false;
         }
 
-        if ($this->final_status !== 'in_process') {
+        if ($this->status !== 'in_process') {
             return false;
         }
 
@@ -330,7 +330,7 @@ class RecruitmentSession extends Model
         $this->update([
             'stage_status' => 'failed',
             'stage_completed_at' => now(),
-            'final_status' => 'rejected',
+            'status' => 'rejected',
             'final_decision_date' => now(),
             'final_decision_notes' => $reason,
         ]);
@@ -355,7 +355,7 @@ class RecruitmentSession extends Model
     public function hire($decisionBy, $notes = null)
     {
         $this->update([
-            'final_status' => 'hired',
+            'status' => 'hired',
             'final_decision_date' => now(),
             'final_decision_by' => $decisionBy,
             'final_decision_notes' => $notes,
@@ -374,7 +374,7 @@ class RecruitmentSession extends Model
     public function reject($decisionBy, $reason)
     {
         $this->update([
-            'final_status' => 'rejected',
+            'status' => 'rejected',
             'final_decision_date' => now(),
             'final_decision_by' => $decisionBy,
             'final_decision_notes' => $reason,
@@ -389,7 +389,7 @@ class RecruitmentSession extends Model
     public function withdraw($reason = null)
     {
         $this->update([
-            'final_status' => 'withdrawn',
+            'status' => 'withdrawn',
             'final_decision_date' => now(),
             'final_decision_notes' => $reason,
         ]);
@@ -403,7 +403,7 @@ class RecruitmentSession extends Model
     public function cancel($reason = null)
     {
         $this->update([
-            'final_status' => 'cancelled',
+            'status' => 'cancelled',
             'final_decision_date' => now(),
             'final_decision_notes' => $reason,
         ]);

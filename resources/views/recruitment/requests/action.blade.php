@@ -4,7 +4,7 @@
 </a>
 
 {{-- <!-- Edit button - only for draft status -->
-@if ($fptk->final_status == 'draft')
+@if ($fptk->status == 'draft')
     @can('recruitment-requests.edit')
         <a href="{{ route('recruitment.requests.edit', $fptk->id) }}" class="btn btn-icon btn-primary btn-sm" title="Edit">
             <i class="fas fa-pen-square"></i>
@@ -13,7 +13,7 @@
 @endif
 
 <!-- Delete button - only for draft status -->
-@if ($fptk->final_status == 'draft')
+@if ($fptk->status == 'draft')
     @can('recruitment-requests.delete')
         <form action="{{ route('recruitment.requests.destroy', $fptk->id) }}" method="post"
             onsubmit="return confirm('Are you sure you want to delete this FPTK?')" class="d-inline">
@@ -27,7 +27,7 @@
 @endif
 
 <!-- Submit button - for draft status -->
-@if ($fptk->final_status == 'draft')
+@if ($fptk->status == 'draft')
     @can('recruitment-requests.submit')
         <form action="{{ route('recruitment.requests.submit', $fptk->id) }}" method="post"
             onsubmit="return confirm('Are you sure you want to submit this FPTK for approval?')" class="d-inline">
@@ -40,7 +40,7 @@
 @endif
 
 <!-- HR Acknowledgment button - for submitted status -->
-@if ($fptk->final_status == 'submitted' && $fptk->known_status == 'pending' && Auth::id() == $fptk->known_by)
+@if ($fptk->status == 'submitted' && $fptk->known_status == 'pending' && Auth::id() == $fptk->known_by)
     @can('recruitment-requests.acknowledge')
         <a href="{{ route('recruitment.requests.acknowledge-form', $fptk->id) }}" class="btn btn-icon btn-info btn-sm"
             title="HR Acknowledgment">
@@ -70,7 +70,7 @@
 @endif
 
 <!-- Legacy Approve button - for submitted status (backward compatibility) -->
-@if ($fptk->final_status == 'submitted')
+@if ($fptk->status == 'submitted')
     @can('recruitment-requests.approve')
         <button class="btn btn-icon btn-success btn-sm" title="Approve" onclick="showApprovalModal({{ $fptk->id }})">
             <i class="fas fa-check-circle"></i>
@@ -79,7 +79,7 @@
 @endif
 
 <!-- Legacy Reject button - for submitted status (backward compatibility) -->
-@if ($fptk->final_status == 'submitted')
+@if ($fptk->status == 'submitted')
     @can('recruitment-requests.reject')
         <button class="btn btn-icon btn-danger btn-sm" title="Reject" onclick="showRejectionModal({{ $fptk->id }})">
             <i class="fas fa-times-circle"></i>

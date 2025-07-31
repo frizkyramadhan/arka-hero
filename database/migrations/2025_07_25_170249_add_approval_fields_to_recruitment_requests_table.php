@@ -21,7 +21,7 @@ return new class extends Migration
 
         // Rename column in separate operation
         Schema::table('recruitment_requests', function (Blueprint $table) {
-            $table->renameColumn('final_status', 'status');
+            $table->renameColumn('status', 'status');
         });
     }
 
@@ -34,7 +34,7 @@ return new class extends Migration
     {
         // Rename column back first
         Schema::table('recruitment_requests', function (Blueprint $table) {
-            $table->renameColumn('status', 'final_status');
+            $table->renameColumn('status', 'status');
         });
 
         // Then drop the added columns

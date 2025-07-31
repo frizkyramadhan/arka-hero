@@ -412,7 +412,7 @@ class RecruitmentCandidateController extends Controller
                         'fptk_number' => $session->fptk->request_number,
                         'position' => $session->fptk->position->name,
                         'current_stage' => $session->current_stage,
-                        'final_status' => $session->final_status,
+                        'status' => $session->status,
                         'applied_date' => $session->applied_date,
                     ];
                 }),

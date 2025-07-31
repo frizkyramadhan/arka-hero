@@ -46,8 +46,8 @@ class RecruitmentSessionController extends Controller
             $query->where('current_stage', $request->current_stage);
         }
 
-        if ($request->filled('final_status')) {
-            $query->where('final_status', $request->final_status);
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
         }
 
         if ($request->filled('department_id')) {
@@ -127,7 +127,7 @@ class RecruitmentSessionController extends Controller
     {
         $session = RecruitmentSession::findOrFail($id);
 
-        if ($session->final_status !== 'in_process') {
+        if ($session->status !== 'in_process') {
             return redirect()->back()
                 ->with('error', 'Session tidak dapat diadvance karena sudah selesai.');
         }
@@ -176,7 +176,7 @@ class RecruitmentSessionController extends Controller
 
         $session = RecruitmentSession::findOrFail($id);
 
-        if ($session->final_status !== 'in_process') {
+        if ($session->status !== 'in_process') {
             return redirect()->back()
                 ->with('error', 'Session tidak dapat ditolak karena sudah selesai.');
         }
@@ -215,7 +215,7 @@ class RecruitmentSessionController extends Controller
     {
         $session = RecruitmentSession::findOrFail($id);
 
-        if ($session->final_status !== 'in_process') {
+        if ($session->status !== 'in_process') {
             return redirect()->back()
                 ->with('error', 'Session tidak dapat diselesaikan karena sudah selesai.');
         }
@@ -271,7 +271,7 @@ class RecruitmentSessionController extends Controller
 
         $session = RecruitmentSession::findOrFail($id);
 
-        if ($session->final_status !== 'in_process') {
+        if ($session->status !== 'in_process') {
             return redirect()->back()
                 ->with('error', 'Session tidak dapat dibatalkan karena sudah selesai.');
         }
@@ -280,7 +280,7 @@ class RecruitmentSessionController extends Controller
             DB::beginTransaction();
 
             $session->update([
-                'final_status' => 'cancelled',
+                'status' => 'cancelled',
                 'final_decision_date' => now(),
                 'final_decision_by' => Auth::id(),
                 'final_decision_notes' => $request->cancel_reason,
@@ -289,7 +289,7 @@ class RecruitmentSessionController extends Controller
             // Update candidate status back to available
             $candidate = $session->candidate;
             $activeSessionsCount = $candidate->sessions()
-                ->where('final_status', 'in_process')
+                ->where('status', 'in_process')
                 ->where('id', '!=', $session->id)
                 ->count();
 
@@ -321,7 +321,7 @@ class RecruitmentSessionController extends Controller
 
         $session = RecruitmentSession::findOrFail($id);
 
-        if ($session->final_status !== 'in_process') {
+        if ($session->status !== 'in_process') {
             return redirect()->back()
                 ->with('error', 'Session tidak dapat ditarik karena sudah selesai.');
         }
@@ -330,7 +330,7 @@ class RecruitmentSessionController extends Controller
             DB::beginTransaction();
 
             $session->update([
-                'final_status' => 'withdrawn',
+                'status' => 'withdrawn',
                 'final_decision_date' => now(),
                 'final_decision_by' => Auth::id(),
                 'final_decision_notes' => $request->withdraw_reason,
@@ -339,7 +339,7 @@ class RecruitmentSessionController extends Controller
             // Update candidate status back to available
             $candidate = $session->candidate;
             $activeSessionsCount = $candidate->sessions()
-                ->where('final_status', 'in_process')
+                ->where('status', 'in_process')
                 ->where('id', '!=', $session->id)
                 ->count();
 
@@ -384,7 +384,7 @@ class RecruitmentSessionController extends Controller
                 'session_number' => $session->session_number,
                 'current_stage' => $session->current_stage,
                 'stage_status' => $session->stage_status,
-                'final_status' => $session->final_status,
+                'status' => $session->status,
                 'progress_percentage' => $progressPercentage,
                 'applied_date' => $session->applied_date,
                 'fptk' => [
@@ -435,7 +435,7 @@ class RecruitmentSessionController extends Controller
                     'session_number' => $session->session_number,
                     'current_stage' => $session->current_stage,
                     'stage_status' => $session->stage_status,
-                    'final_status' => $session->final_status,
+                    'status' => $session->status,
                     'progress_percentage' => $this->sessionService->getProgressPercentage($session),
                     'candidate' => [
                         'fullname' => $session->candidate->fullname,
@@ -465,7 +465,7 @@ class RecruitmentSessionController extends Controller
                     'session_number' => $session->session_number,
                     'current_stage' => $session->current_stage,
                     'stage_status' => $session->stage_status,
-                    'final_status' => $session->final_status,
+                    'status' => $session->status,
                     'progress_percentage' => $this->sessionService->getProgressPercentage($session),
                     'fptk' => [
                         'request_number' => $session->fptk->request_number,
@@ -485,13 +485,13 @@ class RecruitmentSessionController extends Controller
     {
         $stats = [
             'total_sessions' => RecruitmentSession::count(),
-            'active_sessions' => RecruitmentSession::where('final_status', 'in_process')->count(),
-            'completed_sessions' => RecruitmentSession::where('final_status', 'hired')->count(),
-            'rejected_sessions' => RecruitmentSession::where('final_status', 'rejected')->count(),
+            'active_sessions' => RecruitmentSession::where('status', 'in_process')->count(),
+            'completed_sessions' => RecruitmentSession::where('status', 'hired')->count(),
+            'rejected_sessions' => RecruitmentSession::where('status', 'rejected')->count(),
         ];
 
         // Sessions by stage
-        $sessionsByStage = RecruitmentSession::where('final_status', 'in_process')
+        $sessionsByStage = RecruitmentSession::where('status', 'in_process')
             ->selectRaw('current_stage, COUNT(*) as count')
             ->groupBy('current_stage')
             ->get();

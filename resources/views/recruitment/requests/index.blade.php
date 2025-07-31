@@ -128,27 +128,27 @@
                                                 <div class="col-3">
                                                     <div class="form-group">
                                                         <label class="form-control-label">Status</label>
-                                                        <select name="final_status" class="form-control select2bs4"
-                                                            id="final_status" style="width: 100%;">
+                                                        <select name="status" class="form-control select2bs4"
+                                                            id="status" style="width: 100%;">
                                                             <option value="">- All -</option>
                                                             <option value="draft"
-                                                                {{ request('final_status') == 'draft' ? 'selected' : '' }}>
+                                                                {{ request('status') == 'draft' ? 'selected' : '' }}>
                                                                 Draft
                                                             </option>
                                                             <option value="submitted"
-                                                                {{ request('final_status') == 'submitted' ? 'selected' : '' }}>
+                                                                {{ request('status') == 'submitted' ? 'selected' : '' }}>
                                                                 Submitted</option>
                                                             <option value="approved"
-                                                                {{ request('final_status') == 'approved' ? 'selected' : '' }}>
+                                                                {{ request('status') == 'approved' ? 'selected' : '' }}>
                                                                 Approved</option>
                                                             <option value="rejected"
-                                                                {{ request('final_status') == 'rejected' ? 'selected' : '' }}>
+                                                                {{ request('status') == 'rejected' ? 'selected' : '' }}>
                                                                 Rejected</option>
                                                             <option value="cancelled"
-                                                                {{ request('final_status') == 'cancelled' ? 'selected' : '' }}>
+                                                                {{ request('status') == 'cancelled' ? 'selected' : '' }}>
                                                                 Cancelled</option>
                                                             <option value="closed"
-                                                                {{ request('final_status') == 'closed' ? 'selected' : '' }}>
+                                                                {{ request('status') == 'closed' ? 'selected' : '' }}>
                                                                 Closed</option>
                                                         </select>
                                                     </div>
@@ -299,7 +299,7 @@
                         d.department_id = $('#department_id').val();
                         d.position_id = $('#position_id').val();
                         d.level_id = $('#level_id').val();
-                        d.final_status = $('#final_status').val();
+                        d.status = $('#status').val();
                         d.date_from = $('#date_from').val();
                         d.date_to = $('#date_to').val();
                         d.search = $("input[type=search][aria-controls=example1]").val();
@@ -332,8 +332,8 @@
                     orderable: false,
                     className: 'text-center'
                 }, {
-                    data: "final_status",
-                    name: "final_status",
+                    data: "status",
+                    name: "status",
                     orderable: false,
                     className: 'text-center'
                 }, {
@@ -351,20 +351,20 @@
             });
 
             // Filter functionality
-            $('#request_number, #department_id, #position_id, #level_id, #final_status, #date_from, #date_to')
+            $('#request_number, #department_id, #position_id, #level_id, #status, #date_from, #date_to')
                 .keyup(function() {
                     table.draw();
                 });
-            $('#department_id, #position_id, #level_id, #final_status, #date_from, #date_to')
+            $('#department_id, #position_id, #level_id, #status, #date_from, #date_to')
                 .change(function() {
                     table.draw();
                 });
 
             // Reset functionality
             $('#btn-reset').click(function() {
-                $('#request_number, #department_id, #position_id, #level_id, #final_status, #date_from, #date_to')
+                $('#request_number, #department_id, #position_id, #level_id, #status, #date_from, #date_to')
                     .val('');
-                $('#department_id, #position_id, #level_id, #final_status').change();
+                $('#department_id, #position_id, #level_id, #status').change();
                 table.draw();
             });
 

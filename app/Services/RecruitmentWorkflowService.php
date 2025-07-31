@@ -141,7 +141,7 @@ class RecruitmentWorkflowService
             // Update session status
             $session->update([
                 'stage_status' => 'failed',
-                'final_status' => 'rejected',
+                'status' => 'rejected',
                 'final_decision_date' => now(),
                 'final_decision_notes' => $reason,
             ]);

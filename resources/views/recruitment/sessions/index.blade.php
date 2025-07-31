@@ -143,23 +143,23 @@
                                                 <div class="col-3">
                                                     <div class="form-group">
                                                         <label class="form-control-label">Final Status</label>
-                                                        <select name="final_status" class="form-control select2bs4"
-                                                            id="final_status" style="width: 100%;">
+                                                        <select name="status" class="form-control select2bs4"
+                                                            id="status" style="width: 100%;">
                                                             <option value="">- All -</option>
                                                             <option value="in_process"
-                                                                {{ request('final_status') == 'in_process' ? 'selected' : '' }}>
+                                                                {{ request('status') == 'in_process' ? 'selected' : '' }}>
                                                                 In Process</option>
                                                             <option value="hired"
-                                                                {{ request('final_status') == 'hired' ? 'selected' : '' }}>
+                                                                {{ request('status') == 'hired' ? 'selected' : '' }}>
                                                                 Hired</option>
                                                             <option value="rejected"
-                                                                {{ request('final_status') == 'rejected' ? 'selected' : '' }}>
+                                                                {{ request('status') == 'rejected' ? 'selected' : '' }}>
                                                                 Rejected</option>
                                                             <option value="withdrawn"
-                                                                {{ request('final_status') == 'withdrawn' ? 'selected' : '' }}>
+                                                                {{ request('status') == 'withdrawn' ? 'selected' : '' }}>
                                                                 Withdrawn</option>
                                                             <option value="cancelled"
-                                                                {{ request('final_status') == 'cancelled' ? 'selected' : '' }}>
+                                                                {{ request('status') == 'cancelled' ? 'selected' : '' }}>
                                                                 Cancelled</option>
                                                         </select>
                                                     </div>
@@ -359,7 +359,7 @@
                         d.fptk_number = $('#fptk_number').val();
                         d.current_stage = $('#current_stage').val();
                         d.stage_status = $('#stage_status').val();
-                        d.final_status = $('#final_status').val();
+                        d.status = $('#status').val();
                         d.applied_date_from = $('#applied_date_from').val();
                         d.applied_date_to = $('#applied_date_to').val();
                         d.search = $("input[type=search][aria-controls=example1]").val();
@@ -402,8 +402,8 @@
                     orderable: false,
                     className: 'text-center'
                 }, {
-                    data: "final_status",
-                    name: "final_status",
+                    data: "status",
+                    name: "status",
                     orderable: false,
                     className: 'text-center'
                 }, {
@@ -422,20 +422,20 @@
             });
 
             // Filter functionality
-            $('#session_number, #candidate_name, #fptk_number, #current_stage, #stage_status, #final_status, #applied_date_from, #applied_date_to')
+            $('#session_number, #candidate_name, #fptk_number, #current_stage, #stage_status, #status, #applied_date_from, #applied_date_to')
                 .keyup(function() {
                     table.draw();
                 });
-            $('#current_stage, #stage_status, #final_status, #applied_date_from, #applied_date_to')
+            $('#current_stage, #stage_status, #status, #applied_date_from, #applied_date_to')
                 .change(function() {
                     table.draw();
                 });
 
             // Reset functionality
             $('#btn-reset').click(function() {
-                $('#session_number, #candidate_name, #fptk_number, #current_stage, #stage_status, #final_status, #applied_date_from, #applied_date_to')
+                $('#session_number, #candidate_name, #fptk_number, #current_stage, #stage_status, #status, #applied_date_from, #applied_date_to')
                     .val('');
-                $('#current_stage, #stage_status, #final_status').change();
+                $('#current_stage, #stage_status, #status').change();
             });
 
             // Modal functionality

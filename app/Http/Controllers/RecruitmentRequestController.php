@@ -23,7 +23,6 @@ class RecruitmentRequestController extends Controller
     public function __construct(RecruitmentLetterNumberService $letterNumberService)
     {
         $this->letterNumberService = $letterNumberService;
-        $this->middleware('auth');
     }
 
     /**
@@ -73,8 +72,8 @@ class RecruitmentRequestController extends Controller
             $query->where('level_id', $request->level_id);
         }
 
-        if ($request->filled('final_status')) {
-            $query->where('final_status', $request->final_status);
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
         }
 
         if ($request->filled('year')) {
@@ -118,7 +117,7 @@ class RecruitmentRequestController extends Controller
                 ];
                 return $types[$fptk->employment_type] ?? $fptk->employment_type;
             })
-            ->addColumn('final_status', function ($fptk) {
+            ->addColumn('status', function ($fptk) {
                 $badges = [
                     'draft' => '<span class="badge badge-secondary">Draft</span>',
                     'submitted' => '<span class="badge badge-warning">Submitted</span>',
@@ -127,7 +126,7 @@ class RecruitmentRequestController extends Controller
                     'cancelled' => '<span class="badge badge-warning">Cancelled</span>',
                     'closed' => '<span class="badge badge-info">Closed</span>'
                 ];
-                return $badges[$fptk->final_status] ?? '<span class="badge badge-light">' . ucfirst($fptk->final_status) . '</span>';
+                return $badges[$fptk->status] ?? '<span class="badge badge-light">' . ucfirst($fptk->status) . '</span>';
             })
             ->addColumn('created_by', function ($fptk) {
                 return $fptk->createdBy ? $fptk->createdBy->name : '-';
@@ -135,7 +134,7 @@ class RecruitmentRequestController extends Controller
             ->addColumn('action', function ($fptk) {
                 return view('recruitment.requests.action', compact('fptk'))->render();
             })
-            ->rawColumns(['final_status', 'action'])
+            ->rawColumns(['status', 'action'])
             ->toJson();
     }
 
@@ -152,14 +151,14 @@ class RecruitmentRequestController extends Controller
         $levels = Level::get();
 
         // Get users with approval permissions
-        $acknowledgers = User::permission('recruitment-requests.acknowledge')->get();
-        $approvers = User::permission('recruitment-requests.approve')->get();
+        // $acknowledgers = User::permission('recruitment-requests.acknowledge')->get();
+        // $approvers = User::permission('recruitment-requests.approve')->get();
 
         // Travel Number will be generated based on selected letter number
         $romanMonth = $this->numberToRoman(now()->month);
         $recruitmentNumber = sprintf("[Letter Number]/HCS-[Project Code]/FPTK/%s/%s", $romanMonth, now()->year);
 
-        return view('recruitment.requests.create', compact('departments', 'projects', 'positions', 'levels', 'acknowledgers', 'approvers', 'title', 'subtitle', 'recruitmentNumber'));
+        return view('recruitment.requests.create', compact('departments', 'projects', 'positions', 'levels', 'title', 'subtitle', 'recruitmentNumber'));
     }
 
     /**
@@ -176,7 +175,7 @@ class RecruitmentRequestController extends Controller
             'number_option' => 'nullable|in:existing',
             'letter_number_id' => 'nullable|exists:letter_numbers,id',
             'required_qty' => 'required|integer|min:1|max:50',
-            'required_date' => 'required|date|after:today',
+            'required_date' => 'required|date',
             'employment_type' => 'required|in:pkwtt,pkwt,harian,magang',
             'request_reason' => 'required|in:replacement_resign,replacement_promotion,additional_workplan,other',
             'other_reason' => 'required_if:request_reason,other|nullable|string|max:1000',
@@ -191,10 +190,14 @@ class RecruitmentRequestController extends Controller
             'required_physical' => 'nullable|string|max:500',
             'required_mental' => 'nullable|string|max:500',
             'other_requirements' => 'nullable|string|max:1000',
+
             // Approval hierarchy fields
-            'known_by' => 'required|exists:users,id',
-            'approved_by_pm' => 'required|exists:users,id',
-            'approved_by_director' => 'required|exists:users,id',
+            // 'known_by' => 'required|exists:users,id',
+            // 'approved_by_pm' => 'required|exists:users,id',
+            // 'approved_by_director' => 'required|exists:users,id',
+
+            // Submit action
+            'submit_action' => 'required|in:draft,submit',
         ]);
 
         try {
@@ -241,6 +244,10 @@ class RecruitmentRequestController extends Controller
                 );
             }
 
+            // Determine status based on submit action
+            $status = $request->submit_action === 'submit' ? 'submitted' : 'draft';
+            $submitAt = $request->submit_action === 'submit' ? now() : null;
+
             $fptk = RecruitmentRequest::create([
                 'letter_number_id' => $letterNumberId,
                 'letter_number' => $letterNumberString,
@@ -265,12 +272,15 @@ class RecruitmentRequestController extends Controller
                 'required_physical' => $request->required_physical,
                 'required_mental' => $request->required_mental,
                 'other_requirements' => $request->other_requirements,
+
                 // Approval hierarchy fields
-                'known_by' => $request->known_by,
-                'approved_by_pm' => $request->approved_by_pm,
-                'approved_by_director' => $request->approved_by_director,
+                // 'known_by' => $request->known_by,
+                // 'approved_by_pm' => $request->approved_by_pm,
+                // 'approved_by_director' => $request->approved_by_director,
+
                 'created_by' => Auth::id(),
-                'final_status' => 'draft'
+                'status' => $status,
+                'submit_at' => $submitAt,
             ]);
 
             // Mark letter number as used if selected
@@ -286,11 +296,27 @@ class RecruitmentRequestController extends Controller
                 ]);
             }
 
+            // If submitted, create approval plans
+            if ($request->submit_action === 'submit') {
+                $response = app(ApprovalPlanController::class)->create_approval_plan('recruitment_request', $fptk->id);
+                if (!$response) {
+                    return redirect()->back()
+                        ->with('toast_error', 'Failed to create approval plans. Please try again.')
+                        ->withInput();
+                }
+            }
+
             DB::commit();
 
             $message = 'FPTK berhasil dibuat. Nomor: ' . $fptk->request_number;
             if ($letterNumberString) {
                 $message .= ' dengan Nomor Surat: ' . $letterNumberString;
+            }
+
+            if ($request->submit_action === 'submit') {
+                $message .= ' Status: Submitted for approval.';
+            } else {
+                $message .= ' Status: Saved as draft.';
             }
 
             return redirect('recruitment/requests')->with('toast_success', $message);
@@ -317,9 +343,9 @@ class RecruitmentRequestController extends Controller
             'position',
             'level',
             'createdBy',
-            'acknowledger',
-            'projectManagerApprover',
-            'directorApprover',
+            // 'acknowledger',
+            // 'projectManagerApprover',
+            // 'directorApprover',
             'letterNumber.category',
             'sessions.candidate',
             'sessions.assessments',
@@ -367,7 +393,7 @@ class RecruitmentRequestController extends Controller
         $fptk = RecruitmentRequest::findOrFail($id);
 
         // Only allow editing if status is draft
-        if ($fptk->final_status !== 'draft') {
+        if ($fptk->status !== 'draft') {
             return redirect()->route('recruitment.requests.show', $id)
                 ->with('toast_error', 'FPTK hanya dapat diedit dalam status draft.');
         }
@@ -378,10 +404,10 @@ class RecruitmentRequestController extends Controller
         $levels = Level::get();
 
         // Get users with approval permissions
-        $acknowledgers = User::permission('recruitment-requests.acknowledge')->get();
-        $approvers = User::permission('recruitment-requests.approve')->get();
+        // $acknowledgers = User::permission('recruitment-requests.acknowledge')->get();
+        // $approvers = User::permission('recruitment-requests.approve')->get();
 
-        return view('recruitment.requests.edit', compact('fptk', 'departments', 'projects', 'positions', 'levels', 'acknowledgers', 'approvers', 'title', 'subtitle'));
+        return view('recruitment.requests.edit', compact('fptk', 'departments', 'projects', 'positions', 'levels', 'title', 'subtitle'));
     }
 
     /**
@@ -392,7 +418,7 @@ class RecruitmentRequestController extends Controller
         $fptk = RecruitmentRequest::findOrFail($id);
 
         // Only allow updating if status is draft
-        if ($fptk->final_status !== 'draft') {
+        if ($fptk->status !== 'draft') {
             return redirect()->route('recruitment.requests.show', $id)
                 ->with('toast_error', 'FPTK hanya dapat diupdate dalam status draft.');
         }
@@ -419,9 +445,9 @@ class RecruitmentRequestController extends Controller
             'required_mental' => 'nullable|string|max:500',
             'other_requirements' => 'nullable|string|max:1000',
             // Approval hierarchy fields
-            'known_by' => 'required|exists:users,id',
-            'approved_by_pm' => 'required|exists:users,id',
-            'approved_by_director' => 'required|exists:users,id',
+            // 'known_by' => 'required|exists:users,id',
+            // 'approved_by_pm' => 'required|exists:users,id',
+            // 'approved_by_director' => 'required|exists:users,id',
         ]);
 
         try {
@@ -449,9 +475,9 @@ class RecruitmentRequestController extends Controller
                 'required_mental' => $request->required_mental,
                 'other_requirements' => $request->other_requirements,
                 // Approval hierarchy fields
-                'known_by' => $request->known_by,
-                'approved_by_pm' => $request->approved_by_pm,
-                'approved_by_director' => $request->approved_by_director,
+                // 'known_by' => $request->known_by,
+                // 'approved_by_pm' => $request->approved_by_pm,
+                // 'approved_by_director' => $request->approved_by_director,
             ]);
 
             DB::commit();
@@ -471,37 +497,39 @@ class RecruitmentRequestController extends Controller
     /**
      * Submit FPTK for approval
      */
-    public function submit($id)
+    public function submitForApproval($id)
     {
-        $fptk = RecruitmentRequest::findOrFail($id);
-
-        if ($fptk->status !== 'draft') {
-            return redirect()->route('recruitment.requests.show', $id)
-                ->with('toast_error', 'FPTK hanya dapat disubmit dalam status draft.');
-        }
-
         try {
-            // Create approval plans using new system
-            $approvalPlanController = new \App\Http\Controllers\ApprovalPlanController();
-            $result = $approvalPlanController->create_approval_plan('recruitment_request', $fptk->id);
+            $fptk = RecruitmentRequest::findOrFail($id);
 
-            if ($result) {
-                // Update status to submitted
-                $fptk->update([
-                    'status' => 'submitted',
-                    'submit_at' => now(),
-                ]);
-
-                return redirect()->route('recruitment.requests.show', $fptk->id)
-                    ->with('toast_success', 'FPTK berhasil disubmit untuk persetujuan. ' . $result . ' approver(s) akan meninjau permintaan Anda.');
-            } else {
-                return redirect()->back()->with('toast_error', 'Tidak ada approver yang ditemukan untuk dokumen ini. Silakan hubungi administrator untuk mengkonfigurasi approval stages.');
+            // Check if already submitted
+            if ($fptk->status === 'submitted') {
+                return redirect()->back()->with('toast_error', 'Recruitment request has already been submitted for approval.');
             }
-        } catch (Exception $e) {
-            Log::error('Error submitting FPTK: ' . $e->getMessage());
 
-            return redirect()->back()
-                ->with('toast_error', 'Terjadi kesalahan saat submit FPTK. Silakan coba lagi.');
+            // Check if status is draft
+            if ($fptk->status !== 'draft') {
+                return redirect()->back()->with('toast_error', 'Only draft recruitment requests can be submitted for approval.');
+            }
+
+            // Create approval plans using the same logic as in store method
+            $response = app(ApprovalPlanController::class)->create_approval_plan('recruitment_request', $fptk->id);
+
+            if (!$response) {
+                return redirect()->back()
+                    ->with('toast_error', 'Failed to create approval plans. Please try again.');
+            }
+
+            // Update status to submitted
+            $fptk->update([
+                'status' => 'submitted',
+                'submit_at' => now(),
+            ]);
+
+            return redirect()->route('recruitment.requests.show', $fptk->id)
+                ->with('toast_success', 'Recruitment request has been submitted for approval. ' . $response . ' approver(s) will review your request.');
+        } catch (\Exception $e) {
+            return redirect()->back()->with('toast_error', 'Failed to submit for approval. ' . $e->getMessage());
         }
     }
 
@@ -538,9 +566,9 @@ class RecruitmentRequestController extends Controller
                 'known_timestamps' => now()
             ]);
 
-            // If rejected, update final status
+            // If rejected, update status
             if ($request->acknowledgment_status === 'rejected') {
-                $fptk->update(['final_status' => 'rejected']);
+                $fptk->update(['status' => 'rejected']);
             }
 
             DB::commit();
@@ -598,7 +626,7 @@ class RecruitmentRequestController extends Controller
 
             // If rejected, update final status
             if ($request->pm_approval_status === 'rejected') {
-                $fptk->update(['final_status' => 'rejected']);
+                $fptk->update(['status' => 'rejected']);
             }
 
             DB::commit();
@@ -656,7 +684,7 @@ class RecruitmentRequestController extends Controller
 
             // If approved by director, update final status and assign letter number
             if ($request->director_approval_status === 'approved') {
-                $fptk->update(['final_status' => 'approved']);
+                $fptk->update(['status' => 'approved']);
 
                 // Auto-assign letter number if not already assigned
                 if (!$fptk->hasLetterNumber()) {
@@ -669,7 +697,7 @@ class RecruitmentRequestController extends Controller
                     }
                 }
             } else {
-                $fptk->update(['final_status' => 'rejected']);
+                $fptk->update(['status' => 'rejected']);
             }
 
             DB::commit();
@@ -699,7 +727,7 @@ class RecruitmentRequestController extends Controller
     {
         $fptk = RecruitmentRequest::findOrFail($id);
 
-        if ($fptk->final_status !== 'submitted') {
+        if ($fptk->status !== 'submitted') {
             return redirect()->route('recruitment.requests.show', $id)
                 ->with('toast_error', 'FPTK hanya dapat disetujui dalam status submitted.');
         }
@@ -737,7 +765,7 @@ class RecruitmentRequestController extends Controller
                     'director_approval_remark' => $request->notes ?? 'Approved by Director',
                     'director_approved_at' => now(),
                     'director_approval_timestamps' => now(),
-                    'final_status' => 'approved'
+                    'status' => 'approved'
                 ]);
 
                 // Auto-assign letter number
@@ -779,7 +807,7 @@ class RecruitmentRequestController extends Controller
 
         $fptk = RecruitmentRequest::findOrFail($id);
 
-        if ($fptk->final_status !== 'submitted') {
+        if ($fptk->status !== 'submitted') {
             return redirect()->route('recruitment.requests.show', $id)
                 ->with('toast_error', 'FPTK hanya dapat ditolak dalam status submitted.');
         }
@@ -797,7 +825,7 @@ class RecruitmentRequestController extends Controller
                     'known_remark' => $request->rejection_reason,
                     'known_at' => now(),
                     'known_timestamps' => now(),
-                    'final_status' => 'rejected'
+                    'status' => 'rejected'
                 ]);
 
                 $message = 'FPTK berhasil ditolak oleh HR.';
@@ -808,7 +836,7 @@ class RecruitmentRequestController extends Controller
                     'pm_approval_remark' => $request->rejection_reason,
                     'pm_approved_at' => now(),
                     'pm_approval_timestamps' => now(),
-                    'final_status' => 'rejected'
+                    'status' => 'rejected'
                 ]);
 
                 $message = 'FPTK berhasil ditolak oleh Project Manager.';
@@ -819,7 +847,7 @@ class RecruitmentRequestController extends Controller
                     'director_approval_remark' => $request->rejection_reason,
                     'director_approved_at' => now(),
                     'director_approval_timestamps' => now(),
-                    'final_status' => 'rejected'
+                    'status' => 'rejected'
                 ]);
 
                 $message = 'FPTK berhasil ditolak oleh Director.';
@@ -848,7 +876,7 @@ class RecruitmentRequestController extends Controller
         $fptk = RecruitmentRequest::findOrFail($id);
 
         // Only allow deletion if status is draft
-        if ($fptk->final_status !== 'draft') {
+        if ($fptk->status !== 'draft') {
             return redirect()->route('recruitment.requests.show', $id)
                 ->with('toast_error', 'FPTK hanya dapat dihapus dalam status draft.');
         }
@@ -930,7 +958,7 @@ class RecruitmentRequestController extends Controller
                 'level' => $fptk->level->name,
                 'required_qty' => $fptk->required_qty,
                 'remaining_positions' => $fptk->remaining_positions,
-                'final_status' => $fptk->final_status,
+                'status' => $fptk->status,
                 'can_receive_applications' => $fptk->canReceiveApplications(),
                 'employment_type' => $fptk->employment_type,
                 'job_description' => $fptk->job_description,
@@ -981,115 +1009,115 @@ class RecruitmentRequestController extends Controller
     /**
      * Show HR Acknowledgment form
      */
-    public function showAcknowledgmentForm($id)
-    {
-        $fptk = RecruitmentRequest::with([
-            'department',
-            'project',
-            'position',
-            'level',
-            'acknowledger'
-        ])->findOrFail($id);
+    // public function showAcknowledgmentForm($id)
+    // {
+    //     $fptk = RecruitmentRequest::with([
+    //         'department',
+    //         'project',
+    //         'position',
+    //         'level',
+    //         'acknowledger'
+    //     ])->findOrFail($id);
 
-        // Check if user can acknowledge
-        if (!auth()->user()->can('recruitment-requests.acknowledge')) {
-            return redirect()->back()->with('toast_error', 'You do not have permission to acknowledge this FPTK');
-        }
+    //     // Check if user can acknowledge
+    //     if (!auth()->user()->can('recruitment-requests.acknowledge')) {
+    //         return redirect()->back()->with('toast_error', 'You do not have permission to acknowledge this FPTK');
+    //     }
 
-        // Check if user is assigned as acknowledger
-        if (auth()->id() != $fptk->known_by) {
-            return redirect()->back()->with('toast_error', 'You are not assigned as acknowledger for this FPTK');
-        }
+    //     // Check if user is assigned as acknowledger
+    //     if (auth()->id() != $fptk->known_by) {
+    //         return redirect()->back()->with('toast_error', 'You are not assigned as acknowledger for this FPTK');
+    //     }
 
-        // Check if already acknowledged
-        if ($fptk->known_status != 'pending') {
-            return redirect()->back()->with('toast_error', 'This FPTK has already been acknowledged');
-        }
+    //     // Check if already acknowledged
+    //     if ($fptk->known_status != 'pending') {
+    //         return redirect()->back()->with('toast_error', 'This FPTK has already been acknowledged');
+    //     }
 
-        $title = 'Recruitment Requests (FPTK)';
-        $subtitle = 'HR Acknowledgment';
+    //     $title = 'Recruitment Requests (FPTK)';
+    //     $subtitle = 'HR Acknowledgment';
 
-        return view('recruitment.requests.acknowledge', compact('title', 'subtitle', 'fptk'));
-    }
+    //     return view('recruitment.requests.acknowledge', compact('title', 'subtitle', 'fptk'));
+    // }
 
     /**
      * Show Project Manager Approval form
      */
-    public function showPMApprovalForm($id)
-    {
-        $fptk = RecruitmentRequest::with([
-            'department',
-            'project',
-            'position',
-            'level',
-            'acknowledger',
-            'projectManagerApprover'
-        ])->findOrFail($id);
+    // public function showPMApprovalForm($id)
+    // {
+    //     $fptk = RecruitmentRequest::with([
+    //         'department',
+    //         'project',
+    //         'position',
+    //         'level',
+    //         'acknowledger',
+    //         'projectManagerApprover'
+    //     ])->findOrFail($id);
 
-        // Check if user can approve
-        if (!auth()->user()->can('recruitment-requests.approve')) {
-            return redirect()->back()->with('toast_error', 'You do not have permission to approve this FPTK');
-        }
+    //     // Check if user can approve
+    //     if (!auth()->user()->can('recruitment-requests.approve')) {
+    //         return redirect()->back()->with('toast_error', 'You do not have permission to approve this FPTK');
+    //     }
 
-        // Check if user is assigned as PM approver
-        if (auth()->id() != $fptk->approved_by_pm) {
-            return redirect()->back()->with('toast_error', 'You are not assigned as PM approver for this FPTK');
-        }
+    //     // Check if user is assigned as PM approver
+    //     if (auth()->id() != $fptk->approved_by_pm) {
+    //         return redirect()->back()->with('toast_error', 'You are not assigned as PM approver for this FPTK');
+    //     }
 
-        // Check if HR acknowledgment is approved
-        if ($fptk->known_status != 'approved') {
-            return redirect()->back()->with('toast_error', 'Cannot approve FPTK that has not been acknowledged by HR');
-        }
+    //     // Check if HR acknowledgment is approved
+    //     if ($fptk->known_status != 'approved') {
+    //         return redirect()->back()->with('toast_error', 'Cannot approve FPTK that has not been acknowledged by HR');
+    //     }
 
-        // Check if already approved by PM
-        if ($fptk->pm_approval_status != 'pending') {
-            return redirect()->back()->with('toast_error', 'This FPTK has already been approved by Project Manager');
-        }
+    //     // Check if already approved by PM
+    //     if ($fptk->pm_approval_status != 'pending') {
+    //         return redirect()->back()->with('toast_error', 'This FPTK has already been approved by Project Manager');
+    //     }
 
-        $title = 'Recruitment Requests (FPTK)';
-        $subtitle = 'Project Manager Approval';
+    //     $title = 'Recruitment Requests (FPTK)';
+    //     $subtitle = 'Project Manager Approval';
 
-        return view('recruitment.requests.approve-pm', compact('title', 'subtitle', 'fptk'));
-    }
+    //     return view('recruitment.requests.approve-pm', compact('title', 'subtitle', 'fptk'));
+    // }
 
     /**
      * Show Director Approval form
      */
-    public function showDirectorApprovalForm($id)
-    {
-        $fptk = RecruitmentRequest::with([
-            'department',
-            'project',
-            'position',
-            'level',
-            'acknowledger',
-            'projectManagerApprover',
-            'directorApprover'
-        ])->findOrFail($id);
+    // public function showDirectorApprovalForm($id)
+    // {
+    //     $fptk = RecruitmentRequest::with([
+    //         'department',
+    //         'project',
+    //         'position',
+    //         'level',
+    //         'acknowledger',
+    //         'projectManagerApprover',
+    //         'directorApprover'
+    //     ])->findOrFail($id);
 
-        // Check if user can approve
-        if (!auth()->user()->can('recruitment-requests.approve')) {
-            return redirect()->back()->with('toast_error', 'You do not have permission to approve this FPTK');
-        }
+    //     // Check if user can approve
+    //     if (!auth()->user()->can('recruitment-requests.approve')) {
+    //         return redirect()->back()->with('toast_error', 'You do not have permission to approve this FPTK');
+    //     }
 
-        // Check if user is assigned as director approver
-        if (auth()->id() != $fptk->approved_by_director) {
-            return redirect()->back()->with('toast_error', 'You are not assigned as director approver for this FPTK');
-        }
+    //     // Check if user is assigned as director approver
+    //     if (auth()->id() != $fptk->approved_by_director) {
+    //         return redirect()->back()->with('toast_error', 'You are not assigned as director approver for this FPTK');
+    //     }
 
-        // Check if PM approval is approved
-        if ($fptk->pm_approval_status != 'approved') {
-            return redirect()->back()->with('toast_error', 'Cannot approve FPTK that has not been approved by Project Manager');
-        }
+    //     // Check if PM approval is approved
+    //     if ($fptk->pm_approval_status != 'approved') {
+    //         return redirect()->back()->with('toast_error', 'Cannot approve FPTK that has not been approved by Project Manager');
+    //     }
 
-        // Check if already approved by director
-        if ($fptk->director_approval_status != 'pending') {
-            return redirect()->back()->with('toast_error', 'This FPTK has already been approved by Director');
-        }
+    //     // Check if already approved by director
+    //     if ($fptk->director_approval_status != 'pending') {
+    //         return redirect()->back()->with('toast_error', 'This FPTK has already been approved by Director');
+    //     }
 
-        $title = 'Recruitment Requests (FPTK)';
-        $subtitle = 'Director Approval';
+    //     $title = 'Recruitment Requests (FPTK)';
+    //     $subtitle = 'Director Approval';
 
-        return view('recruitment.requests.approve-director', compact('title', 'subtitle', 'fptk'));
-    }
+    //     return view('recruitment.requests.approve-director', compact('title', 'subtitle', 'fptk'));
+    // }
 }

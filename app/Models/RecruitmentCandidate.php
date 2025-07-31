@@ -56,7 +56,7 @@ class RecruitmentCandidate extends Model
     public function fptks()
     {
         return $this->belongsToMany(RecruitmentRequest::class, 'recruitment_sessions', 'candidate_id', 'fptk_id')
-            ->withPivot('id', 'session_number', 'current_stage', 'final_status', 'applied_date')
+            ->withPivot('id', 'session_number', 'current_stage', 'status', 'applied_date')
             ->withTimestamps();
     }
 
@@ -64,14 +64,14 @@ class RecruitmentCandidate extends Model
     public function activeSessions()
     {
         return $this->hasMany(RecruitmentSession::class, 'candidate_id')
-            ->where('final_status', 'in_process');
+            ->where('status', 'in_process');
     }
 
     // Get successful applications (hired)
     public function successfulApplications()
     {
         return $this->hasMany(RecruitmentSession::class, 'candidate_id')
-            ->where('final_status', 'hired');
+            ->where('status', 'hired');
     }
 
     // Get all documents across all sessions
@@ -161,7 +161,7 @@ class RecruitmentCandidate extends Model
         $totalApplications = $this->sessions()->count();
         if ($totalApplications === 0) return 0;
 
-        $successfulApplications = $this->sessions()->where('final_status', 'hired')->count();
+        $successfulApplications = $this->sessions()->where('status', 'hired')->count();
         return round(($successfulApplications / $totalApplications) * 100, 2);
     }
 
@@ -215,7 +215,7 @@ class RecruitmentCandidate extends Model
             'stage_status' => 'pending',
             'stage_started_at' => now(),
             'overall_progress' => 10, // CV Review = 10%
-            'final_status' => 'in_process',
+            'status' => 'in_process',
         ]);
 
         // Update candidate status to in_process
@@ -244,7 +244,7 @@ class RecruitmentCandidate extends Model
 
         // Cancel all active sessions
         $this->activeSessions()->update([
-            'final_status' => 'cancelled',
+            'status' => 'cancelled',
             'final_decision_date' => now(),
             'final_decision_notes' => 'Candidate blacklisted. Reason: ' . ($reason ?? 'No reason provided'),
         ]);
