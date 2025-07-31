@@ -79,7 +79,7 @@ class LicenseExport extends DefaultValueBinder implements
             $license->identity_card,
             $license->driver_license_type,
             $license->driver_license_no,
-            $license->driver_license_exp ? date('d F Y', strtotime($license->driver_license_exp)) : 'n/a'
+            $license->driver_license_exp ? date('d F Y', strtotime($license->driver_license_exp)) : ''
         ];
     }
 

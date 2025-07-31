@@ -956,7 +956,19 @@ class EmployeeController extends Controller
                 return back()->with('failures', $failures);
             }
 
-            return redirect('employees')->with('toast_success', 'Data imported successfully');
+            // Check if any sheets were skipped
+            $skippedSheets = session('skipped_sheets', []);
+            $message = 'Data imported successfully';
+
+            if (!empty($skippedSheets)) {
+                $skippedSheetsList = implode(', ', $skippedSheets);
+                $message .= ". Skipped sheets: {$skippedSheetsList}";
+
+                // Clear the skipped sheets from session
+                session()->forget('skipped_sheets');
+            }
+
+            return redirect('employees')->with('toast_success', $message);
         } catch (ValidationException $e) {
             $failures = collect();
             $sheetName = 'Unknown';

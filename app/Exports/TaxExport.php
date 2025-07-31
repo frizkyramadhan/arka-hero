@@ -75,7 +75,7 @@ class TaxExport extends DefaultValueBinder implements
             $taxidentification->fullname,
             $taxidentification->identity_card,
             $taxidentification->tax_no,
-            $taxidentification->tax_valid_date ? date('d F Y', strtotime($taxidentification->tax_valid_date)) : 'n/a',
+            $taxidentification->tax_valid_date ? date('d F Y', strtotime($taxidentification->tax_valid_date)) : '',
         ];
     }
 
