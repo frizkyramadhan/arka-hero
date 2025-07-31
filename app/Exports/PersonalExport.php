@@ -83,7 +83,7 @@ class PersonalExport extends DefaultValueBinder implements
             $employee->fullname,
             $employee->identity_card,
             $employee->emp_pob,
-            $employee->emp_dob ? date('d F Y', strtotime($employee->emp_dob)) : 'n/a',
+            $employee->emp_dob ? date('d F Y', strtotime($employee->emp_dob)) : '',
             $employee->blood_type,
             $employee->religion->religion_name,
             $employee->nationality,

@@ -186,21 +186,28 @@ class TerminationImport implements
                 }
             }
 
-            // Find existing administration record for this employee with matching NIK
-            $administration = Administration::where('employee_id', $employee->id)
-                ->where('nik', $row['nik'])
-                ->first();
+            // Find the project by project code if provided
+            $project = null;
+            if (!empty($row['project_code'])) {
+                $project = $this->projects->where('project_code', $row['project_code'])->first();
+            }
 
-            if (!$administration) {
-                // If no administration record found, skip this row
-                return null;
+            // Find the position by name if provided
+            $position = null;
+            if (!empty($row['position'])) {
+                $position = $this->positions->where('position_name', $row['position'])->first();
             }
 
             // Prepare termination data
             $terminationData = [
+                'employee_id' => $employee->id,
+                'project_id' => $project ? $project->id : null,
+                'position_id' => $position ? $position->id : null,
+                'nik' => $row['nik'],
                 'is_active' => 0, // Set to 0 for termination
                 'termination_reason' => $row['termination_reason'],
                 'coe_no' => $row['coe_no'] ?? null,
+                'user_id' => auth()->user()->id
             ];
 
             // Process termination date
@@ -212,8 +219,14 @@ class TerminationImport implements
                 }
             }
 
-            // Update the administration record with termination data
-            $administration->update($terminationData);
+            // Use updateOrCreate to handle both insert and update scenarios
+            $administration = Administration::updateOrCreate(
+                [
+                    'employee_id' => $employee->id,
+                    'nik' => $row['nik']
+                ],
+                $terminationData
+            );
 
             return $administration;
         } catch (\Illuminate\Database\QueryException $e) {

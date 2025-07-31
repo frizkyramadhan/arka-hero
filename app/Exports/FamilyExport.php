@@ -83,7 +83,7 @@ class FamilyExport extends DefaultValueBinder implements
             $family->family_relationship,
             $family->family_name,
             $family->family_birthplace,
-            $family->family_birthdate ? date('d F Y', strtotime($family->family_birthdate)) : 'n/a',
+            $family->family_birthdate ? date('d F Y', strtotime($family->family_birthdate)) : '',
             $family->family_remarks,
             $family->bpjsks_no,
         ];

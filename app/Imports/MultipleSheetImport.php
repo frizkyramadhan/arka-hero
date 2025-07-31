@@ -23,9 +23,10 @@ use Maatwebsite\Excel\Concerns\SkipsOnFailure;
 use Maatwebsite\Excel\Concerns\WithValidation;
 use Maatwebsite\Excel\Concerns\WithMultipleSheets;
 use Maatwebsite\Excel\Concerns\WithEvents;
+use Maatwebsite\Excel\Concerns\SkipsUnknownSheets;
 use Maatwebsite\Excel\Events\BeforeSheet;
 
-class MultipleSheetImport implements WithMultipleSheets, WithValidation, SkipsOnFailure, SkipsOnError, WithEvents
+class MultipleSheetImport implements WithMultipleSheets, WithValidation, SkipsOnFailure, SkipsOnError, WithEvents, SkipsUnknownSheets
 {
     use Importable, SkipsFailures, SkipsErrors;
 
@@ -112,6 +113,24 @@ class MultipleSheetImport implements WithMultipleSheets, WithValidation, SkipsOn
                 $this->sheetName = $event->getSheet()->getTitle();
             }
         ];
+    }
+
+    /**
+     * Handle unknown sheets gracefully
+     */
+    public function onUnknownSheet($sheetName)
+    {
+        // Log that a sheet was not found
+        info("Sheet '{$sheetName}' was not found in the Excel file and was skipped");
+
+        // Get existing skipped sheets from session
+        $skippedSheets = session('skipped_sheets', []);
+
+        // Add the new skipped sheet if not already in the array
+        if (!in_array($sheetName, $skippedSheets)) {
+            $skippedSheets[] = $sheetName;
+            session()->flash('skipped_sheets', $skippedSheets);
+        }
     }
 
     public function sheets(): array

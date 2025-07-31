@@ -49,6 +49,7 @@ use App\Http\Controllers\EmployeeRegistrationController;
 use App\Http\Controllers\RecruitmentCandidateController;
 // Removed import for deleted controller
 use App\Http\Controllers\EmployeeRegistrationAdminController;
+use App\Http\Controllers\DebugController;
 
 // Approval System Controllers
 use App\Http\Controllers\ApprovalStageController;
@@ -134,6 +135,25 @@ Route::group(['middleware' => ['auth']], function () {
 
     Route::get('permissions/data', [PermissionController::class, 'getPermissions'])->name('permissions.data');
     Route::resource('permissions', PermissionController::class);
+
+    // DEBUG ROUTES
+    Route::prefix('debug')->name('debug.')->group(function () {
+        Route::get('/', [DebugController::class, 'index'])->name('index');
+        Route::post('/truncate/employees', [DebugController::class, 'truncateEmployees'])->name('truncate.employees');
+        Route::post('/truncate/administrations', [DebugController::class, 'truncateAdministrations'])->name('truncate.administrations');
+        Route::post('/truncate/employeebanks', [DebugController::class, 'truncateEmployeebanks'])->name('truncate.employeebanks');
+        Route::post('/truncate/taxidentifications', [DebugController::class, 'truncateTaxidentifications'])->name('truncate.taxidentifications');
+        Route::post('/truncate/insurances', [DebugController::class, 'truncateInsurances'])->name('truncate.insurances');
+        Route::post('/truncate/licenses', [DebugController::class, 'truncateLicenses'])->name('truncate.licenses');
+        Route::post('/truncate/families', [DebugController::class, 'truncateFamilies'])->name('truncate.families');
+        Route::post('/truncate/educations', [DebugController::class, 'truncateEducations'])->name('truncate.educations');
+        Route::post('/truncate/courses', [DebugController::class, 'truncateCourses'])->name('truncate.courses');
+        Route::post('/truncate/jobexperiences', [DebugController::class, 'truncateJobexperiences'])->name('truncate.jobexperiences');
+        Route::post('/truncate/operableunits', [DebugController::class, 'truncateOperableunits'])->name('truncate.operableunits');
+        Route::post('/truncate/emrgcalls', [DebugController::class, 'truncateEmrgcalls'])->name('truncate.emrgcalls');
+        Route::post('/truncate/additionaldatas', [DebugController::class, 'truncateAdditionaldatas'])->name('truncate.additionaldatas');
+        Route::post('/truncate/all', [DebugController::class, 'truncateAll'])->name('truncate.all');
+    });
 
     // MASTER DATA ROUTES
 
