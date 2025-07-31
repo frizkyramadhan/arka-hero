@@ -123,8 +123,8 @@
                                         </div>
                                         <div class="info-content">
                                             <div class="info-label">Position Title</div>
-                                            <div class="info-value">{{ $document->position_title }}</div>
-                                            <div class="info-meta">Quantity: {{ $document->quantity }}</div>
+                                            <div class="info-value">{{ $document->position->position_name }}</div>
+                                            <div class="info-meta">Quantity: {{ $document->required_qty }}</div>
                                         </div>
                                     </div>
 
@@ -141,36 +141,36 @@
                                     </div>
 
                                     <div class="info-item">
-                                        <div class="info-icon" style="background-color: #f1c40f;">
-                                            <i class="fas fa-calendar-check"></i>
+                                        <div class="info-icon" style="background-color: #27ae60;">
+                                            <i class="fas fa-layer-group"></i>
                                         </div>
                                         <div class="info-content">
-                                            <div class="info-label">Expected Start</div>
-                                            <div class="info-value">
-                                                {{ date('d M Y', strtotime($document->expected_start_date)) }}</div>
-                                            <div class="info-meta">Priority: {{ ucfirst($document->priority) }}</div>
+                                            <div class="info-label">Level</div>
+                                            <div class="info-value">{{ $document->level->name }}</div>
+                                            <div class="info-meta">Type: {{ $document->employment_type }}</div>
                                         </div>
                                     </div>
 
                                     <div class="info-item">
-                                        <div class="info-icon" style="background-color: #27ae60;">
-                                            <i class="fas fa-file-alt"></i>
+                                        <div class="info-icon" style="background-color: #f1c40f;">
+                                            <i class="fas fa-calendar-check"></i>
                                         </div>
                                         <div class="info-content">
-                                            <div class="info-label">Request Number</div>
-                                            <div class="info-value">{{ $document->request_number }}</div>
-                                            <div class="info-meta">Submitted:
-                                                {{ $document->submit_at ? date('d/m/Y H:i', strtotime($document->submit_at)) : 'N/A' }}
+                                            <div class="info-label">Required Date</div>
+                                            <div class="info-value">
+                                                {{ date('d M Y', strtotime($document->required_date)) }}</div>
+                                            <div class="info-meta">Reason:
+                                                {{ $document->request_reason == 'other' ? $document->other_reason : ucfirst(str_replace('_', ' ', $document->request_reason)) }}
                                             </div>
                                         </div>
                                     </div>
                                 </div>
 
-                                @if ($document->description)
+                                @if ($document->job_description)
                                     <div class="purpose-section mt-4">
                                         <h3><i class="fas fa-bullseye"></i> Job Description</h3>
                                         <div class="purpose-content">
-                                            {{ $document->description }}
+                                            {{ $document->job_description }}
                                         </div>
                                     </div>
                                 @endif
@@ -198,7 +198,7 @@
                                             @if ($approvalPlan->document_type === 'officialtravel')
                                                 {{ $document->creator->name ?? 'N/A' }}
                                             @elseif($approvalPlan->document_type === 'recruitment_request')
-                                                {{ $document->creator->name ?? 'N/A' }}
+                                                {{ $document->createdBy->name ?? 'N/A' }}
                                             @endif
                                         </div>
                                         <div class="submitter-meta">
@@ -286,7 +286,6 @@
                                         </div>
 
                                         @if ($index < count($allApprovalPlans) - 1)
-                                            <div class="step-connector"></div>
                                         @endif
                                     @endforeach
                                 </div>
@@ -1002,14 +1001,6 @@
             align-items: center;
             gap: 5px;
             font-weight: 500;
-        }
-
-        .step-connector {
-            width: 2px;
-            height: 20px;
-            background: #dee2e6;
-            margin-left: 17px;
-            margin-bottom: 20px;
         }
 
         /* Status Summary */

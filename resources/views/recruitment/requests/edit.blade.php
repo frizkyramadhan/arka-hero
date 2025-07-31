@@ -469,7 +469,7 @@
                         </div>
 
                         <!-- Approval Hierarchy Card -->
-                        <div class="card card-info card-outline elevation-3">
+                        {{-- <div class="card card-info card-outline elevation-3">
                             <div class="card-header">
                                 <h3 class="card-title">
                                     <i class="fas fa-user-check mr-2"></i>
@@ -531,6 +531,22 @@
                                     @error('approved_by_director')
                                         <div class="invalid-feedback">{{ $message }}</div>
                                     @enderror
+                                </div>
+                            </div>
+                        </div> --}}
+
+                        <!-- Approval Preview Card -->
+                        <div class="card elevation-3">
+                            <div class="card-header">
+                                <h3 class="card-title">
+                                    <i class="fas fa-route mr-2"></i>
+                                    <strong>Approval Preview</strong>
+                                </h3>
+                            </div>
+                            <div class="card-body" id="approvalPreview">
+                                <div class="text-center py-3">
+                                    <i class="fas fa-info-circle text-info"></i>
+                                    <div class="mt-2">Select a project to see approval flow</div>
                                 </div>
                             </div>
                         </div>
@@ -627,6 +643,22 @@
 
         .letter-number-selector .btn-group-vertical .btn {
             margin-bottom: 0.25rem;
+        }
+
+        /* Approval Preview Styles */
+        .approval-flow {
+            padding: 0.5rem;
+        }
+
+        .approval-step {
+            padding: 0.5rem;
+            border: 1px solid #e9ecef;
+            border-radius: 0.25rem;
+            background-color: #f8f9fa;
+        }
+
+        .approval-step:hover {
+            background-color: #e9ecef;
         }
 
         /* Reduce card body padding for compact look */
@@ -768,6 +800,119 @@
 
                 if (minAge && maxAge && minAge > maxAge) {
                     $('#required_age_max').val();
+                }
+            });
+
+            // Auto-focus on first field
+            $('#department_id').focus();
+
+            // Approval Preview Function
+            function loadApprovalPreview() {
+                const projectId = $('#project_id').val();
+
+                if (!projectId) {
+                    $('#approvalPreview').html(`
+                        <div class="text-center py-3">
+                            <i class="fas fa-info-circle text-info"></i>
+                            <div class="mt-2">Select a project to see approval flow</div>
+                        </div>
+                    `);
+                    return;
+                }
+
+                $('#approvalPreview').html(`
+                    <div class="text-center py-3">
+                        <i class="fas fa-spinner fa-spin text-info"></i>
+                        <div class="mt-2">Loading approval flow...</div>
+                    </div>
+                `);
+
+                // Fetch approval stages
+                $.ajax({
+                    url: '{{ route('approval.stages.preview') }}',
+                    method: 'GET',
+                    data: {
+                        project_id: projectId,
+                        document_type: 'recruitment_request'
+                    },
+                    success: function(response) {
+                        if (response.success && response.approvers.length > 0) {
+                            let html = '<div class="approval-flow">';
+                            html +=
+                                '<h6 class="text-info mb-3"><i class="fas fa-route"></i> Approval Flow</h6>';
+
+                            response.approvers.forEach((approver, index) => {
+                                html += `
+                                    <div class="approval-step mb-2">
+                                        <div class="d-flex align-items-center">
+                                            <span class="badge badge-primary mr-2">${index + 1}</span>
+                                            <div class="flex-grow-1">
+                                                <strong>${approver.name}</strong>
+                                                <small class="text-muted d-block">${approver.department}</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                `;
+                            });
+
+                            html += '</div>';
+                            $('#approvalPreview').html(html);
+                        } else {
+                            $('#approvalPreview').html(`
+                                <div class="text-warning text-center py-3">
+                                    <i class="fas fa-exclamation-triangle"></i>
+                                    <div class="mt-2">No approval flow configured for this project/department</div>
+                                </div>
+                            `);
+                        }
+                    },
+                    error: function() {
+                        $('#approvalPreview').html(`
+                            <div class="text-danger text-center py-3">
+                                <i class="fas fa-times-circle"></i>
+                                <div class="mt-2">Failed to load approval flow</div>
+                            </div>
+                        `);
+                    }
+                });
+            }
+
+            // Listen for project changes
+            $('#project_id').on('change', function() {
+                loadApprovalPreview();
+            });
+
+            // Load approval preview on page load if project is selected
+            $(document).ready(function() {
+                // Check if there's old input from validation errors
+                const hasOldInput = {{ json_encode(old('project_id') ? true : false) }};
+                const projectValue = $('#project_id').val();
+
+                if (hasOldInput || projectValue) {
+                    // Small delay to ensure all elements are loaded
+                    setTimeout(function() {
+                        loadApprovalPreview();
+                    }, 100);
+                }
+            });
+
+            // Ensure approval preview is loaded when form has validation errors
+            @if ($errors->any())
+                $(document).ready(function() {
+                    if ($('#project_id').val()) {
+                        setTimeout(function() {
+                            loadApprovalPreview();
+                        }, 200);
+                    }
+                });
+            @endif
+
+            // Load approval preview when returning from other pages or after form submission
+            $(window).on('load', function() {
+                if ($('#project_id').val()) {
+                    setTimeout(function() {
+                        loadApprovalPreview();
+                    }, 300);
                 }
             });
 

@@ -69,7 +69,7 @@ class RecruitmentSessionService
                 'stage_status' => 'pending',
                 'stage_started_at' => now(),
                 'overall_progress' => 10, // CV Review = 10%
-                'final_status' => 'in_process',
+                'status' => 'in_process',
                 'responsible_person_id' => $data['responsible_person_id'] ?? null,
             ]);
 
@@ -235,7 +235,7 @@ class RecruitmentSessionService
             $session->update([
                 'stage_status' => 'failed',
                 'stage_completed_at' => now(),
-                'final_status' => 'rejected',
+                'status' => 'rejected',
                 'final_decision_date' => now(),
                 'final_decision_by' => $decisionBy ?? auth()->id(),
                 'final_decision_notes' => $reason,
@@ -287,7 +287,7 @@ class RecruitmentSessionService
                 'stage_status' => 'completed',
                 'stage_completed_at' => now(),
                 'overall_progress' => 100,
-                'final_status' => 'hired',
+                'status' => 'hired',
                 'final_decision_date' => now(),
                 'final_decision_by' => $data['decision_by'] ?? auth()->id(),
                 'final_decision_notes' => $data['notes'] ?? null,

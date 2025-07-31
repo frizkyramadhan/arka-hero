@@ -86,7 +86,7 @@
                                     </th>
                                     <th>Document Type</th>
                                     <th>Document Number</th>
-                                    <th>Title/Description</th>
+                                    <th>Remarks</th>
                                     <th>Submitted By</th>
                                     <th>Submitted At</th>
                                     <th>Status</th>
@@ -185,7 +185,7 @@
                         data: 'document_number'
                     },
                     {
-                        data: 'document_title'
+                        data: 'remarks'
                     },
                     {
                         data: 'submitted_by'

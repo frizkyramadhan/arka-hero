@@ -9,11 +9,42 @@
                 <div class="fptk-date">
                     <i class="far fa-calendar-alt"></i> {{ date('d F Y', strtotime($fptk->created_at)) }}
                 </div>
-                <div
-                    class="fptk-status-pill {{ $fptk->final_status == 'draft' ? 'status-draft' : ($fptk->final_status == 'submitted' ? 'status-submitted' : ($fptk->final_status == 'pending' ? 'status-pending' : ($fptk->final_status == 'approved' ? 'status-approved' : 'status-rejected'))) }}">
-                    <i
-                        class="fas {{ $fptk->final_status == 'draft' ? 'fa-edit' : ($fptk->final_status == 'submitted' ? 'fa-paper-plane' : ($fptk->final_status == 'pending' ? 'fa-clock' : ($fptk->final_status == 'approved' ? 'fa-check-circle' : 'fa-times-circle'))) }}"></i>
-                    {{ ucfirst($fptk->final_status) }}
+                @php
+                    $statusMap = [
+                        'draft' => ['label' => 'Draft', 'class' => 'badge badge-secondary', 'icon' => 'fa-edit'],
+                        'submitted' => [
+                            'label' => 'Submitted',
+                            'class' => 'badge badge-info',
+                            'icon' => 'fa-paper-plane',
+                        ],
+                        'approved' => [
+                            'label' => 'Approved',
+                            'class' => 'badge badge-success',
+                            'icon' => 'fa-check-circle',
+                        ],
+                        'rejected' => [
+                            'label' => 'Rejected',
+                            'class' => 'badge badge-danger',
+                            'icon' => 'fa-times-circle',
+                        ],
+                        'cancelled' => ['label' => 'Cancelled', 'class' => 'badge badge-warning', 'icon' => 'fa-ban'],
+                        'closed' => [
+                            'label' => 'Closed',
+                            'class' => 'badge badge-primary',
+                            'icon' => 'fa-check-circle',
+                        ],
+                    ];
+                    $status = $fptk->status;
+                    $pill = $statusMap[$status] ?? [
+                        'label' => ucfirst($status),
+                        'class' => 'badge badge-secondary',
+                        'icon' => 'fa-question-circle',
+                    ];
+                @endphp
+                <div class="fptk-status-pill">
+                    <span class="{{ $pill['class'] }}">
+                        <i class="fas {{ $pill['icon'] }}"></i> {{ $pill['label'] }}
+                    </span>
                 </div>
             </div>
         </div>
@@ -392,7 +423,10 @@
 
                 <!-- Right Column -->
                 <div class="col-lg-4">
-                    <!-- Approval Process -->
+                    <!-- Approval Status Card -->
+                    <x-approval-status-card :documentType="'recruitment_request'" :documentId="$fptk->id" title="Approval Status" />
+
+                    {{-- <!-- Approval Process -->
                     <div class="fptk-card approval-process-card card-info card-outline elevation-3">
                         <div class="card-head">
                             <h2><i class="fas fa-stream"></i> Approval Hierarchy</h2>
@@ -505,7 +539,7 @@
                                 </div>
                             </div>
                         </div>
-                    </div>
+                    </div> --}}
 
                     <!-- Requested By -->
                     <div class="fptk-card requester-card">
@@ -529,8 +563,8 @@
                             <i class="fas fa-arrow-left"></i> Back to List
                         </a>
 
-                        @if ($fptk->final_status != 'rejected' && $fptk->final_status != 'cancelled')
-                            @if ($fptk->final_status == 'draft')
+                        @if ($fptk->status != 'rejected' && $fptk->status != 'cancelled')
+                            @if ($fptk->status == 'draft')
                                 @can('recruitment-requests.edit')
                                     <a href="{{ route('recruitment.requests.edit', $fptk->id) }}"
                                         class="btn-action edit-btn">
@@ -546,7 +580,7 @@
                                 @endcan
 
                                 <!-- Submit button -->
-                                @can('recruitment-requests.submit')
+                                @can('recruitment-requests.edit')
                                     <form action="{{ route('recruitment.requests.submit', $fptk->id) }}" method="post"
                                         onsubmit="return confirm('Are you sure you want to submit this FPTK for approval?')">
                                         @csrf
@@ -557,7 +591,7 @@
                                 @endcan
                             @endif
 
-                            @if ($fptk->final_status == 'submitted')
+                            @if ($fptk->status == 'submitted')
                                 <!-- HR Acknowledgment button -->
                                 @if ($fptk->known_status == 'pending')
                                     @can('recruitment-requests.acknowledge')
@@ -595,7 +629,7 @@
                                 @endif
                             @endif
 
-                            @if ($fptk->final_status == 'approved')
+                            @if ($fptk->status == 'approved')
                                 <!-- Assign Letter Number button -->
                                 @if (!$fptk->hasLetterNumber())
                                     @can('recruitment-requests.assign-letter-number')
@@ -623,7 +657,7 @@
     </div>
 
     <!-- Delete Modal -->
-    @if ($fptk->final_status == 'draft')
+    @if ($fptk->status == 'draft')
         <div class="modal fade custom-modal" id="deleteModal" tabindex="-1" role="dialog"
             aria-labelledby="deleteModalLabel" aria-hidden="true">
             <div class="modal-dialog" role="document">
@@ -708,13 +742,16 @@
             position: absolute;
             top: 20px;
             right: 20px;
-            padding: 6px 12px;
-            border-radius: 4px;
+        }
+
+        .fptk-status-pill .badge {
+            font-size: 0.875rem;
+            padding: 0.5rem 0.75rem;
+            border-radius: 0.375rem;
             font-weight: 500;
-            display: flex;
+            display: inline-flex;
             align-items: center;
-            gap: 6px;
-            font-size: 13px;
+            gap: 0.5rem;
         }
 
         .status-draft {
@@ -888,11 +925,12 @@
         .section-content {
             font-size: 14px;
             line-height: 1.6;
-            color: #555;
-            background-color: #f8f9fa;
+            color: #333;
+            background-color: #ffffff;
             padding: 15px;
-            border-radius: 6px;
-            border-left: 4px solid #3498db;
+            border-radius: 4px;
+            border: 1px solid #e9ecef;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
         }
 
         .requirement-section {
@@ -979,151 +1017,6 @@
             color: #721c24;
         }
 
-        /* Approval Flow */
-        .approval-process-card {
-            margin-top: 0;
-        }
-
-        .approval-flow {
-            position: relative;
-            padding: 10px 0;
-        }
-
-        .approval-flow::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            bottom: 0;
-            left: 20px;
-            width: 3px;
-            background: #e0e0e0;
-        }
-
-        .approval-step {
-            position: relative;
-            padding-left: 60px;
-            margin-bottom: 30px;
-        }
-
-        .approval-step:last-child {
-            margin-bottom: 0;
-        }
-
-        .step-icon {
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 40px;
-            height: 40px;
-            background: #e0e0e0;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            z-index: 1;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-        }
-
-        .step-icon.approved {
-            background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
-        }
-
-        .step-icon.rejected {
-            background: linear-gradient(135deg, #fa709a 0%, #ff0844 100%);
-        }
-
-        .step-icon.pending {
-            background: linear-gradient(135deg, #f6d365 0%, #fda085 100%);
-        }
-
-        .step-content {
-            background: white;
-            border-radius: 10px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-            padding: 15px;
-        }
-
-        .step-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 10px;
-        }
-
-        .step-header h4 {
-            margin: 0;
-            font-size: 16px;
-            color: #333;
-        }
-
-        .step-status {
-            padding: 4px 10px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: bold;
-            text-transform: uppercase;
-        }
-
-        .step-status.approved {
-            background-color: #e6f9e6;
-            color: #0f8c0f;
-        }
-
-        .step-status.rejected {
-            background-color: #ffe6e6;
-            color: #cc0000;
-        }
-
-        .step-status.pending {
-            background-color: #fff4e6;
-            color: #cc7a00;
-        }
-
-        .step-details {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-size: 13px;
-            color: #777;
-            margin-bottom: 15px;
-            flex-wrap: wrap;
-            gap: 10px;
-        }
-
-        .step-date {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-            font-size: 12px;
-            color: #555;
-            font-weight: 500;
-        }
-
-        .step-person {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            font-size: 13px;
-            color: #333;
-            font-weight: 500;
-        }
-
-        .step-remark {
-            padding-top: 10px;
-            border-top: 1px dashed #eee;
-        }
-
-        .remark-text {
-            margin: 0;
-            padding: 10px 15px;
-            background-color: #f8f9fa;
-            border-radius: 8px;
-            font-size: 14px;
-            color: #555;
-            border-left: 3px solid #6c757d;
-        }
-
         /* Requester Card */
         .requester-info {
             text-align: center;
@@ -1162,8 +1055,8 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 10px 16px;
-            border-radius: 4px;
+            padding: 12px 16px;
+            border-radius: 6px;
             font-weight: 500;
             font-size: 14px;
             transition: all 0.2s;
@@ -1186,34 +1079,38 @@
         }
 
         .back-btn {
-            background-color: #64748b;
+            background-color: #6c757d;
         }
 
         .back-btn:hover {
+            background-color: #5a6268;
             color: white;
         }
 
         .edit-btn {
-            background-color: #3498db;
+            background-color: #007bff;
         }
 
         .edit-btn:hover {
+            background-color: #0056b3;
             color: white;
         }
 
         .delete-btn {
-            background-color: #e74c3c;
+            background-color: #dc3545;
         }
 
         .delete-btn:hover {
+            background-color: #c82333;
             color: white;
         }
 
         .print-btn {
-            background-color: #27ae60;
+            background-color: #28a745;
         }
 
         .print-btn:hover {
+            background-color: #1e7e34;
             color: white;
         }
 
@@ -1224,26 +1121,31 @@
 
         /* Custom Modal */
         .custom-modal .modal-content {
-            border-radius: 6px;
+            border-radius: 10px;
             border: none;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
         }
 
         .custom-modal .modal-header {
-            background: #f8fafc;
-            padding: 15px 20px;
+            border-bottom: 1px solid #e9ecef;
+            padding: 20px;
         }
 
         .custom-modal .modal-title {
-            font-size: 16px;
-            font-weight: 600;
             color: #2c3e50;
+            font-weight: 600;
+        }
+
+        .custom-modal .modal-body {
+            padding: 30px 20px;
+            text-align: center;
         }
 
         .delete-icon {
             text-align: center;
-            color: #e74c3c;
             font-size: 48px;
             margin-bottom: 15px;
+            color: #e74c3c;
         }
 
         .delete-message {
@@ -1255,8 +1157,14 @@
 
         .delete-warning {
             font-size: 13px;
-            color: #64748b;
+            color: #e74c3c;
             text-align: center;
+        }
+
+        .custom-modal .modal-footer {
+            border-top: 1px solid #e9ecef;
+            padding: 20px;
+            justify-content: center;
         }
 
         .btn-cancel {
@@ -1483,40 +1391,3 @@
         }
     </style>
 @endsection
-
-<!-- Delete Modal -->
-@if ($fptk->final_status == 'draft')
-    <div class="modal fade custom-modal" id="deleteModal" tabindex="-1" role="dialog"
-        aria-labelledby="deleteModalLabel" aria-hidden="true">
-        <div class="modal-dialog" role="document">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="deleteModalLabel">Delete FPTK</h5>
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
-                </div>
-                <div class="modal-body">
-                    <div class="delete-icon">
-                        <i class="fas fa-exclamation-triangle"></i>
-                    </div>
-                    <div class="delete-message">
-                        Are you sure you want to delete this FPTK?
-                    </div>
-                    <div class="delete-warning">
-                        This action cannot be undone. All data will be permanently removed.
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-                    <form action="{{ route('recruitment.requests.destroy', $fptk->id) }}" method="POST"
-                        class="d-inline">
-                        @csrf
-                        @method('DELETE')
-                        <button type="submit" class="btn-confirm-delete">Delete FPTK</button>
-                    </form>
-                </div>
-            </div>
-        </div>
-    </div>
-@endif

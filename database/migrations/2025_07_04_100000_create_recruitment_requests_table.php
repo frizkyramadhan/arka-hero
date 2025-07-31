@@ -50,7 +50,7 @@ return new class extends Migration
 
             // Approval Workflow
             $table->unsignedBigInteger('created_by');
-            $table->enum('final_status', ['draft', 'submitted', 'approved', 'rejected', 'cancelled', 'closed'])->default('draft');
+            $table->enum('status', ['draft', 'submitted', 'approved', 'rejected', 'cancelled', 'closed'])->default('draft');
 
             // HR Acknowledgment Tracking (known_by)
             $table->unsignedBigInteger('known_by')->nullable()->comment('HR&GA Section Head who acknowledges');
@@ -91,7 +91,7 @@ return new class extends Migration
             // Indexes
             $table->index('letter_number_id');
             $table->index('letter_number');
-            $table->index('final_status');
+            $table->index('status');
             $table->index('required_date');
             $table->index('department_id');
             $table->index('position_id');

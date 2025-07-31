@@ -33,7 +33,7 @@ class ApprovalRequestController extends Controller
             $approvalPlans = ApprovalPlan::with([
                 'approver',
                 'officialtravel.creator',
-                'recruitment_request.creator'
+                'recruitment_request.createdBy'
             ])
                 ->where('approver_id', Auth::id())
                 ->where('is_open', true)
@@ -87,13 +87,13 @@ class ApprovalRequestController extends Controller
                     }
                     return '-';
                 })
-                ->addColumn('document_title', function ($approvalPlan) {
+                ->addColumn('remarks', function ($approvalPlan) {
                     if ($approvalPlan->document_type === 'officialtravel') {
                         return $approvalPlan->officialtravel && $approvalPlan->officialtravel->traveler
                             ? ($approvalPlan->officialtravel->traveler->nik . ' - ' . ($approvalPlan->officialtravel->traveler->employee->fullname ?? '-'))
                             : '-';
                     } elseif ($approvalPlan->document_type === 'recruitment_request') {
-                        return $approvalPlan->recruitment_request ? $approvalPlan->recruitment_request->position_title : '-';
+                        return $approvalPlan->recruitment_request ? $approvalPlan->recruitment_request->position->position_name : '-';
                     }
                     return '-';
                 })
@@ -102,8 +102,8 @@ class ApprovalRequestController extends Controller
                         return $approvalPlan->officialtravel && $approvalPlan->officialtravel->creator ?
                             $approvalPlan->officialtravel->creator->name : '-';
                     } elseif ($approvalPlan->document_type === 'recruitment_request') {
-                        return $approvalPlan->recruitment_request && $approvalPlan->recruitment_request->creator ?
-                            $approvalPlan->recruitment_request->creator->name : '-';
+                        return $approvalPlan->recruitment_request && $approvalPlan->recruitment_request->createdBy ?
+                            $approvalPlan->recruitment_request->createdBy->name : '-';
                     }
                     return '-';
                 })

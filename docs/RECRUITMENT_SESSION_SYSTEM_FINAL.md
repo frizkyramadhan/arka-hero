@@ -153,7 +153,7 @@ CREATE TABLE recruitment_sessions (
     responsible_person_id BIGINT UNSIGNED NULL,
 
     -- Final Decision
-    final_status ENUM('in_process', 'hired', 'rejected', 'withdrawn', 'cancelled') DEFAULT 'in_process',
+    status ENUM('in_process', 'hired', 'rejected', 'withdrawn', 'cancelled') DEFAULT 'in_process',
     final_decision_date TIMESTAMP NULL,
     final_decision_by BIGINT UNSIGNED NULL,
     final_decision_notes TEXT NULL,

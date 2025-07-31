@@ -49,7 +49,7 @@ return new class extends Migration
             $table->unsignedBigInteger('responsible_person_id')->nullable();
 
             // Final Decision
-            $table->enum('final_status', ['in_process', 'hired', 'rejected', 'withdrawn', 'cancelled'])->default('in_process');
+            $table->enum('status', ['in_process', 'hired', 'rejected', 'withdrawn', 'cancelled'])->default('in_process');
             $table->timestamp('final_decision_date')->nullable();
             $table->unsignedBigInteger('final_decision_by')->nullable();
             $table->text('final_decision_notes')->nullable();
@@ -70,7 +70,7 @@ return new class extends Migration
 
             // Indexes
             $table->index('current_stage');
-            $table->index('final_status');
+            $table->index('status');
             $table->index('applied_date');
             $table->index('fptk_id');
             $table->index('candidate_id');

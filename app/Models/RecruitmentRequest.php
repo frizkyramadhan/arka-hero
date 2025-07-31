@@ -38,8 +38,9 @@ class RecruitmentRequest extends Model
         'required_mental',
         'other_requirements',
         'created_by',
-        'final_status',
+        'status',
         'positions_filled',
+        'submit_at',
         // HR Acknowledgment fields
         'known_by',
         'known_status',
@@ -66,6 +67,7 @@ class RecruitmentRequest extends Model
         'required_qty' => 'integer',
         'required_age_min' => 'integer',
         'required_age_max' => 'integer',
+        'submit_at' => 'datetime',
         // HR Acknowledgment casts
         'known_at' => 'datetime',
         'known_timestamps' => 'datetime',
@@ -98,8 +100,30 @@ class RecruitmentRequest extends Model
     public const REQUEST_REASONS = ['replacement_resign', 'replacement_promotion', 'additional_workplan', 'other'];
     public const GENDERS = ['male', 'female', 'any'];
     public const MARITAL_STATUSES = ['single', 'married', 'any'];
-    public const FINAL_STATUSES = ['draft', 'submitted', 'approved', 'rejected', 'cancelled', 'closed'];
 
+    // Status constants
+    public const STATUS_DRAFT = 'draft';
+    public const STATUS_SUBMITTED = 'submitted';
+    public const STATUS_APPROVED = 'approved';
+    public const STATUS_REJECTED = 'rejected';
+    public const STATUS_CANCELLED = 'cancelled';
+    public const STATUS_CLOSED = 'closed';
+    public const STATUSES = ['draft', 'submitted', 'approved', 'rejected', 'cancelled', 'closed'];
+
+    /**
+     * Get status options for forms
+     */
+    public static function getStatusOptions()
+    {
+        return [
+            self::STATUS_DRAFT => 'Draft',
+            self::STATUS_SUBMITTED => 'Submitted',
+            self::STATUS_APPROVED => 'Approved',
+            self::STATUS_REJECTED => 'Rejected',
+            self::STATUS_CANCELLED => 'Cancelled',
+            self::STATUS_CLOSED => 'Closed',
+        ];
+    }
 
     /**
      * Relationships
@@ -129,9 +153,6 @@ class RecruitmentRequest extends Model
         return $this->belongsTo(User::class, 'created_by');
     }
 
-
-
-
     public function acknowledger()
     {
         return $this->belongsTo(User::class, 'known_by');
@@ -160,7 +181,7 @@ class RecruitmentRequest extends Model
     public function candidates()
     {
         return $this->belongsToMany(RecruitmentCandidate::class, 'recruitment_sessions', 'fptk_id', 'candidate_id')
-            ->withPivot('id', 'session_number', 'current_stage', 'final_status', 'applied_date')
+            ->withPivot('id', 'session_number', 'current_stage', 'status', 'applied_date')
             ->withTimestamps();
     }
 
@@ -175,7 +196,7 @@ class RecruitmentRequest extends Model
     public function hiredCandidates()
     {
         return $this->belongsToMany(RecruitmentCandidate::class, 'recruitment_sessions', 'fptk_id', 'candidate_id')
-            ->wherePivot('final_status', 'hired')
+            ->wherePivot('status', 'hired')
             ->withPivot('id', 'session_number', 'final_decision_date')
             ->withTimestamps();
     }
@@ -190,12 +211,12 @@ class RecruitmentRequest extends Model
 
     public function scopeApproved($query)
     {
-        return $query->where('final_status', 'approved');
+        return $query->where('status', 'approved');
     }
 
     public function scopeOpen($query)
     {
-        return $query->where('final_status', 'approved')
+        return $query->where('status', 'approved')
             ->whereRaw('positions_filled < required_qty');
     }
 
@@ -214,7 +235,7 @@ class RecruitmentRequest extends Model
      */
     public function getIsOpenAttribute()
     {
-        return $this->final_status === 'approved' && $this->positions_filled < $this->required_qty;
+        return $this->status === 'approved' && $this->positions_filled < $this->required_qty;
     }
 
     public function getRemainingPositionsAttribute()
@@ -227,7 +248,7 @@ class RecruitmentRequest extends Model
         $totalSessions = $this->sessions()->count();
         if ($totalSessions === 0) return 0;
 
-        $hiredSessions = $this->sessions()->where('final_status', 'hired')->count();
+        $hiredSessions = $this->sessions()->where('status', 'hired')->count();
         return round(($hiredSessions / $totalSessions) * 100, 2);
     }
 
@@ -241,7 +262,7 @@ class RecruitmentRequest extends Model
      */
     public function canReceiveApplications()
     {
-        return $this->final_status === 'approved' && $this->positions_filled < $this->required_qty;
+        return $this->status === 'approved' && $this->positions_filled < $this->required_qty;
     }
 
     public function incrementPositionsFilled()
@@ -250,7 +271,7 @@ class RecruitmentRequest extends Model
 
         // Auto-close if all positions filled
         if ($this->positions_filled >= $this->required_qty) {
-            $this->update(['final_status' => 'closed']);
+            $this->update(['status' => 'closed']);
         }
     }
 
@@ -260,8 +281,8 @@ class RecruitmentRequest extends Model
             $this->decrement('positions_filled');
 
             // Reopen if was closed and now has available positions
-            if ($this->final_status === 'closed' && $this->positions_filled < $this->required_qty) {
-                $this->update(['final_status' => 'approved']);
+            if ($this->status === 'closed' && $this->positions_filled < $this->required_qty) {
+                $this->update(['status' => 'approved']);
             }
         }
     }
@@ -278,14 +299,14 @@ class RecruitmentRequest extends Model
         }
 
         $this->update([
-            'final_status' => 'approved',
+            'status' => 'approved',
         ]);
     }
 
     public function reject($approverId, $reason)
     {
         $this->update([
-            'final_status' => 'rejected',
+            'status' => 'rejected',
         ]);
     }
 
