@@ -4,6 +4,7 @@ namespace App\Imports;
 
 use App\Models\Emrgcall;
 use App\Models\Employee;
+use App\Traits\BaseImportTrait;
 use Maatwebsite\Excel\Concerns\ToModel;
 use Maatwebsite\Excel\Concerns\Importable;
 use Maatwebsite\Excel\Concerns\SkipsErrors;
@@ -20,7 +21,7 @@ use Maatwebsite\Excel\Validators\Failure;
 
 class EmergencycallImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnError, SkipsOnFailure, WithEvents, WithChunkReading, WithBatchInserts
 {
-    use Importable, SkipsErrors, SkipsFailures;
+    use Importable, SkipsErrors, SkipsFailures, BaseImportTrait;
 
     private $employees;
     private $rowNumber = 0;
@@ -142,51 +143,27 @@ class EmergencycallImport implements ToModel, WithHeadingRow, WithValidation, Sk
         $this->rowNumber++;
 
         // Skip empty rows
-        if (empty($row['full_name']) || empty($row['identity_card_no']) || empty($row['name']) || empty($row['relationship'])) {
+        if (!$this->validateEssentialFields($row, ['full_name', 'identity_card_no', 'name', 'relationship'])) {
             return null;
         }
 
         try {
-            // Find the employee based on name and identity card
-            $employee = $this->employees->where('fullname', $row['full_name'])
-                ->where('identity_card', $row['identity_card_no'])
-                ->first();
+            // Find the employee
+            $employee = $this->findEmployee($row['full_name'], $row['identity_card_no']);
 
-            // If employee is not found in database, it might be a new one from personal sheet
-            // We need to query for it again as it may have been created by now
+            // If employee is not found in database, check pending personal rows
             if (!$employee) {
-                $employee = Employee::where('fullname', $row['full_name'])
-                    ->where('identity_card', $row['identity_card_no'])
-                    ->first();
-
-                if (!$employee) {
-                    // Still not found, skip this row
-                    return null;
+                if ($this->employeeExistsInPending($row['full_name'], $row['identity_card_no'])) {
+                    return null; // Skip this row, employee will be created later
                 }
+                return null; // Employee not found
             }
 
-            // Prepare data for emergency call record
-            $callData = [
-                'employee_id' => $employee->id,
-                'emrg_call_relation' => $row['relationship'],
-                'emrg_call_name' => $row['name'],
-                'emrg_call_address' => $row['address'],
-                'emrg_call_phone' => $row['phone'],
-            ];
-
-            // Use updateOrCreate to handle both new and existing records
-            return Emrgcall::updateOrCreate(
-                ['id' => $row['id'] ?? null],
-                $callData
-            );
+            // Execute delete-then-create operation
+            return $this->executeDeleteThenCreate($row, $employee);
         } catch (\Illuminate\Database\QueryException $e) {
             $attribute = 'name';
-            $errorMessage = "Duplicate emergency call record found. Please check if this emergency contact already exists.";
-
-            if (strpos($e->getMessage(), 'Duplicate entry') === false) {
-                $attribute = 'system_error';
-                $errorMessage = 'Database error: ' . $e->getMessage();
-            }
+            $errorMessage = "Database error during emergency call import: " . $e->getMessage();
 
             $this->onFailure(new Failure(
                 $this->rowNumber,
@@ -206,6 +183,31 @@ class EmergencycallImport implements ToModel, WithHeadingRow, WithValidation, Sk
 
             return null;
         }
+    }
+
+    /**
+     * Delete old emergency call data for employee
+     */
+    protected function deleteOldData($employeeId)
+    {
+        Emrgcall::where('employee_id', $employeeId)->delete();
+    }
+
+    /**
+     * Create new emergency call data
+     */
+    protected function createNewData($row, $employee)
+    {
+        // Prepare data for emergency call record
+        $callData = [
+            'employee_id' => $employee->id,
+            'emrg_call_relation' => $row['relationship'],
+            'emrg_call_name' => $row['name'],
+            'emrg_call_address' => $row['address'],
+            'emrg_call_phone' => $row['phone'],
+        ];
+
+        return Emrgcall::create($callData);
     }
 
     public function chunkSize(): int

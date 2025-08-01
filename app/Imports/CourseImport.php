@@ -4,6 +4,7 @@ namespace App\Imports;
 
 use App\Models\Course;
 use App\Models\Employee;
+use App\Traits\BaseImportTrait;
 use Maatwebsite\Excel\Concerns\ToModel;
 use Maatwebsite\Excel\Concerns\Importable;
 use Maatwebsite\Excel\Concerns\SkipsErrors;
@@ -20,7 +21,7 @@ use Maatwebsite\Excel\Validators\Failure;
 
 class CourseImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnError, SkipsOnFailure, WithEvents, WithChunkReading, WithBatchInserts
 {
-    use Importable, SkipsErrors, SkipsFailures;
+    use Importable, SkipsErrors, SkipsFailures, BaseImportTrait;
 
     private $employees;
     private $rowNumber = 0;
@@ -141,51 +142,27 @@ class CourseImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnEr
         $this->rowNumber++;
 
         // Skip empty rows
-        if (empty($row['full_name']) || empty($row['identity_card_no']) || empty($row['course_name'])) {
+        if (!$this->validateEssentialFields($row, ['full_name', 'identity_card_no', 'course_name'])) {
             return null;
         }
 
         try {
-            // Find the employee based on name and identity card
-            $employee = $this->employees->where('fullname', $row['full_name'])
-                ->where('identity_card', $row['identity_card_no'])
-                ->first();
+            // Find the employee
+            $employee = $this->findEmployee($row['full_name'], $row['identity_card_no']);
 
-            // If employee is not found in database, it might be a new one from personal sheet
-            // We need to query for it again as it may have been created by now
+            // If employee is not found in database, check pending personal rows
             if (!$employee) {
-                $employee = Employee::where('fullname', $row['full_name'])
-                    ->where('identity_card', $row['identity_card_no'])
-                    ->first();
-
-                if (!$employee) {
-                    // Still not found, skip this row
-                    return null;
+                if ($this->employeeExistsInPending($row['full_name'], $row['identity_card_no'])) {
+                    return null; // Skip this row, employee will be created later
                 }
+                return null; // Employee not found
             }
 
-            // Prepare data for course record
-            $courseData = [
-                'employee_id' => $employee->id,
-                'course_name' => $row['course_name'],
-                'course_address' => $row['course_address'] ?? null,
-                'course_year' => $row['course_year'] ?? null,
-                'course_remarks' => $row['remarks'] ?? null,
-            ];
-
-            // Use updateOrCreate to handle both new and existing records
-            return Course::updateOrCreate(
-                ['id' => $row['id'] ?? null],
-                $courseData
-            );
+            // Execute delete-then-create operation
+            return $this->executeDeleteThenCreate($row, $employee);
         } catch (\Illuminate\Database\QueryException $e) {
             $attribute = 'course_name';
-            $errorMessage = "Duplicate course record found. Please check if this course record already exists.";
-
-            if (strpos($e->getMessage(), 'Duplicate entry') === false) {
-                $attribute = 'system_error';
-                $errorMessage = 'Database error: ' . $e->getMessage();
-            }
+            $errorMessage = "Database error during course import: " . $e->getMessage();
 
             $this->onFailure(new Failure(
                 $this->rowNumber,
@@ -205,6 +182,31 @@ class CourseImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnEr
 
             return null;
         }
+    }
+
+    /**
+     * Delete old course data for employee
+     */
+    protected function deleteOldData($employeeId)
+    {
+        Course::where('employee_id', $employeeId)->delete();
+    }
+
+    /**
+     * Create new course data
+     */
+    protected function createNewData($row, $employee)
+    {
+        // Prepare data for course record
+        $courseData = [
+            'employee_id' => $employee->id,
+            'course_name' => $row['course_name'],
+            'course_address' => $row['course_address'] ?? null,
+            'course_year' => $row['course_year'] ?? null,
+            'course_remarks' => $row['remarks'] ?? null,
+        ];
+
+        return Course::create($courseData);
     }
 
     public function chunkSize(): int

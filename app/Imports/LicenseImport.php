@@ -4,6 +4,7 @@ namespace App\Imports;
 
 use App\Models\License;
 use App\Models\Employee;
+use App\Traits\BaseImportTrait;
 use Maatwebsite\Excel\Concerns\ToModel;
 use PhpOffice\PhpSpreadsheet\Shared\Date;
 use Maatwebsite\Excel\Concerns\Importable;
@@ -21,7 +22,7 @@ use Maatwebsite\Excel\Validators\Failure;
 
 class LicenseImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnError, SkipsOnFailure, WithEvents, WithChunkReading, WithBatchInserts
 {
-    use Importable, SkipsErrors, SkipsFailures;
+    use Importable, SkipsErrors, SkipsFailures, BaseImportTrait;
 
     private $employees;
     private $rowNumber = 0;
@@ -45,7 +46,7 @@ class LicenseImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnE
     public function sheets(): array
     {
         return [
-            'driver license' => $this,
+            'license' => $this,
         ];
     }
 
@@ -143,58 +144,27 @@ class LicenseImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnE
         $this->rowNumber++;
 
         // Skip empty rows
-        if (empty($row['full_name']) || empty($row['identity_card_no']) || empty($row['driver_license_type'])) {
+        if (!$this->validateEssentialFields($row, ['full_name', 'identity_card_no', 'driver_license_type'])) {
             return null;
         }
 
         try {
-            // Find the employee based on name and identity card
-            $employee = $this->employees->where('fullname', $row['full_name'])
-                ->where('identity_card', $row['identity_card_no'])
-                ->first();
+            // Find the employee
+            $employee = $this->findEmployee($row['full_name'], $row['identity_card_no']);
 
-            // If employee is not found in database, it might be a new one from personal sheet
-            // We need to query for it again as it may have been created by now
+            // If employee is not found in database, check pending personal rows
             if (!$employee) {
-                $employee = Employee::where('fullname', $row['full_name'])
-                    ->where('identity_card', $row['identity_card_no'])
-                    ->first();
-
-                if (!$employee) {
-                    // Still not found, skip this row
-                    return null;
+                if ($this->employeeExistsInPending($row['full_name'], $row['identity_card_no'])) {
+                    return null; // Skip this row, employee will be created later
                 }
+                return null; // Employee not found
             }
 
-            // Prepare data for license record
-            $licenseData = [
-                'employee_id' => $employee->id,
-                'driver_license_no' => (string) $row['driver_license_no'],
-                'driver_license_type' => $row['driver_license_type'],
-            ];
-
-            // Process expiry date
-            if (!empty($row['valid_date'])) {
-                if (is_numeric($row['valid_date'])) {
-                    $licenseData['driver_license_exp'] = Date::excelToDateTimeObject($row['valid_date']);
-                } else {
-                    $licenseData['driver_license_exp'] = \Carbon\Carbon::parse($row['valid_date']);
-                }
-            }
-
-            // Use updateOrCreate to handle both new and existing records
-            return License::updateOrCreate(
-                ['id' => $row['id'] ?? null],
-                $licenseData
-            );
+            // Execute delete-then-create operation
+            return $this->executeDeleteThenCreate($row, $employee);
         } catch (\Illuminate\Database\QueryException $e) {
             $attribute = 'driver_license_no';
-            $errorMessage = "Duplicate driver license record found. Please check if this license record already exists.";
-
-            if (strpos($e->getMessage(), 'Duplicate entry') === false) {
-                $attribute = 'system_error';
-                $errorMessage = 'Database error: ' . $e->getMessage();
-            }
+            $errorMessage = "Database error during license import: " . $e->getMessage();
 
             $this->onFailure(new Failure(
                 $this->rowNumber,
@@ -214,6 +184,38 @@ class LicenseImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnE
 
             return null;
         }
+    }
+
+    /**
+     * Delete old license data for employee
+     */
+    protected function deleteOldData($employeeId)
+    {
+        License::where('employee_id', $employeeId)->delete();
+    }
+
+    /**
+     * Create new license data
+     */
+    protected function createNewData($row, $employee)
+    {
+        // Prepare data for license record
+        $licenseData = [
+            'employee_id' => $employee->id,
+            'driver_license_no' => (string) $row['driver_license_no'],
+            'driver_license_type' => $row['driver_license_type'],
+        ];
+
+        // Process expiry date
+        if (!empty($row['valid_date'])) {
+            if (is_numeric($row['valid_date'])) {
+                $licenseData['driver_license_exp'] = Date::excelToDateTimeObject($row['valid_date']);
+            } else {
+                $licenseData['driver_license_exp'] = \Carbon\Carbon::parse($row['valid_date']);
+            }
+        }
+
+        return License::create($licenseData);
     }
 
     public function chunkSize(): int

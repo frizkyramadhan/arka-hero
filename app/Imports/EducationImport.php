@@ -4,6 +4,7 @@ namespace App\Imports;
 
 use App\Models\Education;
 use App\Models\Employee;
+use App\Traits\BaseImportTrait;
 use Maatwebsite\Excel\Concerns\ToModel;
 use Maatwebsite\Excel\Concerns\Importable;
 use Maatwebsite\Excel\Concerns\SkipsErrors;
@@ -20,7 +21,7 @@ use Maatwebsite\Excel\Validators\Failure;
 
 class EducationImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnError, SkipsOnFailure, WithEvents, WithChunkReading, WithBatchInserts
 {
-    use Importable, SkipsErrors, SkipsFailures;
+    use Importable, SkipsErrors, SkipsFailures, BaseImportTrait;
 
     private $employees;
     private $rowNumber = 0;
@@ -142,51 +143,27 @@ class EducationImport implements ToModel, WithHeadingRow, WithValidation, SkipsO
         $this->rowNumber++;
 
         // Skip empty rows
-        if (empty($row['full_name']) || empty($row['identity_card_no']) || empty($row['education_name'])) {
+        if (!$this->validateEssentialFields($row, ['full_name', 'identity_card_no', 'education_name'])) {
             return null;
         }
 
         try {
-            // Find the employee based on name and identity card
-            $employee = $this->employees->where('fullname', $row['full_name'])
-                ->where('identity_card', $row['identity_card_no'])
-                ->first();
+            // Find the employee
+            $employee = $this->findEmployee($row['full_name'], $row['identity_card_no']);
 
-            // If employee is not found in database, it might be a new one from personal sheet
-            // We need to query for it again as it may have been created by now
+            // If employee is not found in database, check pending personal rows
             if (!$employee) {
-                $employee = Employee::where('fullname', $row['full_name'])
-                    ->where('identity_card', $row['identity_card_no'])
-                    ->first();
-
-                if (!$employee) {
-                    // Still not found, skip this row
-                    return null;
+                if ($this->employeeExistsInPending($row['full_name'], $row['identity_card_no'])) {
+                    return null; // Skip this row, employee will be created later
                 }
+                return null; // Employee not found
             }
 
-            // Prepare data for education record
-            $educationData = [
-                'employee_id' => $employee->id,
-                'education_name' => $row['education_name'],
-                'education_address' => $row['education_address'] ?? null,
-                'education_year' => $row['education_year'] ?? null,
-                'education_remarks' => $row['remarks'] ?? null,
-            ];
-
-            // Use updateOrCreate to handle both new and existing records
-            return Education::updateOrCreate(
-                ['id' => $row['id'] ?? null],
-                $educationData
-            );
+            // Execute delete-then-create operation
+            return $this->executeDeleteThenCreate($row, $employee);
         } catch (\Illuminate\Database\QueryException $e) {
             $attribute = 'education_name';
-            $errorMessage = "Duplicate education record found. Please check if this education record already exists.";
-
-            if (strpos($e->getMessage(), 'Duplicate entry') === false) {
-                $attribute = 'system_error';
-                $errorMessage = 'Database error: ' . $e->getMessage();
-            }
+            $errorMessage = "Database error during education import: " . $e->getMessage();
 
             $this->onFailure(new Failure(
                 $this->rowNumber,
@@ -206,6 +183,31 @@ class EducationImport implements ToModel, WithHeadingRow, WithValidation, SkipsO
 
             return null;
         }
+    }
+
+    /**
+     * Delete old education data for employee
+     */
+    protected function deleteOldData($employeeId)
+    {
+        Education::where('employee_id', $employeeId)->delete();
+    }
+
+    /**
+     * Create new education data
+     */
+    protected function createNewData($row, $employee)
+    {
+        // Prepare data for education record
+        $educationData = [
+            'employee_id' => $employee->id,
+            'education_name' => $row['education_name'],
+            'education_address' => $row['education_address'] ?? null,
+            'education_year' => $row['education_year'] ?? null,
+            'education_remarks' => $row['remarks'] ?? null,
+        ];
+
+        return Education::create($educationData);
     }
 
     public function chunkSize(): int

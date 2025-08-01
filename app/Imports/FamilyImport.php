@@ -4,6 +4,7 @@ namespace App\Imports;
 
 use App\Models\Family;
 use App\Models\Employee;
+use App\Traits\BaseImportTrait;
 use Maatwebsite\Excel\Concerns\ToModel;
 use PhpOffice\PhpSpreadsheet\Shared\Date;
 use Maatwebsite\Excel\Concerns\Importable;
@@ -21,7 +22,7 @@ use Maatwebsite\Excel\Validators\Failure;
 
 class FamilyImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnError, SkipsOnFailure, WithEvents, WithChunkReading, WithBatchInserts
 {
-    use Importable, SkipsErrors, SkipsFailures;
+    use Importable, SkipsErrors, SkipsFailures, BaseImportTrait;
 
     private $employees;
     private $rowNumber = 0;
@@ -142,61 +143,27 @@ class FamilyImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnEr
         $this->rowNumber++;
 
         // Skip empty rows
-        if (empty($row['full_name']) || empty($row['identity_card_no']) || empty($row['family_name']) || empty($row['family_relationship'])) {
+        if (!$this->validateEssentialFields($row, ['full_name', 'identity_card_no', 'family_name', 'family_relationship'])) {
             return null;
         }
 
         try {
-            // Find the employee based on name and identity card
-            $employee = $this->employees->where('fullname', $row['full_name'])
-                ->where('identity_card', $row['identity_card_no'])
-                ->first();
+            // Find the employee
+            $employee = $this->findEmployee($row['full_name'], $row['identity_card_no']);
 
-            // If employee is not found in database, it might be a new one from personal sheet
-            // We need to query for it again as it may have been created by now
+            // If employee is not found in database, check pending personal rows
             if (!$employee) {
-                $employee = Employee::where('fullname', $row['full_name'])
-                    ->where('identity_card', $row['identity_card_no'])
-                    ->first();
-
-                if (!$employee) {
-                    // Still not found, skip this row
-                    return null;
+                if ($this->employeeExistsInPending($row['full_name'], $row['identity_card_no'])) {
+                    return null; // Skip this row, employee will be created later
                 }
+                return null; // Employee not found
             }
 
-            // Prepare data for family record
-            $familyData = [
-                'employee_id' => $employee->id,
-                'family_relationship' => $row['family_relationship'],
-                'family_name' => $row['family_name'],
-                'family_birthplace' => $row['family_birthplace'] ?? null,
-                'family_remarks' => $row['remarks'] ?? null,
-                'bpjsks_no' => $row['insurance_no'] ?? null,
-            ];
-
-            // Process birthdate
-            if (!empty($row['family_birthdate'])) {
-                if (is_numeric($row['family_birthdate'])) {
-                    $familyData['family_birthdate'] = Date::excelToDateTimeObject($row['family_birthdate']);
-                } else {
-                    $familyData['family_birthdate'] = \Carbon\Carbon::parse($row['family_birthdate']);
-                }
-            }
-
-            // Use updateOrCreate to handle both new and existing records
-            return Family::updateOrCreate(
-                ['id' => $row['id'] ?? null],
-                $familyData
-            );
+            // Execute delete-then-create operation
+            return $this->executeDeleteThenCreate($row, $employee);
         } catch (\Illuminate\Database\QueryException $e) {
             $attribute = 'family_name';
-            $errorMessage = "Duplicate family record found. Please check if this family record already exists.";
-
-            if (strpos($e->getMessage(), 'Duplicate entry') === false) {
-                $attribute = 'system_error';
-                $errorMessage = 'Database error: ' . $e->getMessage();
-            }
+            $errorMessage = "Database error during family import: " . $e->getMessage();
 
             $this->onFailure(new Failure(
                 $this->rowNumber,
@@ -216,6 +183,41 @@ class FamilyImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnEr
 
             return null;
         }
+    }
+
+    /**
+     * Delete old family data for employee
+     */
+    protected function deleteOldData($employeeId)
+    {
+        Family::where('employee_id', $employeeId)->delete();
+    }
+
+    /**
+     * Create new family data
+     */
+    protected function createNewData($row, $employee)
+    {
+        // Prepare data for family record
+        $familyData = [
+            'employee_id' => $employee->id,
+            'family_relationship' => $row['family_relationship'],
+            'family_name' => $row['family_name'],
+            'family_birthplace' => $row['family_birthplace'] ?? null,
+            'family_remarks' => $row['remarks'] ?? null,
+            'bpjsks_no' => $row['insurance_no'] ?? null,
+        ];
+
+        // Process birthdate
+        if (!empty($row['family_birthdate'])) {
+            if (is_numeric($row['family_birthdate'])) {
+                $familyData['family_birthdate'] = Date::excelToDateTimeObject($row['family_birthdate']);
+            } else {
+                $familyData['family_birthdate'] = \Carbon\Carbon::parse($row['family_birthdate']);
+            }
+        }
+
+        return Family::create($familyData);
     }
 
     public function chunkSize(): int

@@ -38,7 +38,6 @@ class EmergencycallExport extends DefaultValueBinder implements
     public function headings(): array
     {
         return [
-            'ID',
             'Full Name',
             'Identity Card No',
             'Relationship',
@@ -51,7 +50,7 @@ class EmergencycallExport extends DefaultValueBinder implements
     public function columnFormats(): array
     {
         return [
-            'C' => '@'
+            'B' => '@'
         ];
     }
 
@@ -74,7 +73,6 @@ class EmergencycallExport extends DefaultValueBinder implements
     public function map($emrgcall): array
     {
         return [
-            $emrgcall->id,
             $emrgcall->fullname,
             $emrgcall->identity_card,
             $emrgcall->emrg_call_relation,
@@ -86,7 +84,7 @@ class EmergencycallExport extends DefaultValueBinder implements
 
     public function bindValue(Cell $cell, $value)
     {
-        if ($cell->getColumn() === 'C') {
+        if ($cell->getColumn() === 'B') {
             $cell->setValueExplicit($value, DataType::TYPE_STRING);
             return true;
         }
