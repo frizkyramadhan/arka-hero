@@ -59,7 +59,7 @@
                     </a>
                 </li>
                 {{-- SUMMARY EMPLOYEE --}}
-                <li
+                {{-- <li
                     class="nav-item {{ Request::is('personals*') || Request::is('licenses*') || Request::is('insurances*') || Request::is('families*') || Request::is('educations*') || Request::is('courses*') || Request::is('emrgcalls*') || Request::is('additionaldatas*') || Request::is('employeebanks*') || Request::is('administrations*') || Request::is('jobexperiences*') || Request::is('operableunits*') || Request::is('taxidentifications*') ? 'menu-open' : '' }}">
                     <a href="#"
                         class="nav-link {{ Request::is('personals*') || Request::is('licenses*') || Request::is('insurances*') || Request::is('families*') || Request::is('educations*') || Request::is('courses*') || Request::is('emrgcalls*') || Request::is('additionaldatas*') || Request::is('employeebanks*') || Request::is('administrations*') || Request::is('jobexperiences*') || Request::is('operableunits*') || Request::is('taxidentifications*') ? 'active' : '' }}">
@@ -189,7 +189,9 @@
                             </a>
                         </li>
                     </ul>
-                </li>
+                </li> --}}
+
+
                 {{-- @can('employees.create')
                     <li class="nav-item {{ Request::is('employee-registrations*') ? 'menu-open' : '' }}">
                         <a href="#" class="nav-link {{ Request::is('employee-registrations*') ? 'active' : '' }}">
