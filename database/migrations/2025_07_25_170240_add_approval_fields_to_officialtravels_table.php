@@ -3,6 +3,7 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\DB;
 
 return new class extends Migration
 {
@@ -24,10 +25,8 @@ return new class extends Migration
             $table->renameColumn('official_travel_status', 'status');
         });
 
-        // Alter status column to enum
-        Schema::table('officialtravels', function (Blueprint $table) {
-            $table->enum('status', ['draft', 'submitted', 'approved', 'rejected', 'cancelled', 'closed'])->default('draft')->change();
-        });
+        // Alter status column to enum using raw SQL
+        DB::statement("ALTER TABLE officialtravels MODIFY COLUMN status ENUM('draft', 'submitted', 'approved', 'rejected', 'cancelled', 'closed') DEFAULT 'draft'");
     }
 
     /**
@@ -37,10 +36,8 @@ return new class extends Migration
      */
     public function down()
     {
-        // Revert status column to string first
-        Schema::table('officialtravels', function (Blueprint $table) {
-            $table->string('status')->change();
-        });
+        // Revert status column to string first using raw SQL
+        DB::statement("ALTER TABLE officialtravels MODIFY COLUMN status VARCHAR(255)");
 
         // Rename column back
         Schema::table('officialtravels', function (Blueprint $table) {

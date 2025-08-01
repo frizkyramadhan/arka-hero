@@ -38,7 +38,6 @@ class CourseExport extends DefaultValueBinder implements
     public function headings(): array
     {
         return [
-            'ID',
             'Full Name',
             'Identity Card No',
             'Course Name',
@@ -51,7 +50,7 @@ class CourseExport extends DefaultValueBinder implements
     public function columnFormats(): array
     {
         return [
-            'C' => '@'
+            'B' => '@'
         ];
     }
 
@@ -74,7 +73,6 @@ class CourseExport extends DefaultValueBinder implements
     public function map($course): array
     {
         return [
-            $course->id,
             $course->fullname,
             $course->identity_card,
             $course->course_name,
@@ -86,7 +84,7 @@ class CourseExport extends DefaultValueBinder implements
 
     public function bindValue(Cell $cell, $value)
     {
-        if ($cell->getColumn() === 'C') {
+        if ($cell->getColumn() === 'B') {
             $cell->setValueExplicit($value, DataType::TYPE_STRING);
             return true;
         }

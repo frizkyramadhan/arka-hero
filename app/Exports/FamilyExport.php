@@ -38,7 +38,6 @@ class FamilyExport extends DefaultValueBinder implements
     public function headings(): array
     {
         return [
-            'ID',
             'Full Name',
             'Identity Card No',
             'Family Relationship',
@@ -53,8 +52,8 @@ class FamilyExport extends DefaultValueBinder implements
     public function columnFormats(): array
     {
         return [
-            'C' => '@',
-            'H' => '@'
+            'B' => '@',
+            'G' => '@'
         ];
     }
 
@@ -77,7 +76,6 @@ class FamilyExport extends DefaultValueBinder implements
     public function map($family): array
     {
         return [
-            $family->id,
             $family->fullname,
             $family->identity_card,
             $family->family_relationship,
@@ -91,12 +89,12 @@ class FamilyExport extends DefaultValueBinder implements
 
     public function bindValue(Cell $cell, $value)
     {
-        if ($cell->getColumn() === 'C') {
+        if ($cell->getColumn() === 'B') {
             $cell->setValueExplicit($value, DataType::TYPE_STRING);
             return true;
         }
 
-        if ($cell->getColumn() === 'H') {
+        if ($cell->getColumn() === 'G') {
             $cell->setValueExplicit($value, DataType::TYPE_STRING);
             return true;
         }

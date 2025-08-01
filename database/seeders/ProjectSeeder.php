@@ -30,6 +30,20 @@ class ProjectSeeder extends Seeder
             'project_status' => 1,
         ]);
         Project::create([
+            'project_code' => '008C',
+            'project_name' => 'Tanito - Senoni',
+            'project_location' => 'Senoni',
+            'bowheer' => 'Tanito Harum',
+            'project_status' => 1,
+        ]);
+        Project::create([
+            'project_code' => '015C',
+            'project_name' => 'PPC - Penajam',
+            'project_location' => 'Penajam',
+            'bowheer' => 'PPC',
+            'project_status' => 0,
+        ]);
+        Project::create([
             'project_code' => '017C',
             'project_name' => 'KPUC - Malinau',
             'project_location' => 'Malinau',
@@ -55,7 +69,7 @@ class ProjectSeeder extends Seeder
             'project_name' => 'BEK - Muara Lawa',
             'project_location' => 'Muara Lawa',
             'bowheer' => 'BEK',
-            'project_status' => 1,
+            'project_status' => 0,
         ]);
         Project::create([
             'project_code' => 'APS',

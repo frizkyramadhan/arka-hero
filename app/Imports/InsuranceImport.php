@@ -4,6 +4,7 @@ namespace App\Imports;
 
 use App\Models\Employee;
 use App\Models\Insurance;
+use App\Traits\BaseImportTrait;
 use Maatwebsite\Excel\Concerns\ToModel;
 use Maatwebsite\Excel\Concerns\Importable;
 use Maatwebsite\Excel\Concerns\SkipsErrors;
@@ -20,7 +21,7 @@ use Maatwebsite\Excel\Validators\Failure;
 
 class InsuranceImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnError, SkipsOnFailure, WithEvents, WithChunkReading, WithBatchInserts
 {
-    use Importable, SkipsErrors, SkipsFailures;
+    use Importable, SkipsErrors, SkipsFailures, BaseImportTrait;
 
     private $employees;
     private $rowNumber = 0;
@@ -133,18 +134,6 @@ class InsuranceImport implements ToModel, WithHeadingRow, WithValidation, SkipsO
                     );
                     continue;
                 }
-
-                // If ID is provided, validate that the insurance record exists
-                if (!empty($row['id'])) {
-                    $existingInsurance = Insurance::where('id', $row['id'])->first();
-
-                    if (!$existingInsurance) {
-                        $validator->errors()->add(
-                            $rowIndex . '.id',
-                            "Insurance record with ID {$row['id']} not found"
-                        );
-                    }
-                }
             }
         });
     }
@@ -154,51 +143,27 @@ class InsuranceImport implements ToModel, WithHeadingRow, WithValidation, SkipsO
         $this->rowNumber++;
 
         // Skip empty rows
-        if (empty($row['full_name']) || empty($row['identity_card_no']) || empty($row['health_insurance'])) {
+        if (!$this->validateEssentialFields($row, ['full_name', 'identity_card_no', 'health_insurance'])) {
             return null;
         }
 
         try {
-            // Find the employee based on name and identity card
-            $employee = $this->employees->where('fullname', $row['full_name'])
-                ->where('identity_card', $row['identity_card_no'])
-                ->first();
+            // Find the employee
+            $employee = $this->findEmployee($row['full_name'], $row['identity_card_no']);
 
-            // If employee is not found in database, it might be a new one from personal sheet
-            // We need to query for it again as it may have been created by now
+            // If employee is not found in database, check pending personal rows
             if (!$employee) {
-                $employee = Employee::where('fullname', $row['full_name'])
-                    ->where('identity_card', $row['identity_card_no'])
-                    ->first();
-
-                if (!$employee) {
-                    // Still not found, skip this row
-                    return null;
+                if ($this->employeeExistsInPending($row['full_name'], $row['identity_card_no'])) {
+                    return null; // Skip this row, employee will be created later
                 }
+                return null; // Employee not found
             }
 
-            // Prepare data for insurance record
-            $insuranceData = [
-                'employee_id' => $employee->id,
-                'health_insurance_type' => $row['health_insurance'],
-                'health_insurance_no' => $row['health_insurance_no'],
-                'health_facility' => $row['health_facility'] ?? null,
-                'health_insurance_remarks' => $row['remarks'] ?? null,
-            ];
-
-            // Use updateOrCreate to handle both new and existing records
-            return Insurance::updateOrCreate(
-                ['id' => $row['id'] ?? null],
-                $insuranceData
-            );
+            // Execute delete-then-create operation
+            return $this->executeDeleteThenCreate($row, $employee);
         } catch (\Illuminate\Database\QueryException $e) {
             $attribute = 'health_insurance_no';
-            $errorMessage = "Duplicate health insurance record found. Please check if this insurance record already exists.";
-
-            if (strpos($e->getMessage(), 'Duplicate entry') === false) {
-                $attribute = 'system_error';
-                $errorMessage = 'Database error: ' . $e->getMessage();
-            }
+            $errorMessage = "Database error during insurance import: " . $e->getMessage();
 
             $this->onFailure(new Failure(
                 $this->rowNumber,
@@ -218,6 +183,31 @@ class InsuranceImport implements ToModel, WithHeadingRow, WithValidation, SkipsO
 
             return null;
         }
+    }
+
+    /**
+     * Delete old insurance data for employee
+     */
+    protected function deleteOldData($employeeId)
+    {
+        Insurance::where('employee_id', $employeeId)->delete();
+    }
+
+    /**
+     * Create new insurance data
+     */
+    protected function createNewData($row, $employee)
+    {
+        // Prepare data for insurance record
+        $insuranceData = [
+            'employee_id' => $employee->id,
+            'health_insurance_type' => $row['health_insurance'],
+            'health_insurance_no' => $row['health_insurance_no'],
+            'health_facility' => $row['health_facility'] ?? null,
+            'health_insurance_remarks' => $row['remarks'] ?? null,
+        ];
+
+        return Insurance::create($insuranceData);
     }
 
     public function chunkSize(): int

@@ -4,6 +4,7 @@ namespace App\Imports;
 
 use App\Models\Jobexperience;
 use App\Models\Employee;
+use App\Traits\BaseImportTrait;
 use Maatwebsite\Excel\Concerns\ToModel;
 use Maatwebsite\Excel\Concerns\Importable;
 use Maatwebsite\Excel\Concerns\SkipsErrors;
@@ -20,7 +21,7 @@ use Maatwebsite\Excel\Validators\Failure;
 
 class JobExperienceImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnError, SkipsOnFailure, WithEvents, WithChunkReading, WithBatchInserts
 {
-    use Importable, SkipsErrors, SkipsFailures;
+    use Importable, SkipsErrors, SkipsFailures, BaseImportTrait;
 
     private $employees;
     private $rowNumber = 0;
@@ -142,52 +143,27 @@ class JobExperienceImport implements ToModel, WithHeadingRow, WithValidation, Sk
         $this->rowNumber++;
 
         // Skip empty rows
-        if (empty($row['full_name']) || empty($row['identity_card_no']) || empty($row['company_name']) || empty($row['position'])) {
+        if (!$this->validateEssentialFields($row, ['full_name', 'identity_card_no', 'company_name', 'position'])) {
             return null;
         }
 
         try {
-            // Find the employee based on name and identity card
-            $employee = $this->employees->where('fullname', $row['full_name'])
-                ->where('identity_card', $row['identity_card_no'])
-                ->first();
+            // Find the employee
+            $employee = $this->findEmployee($row['full_name'], $row['identity_card_no']);
 
-            // If employee is not found in database, it might be a new one from personal sheet
-            // We need to query for it again as it may have been created by now
+            // If employee is not found in database, check pending personal rows
             if (!$employee) {
-                $employee = Employee::where('fullname', $row['full_name'])
-                    ->where('identity_card', $row['identity_card_no'])
-                    ->first();
-
-                if (!$employee) {
-                    // Still not found, skip this row
-                    return null;
+                if ($this->employeeExistsInPending($row['full_name'], $row['identity_card_no'])) {
+                    return null; // Skip this row, employee will be created later
                 }
+                return null; // Employee not found
             }
 
-            // Prepare data for job experience record
-            $jobExpData = [
-                'employee_id' => $employee->id,
-                'company_name' => $row['company_name'],
-                'company_address' => $row['company_address'] ?? null,
-                'job_position' => $row['position'] ?? null,
-                'job_duration' => $row['duration'] ?? null,
-                'quit_reason' => $row['quit_reason'] ?? null,
-            ];
-
-            // Use updateOrCreate to handle both new and existing records
-            return Jobexperience::updateOrCreate(
-                ['id' => $row['id'] ?? null],
-                $jobExpData
-            );
+            // Execute delete-then-create operation
+            return $this->executeDeleteThenCreate($row, $employee);
         } catch (\Illuminate\Database\QueryException $e) {
             $attribute = 'company_name';
-            $errorMessage = "Duplicate job experience record found. Please check if this job experience record already exists.";
-
-            if (strpos($e->getMessage(), 'Duplicate entry') === false) {
-                $attribute = 'system_error';
-                $errorMessage = 'Database error: ' . $e->getMessage();
-            }
+            $errorMessage = "Database error during job experience import: " . $e->getMessage();
 
             $this->onFailure(new Failure(
                 $this->rowNumber,
@@ -207,6 +183,32 @@ class JobExperienceImport implements ToModel, WithHeadingRow, WithValidation, Sk
 
             return null;
         }
+    }
+
+    /**
+     * Delete old job experience data for employee
+     */
+    protected function deleteOldData($employeeId)
+    {
+        Jobexperience::where('employee_id', $employeeId)->delete();
+    }
+
+    /**
+     * Create new job experience data
+     */
+    protected function createNewData($row, $employee)
+    {
+        // Prepare data for job experience record
+        $jobExpData = [
+            'employee_id' => $employee->id,
+            'company_name' => $row['company_name'],
+            'company_address' => $row['company_address'] ?? null,
+            'job_position' => $row['position'] ?? null,
+            'job_duration' => $row['duration'] ?? null,
+            'quit_reason' => $row['quit_reason'] ?? null,
+        ];
+
+        return Jobexperience::create($jobExpData);
     }
 
     public function chunkSize(): int

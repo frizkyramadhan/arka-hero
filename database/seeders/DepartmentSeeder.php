@@ -56,6 +56,11 @@ class DepartmentSeeder extends Seeder
             'department_status' => '1'
         ]);
         Department::create([
+            'department_name' => 'Management',
+            'slug' => 'mgm',
+            'department_status' => '1'
+        ]);
+        Department::create([
             'department_name' => 'Operation',
             'slug' => 'ops',
             'department_status' => '1'
@@ -78,6 +83,11 @@ class DepartmentSeeder extends Seeder
         Department::create([
             'department_name' => 'Relation & Coordination',
             'slug' => 'rnc',
+            'department_status' => '1'
+        ]);
+        Department::create([
+            'department_name' => 'Research & Development',
+            'slug' => 'rnd',
             'department_status' => '1'
         ]);
         Department::create([

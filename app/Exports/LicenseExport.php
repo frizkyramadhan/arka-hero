@@ -38,7 +38,6 @@ class LicenseExport extends DefaultValueBinder implements
     public function headings(): array
     {
         return [
-            'ID',
             'Full Name',
             'Identity Card No',
             'Driver License Type',
@@ -50,8 +49,8 @@ class LicenseExport extends DefaultValueBinder implements
     public function columnFormats(): array
     {
         return [
-            'C' => '@',
-            'E' => '@'
+            'B' => '@',
+            'D' => '@'
         ];
     }
 
@@ -74,7 +73,6 @@ class LicenseExport extends DefaultValueBinder implements
     public function map($license): array
     {
         return [
-            $license->id,
             $license->fullname,
             $license->identity_card,
             $license->driver_license_type,
@@ -85,12 +83,12 @@ class LicenseExport extends DefaultValueBinder implements
 
     public function bindValue(Cell $cell, $value)
     {
-        if ($cell->getColumn() === 'C') {
+        if ($cell->getColumn() === 'B') {
             $cell->setValueExplicit($value, DataType::TYPE_STRING);
             return true;
         }
 
-        if ($cell->getColumn() === 'E') {
+        if ($cell->getColumn() === 'D') {
             $cell->setValueExplicit($value, DataType::TYPE_STRING);
             return true;
         }

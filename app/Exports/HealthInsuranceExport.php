@@ -38,7 +38,6 @@ class HealthInsuranceExport extends DefaultValueBinder implements
     public function headings(): array
     {
         return [
-            'ID',
             'Full Name',
             'Identity Card No',
             'Health Insurance',
@@ -51,8 +50,8 @@ class HealthInsuranceExport extends DefaultValueBinder implements
     public function columnFormats(): array
     {
         return [
-            'C' => '@',
-            'E' => NumberFormat::FORMAT_NUMBER
+            'B' => '@',
+            'D' => NumberFormat::FORMAT_NUMBER
         ];
     }
 
@@ -75,7 +74,6 @@ class HealthInsuranceExport extends DefaultValueBinder implements
     public function map($insurance): array
     {
         return [
-            $insurance->id,
             $insurance->fullname,
             $insurance->identity_card,
             $insurance->health_insurance_type,
@@ -87,7 +85,7 @@ class HealthInsuranceExport extends DefaultValueBinder implements
 
     public function bindValue(Cell $cell, $value)
     {
-        if ($cell->getColumn() === 'C') {
+        if ($cell->getColumn() === 'B') {
             $cell->setValueExplicit($value, DataType::TYPE_STRING);
             return true;
         }
