@@ -396,21 +396,23 @@ Route::group(['middleware' => ['auth']], function () {
         // Candidate Routes
         Route::prefix('candidates')->name('candidates.')->group(function () {
             Route::get('/', [RecruitmentCandidateController::class, 'index'])->name('index');
+            Route::get('/data', [RecruitmentCandidateController::class, 'getRecruitmentCandidates'])->name('data');
+            Route::get('/{id}/data', [RecruitmentCandidateController::class, 'getCandidateData'])->name('single-data');
+            Route::get('/{id}/available-fptks', [RecruitmentCandidateController::class, 'getAvailableFPTKs'])->name('available-fptks');
             Route::get('/create', [RecruitmentCandidateController::class, 'create'])->name('create');
             Route::post('/', [RecruitmentCandidateController::class, 'store'])->name('store');
             Route::get('/{id}', [RecruitmentCandidateController::class, 'show'])->name('show');
             Route::get('/{id}/edit', [RecruitmentCandidateController::class, 'edit'])->name('edit');
             Route::put('/{id}', [RecruitmentCandidateController::class, 'update'])->name('update');
+            Route::delete('/{id}', [RecruitmentCandidateController::class, 'destroy'])->name('destroy');
 
             // Candidate Actions
             Route::post('/{id}/apply-to-fptk', [RecruitmentCandidateController::class, 'applyToFPTK'])->name('apply-to-fptk');
             Route::post('/{id}/blacklist', [RecruitmentCandidateController::class, 'blacklist'])->name('blacklist');
             Route::post('/{id}/remove-from-blacklist', [RecruitmentCandidateController::class, 'removeFromBlacklist'])->name('remove-from-blacklist');
             Route::get('/{id}/download-cv', [RecruitmentCandidateController::class, 'downloadCV'])->name('download-cv');
-
-            // AJAX Routes
-            Route::get('/{id}/data', [RecruitmentCandidateController::class, 'getCandidateData'])->name('data');
-            Route::get('/{id}/available-fptks', [RecruitmentCandidateController::class, 'getAvailableFPTKs'])->name('available-fptks');
+            Route::delete('/{id}/delete-cv', [RecruitmentCandidateController::class, 'deleteCV'])->name('delete-cv');
+            Route::get('/{id}/print', [RecruitmentCandidateController::class, 'print'])->name('print');
         });
 
         // Session Routes

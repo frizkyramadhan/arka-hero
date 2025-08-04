@@ -32,13 +32,11 @@
                                         <strong>Recruitment Candidates</strong>
                                     </h3>
                                     <div class="d-flex flex-column flex-md-row ms-auto gap-2">
-                                        @can('recruitment-candidate.export')
-                                            <a href="{{ route('recruitment.candidates.export') }}"
-                                                class="btn btn-primary mb-md-0 ml-1 mb-1">
-                                                <i class="fas fa-download"></i> Export
-                                            </a>
-                                        @endcan
-                                        @can('recruitment-candidate.create')
+                                        {{-- <a href="{{ route('recruitment.candidates.export') }}"
+                                            class="btn btn-primary mb-md-0 ml-1 mb-1">
+                                            <i class="fas fa-download"></i> Export
+                                        </a> --}}
+                                        @can('recruitment-candidates.create')
                                             <a href="{{ route('recruitment.candidates.create') }}"
                                                 class="btn btn-warning mb-md-0 ml-1 mb-1">
                                                 <i class="fas fa-plus"></i> Add
@@ -59,6 +57,13 @@
                                     <div id="collapseOne" class="collapse" data-parent="#accordion">
                                         <div class="card-body">
                                             <div class="row form-group">
+                                                <div class="col-3">
+                                                    <div class="form-group">
+                                                        <label class="form-control-label">Candidate Number</label>
+                                                        <input type="text" class="form-control" name="candidate_number"
+                                                            id="candidate_number" value="{{ request('candidate_number') }}">
+                                                    </div>
+                                                </div>
                                                 <div class="col-3">
                                                     <div class="form-group">
                                                         <label class="form-control-label">Full Name</label>
@@ -86,15 +91,15 @@
                                                         <select name="education_level" class="form-control select2bs4"
                                                             id="education_level" style="width: 100%;">
                                                             <option value="">- All -</option>
-                                                            <option value="SD"
-                                                                {{ request('education_level') == 'SD' ? 'selected' : '' }}>
-                                                                SD</option>
-                                                            <option value="SMP"
-                                                                {{ request('education_level') == 'SMP' ? 'selected' : '' }}>
-                                                                SMP</option>
-                                                            <option value="SMA"
-                                                                {{ request('education_level') == 'SMA' ? 'selected' : '' }}>
-                                                                SMA</option>
+                                                            <option value="SMA/SMK"
+                                                                {{ request('education_level') == 'SMA/SMK' ? 'selected' : '' }}>
+                                                                SMA/SMK</option>
+                                                            <option value="D1"
+                                                                {{ request('education_level') == 'D1' ? 'selected' : '' }}>
+                                                                D1</option>
+                                                            <option value="D2"
+                                                                {{ request('education_level') == 'D2' ? 'selected' : '' }}>
+                                                                D2</option>
                                                             <option value="D3"
                                                                 {{ request('education_level') == 'D3' ? 'selected' : '' }}>
                                                                 D3</option>
@@ -112,26 +117,10 @@
                                                 </div>
                                                 <div class="col-3">
                                                     <div class="form-group">
-                                                        <label class="form-control-label">Experience Years</label>
-                                                        <select name="experience_years" class="form-control select2bs4"
-                                                            id="experience_years" style="width: 100%;">
-                                                            <option value="">- All -</option>
-                                                            <option value="0-1"
-                                                                {{ request('experience_years') == '0-1' ? 'selected' : '' }}>
-                                                                0-1 Years</option>
-                                                            <option value="1-3"
-                                                                {{ request('experience_years') == '1-3' ? 'selected' : '' }}>
-                                                                1-3 Years</option>
-                                                            <option value="3-5"
-                                                                {{ request('experience_years') == '3-5' ? 'selected' : '' }}>
-                                                                3-5 Years</option>
-                                                            <option value="5-10"
-                                                                {{ request('experience_years') == '5-10' ? 'selected' : '' }}>
-                                                                5-10 Years</option>
-                                                            <option value="10+"
-                                                                {{ request('experience_years') == '10+' ? 'selected' : '' }}>
-                                                                10+ Years</option>
-                                                        </select>
+                                                        <label class="form-control-label">Position Applied</label>
+                                                        <input type="text" class="form-control" name="position_applied"
+                                                            id="position_applied" placeholder="Search position applied"
+                                                            value="{{ request('position_applied') }}">
                                                     </div>
                                                 </div>
                                                 <div class="col-3">
@@ -192,10 +181,10 @@
                                                 <th class="align-middle">Email</th>
                                                 <th class="align-middle">Phone</th>
                                                 <th class="align-middle">Education</th>
-                                                <th class="align-middle">Experience</th>
+                                                <th class="align-middle">Position Applied</th>
                                                 <th class="align-middle text-center">Global Status</th>
                                                 <th class="align-middle text-center">Registration Date</th>
-                                                <th class="align-middle text-center">Action</th>
+                                                <th class="align-middle text-center" width="15%">Action</th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -339,11 +328,12 @@
                 ajax: {
                     url: "{{ route('recruitment.candidates.data') }}",
                     data: function(d) {
+                        d.candidate_number = $('#candidate_number').val();
                         d.fullname = $('#fullname').val();
                         d.email = $('#email').val();
                         d.phone = $('#phone').val();
                         d.education_level = $('#education_level').val();
-                        d.experience_years = $('#experience_years').val();
+                        d.position_applied = $('#position_applied').val();
                         d.global_status = $('#global_status').val();
                         d.registration_date_from = $('#registration_date_from').val();
                         d.registration_date_to = $('#registration_date_to').val();
@@ -378,8 +368,8 @@
                     orderable: false,
                     className: 'text-center'
                 }, {
-                    data: "experience_years",
-                    name: "experience_years",
+                    data: "position_applied",
+                    name: "position_applied",
                     orderable: false,
                     className: 'text-center'
                 }, {
@@ -403,20 +393,20 @@
             });
 
             // Filter functionality
-            $('#fullname, #email, #phone, #education_level, #experience_years, #global_status, #registration_date_from, #registration_date_to')
+            $('#candidate_number, #fullname, #email, #phone, #position_applied')
                 .keyup(function() {
                     table.draw();
                 });
-            $('#education_level, #experience_years, #global_status, #registration_date_from, #registration_date_to')
+            $('#education_level, #global_status, #registration_date_from, #registration_date_to')
                 .change(function() {
                     table.draw();
                 });
 
             // Reset functionality
             $('#btn-reset').click(function() {
-                $('#fullname, #email, #phone, #education_level, #experience_years, #global_status, #registration_date_from, #registration_date_to')
+                $('#candidate_number, #fullname, #email, #phone, #education_level, #position_applied, #global_status, #registration_date_from, #registration_date_to')
                     .val('');
-                $('#education_level, #experience_years, #global_status').change();
+                $('#education_level, #global_status').change();
             });
 
             // Modal functionality
@@ -436,9 +426,11 @@
             $('#applyForm').on('submit', function(e) {
                 e.preventDefault();
                 var formData = $(this).serialize();
+                var id = $('#apply_candidate_id').val();
 
                 $.ajax({
-                    url: "{{ route('recruitment.candidates.apply') }}",
+                    url: "{{ route('recruitment.candidates.apply-to-fptk', ':id') }}".replace(
+                        ':id', id),
                     type: 'POST',
                     data: formData,
                     success: function(response) {

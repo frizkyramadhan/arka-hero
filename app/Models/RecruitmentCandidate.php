@@ -18,12 +18,18 @@ class RecruitmentCandidate extends Model
         'date_of_birth',
         'education_level',
         'experience_years',
+        'position_applied',
+        'remarks',
         'cv_file_path',
         'skills',
         'previous_companies',
         'current_salary',
         'expected_salary',
         'global_status',
+        'created_by',
+        'updated_by',
+        'blacklist_reason',
+        'blacklisted_at',
     ];
 
     protected $casts = [
