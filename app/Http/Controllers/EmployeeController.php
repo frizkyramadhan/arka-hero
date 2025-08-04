@@ -862,48 +862,6 @@ class EmployeeController extends Controller
             ->toJson();
     }
 
-    // public function importComplete(Request $request)
-    // {
-    //     $failures = collect();
-
-    //     try {
-    //         $import = new MultipleSheetImport();
-    //         $import->import($request->file('employee'));
-    //         // Excel::import($import, $request->file('employee'));
-
-    //         // Ambil semua failure dari tiap sheet
-    //         foreach ($import->sheets() as $sheetImport) {
-    //             foreach ($sheetImport->failures() as $failure) {
-    //                 $failures->push([
-    //                     'sheet'     => method_exists($sheetImport, 'getSheetName') ? $sheetImport->getSheetName() : 'Unknown',
-    //                     'row'       => $failure->row(),
-    //                     'attribute' => $failure->attribute(),
-    //                     'value'     => $failure->values()[$failure->attribute()] ?? null,
-    //                     'errors'    => implode(', ', $failure->errors()),
-    //                 ]);
-    //             }
-    //         }
-
-    //         return redirect('employees')->with('toast_success', 'Data imported successfully');
-    //     } catch (ValidationException $e) {
-    //         // Menangkap error dari Laravel Excel (bukan yang dalam SkipsFailures)
-    //         foreach ($e->failures() as $failure) {
-    //             $failures->push([
-    //                 'sheet'     => 'Unknown (validation exception)',
-    //                 'row'       => $failure->row(),
-    //                 'attribute' => $failure->attribute(),
-    //                 'value'     => $failure->values()[$failure->attribute()] ?? null,
-    //                 'errors'    => implode(', ', $failure->errors()),
-    //             ]);
-    //         }
-    //         dd($failures);
-    //         return redirect('employees')->withFailures($failures);
-    //     } catch (\Throwable $e) {
-    //         // Menangkap error tak terduga lain (misalnya file corrupt, format salah, dll)
-    //         return redirect('employees')->with('toast_error', 'Terjadi kesalahan saat import: ' . $e->getMessage());
-    //     }
-    // }
-
     public function export()
     {
         return (new MultipleSheetExport())->download('export-' . date('Y-m-d') . '.xlsx');
