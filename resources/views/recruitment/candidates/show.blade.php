@@ -116,6 +116,17 @@
                                         </div>
                                     </div>
                                 </div>
+                                @if ($candidate->position_applied)
+                                    <div class="info-item">
+                                        <div class="info-icon" style="background-color: #34495e;">
+                                            <i class="fas fa-briefcase"></i>
+                                        </div>
+                                        <div class="info-content">
+                                            <div class="info-label">Position Applied</div>
+                                            <div class="info-value">{{ $candidate->position_applied }}</div>
+                                        </div>
+                                    </div>
+                                @endif
                             </div>
 
                             <div class="row mt-3">
@@ -125,14 +136,7 @@
                                 </div>
                             </div>
 
-                            @if ($candidate->position_applied)
-                                <div class="row mt-3">
-                                    <div class="col-12">
-                                        <h5><i class="fas fa-briefcase mr-2"></i>Position Applied For</h5>
-                                        <p class="text-muted">{{ $candidate->position_applied }}</p>
-                                    </div>
-                                </div>
-                            @endif
+
 
                             @if ($candidate->remarks)
                                 <div class="row mt-3">
@@ -202,8 +206,8 @@
                                                 <tr>
                                                     <td>{{ $session->session_number }}</td>
                                                     <td>{{ $session->fptk->request_number }}</td>
-                                                    <td>{{ $session->fptk->position->name }}</td>
-                                                    <td>{{ $session->fptk->department->name }}</td>
+                                                    <td>{{ $session->fptk->position->position_name ?? 'N/A' }}</td>
+                                                    <td>{{ $session->fptk->department->department_name ?? 'N/A' }}</td>
                                                     <td>
                                                         @php
                                                             $sessionStatusBadges = [

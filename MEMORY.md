@@ -27,6 +27,192 @@
 
 ## Project Memory Entries
 
+### Recruitment Session Show View Redesign (2025-01-15) ✅ COMPLETE
+
+**Challenge**: Need to redesign the recruitment session show view to be more informative with timeline prominently displayed at the top, following patterns from FPTK and CV show views.
+
+**Solution**:
+
+-   Moved timeline to the top of the page for immediate visibility
+-   Redesigned timeline as horizontal scrollable timeline with visual indicators
+-   Added color-coded status indicators (completed, current, pending) with icons
+-   Implemented animated pulse effect for current stage
+-   Created comprehensive progress overview section with current stage and overall progress
+-   Added session statistics cards showing key metrics (applied date, stage status, responsible person)
+-   Reorganized information layout for better visual hierarchy
+-   Enhanced mobile responsiveness with optimized timeline display
+-   Added visual progress indicators and status badges throughout
+-   Improved information density while maintaining readability
+
+**Key Learning**:
+
+-   Horizontal timelines provide better overview of process stages
+-   Visual indicators and animations improve user engagement
+-   Information hierarchy should prioritize most important data (timeline) at the top
+-   Color coding and icons help users quickly understand status
+-   Responsive design is crucial for timeline components on mobile devices
+
+### Recruitment Session Dashboard Creation (2025-01-15) ✅ COMPLETE
+
+**Challenge**: Need to create a comprehensive dashboard view for recruitment sessions that provides analytics, statistics, and overview of recruitment activities.
+
+**Solution**:
+
+-   Created comprehensive dashboard view following the same structure as other dashboard views in the project
+-   Implemented statistics cards showing total sessions, active sessions, hired candidates, and rejected sessions
+-   Added interactive doughnut chart showing active sessions by recruitment stage
+-   Created quick statistics section with success rate, active rate, and rejection rate with progress bars
+-   Added recent sessions table with key information and quick action buttons
+-   Implemented stage breakdown section showing distribution of sessions across recruitment stages
+-   Added quick action buttons for easy navigation to filtered session lists
+-   Used Chart.js for interactive data visualization
+-   Implemented responsive design with proper mobile layout
+-   Added breadcrumb navigation for easy navigation
+
+**Key Learning**:
+
+-   Use interactive charts for better data visualization and user engagement
+-   Calculate and display meaningful metrics like success rates and percentages
+-   Provide quick access to filtered data through action buttons
+-   Use consistent styling and layout patterns from existing dashboard views
+-   Implement proper data formatting and number formatting for better readability
+
+### Recruitment Session Timeline Data Fix (2025-01-15) ✅ COMPLETE
+
+**Challenge**: "Undefined array key 'description'" error in recruitment session show view timeline section.
+
+**Solution**:
+
+-   Fixed timeline data structure mismatch between service and view
+-   Service returns timeline with keys: 'name', 'started_at', 'status', 'duration_hours', 'is_current', 'is_overdue', 'completed_at'
+-   View was trying to access non-existent 'description' key
+-   Created dynamic description generation using available timeline data
+-   Added proper date formatting for started_at and completed_at timestamps
+-   Implemented status badges, duration display, overdue indicators, and current stage highlighting
+-   Used bullet-separated format for multiple description elements
+
+**Key Learning**:
+
+-   Always verify data structure returned by service methods before using in views
+-   Use proper null checking and default values for optional data
+-   Create meaningful descriptions from available data rather than expecting specific fields
+-   Implement proper date formatting for better user experience
+
+### Recruitment Session Show View Creation (2025-01-15) ✅ COMPLETE
+
+**Challenge**: Need to create a comprehensive show view for recruitment sessions that displays all session information with proper structure and styling.
+
+**Solution**:
+
+-   Created comprehensive show view following the same structure as other show views in the project
+-   Implemented header section with session number, project, applied date, and status badge
+-   Added progress section with current stage and progress percentage
+-   Created information grid showing FPTK details, candidate info, department, position, project, level
+-   Added timeline section for session history (if available)
+-   Included assessments section displaying all assessments with scores and recommendations
+-   Created action buttons for session management (advance, reject, complete, cancel)
+-   Added sidebar with candidate info, FPTK details, and session details
+-   Implemented modal forms for all actions with proper validation
+-   Added responsive design with mobile-friendly layout
+-   Used consistent styling with other show views in the project
+
+**Key Learning**:
+
+-   Follow existing project patterns for consistency in UI/UX
+-   Use proper data relationships and eager loading for performance
+-   Implement comprehensive error handling and validation in forms
+-   Create responsive designs that work on all device sizes
+-   Use service methods for business logic separation
+
+### Recruitment Session Show Relationship Fix (2025-01-15) ✅ COMPLETE
+
+**Challenge**: Error "Call to undefined relationship [requestedBy] on model [App\Models\RecruitmentRequest]" when opening recruitment session show page.
+
+**Solution**:
+
+-   Fixed relationship name mismatch in controller: changed `fptk.requestedBy` to `fptk.createdBy`
+-   The RecruitmentRequest model has `createdBy()` relationship, not `requestedBy()`
+-   Updated the with() clause in show() method to use correct relationship name
+
+**Key Learning**:
+
+-   Always ensure relationship names in controller match exactly with model relationship methods
+-   Laravel's eager loading is case-sensitive and relationship names must match exactly
+-   Check model relationships when getting "undefined relationship" errors
+
+### Recruitment Session Filters Enhancement (2025-01-15) ✅ COMPLETE
+
+**Challenge**: Recruitment session filters were not fully functional - missing filter implementations in controller and missing filter inputs in view.
+
+**Solution**:
+
+-   Added missing filter implementations in controller: `session_number`, `candidate_name`, `fptk_number`, `stage_status`, `applied_date_from`, `applied_date_to`
+-   Added department and position filter inputs to the view with proper select2 styling
+-   Updated JavaScript to include all filter parameters in DataTables AJAX request
+-   Updated reset functionality to clear all filters including new department and position filters
+-   Ensured all filters use proper LIKE queries for text fields and date range queries for date fields
+
+**Key Learning**:
+
+-   All filter inputs in view must have corresponding filter logic in controller
+-   Date range filters should use `whereDate()` with `>=` and `<=` operators
+-   Text filters should use `LIKE` with wildcards for partial matching
+-   Select2 styling improves user experience for dropdown filters
+
+### Recruitment Session DataTables Column Fix (2025-01-15) ✅ COMPLETE
+
+**Challenge**: DataTables was failing with "Requested unknown parameter 'fptk_number' for row 0, column 3" because the controller columns didn't match the view expectations.
+
+**Solution**:
+
+-   Added missing `fptk_number` column that returns FPTK request number
+-   Changed `position` to `position_name` to match view expectations
+-   Added `stage_status` column with proper badge formatting
+-   Changed `progress` to `overall_progress` to match view expectations
+-   Updated `rawColumns` to include all HTML-formatted columns
+
+**Key Learning**:
+
+-   DataTables column names must exactly match between controller and view
+-   Always ensure all expected columns are provided in the controller's DataTables response
+-   HTML-formatted columns must be included in `rawColumns` array
+
+### Recruitment Assessment Model Cast Fix (2025-01-15) ✅ COMPLETE
+
+**Challenge**: RecruitmentAssessment model had an invalid cast `'time'` for the `scheduled_time` column, causing DataTables to fail with "Call to undefined cast [time] on column [scheduled_time]".
+
+**Solution**:
+
+-   Changed the cast from `'time'` to `'string'` for the `scheduled_time` column
+-   Laravel doesn't have a built-in `'time'` cast, so TIME columns should be cast as `'string'` or `'datetime'`
+-   Used `'string'` cast since `scheduled_time` is a TIME column that only stores time (HH:MM:SS)
+
+**Key Learning**:
+
+-   Laravel's built-in casts don't include `'time'` - use `'string'` for TIME columns or `'datetime'` for DATETIME columns
+-   Model cast errors can cause DataTables to fail completely
+-   Always verify cast types against Laravel's supported cast types
+
+### Recruitment Session Controller Consistency Update (2025-01-15) ✅ COMPLETE
+
+**Challenge**: RecruitmentSessionController had inconsistent patterns compared to other controllers in the project, lacking proper middleware, DataTables integration, and standardized message handling.
+
+**Solution**:
+
+-   Added proper role-based middleware for all controller methods
+-   Implemented DataTables integration with `getSessions()` method following project patterns
+-   Standardized all return messages to use `toast_success`/`toast_error` for consistency
+-   Added title/subtitle variables to all view methods
+-   Improved error handling and user feedback messages in English
+-   Enhanced DataTables columns with proper formatting and status badges
+
+**Key Learning**:
+
+-   Controller consistency across modules is crucial for maintainability and user experience
+-   DataTables integration should follow established patterns with proper column formatting
+-   Toast message standardization improves user experience consistency across the application
+-   Proper middleware implementation ensures security and access control
+
 ### Recruitment Candidate Structure Alignment (2025-01-15) ✅ COMPLETE
 
 **Challenge**: Recruitment candidate controller and views had inconsistent structure compared to recruitment requests, causing maintenance issues and poor user experience.
@@ -400,3 +586,249 @@
 -   Use appropriate filter methods (exact vs LIKE) based on field type
 -   JavaScript event handlers must match actual field IDs
 -   Reset functionality should clear all filter fields consistently
+
+### Recruitment Dummy Data Creation (2025-01-15) ✅ COMPLETE
+
+**Challenge**: Need to create comprehensive dummy data for recruitment candidates and recruitment requests to facilitate testing and development of the recruitment system.
+
+**Solution**:
+
+-   **Recruitment Candidates Seeder**:
+
+    -   Created 50 candidates with Indonesian names and realistic data
+    -   Used diverse positions: Software Developer, System Analyst, Project Manager, etc.
+    -   All candidates set to 'available' status as requested
+    -   No CV files attached as specified
+    -   Used realistic Indonesian education levels: SMA/SMK, D1, D2, D3, S1, S2, S3
+    -   Generated realistic email addresses and phone numbers
+    -   Added random remarks for some candidates
+    -   Used proper UUID generation for IDs
+    -   Set realistic creation dates (within last year)
+
+-   **Recruitment Requests Seeder**:
+
+    -   Created 50 FPTK requests with Indonesian content
+    -   All requests set to 'approved' status as requested
+    -   Used realistic employment types: pkwtt, pkwt, harian, magang
+    -   Generated diverse request reasons and job descriptions
+    -   Used existing departments, positions, and projects from database
+    -   Set realistic salary ranges and requirements
+    -   Added proper approval workflow data
+    -   Used proper UUID generation for IDs
+
+-   **Data Quality Features**:
+    -   **Indonesian Localization**: All text content in Indonesian language
+    -   **Realistic Names**: Used common Indonesian names
+    -   **Proper Relationships**: Linked to existing departments, positions, projects
+    -   **Consistent Numbering**: Proper candidate and request numbering format
+    -   **Realistic Dates**: Spread creation dates over the past year
+    -   **Diverse Data**: Varied positions, education levels, and requirements
+
+**Key Benefits**:
+
+-   **Testing Ready**: Comprehensive data for testing all recruitment features
+-   **Realistic Scenarios**: Data reflects real-world recruitment situations
+-   **Performance Testing**: Sufficient data volume for performance testing
+-   **UI/UX Testing**: Realistic data for testing user interfaces
+-   **Development Support**: Ready data for continued development
+
+**Key Learning**:
+
+-   Always verify table structure before creating seeders
+-   Use existing relationships (departments, positions, projects) for realistic data
+-   Generate proper UUIDs for primary keys
+-   Include diverse data to test all scenarios
+-   Use localized content for better user experience testing
+
+### AJAX Response Standardization (2025-01-15) ✅ COMPLETE
+
+**Challenge**: JavaScript AJAX requests were using hardcoded toastr messages instead of the standardized `toast_` messages used in controllers, creating inconsistency in user feedback.
+
+**Solution**:
+
+-   **Controller Updates**:
+
+    -   Modified `applyToFPTK()` method to return JSON responses for AJAX requests
+    -   Modified `blacklist()` method to return JSON responses for AJAX requests
+    -   Added proper error handling with JSON responses for validation errors
+    -   Maintained backward compatibility with non-AJAX requests (redirect responses)
+    -   Added `redirect_url` in success responses for proper navigation
+
+-   **JavaScript Updates**:
+
+    -   Updated AJAX success handlers to use `response.message` from controller
+    -   Updated AJAX error handlers to use `xhr.responseJSON.message` for detailed error messages
+    -   Added automatic redirect functionality when `redirect_url` is provided
+    -   Added proper CSRF token headers for AJAX requests
+    -   Maintained DataTables refresh functionality
+
+-   **Response Structure**:
+
+    ```json
+    // Success Response
+    {
+        "success": true,
+        "message": "Application successfully submitted. Session number: SESS-2025-0001",
+        "redirect_url": "/recruitment/sessions/uuid"
+    }
+
+    // Error Response
+    {
+        "success": false,
+        "message": "Candidate has already applied for this FPTK."
+    }
+    ```
+
+**Key Benefits**:
+
+-   **Consistent Messaging**: All user feedback now uses the same message format
+-   **Better Error Handling**: Users receive specific error messages instead of generic ones
+-   **Improved UX**: Automatic redirects after successful actions
+-   **Maintainability**: Centralized message management in controllers
+-   **Backward Compatibility**: Non-AJAX requests still work as before
+
+**Key Learning**:
+
+-   Always check for AJAX requests using `$request->ajax()` in controllers
+-   Return consistent JSON response structure for AJAX requests
+-   Include redirect URLs in success responses for better UX
+-   Use proper HTTP status codes for different types of errors
+-   Maintain CSRF protection for AJAX requests
+
+### Toast System Migration (2025-01-15) ✅ COMPLETE
+
+**Challenge**: User wanted to use Laravel's built-in `toast_` session flash messages instead of the `toastr` JavaScript library for consistency across the application.
+
+**Solution**:
+
+-   **Removed AJAX Implementation**:
+
+    -   Removed all `$.ajax()` calls from form submissions
+    -   Removed `toastr.success()` and `toastr.error()` calls
+    -   Removed CSRF headers for AJAX requests
+    -   Removed JSON response handling in controllers
+
+-   **Implemented Standard Form Submission**:
+
+    -   Changed forms to use standard POST submission
+    -   Added proper `method="POST"` and `action=""` attributes
+    -   Set dynamic action URLs using JavaScript
+    -   Used `form.off('submit').submit()` to prevent double submission
+
+-   **Fixed Field Name Mismatches**:
+
+    -   Changed `notes` to `cover_letter` in apply form
+    -   Changed `reason` to `blacklist_reason` in blacklist form
+    -   Ensured form field names match controller validation rules
+
+-   **Enhanced User Experience**:
+    -   Added DataTables refresh after page load for toast messages
+    -   Maintained modal functionality for form display
+    -   Preserved form validation and error handling
+    -   Kept redirect functionality for successful actions
+
+**Key Benefits**:
+
+-   **Consistency**: All toast messages now use the same Laravel system
+-   **Simplicity**: Removed dependency on external JavaScript library
+-   **Reliability**: Standard form submission is more reliable than AJAX
+-   **Maintainability**: Centralized toast message system in Laravel
+-   **Performance**: Reduced JavaScript complexity and dependencies
+
+**Key Learning**:
+
+-   Laravel's session flash messages are more reliable than JavaScript toast libraries
+-   Standard form submission provides better error handling and validation
+-   Always ensure form field names match controller validation rules
+-   DataTables refresh can be triggered after page load for updated data
+-   Removing external dependencies simplifies the codebase
+
+### jQuery Error Fix in Session Show View (2025-01-15) ✅ COMPLETE
+
+**Challenge**: Recruitment session show view was showing "Uncaught ReferenceError: $ is not defined" error in browser console because jQuery was not properly loaded before the script execution.
+
+**Solution**:
+
+-   **Added Proper Script Sections**:
+
+    -   Added `@section('scripts')` to properly include JavaScript files
+    -   Added jQuery library loading before custom scripts
+    -   Added Bootstrap bundle for modal functionality
+    -   Ensured proper script loading order (jQuery first, then custom scripts)
+
+-   **Fixed Script Structure**:
+
+    -   Moved all JavaScript code inside `@section('scripts')`
+    -   Wrapped jQuery code in `$(document).ready()` for proper DOM loading
+    -   Maintained all existing modal and form functionality
+    -   Preserved AJAX form submissions for session actions
+
+-   **Script Loading Order**:
+    ```html
+    <!-- Bootstrap 4 -->
+    <script src="{{ asset('assets/plugins/bootstrap/js/bootstrap.bundle.min.js') }}"></script>
+    <!-- jQuery -->
+    <script src="{{ asset('assets/plugins/jquery/jquery.min.js') }}"></script>
+    <!-- Custom Scripts -->
+    <script>
+        $(document).ready(function () {
+            // All jQuery code here
+        });
+    </script>
+    ```
+
+**Key Benefits**:
+
+-   **Error Resolution**: Eliminated "$ is not defined" console error
+-   **Proper Dependencies**: Ensured jQuery is loaded before custom scripts
+-   **Modal Functionality**: Bootstrap modals now work correctly
+-   **Form Submissions**: AJAX form submissions work properly
+-   **User Experience**: No more JavaScript errors in browser console
+
+**Key Learning**:
+
+-   Always include jQuery before any custom scripts that use `$`
+-   Use `@section('scripts')` for proper script organization in Blade templates
+-   Wrap jQuery code in `$(document).ready()` for DOM loading safety
+-   Check script loading order when encountering "$ is not defined" errors
+-   Bootstrap modals require both jQuery and Bootstrap bundle to function
+
+### Position & Department Display Enhancement (2025-01-15) ✅ COMPLETE
+
+**Challenge**: Position and department information was not properly displayed in the recruitment candidate show view, making it difficult to see which positions and departments the candidate had applied to.
+
+**Solution**:
+
+-   **Fixed Session Table Display**:
+
+    -   Corrected field names from `position->name` to `position->position_name`
+    -   Corrected field names from `department->name` to `department->department_name`
+    -   Added fallback values (`?? 'N/A'`) for missing data
+    -   Ensured proper relationship access through FPTK
+
+-   **Enhanced Candidate Information**:
+
+    -   Added "Position Applied" to the info grid with briefcase icon
+    -   Used consistent styling with other info items
+    -   Added conditional display only when position_applied exists
+    -   Removed duplicate "Position Applied For" section to avoid redundancy
+
+-   **Improved Data Structure**:
+    -   Position information now shows in both candidate info and sessions table
+    -   Department information shows in sessions table for each application
+    -   Consistent field naming across the application
+
+**Key Benefits**:
+
+-   **Better Information Display**: Users can now see position and department information clearly
+-   **Consistent Data**: Proper field names ensure data is displayed correctly
+-   **Enhanced UX**: Position applied is prominently displayed in the info grid
+-   **Complete Context**: Both candidate preferences and actual applications are visible
+
+**Key Learning**:
+
+-   Always use correct field names from database relationships
+-   Add fallback values for optional data to prevent errors
+-   Avoid duplicate information display in different sections
+-   Use consistent styling patterns for information display
+-   Position and department are key recruitment information that should be prominently displayed

@@ -269,14 +269,14 @@
                             @endcan
                             @can('recruitment-sessions.show')
                                 <li class="nav-item">
-                                    <a href="{{ route('recruitment.sessions.index') }}"
+                                    <a href="{{ route('recruitment.sessions.dashboard') }}"
                                         class="nav-link {{ Request::is('recruitment/sessions*') ? 'active' : '' }}">
                                         <i class="far fa-circle nav-icon"></i>
                                         <p>Sessions</p>
                                     </a>
                                 </li>
                             @endcan
-                            @can('recruitment-sessions.dashboard')
+                            {{-- @can('recruitment-sessions.show')
                                 <li class="nav-item">
                                     <a href="{{ route('recruitment.sessions.dashboard') }}"
                                         class="nav-link {{ Request::is('recruitment/sessions/dashboard*') ? 'active' : '' }}">
@@ -284,7 +284,7 @@
                                         <p>Dashboard</p>
                                     </a>
                                 </li>
-                            @endcan
+                            @endcan --}}
                         </ul>
                     </li>
                 @endcanany

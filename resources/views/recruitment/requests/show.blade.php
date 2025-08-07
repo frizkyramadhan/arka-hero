@@ -399,7 +399,7 @@
                                     @foreach ($fptk->sessions as $session)
                                         <div class="session-item">
                                             <div class="session-info">
-                                                <div class="session-candidate">{{ $session->candidate->full_name }}</div>
+                                                <div class="session-candidate">{{ $session->candidate->fullname }}</div>
                                                 <div class="session-stage">Stage: {{ ucfirst($session->current_stage) }}
                                                 </div>
                                                 <div class="session-meta">
