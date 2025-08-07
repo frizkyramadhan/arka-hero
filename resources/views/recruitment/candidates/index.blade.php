@@ -211,7 +211,7 @@
                             <span aria-hidden="true">&times;</span>
                         </button>
                     </div>
-                    <form id="applyForm">
+                    <form id="applyForm" method="POST" action="">
                         <div class="modal-body">
                             @csrf
                             <input type="hidden" id="apply_candidate_id" name="candidate_id">
@@ -229,7 +229,7 @@
                             </div>
                             <div class="form-group">
                                 <label for="apply_source">Application Source *</label>
-                                <select class="form-control" id="apply_source" name="source" required>
+                                <select class="form-control select2bs4" id="apply_source" name="source" required>
                                     <option value="">Select Source</option>
                                     <option value="website">Website</option>
                                     <option value="referral">Referral</option>
@@ -240,9 +240,9 @@
                                 </select>
                             </div>
                             <div class="form-group">
-                                <label for="apply_notes">Application Notes</label>
-                                <textarea class="form-control" id="apply_notes" name="notes" rows="3"
-                                    placeholder="Enter application notes (optional)"></textarea>
+                                <label for="apply_cover_letter">Cover Letter</label>
+                                <textarea class="form-control" id="apply_cover_letter" name="cover_letter" rows="3"
+                                    placeholder="Enter cover letter (optional)"></textarea>
                             </div>
                         </div>
                         <div class="modal-footer justify-content-between">
@@ -264,13 +264,13 @@
                             <span aria-hidden="true">&times;</span>
                         </button>
                     </div>
-                    <form id="blacklistForm">
+                    <form id="blacklistForm" method="POST" action="">
                         <div class="modal-body">
                             @csrf
                             <input type="hidden" id="blacklist_candidate_id" name="candidate_id">
                             <div class="form-group">
                                 <label for="blacklist_reason">Blacklist Reason *</label>
-                                <textarea class="form-control" id="blacklist_reason" name="reason" rows="3"
+                                <textarea class="form-control" id="blacklist_reason" name="blacklist_reason" rows="3"
                                     placeholder="Enter blacklist reason" required></textarea>
                             </div>
                         </div>
@@ -422,47 +422,35 @@
                 $('#blacklistModal').modal('show');
             });
 
+            // Refresh DataTables after page load (for toast messages)
+            $(document).ready(function() {
+                // Check if there are toast messages and refresh table
+                if ($('.toast-success, .toast-error').length > 0) {
+                    table.draw();
+                }
+            });
+
             // Form submissions
             $('#applyForm').on('submit', function(e) {
                 e.preventDefault();
-                var formData = $(this).serialize();
                 var id = $('#apply_candidate_id').val();
+                var actionUrl = "{{ route('recruitment.candidates.apply-to-fptk', ':id') }}".replace(':id',
+                    id);
 
-                $.ajax({
-                    url: "{{ route('recruitment.candidates.apply-to-fptk', ':id') }}".replace(
-                        ':id', id),
-                    type: 'POST',
-                    data: formData,
-                    success: function(response) {
-                        $('#applyModal').modal('hide');
-                        table.draw();
-                        toastr.success('Candidate applied to FPTK successfully');
-                    },
-                    error: function(xhr) {
-                        toastr.error('Error applying candidate to FPTK');
-                    }
-                });
+                // Set form action and submit
+                $(this).attr('action', actionUrl);
+                $(this).off('submit').submit();
             });
 
             $('#blacklistForm').on('submit', function(e) {
                 e.preventDefault();
-                var formData = $(this).serialize();
                 var id = $('#blacklist_candidate_id').val();
+                var actionUrl = "{{ route('recruitment.candidates.blacklist', ':id') }}".replace(':id',
+                    id);
 
-                $.ajax({
-                    url: "{{ route('recruitment.candidates.blacklist', ':id') }}".replace(':id',
-                        id),
-                    type: 'POST',
-                    data: formData,
-                    success: function(response) {
-                        $('#blacklistModal').modal('hide');
-                        table.draw();
-                        toastr.success('Candidate blacklisted successfully');
-                    },
-                    error: function(xhr) {
-                        toastr.error('Error blacklisting candidate');
-                    }
-                });
+                // Set form action and submit
+                $(this).attr('action', actionUrl);
+                $(this).off('submit').submit();
             });
         });
     </script>

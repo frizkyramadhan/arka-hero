@@ -77,5 +77,9 @@ class DatabaseSeeder extends Seeder
         $this->call(OfficialTravelSeeder::class);
 
         $this->call(GradeLevelSeeder::class);
+
+        // Recruitment dummy data
+        $this->call(RecruitmentRequestSeeder::class);
+        $this->call(RecruitmentCandidateSeeder::class);
     }
 }

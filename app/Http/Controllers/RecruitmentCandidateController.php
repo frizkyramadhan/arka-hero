@@ -35,7 +35,7 @@ class RecruitmentCandidateController extends Controller
             'D1',
             'D2',
             'D3',
-            'D4/S1',
+            'S1',
             'S2',
             'S3'
         ];
@@ -58,6 +58,35 @@ class RecruitmentCandidateController extends Controller
         $subtitle = 'List of Recruitment Candidates';
 
         return view('recruitment.candidates.index', compact('educationLevels', 'globalStatuses', 'years', 'title', 'subtitle', 'availableFptks'));
+    }
+
+    /**
+     * Search candidates for AJAX requests
+     */
+    public function search(Request $request)
+    {
+        $query = $request->get('query');
+
+        if (strlen($query) < 3) {
+            return response()->json([
+                'candidates' => [],
+                'message' => 'Please enter at least 3 characters to search'
+            ]);
+        }
+
+        $candidates = RecruitmentCandidate::where('fullname', 'LIKE', "%{$query}%")
+            ->orWhere('email', 'LIKE', "%{$query}%")
+            ->orWhere('phone', 'LIKE', "%{$query}%")
+            ->orWhere('candidate_number', 'LIKE', "%{$query}%")
+            ->orWhere('position_applied', 'LIKE', "%{$query}%")
+            ->where('global_status', '!=', 'blacklisted')
+            ->limit(10)
+            ->get(['id', 'fullname as name', 'email', 'phone', 'position_applied']);
+
+        return response()->json([
+            'candidates' => $candidates,
+            'message' => $candidates->count() . ' candidates found'
+        ]);
     }
 
     /**

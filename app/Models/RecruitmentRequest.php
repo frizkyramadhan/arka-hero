@@ -189,7 +189,7 @@ class RecruitmentRequest extends Model
     public function activeSessions()
     {
         return $this->hasMany(RecruitmentSession::class, 'fptk_id')
-            ->where('final_status', 'in_process');
+            ->where('status', 'in_process');
     }
 
     // Get hired candidates

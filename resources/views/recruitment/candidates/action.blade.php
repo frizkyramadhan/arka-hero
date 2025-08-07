@@ -12,13 +12,6 @@
     </a>
 @endcan
 
-<!-- Apply to FPTK Button -->
-@if ($candidate->global_status === 'available')
-    <button type="button" class="btn btn-sm btn-primary btn-apply" data-id="{{ $candidate->id }}" title="Apply to FPTK">
-        <i class="fas fa-plus"></i>
-    </button>
-@endif
-
 <!-- Delete Button -->
 @can('recruitment-candidates.delete')
     <form action="{{ route('recruitment.candidates.destroy', $candidate->id) }}" method="POST" style="display: inline;">
@@ -30,3 +23,11 @@
         </button>
     </form>
 @endcan
+
+<!-- Apply to FPTK Button -->
+@if ($candidate->global_status === 'available')
+    <button type="button" class="btn btn-sm btn-primary btn-apply" data-id="{{ $candidate->id }}"
+        title="Apply to FPTK">
+        <i class="fas fa-plus"></i>
+    </button>
+@endif

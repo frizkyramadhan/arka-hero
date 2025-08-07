@@ -397,6 +397,7 @@ Route::group(['middleware' => ['auth']], function () {
         Route::prefix('candidates')->name('candidates.')->group(function () {
             Route::get('/', [RecruitmentCandidateController::class, 'index'])->name('index');
             Route::get('/data', [RecruitmentCandidateController::class, 'getRecruitmentCandidates'])->name('data');
+            Route::get('/search', [RecruitmentCandidateController::class, 'search'])->name('search');
             Route::get('/{id}/data', [RecruitmentCandidateController::class, 'getCandidateData'])->name('single-data');
             Route::get('/{id}/available-fptks', [RecruitmentCandidateController::class, 'getAvailableFPTKs'])->name('available-fptks');
             Route::get('/create', [RecruitmentCandidateController::class, 'create'])->name('create');
@@ -418,8 +419,11 @@ Route::group(['middleware' => ['auth']], function () {
         // Session Routes
         Route::prefix('sessions')->name('sessions.')->group(function () {
             Route::get('/', [RecruitmentSessionController::class, 'index'])->name('index');
+            Route::get('/data', [RecruitmentSessionController::class, 'getSessions'])->name('data');
             Route::get('/dashboard', [RecruitmentSessionController::class, 'dashboard'])->name('dashboard');
             Route::get('/{id}', [RecruitmentSessionController::class, 'show'])->name('show');
+            Route::get('/session/{id}', [RecruitmentSessionController::class, 'showSession'])->name('show-session');
+            Route::post('/', [RecruitmentSessionController::class, 'store'])->name('store');
 
             // Session Actions
             Route::post('/{id}/advance-stage', [RecruitmentSessionController::class, 'advanceStage'])->name('advance-stage');
@@ -427,9 +431,10 @@ Route::group(['middleware' => ['auth']], function () {
             Route::post('/{id}/complete', [RecruitmentSessionController::class, 'complete'])->name('complete');
             Route::post('/{id}/cancel', [RecruitmentSessionController::class, 'cancel'])->name('cancel');
             Route::post('/{id}/withdraw', [RecruitmentSessionController::class, 'withdraw'])->name('withdraw');
+            Route::delete('/{id}', [RecruitmentSessionController::class, 'destroy'])->name('destroy');
 
             // AJAX Routes
-            Route::get('/{id}/data', [RecruitmentSessionController::class, 'getSessionData'])->name('data');
+            Route::get('/{id}/data', [RecruitmentSessionController::class, 'getSessionData'])->name('single-data');
             Route::get('/fptk/{fptkId}/sessions', [RecruitmentSessionController::class, 'getSessionsByFPTK'])->name('by-fptk');
             Route::get('/candidate/{candidateId}/sessions', [RecruitmentSessionController::class, 'getSessionsByCandidate'])->name('by-candidate');
         });

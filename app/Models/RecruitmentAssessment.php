@@ -33,7 +33,7 @@ class RecruitmentAssessment extends Model
 
     protected $casts = [
         'scheduled_date' => 'datetime',
-        'scheduled_time' => 'time',
+        'scheduled_time' => 'string',
         'assessor_ids' => 'array',
         'duration_minutes' => 'integer',
         'overall_score' => 'decimal:2',

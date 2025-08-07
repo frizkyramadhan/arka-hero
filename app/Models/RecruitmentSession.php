@@ -9,6 +9,9 @@ class RecruitmentSession extends Model
 {
     use Uuids;
 
+    public $incrementing = false;
+    protected $keyType = 'string';
+
     protected $fillable = [
         'session_number',
         'fptk_id',
@@ -23,10 +26,12 @@ class RecruitmentSession extends Model
         'next_action',
         'responsible_person_id',
         'status',
+        'final_status',
         'final_decision_date',
         'final_decision_by',
         'final_decision_notes',
         'stage_durations',
+        'created_by',
     ];
 
     protected $casts = [
@@ -414,7 +419,7 @@ class RecruitmentSession extends Model
         return true;
     }
 
-    protected function recordStageCompletion()
+    public function recordStageCompletion()
     {
         if (!$this->stage_started_at) {
             return;
@@ -450,6 +455,16 @@ class RecruitmentSession extends Model
         }
 
         return sprintf('RSN/%d/%02d/%04d', $year, $month, $sequence);
+    }
+
+    /**
+     * Get progress percentage for the session
+     *
+     * @return float
+     */
+    public function getProgressPercentage(): float
+    {
+        return $this->overall_progress ?? 0.0;
     }
 
     /**
