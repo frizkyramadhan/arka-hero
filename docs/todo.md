@@ -58,6 +58,10 @@ Include relevant context in brackets to help with future AI-assisted coding:
 
 ## Recently Completed
 
+-   `[done] P1: Create missing RecruitmentAssessment model to resolve linter errors and complete offering functionality [app/Models/RecruitmentAssessment.php] (completed: 2025-01-15)`
+-   `[done] P1: Complete offering stage functionality with decision buttons, form validation, and proper stage advancement [app/Http/Controllers/RecruitmentSessionController.php:updateOffering(), resources/views/recruitment/sessions/show-session.blade.php, app/Models/RecruitmentOffering.php] (completed: 2025-01-15)`
+-   `[done] P1: Fix workflow service inconsistencies and update to use RecruitmentOffering model [app/Services/RecruitmentWorkflowService.php, app/Models/RecruitmentSession.php:getLatestOffer()] (completed: 2025-01-15)`
+-   `[done] P1: Update notification service to use RecruitmentOffering model and fix method signatures [app/Services/RecruitmentNotificationService.php] (completed: 2025-01-15)`
 -   `[done] P1: Add delete candidate from session functionality with confirmation modal and proper validation [resources/views/recruitment/sessions/show.blade.php, app/Http/Controllers/RecruitmentSessionController.php, routes/web.php] (completed: 2025-01-15)`
 -   `[done] P1: Apply consistent structure and styling from show request to show session and show-session views [resources/views/recruitment/sessions/show.blade.php, resources/views/recruitment/sessions/show-session.blade.php] (completed: 2025-01-15)`
 -   `[done] P1: Fix duplicate session number error and implement RSN/YYYY/MM/NNNN format with robust generation [app/Http/Controllers/RecruitmentSessionController.php] (completed: 2025-01-15)`
@@ -113,6 +117,7 @@ Include relevant context in brackets to help with future AI-assisted coding:
 -   `[done] P2: Consolidate recruitment candidates migrations and add user tracking [position_applied, remarks, created_by, updated_by] (completed: 2025-01-15)`
 -   `[done] P2: Add print functionality for recruitment candidates [print view, route, button styling] (completed: 2025-01-15)`
 -   `[done] P2: Add dedicated blacklist tracking columns [blacklist_reason, blacklisted_at] (completed: 2025-01-15)`
+-   `[done] P1: Fix Select2 initialization error in recruitment session offering modal by adding global Select2 CSS/JS includes in layout scripts and header [resources/views/layouts/partials/{header,scripts}.blade.php] (completed: 2025-01-15)`
 
 ## Quick Notes
 

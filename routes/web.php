@@ -422,15 +422,19 @@ Route::group(['middleware' => ['auth']], function () {
             Route::get('/data', [RecruitmentSessionController::class, 'getSessions'])->name('data');
             Route::get('/dashboard', [RecruitmentSessionController::class, 'dashboard'])->name('dashboard');
             Route::get('/{id}', [RecruitmentSessionController::class, 'show'])->name('show');
-            Route::get('/session/{id}', [RecruitmentSessionController::class, 'showSession'])->name('show-session');
+            Route::get('/candidate/{id}', [RecruitmentSessionController::class, 'showSession'])->name('candidate');
             Route::post('/', [RecruitmentSessionController::class, 'store'])->name('store');
 
             // Session Actions
-            Route::post('/{id}/advance-stage', [RecruitmentSessionController::class, 'advanceStage'])->name('advance-stage');
-            Route::post('/{id}/reject', [RecruitmentSessionController::class, 'reject'])->name('reject');
-            Route::post('/{id}/complete', [RecruitmentSessionController::class, 'complete'])->name('complete');
-            Route::post('/{id}/cancel', [RecruitmentSessionController::class, 'cancel'])->name('cancel');
-            Route::post('/{id}/withdraw', [RecruitmentSessionController::class, 'withdraw'])->name('withdraw');
+            Route::post('/{sessionId}/update-cv-review', [RecruitmentSessionController::class, 'updateCvReview'])->name('update-cv-review');
+            Route::post('/{sessionId}/update-psikotes', [RecruitmentSessionController::class, 'updatePsikotes'])->name('update-psikotes');
+            Route::post('/{sessionId}/update-tes-teori', [RecruitmentSessionController::class, 'updateTesTeori'])->name('update-tes-teori');
+            Route::post('/{sessionId}/update-interview', [RecruitmentSessionController::class, 'updateInterview'])->name('update-interview');
+            Route::post('/{sessionId}/update-offering', [RecruitmentSessionController::class, 'updateOffering'])->name('update-offering');
+            Route::post('/{sessionId}/update-mcu', [RecruitmentSessionController::class, 'updateMcu'])->name('update-mcu');
+            Route::post('/{sessionId}/update-hiring', [RecruitmentSessionController::class, 'updateHiring'])->name('update-hiring');
+            Route::post('/{sessionId}/update-onboarding', [RecruitmentSessionController::class, 'updateOnboarding'])->name('update-onboarding');
+            Route::post('/{sessionId}/close-request', [RecruitmentSessionController::class, 'closeRequest'])->name('close-request');
             Route::delete('/{id}', [RecruitmentSessionController::class, 'destroy'])->name('destroy');
 
             // AJAX Routes

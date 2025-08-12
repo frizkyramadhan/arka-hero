@@ -5,13 +5,16 @@ namespace App\Http\Controllers;
 use App\Models\RecruitmentSession;
 use App\Models\RecruitmentRequest;
 use App\Models\RecruitmentCandidate;
-use App\Models\RecruitmentAssessment;
+use App\Models\Employee;
+use App\Models\Administration;
 use App\Models\Department;
 use App\Models\Position;
+use App\Models\RecruitmentCvReview;
+use App\Models\RecruitmentPsikotes;
+use App\Models\RecruitmentTesTeori;
+use App\Models\RecruitmentInterview;
 use App\Services\RecruitmentSessionService;
-use App\Services\RecruitmentWorkflowService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Exception;
@@ -19,14 +22,12 @@ use Exception;
 class RecruitmentSessionController extends Controller
 {
     protected $sessionService;
-    protected $workflowService;
+
 
     public function __construct(
-        RecruitmentSessionService $sessionService,
-        RecruitmentWorkflowService $workflowService
+        RecruitmentSessionService $sessionService
     ) {
         $this->sessionService = $sessionService;
-        $this->workflowService = $workflowService;
         $this->middleware('role_or_permission:recruitment-sessions.show')->only('index', 'show');
         $this->middleware('role_or_permission:recruitment-sessions.create')->only('create');
         $this->middleware('role_or_permission:recruitment-sessions.edit')->only('edit', 'advanceStage', 'reject', 'complete', 'cancel', 'withdraw');
@@ -84,14 +85,7 @@ class RecruitmentSessionController extends Controller
                 ], 400);
             }
 
-            // Check if FPTK has available positions
-            $currentSessions = RecruitmentSession::where('fptk_id', $request->fptk_id)->count();
-            if ($currentSessions >= $fptk->required_qty) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'FPTK has reached maximum number of candidates'
-                ], 400);
-            }
+            // Business rule update: allow adding candidates regardless of required_qty
 
             // Create new session
             $sessionData = [
@@ -241,7 +235,14 @@ class RecruitmentSessionController extends Controller
             'project',
             'level',
             'sessions.candidate',
-            'sessions.assessments'
+            'sessions.cvReview',
+            'sessions.psikotes',
+            'sessions.tesTeori',
+            'sessions.interviews',
+            'sessions.offering',
+            'sessions.mcu',
+            'sessions.hiring',
+            'sessions.onboarding'
         ])->where('status', 'approved');
 
         // Apply filters
@@ -364,8 +365,14 @@ class RecruitmentSessionController extends Controller
             'level',
             'createdBy',
             'sessions.candidate',
-            'sessions.assessments',
-            'sessions.offers',
+            'sessions.cvReview',
+            'sessions.psikotes',
+            'sessions.tesTeori',
+            'sessions.interviews',
+            'sessions.offering',
+            'sessions.mcu',
+            'sessions.hiring',
+            'sessions.onboarding',
             'sessions.documents'
         ])->findOrFail($id);
         $subtitle = 'FPTK Details: ' . $fptk->request_number;
@@ -373,7 +380,14 @@ class RecruitmentSessionController extends Controller
         // Get all sessions for this FPTK
         $sessions = $fptk->sessions()->with([
             'candidate',
-            'assessments'
+            'cvReview',
+            'psikotes',
+            'tesTeori',
+            'interviews',
+            'offering',
+            'mcu',
+            'hiring',
+            'onboarding'
         ])->get();
 
         return view('recruitment.sessions.show', compact('fptk', 'sessions', 'title', 'subtitle'));
@@ -392,8 +406,14 @@ class RecruitmentSessionController extends Controller
             'fptk.level',
             'fptk.createdBy',
             'candidate',
-            'assessments',
-            'offers',
+            'cvReview',
+            'psikotes',
+            'tesTeori',
+            'interviews',
+            'offering',
+            'mcu',
+            'hiring',
+            'onboarding',
             'documents'
         ])->findOrFail($id);
         $subtitle = 'Session Details: ' . $session->session_number;
@@ -402,421 +422,6 @@ class RecruitmentSessionController extends Controller
         $progressPercentage = $this->sessionService->getProgressPercentage($session);
 
         return view('recruitment.sessions.show-session', compact('session', 'timeline', 'progressPercentage', 'title', 'subtitle'));
-    }
-
-    /**
-     * Advance session to next stage
-     */
-    public function advanceStage(Request $request, $id)
-    {
-        $session = RecruitmentSession::findOrFail($id);
-
-        // Debug logging
-        Log::info("Advance stage request received", [
-            'session_id' => $session->id,
-            'current_stage' => $session->current_stage,
-            'stage_status' => $session->stage_status,
-            'session_status' => $session->status,
-            'request_data' => $request->all()
-        ]);
-
-        if ($session->status !== 'in_process') {
-            if ($request->ajax()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Session cannot be advanced because it is already completed.'
-                ], 400);
-            }
-            return redirect()->back()
-                ->with('toast_error', 'Session cannot be advanced because it is already completed.');
-        }
-
-        // Validate that previous stages are completed
-        if (isset($request->assessment_data) && !empty($request->assessment_data)) {
-            $assessmentData = $request->assessment_data;
-            if (is_string($assessmentData)) {
-                $assessmentData = json_decode($assessmentData, true);
-            }
-
-            $stage = $assessmentData['stage'] ?? null;
-            if ($stage && !$this->validatePreviousStages($session, $stage)) {
-                $errorMessage = $this->getPreviousStageValidationMessage($session, $stage);
-
-                if ($request->ajax()) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => $errorMessage
-                    ], 400);
-                }
-                return redirect()->back()->with('toast_error', $errorMessage);
-            }
-        }
-
-        $request->validate([
-            'notes' => 'nullable|string|max:1000',
-            'assessment_data' => 'nullable',
-        ]);
-
-        try {
-            DB::beginTransaction();
-
-            // Parse assessment_data if it's a JSON string
-            $assessmentData = $request->assessment_data;
-            if (is_string($assessmentData)) {
-                $assessmentData = json_decode($assessmentData, true);
-            }
-
-            $result = $this->sessionService->advanceToNextStage($session, [
-                'notes' => $request->notes,
-                'assessment_data' => $assessmentData,
-                'advanced_by' => Auth::id(),
-                'advanced_at' => now(),
-            ]);
-
-            if ($result['success']) {
-                DB::commit();
-
-                // Handle AJAX requests
-                if ($request->ajax()) {
-                    $response = [
-                        'success' => true,
-                        'message' => $result['message'],
-                    ];
-
-                    // If session was ended (rejected), redirect to show page
-                    if (isset($result['session_ended']) && $result['session_ended']) {
-                        $response['session_ended'] = true;
-                        $response['redirect'] = route('recruitment.sessions.show-session', $session->id);
-                    } elseif (isset($result['auto_advanced']) && $result['auto_advanced']) {
-                        $response['auto_advanced'] = true;
-                        $response['next_stage'] = $result['next_stage'];
-                        $response['redirect'] = route('recruitment.sessions.show-session', $session->id);
-                    } elseif (isset($result['session_completed']) && $result['session_completed']) {
-                        $response['session_completed'] = true;
-                        $response['redirect'] = route('recruitment.sessions.show-session', $session->id);
-                    } else {
-                        $response['redirect'] = route('recruitment.sessions.show-session', $session->id);
-                    }
-
-                    return response()->json($response);
-                }
-
-                return redirect()->route('recruitment.sessions.show-session', $session->id)
-                    ->with('toast_success', $result['message']);
-            } else {
-                DB::rollback();
-
-                Log::error("Failed to advance session", [
-                    'session_id' => $session->id,
-                    'error_message' => $result['message']
-                ]);
-
-                // Handle AJAX requests
-                if ($request->ajax()) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => $result['message']
-                    ], 400);
-                }
-
-                return redirect()->back()
-                    ->with('toast_error', $result['message']);
-            }
-        } catch (Exception $e) {
-            DB::rollback();
-            Log::error('Error advancing session: ' . $e->getMessage(), [
-                'trace' => $e->getTraceAsString()
-            ]);
-
-            if ($request->ajax()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'An error occurred while advancing the session. Please try again.'
-                ], 500);
-            }
-
-            return redirect()->back()
-                ->with('toast_error', 'An error occurred while advancing the session. Please try again.');
-        }
-    }
-
-    /**
-     * Reject session
-     */
-    public function reject(Request $request, $id)
-    {
-        $request->validate([
-            'rejection_reason' => 'required|string|max:1000'
-        ]);
-
-        $session = RecruitmentSession::findOrFail($id);
-
-        if ($session->status !== 'in_process') {
-            if ($request->ajax()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Session cannot be rejected because it is already completed.'
-                ], 400);
-            }
-            return redirect()->back()
-                ->with('toast_error', 'Session cannot be rejected because it is already completed.');
-        }
-
-        try {
-            DB::beginTransaction();
-
-            $success = $this->sessionService->rejectSession(
-                $session,
-                $request->rejection_reason,
-                Auth::id()
-            );
-
-            if ($success) {
-                DB::commit();
-
-                if ($request->ajax()) {
-                    return response()->json([
-                        'success' => true,
-                        'message' => 'Session successfully rejected.'
-                    ]);
-                }
-
-                return redirect()->route('recruitment.sessions.show', $session->id)
-                    ->with('toast_success', 'Session successfully rejected.');
-            } else {
-                DB::rollback();
-
-                if ($request->ajax()) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'Failed to reject session. Please try again.'
-                    ], 400);
-                }
-
-                return redirect()->back()
-                    ->with('toast_error', 'Failed to reject session. Please try again.');
-            }
-        } catch (Exception $e) {
-            DB::rollback();
-            Log::error('Error rejecting session: ' . $e->getMessage());
-
-            if ($request->ajax()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'An error occurred while rejecting the session. Please try again.'
-                ], 500);
-            }
-
-            return redirect()->back()
-                ->with('toast_error', 'An error occurred while rejecting the session. Please try again.');
-        }
-    }
-
-    /**
-     * Complete session (hire candidate)
-     */
-    public function complete(Request $request, $id)
-    {
-        $session = RecruitmentSession::findOrFail($id);
-
-        if ($session->status !== 'in_process') {
-            if ($request->ajax()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Session cannot be completed because it is already finished.'
-                ], 400);
-            }
-            return redirect()->back()
-                ->with('toast_error', 'Session cannot be completed because it is already finished.');
-        }
-
-        if ($session->current_stage !== 'onboarding') {
-            if ($request->ajax()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Session can only be completed at the onboarding stage.'
-                ], 400);
-            }
-            return redirect()->back()
-                ->with('toast_error', 'Session can only be completed at the onboarding stage.');
-        }
-
-        $request->validate([
-            'hire_date' => 'required|date',
-            'employee_id' => 'nullable|string|max:50',
-            'notes' => 'nullable|string|max:1000',
-        ]);
-
-        try {
-            DB::beginTransaction();
-
-            $success = $this->sessionService->completeSession($session, [
-                'hire_date' => $request->hire_date,
-                'employee_id' => $request->employee_id,
-                'notes' => $request->notes,
-                'completed_by' => Auth::id(),
-                'completed_at' => now(),
-            ]);
-
-            if ($success) {
-                DB::commit();
-
-                if ($request->ajax()) {
-                    return response()->json([
-                        'success' => true,
-                        'message' => 'Session successfully completed. Candidate has been hired.'
-                    ]);
-                }
-
-                return redirect()->route('recruitment.sessions.show', $session->id)
-                    ->with('toast_success', 'Session successfully completed. Candidate has been hired.');
-            } else {
-                DB::rollback();
-
-                if ($request->ajax()) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'Failed to complete session. Please try again.'
-                    ], 400);
-                }
-
-                return redirect()->back()
-                    ->with('toast_error', 'Failed to complete session. Please try again.');
-            }
-        } catch (Exception $e) {
-            DB::rollback();
-            Log::error('Error completing session: ' . $e->getMessage());
-
-            if ($request->ajax()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'An error occurred while completing the session. Please try again.'
-                ], 500);
-            }
-
-            return redirect()->back()
-                ->with('toast_error', 'An error occurred while completing the session. Please try again.');
-        }
-    }
-
-    /**
-     * Cancel session
-     */
-    public function cancel(Request $request, $id)
-    {
-        $request->validate([
-            'cancel_reason' => 'required|string|max:1000'
-        ]);
-
-        $session = RecruitmentSession::findOrFail($id);
-
-        if ($session->status !== 'in_process') {
-            if ($request->ajax()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Session cannot be cancelled because it is already completed.'
-                ], 400);
-            }
-            return redirect()->back()
-                ->with('toast_error', 'Session cannot be cancelled because it is already completed.');
-        }
-
-        try {
-            DB::beginTransaction();
-
-            $session->update([
-                'status' => 'cancelled',
-                'final_decision_date' => now(),
-                'final_decision_by' => Auth::id(),
-                'final_decision_notes' => $request->cancel_reason,
-            ]);
-
-            // Update candidate status back to available
-            $candidate = $session->candidate;
-            $activeSessionsCount = $candidate->sessions()
-                ->where('status', 'in_process')
-                ->where('id', '!=', $session->id)
-                ->count();
-
-            if ($activeSessionsCount === 0) {
-                $candidate->update(['global_status' => 'available']);
-            }
-
-            DB::commit();
-
-            if ($request->ajax()) {
-                return response()->json([
-                    'success' => true,
-                    'message' => 'Session successfully cancelled.'
-                ]);
-            }
-
-            return redirect()->route('recruitment.sessions.show', $session->id)
-                ->with('toast_success', 'Session successfully cancelled.');
-        } catch (Exception $e) {
-            DB::rollback();
-            Log::error('Error cancelling session: ' . $e->getMessage());
-
-            if ($request->ajax()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'An error occurred while cancelling the session. Please try again.'
-                ], 500);
-            }
-
-            return redirect()->back()
-                ->with('toast_error', 'An error occurred while cancelling the session. Please try again.');
-        }
-    }
-
-    /**
-     * Withdraw application (candidate initiated)
-     */
-    public function withdraw(Request $request, $id)
-    {
-        $request->validate([
-            'withdraw_reason' => 'required|string|max:1000'
-        ]);
-
-        $session = RecruitmentSession::findOrFail($id);
-
-        if ($session->status !== 'in_process') {
-            return redirect()->back()
-                ->with('toast_error', 'Session cannot be withdrawn because it is already completed.');
-        }
-
-        try {
-            DB::beginTransaction();
-
-            $session->update([
-                'status' => 'withdrawn',
-                'final_decision_date' => now(),
-                'final_decision_by' => Auth::id(),
-                'final_decision_notes' => $request->withdraw_reason,
-            ]);
-
-            // Update candidate status back to available
-            $candidate = $session->candidate;
-            $activeSessionsCount = $candidate->sessions()
-                ->where('status', 'in_process')
-                ->where('id', '!=', $session->id)
-                ->count();
-
-            if ($activeSessionsCount === 0) {
-                $candidate->update(['global_status' => 'available']);
-            }
-
-            DB::commit();
-
-            return redirect()->route('recruitment.sessions.show', $session->id)
-                ->with('toast_success', 'Application successfully withdrawn.');
-        } catch (Exception $e) {
-            DB::rollback();
-            Log::error('Error withdrawing session: ' . $e->getMessage());
-
-            return redirect()->back()
-                ->with('toast_error', 'An error occurred while withdrawing the application. Please try again.');
-        }
     }
 
     /**
@@ -829,8 +434,14 @@ class RecruitmentSessionController extends Controller
             'fptk.position',
             'fptk.project',
             'candidate',
-            'assessments',
-            'offers'
+            'cvReview',
+            'psikotes',
+            'tesTeori',
+            'interviews',
+            'offering',
+            'mcu',
+            'hiring',
+            'onboarding'
         ])->findOrFail($id);
 
         $timeline = $this->sessionService->getSessionTimeline($id);
@@ -862,16 +473,7 @@ class RecruitmentSessionController extends Controller
                     'phone' => $session->candidate->phone,
                     'global_status' => $session->candidate->global_status,
                 ],
-                'assessments' => $session->assessments->map(function ($assessment) {
-                    return [
-                        'id' => $assessment->id,
-                        'assessment_type' => $assessment->assessment_type,
-                        'status' => $assessment->status,
-                        'overall_score' => $assessment->overall_score,
-                        'recommendation' => $assessment->recommendation,
-                        'completed_at' => $assessment->completed_at,
-                    ];
-                }),
+                'assessments' => $session->getAllAssessments(),
                 'timeline' => $timeline,
             ]
         ]);
@@ -882,7 +484,7 @@ class RecruitmentSessionController extends Controller
      */
     public function getSessionsByFPTK($fptkId)
     {
-        $sessions = RecruitmentSession::with(['candidate', 'assessments'])
+        $sessions = RecruitmentSession::with(['candidate', 'cvReview', 'psikotes', 'tesTeori', 'interviews', 'offering', 'mcu', 'hiring', 'onboarding'])
             ->where('fptk_id', $fptkId)
             ->get();
 
@@ -912,7 +514,7 @@ class RecruitmentSessionController extends Controller
      */
     public function getSessionsByCandidate($candidateId)
     {
-        $sessions = RecruitmentSession::with(['fptk.department', 'fptk.position', 'assessments'])
+        $sessions = RecruitmentSession::with(['fptk.department', 'fptk.position', 'cvReview', 'psikotes', 'tesTeori', 'interviews', 'offering', 'mcu', 'hiring', 'onboarding'])
             ->where('candidate_id', $candidateId)
             ->get();
 
@@ -1005,8 +607,14 @@ class RecruitmentSessionController extends Controller
             ]);
 
             // Delete related data first
-            $session->assessments()->delete();
-            $session->offers()->delete();
+            $session->cvReview()->delete();
+            $session->psikotes()->delete();
+            $session->tesTeori()->delete();
+            $session->interviews()->delete();
+            $session->offering()->delete();
+            $session->mcu()->delete();
+            $session->hiring()->delete();
+            $session->onboarding()->delete();
             $session->documents()->delete();
 
             // Delete the session
@@ -1030,107 +638,910 @@ class RecruitmentSessionController extends Controller
         }
     }
 
-    /**
-     * Validate that previous stages are completed before allowing current stage
-     *
-     * @param RecruitmentSession $session
-     * @param string $currentStage
-     * @return bool
-     */
-    private function validatePreviousStages(RecruitmentSession $session, string $currentStage): bool
+    public function updateCvReview(Request $request, $sessionId)
     {
-        $stageOrder = [
-            'cv_review' => 1,
-            'psikotes' => 2,
-            'tes_teori' => 3,
-            'interview_hr' => 4,
-            'interview_user' => 5,
-            'offering' => 6,
-            'mcu' => 7,
-            'hire' => 8,
-            'onboarding' => 9
-        ];
+        try {
+            DB::beginTransaction();
 
-        $currentStageOrder = $stageOrder[$currentStage] ?? 0;
+            // Find the session
+            $session = RecruitmentSession::findOrFail($sessionId);
 
-        // Check if current stage is the expected next stage
-        $expectedCurrentStage = $this->getExpectedCurrentStage($session);
+            // Validate request
+            $request->validate([
+                'decision' => 'required|in:recommended,not_recommended',
+                'notes' => 'nullable|string',
+            ]);
 
-        return $currentStage === $expectedCurrentStage;
+            // Check if session is in CV review stage
+            if ($session->current_stage !== 'cv_review') {
+                return back()->with('toast_error', 'Session is not in CV review stage.');
+            }
+
+            // Check if CV review already exists
+            $cvReview = $session->cvReview;
+            if (!$cvReview) {
+                // Create new CV review
+                $cvReview = new RecruitmentCvReview([
+                    'session_id' => $sessionId,
+                    'decision' => $request->decision,
+                    'notes' => $request->notes,
+                    'reviewed_by' => auth()->id(),
+                    'reviewed_at' => now(),
+                ]);
+                $cvReview->save();
+            } else {
+                // Update existing CV review
+                $cvReview->update([
+                    'decision' => $request->decision,
+                    'notes' => $request->notes,
+                    'reviewed_by' => auth()->id(),
+                    'reviewed_at' => now(),
+                ]);
+            }
+
+            // Update session stage based on decision
+            if ($request->decision === 'not_recommended') {
+                // Reject the session
+                $session->update([
+                    'stage_status' => 'failed',
+                    'stage_completed_at' => now(),
+                    'status' => 'rejected',
+                    'final_decision_date' => now(),
+                    'final_decision_by' => auth()->id(),
+                    'final_decision_notes' => 'CV Review: Not Recommended - ' . $request->notes,
+                ]);
+
+                // Update candidate global status
+                $session->candidate->updateGlobalStatus();
+
+                DB::commit();
+
+                return back()->with('toast_success', 'CV review completed. Candidate rejected due to not recommended CV review.');
+            } else {
+                // Complete CV review stage and advance to next stage
+                $session->update([
+                    'stage_status' => 'completed',
+                    'stage_completed_at' => now(),
+                ]);
+
+                // Automatically advance to next stage (psikotes)
+                $nextStage = $session->getNextStageAttribute();
+                if ($nextStage) {
+                    $session->update([
+                        'current_stage' => $nextStage,
+                        'stage_status' => 'pending',
+                        'stage_started_at' => now(),
+                        'overall_progress' => RecruitmentSession::STAGE_PROGRESS[$nextStage],
+                    ]);
+
+                    DB::commit();
+
+                    return back()->with('toast_success', 'CV review completed successfully. Candidate recommended and advanced to ' . ucfirst($nextStage) . ' stage.');
+                } else {
+                    DB::commit();
+                    return back()->with('toast_success', 'CV review completed successfully. Candidate recommended.');
+                }
+            }
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Failed to update CV review', [
+                'session_id' => $sessionId,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return back()->with('toast_error', 'Failed to update CV review. Please try again.');
+        }
     }
 
-    /**
-     * Get the expected current stage based on completed stages
-     *
-     * @param RecruitmentSession $session
-     * @return string
-     */
-    private function getExpectedCurrentStage(RecruitmentSession $session): string
+    public function updatePsikotes(Request $request, $sessionId)
     {
-        $stageOrder = [
-            'cv_review' => 1,
-            'psikotes' => 2,
-            'tes_teori' => 3,
-            'interview_hr' => 4,
-            'interview_user' => 5,
-            'offering' => 6,
-            'mcu' => 7,
-            'hire' => 8,
-            'onboarding' => 9
-        ];
+        try {
+            DB::beginTransaction();
 
-        // Check completed assessments
-        $completedAssessments = $session->assessments()
-            ->where('status', 'completed')
-            ->where('overall_score', '>=', 70) // Assuming 70 is passing score
-            ->pluck('assessment_type')
-            ->toArray();
+            // Find the session
+            $session = RecruitmentSession::findOrFail($sessionId);
 
-        // Find the highest completed stage
-        $highestCompletedOrder = 0;
-        foreach ($completedAssessments as $assessmentType) {
-            $order = $stageOrder[$assessmentType] ?? 0;
-            if ($order > $highestCompletedOrder) {
-                $highestCompletedOrder = $order;
+            // Validate request
+            $request->validate([
+                'online_score' => 'nullable|numeric|min:0|max:100',
+                'offline_score' => 'nullable|numeric|min:0|max:10',
+                'notes' => 'nullable|string',
+            ]);
+
+            // Check if session is in psikotes stage
+            if ($session->current_stage !== 'psikotes') {
+                return back()->with('toast_error', 'Session is not in psikotes stage.');
             }
-        }
 
-        // Return the next stage
-        foreach ($stageOrder as $stage => $order) {
-            if ($order === $highestCompletedOrder + 1) {
-                return $stage;
+            // Validate that at least one score is provided
+            $onlineScore = $request->online_score;
+            $offlineScore = $request->offline_score;
+
+            if (is_null($onlineScore) && is_null($offlineScore)) {
+                return back()->with('toast_error', 'At least one score (online or offline) must be provided.');
             }
-        }
 
-        // If all stages completed, return onboarding
-        return 'onboarding';
+            // Calculate overall result based on criteria
+            $overallResult = 'pass';
+            $resultDetails = [];
+
+            if (!is_null($onlineScore)) {
+                if ($onlineScore >= 40) {
+                    $resultDetails[] = 'Online: Pass (≥40)';
+                } else {
+                    $resultDetails[] = 'Online: Fail (<40)';
+                    $overallResult = 'fail';
+                }
+            }
+
+            if (!is_null($offlineScore)) {
+                if ($offlineScore >= 8) {
+                    $resultDetails[] = 'Offline: Pass (≥8)';
+                } else {
+                    $resultDetails[] = 'Offline: Fail (<8)';
+                    $overallResult = 'fail';
+                }
+            }
+
+            // Check if psikotes already exists
+            $psikotes = $session->psikotes;
+            if (!$psikotes) {
+                // Create new psikotes assessment
+                $psikotes = new RecruitmentPsikotes([
+                    'session_id' => $sessionId,
+                    'online_score' => $onlineScore,
+                    'offline_score' => $offlineScore,
+                    'result' => $overallResult,
+                    'notes' => $request->notes,
+                    'reviewed_by' => auth()->id(),
+                    'reviewed_at' => now(),
+                ]);
+                $psikotes->save();
+            } else {
+                // Update existing psikotes assessment
+                $psikotes->update([
+                    'online_score' => $onlineScore,
+                    'offline_score' => $offlineScore,
+                    'result' => $overallResult,
+                    'notes' => $request->notes,
+                    'reviewed_by' => auth()->id(),
+                    'reviewed_at' => now(),
+                ]);
+            }
+
+            // Update session stage based on result
+            if ($overallResult === 'fail') {
+                // Reject the session
+                $session->update([
+                    'stage_status' => 'failed',
+                    'stage_completed_at' => now(),
+                    'status' => 'rejected',
+                    'final_decision_date' => now(),
+                    'final_decision_by' => auth()->id(),
+                    'final_decision_notes' => 'Psikotes: Failed - ' . implode(', ', $resultDetails) . ($request->notes ? ' - ' . $request->notes : ''),
+                ]);
+
+                // Update candidate global status
+                $session->candidate->updateGlobalStatus();
+
+                DB::commit();
+
+                return back()->with('toast_success', 'Psikotes assessment completed. Candidate rejected due to failed psikotes.');
+            } else {
+                // Complete psikotes stage and advance to next stage
+                $session->update([
+                    'stage_status' => 'completed',
+                    'stage_completed_at' => now(),
+                ]);
+
+                // Automatically advance to next stage (tes teori)
+                $nextStage = $session->getNextStageAttribute();
+                if ($nextStage) {
+                    $session->update([
+                        'current_stage' => $nextStage,
+                        'stage_status' => 'pending',
+                        'stage_started_at' => now(),
+                        'overall_progress' => RecruitmentSession::STAGE_PROGRESS[$nextStage],
+                    ]);
+
+                    DB::commit();
+
+                    return back()->with('toast_success', 'Psikotes assessment completed successfully. Candidate passed and advanced to ' . ucfirst($nextStage) . ' stage.');
+                } else {
+                    DB::commit();
+                    return back()->with('toast_success', 'Psikotes assessment completed successfully. Candidate passed.');
+                }
+            }
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Failed to update psikotes assessment', [
+                'session_id' => $sessionId,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return back()->with('toast_error', 'Failed to update psikotes assessment. Please try again.');
+        }
     }
 
-    /**
-     * Get validation message for previous stage requirement
-     *
-     * @param RecruitmentSession $session
-     * @param string $currentStage
-     * @return string
-     */
-    private function getPreviousStageValidationMessage(RecruitmentSession $session, string $currentStage): string
+    public function updateTesTeori(Request $request, $sessionId)
     {
-        $stageNames = [
-            'cv_review' => 'CV Review',
-            'psikotes' => 'Psikotes',
-            'tes_teori' => 'Tes Teori',
-            'interview_hr' => 'Interview HR',
-            'interview_user' => 'Interview User',
-            'offering' => 'Offering',
-            'mcu' => 'MCU',
-            'hire' => 'Hire',
-            'onboarding' => 'Onboarding'
-        ];
+        try {
+            DB::beginTransaction();
 
-        $expectedStage = $this->getExpectedCurrentStage($session);
-        $expectedStageName = $stageNames[$expectedStage] ?? $expectedStage;
-        $currentStageName = $stageNames[$currentStage] ?? $currentStage;
+            // Find the session
+            $session = RecruitmentSession::findOrFail($sessionId);
 
-        return "Cannot submit {$currentStageName} assessment. Please complete {$expectedStageName} stage first.";
+            // Validate request
+            $request->validate([
+                'score' => 'required|numeric|min:0|max:100',
+                'notes' => 'nullable|string',
+            ]);
+
+            // Check if session is in tes teori stage
+            if ($session->current_stage !== 'tes_teori') {
+                return back()->with('toast_error', 'Session is not in tes teori stage.');
+            }
+
+            $score = $request->score;
+
+            // Determine category based on score
+            $category = '';
+            if ($score >= 76) {
+                $category = 'Mechanic Senior';
+            } elseif ($score >= 61) {
+                $category = 'Mechanic Advance';
+            } elseif ($score >= 46) {
+                $category = 'Mechanic';
+            } elseif ($score >= 21) {
+                $category = 'Helper Mechanic';
+            } else {
+                $category = 'Belum Kompeten';
+            }
+
+            // Calculate result based on category (only "Belum Kompeten" fails)
+            $result = ($category === 'Belum Kompeten') ? 'fail' : 'pass';
+
+            // Prepare notes - if notes already contain category, use as is, otherwise add category
+            $notes = $request->notes;
+            if (!$notes || !str_contains($notes, 'Kategori:')) {
+                $notes = 'Kategori: ' . $category;
+                if ($request->notes) {
+                    $notes .= "\n\n" . $request->notes;
+                }
+            }
+
+            // Check if tes teori already exists
+            $tesTeori = $session->tesTeori;
+            if (!$tesTeori) {
+                // Create new tes teori assessment
+                $tesTeori = new RecruitmentTesTeori([
+                    'session_id' => $sessionId,
+                    'score' => $score,
+                    'result' => $result,
+                    'notes' => $notes,
+                    'reviewed_by' => auth()->id(),
+                    'reviewed_at' => now(),
+                ]);
+                $tesTeori->save();
+            } else {
+                // Update existing tes teori assessment
+                $tesTeori->update([
+                    'score' => $score,
+                    'result' => $result,
+                    'notes' => $notes,
+                    'reviewed_by' => auth()->id(),
+                    'reviewed_at' => now(),
+                ]);
+            }
+
+            // Update session stage based on result
+            if ($result === 'fail') {
+                // Reject the session
+                $session->update([
+                    'stage_status' => 'failed',
+                    'stage_completed_at' => now(),
+                    'status' => 'rejected',
+                    'final_decision_date' => now(),
+                    'final_decision_by' => auth()->id(),
+                    'final_decision_notes' => 'Tes Teori: Failed - Score: ' . $score . ' - Kategori: ' . $category . ' (Belum Kompeten)' . ($request->notes ? ' - Catatan: ' . $request->notes : ''),
+                ]);
+
+                // Update candidate global status
+                $session->candidate->updateGlobalStatus();
+
+                DB::commit();
+
+                return back()->with('toast_success', 'Tes Teori assessment completed. Candidate rejected due to failed tes teori.');
+            } else {
+                // Complete tes teori stage and advance to next stage
+                $session->update([
+                    'stage_status' => 'completed',
+                    'stage_completed_at' => now(),
+                ]);
+
+                // Automatically advance to next stage (interview HR)
+                $nextStage = $session->getNextStageAttribute();
+                if ($nextStage) {
+                    $session->update([
+                        'current_stage' => $nextStage,
+                        'stage_status' => 'pending',
+                        'stage_started_at' => now(),
+                        'overall_progress' => RecruitmentSession::STAGE_PROGRESS[$nextStage],
+                    ]);
+
+                    DB::commit();
+
+                    return back()->with('toast_success', 'Tes Teori assessment completed successfully. Candidate passed and advanced to ' . ucfirst($nextStage) . ' stage.');
+                } else {
+                    DB::commit();
+                    return back()->with('toast_success', 'Tes Teori assessment completed successfully. Candidate passed.');
+                }
+            }
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Failed to update tes teori assessment', [
+                'session_id' => $sessionId,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return back()->with('toast_error', 'Failed to update tes teori assessment. Please try again.');
+        }
+    }
+
+    public function updateInterview(Request $request, $sessionId)
+    {
+        try {
+            DB::beginTransaction();
+
+            // Find the session
+            $session = RecruitmentSession::findOrFail($sessionId);
+
+            // Validate request
+            $request->validate([
+                'type' => 'required|in:hr,user',
+                'result' => 'required|in:recommended,not_recommended',
+                'notes' => 'nullable|string',
+            ]);
+
+            $type = $request->type;
+            $result = $request->result;
+
+            // Check if session is in interview stage
+            if ($session->current_stage !== 'interview') {
+                return back()->with('toast_error', 'Session is not in interview stage.');
+            }
+
+            // Check if interview already exists
+            $interview = $session->interviews()->where('type', $type)->first();
+            if (!$interview) {
+                // Create new interview assessment
+                $interview = new RecruitmentInterview([
+                    'session_id' => $sessionId,
+                    'type' => $type,
+                    'result' => $result,
+                    'notes' => $request->notes,
+                    'reviewed_by' => auth()->id(),
+                    'reviewed_at' => now(),
+                ]);
+                $interview->save();
+            } else {
+                // Update existing interview assessment
+                $interview->update([
+                    'result' => $result,
+                    'notes' => $request->notes,
+                    'reviewed_by' => auth()->id(),
+                    'reviewed_at' => now(),
+                ]);
+            }
+
+            // Update session stage based on result
+            if ($result === 'not_recommended') {
+                // Reject the session
+                $session->update([
+                    'stage_status' => 'failed',
+                    'stage_completed_at' => now(),
+                    'status' => 'rejected',
+                    'final_decision_date' => now(),
+                    'final_decision_by' => auth()->id(),
+                    'final_decision_notes' => ucfirst($type) . ' Interview: Not Recommended' . ($request->notes ? ' - ' . $request->notes : ''),
+                ]);
+
+                // Update candidate global status
+                $session->candidate->updateGlobalStatus();
+
+                DB::commit();
+
+                return back()->with('toast_success', ucfirst($type) . ' interview completed. Candidate rejected due to not recommended interview.');
+            } else {
+                // Check if both interviews are completed
+                $hrInterview = $session->interviews()->where('type', 'hr')->first();
+                $userInterview = $session->interviews()->where('type', 'user')->first();
+
+                if ($hrInterview && $userInterview && $hrInterview->result === 'recommended' && $userInterview->result === 'recommended') {
+                    // Both interviews passed, advance to next stage (offering)
+                    $nextStage = $session->getNextStageAttribute();
+                    if ($nextStage) {
+                        $session->update([
+                            'current_stage' => $nextStage,
+                            'stage_status' => 'pending',
+                            'stage_started_at' => now(),
+                            'overall_progress' => RecruitmentSession::STAGE_PROGRESS[$nextStage],
+                        ]);
+
+                        DB::commit();
+
+                        return back()->with('toast_success', ucfirst($type) . ' interview completed successfully. Both interviews passed. Candidate advanced to ' . ucfirst($nextStage) . ' stage.');
+                    } else {
+                        DB::commit();
+                        return back()->with('toast_success', ucfirst($type) . ' interview completed successfully. Both interviews passed.');
+                    }
+                } else {
+                    // Current interview passed, but waiting for other interview
+                    // Stay in interview stage, just update status
+                    $session->update([
+                        'stage_status' => 'in_progress',
+                    ]);
+
+                    DB::commit();
+                    return back()->with('toast_success', ucfirst($type) . ' interview completed successfully. Waiting for other interview to complete.');
+                }
+            }
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Failed to update interview assessment', [
+                'session_id' => $sessionId,
+                'type' => $request->type ?? 'unknown',
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return back()->with('toast_error', 'Failed to update interview assessment. Please try again.');
+        }
+    }
+
+    public function updateOffering(Request $request, $sessionId)
+    {
+        $request->validate([
+            'result' => 'required|in:accepted,rejected',
+            'offering_letter_number_id' => 'required|exists:letter_numbers,id',
+            'notes' => 'nullable|string'
+        ]);
+
+        try {
+            DB::beginTransaction();
+
+            $session = RecruitmentSession::with(['candidate', 'offering'])->findOrFail($sessionId);
+
+            // Check if session is in offering stage
+            if ($session->current_stage !== 'offering') {
+                return back()->with('toast_error', 'Session is not in offering stage.');
+            }
+
+            // Get letter number details
+            $letterNumber = \App\Models\LetterNumber::findOrFail($request->offering_letter_number_id);
+
+            // Build full formatted offering letter number for storage (matches UI)
+            $romanMonths = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'];
+            $now = now();
+            $romanMonth = $romanMonths[((int)$now->format('n')) - 1];
+            $year = $now->format('Y');
+            $fullOfferingLetterNumber = $letterNumber->letter_number . '/ARKA-HCS/' . $romanMonth . '/' . $year;
+
+            // Create or update offering record with full letter number
+            $offering = $session->offering()->updateOrCreate(
+                ['session_id' => $sessionId],
+                [
+                    'offering_letter_number' => $fullOfferingLetterNumber,
+                    'result' => $request->result,
+                    'notes' => $request->notes,
+                    'reviewed_by' => auth()->id(),
+                    'reviewed_at' => now(),
+                ]
+            );
+
+            // Mark the letter number as used for this offering (only once)
+            try {
+                $letterNumber->markAsUsed('recruitment_offering', $session->id, auth()->id());
+            } catch (\Throwable $e) {
+                Log::warning('Failed to mark letter number as used for offering', [
+                    'letter_number_id' => $letterNumber->id,
+                    'session_id' => $session->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+
+            if ($request->result === 'rejected') {
+                // Reject session if offering failed
+                $session->update([
+                    'stage_status' => 'failed',
+                    'stage_completed_at' => now(),
+                    'status' => 'rejected',
+                    'final_decision_date' => now(),
+                    'final_decision_by' => auth()->id(),
+                    'final_decision_notes' => 'Offering: Rejected by candidate',
+                ]);
+
+                // Update candidate global status
+                $session->candidate->updateGlobalStatus();
+
+                DB::commit();
+                return back()->with('toast_success', 'Offering completed. Session rejected.');
+            } elseif ($request->result === 'accepted') {
+                // Accept offering, advance to MCU stage
+                $nextStage = $session->getNextStageAttribute();
+                if ($nextStage) {
+                    $session->update([
+                        'current_stage' => $nextStage,
+                        'stage_status' => 'pending',
+                        'stage_started_at' => now(),
+                        'overall_progress' => RecruitmentSession::STAGE_PROGRESS[$nextStage],
+                    ]);
+
+                    DB::commit();
+                    return back()->with('toast_success', 'Offering accepted. Advanced to ' . ucfirst($nextStage) . ' stage.');
+                } else {
+                    DB::commit();
+                    return back()->with('toast_success', 'Offering accepted.');
+                }
+            }
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Failed to update offering assessment', [
+                'session_id' => $sessionId,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return back()->with('toast_error', 'Failed to update offering assessment. Please try again.');
+        }
+    }
+
+    public function updateMcu(Request $request, $sessionId)
+    {
+        $request->validate([
+            'overall_health' => 'required|in:fit,unfit,follow_up',
+            'notes' => 'nullable|string',
+        ]);
+
+        try {
+            DB::beginTransaction();
+
+            $session = RecruitmentSession::with(['candidate', 'mcu'])->findOrFail($sessionId);
+
+            // Ensure we are in MCU stage
+            if ($session->current_stage !== 'mcu') {
+                return back()->with('toast_error', 'Session is not in MCU stage.');
+            }
+
+            $overallHealth = $request->overall_health; // fit | unfit | follow_up
+
+            // Create or update MCU record
+            $session->mcu()->updateOrCreate(
+                ['session_id' => $sessionId],
+                [
+                    'result' => $overallHealth,
+                    'notes' => $request->notes,
+                    'reviewed_by' => auth()->id(),
+                    'reviewed_at' => now(),
+                ]
+            );
+
+            if ($overallHealth === 'unfit') {
+                // Session rejected if unfit
+                $session->update([
+                    'stage_status' => 'failed',
+                    'stage_completed_at' => now(),
+                    'status' => 'rejected',
+                    'final_decision_date' => now(),
+                    'final_decision_by' => auth()->id(),
+                    'final_decision_notes' => 'MCU: Unfit',
+                ]);
+
+                // Update candidate global status
+                $session->candidate->updateGlobalStatus();
+
+                DB::commit();
+                return back()->with('toast_success', 'MCU completed. Session rejected (Unfit).');
+            }
+
+            if ($overallHealth === 'fit') {
+                // Advance to Hire stage
+                $nextStage = $session->getNextStageAttribute();
+                if ($nextStage) {
+                    $session->update([
+                        'current_stage' => $nextStage,
+                        'stage_status' => 'pending',
+                        'stage_started_at' => now(),
+                        'overall_progress' => \App\Models\RecruitmentSession::STAGE_PROGRESS[$nextStage],
+                    ]);
+
+                    DB::commit();
+                    return back()->with('toast_success', 'MCU passed (Fit). Advanced to ' . ucfirst($nextStage) . ' stage.');
+                }
+
+                DB::commit();
+                return back()->with('toast_success', 'MCU passed (Fit).');
+            }
+
+            // follow_up: keep in MCU stage and mark in progress
+            $session->update([
+                'stage_status' => 'in_progress',
+            ]);
+
+            DB::commit();
+            return back()->with('toast_success', 'MCU requires follow up. Stage remains In Progress.');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Failed to update MCU assessment', [
+                'session_id' => $sessionId,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return back()->with('toast_error', 'Failed to update MCU assessment. Please try again.');
+        }
+    }
+
+    public function updateHiring(Request $request, $sessionId)
+    {
+        $request->validate([
+            'agreement_type' => 'required|in:pkwt,pkwtt',
+            'hiring_letter_number_id' => 'required|exists:letter_numbers,id',
+            'notes' => 'nullable|string',
+
+            // Employee personal data
+            'employee.identity_card' => 'required|string|unique:employees,identity_card',
+            'employee.fullname' => 'required|string',
+            'employee.emp_pob' => 'required|string',
+            'employee.emp_dob' => 'required|date',
+            'employee.religion_id' => 'required|exists:religions,id',
+            'employee.gender' => 'nullable|in:male,female',
+            'employee.marital' => 'nullable|string',
+            'employee.address' => 'nullable|string',
+            'employee.phone' => 'nullable|string',
+            'employee.email' => 'nullable|email',
+
+            // Administration data
+            'administration.nik' => 'required|string|unique:administrations,nik',
+            'administration.project_id' => 'nullable|exists:projects,id',
+            'administration.position_id' => 'nullable|exists:positions,id',
+            'administration.grade_id' => 'nullable|exists:grades,id',
+            'administration.level_id' => 'nullable|exists:levels,id',
+            'administration.doh' => 'required|date',
+            'administration.poh' => 'required|string',
+            'administration.class' => 'required|string',
+            'administration.foc' => 'nullable|date',
+            'administration.agreement' => 'nullable|string',
+            'administration.no_fptk' => 'nullable|string',
+        ], [
+            'employee.identity_card.unique' => 'Identity Card No already exists',
+            'administration.nik.unique' => 'NIK already exists',
+        ]);
+
+        try {
+            DB::beginTransaction();
+
+            $session = RecruitmentSession::with(['candidate', 'hiring'])->findOrFail($sessionId);
+
+            // Ensure we are in Hire stage
+            if ($session->current_stage !== 'hire') {
+                return back()->with('toast_error', 'Session is not in Hire stage.');
+            }
+
+            // Fetch letter number (PKWT)
+            $letterNumber = \App\Models\LetterNumber::findOrFail($request->hiring_letter_number_id);
+
+            // Build full formatted letter number for PKWT hiring display and storage
+            $romanMonths = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'];
+            $now = now();
+            $romanMonth = $romanMonths[((int)$now->format('n')) - 1];
+            $year = $now->format('Y');
+            // Remove any leading alpha prefix (e.g., PKWT0001 -> 0001) to keep base as numeric for storage format
+            $base = preg_replace('/^[A-Za-z]+/', '', $letterNumber->letter_number);
+            $fullLetterNumber = $base . '/ARKA-HO/PKWT-I/' . $romanMonth . '/' . $year;
+
+            // Create or update Hiring record with full formatted letter number
+            $session->hiring()->updateOrCreate(
+                ['session_id' => $sessionId],
+                [
+                    'agreement_type' => $request->agreement_type,
+                    'letter_number' => $fullLetterNumber,
+                    'notes' => $request->notes,
+                    'reviewed_by' => auth()->id(),
+                    'reviewed_at' => now(),
+                ]
+            );
+
+            // Mark letter number as used for recruitment_hiring
+            try {
+                $letterNumber->markAsUsed('recruitment_hiring', $session->id, auth()->id());
+            } catch (\Throwable $e) {
+                Log::warning('Failed to mark letter number as used for hiring', [
+                    'letter_number_id' => $letterNumber->id,
+                    'session_id' => $session->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+
+            // Create or update Employee and Administration based on submitted data
+            $employeeData = $request->input('employee', []);
+            $adminData = $request->input('administration', []);
+
+            // Prefill from candidate and FPTK if not provided
+            $candidate = $session->candidate;
+            $fptk = $session->fptk()->with(['project', 'position', 'level'])->first();
+            if (!$employeeData) {
+                $employeeData = [];
+            }
+            if (!$adminData) {
+                $adminData = [];
+            }
+
+            $employeePayload = [
+                'fullname' => $employeeData['fullname'] ?? ($candidate->fullname ?? ''),
+                'emp_pob' => $employeeData['emp_pob'] ?? '-',
+                'emp_dob' => $employeeData['emp_dob'] ?? now()->toDateString(),
+                'blood_type' => $employeeData['blood_type'] ?? null,
+                'religion_id' => $employeeData['religion_id'] ?? null,
+                'nationality' => $employeeData['nationality'] ?? null,
+                'gender' => $employeeData['gender'] ?? null,
+                'marital' => $employeeData['marital'] ?? null,
+                'address' => $employeeData['address'] ?? $candidate->address ?? null,
+                'village' => $employeeData['village'] ?? null,
+                'ward' => $employeeData['ward'] ?? null,
+                'district' => $employeeData['district'] ?? null,
+                'city' => $employeeData['city'] ?? null,
+                'phone' => $employeeData['phone'] ?? ($candidate->phone ?? null),
+                'email' => $employeeData['email'] ?? ($candidate->email ?? null),
+                'identity_card' => $employeeData['identity_card'],
+                'user_id' => auth()->id(),
+            ];
+
+            // Reuse existing Employee by identity_card if exists; otherwise create
+            $employee = Employee::where('identity_card', $employeePayload['identity_card'])->first();
+            if ($employee) {
+                $employee->update($employeePayload);
+            } else {
+                $employee = Employee::create($employeePayload);
+            }
+
+            // Deactivate previous active administration if exists
+            Administration::where('employee_id', $employee->id)->where('is_active', 1)->update(['is_active' => 0]);
+
+            // Map administration payload
+            $administrationPayload = [
+                'employee_id' => $employee->id,
+                'project_id' => $adminData['project_id'] ?? ($fptk->project_id ?? null),
+                'position_id' => $adminData['position_id'] ?? ($fptk->position_id ?? null),
+                'grade_id' => $adminData['grade_id'] ?? null,
+                'level_id' => $adminData['level_id'] ?? null,
+                'nik' => $adminData['nik'],
+                'class' => $adminData['class'],
+                'doh' => $adminData['doh'],
+                'poh' => $adminData['poh'],
+                'foc' => $request->agreement_type === 'pkwt' ? ($adminData['foc'] ?? null) : null,
+                'agreement' => $adminData['agreement'] ?? strtoupper($request->agreement_type),
+                'no_fptk' => $adminData['no_fptk'] ?? ($fptk->request_number ?? null),
+                'is_active' => 1,
+                'user_id' => auth()->id(),
+            ];
+
+            Administration::create($administrationPayload);
+
+            // Update candidate global status to hired at Hiring stage
+            // Business rule: once Hiring is saved (agreement issued), candidate becomes globally hired
+            if ($session->candidate && $session->candidate->global_status !== 'hired') {
+                $session->candidate->update(['global_status' => 'hired']);
+            }
+
+            // Advance to next stage (onboarding) but keep progress at 'hire' until onboarding completed
+            $nextStage = $session->getNextStageAttribute();
+            if ($nextStage) {
+                $session->update([
+                    'current_stage' => $nextStage,
+                    'stage_status' => 'pending',
+                    'stage_started_at' => now(),
+                    'overall_progress' => \App\Models\RecruitmentSession::STAGE_PROGRESS['hire'],
+                ]);
+            }
+
+            DB::commit();
+            return back()->with('toast_success', 'Hiring saved. Advanced to ' . ucfirst($nextStage ?: 'next') . ' stage.');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Failed to update hiring', [
+                'session_id' => $sessionId,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return back()->with('toast_error', 'Failed to update hiring. Please try again.');
+        }
+    }
+
+    public function updateOnboarding(Request $request, $sessionId)
+    {
+        $request->validate([
+            'onboarding_date' => 'required|date',
+            'notes' => 'nullable|string',
+        ]);
+
+        try {
+            DB::beginTransaction();
+
+            $session = RecruitmentSession::with(['candidate', 'onboarding'])->findOrFail($sessionId);
+
+            // Ensure we are in Onboarding stage
+            if ($session->current_stage !== 'onboarding') {
+                return back()->with('toast_error', 'Session is not in Onboarding stage.');
+            }
+
+            // Create or update Onboarding record
+            $session->onboarding()->updateOrCreate(
+                ['session_id' => $sessionId],
+                [
+                    'onboarding_date' => $request->onboarding_date,
+                    'notes' => $request->notes,
+                    'reviewed_by' => auth()->id(),
+                    'reviewed_at' => now(),
+                ]
+            );
+
+            // Complete the session as hired (final 100%)
+            $session->update([
+                'stage_status' => 'completed',
+                'stage_completed_at' => now(),
+                'status' => 'hired',
+                'final_decision_date' => now(),
+                'final_decision_by' => auth()->id(),
+                'final_decision_notes' => $request->notes,
+                'overall_progress' => 100.0,
+            ]);
+
+            DB::commit();
+            return back()->with('toast_success', 'Onboarding saved. Session marked as Hired.');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Failed to update onboarding', [
+                'session_id' => $sessionId,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return back()->with('toast_error', 'Failed to update onboarding. Please try again.');
+        }
+    }
+
+    public function closeRequest(Request $request, $sessionOrFptkId)
+    {
+        try {
+            DB::beginTransaction();
+
+            // Accept either session ID (UUID) or FPTK ID (UUID) to improve robustness
+            $fptk = null;
+            if (strlen($sessionOrFptkId) === 36) {
+                // Try resolve as Session first
+                $session = RecruitmentSession::with('fptk')->find($sessionOrFptkId);
+                if ($session) {
+                    if (!in_array($session->status, ['hired', 'rejected', 'withdrawn', 'cancelled'])) {
+                        return back()->with('toast_error', 'Recruitment request can be closed only after the session is finished.');
+                    }
+                    $fptk = $session->fptk;
+                }
+            }
+
+            // If not resolved via session, treat as FPTK ID directly
+            if (!$fptk) {
+                $fptk = \App\Models\RecruitmentRequest::findOrFail($sessionOrFptkId);
+            }
+
+            // Close FPTK
+            $fptk->update(['status' => \App\Models\RecruitmentRequest::STATUS_CLOSED]);
+
+            DB::commit();
+            return redirect()->route('recruitment.sessions.index')->with('toast_success', 'Recruitment request has been closed.');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Failed to close recruitment request', [
+                'input_id' => $sessionOrFptkId,
+                'error' => $e->getMessage(),
+            ]);
+            return redirect()->route('recruitment.sessions.index')->with('toast_error', 'Failed to close recruitment request.');
+        }
     }
 }

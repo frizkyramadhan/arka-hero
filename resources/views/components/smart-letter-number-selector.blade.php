@@ -37,7 +37,7 @@
         <div class="row">
             <div class="col-md-8">
                 <label class="form-label mb-1">
-                    <strong>Letter Number</strong> <span class="text-danger">*</span>
+                    <strong>Letter Number</strong>
                     @if ($required)
                         <span class="text-danger">*</span>
                     @endif

@@ -169,7 +169,7 @@ class LetterNumberController extends Controller
                     break;
 
                 case 'PKWT':
-                    $rules['administration_id'] = 'required|exists:administrations,id';
+                    // $rules['administration_id'] = 'required|exists:administrations,id';
                     $rules['duration'] = 'required|string';
                     $rules['start_date'] = 'required|date';
                     $rules['end_date'] = 'required|date|after:start_date';

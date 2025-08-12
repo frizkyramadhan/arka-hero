@@ -57,8 +57,7 @@ class RecruitmentSession extends Model
         'cv_review',
         'psikotes',
         'tes_teori',
-        'interview_hr',
-        'interview_user',
+        'interview',
         'offering',
         'mcu',
         'hire',
@@ -73,8 +72,7 @@ class RecruitmentSession extends Model
         'cv_review' => 10,
         'psikotes' => 20,
         'tes_teori' => 30,
-        'interview_hr' => 45,
-        'interview_user' => 60,
+        'interview' => 45,
         'offering' => 75,
         'mcu' => 85,
         'hire' => 95,
@@ -86,8 +84,7 @@ class RecruitmentSession extends Model
         'cv_review' => 48,      // 1-2 days
         'psikotes' => 96,       // 3-5 days
         'tes_teori' => 60,      // 2-3 days
-        'interview_hr' => 120,  // 3-7 days
-        'interview_user' => 200, // 5-10 days
+        'interview' => 320,     // 8-15 days (combined HR + User)
         'offering' => 120,      // 3-7 days
         'mcu' => 96,           // 2-5 days
         'hire' => 48,          // 1-2 days
@@ -117,14 +114,64 @@ class RecruitmentSession extends Model
         return $this->belongsTo(User::class, 'final_decision_by');
     }
 
-    public function assessments()
+    // New separate table relationships
+    public function cvReview()
     {
-        return $this->hasMany(RecruitmentAssessment::class, 'session_id');
+        return $this->hasOne(RecruitmentCvReview::class, 'session_id');
     }
 
-    public function offers()
+    public function psikotes()
     {
-        return $this->hasMany(RecruitmentOffer::class, 'session_id');
+        return $this->hasOne(RecruitmentPsikotes::class, 'session_id');
+    }
+
+    public function tesTeori()
+    {
+        return $this->hasOne(RecruitmentTesTeori::class, 'session_id');
+    }
+
+    public function interviews()
+    {
+        return $this->hasMany(RecruitmentInterview::class, 'session_id');
+    }
+
+    public function interviewHr()
+    {
+        return $this->hasOne(RecruitmentInterview::class, 'session_id')->where('type', 'hr');
+    }
+
+    public function interviewUser()
+    {
+        return $this->hasOne(RecruitmentInterview::class, 'session_id')->where('type', 'user');
+    }
+
+    public function offering()
+    {
+        return $this->hasOne(RecruitmentOffering::class, 'session_id');
+    }
+
+    /**
+     * Get the latest offering for this session
+     * This method is used by the workflow service for compatibility
+     */
+    public function getLatestOffer()
+    {
+        return $this->offering;
+    }
+
+    public function mcu()
+    {
+        return $this->hasOne(RecruitmentMcu::class, 'session_id');
+    }
+
+    public function hiring()
+    {
+        return $this->hasOne(RecruitmentHiring::class, 'session_id');
+    }
+
+    public function onboarding()
+    {
+        return $this->hasOne(RecruitmentOnboarding::class, 'session_id');
     }
 
     public function documents()
@@ -132,22 +179,149 @@ class RecruitmentSession extends Model
         return $this->hasMany(RecruitmentDocument::class, 'session_id');
     }
 
-    // Get assessment by type
-    public function getAssessment($type)
-    {
-        return $this->assessments()->where('assessment_type', $type)->first();
-    }
-
     // Get current stage assessment
     public function getCurrentStageAssessment()
     {
-        return $this->getAssessment($this->current_stage);
+        switch ($this->current_stage) {
+            case 'cv_review':
+                return $this->cvReview;
+            case 'psikotes':
+                return $this->psikotes;
+            case 'tes_teori':
+                return $this->tesTeori;
+            case 'interview':
+                return $this->interviews; // Return all interviews for this stage
+            case 'offering':
+                return $this->offering;
+            case 'mcu':
+                return $this->mcu;
+            case 'hire':
+                return $this->hiring;
+            case 'onboarding':
+                return $this->onboarding;
+            default:
+                return null;
+        }
     }
 
-    // Get latest offer
-    public function getLatestOffer()
+    // Get assessment by stage
+    public function getAssessmentByStage($stage)
     {
-        return $this->offers()->orderBy('created_at', 'desc')->first();
+        switch ($stage) {
+            case 'cv_review':
+                return $this->cvReview;
+            case 'psikotes':
+                return $this->psikotes;
+            case 'tes_teori':
+                return $this->tesTeori;
+            case 'interview_hr':
+                return $this->interviewHr;
+            case 'interview_user':
+                return $this->interviewUser;
+            case 'offering':
+                return $this->offering;
+            case 'mcu':
+                return $this->mcu;
+            case 'hire':
+                return $this->hiring;
+            case 'onboarding':
+                return $this->onboarding;
+            default:
+                return null;
+        }
+    }
+
+    // Check if stage is completed
+    public function isStageCompleted($stage)
+    {
+        $assessment = $this->getAssessmentByStage($stage);
+        if (!$assessment) {
+            return false;
+        }
+
+        switch ($stage) {
+            case 'cv_review':
+                return $assessment->decision === 'recommended';
+            case 'psikotes':
+                return $assessment->result === 'pass';
+            case 'tes_teori':
+                return $assessment->result === 'pass';
+            case 'interview_hr':
+            case 'interview_user':
+                return $assessment->result === 'recommended';
+            case 'offering':
+                return $assessment->result === 'accepted';
+            case 'mcu':
+                return $assessment->result === 'fit';
+            case 'hire':
+                return $assessment->id !== null; // If record exists, it's completed
+            case 'onboarding':
+                return $assessment->id !== null; // If record exists, it's completed
+            default:
+                return false;
+        }
+    }
+
+    // Get all assessments as array
+    public function getAllAssessments()
+    {
+        return [
+            'cv_review' => $this->cvReview,
+            'psikotes' => $this->psikotes,
+            'tes_teori' => $this->tesTeori,
+            'interview_hr' => $this->interviewHr,
+            'interview_user' => $this->interviewUser,
+            'offering' => $this->offering,
+            'mcu' => $this->mcu,
+            'hire' => $this->hiring,
+            'onboarding' => $this->onboarding,
+        ];
+    }
+
+    // Get completed assessments count
+    public function getCompletedAssessmentsCount()
+    {
+        $completed = 0;
+        $stages = ['cv_review', 'psikotes', 'tes_teori', 'interview', 'offering', 'mcu', 'hire', 'onboarding'];
+
+        foreach ($stages as $stage) {
+            if ($this->isStageCompleted($stage)) {
+                $completed++;
+            }
+        }
+
+        return $completed;
+    }
+
+    /**
+     * Get interview status for timeline coloring
+     */
+    public function getInterviewStatus()
+    {
+        $hrInterview = $this->interviews()->where('type', 'hr')->first();
+        $userInterview = $this->interviews()->where('type', 'user')->first();
+
+        if ($hrInterview && $userInterview) {
+            // Both interviews completed
+            if ($hrInterview->result === 'recommended' && $userInterview->result === 'recommended') {
+                return 'success'; // Both passed
+            } elseif ($hrInterview->result === 'not_recommended' || $userInterview->result === 'not_recommended') {
+                return 'danger'; // One or both failed
+            } else {
+                return 'warning'; // Both completed but not both passed
+            }
+        } elseif ($hrInterview || $userInterview) {
+            // One interview completed
+            $completedInterview = $hrInterview ?? $userInterview;
+            if ($completedInterview->result === 'not_recommended') {
+                return 'danger'; // Completed interview failed
+            } else {
+                return 'warning'; // One completed, one pending
+            }
+        } else {
+            // No interviews completed
+            return 'secondary';
+        }
     }
 
     /**

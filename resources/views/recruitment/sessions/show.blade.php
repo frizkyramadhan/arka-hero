@@ -224,10 +224,12 @@
                         <div class="card-body">
                             <div class="fptk-action-buttons">
                                 @can('recruitment-sessions.create')
-                                    <button type="button" class="btn-action add-candidate-btn" data-toggle="modal"
-                                        data-target="#addCandidateModal">
-                                        <i class="fas fa-plus"></i> Add Candidate
-                                    </button>
+                                    @if ($fptk->status !== 'closed')
+                                        <button type="button" class="btn-action add-candidate-btn" data-toggle="modal"
+                                            data-target="#addCandidateModal">
+                                            <i class="fas fa-plus"></i> Add Candidate
+                                        </button>
+                                    @endif
                                 @endcan
                                 <a href="{{ route('recruitment.sessions.dashboard') }}" class="btn-action dashboard-btn">
                                     <i class="fas fa-chart-bar"></i> View Dashboard
@@ -235,6 +237,17 @@
                                 <a href="{{ route('recruitment.sessions.index') }}" class="btn-action back-btn">
                                     <i class="fas fa-arrow-left"></i> Back to Sessions
                                 </a>
+                                @if ($fptk->status !== 'closed')
+                                    <form method="POST"
+                                        action="{{ route('recruitment.sessions.close-request', $fptk->id) }}"
+                                        class="d-block confirm-submit"
+                                        data-confirm-message="Close this recruitment request (FPTK)? You cannot undo this action.">
+                                        @csrf
+                                        <button type="submit" class="btn btn-warning btn-block">
+                                            <i class="fas fa-lock"></i> Close Request
+                                        </button>
+                                    </form>
+                                @endif
                             </div>
                         </div>
                     </div>
@@ -370,18 +383,20 @@
                                                 '<span class="badge badge-secondary">' . ucfirst($session->status) . '</span>' !!}
                                         </td>
                                         <td class="text-center">
-                                            <a href="{{ route('recruitment.sessions.show-session', $session->id) }}"
+                                            <a href="{{ route('recruitment.sessions.candidate', $session->id) }}"
                                                 class="btn btn-sm btn-info" title="View Session Details">
                                                 <i class="fas fa-eye"></i>
                                             </a>
                                             @can('recruitment-sessions.delete')
-                                                <button type="button" class="btn btn-sm btn-danger delete-session-btn"
-                                                    data-session-id="{{ $session->id }}"
-                                                    data-candidate-name="{{ $session->candidate->fullname ?? 'N/A' }}"
-                                                    data-toggle="modal" data-target="#deleteSessionModal"
-                                                    title="Remove Candidate from Session">
-                                                    <i class="fas fa-trash"></i>
-                                                </button>
+                                                @if ($session->status !== 'hired')
+                                                    <button type="button" class="btn btn-sm btn-danger delete-session-btn"
+                                                        data-session-id="{{ $session->id }}"
+                                                        data-candidate-name="{{ $session->candidate->fullname ?? 'N/A' }}"
+                                                        data-toggle="modal" data-target="#deleteSessionModal"
+                                                        title="Remove Candidate from Session">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                @endif
                                             @endcan
                                         </td>
                                     </tr>
@@ -904,6 +919,33 @@
 @section('scripts')
     <script>
         $(function() {
+            // Confirm submit for Close Request with toast feedback
+            $(document).on('submit', 'form.confirm-submit', function(e) {
+                const form = this;
+                if (form.dataset.submitting === 'true') return;
+                e.preventDefault();
+                const message = form.getAttribute('data-confirm-message') ||
+                    'Submit? Data cannot be edited after submission.';
+                const proceed = () => {
+                    form.dataset.submitting = 'true';
+                    if (typeof toast_ === 'function') toast_('info', 'Submitting...');
+                    form.submit();
+                };
+                if (typeof Swal !== 'undefined' && Swal.fire) {
+                    Swal.fire({
+                        title: 'Are you sure?',
+                        text: message,
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonText: 'Yes, submit',
+                        cancelButtonText: 'Cancel'
+                    }).then((result) => {
+                        if (result.isConfirmed) proceed();
+                    });
+                } else {
+                    if (confirm(message)) proceed();
+                }
+            });
             // Search candidate functionality
             $('#search_candidate').click(function() {
                 searchCandidates();

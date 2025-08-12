@@ -1,160 +1,52 @@
-<!-- Advance Stage Modal -->
-<div class="modal fade" id="advanceModal">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h4 class="modal-title">Advance to Next Stage</h4>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-            <form id="advanceForm">
-                <div class="modal-body">
-                    @csrf
-                    <input type="hidden" id="advance_session_id" name="session_id">
-                    <div class="form-group">
-                        <label for="advance_notes">Stage Notes</label>
-                        <textarea class="form-control" id="advance_notes" name="notes" rows="3"
-                            placeholder="Enter notes for stage completion (optional)"></textarea>
-                    </div>
-                </div>
-                <div class="modal-footer justify-content-between">
-                    <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
-                    <button type="submit" class="btn btn-success">Advance</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-
-<!-- Reject Session Modal -->
-<div class="modal fade" id="rejectModal">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h4 class="modal-title">Reject Session</h4>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-            <form id="rejectForm">
-                <div class="modal-body">
-                    @csrf
-                    <input type="hidden" id="reject_session_id" name="session_id">
-                    <div class="form-group">
-                        <label for="reject_reason">Rejection Reason *</label>
-                        <textarea class="form-control" id="reject_reason" name="reason" rows="3" placeholder="Enter rejection reason"
-                            required></textarea>
-                    </div>
-                </div>
-                <div class="modal-footer justify-content-between">
-                    <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
-                    <button type="submit" class="btn btn-danger">Reject</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-
-<!-- Complete Session Modal -->
-<div class="modal fade" id="completeModal">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h4 class="modal-title">Complete Session</h4>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-            <form id="completeForm">
-                <div class="modal-body">
-                    @csrf
-                    <input type="hidden" id="complete_session_id" name="session_id">
-                    <div class="form-group">
-                        <label for="hire_date">Hire Date *</label>
-                        <input type="date" class="form-control" id="hire_date" name="hire_date" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="employee_id">Employee ID</label>
-                        <input type="text" class="form-control" id="employee_id" name="employee_id"
-                            placeholder="Enter employee ID">
-                    </div>
-                    <div class="form-group">
-                        <label for="complete_notes">Completion Notes</label>
-                        <textarea class="form-control" id="complete_notes" name="notes" rows="3"
-                            placeholder="Enter completion notes (optional)"></textarea>
-                    </div>
-                </div>
-                <div class="modal-footer justify-content-between">
-                    <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
-                    <button type="submit" class="btn btn-primary">Complete</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-
-<!-- Cancel Session Modal -->
-<div class="modal fade" id="cancelModal">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h4 class="modal-title">Cancel Session</h4>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-            <form id="cancelForm">
-                <div class="modal-body">
-                    @csrf
-                    <input type="hidden" id="cancel_session_id" name="session_id">
-                    <div class="form-group">
-                        <label for="cancel_reason">Cancellation Reason *</label>
-                        <textarea class="form-control" id="cancel_reason" name="cancel_reason" rows="3"
-                            placeholder="Enter cancellation reason" required></textarea>
-                    </div>
-                </div>
-                <div class="modal-footer justify-content-between">
-                    <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
-                    <button type="submit" class="btn btn-warning">Cancel</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-
 <!-- CV Review Modal -->
 <div class="modal fade" id="cvReviewModal">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
                 <h4 class="modal-title">
-                    <i class="fas fa-file-alt"></i> CV Review Decision
+                    <i class="fas fa-file-alt"></i> Choose Your Decision
                 </h4>
                 <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
-            <div class="modal-body">
-                <div class="text-center mb-4">
-                    <p class="lead">What is your decision for this candidate's CV?</p>
-                </div>
-                <div class="row">
-                    <div class="col-6">
-                        <button type="button" class="btn btn-success btn-lg btn-block" id="cvPassBtn">
-                            <i class="fas fa-check"></i> Pass
-                        </button>
+            <form method="POST" action="{{ route('recruitment.sessions.update-cv-review', $session->id) }}"
+                class="confirm-submit" data-confirm-message="Submit this decision? You cannot edit after submission.">
+                @csrf
+                <div class="modal-body">
+                    <input type="hidden" name="assessment_data" id="cv_review_assessment_data">
+                    <input type="hidden" id="cv_review_decision" name="decision" required>
+
+                    <div class="form-group">
+                        <label class="form-label mb-2">
+                            <strong>CV Review Decision</strong> <span class="text-danger">*</span>
+                        </label>
+                        <div class="decision-buttons">
+                            <button type="button" class="btn decision-btn btn-outline-success"
+                                data-status="recommended">
+                                <i class="fas fa-check-circle"></i> Recommended
+                            </button>
+                            <button type="button" class="btn decision-btn btn-outline-danger"
+                                data-status="not_recommended">
+                                <i class="fas fa-times-circle"></i> Not Recommended
+                            </button>
+                        </div>
                     </div>
-                    <div class="col-6">
-                        <button type="button" class="btn btn-danger btn-lg btn-block" id="cvFailBtn">
-                            <i class="fas fa-times"></i> Fail
-                        </button>
+
+                    <div class="form-group">
+                        <label for="cv_review_notes" class="font-weight-bold">Notes *</label>
+                        <textarea class="form-control" id="cv_review_notes" name="notes" rows="3" required></textarea>
                     </div>
                 </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-            </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-secondary submit-btn" disabled>
+                        <i class="fas fa-paper-plane"></i> Submit Decision
+                    </button>
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">
+                        <i class="fas fa-times"></i> Cancel
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
@@ -171,10 +63,11 @@
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
-            <form id="psikotesForm">
+            <form id="psikotesForm" method="POST" class="confirm-submit"
+                data-confirm-message="Submit this assessment? You cannot edit after submission."
+                action="{{ route('recruitment.sessions.update-psikotes', $session->id) }}">
                 <div class="modal-body">
                     @csrf
-                    <input type="hidden" id="psikotes_session_id" name="session_id">
                     <div class="row">
                         <div class="col-md-6">
                             <div class="card">
@@ -252,166 +145,35 @@
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
-            <form id="tesTeoriForm">
+            <form id="tesTeoriForm" method="POST" class="confirm-submit"
+                data-confirm-message="Submit this assessment? You cannot edit after submission."
+                action="{{ route('recruitment.sessions.update-tes-teori', $session->id) }}">
                 <div class="modal-body">
                     @csrf
-                    <input type="hidden" id="tes_teori_session_id" name="session_id">
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label for="tes_teori_score">Skor Tes Teori</label>
-                                <input type="number" class="form-control" id="tes_teori_score" name="score"
-                                    min="0" max="100" step="0.01"
-                                    placeholder="Masukkan skor tes teori">
-                            </div>
-                            <div class="alert alert-info">
-                                <strong>Kriteria:</strong><br>
-                                • ≥ 75: Lulus<br>
-                                • < 75: Tidak Lulus </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label for="tes_teori_duration">Durasi Pengerjaan (menit)</label>
-                                    <input type="number" class="form-control" id="tes_teori_duration"
-                                        name="duration" min="0" placeholder="Masukkan durasi pengerjaan">
-                                </div>
-                                <div class="form-group">
-                                    <label for="tes_teori_notes">Catatan</label>
-                                    <textarea class="form-control" id="tes_teori_notes" name="notes" rows="3"
-                                        placeholder="Masukkan catatan tambahan (opsional)"></textarea>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-                        <button type="submit" class="btn btn-primary">Submit Assessment</button>
-                    </div>
-            </form>
-        </div>
-    </div>
-</div>
-
-<!-- Interview HR Modal -->
-<div class="modal fade" id="interviewHrModal">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h4 class="modal-title">
-                    <i class="fas fa-user-tie"></i> Interview HR Assessment
-                </h4>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-            <form id="interviewHrForm">
-                <div class="modal-body">
-                    @csrf
-                    <input type="hidden" id="interview_hr_session_id" name="session_id">
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label for="interview_hr_communication">Komunikasi (1-10)</label>
-                                <input type="number" class="form-control" id="interview_hr_communication"
-                                    name="communication" min="1" max="10" step="0.1"
-                                    placeholder="Skor komunikasi">
-                            </div>
-                            <div class="form-group">
-                                <label for="interview_hr_attitude">Sikap (1-10)</label>
-                                <input type="number" class="form-control" id="interview_hr_attitude"
-                                    name="attitude" min="1" max="10" step="0.1"
-                                    placeholder="Skor sikap">
-                            </div>
-                            <div class="form-group">
-                                <label for="interview_hr_cultural_fit">Cultural Fit (1-10)</label>
-                                <input type="number" class="form-control" id="interview_hr_cultural_fit"
-                                    name="cultural_fit" min="1" max="10" step="0.1"
-                                    placeholder="Skor cultural fit">
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label for="interview_hr_overall">Skor Keseluruhan</label>
-                                <input type="number" class="form-control" id="interview_hr_overall"
-                                    name="overall_score" min="0" max="100" step="0.01"
-                                    placeholder="Skor keseluruhan" readonly>
-                            </div>
-                            <div class="alert alert-info">
-                                <strong>Kriteria:</strong><br>
-                                • ≥ 70: Lulus<br>
-                                • < 70: Tidak Lulus </div>
+                    <div class="alert alert-warning mb-4">
+                        <strong>Kategori Berdasarkan Skor:</strong><br>
+                        • ≥ 76: Mechanic Senior<br>
+                        • ≥ 61: Mechanic Advance<br>
+                        • ≥ 46: Mechanic<br>
+                        • ≥ 21: Helper Mechanic<br>
+                        • < 21: Belum Kompeten </div>
+                            <div class="row">
+                                <div class="col-md-6">
                                     <div class="form-group">
-                                        <label for="interview_hr_notes">Catatan Interview</label>
-                                        <textarea class="form-control" id="interview_hr_notes" name="notes" rows="4"
-                                            placeholder="Masukkan catatan interview (opsional)"></textarea>
+                                        <label for="tes_teori_score">Skor Tes Teori</label>
+                                        <input type="number" class="form-control" id="tes_teori_score"
+                                            name="score" min="0" max="100" step="0.01"
+                                            placeholder="Masukkan skor tes teori">
                                     </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-                        <button type="submit" class="btn btn-primary">Submit Assessment</button>
-                    </div>
-            </form>
-        </div>
-    </div>
-</div>
-
-<!-- Interview User Modal -->
-<div class="modal fade" id="interviewUserModal">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h4 class="modal-title">
-                    <i class="fas fa-users"></i> Interview User Assessment
-                </h4>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-            <form id="interviewUserForm">
-                <div class="modal-body">
-                    @csrf
-                    <input type="hidden" id="interview_user_session_id" name="session_id">
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label for="interview_user_technical">Technical Skill (1-10)</label>
-                                <input type="number" class="form-control" id="interview_user_technical"
-                                    name="technical" min="1" max="10" step="0.1"
-                                    placeholder="Skor technical skill">
-                            </div>
-                            <div class="form-group">
-                                <label for="interview_user_experience">Experience (1-10)</label>
-                                <input type="number" class="form-control" id="interview_user_experience"
-                                    name="experience" min="1" max="10" step="0.1"
-                                    placeholder="Skor experience">
-                            </div>
-                            <div class="form-group">
-                                <label for="interview_user_problem_solving">Problem Solving (1-10)</label>
-                                <input type="number" class="form-control" id="interview_user_problem_solving"
-                                    name="problem_solving" min="1" max="10" step="0.1"
-                                    placeholder="Skor problem solving">
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label for="interview_user_overall">Skor Keseluruhan</label>
-                                <input type="number" class="form-control" id="interview_user_overall"
-                                    name="overall_score" min="0" max="100" step="0.01"
-                                    placeholder="Skor keseluruhan" readonly>
-                            </div>
-                            <div class="alert alert-info">
-                                <strong>Kriteria:</strong><br>
-                                • ≥ 75: Lulus<br>
-                                • < 75: Tidak Lulus </div>
+                                </div>
+                                <div class="col-md-6">
                                     <div class="form-group">
-                                        <label for="interview_user_notes">Catatan Interview</label>
-                                        <textarea class="form-control" id="interview_user_notes" name="notes" rows="4"
-                                            placeholder="Masukkan catatan interview (opsional)"></textarea>
+                                        <label for="tes_teori_notes">Catatan</label>
+                                        <textarea class="form-control" id="tes_teori_notes" name="notes" rows="3"
+                                            placeholder="Masukkan catatan tambahan (opsional)"></textarea>
                                     </div>
+                                </div>
                             </div>
-                        </div>
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
@@ -422,67 +184,63 @@
     </div>
 </div>
 
-<!-- MCU Modal -->
-<div class="modal fade" id="mcuModal">
-    <div class="modal-dialog modal-lg">
+<!-- Interview Modal -->
+<div class="modal fade" id="interviewModal">
+    <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
                 <h4 class="modal-title">
-                    <i class="fas fa-user-md"></i> Medical Check Up Assessment
+                    <i class="fas fa-user-tie"></i> Choose Your Decision
                 </h4>
                 <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
-            <form id="mcuForm">
+            <form id="interviewForm" method="POST" class="confirm-submit"
+                data-confirm-message="Submit this decision? You cannot edit after submission."
+                action="{{ route('recruitment.sessions.update-interview', $session->id) }}">
+                @csrf
                 <div class="modal-body">
-                    @csrf
-                    <input type="hidden" id="mcu_session_id" name="session_id">
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label for="mcu_blood_pressure">Tekanan Darah</label>
-                                <input type="text" class="form-control" id="mcu_blood_pressure"
-                                    name="blood_pressure" placeholder="Contoh: 120/80 mmHg">
-                            </div>
-                            <div class="form-group">
-                                <label for="mcu_heart_rate">Detak Jantung</label>
-                                <input type="number" class="form-control" id="mcu_heart_rate" name="heart_rate"
-                                    min="40" max="200" placeholder="BPM">
-                            </div>
-                            <div class="form-group">
-                                <label for="mcu_blood_sugar">Gula Darah</label>
-                                <input type="number" class="form-control" id="mcu_blood_sugar" name="blood_sugar"
-                                    min="0" step="0.1" placeholder="mg/dL">
-                            </div>
+                    <input type="hidden" id="interview_decision" name="result" required>
+
+                    <!-- Interview Type Selection -->
+                    <div class="form-group mb-4">
+                        <label for="interview_type" class="font-weight-bold">Interview Type *</label>
+                        <select class="form-control" id="interview_type" name="type" required>
+                            <option value="">Select Interview Type</option>
+                            <option value="hr">HR Interview</option>
+                            <option value="user">User Interview</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label mb-2">
+                            <strong>Interview Decision</strong> <span class="text-danger">*</span>
+                        </label>
+                        <div class="decision-buttons">
+                            <button type="button" class="btn decision-btn btn-outline-success"
+                                data-status="recommended">
+                                <i class="fas fa-check-circle"></i> Recommended
+                            </button>
+                            <button type="button" class="btn decision-btn btn-outline-danger"
+                                data-status="not_recommended">
+                                <i class="fas fa-times-circle"></i> Not Recommended
+                            </button>
                         </div>
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label for="mcu_overall_health">Kondisi Kesehatan Keseluruhan</label>
-                                <select class="form-control" id="mcu_overall_health" name="overall_health">
-                                    <option value="">Pilih kondisi</option>
-                                    <option value="fit">Fit</option>
-                                    <option value="unfit">Unfit</option>
-                                    <option value="conditional">Conditional</option>
-                                </select>
-                            </div>
-                            <div class="alert alert-info">
-                                <strong>Kriteria:</strong><br>
-                                • Fit: Lulus<br>
-                                • Conditional: Perlu evaluasi lebih lanjut<br>
-                                • Unfit: Tidak Lulus
-                            </div>
-                            <div class="form-group">
-                                <label for="mcu_notes">Catatan MCU</label>
-                                <textarea class="form-control" id="mcu_notes" name="notes" rows="4"
-                                    placeholder="Masukkan catatan MCU (opsional)"></textarea>
-                            </div>
-                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="interview_notes" class="font-weight-bold">Notes *</label>
+                        <textarea class="form-control" id="interview_notes" name="notes" rows="3" required></textarea>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-                    <button type="submit" class="btn btn-primary">Submit Assessment</button>
+                    <button type="submit" class="btn btn-secondary submit-btn" disabled>
+                        <i class="fas fa-paper-plane"></i> Submit Decision
+                    </button>
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">
+                        <i class="fas fa-times"></i> Cancel
+                    </button>
                 </div>
             </form>
         </div>
@@ -491,7 +249,7 @@
 
 <!-- Offering Modal -->
 <div class="modal fade" id="offeringModal">
-    <div class="modal-dialog modal-lg">
+    <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
                 <h4 class="modal-title">
@@ -501,49 +259,119 @@
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
-            <form id="offeringForm">
+            <form id="offeringForm" method="POST" class="confirm-submit"
+                data-confirm-message="Submit this offering? You cannot edit after submission."
+                action="{{ route('recruitment.sessions.update-offering', $session->id) }}">
                 <div class="modal-body">
                     @csrf
-                    <input type="hidden" id="offering_session_id" name="session_id">
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label for="offering_salary">Salary Offered</label>
-                                <input type="number" class="form-control" id="offering_salary" name="salary"
-                                    min="0" step="1000" placeholder="Masukkan gaji yang ditawarkan">
-                            </div>
-                            <div class="form-group">
-                                <label for="offering_position">Position Offered</label>
-                                <input type="text" class="form-control" id="offering_position" name="position"
-                                    placeholder="Masukkan posisi yang ditawarkan">
-                            </div>
-                            <div class="form-group">
-                                <label for="offering_start_date">Start Date</label>
-                                <input type="date" class="form-control" id="offering_start_date"
-                                    name="start_date">
-                            </div>
+
+                    <!-- Letter Number Selection -->
+                    <div class="form-group">
+                        @include('components.smart-letter-number-selector', [
+                            'categoryCode' => 'A',
+                            'fieldName' => 'offering_letter_number_id',
+                            'required' => true,
+                            'placeholder' => 'Select Offering Letter Number',
+                        ])
+                    </div>
+
+                    <!-- Offering Letter Number (auto-filled like LOT Number) -->
+                    <div class="form-group">
+                        <label for="offering_letter_number">Offering Letter Number <span
+                                class="text-danger">*</span></label>
+                        <input type="text" class="form-control alert-warning text-dark font-weight-bold"
+                            id="offering_letter_number" name="offering_letter_number_display"
+                            placeholder="Select letter number above" readonly>
+                        <small class="form-text text-muted">
+                            This value is auto-filled from the selected letter number. It will be saved as the offering
+                            letter number.
+                        </small>
+                    </div>
+
+                    <!-- Decision Buttons -->
+                    <div class="form-group">
+                        <label class="form-label mb-2">
+                            <strong>Offering Decision</strong> <span class="text-danger">*</span>
+                        </label>
+                        <div class="decision-buttons">
+                            <button type="button" class="btn decision-btn btn-outline-success"
+                                data-decision="accepted">
+                                <i class="fas fa-check-circle"></i> Accepted
+                            </button>
+                            <button type="button" class="btn decision-btn btn-outline-danger"
+                                data-decision="rejected">
+                                <i class="fas fa-times-circle"></i> Rejected
+                            </button>
                         </div>
-                        <div class="col-md-6">
+                        <input type="hidden" name="result" id="offering_result" required>
+                    </div>
+
+                    <!-- Notes -->
+                    <div class="form-group">
+                        <label for="offering_notes" class="form-label">
+                            <strong>Notes</strong>
+                        </label>
+                        <textarea class="form-control" id="offering_notes" name="notes" rows="3"
+                            placeholder="Enter offering notes (optional)"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary" id="offering_submit_btn" disabled>Submit
+                        Offering</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- MCU Modal -->
+<div class="modal fade" id="mcuModal">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title">
+                    <i class="fas fa-user-md"></i> Medical Check Up Assessment
+                </h4>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <form id="mcuForm" method="POST" class="confirm-submit"
+                data-confirm-message="Submit this MCU result? You cannot edit after submission."
+                action="{{ route('recruitment.sessions.update-mcu', $session->id) }}">
+                <div class="modal-body">
+                    @csrf
+                    <div class="row">
+                        <div class="col-md-12">
                             <div class="form-group">
-                                <label for="offering_status">Status Offering</label>
-                                <select class="form-control" id="offering_status" name="status">
-                                    <option value="">Pilih status</option>
-                                    <option value="accepted">Accepted</option>
-                                    <option value="rejected">Rejected</option>
-                                    <option value="negotiating">Negotiating</option>
-                                </select>
+                                <label>MCU Result</label>
+                                <div class="decision-buttons">
+                                    <button type="button" class="btn decision-btn btn-outline-success"
+                                        data-mcu="fit">
+                                        <i class="fas fa-check-circle"></i> Fit to Work
+                                    </button>
+                                    <button type="button" class="btn decision-btn btn-outline-danger"
+                                        data-mcu="unfit">
+                                        <i class="fas fa-times-circle"></i> Unfit
+                                    </button>
+                                    <button type="button" class="btn decision-btn btn-outline-warning"
+                                        data-mcu="follow_up">
+                                        <i class="fas fa-stethoscope"></i> Follow Up
+                                    </button>
+                                </div>
+                                <input type="hidden" id="mcu_overall_health" name="overall_health" required>
                             </div>
                             <div class="form-group">
-                                <label for="offering_notes">Catatan Offering</label>
-                                <textarea class="form-control" id="offering_notes" name="notes" rows="4"
-                                    placeholder="Masukkan catatan offering (opsional)"></textarea>
+                                <label for="mcu_notes">Notes</label>
+                                <textarea class="form-control" id="mcu_notes" name="notes" rows="3" placeholder="Enter notes (optional)"></textarea>
                             </div>
                         </div>
                     </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-                    <button type="submit" class="btn btn-primary">Submit Offering</button>
+                    <button type="submit" class="btn btn-primary submit-btn" disabled>Submit Assessment</button>
                 </div>
             </form>
         </div>
@@ -562,53 +390,263 @@
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
-            <form id="hireForm">
+            <form id="hireForm" method="POST" class="confirm-submit"
+                data-confirm-message="Submit this hiring data? You cannot edit after submission."
+                action="{{ route('recruitment.sessions.update-hiring', $session->id) }}">
+                {{-- info untuk proses input data berikut akan masuk ke data employee dan administration otomatis --}}
                 <div class="modal-body">
+                    <div class="alert alert-info alert-dismissible fade show">
+                        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                        <strong>Info:</strong>
+                        <p>The data you enter here will be automatically saved to the Employee and Administration
+                            records.</p>
+                    </div>
                     @csrf
-                    <input type="hidden" id="hire_session_id" name="session_id">
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label for="hire_date">Hire Date *</label>
-                                <input type="date" class="form-control" id="hire_date" name="hire_date" required>
-                            </div>
-                            <div class="form-group">
-                                <label for="hire_employee_id">Employee ID</label>
-                                <input type="text" class="form-control" id="hire_employee_id" name="employee_id"
-                                    placeholder="Masukkan Employee ID">
-                            </div>
-                            <div class="form-group">
-                                <label for="hire_contract_type">Contract Type</label>
-                                <select class="form-control" id="hire_contract_type" name="contract_type">
-                                    <option value="">Pilih tipe kontrak</option>
-                                    <option value="permanent">Permanent</option>
-                                    <option value="contract">Contract</option>
-                                    <option value="probation">Probation</option>
-                                </select>
+                    <div class="card mb-3">
+                        <div class="card-header"><strong>Personal Data</strong></div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label>Fullname <span class="text-danger">*</span></label>
+                                        <input type="text" class="form-control" name="employee[fullname]"
+                                            value="{{ $session->candidate->fullname }}" required>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label>Identity Card No <span class="text-danger">*</span></label>
+                                        <input type="text" class="form-control" name="employee[identity_card]"
+                                            placeholder="Enter KTP/ID number" required>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label>Place of Birth <span class="text-danger">*</span></label>
+                                        <input type="text" class="form-control" name="employee[emp_pob]"
+                                            placeholder="Enter birthplace" required>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label>Date of Birth <span class="text-danger">*</span></label>
+                                        <input type="date" class="form-control" name="employee[emp_dob]"
+                                            value="{{ optional($session->candidate->date_of_birth)->format('Y-m-d') }}"
+                                            required>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label>Religion <span class="text-danger">*</span></label>
+                                        <select class="form-control" name="employee[religion_id]" required>
+                                            <option value="">Select religion</option>
+                                            @foreach (\App\Models\Religion::get() as $religion)
+                                                <option value="{{ $religion->id }}">{{ $religion->religion_name }}
+                                                </option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label>Gender</label>
+                                        <select class="form-control" name="employee[gender]">
+                                            <option value="">Select gender</option>
+                                            <option value="male">Male</option>
+                                            <option value="female">Female</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label>Marital Status</label>
+                                        <input type="text" class="form-control" name="employee[marital]"
+                                            placeholder="Single/Married/etc">
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label>Phone</label>
+                                        <input type="text" class="form-control" name="employee[phone]"
+                                            value="{{ $session->candidate->phone }}">
+                                    </div>
+                                </div>
+                                <div class="col-md-12">
+                                    <div class="form-group">
+                                        <label>Address</label>
+                                        <input type="text" class="form-control" name="employee[address]"
+                                            value="{{ $session->candidate->address }}">
+                                    </div>
+                                </div>
+                                <div class="col-md-12">
+                                    <div class="form-group">
+                                        <label>Email</label>
+                                        <input type="email" class="form-control" name="employee[email]"
+                                            value="{{ $session->candidate->email }}">
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label for="hire_department">Department</label>
-                                <input type="text" class="form-control" id="hire_department" name="department"
-                                    placeholder="Masukkan department">
-                            </div>
-                            <div class="form-group">
-                                <label for="hire_position">Position</label>
-                                <input type="text" class="form-control" id="hire_position" name="position"
-                                    placeholder="Masukkan posisi">
-                            </div>
-                            <div class="form-group">
-                                <label for="hire_notes">Catatan Hire</label>
-                                <textarea class="form-control" id="hire_notes" name="notes" rows="4"
-                                    placeholder="Masukkan catatan hire (opsional)"></textarea>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header"><strong>Administration Data</strong></div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label>NIK <span class="text-danger">*</span></label>
+                                        <input type="text" class="form-control" name="administration[nik]"
+                                            placeholder="Enter employee NIK" required>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label>Date of Hire <span class="text-danger">*</span></label>
+                                        <input type="date" class="form-control" name="administration[doh]"
+                                            value="{{ now()->format('Y-m-d') }}" required>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label>Place of Hire (POH) <span class="text-danger">*</span></label>
+                                        <input type="text" class="form-control" name="administration[poh]"
+                                            placeholder="Enter POH" required>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label>Class <span class="text-danger">*</span></label>
+                                        <select class="form-control" name="administration[class]" required>
+                                            <option value="">Select class</option>
+                                            <option value="Staff">Staff</option>
+                                            <option value="Non Staff">Non Staff</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label>Project</label>
+                                        <select class="form-control" name="administration[project_id]">
+                                            <option value="">Select project</option>
+                                            @foreach (\App\Models\Project::orderBy('project_code', 'asc')->get() as $project)
+                                                <option value="{{ $project->id }}"
+                                                    {{ optional($session->fptk)->project_id == $project->id ? 'selected' : '' }}>
+                                                    {{ $project->project_code }}</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label>Position</label>
+                                        <select class="form-control" name="administration[position_id]">
+                                            <option value="">Select position</option>
+                                            @foreach (\App\Models\Position::orderBy('position_name', 'asc')->get() as $position)
+                                                <option value="{{ $position->id }}"
+                                                    {{ optional($session->fptk)->position_id == $position->id ? 'selected' : '' }}>
+                                                    {{ $position->position_name }}</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label>Grade</label>
+                                        <select class="form-control" name="administration[grade_id]">
+                                            <option value="">Select grade</option>
+                                            @foreach (\App\Models\Grade::where('is_active', 1)->orderBy('name', 'asc')->get() as $grade)
+                                                <option value="{{ $grade->id }}">{{ $grade->name }}</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label>Level</label>
+                                        <select class="form-control" name="administration[level_id]">
+                                            <option value="">Select level</option>
+                                            @foreach (\App\Models\Level::where('is_active', 1)->orderBy('name', 'asc')->get() as $level)
+                                                <option value="{{ $level->id }}">{{ $level->name }}</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label>FPTK No</label>
+                                        <input type="text" class="form-control" name="administration[no_fptk]"
+                                            value="{{ optional($session->fptk)->request_number }}" readonly>
+                                    </div>
+                                </div>
+
                             </div>
                         </div>
+                    </div>
+
+                    <div class="card mt-3">
+                        <div class="card-header"><strong>Agreement</strong></div>
+                        <div class="card-body">
+                            <!-- PKWT Letter Number Selection -->
+                            <div class="form-group">
+                                @include('components.smart-letter-number-selector', [
+                                    'categoryCode' => 'PKWT',
+                                    'fieldName' => 'hiring_letter_number_id',
+                                    'required' => true,
+                                    'placeholder' => 'Select PKWT Letter Number',
+                                ])
+                            </div>
+
+                            <!-- Final Letter Number (readonly display) -->
+                            <div class="form-group">
+                                <label for="hiring_letter_number">PKWT Letter Number <span
+                                        class="text-danger">*</span></label>
+                                <input type="text" class="form-control alert-warning text-dark font-weight-bold"
+                                    id="hiring_letter_number" name="hiring_letter_number_display"
+                                    placeholder="Select letter number above" readonly>
+                                <small class="form-text text-muted">This value is auto-filled from the selected letter
+                                    number.</small>
+                            </div>
+
+                            <!-- Agreement Type -->
+                            <div class="form-group">
+                                <label class="form-label mb-2"><strong>Agreement Type</strong> <span
+                                        class="text-danger">*</span></label>
+                                <div class="decision-buttons">
+                                    <button type="button" class="btn decision-btn btn-outline-success"
+                                        data-agreement="pkwt"><i class="fas fa-file-signature"></i> PKWT</button>
+                                    <button type="button" class="btn decision-btn btn-outline-warning"
+                                        data-agreement="pkwtt"><i class="fas fa-briefcase"></i> PKWTT</button>
+                                </div>
+                                <input type="hidden" name="agreement_type" id="agreement_type" required>
+                            </div>
+
+                            <!-- FOC (only for PKWT) -->
+                            <div class="row">
+                                <div class="col-md-6" id="foc_container" style="display:none;">
+                                    <div class="form-group">
+                                        <label>Finish of Contract (FOC) <span class="text-danger">*</span></label>
+                                        <input type="date" class="form-control" name="administration[foc]"
+                                            id="administration_foc">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Notes -->
+                    <div class="form-group">
+                        <label for="hire_notes" class="form-label"><strong>Notes</strong></label>
+                        <textarea class="form-control" id="hire_notes" name="notes" rows="3"
+                            placeholder="Enter hiring notes (optional)"></textarea>
                     </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-                    <button type="submit" class="btn btn-primary">Submit Hire</button>
+                    <button type="submit" class="btn btn-primary submit-btn" id="hire_submit_btn" disabled>Submit
+                        Hire</button>
                 </div>
             </form>
         </div>
@@ -627,44 +665,20 @@
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
-            <form id="onboardingForm">
+            <form id="onboardingForm" method="POST" class="confirm-submit"
+                data-confirm-message="Submit onboarding? You cannot edit after submission."
+                action="{{ route('recruitment.sessions.update-onboarding', $session->id) }}">
                 <div class="modal-body">
                     @csrf
-                    <input type="hidden" id="onboarding_session_id" name="session_id">
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label for="onboarding_start_date">Onboarding Start Date</label>
-                                <input type="date" class="form-control" id="onboarding_start_date"
-                                    name="start_date">
-                            </div>
-                            <div class="form-group">
-                                <label for="onboarding_duration">Duration (days)</label>
-                                <input type="number" class="form-control" id="onboarding_duration" name="duration"
-                                    min="1" placeholder="Masukkan durasi onboarding">
-                            </div>
-                            <div class="form-group">
-                                <label for="onboarding_mentor">Mentor</label>
-                                <input type="text" class="form-control" id="onboarding_mentor" name="mentor"
-                                    placeholder="Masukkan nama mentor">
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label for="onboarding_status">Onboarding Status</label>
-                                <select class="form-control" id="onboarding_status" name="status">
-                                    <option value="">Pilih status</option>
-                                    <option value="in_progress">In Progress</option>
-                                    <option value="completed">Completed</option>
-                                    <option value="extended">Extended</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label for="onboarding_notes">Catatan Onboarding</label>
-                                <textarea class="form-control" id="onboarding_notes" name="notes" rows="4"
-                                    placeholder="Masukkan catatan onboarding (opsional)"></textarea>
-                            </div>
-                        </div>
+                    <div class="form-group">
+                        <label for="onboarding_date">Onboarding Date <span class="text-danger">*</span></label>
+                        <input type="date" class="form-control" id="onboarding_date" name="onboarding_date"
+                            required>
+                    </div>
+                    <div class="form-group">
+                        <label for="onboarding_notes">Notes</label>
+                        <textarea class="form-control" id="onboarding_notes" name="notes" rows="3"
+                            placeholder="Enter notes (optional)"></textarea>
                     </div>
                 </div>
                 <div class="modal-footer">

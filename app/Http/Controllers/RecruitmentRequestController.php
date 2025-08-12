@@ -348,13 +348,21 @@ class RecruitmentRequestController extends Controller
             // 'directorApprover',
             'letterNumber.category',
             'sessions.candidate',
-            'sessions.assessments',
+            'sessions.cvReview',
+            'sessions.psikotes',
+            'sessions.tesTeori',
+            'sessions.interviews',
+            'sessions.offering',
+            'sessions.mcu',
+            'sessions.hiring',
+            'sessions.onboarding',
             'activeSessions'
         ])->findOrFail($id);
 
         $letterInfo = $fptk->getLetterNumberInfo();
+        $sessions = $fptk->sessions; // provide sessions to the view for unified session table
 
-        return view('recruitment.requests.show', compact('fptk', 'letterInfo', 'title', 'subtitle'));
+        return view('recruitment.requests.show', compact('fptk', 'letterInfo', 'title', 'subtitle', 'sessions'));
     }
 
     /**
@@ -373,7 +381,14 @@ class RecruitmentRequestController extends Controller
             'directorApprover',
             'letterNumber.category',
             'sessions.candidate',
-            'sessions.assessments',
+            'sessions.cvReview',
+            'sessions.psikotes',
+            'sessions.tesTeori',
+            'sessions.interviews',
+            'sessions.offering',
+            'sessions.mcu',
+            'sessions.hiring',
+            'sessions.onboarding',
             'activeSessions'
         ])->findOrFail($id);
 

@@ -4,7 +4,7 @@ namespace App\Services;
 
 use App\Models\RecruitmentSession;
 use App\Models\RecruitmentAssessment;
-use App\Models\RecruitmentOffer;
+use App\Models\RecruitmentOffering;
 use App\Models\User;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Log;
@@ -105,42 +105,41 @@ class RecruitmentNotificationService
     }
 
     /**
-     * Send offer notification
+     * Send offering notification
      *
-     * @param RecruitmentOffer $offer
+     * @param RecruitmentOffering $offering
      * @return bool
      */
-    public function sendOfferNotification(RecruitmentOffer $offer): bool
+    public function sendOfferingNotification(RecruitmentOffering $offering): bool
     {
         try {
-            $session = $offer->session;
+            $session = $offering->session;
 
             // Notify candidate
-            $this->notifyCandidate($session, 'offer_sent', [
-                'offer_number' => $offer->offer_letter_number,
+            $this->notifyCandidate($session, 'offering_sent', [
+                'offering_number' => $offering->offering_letter_number,
                 'position' => $session->fptk->position->name ?? 'N/A',
-                'basic_salary' => $offer->basic_salary,
-                'start_date' => $offer->start_date,
-                'offer_valid_until' => $offer->offer_valid_until,
+                'result' => $offering->result,
             ]);
 
             // Notify HR staff
-            $this->notifyHRStaff($session, 'offer_sent', [
+            $this->notifyHRStaff($session, 'offering_sent', [
                 'candidate_name' => $session->candidate->fullname,
-                'offer_number' => $offer->offer_letter_number,
+                'offering_number' => $offering->offering_letter_number,
                 'position' => $session->fptk->position->name ?? 'N/A',
+                'result' => $offering->result,
             ]);
 
-            Log::info("Offer notifications sent", [
-                'offer_id' => $offer->id,
+            Log::info("Offering notifications sent", [
+                'offering_id' => $offering->id,
                 'session_id' => $session->id
             ]);
 
             return true;
         } catch (\Exception $e) {
-            Log::error("Failed to send offer notification", [
+            Log::error("Failed to send offering notification", [
                 'error' => $e->getMessage(),
-                'offer_id' => $offer->id
+                'offering_id' => $offering->id
             ]);
             return false;
         }
@@ -288,7 +287,7 @@ class RecruitmentNotificationService
             $this->sendUpcomingAssessmentReminders();
 
             // Send expiring offer reminders
-            $this->sendExpiringOfferReminders();
+            $this->sendExpiringOfferingReminders();
 
             return true;
         } catch (\Exception $e) {
@@ -490,24 +489,15 @@ class RecruitmentNotificationService
     }
 
     /**
-     * Send expiring offer reminders
+     * Send expiring offering reminders
      *
      * @return void
      */
-    protected function sendExpiringOfferReminders(): void
+    protected function sendExpiringOfferingReminders(): void
     {
-        $expiringOffers = RecruitmentOffer::where('status', 'sent')
-            ->where('offer_valid_until', '>=', now())
-            ->where('offer_valid_until', '<=', now()->addDays(2))
-            ->get();
-
-        foreach ($expiringOffers as $offer) {
-            $this->notifyCandidate($offer->session, 'offer_expiring', [
-                'offer_number' => $offer->offer_letter_number,
-                'expires_at' => $offer->offer_valid_until,
-                'days_remaining' => $offer->getDaysUntilExpiryAttribute(),
-            ]);
-        }
+        // For now, we don't have expiry dates for offerings
+        // This method can be implemented later if needed
+        Log::info("Expiring offering reminders not implemented yet");
     }
 
     /**

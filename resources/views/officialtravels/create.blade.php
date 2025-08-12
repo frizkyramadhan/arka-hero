@@ -37,6 +37,7 @@
                             <div class="card-body py-2">
                                 @include('components.smart-letter-number-selector', [
                                     'categoryCode' => 'B',
+                                    'required' => true,
                                 ])
                             </div>
                         </div>

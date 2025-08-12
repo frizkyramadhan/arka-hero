@@ -1,5 +1,54 @@
+-   2025-08-08 - Recruitment sessions table alignment
+
+-   Added migration `2025_08_08_100100_update_recruitment_sessions_table.php` to align schema with new stage structure (cv_review → onboarding):
+    -   Ensured `current_stage` and `stage_status` enums include the correct values.
+    -   Added missing columns when absent: `stage_started_at`, `stage_completed_at`, `overall_progress`, `next_action`, `responsible_person_id` (FK), `final_decision_date`, `final_decision_by` (FK), `final_decision_notes`, `stage_durations` (JSON), `created_by` (FK).
+    -   Dropped legacy `final_status` column if present.
+    -   Added indexes for common query fields.
+    -   Non-destructive where possible; guarded enum alters with try/catch for compatibility.
+
 **Purpose**: AI's persistent knowledge base for project context and learnings
 **Last Updated**: 2025-01-15
+
+### Offering Stage Functionality Completion (2025-01-15) ✅ COMPLETE
+
+**Challenge**: The offering stage functionality was incomplete with JavaScript errors, model inconsistencies between RecruitmentOffer (non-existent) and RecruitmentOffering (actual), and missing RecruitmentAssessment model causing linter errors.
+
+**Solution**:
+
+-   Fixed JavaScript in offering modal to handle decision buttons (accepted/negotiating/rejected) with proper styling and form validation
+-   Updated form submission to use correct fields (result, offering_letter_number_id, notes) instead of non-existent fields
+-   Resolved model inconsistencies by updating RecruitmentWorkflowService and RecruitmentNotificationService to use RecruitmentOffering instead of RecruitmentOffer
+-   Added getLatestOffer() compatibility method to RecruitmentSession model for workflow service
+-   Created missing RecruitmentAssessment model based on migration schema to resolve linter errors
+-   Updated method signatures and property references throughout services to match actual model structure
+-   Renamed notification methods for consistency (sendOfferNotification → sendOfferingNotification)
+
+**Key Learning**:
+
+-   Model naming consistency is crucial for maintainable code; avoid legacy model references
+-   JavaScript form handling must match backend expected inputs exactly
+-   Compatibility methods can bridge gaps between service expectations and actual model structure
+-   Missing models should be created based on existing migrations rather than removing references
+
+2025-08-08 - Refactor RecruitmentSessionController
+
+2025-08-08 - Refactor recruitment session blades to align with controller/routes
+
+-   2025-08-08 - Cleanup unused JS handlers in `show-session`
+
+-   Removed dead click bindings and custom AJAX handler functions in `resources/views/recruitment/sessions/show-session.blade.php` (`handle*Submission`, `handleAdvanceStage`, etc.) since forms now submit normally with hidden `assessment_data`.
+-   Kept calculation helpers for interview overall scores; removed duplicate/unused helpers.
+-   Lint clean.
+
+-   Updated `resources/views/recruitment/sessions/partials/modals.blade.php` to use direct endpoints for actions: `advance-stage`, `reject`, `complete`, `cancel`, avoiding undefined `route()` helpers.
+-   Updated `resources/views/recruitment/sessions/show-session.blade.php` JS AJAX URLs to direct endpoints matching `/recruitment/sessions/{id}/...`.
+-   Verified no lints after changes.
+
+-   Removed unused private helpers: `validatePreviousStages`, `getExpectedCurrentStage`, and `getPreviousStageValidationMessage` which had no references in routes or views after workflow rework.
+-   Dropped unused constructor dependency `RecruitmentWorkflowService` from `RecruitmentSessionController` to simplify dependencies.
+-   Verified routes reference only: `index`, `getSessions`, `dashboard`, `show`, `showSession`, `store`, `destroy`, `getSessionData`, `getSessionsByFPTK`, `getSessionsByCandidate`.
+-   Ran linter on `app/Http/Controllers/RecruitmentSessionController.php` with no issues.
 
 ## Memory Maintenance Guidelines
 
@@ -687,6 +736,24 @@
 -   **Maintainability**: Centralized message management in controllers
 -   **Backward Compatibility**: Non-AJAX requests still work as before
 
+### Recruitment Session Timeline Forms Standard POST (2025-08-08) ✅ COMPLETE
+
+**Challenge**: Timeline modals used mixed AJAX with toastr and inconsistent field names, while project standard prefers standard POST submissions with `toast_` helpers.
+
+**Solution**:
+
+-   Converted all timeline modals (`cv_review`, `psikotes`, `tes_teori`, `interview_hr`, `interview_user`, `offering`, `mcu`, `hire`, `onboarding`) to standard POST forms targeting existing routes
+-   Added hidden `assessment_data` fields and built JSON in-submit per stage requirements
+-   Mapped CV Review decision to service expectations (`recommended`/`not_recommended`)
+-   Fixed reject form field to `rejection_reason` to match controller validation
+-   Kept AdminLTE styling; removed AJAX handlers in favor of native submission
+
+**Key Learning**:
+
+-   Aligning front-end submissions with controller contracts reduces complexity
+-   Hidden JSON field is a clean bridge for structured stage data
+-   Consistent form names prevent validation mismatches
+
 **Key Learning**:
 
 -   Always check for AJAX requests using `$request->ajax()` in controllers
@@ -832,3 +899,73 @@
 -   Avoid duplicate information display in different sections
 -   Use consistent styling patterns for information display
 -   Position and department are key recruitment information that should be prominently displayed
+
+### 2024-12-19: Recruitment Database Restructuring Completed
+
+**Context**: User requested to change all `session_id` fields to UUID and remove old models `RecruitmentAssessment` and `RecruitmentOffer`, then update `RecruitmentSessionService` to use new stage-specific models.
+
+**Changes Made**:
+
+1. **Migration Updates**: Updated all 8 new migration files to use `uuid('session_id')` instead of `unsignedBigInteger('session_id')`:
+
+    - `recruitment_cv_reviews`
+    - `recruitment_psikotes`
+    - `recruitment_tes_teori`
+    - `recruitment_interviews`
+    - `recruitment_offerings`
+    - `recruitment_mcu`
+    - `recruitment_hiring`
+    - `recruitment_onboarding`
+
+2. **Model Cleanup**: Deleted old models:
+
+    - `app/Models/RecruitmentAssessment.php`
+    - `app/Models/RecruitmentOffer.php`
+
+3. **RecruitmentSession Model Updates**:
+
+    - Removed relationships to old models (`assessments()`, `offers()`)
+    - Removed old helper methods (`getAssessment()`, `getLatestOffer()`)
+    - Updated `getCurrentStageAssessment()` to use new model relationships
+    - Added new helper methods:
+        - `getAssessmentByStage($stage)` - Get assessment for specific stage
+        - `isStageCompleted($stage)` - Check if stage is completed
+        - `getAllAssessments()` - Get all assessments as array
+        - `getCompletedAssessmentsCount()` - Count completed assessments
+
+4. **RecruitmentSessionService Updates**:
+    - Updated imports to use new stage-specific models
+    - Updated all assessment processing methods to use new models:
+        - `processCVReviewAssessment()` - Uses `RecruitmentCvReview`
+        - `processPsikotesAssessment()` - Uses `RecruitmentPsikotes`
+        - `processTesTeoriAssessment()` - Uses `RecruitmentTesTeori`
+        - `processInterviewHrAssessment()` - Uses `RecruitmentInterview` with type 'hr'
+        - `processInterviewUserAssessment()` - Uses `RecruitmentInterview` with type 'user'
+        - `processMcuAssessment()` - Uses `RecruitmentMcu`
+        - `processOfferingAssessment()` - Uses `RecruitmentOffering`
+        - `processHireAssessment()` - Uses `RecruitmentHiring`
+        - `processOnboardingAssessment()` - Uses `RecruitmentOnboarding`
+    - Updated `getSessionTimeline()` to use new model relationships and `isStageCompleted()` method
+    - Removed old assessment creation methods (`createInitialAssessment()`, `createAssessmentForStage()`)
+
+**Key Benefits**:
+
+-   All new tables use UUID for `session_id` as requested
+-   Clean separation of concerns with dedicated tables for each recruitment stage
+-   Type safety and better query performance
+-   Simplified data structure without JSON parsing
+-   Better maintainability and extensibility
+
+**Next Steps**:
+
+-   Run migrations to apply new database structure
+-   Test data migration from old tables to new ones
+-   Update controller and view layers to use new service methods
+-   Remove old table references and clean up codebase
+
+**Technical Notes**:
+
+-   All new models use `int auto increment` for primary keys as per user requirements
+-   UUID foreign keys maintain referential integrity
+-   New structure supports better data validation and type checking
+-   Auto-advancement logic preserved in service layer

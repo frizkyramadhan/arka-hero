@@ -5,7 +5,14 @@ namespace App\Services;
 use App\Models\RecruitmentSession;
 use App\Models\RecruitmentRequest;
 use App\Models\RecruitmentCandidate;
-use App\Models\RecruitmentAssessment;
+use App\Models\RecruitmentCvReview;
+use App\Models\RecruitmentPsikotes;
+use App\Models\RecruitmentTesTeori;
+use App\Models\RecruitmentInterview;
+use App\Models\RecruitmentOffering;
+use App\Models\RecruitmentMcu;
+use App\Models\RecruitmentHiring;
+use App\Models\RecruitmentOnboarding;
 use App\Models\User;
 use App\Services\RecruitmentLetterNumberService;
 use Illuminate\Support\Facades\DB;
@@ -176,10 +183,7 @@ class RecruitmentSessionService
         $requiresAssessment = in_array($session->current_stage, ['psikotes', 'tes_teori', 'interview_hr', 'interview_user', 'mcu']);
 
         if ($requiresAssessment) {
-            $assessment = $session->assessments()
-                ->where('assessment_type', $session->current_stage)
-                ->where('status', 'completed')
-                ->first();
+            $assessment = $session->getAssessmentByStage($session->current_stage);
 
             if (!$assessment) {
                 $stageNames = [
@@ -405,49 +409,41 @@ class RecruitmentSessionService
     {
         $decision = $assessmentData['decision'] ?? null;
 
-        if (!$decision || !in_array($decision, ['pass', 'fail'])) {
+        if (!$decision || !in_array($decision, ['recommended', 'not_recommended'])) {
             return [
                 'success' => false,
-                'message' => 'Invalid CV review decision. Must be either "pass" or "fail".'
+                'message' => 'Invalid CV review decision. Must be either "recommended" or "not_recommended".'
             ];
         }
 
-        // Find or create CV review assessment
-        $assessment = $session->assessments()
-            ->where('assessment_type', 'cv_review')
-            ->first();
-
-        if (!$assessment) {
-            $assessment = RecruitmentAssessment::create([
+        // Create or update CV review assessment
+        $cvReview = $session->cvReview;
+        if (!$cvReview) {
+            $cvReview = RecruitmentCvReview::create([
                 'session_id' => $session->id,
-                'assessment_type' => 'cv_review',
-                'status' => 'completed',
-                'max_score' => 100,
-                'passing_score' => 70,
-                'overall_score' => $decision === 'pass' ? 100 : 0,
-                'assessment_data' => $assessmentData,
-                'assessor_notes' => $assessmentData['notes'] ?? null,
-                'completed_at' => now(),
+                'decision' => $decision,
+                'notes' => $assessmentData['notes'] ?? null,
+                'reviewed_by' => auth()->id(),
+                'reviewed_at' => now(),
             ]);
         } else {
-            $assessment->update([
-                'status' => 'completed',
-                'overall_score' => $decision === 'pass' ? 100 : 0,
-                'assessment_data' => $assessmentData,
-                'assessor_notes' => $assessmentData['notes'] ?? null,
-                'completed_at' => now(),
+            $cvReview->update([
+                'decision' => $decision,
+                'notes' => $assessmentData['notes'] ?? null,
+                'reviewed_by' => auth()->id(),
+                'reviewed_at' => now(),
             ]);
         }
 
         // If CV review fails, reject the session
-        if ($decision === 'fail') {
+        if ($decision === 'not_recommended') {
             $session->update([
                 'stage_status' => 'failed',
                 'stage_completed_at' => now(),
                 'status' => 'rejected',
                 'final_decision_date' => now(),
                 'final_decision_by' => auth()->id(),
-                'final_decision_notes' => 'CV Review: Failed - ' . ($assessmentData['notes'] ?? 'No specific reason provided'),
+                'final_decision_notes' => 'CV Review: Not Recommended - ' . ($assessmentData['notes'] ?? 'No specific reason provided'),
             ]);
 
             // Update candidate global status
@@ -455,7 +451,7 @@ class RecruitmentSessionService
 
             return [
                 'success' => true,
-                'message' => 'CV Review completed. Candidate rejected due to failed CV review.',
+                'message' => 'CV Review completed. Candidate rejected due to not recommended CV review.',
                 'session_ended' => true
             ];
         }
@@ -473,12 +469,12 @@ class RecruitmentSessionService
                 'current_stage' => $nextStage,
                 'stage_status' => 'pending',
                 'stage_started_at' => now(),
-                'overall_progress' => $this->getProgressForStage($nextStage),
+                'overall_progress' => RecruitmentSession::STAGE_PROGRESS[$nextStage],
             ]);
 
             return [
                 'success' => true,
-                'message' => 'CV Review completed successfully. Candidate passed CV review and advanced to Psikotes stage.',
+                'message' => 'CV Review completed successfully. Candidate recommended and advanced to Psikotes stage.',
                 'auto_advanced' => true,
                 'next_stage' => $nextStage
             ];
@@ -486,7 +482,7 @@ class RecruitmentSessionService
 
         return [
             'success' => true,
-            'message' => 'CV Review completed successfully. Candidate passed CV review.'
+            'message' => 'CV Review completed successfully. Candidate recommended.'
         ];
     }
 
@@ -525,30 +521,26 @@ class RecruitmentSessionService
             }
         }
 
-        // Find or create psikotes assessment
-        $assessment = $session->assessments()
-            ->where('assessment_type', 'psikotes')
-            ->first();
-
-        if (!$assessment) {
-            $assessment = RecruitmentAssessment::create([
+        // Create or update psikotes assessment
+        $psikotes = $session->psikotes;
+        if (!$psikotes) {
+            $psikotes = RecruitmentPsikotes::create([
                 'session_id' => $session->id,
-                'assessment_type' => 'psikotes',
-                'status' => 'completed',
-                'max_score' => 100,
-                'passing_score' => 60,
-                'overall_score' => $overallResult === 'pass' ? 100 : 0,
-                'assessment_data' => $assessmentData,
-                'assessor_notes' => $assessmentData['notes'] ?? $resultDetails,
-                'completed_at' => now(),
+                'online_score' => $onlineScore,
+                'offline_score' => $offlineScore,
+                'result' => $overallResult,
+                'notes' => $assessmentData['notes'] ?? $resultDetails,
+                'reviewed_by' => auth()->id(),
+                'reviewed_at' => now(),
             ]);
         } else {
-            $assessment->update([
-                'status' => 'completed',
-                'overall_score' => $overallResult === 'pass' ? 100 : 0,
-                'assessment_data' => $assessmentData,
-                'assessor_notes' => $assessmentData['notes'] ?? $resultDetails,
-                'completed_at' => now(),
+            $psikotes->update([
+                'online_score' => $onlineScore,
+                'offline_score' => $offlineScore,
+                'result' => $overallResult,
+                'notes' => $assessmentData['notes'] ?? $resultDetails,
+                'reviewed_by' => auth()->id(),
+                'reviewed_at' => now(),
             ]);
         }
 
@@ -586,7 +578,7 @@ class RecruitmentSessionService
                 'current_stage' => $nextStage,
                 'stage_status' => 'pending',
                 'stage_started_at' => now(),
-                'overall_progress' => $this->getProgressForStage($nextStage),
+                'overall_progress' => RecruitmentSession::STAGE_PROGRESS[$nextStage],
             ]);
 
             return [
@@ -622,30 +614,24 @@ class RecruitmentSessionService
             ];
         }
 
-        // Find or create tes teori assessment
-        $assessment = $session->assessments()
-            ->where('assessment_type', 'tes_teori')
-            ->first();
-
-        if (!$assessment) {
-            $assessment = RecruitmentAssessment::create([
+        // Create or update tes teori assessment
+        $tesTeori = $session->tesTeori;
+        if (!$tesTeori) {
+            $tesTeori = RecruitmentTesTeori::create([
                 'session_id' => $session->id,
-                'assessment_type' => 'tes_teori',
-                'status' => 'completed',
-                'max_score' => 100,
-                'passing_score' => 75,
-                'overall_score' => $score,
-                'assessment_data' => $assessmentData,
-                'assessor_notes' => $assessmentData['notes'] ?? null,
-                'completed_at' => now(),
+                'score' => $score,
+                'result' => $result,
+                'notes' => $assessmentData['notes'] ?? null,
+                'reviewed_by' => auth()->id(),
+                'reviewed_at' => now(),
             ]);
         } else {
-            $assessment->update([
-                'status' => 'completed',
-                'overall_score' => $score,
-                'assessment_data' => $assessmentData,
-                'assessor_notes' => $assessmentData['notes'] ?? null,
-                'completed_at' => now(),
+            $tesTeori->update([
+                'score' => $score,
+                'result' => $result,
+                'notes' => $assessmentData['notes'] ?? null,
+                'reviewed_by' => auth()->id(),
+                'reviewed_at' => now(),
             ]);
         }
 
@@ -683,7 +669,7 @@ class RecruitmentSessionService
                 'current_stage' => $nextStage,
                 'stage_status' => 'pending',
                 'stage_started_at' => now(),
-                'overall_progress' => $this->getProgressForStage($nextStage),
+                'overall_progress' => RecruitmentSession::STAGE_PROGRESS[$nextStage],
             ]);
 
             return [
@@ -719,30 +705,23 @@ class RecruitmentSessionService
             ];
         }
 
-        // Find or create interview HR assessment
-        $assessment = $session->assessments()
-            ->where('assessment_type', 'interview_hr')
-            ->first();
-
-        if (!$assessment) {
-            $assessment = RecruitmentAssessment::create([
+        // Create or update interview HR assessment
+        $interviewHr = $session->interviewHr;
+        if (!$interviewHr) {
+            $interviewHr = RecruitmentInterview::create([
                 'session_id' => $session->id,
-                'assessment_type' => 'interview_hr',
-                'status' => 'completed',
-                'max_score' => 100,
-                'passing_score' => 70,
-                'overall_score' => $overall,
-                'assessment_data' => $assessmentData,
-                'assessor_notes' => $assessmentData['notes'] ?? null,
-                'completed_at' => now(),
+                'type' => 'hr',
+                'result' => $result === 'pass' ? 'recommended' : 'not_recommended',
+                'notes' => $assessmentData['notes'] ?? null,
+                'reviewed_by' => auth()->id(),
+                'reviewed_at' => now(),
             ]);
         } else {
-            $assessment->update([
-                'status' => 'completed',
-                'overall_score' => $overall,
-                'assessment_data' => $assessmentData,
-                'assessor_notes' => $assessmentData['notes'] ?? null,
-                'completed_at' => now(),
+            $interviewHr->update([
+                'result' => $result === 'pass' ? 'recommended' : 'not_recommended',
+                'notes' => $assessmentData['notes'] ?? null,
+                'reviewed_by' => auth()->id(),
+                'reviewed_at' => now(),
             ]);
         }
 
@@ -780,7 +759,7 @@ class RecruitmentSessionService
                 'current_stage' => $nextStage,
                 'stage_status' => 'pending',
                 'stage_started_at' => now(),
-                'overall_progress' => $this->getProgressForStage($nextStage),
+                'overall_progress' => RecruitmentSession::STAGE_PROGRESS[$nextStage],
             ]);
 
             return [
@@ -816,30 +795,23 @@ class RecruitmentSessionService
             ];
         }
 
-        // Find or create interview user assessment
-        $assessment = $session->assessments()
-            ->where('assessment_type', 'interview_user')
-            ->first();
-
-        if (!$assessment) {
-            $assessment = RecruitmentAssessment::create([
+        // Create or update interview user assessment
+        $interviewUser = $session->interviewUser;
+        if (!$interviewUser) {
+            $interviewUser = RecruitmentInterview::create([
                 'session_id' => $session->id,
-                'assessment_type' => 'interview_user',
-                'status' => 'completed',
-                'max_score' => 100,
-                'passing_score' => 75,
-                'overall_score' => $overall,
-                'assessment_data' => $assessmentData,
-                'assessor_notes' => $assessmentData['notes'] ?? null,
-                'completed_at' => now(),
+                'type' => 'user',
+                'result' => $result === 'pass' ? 'recommended' : 'not_recommended',
+                'notes' => $assessmentData['notes'] ?? null,
+                'reviewed_by' => auth()->id(),
+                'reviewed_at' => now(),
             ]);
         } else {
-            $assessment->update([
-                'status' => 'completed',
-                'overall_score' => $overall,
-                'assessment_data' => $assessmentData,
-                'assessor_notes' => $assessmentData['notes'] ?? null,
-                'completed_at' => now(),
+            $interviewUser->update([
+                'result' => $result === 'pass' ? 'recommended' : 'not_recommended',
+                'notes' => $assessmentData['notes'] ?? null,
+                'reviewed_by' => auth()->id(),
+                'reviewed_at' => now(),
             ]);
         }
 
@@ -877,7 +849,7 @@ class RecruitmentSessionService
                 'current_stage' => $nextStage,
                 'stage_status' => 'pending',
                 'stage_started_at' => now(),
-                'overall_progress' => $this->getProgressForStage($nextStage),
+                'overall_progress' => RecruitmentSession::STAGE_PROGRESS[$nextStage],
             ]);
 
             return [
@@ -913,30 +885,22 @@ class RecruitmentSessionService
             ];
         }
 
-        // Find or create MCU assessment
-        $assessment = $session->assessments()
-            ->where('assessment_type', 'mcu')
-            ->first();
-
-        if (!$assessment) {
-            $assessment = RecruitmentAssessment::create([
+        // Create or update MCU assessment
+        $mcu = $session->mcu;
+        if (!$mcu) {
+            $mcu = RecruitmentMcu::create([
                 'session_id' => $session->id,
-                'assessment_type' => 'mcu',
-                'status' => 'completed',
-                'max_score' => 100,
-                'passing_score' => 70,
-                'overall_score' => $result === 'pass' ? 100 : ($result === 'conditional' ? 50 : 0),
-                'assessment_data' => $assessmentData,
-                'assessor_notes' => $assessmentData['notes'] ?? null,
-                'completed_at' => now(),
+                'result' => $result,
+                'notes' => $assessmentData['notes'] ?? null,
+                'reviewed_by' => auth()->id(),
+                'reviewed_at' => now(),
             ]);
         } else {
-            $assessment->update([
-                'status' => 'completed',
-                'overall_score' => $result === 'pass' ? 100 : ($result === 'conditional' ? 50 : 0),
-                'assessment_data' => $assessmentData,
-                'assessor_notes' => $assessmentData['notes'] ?? null,
-                'completed_at' => now(),
+            $mcu->update([
+                'result' => $result,
+                'notes' => $assessmentData['notes'] ?? null,
+                'reviewed_by' => auth()->id(),
+                'reviewed_at' => now(),
             ]);
         }
 
@@ -974,7 +938,7 @@ class RecruitmentSessionService
                 'current_stage' => $nextStage,
                 'stage_status' => 'pending',
                 'stage_started_at' => now(),
-                'overall_progress' => $this->getProgressForStage($nextStage),
+                'overall_progress' => RecruitmentSession::STAGE_PROGRESS[$nextStage],
             ]);
 
             return [
@@ -1009,30 +973,24 @@ class RecruitmentSessionService
             ];
         }
 
-        // Find or create offering assessment
-        $assessment = $session->assessments()
-            ->where('assessment_type', 'offering')
-            ->first();
-
-        if (!$assessment) {
-            $assessment = RecruitmentAssessment::create([
+        // Create or update offering assessment
+        $offering = $session->offering;
+        if (!$offering) {
+            $offering = RecruitmentOffering::create([
                 'session_id' => $session->id,
-                'assessment_type' => 'offering',
-                'status' => 'completed',
-                'max_score' => 100,
-                'passing_score' => 70,
-                'overall_score' => $status === 'accepted' ? 100 : ($status === 'negotiating' ? 50 : 0),
-                'assessment_data' => $assessmentData,
-                'assessor_notes' => $assessmentData['notes'] ?? null,
-                'completed_at' => now(),
+                'offering_letter_number' => $assessmentData['offering_letter_number'] ?? null,
+                'result' => $status,
+                'notes' => $assessmentData['notes'] ?? null,
+                'reviewed_by' => auth()->id(),
+                'reviewed_at' => now(),
             ]);
         } else {
-            $assessment->update([
-                'status' => 'completed',
-                'overall_score' => $status === 'accepted' ? 100 : ($status === 'negotiating' ? 50 : 0),
-                'assessment_data' => $assessmentData,
-                'assessor_notes' => $assessmentData['notes'] ?? null,
-                'completed_at' => now(),
+            $offering->update([
+                'offering_letter_number' => $assessmentData['offering_letter_number'] ?? null,
+                'result' => $status,
+                'notes' => $assessmentData['notes'] ?? null,
+                'reviewed_by' => auth()->id(),
+                'reviewed_at' => now(),
             ]);
         }
 
@@ -1070,7 +1028,7 @@ class RecruitmentSessionService
                 'current_stage' => $nextStage,
                 'stage_status' => 'pending',
                 'stage_started_at' => now(),
-                'overall_progress' => $this->getProgressForStage($nextStage),
+                'overall_progress' => RecruitmentSession::STAGE_PROGRESS[$nextStage],
             ]);
 
             return [
@@ -1105,30 +1063,24 @@ class RecruitmentSessionService
             ];
         }
 
-        // Find or create hire assessment
-        $assessment = $session->assessments()
-            ->where('assessment_type', 'hire')
-            ->first();
-
-        if (!$assessment) {
-            $assessment = RecruitmentAssessment::create([
+        // Create or update hire assessment
+        $hiring = $session->hiring;
+        if (!$hiring) {
+            $hiring = RecruitmentHiring::create([
                 'session_id' => $session->id,
-                'assessment_type' => 'hire',
-                'status' => 'completed',
-                'max_score' => 100,
-                'passing_score' => 70,
-                'overall_score' => 100,
-                'assessment_data' => $assessmentData,
-                'assessor_notes' => $assessmentData['notes'] ?? null,
-                'completed_at' => now(),
+                'agreement_type' => $assessmentData['agreement_type'] ?? 'pkwt',
+                'letter_number' => $assessmentData['letter_number'] ?? null,
+                'notes' => $assessmentData['notes'] ?? null,
+                'reviewed_by' => auth()->id(),
+                'reviewed_at' => now(),
             ]);
         } else {
-            $assessment->update([
-                'status' => 'completed',
-                'overall_score' => 100,
-                'assessment_data' => $assessmentData,
-                'assessor_notes' => $assessmentData['notes'] ?? null,
-                'completed_at' => now(),
+            $hiring->update([
+                'agreement_type' => $assessmentData['agreement_type'] ?? 'pkwt',
+                'letter_number' => $assessmentData['letter_number'] ?? null,
+                'notes' => $assessmentData['notes'] ?? null,
+                'reviewed_by' => auth()->id(),
+                'reviewed_at' => now(),
             ]);
         }
 
@@ -1145,7 +1097,8 @@ class RecruitmentSessionService
                 'current_stage' => $nextStage,
                 'stage_status' => 'pending',
                 'stage_started_at' => now(),
-                'overall_progress' => $this->getProgressForStage($nextStage),
+                // Keep progress at 'hire' while waiting for onboarding completion
+                'overall_progress' => RecruitmentSession::STAGE_PROGRESS['hire'],
             ]);
 
             return [
@@ -1180,30 +1133,22 @@ class RecruitmentSessionService
             ];
         }
 
-        // Find or create onboarding assessment
-        $assessment = $session->assessments()
-            ->where('assessment_type', 'onboarding')
-            ->first();
-
-        if (!$assessment) {
-            $assessment = RecruitmentAssessment::create([
+        // Create or update onboarding assessment
+        $onboarding = $session->onboarding;
+        if (!$onboarding) {
+            $onboarding = RecruitmentOnboarding::create([
                 'session_id' => $session->id,
-                'assessment_type' => 'onboarding',
-                'status' => 'completed',
-                'max_score' => 100,
-                'passing_score' => 70,
-                'overall_score' => $status === 'completed' ? 100 : ($status === 'in_progress' ? 50 : 0),
-                'assessment_data' => $assessmentData,
-                'assessor_notes' => $assessmentData['notes'] ?? null,
-                'completed_at' => now(),
+                'onboarding_date' => $assessmentData['onboarding_date'] ?? now()->toDateString(),
+                'notes' => $assessmentData['notes'] ?? null,
+                'reviewed_by' => auth()->id(),
+                'reviewed_at' => now(),
             ]);
         } else {
-            $assessment->update([
-                'status' => 'completed',
-                'overall_score' => $status === 'completed' ? 100 : ($status === 'in_progress' ? 50 : 0),
-                'assessment_data' => $assessmentData,
-                'assessor_notes' => $assessmentData['notes'] ?? null,
-                'completed_at' => now(),
+            $onboarding->update([
+                'onboarding_date' => $assessmentData['onboarding_date'] ?? now()->toDateString(),
+                'notes' => $assessmentData['notes'] ?? null,
+                'reviewed_by' => auth()->id(),
+                'reviewed_at' => now(),
             ]);
         }
 
@@ -1389,7 +1334,17 @@ class RecruitmentSessionService
      */
     public function getSessionTimeline(string $sessionId): array
     {
-        $session = RecruitmentSession::find($sessionId);
+        $session = RecruitmentSession::with([
+            'cvReview',
+            'psikotes',
+            'tesTeori',
+            'interviews',
+            'offering',
+            'mcu',
+            'hiring',
+            'onboarding'
+        ])->find($sessionId);
+
         if (!$session) {
             return [];
         }
@@ -1411,12 +1366,15 @@ class RecruitmentSessionService
                 'is_overdue' => false,
             ];
 
-            if (isset($stageDurations[$stage])) {
+            // Check if stage is completed using new model relationships
+            if ($session->isStageCompleted($stage)) {
                 $stageData['status'] = 'completed';
-                $stageData['started_at'] = $stageDurations[$stage]['started'];
-                $stageData['completed_at'] = $stageDurations[$stage]['completed'];
-                $stageData['duration_hours'] = $stageDurations[$stage]['duration_hours'];
-                $stageData['is_overdue'] = $stageDurations[$stage]['duration_hours'] > RecruitmentSession::STAGE_DURATION_TARGETS[$stage];
+                if (isset($stageDurations[$stage])) {
+                    $stageData['started_at'] = $stageDurations[$stage]['started'];
+                    $stageData['completed_at'] = $stageDurations[$stage]['completed'];
+                    $stageData['duration_hours'] = $stageDurations[$stage]['duration_hours'];
+                    $stageData['is_overdue'] = $stageDurations[$stage]['duration_hours'] > RecruitmentSession::STAGE_DURATION_TARGETS[$stage];
+                }
             } elseif ($session->current_stage === $stage) {
                 $stageData['status'] = $session->stage_status;
                 $stageData['started_at'] = $session->stage_started_at;
@@ -1449,13 +1407,8 @@ class RecruitmentSessionService
      */
     protected function createInitialAssessment(RecruitmentSession $session): void
     {
-        RecruitmentAssessment::create([
-            'session_id' => $session->id,
-            'assessment_type' => 'cv_review',
-            'status' => 'scheduled',
-            'max_score' => 100,
-            'passing_score' => 70,
-        ]);
+        // No need to create initial assessment for new structure
+        // Assessments will be created when each stage is processed
     }
 
     /**
@@ -1468,23 +1421,8 @@ class RecruitmentSessionService
      */
     protected function createAssessmentForStage(RecruitmentSession $session, string $stage, array $data = []): void
     {
-        $assessmentData = [
-            'session_id' => $session->id,
-            'assessment_type' => $stage,
-            'status' => 'scheduled',
-            'max_score' => 100,
-            'passing_score' => $this->getPassingScoreForStage($stage),
-        ];
-
-        if (isset($data['scheduled_date'])) {
-            $assessmentData['scheduled_date'] = $data['scheduled_date'];
-        }
-
-        if (isset($data['assessor_ids'])) {
-            $assessmentData['assessor_ids'] = $data['assessor_ids'];
-        }
-
-        RecruitmentAssessment::create($assessmentData);
+        // No need to create assessment for new structure
+        // Assessments will be created when each stage is processed
     }
 
     /**
@@ -1561,18 +1499,7 @@ class RecruitmentSessionService
      */
     protected function getProgressForStage(string $stage): float
     {
-        $stageProgress = [
-            'cv_review' => 10.0,
-            'psikotes' => 20.0,
-            'tes_teori' => 30.0,
-            'interview_hr' => 40.0,
-            'interview_user' => 50.0,
-            'offering' => 60.0,
-            'mcu' => 70.0,
-            'hire' => 80.0,
-            'onboarding' => 90.0
-        ];
-
-        return $stageProgress[$stage] ?? 0.0;
+        // Normalize to model-level single source of truth
+        return RecruitmentSession::STAGE_PROGRESS[$stage] ?? 0.0;
     }
 }

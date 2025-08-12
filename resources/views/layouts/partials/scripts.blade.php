@@ -10,6 +10,8 @@
 <script src="{{ asset('assets/plugins/bootstrap/js/bootstrap.bundle.min.js') }}"></script>
 <!-- AdminLTE App -->
 <script src="{{ asset('assets/dist/js/adminlte.js') }}"></script>
+<!-- Select2 (available globally for components relying on it) -->
+<script src="{{ asset('assets/plugins/select2/js/select2.full.min.js') }}"></script>
 <!-- pace-progress -->
 {{-- <script src="{{ asset('assets/plugins/pace-progress/pace.min.js') }}"></script> --}}
 @yield('scripts')

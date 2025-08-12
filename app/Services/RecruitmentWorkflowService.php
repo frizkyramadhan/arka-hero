@@ -4,7 +4,7 @@ namespace App\Services;
 
 use App\Models\RecruitmentSession;
 use App\Models\RecruitmentAssessment;
-use App\Models\RecruitmentOffer;
+use App\Models\RecruitmentOffering;
 use Illuminate\Support\Facades\Log;
 
 class RecruitmentWorkflowService
@@ -316,20 +316,17 @@ class RecruitmentWorkflowService
      */
     protected function handleOfferingStage(RecruitmentSession $session, array $data): bool
     {
-        // Create offer if not exists
-        $existingOffer = $session->getLatestOffer();
-        if (!$existingOffer) {
-            // Create default offer - will be customized later
-            RecruitmentOffer::create([
+        // Check if offering already exists
+        $existingOffering = $session->offering;
+        if (!$existingOffering) {
+            // Create default offering record - will be updated later
+            \App\Models\RecruitmentOffering::create([
                 'session_id' => $session->id,
-                'offer_letter_number' => RecruitmentOffer::generateOfferNumber(),
-                'basic_salary' => $data['basic_salary'] ?? 0,
-                'allowances' => $data['allowances'] ?? [],
-                'benefits' => $data['benefits'] ?? [],
-                'start_date' => $data['start_date'] ?? now()->addDays(30),
-                'offer_valid_until' => $data['offer_valid_until'] ?? now()->addDays(7),
-                'status' => 'draft',
-                'created_by' => auth()->id(),
+                'offering_letter_number' => null, // Will be set when offering is processed
+                'result' => 'pending',
+                'notes' => null,
+                'reviewed_by' => auth()->id(),
+                'reviewed_at' => now(),
             ]);
         }
 
@@ -345,12 +342,12 @@ class RecruitmentWorkflowService
      */
     protected function handleMCUStage(RecruitmentSession $session, array $data): bool
     {
-        // MCU should only start after offer is accepted
-        $offer = $session->getLatestOffer();
-        if (!$offer || $offer->status !== 'accepted') {
-            Log::warning("MCU stage requires accepted offer", [
+        // MCU should only start after offering is accepted
+        $offering = $session->offering;
+        if (!$offering || $offering->result !== 'accepted') {
+            Log::warning("MCU stage requires accepted offering", [
                 'session_id' => $session->id,
-                'offer_status' => $offer ? $offer->status : 'no_offer'
+                'offering_result' => $offering ? $offering->result : 'no_offering'
             ]);
             return false;
         }

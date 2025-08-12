@@ -262,7 +262,8 @@ class RecruitmentRequest extends Model
      */
     public function canReceiveApplications()
     {
-        return $this->status === 'approved' && $this->positions_filled < $this->required_qty;
+        // Allow applications as long as FPTK is approved, regardless of required_qty and positions_filled
+        return $this->status === 'approved';
     }
 
     public function incrementPositionsFilled()
