@@ -287,6 +287,13 @@
                                             );
                                             $documentName = 'Recruitment Request';
                                             break;
+                                        case 'recruitment_offering':
+                                            $documentLink = route(
+                                                'recruitment.sessions.candidate',
+                                                $letterNumber->related_document_id,
+                                            );
+                                            $documentName = 'Recruitment Request';
+                                            break;
                                     }
                                 @endphp
 

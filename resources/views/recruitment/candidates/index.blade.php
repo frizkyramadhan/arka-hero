@@ -349,7 +349,6 @@
                     data: "candidate_number",
                     name: "candidate_number",
                     orderable: false,
-                    className: 'text-center'
                 }, {
                     data: "fullname",
                     name: "fullname",

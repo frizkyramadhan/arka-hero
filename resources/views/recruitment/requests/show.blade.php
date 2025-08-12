@@ -387,38 +387,7 @@
                         </div>
                     @endif --}}
 
-                    <!-- Recruitment Sessions -->
-                    @if ($fptk->sessions->isNotEmpty())
-                        <div class="fptk-card sessions-card">
-                            <div class="card-head">
-                                <h2><i class="fas fa-user-graduate"></i> Recruitment Sessions <span
-                                        class="sessions-count">{{ $fptk->sessions->count() }}</span></h2>
-                            </div>
-                            <div class="card-body p-0">
-                                <div class="sessions-list">
-                                    @foreach ($fptk->sessions as $session)
-                                        <div class="session-item">
-                                            <div class="session-info">
-                                                <div class="session-candidate">{{ $session->candidate->fullname }}</div>
-                                                <div class="session-stage">Stage: {{ ucfirst($session->current_stage) }}
-                                                </div>
-                                                <div class="session-meta">
-                                                    <span class="session-email"><i class="fas fa-envelope"></i>
-                                                        {{ $session->candidate->email }}</span>
-                                                    <span class="session-phone"><i class="fas fa-phone"></i>
-                                                        {{ $session->candidate->phone }}</span>
-                                                </div>
-                                                <div class="session-status">
-                                                    <span
-                                                        class="status-badge status-{{ $session->status }}">{{ ucfirst($session->status) }}</span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    @endforeach
-                                </div>
-                            </div>
-                        </div>
-                    @endif
+
                 </div>
 
                 <!-- Right Column -->
@@ -651,6 +620,138 @@
                             <i class="fas fa-print"></i> Print FPTK
                         </a>
                     </div>
+                </div>
+
+                <!-- Recruitment Sessions (full width table, unified with session view) -->
+                <div class="col-lg-12 sessions-section">
+                    @if ($sessions->isNotEmpty())
+                        <div class="row">
+                            <div class="col-12">
+                                <div class="fptk-card sessions-table-card">
+                                    <div class="card-head d-flex align-items-center justify-content-between">
+                                        <h2 class="mb-0"><i class="fas fa-user-graduate"></i> Recruitment Sessions</h2>
+                                        <span class="sessions-count">{{ $sessions->count() }}</span>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="table-responsive">
+                                            <table class="table table-bordered table-striped">
+                                                <thead>
+                                                    <tr>
+                                                        <th class="text-center align-middle" style="width: 50px;">No</th>
+                                                        <th class="align-middle">Candidate Name</th>
+                                                        <th class="text-center align-middle">CV Review</th>
+                                                        <th class="text-center align-middle">Psikotes</th>
+                                                        <th class="text-center align-middle">Tes Teori</th>
+                                                        <th class="text-center align-middle">Interview HR</th>
+                                                        <th class="text-center align-middle">Interview User</th>
+                                                        <th class="text-center align-middle">Offering</th>
+                                                        <th class="text-center align-middle">MCU</th>
+                                                        <th class="text-center align-middle">Hire</th>
+                                                        <th class="text-center align-middle">Onboarding</th>
+                                                        <th class="text-center align-middle">Final Status</th>
+                                                        <th class="text-center align-middle" style="width: 120px;">Action
+                                                        </th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    @foreach ($sessions as $index => $session)
+                                                        <tr>
+                                                            <td class="text-center">{{ $index + 1 }}</td>
+                                                            <td>
+                                                                <strong>{{ $session->candidate->fullname ?? 'N/A' }}</strong>
+                                                                <br>
+                                                                <small class="text-muted">Session:
+                                                                    {{ $session->session_number }}</small>
+                                                            </td>
+                                                            @php
+                                                                $stages = [
+                                                                    'cv_review',
+                                                                    'psikotes',
+                                                                    'tes_teori',
+                                                                    'interview_hr',
+                                                                    'interview_user',
+                                                                    'offering',
+                                                                    'mcu',
+                                                                    'hire',
+                                                                    'onboarding',
+                                                                ];
+                                                                $currentStage = $session->current_stage;
+                                                                $stageStatus = $session->stage_status;
+                                                            @endphp
+                                                            @foreach ($stages as $stage)
+                                                                @php
+                                                                    $stageIndex = array_search($stage, $stages);
+                                                                    $currentStageIndex = array_search(
+                                                                        $currentStage,
+                                                                        $stages,
+                                                                    );
+                                                                    if ($stageIndex < $currentStageIndex) {
+                                                                        $status = 'completed';
+                                                                        $icon = 'fas fa-check-circle text-success';
+                                                                    } elseif ($stageIndex == $currentStageIndex) {
+                                                                        $status = $stageStatus;
+                                                                        $icon =
+                                                                            $stageStatus == 'completed'
+                                                                                ? 'fas fa-check-circle text-success'
+                                                                                : 'fas fa-clock text-warning';
+                                                                    } else {
+                                                                        $status = 'pending';
+                                                                        $icon = 'fas fa-circle text-muted';
+                                                                    }
+                                                                @endphp
+                                                                <td class="text-center">
+                                                                    <i class="{{ $icon }}"
+                                                                        title="{{ ucfirst($status) }}"></i>
+                                                                </td>
+                                                            @endforeach
+                                                            <td class="text-center">
+                                                                @php
+                                                                    $finalStatusMap = [
+                                                                        'in_process' =>
+                                                                            '<span class="badge badge-info">In Process</span>',
+                                                                        'hired' =>
+                                                                            '<span class="badge badge-success">Hired</span>',
+                                                                        'rejected' =>
+                                                                            '<span class="badge badge-danger">Rejected</span>',
+                                                                        'cancelled' =>
+                                                                            '<span class="badge badge-warning">Cancelled</span>',
+                                                                    ];
+                                                                @endphp
+                                                                {!! $finalStatusMap[$session->status] ??
+                                                                    '<span class="badge badge-secondary">' . ucfirst($session->status) . '</span>' !!}
+                                                            </td>
+                                                            <td class="text-center">
+                                                                @can('recruitment-sessions.delete')
+                                                                    <a href="{{ route('recruitment.sessions.candidate', $session->id) }}"
+                                                                        class="btn btn-sm btn-info"
+                                                                        title="View Session Details">
+                                                                        <i class="fas fa-eye"></i>
+                                                                    </a>
+                                                                @endcan
+                                                                @can('recruitment-sessions.delete')
+                                                                    @if ($session->status !== 'hired')
+                                                                        <button type="button"
+                                                                            class="btn btn-sm btn-danger delete-session-btn"
+                                                                            data-session-id="{{ $session->id }}"
+                                                                            data-candidate-name="{{ $session->candidate->fullname ?? 'N/A' }}"
+                                                                            data-toggle="modal"
+                                                                            data-target="#deleteSessionModal"
+                                                                            title="Remove Candidate from Session">
+                                                                            <i class="fas fa-trash"></i>
+                                                                        </button>
+                                                                    @endif
+                                                                @endcan
+                                                            </td>
+                                                        </tr>
+                                                    @endforeach
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    @endif
                 </div>
             </div>
         </div>
@@ -1322,6 +1423,12 @@
 
             .fptk-content .col-lg-4 {
                 order: 2;
+                width: 100%;
+            }
+
+            /* Ensure sessions section stays below right column on mobile */
+            .fptk-content .sessions-section {
+                order: 3;
                 width: 100%;
             }
 

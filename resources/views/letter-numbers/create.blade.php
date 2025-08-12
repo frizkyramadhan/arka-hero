@@ -171,8 +171,8 @@
             <div class="row">
                 <div class="col-md-12">
                     <div class="form-group">
-                        <label>Select Employee <span class="text-danger">*</span></label>
-                        <select class="form-control select2bs4" name="administration_id" id="administration_id" required>
+                        <label>Select Employee</label>
+                        <select class="form-control select2bs4" name="administration_id" id="administration_id">
                             <option value="">- Select Employee -</option>
                             @foreach($administrations as $admin)
                                 <option value="{{ $admin->id }}"
@@ -330,12 +330,6 @@
                 dynamicFieldsContainer.empty();
 
                 if (categoryCode) {
-                    if (['PKWT', 'CRTE', 'SKPK'].includes(categoryCode)) {
-                        dynamicFieldsContainer.append($('#employee-template').html());
-                        $('#administration_id').select2({
-                            theme: 'bootstrap4'
-                        });
-                    }
                     if (categoryCode === 'PKWT') {
                         dynamicFieldsContainer.append($('#pkwt-template').html());
                     } else if (categoryCode === 'PAR') {
@@ -344,6 +338,12 @@
                         dynamicFieldsContainer.append($('#fr-template').html());
                     } else if (['A'].includes(categoryCode)) {
                         dynamicFieldsContainer.append($('#classification-template').html());
+                    }
+                    if (['PKWT', 'CRTE', 'SKPK'].includes(categoryCode)) {
+                        dynamicFieldsContainer.append($('#employee-template').html());
+                        $('#administration_id').select2({
+                            theme: 'bootstrap4'
+                        });
                     }
                 }
             }

@@ -51,7 +51,6 @@ class RecruitmentCandidateController extends Controller
         // Get available FPTKs for the apply modal
         $availableFptks = RecruitmentRequest::with(['department', 'position'])
             ->where('status', 'approved')
-            ->whereColumn('positions_filled', '<', 'required_qty')
             ->get();
 
         $title = 'Recruitment Candidates';
@@ -301,14 +300,19 @@ class RecruitmentCandidateController extends Controller
             'sessions.fptk.department',
             'sessions.fptk.position',
             'sessions.fptk.project',
-            'sessions.assessments',
-            'sessions.offers'
+            'sessions.cvReview',
+            'sessions.psikotes',
+            'sessions.tesTeori',
+            'sessions.interviews',
+            'sessions.offering',
+            'sessions.mcu',
+            'sessions.hiring',
+            'sessions.onboarding'
         ])->findOrFail($id);
 
         // Get available FPTKs for the apply modal
         $availableFptks = RecruitmentRequest::with(['department', 'position'])
             ->where('status', 'approved')
-            ->whereColumn('positions_filled', '<', 'required_qty')
             ->whereNotIn('id', function ($query) use ($id) {
                 $query->select('fptk_id')
                     ->from('recruitment_sessions')
@@ -580,8 +584,14 @@ class RecruitmentCandidateController extends Controller
             'sessions.fptk.department',
             'sessions.fptk.position',
             'sessions.fptk.project',
-            'sessions.assessments',
-            'sessions.offers'
+            'sessions.cvReview',
+            'sessions.psikotes',
+            'sessions.tesTeori',
+            'sessions.interviews',
+            'sessions.offering',
+            'sessions.mcu',
+            'sessions.hiring',
+            'sessions.onboarding'
         ])->findOrFail($id);
 
         return view('recruitment.candidates.print', compact('candidate'));
@@ -702,7 +712,6 @@ class RecruitmentCandidateController extends Controller
         // Get FPTKs that can receive applications and candidate hasn't applied to
         $availableFPTKs = RecruitmentRequest::with(['department', 'position', 'project'])
             ->where('status', 'approved')
-            ->whereColumn('positions_filled', '<', 'required_qty')
             ->whereNotIn('id', function ($query) use ($candidateId) {
                 $query->select('fptk_id')
                     ->from('recruitment_sessions')

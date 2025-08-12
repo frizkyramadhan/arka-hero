@@ -64,11 +64,105 @@
                             <h2><i class="fas fa-clock"></i> Recruitment Timeline</h2>
                         </div>
                         <div class="card-body">
+                            @php
+                                $stageOrder = [
+                                    'cv_review' => 1,
+                                    'psikotes' => 2,
+                                    'tes_teori' => 3,
+                                    'interview' => 4,
+                                    'offering' => 5,
+                                    'mcu' => 6,
+                                    'hire' => 7,
+                                    'onboarding' => 8,
+                                ];
+                                $currentOrder = $stageOrder[$session->current_stage] ?? 0;
+                                $stageClasses = [];
+                                foreach (array_keys($stageOrder) as $stageKey) {
+                                    $thisOrder = $stageOrder[$stageKey] ?? 0;
+                                    $cls = 'bg-secondary';
+                                    if ($thisOrder > $currentOrder) {
+                                        $cls = 'bg-secondary';
+                                    } elseif ($thisOrder < $currentOrder) {
+                                        $assessment = $session->getAssessmentByStage($stageKey);
+                                        $passed = $session->isStageCompleted($stageKey);
+                                        $failed = false;
+
+                                        if ($stageKey === 'interview') {
+                                            // Use helper method for interview status
+                                            $interviewStatus = $session->getInterviewStatus();
+                                            $cls = 'bg-' . $interviewStatus;
+                                        } else {
+                                            // Logic for other stages
+                                            if ($assessment) {
+                                                $decision = $assessment->decision ?? null;
+                                                $result = $assessment->result ?? null;
+                                                if ($stageKey === 'cv_review') {
+                                                    $failed = $decision === 'not_recommended';
+                                                } elseif (in_array($stageKey, ['psikotes', 'tes_teori'])) {
+                                                    $failed = $result === 'fail';
+                                                } elseif ($stageKey === 'offering') {
+                                                    $failed = $result === 'rejected';
+                                                } elseif ($stageKey === 'mcu') {
+                                                    $failed = $result === 'unfit';
+                                                }
+                                            }
+                                            if ($passed) {
+                                                $cls = 'bg-success';
+                                            } elseif ($failed) {
+                                                $cls = 'bg-danger';
+                                            } else {
+                                                $cls = 'bg-secondary';
+                                            }
+                                        }
+                                    } else {
+                                        // current stage
+                                        if ($session->stage_status === 'failed') {
+                                            $cls = 'bg-danger';
+                                        } elseif (in_array($session->stage_status, ['pending', 'in_progress'])) {
+                                            if ($stageKey === 'interview') {
+                                                // Use helper method for interview status
+                                                $interviewStatus = $session->getInterviewStatus();
+                                                $cls = 'bg-' . $interviewStatus;
+                                            } else {
+                                                $cls = 'bg-warning';
+                                            }
+                                        } else {
+                                            // completed
+                                            if ($stageKey === 'interview') {
+                                                // Use helper method for interview status
+                                                $interviewStatus = $session->getInterviewStatus();
+                                                $cls = 'bg-' . $interviewStatus;
+                                            } else {
+                                                // Logic for other completed stages
+                                                $assessment = $session->getCurrentStageAssessment();
+                                                $decision = $assessment->decision ?? null;
+                                                $result = $assessment->result ?? null;
+                                                $cls = 'bg-success';
+                                                if ($stageKey === 'cv_review' && $decision === 'not_recommended') {
+                                                    $cls = 'bg-danger';
+                                                }
+                                                if (
+                                                    in_array($stageKey, ['psikotes', 'tes_teori']) &&
+                                                    $result === 'fail'
+                                                ) {
+                                                    $cls = 'bg-danger';
+                                                }
+                                                if ($stageKey === 'offering' && $result === 'rejected') {
+                                                    $cls = 'bg-danger';
+                                                }
+                                                if ($stageKey === 'mcu' && $result === 'unfit') {
+                                                    $cls = 'bg-danger';
+                                                }
+                                            }
+                                        }
+                                    }
+                                    $stageClasses[$stageKey] = $cls;
+                                }
+                            @endphp
                             <div class="timeline-horizontal">
                                 <!-- CV Review -->
                                 <div class="timeline-item" data-toggle="modal" data-target="#cvReviewModal">
-                                    <div
-                                        class="timeline-marker {{ $session->current_stage === 'cv_review' ? ($session->stage_status === 'completed' ? 'bg-success' : ($session->stage_status === 'failed' ? 'bg-danger' : 'bg-warning')) : ($session->getProgressPercentage() >= 10 ? 'bg-success' : 'bg-secondary') }}">
+                                    <div class="timeline-marker {{ $stageClasses['cv_review'] }}">
                                         <i class="fas fa-file-alt"></i>
                                     </div>
                                     <div class="timeline-content">
@@ -87,8 +181,7 @@
 
                                 <!-- Psikotes -->
                                 <div class="timeline-item" data-toggle="modal" data-target="#psikotesModal">
-                                    <div
-                                        class="timeline-marker {{ $session->current_stage === 'psikotes' ? ($session->stage_status === 'completed' ? 'bg-success' : ($session->stage_status === 'failed' ? 'bg-danger' : 'bg-warning')) : ($session->getProgressPercentage() >= 20 ? 'bg-success' : 'bg-secondary') }}">
+                                    <div class="timeline-marker {{ $stageClasses['psikotes'] }}">
                                         <i class="fas fa-brain"></i>
                                     </div>
                                     <div class="timeline-content">
@@ -107,8 +200,7 @@
 
                                 <!-- Tes Teori -->
                                 <div class="timeline-item" data-toggle="modal" data-target="#tesTeoriModal">
-                                    <div
-                                        class="timeline-marker {{ $session->current_stage === 'tes_teori' ? ($session->stage_status === 'completed' ? 'bg-success' : ($session->stage_status === 'failed' ? 'bg-danger' : 'bg-warning')) : ($session->getProgressPercentage() >= 30 ? 'bg-success' : 'bg-secondary') }}">
+                                    <div class="timeline-marker {{ $stageClasses['tes_teori'] }}">
                                         <i class="fas fa-book"></i>
                                     </div>
                                     <div class="timeline-content">
@@ -125,16 +217,15 @@
                                     </div>
                                 </div>
 
-                                <!-- Interview HR -->
-                                <div class="timeline-item" data-toggle="modal" data-target="#interviewHrModal">
-                                    <div
-                                        class="timeline-marker {{ $session->current_stage === 'interview_hr' ? ($session->stage_status === 'completed' ? 'bg-success' : ($session->stage_status === 'failed' ? 'bg-danger' : 'bg-warning')) : ($session->getProgressPercentage() >= 40 ? 'bg-success' : 'bg-secondary') }}">
+                                <!-- Interview -->
+                                <div class="timeline-item" data-toggle="modal" data-target="#interviewModal">
+                                    <div class="timeline-marker {{ $stageClasses['interview'] }}">
                                         <i class="fas fa-user-tie"></i>
                                     </div>
                                     <div class="timeline-content">
-                                        <div class="timeline-title">Interview HR</div>
+                                        <div class="timeline-title">Interview</div>
                                         <div class="timeline-date">
-                                            @if ($session->current_stage === 'interview_hr' && $session->stage_started_at)
+                                            @if ($session->current_stage === 'interview' && $session->stage_started_at)
                                                 {{ date('d M Y', strtotime($session->stage_started_at)) }}
                                             @elseif($session->getProgressPercentage() >= 40)
                                                 {{ date('d M Y', strtotime($session->stage_completed_at ?? now())) }}
@@ -145,30 +236,9 @@
                                     </div>
                                 </div>
 
-                                <!-- Interview User -->
-                                <div class="timeline-item" data-toggle="modal" data-target="#interviewUserModal">
-                                    <div
-                                        class="timeline-marker {{ $session->current_stage === 'interview_user' ? ($session->stage_status === 'completed' ? 'bg-success' : ($session->stage_status === 'failed' ? 'bg-danger' : 'bg-warning')) : ($session->getProgressPercentage() >= 50 ? 'bg-success' : 'bg-secondary') }}">
-                                        <i class="fas fa-users"></i>
-                                    </div>
-                                    <div class="timeline-content">
-                                        <div class="timeline-title">Interview User</div>
-                                        <div class="timeline-date">
-                                            @if ($session->current_stage === 'interview_user' && $session->stage_started_at)
-                                                {{ date('d M Y', strtotime($session->stage_started_at)) }}
-                                            @elseif($session->getProgressPercentage() >= 50)
-                                                {{ date('d M Y', strtotime($session->stage_completed_at ?? now())) }}
-                                            @else
-                                                -
-                                            @endif
-                                        </div>
-                                    </div>
-                                </div>
-
                                 <!-- Offering -->
                                 <div class="timeline-item" data-toggle="modal" data-target="#offeringModal">
-                                    <div
-                                        class="timeline-marker {{ $session->current_stage === 'offering' ? ($session->stage_status === 'completed' ? 'bg-success' : ($session->stage_status === 'failed' ? 'bg-danger' : 'bg-warning')) : ($session->getProgressPercentage() >= 60 ? 'bg-success' : 'bg-secondary') }}">
+                                    <div class="timeline-marker {{ $stageClasses['offering'] }}">
                                         <i class="fas fa-handshake"></i>
                                     </div>
                                     <div class="timeline-content">
@@ -187,8 +257,7 @@
 
                                 <!-- MCU -->
                                 <div class="timeline-item" data-toggle="modal" data-target="#mcuModal">
-                                    <div
-                                        class="timeline-marker {{ $session->current_stage === 'mcu' ? ($session->stage_status === 'completed' ? 'bg-success' : ($session->stage_status === 'failed' ? 'bg-danger' : 'bg-warning')) : ($session->getProgressPercentage() >= 70 ? 'bg-success' : 'bg-secondary') }}">
+                                    <div class="timeline-marker {{ $stageClasses['mcu'] }}">
                                         <i class="fas fa-user-md"></i>
                                     </div>
                                     <div class="timeline-content">
@@ -207,8 +276,7 @@
 
                                 <!-- Hire -->
                                 <div class="timeline-item" data-toggle="modal" data-target="#hireModal">
-                                    <div
-                                        class="timeline-marker {{ $session->current_stage === 'hire' ? ($session->stage_status === 'completed' ? 'bg-success' : ($session->stage_status === 'failed' ? 'bg-danger' : 'bg-warning')) : ($session->getProgressPercentage() >= 80 ? 'bg-success' : 'bg-secondary') }}">
+                                    <div class="timeline-marker {{ $stageClasses['hire'] }}">
                                         <i class="fas fa-user-check"></i>
                                     </div>
                                     <div class="timeline-content">
@@ -227,8 +295,7 @@
 
                                 <!-- Onboarding -->
                                 <div class="timeline-item" data-toggle="modal" data-target="#onboardingModal">
-                                    <div
-                                        class="timeline-marker {{ $session->current_stage === 'onboarding' ? ($session->stage_status === 'completed' ? 'bg-success' : ($session->stage_status === 'failed' ? 'bg-danger' : 'bg-warning')) : ($session->getProgressPercentage() >= 90 ? 'bg-success' : 'bg-secondary') }}">
+                                    <div class="timeline-marker {{ $stageClasses['onboarding'] }}">
                                         <i class="fas fa-graduation-cap"></i>
                                     </div>
                                     <div class="timeline-content">
@@ -314,58 +381,7 @@
                         </div>
                     </div>
 
-                    <!-- Assessments -->
-                    @if ($session->assessments && $session->assessments->count() > 0)
-                        <div class="fptk-card assessments-card">
-                            <div class="card-head">
-                                <h2><i class="fas fa-clipboard-check"></i> Assessments</h2>
-                            </div>
-                            <div class="card-body">
-                                <div class="table-responsive">
-                                    <table class="table table-bordered table-striped">
-                                        <thead>
-                                            <tr>
-                                                <th>Stage</th>
-                                                <th>Type</th>
-                                                <th>Date</th>
-                                                <th>Status</th>
-                                                <th>Score</th>
-                                                <th>Notes</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            @foreach ($session->assessments as $assessment)
-                                                <tr>
-                                                    <td>{{ ucfirst(str_replace('_', ' ', $assessment->stage)) }}</td>
-                                                    <td>{{ ucfirst(str_replace('_', ' ', $assessment->type)) }}</td>
-                                                    <td>{{ $assessment->scheduled_date ? date('d M Y', strtotime($assessment->scheduled_date)) : 'N/A' }}
-                                                    </td>
-                                                    <td>
-                                                        @php
-                                                            $statusMap = [
-                                                                'scheduled' =>
-                                                                    '<span class="badge badge-info">Scheduled</span>',
-                                                                'completed' =>
-                                                                    '<span class="badge badge-success">Completed</span>',
-                                                                'cancelled' =>
-                                                                    '<span class="badge badge-warning">Cancelled</span>',
-                                                                'failed' =>
-                                                                    '<span class="badge badge-danger">Failed</span>',
-                                                            ];
-                                                        @endphp
-                                                        {!! $statusMap[$assessment->status] ??
-                                                            '<span class="badge badge-secondary">' . ucfirst($assessment->status) . '</span>' !!}
-                                                    </td>
-                                                    <td>{{ $assessment->score ?? 'N/A' }}</td>
-                                                    <td>{{ Str::limit($assessment->notes, 50) ?? 'N/A' }}</td>
-                                                </tr>
-                                            @endforeach
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
-                    @endif
+                    <!-- Assessments moved below right column as full-width -->
                 </div>
 
                 <!-- Right Column -->
@@ -377,25 +393,6 @@
                         </div>
                         <div class="card-body">
                             <div class="fptk-action-buttons">
-                                @if ($session->current_stage === 'psikotes' && $session->stage_status === 'pending')
-                                    <button type="button" class="btn-action psikotes-btn" data-toggle="modal"
-                                        data-target="#psikotesModal">
-                                        <i class="fas fa-brain"></i> Psikotes Assessment
-                                    </button>
-                                @elseif ($session->canAdvanceToNextStage())
-                                    <button type="button" class="btn-action advance-btn" data-toggle="modal"
-                                        data-target="#advanceModal">
-                                        <i class="fas fa-arrow-right"></i> Advance to Next Stage
-                                    </button>
-                                @endif
-                                <button type="button" class="btn-action reject-btn" data-toggle="modal"
-                                    data-target="#rejectModal">
-                                    <i class="fas fa-times"></i> Reject Session
-                                </button>
-                                <button type="button" class="btn-action complete-btn" data-toggle="modal"
-                                    data-target="#completeModal">
-                                    <i class="fas fa-check-double"></i> Complete Session
-                                </button>
                                 <a href="{{ route('recruitment.sessions.show', $session->fptk->id) }}"
                                     class="btn-action back-btn">
                                     <i class="fas fa-arrow-left"></i> Back to FPTK
@@ -421,15 +418,98 @@
                                     <div class="progress-detail-item">
                                         <div class="detail-label">Current Stage</div>
                                         <div class="detail-value">
-                                            {{ ucfirst(str_replace('_', ' ', $session->current_stage)) }}</div>
+                                            @switch($session->current_stage)
+                                                @case('cv_review')
+                                                    <span class="badge badge-primary">CV Review</span>
+                                                @break
+
+                                                @case('psikotes')
+                                                    <span class="badge badge-info">Psikotes</span>
+                                                @break
+
+                                                @case('tes_teori')
+                                                    <span class="badge badge-warning">Tes Teori</span>
+                                                @break
+
+                                                @case('interview_hr')
+                                                    <span class="badge badge-success">Interview HR</span>
+                                                @break
+
+                                                @case('interview_user')
+                                                    <span class="badge badge-success">Interview User</span>
+                                                @break
+
+                                                @case('offering')
+                                                    <span class="badge badge-primary">Offering</span>
+                                                @break
+
+                                                @case('mcu')
+                                                    <span class="badge badge-info">MCU</span>
+                                                @break
+
+                                                @case('hire')
+                                                    <span class="badge badge-success">Hiring</span>
+                                                @break
+
+                                                @case('onboarding')
+                                                    <span class="badge badge-success">Onboarding</span>
+                                                @break
+
+                                                @default
+                                                    <span
+                                                        class="badge badge-secondary">{{ ucfirst(str_replace('_', ' ', $session->current_stage)) }}</span>
+                                            @endswitch
+                                        </div>
+                                    </div>
+                                    <div class="progress-detail-item">
+                                        <div class="detail-label">Total Days</div>
+                                        <div class="detail-value">
+                                            @php
+                                                $startDate =
+                                                    optional($session->cvReview)->reviewed_at ?? $session->created_at;
+                                                $endDate =
+                                                    $session->status === 'hired' && $session->final_decision_date
+                                                        ? $session->final_decision_date
+                                                        : now();
+                                                $totalDays = \Carbon\Carbon::parse($startDate)
+                                                    ->startOfDay()
+                                                    ->diffInDays(\Carbon\Carbon::parse($endDate)->endOfDay());
+                                            @endphp
+                                            <span class="badge badge-dark">{{ $totalDays }} days</span>
+                                        </div>
                                     </div>
                                     <div class="progress-detail-item">
                                         <div class="detail-label">Stage Status</div>
-                                        <div class="detail-value">{{ ucfirst($session->stage_status) }}</div>
+                                        <div class="detail-value">
+                                            @if ($session->stage_status === 'pending')
+                                                <span class="badge badge-warning">Pending</span>
+                                            @elseif ($session->stage_status === 'in_progress')
+                                                <span class="badge badge-info">In Progress</span>
+                                            @elseif ($session->stage_status === 'completed')
+                                                <span class="badge badge-success">Completed</span>
+                                            @elseif ($session->stage_status === 'failed')
+                                                <span class="badge badge-danger">Failed</span>
+                                            @else
+                                                <span
+                                                    class="badge badge-secondary">{{ ucfirst($session->stage_status) }}</span>
+                                            @endif
+                                        </div>
                                     </div>
                                     <div class="progress-detail-item">
                                         <div class="detail-label">Final Status</div>
-                                        <div class="detail-value">{{ ucfirst($session->status) }}</div>
+                                        <div class="detail-value">
+                                            @if ($session->status === 'active')
+                                                <span class="badge badge-success">Active</span>
+                                            @elseif ($session->status === 'completed')
+                                                <span class="badge badge-info">Completed</span>
+                                            @elseif ($session->status === 'rejected')
+                                                <span class="badge badge-danger">Rejected</span>
+                                            @elseif ($session->status === 'failed')
+                                                <span class="badge badge-danger">Failed</span>
+                                            @else
+                                                <span class="badge badge-secondary">{{ ucfirst($session->status) }}</span>
+                                            @endif
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -437,24 +517,189 @@
                     </div>
                 </div>
             </div>
+            <!-- Full-width Assessments Section -->
+            @php
+                $allAssessments = $session->getAllAssessments();
+                $hasAssessments = collect($allAssessments)->filter()->isNotEmpty();
+            @endphp
+            @if ($hasAssessments)
+                <div class="row">
+                    <div class="col-12 assessments-section">
+                        <div class="fptk-card assessments-card">
+                            <div class="card-head">
+                                <h2><i class="fas fa-clipboard-check"></i> Assessments</h2>
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-bordered table-striped">
+                                        <thead>
+                                            <tr>
+                                                <th>Stage</th>
+                                                <th>Date</th>
+                                                <th>Status</th>
+                                                <th>Score/Result</th>
+                                                <th>Notes</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach ($allAssessments as $stage => $assessment)
+                                                @if ($assessment)
+                                                    <tr>
+                                                        <td>
+                                                            @switch($stage)
+                                                                @case('cv_review')
+                                                                    <strong>CV Review</strong>
+                                                                @break
+
+                                                                @case('psikotes')
+                                                                    <strong>Psikotes</strong>
+                                                                @break
+
+                                                                @case('tes_teori')
+                                                                    <strong>Tes Teori</strong>
+                                                                @break
+
+                                                                @case('interview_hr')
+                                                                    <strong>Interview HR</strong>
+                                                                @break
+
+                                                                @case('interview_user')
+                                                                    <strong>Interview User</strong>
+                                                                @break
+
+                                                                @case('offering')
+                                                                    <strong>Offering</strong>
+                                                                @break
+
+                                                                @case('mcu')
+                                                                    <strong>MCU</strong>
+                                                                @break
+
+                                                                @case('hire')
+                                                                    <strong>Hiring</strong>
+                                                                @break
+
+                                                                @case('onboarding')
+                                                                    <strong>Onboarding</strong>
+                                                                @break
+
+                                                                @default
+                                                                    <strong>{{ ucfirst(str_replace('_', ' ', $stage)) }}</strong>
+                                                            @endswitch
+                                                        </td>
+                                                        <td>{{ $assessment->reviewed_at ? date('d M Y', strtotime($assessment->reviewed_at)) : 'N/A' }}
+                                                        </td>
+                                                        <td>
+                                                            @php
+                                                                $statusMap = [
+                                                                    'recommended' =>
+                                                                        '<span class="badge badge-success">Recommended</span>',
+                                                                    'not_recommended' =>
+                                                                        '<span class="badge badge-danger">Not Recommended</span>',
+                                                                    'pass' =>
+                                                                        '<span class="badge badge-success">Pass</span>',
+                                                                    'fail' =>
+                                                                        '<span class="badge badge-danger">Fail</span>',
+                                                                    'accepted' =>
+                                                                        '<span class="badge badge-success">Accepted</span>',
+                                                                    'rejected' =>
+                                                                        '<span class="badge badge-danger">Rejected</span>',
+                                                                    'fit' =>
+                                                                        '<span class="badge badge-success">Fit</span>',
+                                                                    'unfit' =>
+                                                                        '<span class="badge badge-danger">Unfit</span>',
+                                                                    'follow_up' =>
+                                                                        '<span class="badge badge-warning">Follow Up</span>',
+                                                                ];
+                                                                $result =
+                                                                    $assessment->decision ??
+                                                                    ($assessment->result ?? null);
+                                                                if ($stage === 'hire' && $assessment) {
+                                                                    $statusMap['hired'] =
+                                                                        '<span class="badge badge-success">Hired</span>';
+                                                                    $result = 'hired';
+                                                                }
+                                                            @endphp
+                                                            {!! $statusMap[$result] ?? '<span class="badge badge-info">Completed</span>' !!}
+                                                        </td>
+                                                        <td>
+                                                            @switch($stage)
+                                                                @case('cv_review')
+                                                                    {{ $assessment->decision ?? 'N/A' }}
+                                                                @break
+
+                                                                @case('psikotes')
+                                                                    @if ($assessment->online_score && $assessment->offline_score)
+                                                                        Online: {{ $assessment->online_score }}, Offline:
+                                                                        {{ $assessment->offline_score }}
+                                                                    @elseif ($assessment->online_score)
+                                                                        Online: {{ $assessment->online_score }}
+                                                                    @elseif ($assessment->offline_score)
+                                                                        Offline: {{ $assessment->offline_score }}
+                                                                    @else
+                                                                        N/A
+                                                                    @endif
+                                                                @break
+
+                                                                @case('tes_teori')
+                                                                    {{ $assessment->score ?? 'N/A' }}
+                                                                @break
+
+                                                                @case('interview_hr')
+                                                                @case('interview_user')
+                                                                    {{ $assessment->result ?? 'N/A' }}
+                                                                @break
+
+                                                                @case('offering')
+                                                                    {{ $assessment->result ?? 'N/A' }}
+                                                                @break
+
+                                                                @case('mcu')
+                                                                    {{ $assessment->result ?? 'N/A' }}
+                                                                @break
+
+                                                                @case('hire')
+                                                                    {{ strtoupper($assessment->agreement_type) ?? 'N/A' }}
+                                                                @break
+
+                                                                @case('onboarding')
+                                                                    {{ $assessment->onboarding_date ? date('d M Y', strtotime($assessment->onboarding_date)) : 'N/A' }}
+                                                                @break
+
+                                                                @default
+                                                                    N/A
+                                                            @endswitch
+                                                        </td>
+                                                        <td>{{ Str::limit($assessment->notes, 50) ?? 'N/A' }}</td>
+                                                    </tr>
+                                                @endif
+                                            @endforeach
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            @endif
         </div>
     </div>
-
-
-
     @include('recruitment.sessions.partials.modals')
 @endsection
 
 @section('styles')
+    <!-- Select2 styles for letter number selector -->
+    <link rel="stylesheet" href="{{ asset('assets/plugins/select2/css/select2.min.css') }}">
+    <link rel="stylesheet" href="{{ asset('assets/plugins/select2-bootstrap4-theme/select2-bootstrap4.min.css') }}">
     <style>
-        /* Custom Styles for FPTK Detail */
+        /* Core Layout Styles */
         .content-wrapper-custom {
             background-color: #f8fafc;
             min-height: 100vh;
             padding-bottom: 40px;
         }
 
-        /* Header */
+        /* Header Styles */
         .fptk-header {
             position: relative;
             height: 120px;
@@ -508,12 +753,11 @@
             gap: 0.5rem;
         }
 
-        /* Content Styles */
+        /* Content & Card Styles */
         .fptk-content {
             padding: 0 20px;
         }
 
-        /* Cards */
         .fptk-card {
             background: white;
             border-radius: 6px;
@@ -539,47 +783,6 @@
 
         .card-body {
             padding: 20px;
-        }
-
-        /* Info Grid */
-        .info-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 20px;
-            padding: 20px;
-        }
-
-        .info-item {
-            display: flex;
-            align-items: flex-start;
-            gap: 12px;
-        }
-
-        .info-icon {
-            width: 32px;
-            height: 32px;
-            border-radius: 4px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 14px;
-            background-color: #3498db;
-        }
-
-        .info-content {
-            flex: 1;
-        }
-
-        .info-label {
-            font-size: 12px;
-            color: #777;
-            margin-bottom: 4px;
-        }
-
-        .info-value {
-            font-weight: 600;
-            color: #333;
         }
 
         /* Timeline Styles */
@@ -620,25 +823,9 @@
             margin-bottom: 10px;
             border: 3px solid white;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        }
-
-        .timeline-marker.completed {
-            background: #28a745;
-        }
-
-        .timeline-marker.active {
-            background: #ffc107;
-        }
-
-        .timeline-marker.pending {
             background: #6c757d;
         }
 
-        .timeline-marker.failed {
-            background: #dc3545;
-        }
-
-        /* AdminLTE Color Classes */
         .timeline-marker.bg-success {
             background: #28a745 !important;
         }
@@ -677,6 +864,38 @@
             font-size: 10px;
             color: #6c757d;
             line-height: 1.2;
+        }
+
+        .timeline-status {
+            margin-top: 6px;
+        }
+
+        .timeline-status .badge-sm {
+            font-size: 10px;
+            padding: 2px 6px;
+        }
+
+        /* Table Styles */
+        .table th {
+            background-color: #f8f9fa;
+            border-color: #dee2e6;
+            font-weight: 600;
+            color: #495057;
+            vertical-align: middle;
+        }
+
+        .table td {
+            vertical-align: middle;
+            border-color: #dee2e6;
+        }
+
+        .table tbody tr:hover {
+            background-color: #f8f9fa;
+        }
+
+        .badge-sm {
+            font-size: 0.75em;
+            padding: 0.25em 0.5em;
         }
 
         /* Action Buttons */
@@ -728,15 +947,6 @@
 
         .psikotes-btn:hover {
             background-color: #5a32a3;
-            color: white;
-        }
-
-        .reject-btn {
-            background-color: #dc3545;
-        }
-
-        .reject-btn:hover {
-            background-color: #c82333;
             color: white;
         }
 
@@ -812,7 +1022,73 @@
         .progress-details {
             display: flex;
             flex-direction: column;
-            gap: 10px;
+            gap: 12px;
+        }
+
+        .progress-detail-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .progress-detail-item:last-child {
+            border-bottom: none;
+        }
+
+        .detail-label {
+            font-weight: 500;
+            color: #6c757d;
+            font-size: 14px;
+        }
+
+        .detail-value {
+            font-weight: 600;
+            color: #495057;
+            font-size: 14px;
+        }
+
+        /* Info Grid Styles (match FPTK Information) */
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+            padding: 20px;
+        }
+
+        .info-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+        }
+
+        .info-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 14px;
+            background-color: #3498db;
+            /* default, can be overridden inline */
+        }
+
+        .info-content {
+            flex: 1;
+        }
+
+        .info-label {
+            font-size: 12px;
+            color: #777;
+            margin-bottom: 4px;
+        }
+
+        .info-value {
+            font-weight: 600;
+            color: #333;
         }
 
         .progress-detail-item {
@@ -854,7 +1130,7 @@
             border-color: #dee2e6;
         }
 
-        /* Timeline Modal Styles */
+        /* Modal Styles */
         .timeline-modal-content {
             padding: 20px 0;
         }
@@ -899,12 +1175,109 @@
             font-size: 14px;
         }
 
-        /* Responsive Adjustments */
-        @media (max-width: 992px) {
-            .info-grid {
-                grid-template-columns: 1fr;
-            }
+        /* Offering Letter Number visibility overrides */
+        #offering_letter_number.form-control[readonly] {
+            background-color: #fff;
+            /* base to prevent Bootstrap gray */
+            color: #2c3e50;
+            font-weight: 600;
+        }
 
+        #offering_letter_number.form-control[readonly].alert-success {
+            background-color: #d4edda !important;
+            border-color: #c3e6cb !important;
+            color: #155724 !important;
+        }
+
+        #offering_letter_number.form-control[readonly].alert-warning {
+            background-color: #fff3cd !important;
+            border-color: #ffeeba !important;
+            color: #856404 !important;
+        }
+
+        /* Unified Decision Buttons Styling */
+        .decision-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .decision-btn {
+            min-width: 120px;
+            padding: 12px 20px;
+            border-radius: 6px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            border: 2px solid;
+            background: white;
+        }
+
+        .decision-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .decision-btn.btn-outline-success {
+            border-color: #28a745;
+            color: #28a745;
+        }
+
+        .decision-btn.btn-outline-success:hover {
+            background-color: #28a745;
+            color: white;
+        }
+
+        .decision-btn.btn-outline-danger {
+            border-color: #dc3545;
+            color: #dc3545;
+        }
+
+        .decision-btn.btn-outline-danger:hover {
+            background-color: #dc3545;
+            color: white;
+        }
+
+        .decision-btn.btn-outline-warning {
+            border-color: #ffc107;
+            color: #ffc107;
+        }
+
+        .decision-btn.btn-outline-warning:hover {
+            background-color: #ffc107;
+            color: white;
+        }
+
+        /* Unified decision button states */
+        .decision-btn.active.btn-outline-success,
+        #offeringModal .decision-btn.btn-success,
+        #cvReviewModal .decision-btn.btn-success,
+        #interviewModal .decision-btn.btn-success {
+            background-color: #28a745 !important;
+            color: #fff !important;
+            border-color: #28a745 !important;
+        }
+
+        .decision-btn.active.btn-outline-danger,
+        #offeringModal .decision-btn.btn-danger,
+        #cvReviewModal .decision-btn.btn-danger,
+        #interviewModal .decision-btn.btn-danger {
+            background-color: #dc3545 !important;
+            color: #fff !important;
+            border-color: #dc3545 !important;
+        }
+
+        .decision-btn.btn-success,
+        .decision-btn.btn-danger {
+            color: #fff;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 992px) {
             .fptk-content .row {
                 display: flex;
                 flex-direction: column;
@@ -917,6 +1290,12 @@
 
             .fptk-content .col-lg-4 {
                 order: 2;
+                width: 100%;
+            }
+
+            /* Ensure assessments stay below right column on mobile */
+            .fptk-content .assessments-section {
+                order: 3;
                 width: 100%;
             }
 
@@ -956,10 +1335,6 @@
                 padding: 15px;
             }
 
-            .info-item {
-                padding: 10px 0;
-            }
-
             .timeline-horizontal {
                 padding: 10px 0;
             }
@@ -976,6 +1351,15 @@
 
             .timeline-content {
                 max-width: 100px;
+            }
+
+            .decision-buttons {
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .decision-btn {
+                min-width: 100%;
             }
         }
 
@@ -999,6 +1383,8 @@
 @endsection
 
 @section('scripts')
+    <!-- Select2 script for letter number selector -->
+    <script src="{{ asset('assets/plugins/select2/js/select2.full.min.js') }}"></script>
     <script>
         $(function() {
             // Initialize tooltips
@@ -1013,12 +1399,93 @@
             });
 
             // CV Review Modal Handlers
-            $('#cvPassBtn').click(function() {
-                handleCVReviewDecision('pass');
-            });
+            const cvApproveBtn = document.querySelector('#cvReviewModal .btn-outline-success');
+            const cvRejectBtn = document.querySelector('#cvReviewModal .btn-outline-danger');
+            const cvStatusInput = document.getElementById('cv_review_decision');
+            const cvSubmitBtn = document.querySelector('#cvReviewModal .submit-btn');
+            const cvRemarkTextarea = document.getElementById('cv_review_notes');
 
-            $('#cvFailBtn').click(function() {
-                handleCVReviewDecision('fail');
+            // Handle decision button clicks (CV Review)
+            function selectCvDecision(status) {
+                // Remove active class from all buttons
+                cvApproveBtn.classList.remove('active');
+                cvRejectBtn.classList.remove('active');
+
+                // Add active class to selected button + unified green/red state
+                if (status === 'recommended') {
+                    cvApproveBtn.classList.add('active');
+                } else if (status === 'not_recommended') {
+                    cvRejectBtn.classList.add('active');
+                }
+
+                // Update hidden input
+                cvStatusInput.value = status;
+
+                // Enable submit button if remark is filled
+                checkCvFormValidity();
+            }
+
+            // Handle button clicks
+            if (cvApproveBtn) {
+                cvApproveBtn.addEventListener('click', function() {
+                    selectCvDecision('recommended');
+                    cvApproveBtn.classList.add('active');
+                    cvRejectBtn.classList.remove('active');
+                });
+            }
+
+            if (cvRejectBtn) {
+                cvRejectBtn.addEventListener('click', function() {
+                    selectCvDecision('not_recommended');
+                    cvRejectBtn.classList.add('active');
+                    cvApproveBtn.classList.remove('active');
+                });
+            }
+
+            // Check form validity
+            function checkCvFormValidity() {
+                const hasStatus = cvStatusInput.value !== '';
+                const hasRemark = cvRemarkTextarea.value.trim() !== '';
+
+                if (hasStatus && hasRemark) {
+                    cvSubmitBtn.disabled = false;
+                    cvSubmitBtn.classList.remove('btn-secondary');
+                    cvSubmitBtn.classList.add('btn-primary');
+                } else {
+                    cvSubmitBtn.disabled = true;
+                    cvSubmitBtn.classList.remove('btn-primary');
+                    cvSubmitBtn.classList.add('btn-secondary');
+                }
+            }
+
+            // Listen for remark changes
+            if (cvRemarkTextarea) {
+                cvRemarkTextarea.addEventListener('input', checkCvFormValidity);
+            }
+
+            // CV Review Form -> standard POST with hidden assessment_data
+            $('#cvReviewForm').on('submit', function(e) {
+                const decision = $('#cv_review_decision').val();
+                const notes = $('#cv_review_notes').val();
+
+                if (!decision) {
+                    e.preventDefault();
+                    toast_error('Please select a decision first.');
+                    return;
+                }
+
+                if (!notes || !notes.trim()) {
+                    e.preventDefault();
+                    toast_error('Please provide approval notes.');
+                    return;
+                }
+
+                const data = {
+                    stage: 'cv_review',
+                    decision: decision,
+                    notes: notes
+                };
+                $('#cv_review_assessment_data').val(JSON.stringify(data));
             });
 
             // Psikotes Modal Handlers
@@ -1030,114 +1497,402 @@
                 validatePsikotesOffline();
             });
 
-            // Psikotes Form
-            $('#psikotesForm').submit(function(e) {
-                e.preventDefault();
-                handlePsikotesSubmission();
+            $('#tes_teori_score').on('input', function() {
+                updateTesTeoriNotes();
             });
 
-            // Tes Teori Form
-            $('#tesTeoriForm').submit(function(e) {
-                e.preventDefault();
-                handleTesTeoriSubmission();
+            // Preserve user notes when they type in the textarea
+            $('#tes_teori_notes').on('input', function() {
+                const score = parseFloat($('#tes_teori_score').val());
+                if (!isNaN(score)) {
+                    // Only update if there's a valid score
+                    updateTesTeoriNotes();
+                }
             });
 
-            // Interview HR Form
-            $('#interviewHrForm').submit(function(e) {
-                e.preventDefault();
-                handleInterviewHrSubmission();
+            // Psikotes Form -> direct POST to update-psikotes route
+            $('#psikotesForm').on('submit', function(e) {
+                const onlineScore = parseFloat($('#psikotes_online_score').val());
+                const offlineScore = parseFloat($('#psikotes_offline_score').val());
+
+                if (isNaN(onlineScore) && isNaN(offlineScore)) {
+                    e.preventDefault();
+                    toast_error('Please provide at least one score (online or offline)');
+                    return;
+                }
             });
 
-            // Interview User Form
-            $('#interviewUserForm').submit(function(e) {
-                e.preventDefault();
-                handleInterviewUserSubmission();
+            // Tes Teori Form -> standard POST with hidden assessment_data
+            // Tes Teori Form -> direct POST to update-tes-teori route
+            $('#tesTeoriForm').on('submit', function(e) {
+                const score = parseFloat($('#tes_teori_score').val());
+
+                if (isNaN(score)) {
+                    e.preventDefault();
+                    toast_error('Please provide a valid score');
+                    return;
+                }
             });
 
-            // MCU Form
-            $('#mcuForm').submit(function(e) {
-                e.preventDefault();
-                handleMcuSubmission();
+            // Interview Modal Handlers
+            const interviewApproveBtn = document.querySelector('#interviewModal .btn-outline-success');
+            const interviewRejectBtn = document.querySelector('#interviewModal .btn-outline-danger');
+            const interviewStatusInput = document.getElementById('interview_decision');
+            const interviewSubmitBtn = document.querySelector('#interviewModal .submit-btn');
+            const interviewRemarkTextarea = document.getElementById('interview_notes');
+
+            // Handle decision button clicks (Interview)
+            function selectInterviewDecision(status) {
+                // Remove active class from all buttons
+                interviewApproveBtn.classList.remove('active');
+                interviewRejectBtn.classList.remove('active');
+
+                // Add active class to selected button + unified green/red state
+                if (status === 'recommended') {
+                    interviewApproveBtn.classList.add('active');
+                } else if (status === 'not_recommended') {
+                    interviewRejectBtn.classList.add('active');
+                }
+
+                // Update hidden input
+                interviewStatusInput.value = status;
+
+                // Enable submit button if remark is filled
+                checkInterviewFormValidity();
+            }
+
+            // Handle button clicks
+            if (interviewApproveBtn) {
+                interviewApproveBtn.addEventListener('click', function() {
+                    selectInterviewDecision('recommended');
+                    interviewApproveBtn.classList.add('active');
+                    interviewRejectBtn.classList.remove('active');
+                });
+            }
+
+            if (interviewRejectBtn) {
+                interviewRejectBtn.addEventListener('click', function() {
+                    selectInterviewDecision('not_recommended');
+                    interviewRejectBtn.classList.add('active');
+                    interviewApproveBtn.classList.remove('active');
+                });
+            }
+
+            // Check form validity
+            function checkInterviewFormValidity() {
+                const hasType = $('#interview_type').val() !== '';
+                const hasStatus = interviewStatusInput.value !== '';
+                const hasRemark = interviewRemarkTextarea.value.trim() !== '';
+
+                if (hasType && hasStatus && hasRemark) {
+                    interviewSubmitBtn.disabled = false;
+                    interviewSubmitBtn.classList.remove('btn-secondary');
+                    interviewSubmitBtn.classList.add('btn-primary');
+                } else {
+                    interviewSubmitBtn.disabled = true;
+                    interviewSubmitBtn.classList.remove('btn-primary');
+                    interviewSubmitBtn.classList.add('btn-secondary');
+                }
+            }
+
+            // Listen for remark changes
+            if (interviewRemarkTextarea) {
+                interviewRemarkTextarea.addEventListener('input', checkInterviewFormValidity);
+            }
+
+            // Listen for interview type changes
+            $('#interview_type').on('change', function() {
+                checkInterviewFormValidity();
             });
 
-            // Offering Form
-            $('#offeringForm').submit(function(e) {
-                e.preventDefault();
-                handleOfferingSubmission();
+            // Interview Form -> standard POST with hidden decision
+            $('#interviewForm').on('submit', function(e) {
+                const type = $('#interview_type').val();
+                const decision = $('#interview_decision').val();
+                const notes = $('#interview_notes').val();
+
+                if (!type) {
+                    e.preventDefault();
+                    toast_error('Please select an interview type first.');
+                    return;
+                }
+
+                if (!decision) {
+                    e.preventDefault();
+                    toast_error('Please select a decision first.');
+                    return;
+                }
+
+                if (!notes || !notes.trim()) {
+                    e.preventDefault();
+                    toast_error('Please provide approval notes.');
+                    return;
+                }
             });
 
-            // Hire Form
-            $('#hireForm').submit(function(e) {
-                e.preventDefault();
-                handleHireSubmission();
+            // Set interview type when modal is opened
+            $('#interviewModal').on('show.bs.modal', function() {
+                // Reset form - let user choose interview type
+                $('#interview_type').val('');
+                $('#interview_decision').val('');
+                $('#interview_notes').val('');
+                $('.decision-btn').removeClass('active');
+                $('.submit-btn').prop('disabled', true).removeClass('btn-primary').addClass(
+                    'btn-secondary');
             });
 
-            // Onboarding Form
-            $('#onboardingForm').submit(function(e) {
-                e.preventDefault();
-                handleOnboardingSubmission();
+            // MCU Form -> standard POST with hidden assessment_data
+            // MCU decision buttons
+            const mcuFitBtn = document.querySelector('#mcuModal .btn-outline-success[data-mcu="fit"]');
+            const mcuUnfitBtn = document.querySelector('#mcuModal .btn-outline-danger[data-mcu="unfit"]');
+            const mcuFollowUpBtn = document.querySelector('#mcuModal .btn-outline-warning[data-mcu="follow_up"]');
+            const mcuHiddenInput = document.getElementById('mcu_overall_health');
+            const mcuSubmitBtn = document.querySelector('#mcuModal .submit-btn');
+
+            function selectMcuDecision(val) {
+                // clear active classes
+                [mcuFitBtn, mcuUnfitBtn, mcuFollowUpBtn].forEach(btn => btn && btn.classList.remove('active'));
+                if (val === 'fit' && mcuFitBtn) mcuFitBtn.classList.add('active');
+                if (val === 'unfit' && mcuUnfitBtn) mcuUnfitBtn.classList.add('active');
+                if (val === 'follow_up' && mcuFollowUpBtn) mcuFollowUpBtn.classList.add('active');
+                mcuHiddenInput.value = val;
+                if (mcuSubmitBtn) {
+                    mcuSubmitBtn.disabled = false;
+                }
+            }
+
+            if (mcuFitBtn) mcuFitBtn.addEventListener('click', () => selectMcuDecision('fit'));
+            if (mcuUnfitBtn) mcuUnfitBtn.addEventListener('click', () => selectMcuDecision('unfit'));
+            if (mcuFollowUpBtn) mcuFollowUpBtn.addEventListener('click', () => selectMcuDecision('follow_up'));
+
+            $('#mcuForm').on('submit', function(e) {
+                if (!$('#mcu_overall_health').val()) {
+                    e.preventDefault();
+                    toast_error('Please choose MCU decision first');
+                }
             });
 
-            // Form handlers
-            $('#advanceForm').submit(function(e) {
-                e.preventDefault();
-                handleAdvanceStage();
+            // Decision button click handlers for offering (scoped to modal)
+            $('#offeringModal .decision-btn').on('click', function() {
+                const decision = $(this).data('decision');
+                $('#offering_result').val(decision);
+
+                // Update button states (only inside offering modal)
+                const $buttons = $('#offeringModal .decision-btn');
+                // Clear all color classes from both buttons
+                $buttons.removeClass(
+                    'active btn-success btn-danger btn-outline-success btn-outline-danger');
+                // Reapply base outline according to their own data-decision
+                $buttons.each(function() {
+                    const type = $(this).data('decision');
+                    $(this).addClass(type === 'accepted' ? 'btn-outline-success' :
+                        'btn-outline-danger');
+                });
+                // Mark current as active (CSS will render solid green/red)
+                $(this).addClass('active');
+
+                // Enable submit button
+                $('#offering_submit_btn').prop('disabled', false);
             });
 
-            $('#rejectForm').submit(function(e) {
-                e.preventDefault();
-                handleRejectSession();
+            // Ensure correct base styles when modal opens
+            $('#offeringModal').on('show.bs.modal', function() {
+                const $buttons = $('#offeringModal .decision-btn');
+                $buttons.removeClass(
+                    'active btn-success btn-danger btn-outline-success btn-outline-danger');
+                $buttons.each(function() {
+                    const type = $(this).data('decision');
+                    $(this).addClass(type === 'accepted' ? 'btn-outline-success' :
+                        'btn-outline-danger');
+                });
+                $('#offering_result').val('');
+                $('#offering_submit_btn').prop('disabled', true);
             });
 
-            $('#completeForm').submit(function(e) {
-                e.preventDefault();
-                handleCompleteSession();
+            // Mirror LOT Number behavior: update Offering Letter Number display when selector changes
+            $(document).on('change', '[name="offering_letter_number_id"]', function() {
+                const selectedOption = $(this).find('option:selected');
+                const rawText = selectedOption.text();
+                const baseLetterNumber = rawText ? rawText.split(' - ')[0] : '';
+                const $display = $('#offering_letter_number');
+
+                // Build formatted number: (letter number)/ARKA-HCS/(bulan romawi)/(tahun)
+                const months = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'];
+                const now = new Date();
+                const romanMonth = months[now.getMonth()];
+                const year = now.getFullYear();
+                const formatted = baseLetterNumber ? `${baseLetterNumber}/ARKA-HCS/${romanMonth}/${year}` :
+                    '';
+
+                if (selectedOption.val() && formatted) {
+                    $display.val(formatted);
+                    $display.removeClass('alert-warning').addClass('alert-success');
+                } else {
+                    $display.val('Select letter number above');
+                    $display.removeClass('alert-success').addClass('alert-warning');
+                }
             });
 
-            $('#cancelForm').submit(function(e) {
+            // Offering Form validation
+            $('#offeringForm').on('submit', function(e) {
+                const result = $('#offering_result').val();
+                const letterNumberId = $('select[name="offering_letter_number_id"]').val();
+
+                if (!result) {
+                    e.preventDefault();
+                    toast_error('Please select an offering decision');
+                    return;
+                }
+
+                if (!letterNumberId) {
+                    e.preventDefault();
+                    toast_error('Please select an offering letter number');
+                    return;
+                }
+            });
+
+            // Hiring handlers: mirror offering patterns
+            // Auto-fill PKWT letter number display
+            $(document).on('change', '[name="hiring_letter_number_id"]', function() {
+                const selectedOption = $(this).find('option:selected');
+                const rawText = selectedOption.text();
+                const baseLetterNumber = rawText ? rawText.split(' - ')[0] : '';
+                const $display = $('#hiring_letter_number');
+
+                // Format: 0001/ARKA-HO/PKWT-I/VIII/2025
+                const months = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'];
+                const now = new Date();
+                const romanMonth = months[now.getMonth()];
+                const year = now.getFullYear();
+                // Remove any leading alpha prefix like 'PKWT' from the base to get pure number (e.g., PKWT0001 -> 0001)
+                const numericBase = baseLetterNumber ? baseLetterNumber.replace(/^[A-Za-z]+/, '') : '';
+                const formatted = numericBase ?
+                    `${numericBase}/ARKA-HO/PKWT-I/${romanMonth}/${year}` : '';
+
+                if (selectedOption.val() && formatted) {
+                    $display.val(formatted);
+                    $display.removeClass('alert-warning').addClass('alert-success');
+                } else {
+                    $display.val('Select letter number above');
+                    $display.removeClass('alert-success').addClass('alert-warning');
+                }
+                validateHireForm();
+            });
+
+            // Agreement type buttons
+            const hirePkwtBtn = document.querySelector(
+                '#hireModal .decision-btn.btn-outline-success[data-agreement="pkwt"]');
+            const hirePkwttBtn = document.querySelector(
+                '#hireModal .decision-btn.btn-outline-warning[data-agreement="pkwtt"]');
+            const agreementHidden = document.getElementById('agreement_type');
+            const hireSubmitBtn = document.getElementById('hire_submit_btn');
+
+            function selectAgreement(val) {
+                if (hirePkwtBtn) hirePkwtBtn.classList.remove('active');
+                if (hirePkwttBtn) hirePkwttBtn.classList.remove('active');
+                if (val === 'pkwt' && hirePkwtBtn) hirePkwtBtn.classList.add('active');
+                if (val === 'pkwtt' && hirePkwttBtn) hirePkwttBtn.classList.add('active');
+                agreementHidden.value = val;
+                // Toggle FOC required for PKWT
+                if (val === 'pkwt') {
+                    $('#foc_container').show();
+                    $('#administration_foc').attr('required', true);
+                } else {
+                    $('#foc_container').hide();
+                    $('#administration_foc').removeAttr('required').val('');
+                }
+                validateHireForm();
+            }
+
+            if (hirePkwtBtn) hirePkwtBtn.addEventListener('click', () => selectAgreement('pkwt'));
+            if (hirePkwttBtn) hirePkwttBtn.addEventListener('click', () => selectAgreement('pkwtt'));
+
+            function validateHireForm() {
+                const hasAgreement = $('#agreement_type').val() !== '';
+                const hasLetter = $('[name="hiring_letter_number_id"]').val();
+                if (hireSubmitBtn) hireSubmitBtn.disabled = !(hasAgreement && hasLetter);
+            }
+
+            // Reset Hire modal state when shown
+            $('#hireModal').on('show.bs.modal', function() {
+                if (hirePkwtBtn) hirePkwtBtn.classList.remove('active');
+                if (hirePkwttBtn) hirePkwttBtn.classList.remove('active');
+                $('#agreement_type').val('');
+                $('#hiring_letter_number').val('Select letter number above').removeClass('alert-success')
+                    .addClass('alert-warning');
+                if (hireSubmitBtn) hireSubmitBtn.disabled = true;
+                $('#foc_container').hide();
+                $('#administration_foc').removeAttr('required').val('');
+            });
+
+            // Global confirmation for all stage submit forms
+            $(document).on('submit', 'form.confirm-submit', function(e) {
+                const form = this;
+                if (form.dataset.submitting === 'true') {
+                    return; // prevent double submit loops
+                }
                 e.preventDefault();
-                handleCancelSession();
+                const message = form.getAttribute('data-confirm-message') ||
+                    'Submit? Data cannot be edited after submission.';
+
+                const proceed = () => {
+                    form.dataset.submitting = 'true';
+                    if (typeof toast_ === 'function') {
+                        toast_('info', 'Submitting...');
+                    }
+                    form.submit();
+                };
+
+                if (typeof Swal !== 'undefined' && Swal.fire) {
+                    Swal.fire({
+                        title: 'Are you sure?',
+                        text: message,
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonText: 'Yes, submit',
+                        cancelButtonText: 'Cancel'
+                    }).then((result) => {
+                        if (result.isConfirmed) proceed();
+                    });
+                } else {
+                    if (confirm(message)) proceed();
+                }
+            });
+
+            // Onboarding simple validation: require date
+            $('#onboardingForm').on('submit', function(e) {
+                const date = $('#onboarding_date').val();
+                if (!date) {
+                    e.preventDefault();
+                    toast_error('Please select onboarding date');
+                }
+            });
+
+            // Simple validations for non-assessment forms (still standard POST)
+            $('#rejectForm').on('submit', function(e) {
+                const reason = $('#reject_reason').val();
+                if (!reason || !reason.trim()) {
+                    e.preventDefault();
+                    toast_error('Please provide a rejection reason');
+                }
+            });
+            $('#completeForm').on('submit', function(e) {
+                const hireDate = $('#hire_date').val();
+                if (!hireDate) {
+                    e.preventDefault();
+                    toast_error('Please provide a hire date');
+                }
+            });
+            $('#cancelForm').on('submit', function(e) {
+                const reason = $('#cancel_reason').val();
+                if (!reason || !reason.trim()) {
+                    e.preventDefault();
+                    toast_error('Please provide a cancellation reason');
+                }
             });
         });
 
-        function handleCVReviewDecision(decision) {
-            const sessionId = '{{ $session->id }}';
-            const notes = decision === 'pass' ? 'CV Review: Passed' : 'CV Review: Failed';
 
-            $.ajax({
-                url: '{{ route('recruitment.sessions.advance-stage', ':id') }}'.replace(':id', sessionId),
-                method: 'POST',
-                data: {
-                    _token: $('meta[name="csrf-token"]').attr('content'),
-                    notes: notes,
-                    assessment_data: {
-                        decision: decision,
-                        stage: 'cv_review'
-                    }
-                },
-                success: function(response) {
-                    if (response.success) {
-                        $('#cvReviewModal').modal('hide');
-                        toast_success(response.message);
-                        setTimeout(() => {
-                            if (response.session_ended) {
-                                window.location.href = response.redirect;
-                            } else if (response.auto_advanced) {
-                                window.location.reload();
-                            } else {
-                                window.location.reload();
-                            }
-                        }, 1500);
-                    } else {
-                        toast_error(response.message || 'Failed to process CV review');
-                    }
-                },
-                error: function(xhr) {
-                    const response = xhr.responseJSON;
-                    toast_error(response?.message || 'An error occurred while processing CV review');
-                }
-            });
-        }
 
         function validatePsikotesOnline() {
             const score = parseFloat($('#psikotes_online_score').val());
@@ -1173,686 +1928,48 @@
             }
         }
 
-        function handlePsikotesSubmission() {
-            const sessionId = '{{ $session->id }}';
-            const onlineScore = parseFloat($('#psikotes_online_score').val());
-            const offlineScore = parseFloat($('#psikotes_offline_score').val());
-            const notes = $('#psikotes_notes').val();
 
-            // Validate that at least one score is provided
-            if (isNaN(onlineScore) && isNaN(offlineScore)) {
-                toast_error('Please provide at least one score (online or offline)');
-                return;
-            }
 
-            // Determine overall result
-            let overallResult = 'pass';
-            let resultDetails = [];
-
-            if (!isNaN(onlineScore)) {
-                if (onlineScore >= 40) {
-                    resultDetails.push('Online: Pass');
-                } else {
-                    resultDetails.push('Online: Fail');
-                    overallResult = 'fail';
-                }
-            }
-
-            if (!isNaN(offlineScore)) {
-                if (offlineScore >= 8) {
-                    resultDetails.push('Offline: Pass');
-                } else {
-                    resultDetails.push('Offline: Fail');
-                    overallResult = 'fail';
-                }
-            }
-
-            const assessmentData = {
-                online_score: onlineScore,
-                offline_score: offlineScore,
-                overall_result: overallResult,
-                result_details: resultDetails.join(', '),
-                stage: 'psikotes'
-            };
-
-            $.ajax({
-                url: `/recruitment/sessions/${sessionId}/advance-stage`,
-                method: 'POST',
-                data: {
-                    _token: $('meta[name="csrf-token"]').attr('content'),
-                    notes: notes,
-                    assessment_data: JSON.stringify(assessmentData)
-                },
-                success: function(response) {
-                    if (response.success) {
-                        $('#psikotesModal').modal('hide');
-                        toast_success(response.message);
-                        setTimeout(() => {
-                            if (response.session_ended) {
-                                window.location.href = response.redirect;
-                            } else {
-                                window.location.reload();
-                            }
-                        }, 1500);
-                    } else {
-                        toast_error(response.message || 'Failed to submit psikotes assessment');
-                    }
-                },
-                error: function(xhr) {
-                    const response = xhr.responseJSON;
-                    toast_error(response?.message || 'An error occurred while submitting assessment');
-                }
-            });
-        }
-
-        function handleAdvanceStage() {
-            const sessionId = '{{ $session->id }}';
-            const notes = $('#advance_notes').val();
-
-            $.ajax({
-                url: '{{ route('recruitment.sessions.advance-stage', ':id') }}'.replace(':id', sessionId),
-                method: 'POST',
-                data: {
-                    _token: $('meta[name="csrf-token"]').attr('content'),
-                    notes: notes
-                },
-                success: function(response) {
-                    if (response.success) {
-                        $('#advanceModal').modal('hide');
-                        toast_success(response.message);
-                        setTimeout(() => {
-                            window.location.reload();
-                        }, 1500);
-                    } else {
-                        toast_error(response.message || 'Failed to advance stage');
-                    }
-                },
-                error: function(xhr) {
-                    const response = xhr.responseJSON;
-                    toast_error(response?.message || 'An error occurred while advancing stage');
-                }
-            });
-        }
-
-        function handleRejectSession() {
-            const sessionId = '{{ $session->id }}';
-            const reason = $('#reject_reason').val();
-
-            if (!reason.trim()) {
-                toast_error('Please provide a rejection reason');
-                return;
-            }
-
-            $.ajax({
-                url: '{{ route('recruitment.sessions.reject', ':id') }}'.replace(':id', sessionId),
-                method: 'POST',
-                data: {
-                    _token: $('meta[name="csrf-token"]').attr('content'),
-                    rejection_reason: reason
-                },
-                success: function(response) {
-                    if (response.success) {
-                        $('#rejectModal').modal('hide');
-                        toast_success(response.message);
-                        setTimeout(() => {
-                            window.location.reload();
-                        }, 1500);
-                    } else {
-                        toast_error(response.message || 'Failed to reject session');
-                    }
-                },
-                error: function(xhr) {
-                    const response = xhr.responseJSON;
-                    toast_error(response?.message || 'An error occurred while rejecting session');
-                }
-            });
-        }
-
-        function handleCompleteSession() {
-            const sessionId = '{{ $session->id }}';
-            const hireDate = $('#hire_date').val();
-            const employeeId = $('#employee_id').val();
-            const notes = $('#complete_notes').val();
-
-            if (!hireDate) {
-                toast_error('Please provide a hire date');
-                return;
-            }
-
-            $.ajax({
-                url: '{{ route('recruitment.sessions.complete', ':id') }}'.replace(':id', sessionId),
-                method: 'POST',
-                data: {
-                    _token: $('meta[name="csrf-token"]').attr('content'),
-                    hire_date: hireDate,
-                    employee_id: employeeId,
-                    notes: notes
-                },
-                success: function(response) {
-                    if (response.success) {
-                        $('#completeModal').modal('hide');
-                        toast_success(response.message);
-                        setTimeout(() => {
-                            window.location.reload();
-                        }, 1500);
-                    } else {
-                        toast_error(response.message || 'Failed to complete session');
-                    }
-                },
-                error: function(xhr) {
-                    const response = xhr.responseJSON;
-                    toast_error(response?.message || 'An error occurred while completing session');
-                }
-            });
-        }
-
-        function handleCancelSession() {
-            const sessionId = '{{ $session->id }}';
-            const reason = $('#cancel_reason').val();
-
-            if (!reason.trim()) {
-                toast_error('Please provide a cancellation reason');
-                return;
-            }
-
-            $.ajax({
-                url: '{{ route('recruitment.sessions.cancel', ':id') }}'.replace(':id', sessionId),
-                method: 'POST',
-                data: {
-                    _token: $('meta[name="csrf-token"]').attr('content'),
-                    cancel_reason: reason
-                },
-                success: function(response) {
-                    if (response.success) {
-                        $('#cancelModal').modal('hide');
-                        toast_success(response.message);
-                        setTimeout(() => {
-                            window.location.reload();
-                        }, 1500);
-                    } else {
-                        toast_error(response.message || 'Failed to cancel session');
-                    }
-                },
-                error: function(xhr) {
-                    const response = xhr.responseJSON;
-                    toast_error(response?.message || 'An error occurred while cancelling session');
-                }
-            });
-        }
-
-        // Tes Teori Modal Handlers
-        $('#tesTeoriSubmitBtn').click(function() {
-            handleTesTeoriSubmission();
-        });
-
-        function handleTesTeoriSubmission() {
-            const sessionId = '{{ $session->id }}';
+        function updateTesTeoriNotes() {
             const score = parseFloat($('#tes_teori_score').val());
-            const duration = parseInt($('#tes_teori_duration').val());
-            const notes = $('#tes_teori_notes').val();
+            const notesTextarea = $('#tes_teori_notes');
 
             if (isNaN(score)) {
-                toast_error('Please provide a valid score');
+                // If no score, clear the category from notes
+                const currentNotes = notesTextarea.val();
+                const lines = currentNotes.split('\n');
+                const filteredLines = lines.filter(line => !line.startsWith('Kategori:'));
+                notesTextarea.val(filteredLines.join('\n').trim());
                 return;
             }
 
-            const result = score >= 75 ? 'pass' : 'fail';
-            const assessmentData = {
-                score: score,
-                duration: duration,
-                result: result,
-                stage: 'tes_teori'
-            };
-
-            $.ajax({
-                url: '{{ route('recruitment.sessions.advance-stage', ':id') }}'.replace(':id', sessionId),
-                method: 'POST',
-                data: {
-                    _token: $('meta[name="csrf-token"]').attr('content'),
-                    notes: notes,
-                    assessment_data: JSON.stringify(assessmentData)
-                },
-                success: function(response) {
-                    if (response.success) {
-                        $('#tesTeoriModal').modal('hide');
-                        toast_success(response.message);
-                        setTimeout(() => {
-                            if (response.session_ended) {
-                                window.location.href = response.redirect;
-                            } else if (response.auto_advanced) {
-                                window.location.reload();
-                            } else {
-                                window.location.reload();
-                            }
-                        }, 1500);
-                    } else {
-                        toast_error(response.message || 'Failed to submit tes teori assessment');
-                    }
-                },
-                error: function(xhr) {
-                    const response = xhr.responseJSON;
-                    toast_error(response?.message || 'An error occurred while submitting assessment');
-                }
-            });
-        }
-
-        // Interview HR Modal Handlers
-        $('#interviewHrSubmitBtn').click(function() {
-            handleInterviewHrSubmission();
-        });
-
-        // Calculate overall score for Interview HR
-        $('#interview_hr_communication, #interview_hr_attitude, #interview_hr_cultural_fit').on('input', function() {
-            calculateInterviewHrOverall();
-        });
-
-        function calculateInterviewHrOverall() {
-            const communication = parseFloat($('#interview_hr_communication').val()) || 0;
-            const attitude = parseFloat($('#interview_hr_attitude').val()) || 0;
-            const culturalFit = parseFloat($('#interview_hr_cultural_fit').val()) || 0;
-
-            const overall = ((communication + attitude + culturalFit) / 3) * 10;
-            $('#interview_hr_overall').val(overall.toFixed(2));
-        }
-
-        function handleInterviewHrSubmission() {
-            const sessionId = '{{ $session->id }}';
-            const communication = parseFloat($('#interview_hr_communication').val());
-            const attitude = parseFloat($('#interview_hr_attitude').val());
-            const culturalFit = parseFloat($('#interview_hr_cultural_fit').val());
-            const overall = parseFloat($('#interview_hr_overall').val());
-            const notes = $('#interview_hr_notes').val();
-
-            if (isNaN(communication) || isNaN(attitude) || isNaN(culturalFit)) {
-                toast_error('Please provide all scores');
-                return;
+            // Determine category based on score
+            let category = '';
+            if (score >= 76) {
+                category = 'Mechanic Senior';
+            } else if (score >= 61) {
+                category = 'Mechanic Advance';
+            } else if (score >= 46) {
+                category = 'Mechanic';
+            } else if (score >= 21) {
+                category = 'Helper Mechanic';
+            } else {
+                category = 'Belum Kompeten';
             }
 
-            const result = overall >= 70 ? 'pass' : 'fail';
-            const assessmentData = {
-                communication: communication,
-                attitude: attitude,
-                cultural_fit: culturalFit,
-                overall: overall,
-                result: result,
-                stage: 'interview_hr'
-            };
+            // Get current notes content
+            let currentNotes = notesTextarea.val();
 
-            $.ajax({
-                url: '{{ route('recruitment.sessions.advance-stage', ':id') }}'.replace(':id', sessionId),
-                method: 'POST',
-                data: {
-                    _token: $('meta[name="csrf-token"]').attr('content'),
-                    notes: notes,
-                    assessment_data: JSON.stringify(assessmentData)
-                },
-                success: function(response) {
-                    if (response.success) {
-                        $('#interviewHrModal').modal('hide');
-                        toast_success(response.message);
-                        setTimeout(() => {
-                            if (response.session_ended) {
-                                window.location.href = response.redirect;
-                            } else if (response.auto_advanced) {
-                                window.location.reload();
-                            } else {
-                                window.location.reload();
-                            }
-                        }, 1500);
-                    } else {
-                        toast_error(response.message || 'Failed to submit interview HR assessment');
-                    }
-                },
-                error: function(xhr) {
-                    const response = xhr.responseJSON;
-                    toast_error(response?.message || 'An error occurred while submitting assessment');
-                }
-            });
-        }
+            // Remove existing category line if it exists
+            const lines = currentNotes.split('\n');
+            const filteredLines = lines.filter(line => !line.startsWith('Kategori:'));
+            const userNotes = filteredLines.join('\n').trim();
 
-        // Interview User Modal Handlers
-        $('#interviewUserSubmitBtn').click(function() {
-            handleInterviewUserSubmission();
-        });
+            // Create new notes with category at the top
+            const newNotes = `Kategori: ${category}${userNotes ? '\n\n' + userNotes : ''}`;
 
-        // Calculate overall score for Interview User
-        $('#interview_user_technical, #interview_user_experience, #interview_user_problem_solving').on('input', function() {
-            calculateInterviewUserOverall();
-        });
-
-        function calculateInterviewUserOverall() {
-            const technical = parseFloat($('#interview_user_technical').val()) || 0;
-            const experience = parseFloat($('#interview_user_experience').val()) || 0;
-            const problemSolving = parseFloat($('#interview_user_problem_solving').val()) || 0;
-
-            const overall = ((technical + experience + problemSolving) / 3) * 10;
-            $('#interview_user_overall').val(overall.toFixed(2));
-        }
-
-        function handleInterviewUserSubmission() {
-            const sessionId = '{{ $session->id }}';
-            const technical = parseFloat($('#interview_user_technical').val());
-            const experience = parseFloat($('#interview_user_experience').val());
-            const problemSolving = parseFloat($('#interview_user_problem_solving').val());
-            const overall = parseFloat($('#interview_user_overall').val());
-            const notes = $('#interview_user_notes').val();
-
-            if (isNaN(technical) || isNaN(experience) || isNaN(problemSolving)) {
-                toast_error('Please provide all scores');
-                return;
-            }
-
-            const result = overall >= 75 ? 'pass' : 'fail';
-            const assessmentData = {
-                technical: technical,
-                experience: experience,
-                problem_solving: problemSolving,
-                overall: overall,
-                result: result,
-                stage: 'interview_user'
-            };
-
-            $.ajax({
-                url: '{{ route('recruitment.sessions.advance-stage', ':id') }}'.replace(':id', sessionId),
-                method: 'POST',
-                data: {
-                    _token: $('meta[name="csrf-token"]').attr('content'),
-                    notes: notes,
-                    assessment_data: JSON.stringify(assessmentData)
-                },
-                success: function(response) {
-                    if (response.success) {
-                        $('#interviewUserModal').modal('hide');
-                        toast_success(response.message);
-                        setTimeout(() => {
-                            if (response.session_ended) {
-                                window.location.href = response.redirect;
-                            } else if (response.auto_advanced) {
-                                window.location.reload();
-                            } else {
-                                window.location.reload();
-                            }
-                        }, 1500);
-                    } else {
-                        toast_error(response.message || 'Failed to submit interview user assessment');
-                    }
-                },
-                error: function(xhr) {
-                    const response = xhr.responseJSON;
-                    toast_error(response?.message || 'An error occurred while submitting assessment');
-                }
-            });
-        }
-
-        // MCU Modal Handlers
-        $('#mcuSubmitBtn').click(function() {
-            handleMcuSubmission();
-        });
-
-        function handleMcuSubmission() {
-            const sessionId = '{{ $session->id }}';
-            const bloodPressure = $('#mcu_blood_pressure').val();
-            const heartRate = parseInt($('#mcu_heart_rate').val());
-            const bloodSugar = parseFloat($('#mcu_blood_sugar').val());
-            const overallHealth = $('#mcu_overall_health').val();
-            const notes = $('#mcu_notes').val();
-
-            if (!overallHealth) {
-                toast_error('Please select overall health condition');
-                return;
-            }
-
-            let result = 'pass';
-            if (overallHealth === 'unfit') {
-                result = 'fail';
-            } else if (overallHealth === 'conditional') {
-                result = 'conditional';
-            }
-
-            const assessmentData = {
-                blood_pressure: bloodPressure,
-                heart_rate: heartRate,
-                blood_sugar: bloodSugar,
-                overall_health: overallHealth,
-                result: result,
-                stage: 'mcu'
-            };
-
-            $.ajax({
-                url: '{{ route('recruitment.sessions.advance-stage', ':id') }}'.replace(':id', sessionId),
-                method: 'POST',
-                data: {
-                    _token: $('meta[name="csrf-token"]').attr('content'),
-                    notes: notes,
-                    assessment_data: JSON.stringify(assessmentData)
-                },
-                success: function(response) {
-                    if (response.success) {
-                        $('#mcuModal').modal('hide');
-                        toast_success(response.message);
-                        setTimeout(() => {
-                            if (response.session_ended) {
-                                window.location.href = response.redirect;
-                            } else if (response.auto_advanced) {
-                                window.location.reload();
-                            } else {
-                                window.location.reload();
-                            }
-                        }, 1500);
-                    } else {
-                        toast_error(response.message || 'Failed to submit MCU assessment');
-                    }
-                },
-                error: function(xhr) {
-                    const response = xhr.responseJSON;
-                    toast_error(response?.message || 'An error occurred while submitting assessment');
-                }
-            });
-        }
-
-        // Offering Modal Handlers
-        $('#offeringSubmitBtn').click(function() {
-            handleOfferingSubmission();
-        });
-
-        function handleOfferingSubmission() {
-            const sessionId = '{{ $session->id }}';
-            const salary = $('#offering_salary').val();
-            const position = $('#offering_position').val();
-            const startDate = $('#offering_start_date').val();
-            const status = $('#offering_status').val();
-            const notes = $('#offering_notes').val();
-
-            if (!status) {
-                toast_error('Please select offering status');
-                return;
-            }
-
-            const assessmentData = {
-                salary: salary,
-                position: position,
-                start_date: startDate,
-                status: status,
-                stage: 'offering'
-            };
-
-            $.ajax({
-                url: '{{ route('recruitment.sessions.advance-stage', ':id') }}'.replace(':id', sessionId),
-                method: 'POST',
-                data: {
-                    _token: $('meta[name="csrf-token"]').attr('content'),
-                    notes: notes,
-                    assessment_data: JSON.stringify(assessmentData)
-                },
-                success: function(response) {
-                    if (response.success) {
-                        $('#offeringModal').modal('hide');
-                        toast_success(response.message);
-                        setTimeout(() => {
-                            if (response.session_ended) {
-                                window.location.href = response.redirect;
-                            } else if (response.auto_advanced) {
-                                window.location.reload();
-                            } else {
-                                window.location.reload();
-                            }
-                        }, 1500);
-                    } else {
-                        toast_error(response.message || 'Failed to submit offering');
-                    }
-                },
-                error: function(xhr) {
-                    const response = xhr.responseJSON;
-                    toast_error(response?.message || 'An error occurred while submitting offering');
-                }
-            });
-        }
-
-        // Hire Modal Handlers
-        $('#hireSubmitBtn').click(function() {
-            handleHireSubmission();
-        });
-
-        function handleHireSubmission() {
-            const sessionId = '{{ $session->id }}';
-            const hireDate = $('#hire_date').val();
-            const employeeId = $('#hire_employee_id').val();
-            const contractType = $('#hire_contract_type').val();
-            const department = $('#hire_department').val();
-            const position = $('#hire_position').val();
-            const notes = $('#hire_notes').val();
-
-            if (!hireDate) {
-                toast_error('Please provide hire date');
-                return;
-            }
-
-            const assessmentData = {
-                hire_date: hireDate,
-                employee_id: employeeId,
-                contract_type: contractType,
-                department: department,
-                position: position,
-                stage: 'hire'
-            };
-
-            $.ajax({
-                url: '{{ route('recruitment.sessions.advance-stage', ':id') }}'.replace(':id', sessionId),
-                method: 'POST',
-                data: {
-                    _token: $('meta[name="csrf-token"]').attr('content'),
-                    notes: notes,
-                    assessment_data: JSON.stringify(assessmentData)
-                },
-                success: function(response) {
-                    if (response.success) {
-                        $('#hireModal').modal('hide');
-                        toast_success(response.message);
-                        setTimeout(() => {
-                            if (response.session_ended) {
-                                window.location.href = response.redirect;
-                            } else if (response.auto_advanced) {
-                                window.location.reload();
-                            } else {
-                                window.location.reload();
-                            }
-                        }, 1500);
-                    } else {
-                        toast_error(response.message || 'Failed to submit hire');
-                    }
-                },
-                error: function(xhr) {
-                    const response = xhr.responseJSON;
-                    toast_error(response?.message || 'An error occurred while submitting hire');
-                }
-            });
-        }
-
-        // Onboarding Modal Handlers
-        $('#onboardingSubmitBtn').click(function() {
-            handleOnboardingSubmission();
-        });
-
-        // Interview HR calculation
-        function calculateInterviewHrOverall() {
-            const communication = parseFloat($('#interview_hr_communication').val()) || 0;
-            const attitude = parseFloat($('#interview_hr_attitude').val()) || 0;
-            const culturalFit = parseFloat($('#interview_hr_cultural_fit').val()) || 0;
-
-            const overall = ((communication + attitude + culturalFit) / 3) * 10;
-            $('#interview_hr_overall').val(overall.toFixed(2));
-        }
-
-        // Interview User calculation
-        function calculateInterviewUserOverall() {
-            const technical = parseFloat($('#interview_user_technical').val()) || 0;
-            const experience = parseFloat($('#interview_user_experience').val()) || 0;
-            const problemSolving = parseFloat($('#interview_user_problem_solving').val()) || 0;
-
-            const overall = ((technical + experience + problemSolving) / 3) * 10;
-            $('#interview_user_overall').val(overall.toFixed(2));
-        }
-
-        // Add event listeners for calculation
-        $('#interview_hr_communication, #interview_hr_attitude, #interview_hr_cultural_fit').on('input', function() {
-            calculateInterviewHrOverall();
-        });
-
-        $('#interview_user_technical, #interview_user_experience, #interview_user_problem_solving').on('input', function() {
-            calculateInterviewUserOverall();
-        });
-
-        function handleOnboardingSubmission() {
-            const sessionId = '{{ $session->id }}';
-            const startDate = $('#onboarding_start_date').val();
-            const duration = $('#onboarding_duration').val();
-            const mentor = $('#onboarding_mentor').val();
-            const status = $('#onboarding_status').val();
-            const notes = $('#onboarding_notes').val();
-
-            if (!status) {
-                toast_error('Please select onboarding status');
-                return;
-            }
-
-            const assessmentData = {
-                start_date: startDate,
-                duration: duration,
-                mentor: mentor,
-                status: status,
-                stage: 'onboarding'
-            };
-
-            $.ajax({
-                url: '{{ route('recruitment.sessions.advance-stage', ':id') }}'.replace(':id', sessionId),
-                method: 'POST',
-                data: {
-                    _token: $('meta[name="csrf-token"]').attr('content'),
-                    notes: notes,
-                    assessment_data: JSON.stringify(assessmentData)
-                },
-                success: function(response) {
-                    if (response.success) {
-                        $('#onboardingModal').modal('hide');
-                        toast_success(response.message);
-                        setTimeout(() => {
-                            if (response.session_ended) {
-                                window.location.href = response.redirect;
-                            } else if (response.session_completed) {
-                                window.location.reload();
-                            } else {
-                                window.location.reload();
-                            }
-                        }, 1500);
-                    } else {
-                        toast_error(response.message || 'Failed to submit onboarding');
-                    }
-                },
-                error: function(xhr) {
-                    const response = xhr.responseJSON;
-                    toast_error(response?.message || 'An error occurred while submitting onboarding');
-                }
-            });
+            // Update the textarea
+            notesTextarea.val(newNotes);
         }
 
         // Helper functions for toast notifications
@@ -1875,75 +1992,5 @@
                 alert('Error: ' + message);
             }
         }
-
-        // Validate if stage can be accessed
-        function canAccessStage(stageName) {
-            const currentStage = '{{ $session->current_stage }}';
-            const stageStatus = '{{ $session->stage_status }}';
-
-            const stageOrder = {
-                'cv_review': 1,
-                'psikotes': 2,
-                'tes_teori': 3,
-                'interview_hr': 4,
-                'interview_user': 5,
-                'offering': 6,
-                'mcu': 7,
-                'hire': 8,
-                'onboarding': 9
-            };
-
-            const currentStageOrder = stageOrder[currentStage] || 0;
-            const targetStageOrder = stageOrder[stageName] || 0;
-
-            // Can only access current stage or completed stages
-            if (targetStageOrder <= currentStageOrder) {
-                return true;
-            }
-
-            // Cannot access future stages
-            return false;
-        }
-
-        // Disable/enable timeline items based on current stage
-        function updateTimelineAccess() {
-            const currentStage = '{{ $session->current_stage }}';
-            const stageStatus = '{{ $session->stage_status }}';
-
-            const stageOrder = {
-                'cv_review': 1,
-                'psikotes': 2,
-                'tes_teori': 3,
-                'interview_hr': 4,
-                'interview_user': 5,
-                'offering': 6,
-                'mcu': 7,
-                'hire': 8,
-                'onboarding': 9
-            };
-
-            const currentStageOrder = stageOrder[currentStage] || 0;
-
-            // Disable future stages
-            Object.keys(stageOrder).forEach(stage => {
-                const stageOrderNum = stageOrder[stage];
-                const timelineItem = $(`.timeline-item[data-target="#${stage}Modal"]`);
-
-                if (stageOrderNum > currentStageOrder) {
-                    timelineItem.addClass('disabled');
-                    timelineItem.css('opacity', '0.5');
-                    timelineItem.css('cursor', 'not-allowed');
-                } else {
-                    timelineItem.removeClass('disabled');
-                    timelineItem.css('opacity', '1');
-                    timelineItem.css('cursor', 'pointer');
-                }
-            });
-        }
-
-        // Initialize timeline access on page load
-        $(document).ready(function() {
-            updateTimelineAccess();
-        });
     </script>
 @endsection

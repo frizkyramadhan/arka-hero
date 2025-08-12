@@ -260,7 +260,7 @@
                                                 <td>{{ $session->applied_date ? $session->applied_date->format('d M Y') : 'N/A' }}
                                                 </td>
                                                 <td>
-                                                    <a href="{{ route('recruitment.sessions.show', $session->id) }}"
+                                                    <a href="{{ route('recruitment.sessions.candidate', $session->id) }}"
                                                         class="btn btn-sm btn-info">
                                                         <i class="fas fa-eye"></i>
                                                     </a>
