@@ -29,10 +29,10 @@
                             <div class="card-header">
                                 <div class="d-flex flex-row justify-content-between align-items-start mb-1">
                                     <h3 class="card-title mb-0">
-                                        Approved FPTK Recruitment Sessions
+                                        <b>Recruitment Sessions</b>
                                     </h3>
                                     <div class="d-flex flex-column flex-md-row ms-auto gap-2">
-                                        <a href="{{ route('recruitment.sessions.dashboard') }}"
+                                        <a href="{{ route('dashboard.recruitment') }}"
                                             class="btn btn-info mb-md-0 ml-1 mb-1">
                                             <i class="fas fa-chart-bar"></i> Dashboard
                                         </a>

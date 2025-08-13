@@ -231,7 +231,7 @@
                                         </button>
                                     @endif
                                 @endcan
-                                <a href="{{ route('recruitment.sessions.dashboard') }}" class="btn-action dashboard-btn">
+                                <a href="{{ route('dashboard.recruitment') }}" class="btn-action dashboard-btn">
                                     <i class="fas fa-chart-bar"></i> View Dashboard
                                 </a>
                                 <a href="{{ route('recruitment.sessions.index') }}" class="btn-action back-btn">

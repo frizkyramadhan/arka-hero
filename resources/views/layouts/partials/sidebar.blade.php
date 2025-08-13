@@ -37,12 +37,61 @@
             <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu"
                 data-accordion="false">
                 <!-- Add icons to the links using the .nav-icon class with font-awesome or any other icon font library -->
-                <li class="nav-item">
-                    <a href="{{ url('/') }}"
-                        class="nav-link {{ Request::is('/') || Request::is('dashboard*') || Request::is('summary*') ? 'active' : '' }}">
+                <li
+                    class="nav-item {{ Request::is('/') || Request::is('dashboard*') || Request::is('summary*') || Request::is('officialtravels*') || Request::is('recruitment/sessions/dashboard*') ? 'menu-open' : '' }}">
+                    <a href="#"
+                        class="nav-link {{ Request::is('dashboard/employees') || Request::is('dashboard/official-travel') || Request::is('dashboard/recruitment') ? 'active' : '' }}">
                         <i class="nav-icon fas fa-tachometer-alt"></i>
                         <p>
                             Dashboard
+                            <i class="fas fa-angle-left right"></i>
+                        </p>
+                    </a>
+                    <ul class="nav nav-treeview">
+                        <li class="nav-item">
+                            <a href="{{ route('dashboard.employees') }}"
+                                class="nav-link {{ Request::is('dashboard/employees') ? 'active' : '' }}">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>Employee</p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="{{ route('dashboard.recruitment') }}"
+                                class="nav-link {{ Request::is('dashboard/recruitment') ? 'active' : '' }}">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>Recruitment</p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="{{ route('dashboard.officialtravel') }}"
+                                class="nav-link {{ Request::is('dashboard/official-travel') ? 'active' : '' }}">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>Official Travel</p>
+                            </a>
+                        </li>
+                    </ul>
+                </li>
+                <li class="nav-item">
+                    <a href="{{ route('approval.requests.index') }}"
+                        class="nav-link {{ Request::is('approval/requests*') ? 'active' : '' }}">
+                        <i class="nav-icon fas fa-check-circle"></i>
+                        <p>
+                            Approval Requests
+                            @php
+                                $pendingApprovals = cache()->remember(
+                                    'pending_approvals_' . auth()->id(),
+                                    60,
+                                    function () {
+                                        return \App\Models\ApprovalPlan::where('approver_id', auth()->id())
+                                            ->where('is_open', true)
+                                            ->where('status', 0)
+                                            ->count();
+                                    },
+                                );
+                            @endphp
+                            @if ($pendingApprovals > 0)
+                                <span class="badge badge-warning ml-1 approval-badge">{{ $pendingApprovals }}</span>
+                            @endif
                         </p>
                     </a>
                 </li>
@@ -219,24 +268,8 @@
                         </ul>
                     </li>
                 @endcan --}}
-                <li class="nav-item">
-                    <a href="{{ route('letter-numbers.index') }}"
-                        class="nav-link {{ Request::is('letter-numbers*') ? 'active' : '' }}">
-                        <i class="nav-icon fas fa-file-alt"></i>
-                        <p>
-                            Letter Administration
-                        </p>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="{{ url('officialtravels') }}"
-                        class="nav-link {{ Request::is('officialtravels*') ? 'active' : '' }}">
-                        <i class="nav-icon fas fa-route"></i>
-                        <p>
-                            Official Travels (LOT)
-                        </p>
-                    </a>
-                </li>
+
+
 
                 @canany(['recruitment-requests.show', 'recruitment-candidates.show', 'recruitment-sessions.show'])
                     <li class="nav-item {{ Request::is('recruitment*') ? 'menu-open' : '' }}">
@@ -244,7 +277,6 @@
                             <i class="nav-icon fas fa-user-tie"></i>
                             <p>
                                 Recruitment
-                                <small class="badge badge-warning ml-1">BETA</small>
                             </p>
                             <i class="fas fa-angle-left right"></i>
                         </a>
@@ -269,7 +301,7 @@
                             @endcan
                             @can('recruitment-sessions.show')
                                 <li class="nav-item">
-                                    <a href="{{ route('recruitment.sessions.dashboard') }}"
+                                    <a href="{{ route('recruitment.sessions.index') }}"
                                         class="nav-link {{ Request::is('recruitment/sessions*') ? 'active' : '' }}">
                                         <i class="far fa-circle nav-icon"></i>
                                         <p>Sessions</p>
@@ -290,26 +322,20 @@
                 @endcanany
 
                 <li class="nav-item">
-                    <a href="{{ route('approval.requests.index') }}"
-                        class="nav-link {{ Request::is('approval/requests*') ? 'active' : '' }}">
-                        <i class="nav-icon fas fa-check-circle"></i>
+                    <a href="{{ url('officialtravels') }}"
+                        class="nav-link {{ Request::is('officialtravels*') ? 'active' : '' }}">
+                        <i class="nav-icon fas fa-route"></i>
                         <p>
-                            Approval Requests
-                            @php
-                                $pendingApprovals = cache()->remember(
-                                    'pending_approvals_' . auth()->id(),
-                                    60,
-                                    function () {
-                                        return \App\Models\ApprovalPlan::where('approver_id', auth()->id())
-                                            ->where('is_open', true)
-                                            ->where('status', 0)
-                                            ->count();
-                                    },
-                                );
-                            @endphp
-                            @if ($pendingApprovals > 0)
-                                <span class="badge badge-warning ml-1 approval-badge">{{ $pendingApprovals }}</span>
-                            @endif
+                            Official Travels (LOT)
+                        </p>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{{ route('letter-numbers.index') }}"
+                        class="nav-link {{ Request::is('letter-numbers*') ? 'active' : '' }}">
+                        <i class="nav-icon fas fa-file-alt"></i>
+                        <p>
+                            Letter Administration
                         </p>
                     </a>
                 </li>

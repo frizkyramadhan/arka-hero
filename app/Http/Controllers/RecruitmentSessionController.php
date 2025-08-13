@@ -539,35 +539,7 @@ class RecruitmentSessionController extends Controller
         ]);
     }
 
-    /**
-     * Dashboard analytics
-     */
-    public function dashboard()
-    {
-        $title = 'Recruitment Dashboard';
-        $subtitle = 'Recruitment Analytics and Overview';
-
-        $stats = [
-            'total_sessions' => RecruitmentSession::count(),
-            'active_sessions' => RecruitmentSession::where('status', 'in_process')->count(),
-            'completed_sessions' => RecruitmentSession::where('status', 'hired')->count(),
-            'rejected_sessions' => RecruitmentSession::where('status', 'rejected')->count(),
-        ];
-
-        // Sessions by stage
-        $sessionsByStage = RecruitmentSession::where('status', 'in_process')
-            ->selectRaw('current_stage, COUNT(*) as count')
-            ->groupBy('current_stage')
-            ->get();
-
-        // Recent sessions
-        $recentSessions = RecruitmentSession::with(['fptk.position', 'candidate'])
-            ->latest()
-            ->limit(10)
-            ->get();
-
-        return view('recruitment.sessions.dashboard', compact('title', 'subtitle', 'stats', 'sessionsByStage', 'recentSessions'));
-    }
+    // dashboard() moved to DashboardController@recruitment
 
     /**
      * Remove candidate from session

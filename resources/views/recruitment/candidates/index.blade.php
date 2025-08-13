@@ -29,7 +29,7 @@
                             <div class="card-header">
                                 <div class="d-flex flex-row justify-content-between align-items-start mb-1">
                                     <h3 class="card-title mb-0">
-                                        <strong>Recruitment Candidates</strong>
+                                        <strong>Recruitment Candidates (CV)</strong>
                                     </h3>
                                     <div class="d-flex flex-column flex-md-row ms-auto gap-2">
                                         {{-- <a href="{{ route('recruitment.candidates.export') }}"

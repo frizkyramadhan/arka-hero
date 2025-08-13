@@ -44,6 +44,8 @@ Include relevant context in brackets to help with future AI-assisted coding:
 ## Working On Now
 
 -   `[WIP] P1: Complete recruitment system integration [recruitment candidates, sessions, requests]`
+-   `[done] P1: Add dedicated dashboards and routes for Employees, Official Travel, Recruitment [routes/web.php, DashboardController, RecruitmentSessionController, resources/views/dashboard/*] (completed: 2025-08-13)`
+-   `[done] P2: Update recruitment dashboard statistic cards to stage-based metrics (In Interview, Offering & MCU) [resources/views/dashboard/recruitment.blade.php] (completed: 2025-08-13)`
 
 ## Up Next (This Week)
 
@@ -92,6 +94,7 @@ Include relevant context in brackets to help with future AI-assisted coding:
 -   `[done] P1: Update session header to match candidate header style [resources/views/recruitment/sessions/show.blade.php] (completed: 2025-01-15)`
 -   `[done] P1: Redesign recruitment session show view with horizontal timeline [resources/views/recruitment/sessions/show.blade.php] (completed: 2025-01-15)`
 -   `[done] P1: Create recruitment session dashboard view [resources/views/recruitment/sessions/dashboard.blade.php] (completed: 2025-01-15)`
+-   `[done] P2: Restructure sidebar Dashboard into multilevel with Employee, Official Travel, Recruitment; update Recruitment Sessions link to list [resources/views/layouts/partials/sidebar.blade.php] (completed: 2025-08-13)`
 -   `[done] P1: Fix recruitment session timeline data structure [resources/views/recruitment/sessions/show.blade.php, timeline keys] (completed: 2025-01-15)`
 -   `[done] P1: Create comprehensive recruitment session show view [resources/views/recruitment/sessions/show.blade.php] (completed: 2025-01-15)`
 -   `[done] P1: Fix recruitment session show relationship error [app/Http/Controllers/RecruitmentSessionController.php, requestedBy to createdBy] (completed: 2025-01-15)`
