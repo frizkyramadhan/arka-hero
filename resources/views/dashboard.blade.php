@@ -741,7 +741,7 @@
     </section>
 
 
-
+    <!-- Official Travel Dashboard Modal -->
     <!-- Pending Arrivals Modal -->
     <div class="modal fade" id="modal-arrivals">
         <div class="modal-dialog modal-xl">
@@ -774,7 +774,6 @@
             </div>
         </div>
     </div>
-
     <!-- Pending Departures Modal -->
     <div class="modal fade" id="modal-departures">
         <div class="modal-dialog modal-xl">
@@ -808,6 +807,7 @@
         </div>
     </div>
 
+    <!-- Employee Dashboard Modal -->
     <!-- Departments Modal -->
     <div class="modal fade" id="modal-departments">
         <div class="modal-dialog modal-xl">
@@ -838,7 +838,6 @@
             </div>
         </div>
     </div>
-
     <!-- Projects Modal -->
     <div class="modal fade" id="modal-projects">
         <div class="modal-dialog modal-xl">

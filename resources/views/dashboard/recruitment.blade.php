@@ -10,8 +10,6 @@
                 <div class="col-sm-6">
                     <ol class="breadcrumb float-sm-right">
                         <li class="breadcrumb-item"><a href="{{ route('dashboard') }}">Home</a></li>
-                        <li class="breadcrumb-item"><a href="{{ route('recruitment.sessions.index') }}">Recruitment
-                                Sessions</a></li>
                         <li class="breadcrumb-item active">{{ $subtitle }}</li>
                     </ol>
                 </div>
@@ -21,69 +19,65 @@
 
     <section class="content">
         <div class="container-fluid">
-            <!-- Statistics Cards -->
-            <div class="row">
+            <!-- Statistics Cards (Info Boxes) -->
+            <div class="row mb-4">
+                <!-- Active/Approved FPTK -->
+                <div class="col-lg-3 col-md-6 mb-3">
+                    <div class="info-box bg-gradient-primary">
+                        <span class="info-box-icon"><i class="fas fa-briefcase"></i></span>
+                        <div class="info-box-content">
+                            <span class="info-box-text">Active/Approved FPTK</span>
+                            <span class="info-box-number">{{ $stats['active_fptk'] ?? 0 }}</span>
+                            <div class="progress">
+                                <div class="progress-bar" style="width: 100%"></div>
+                            </div>
+                            <span class="progress-description">All requests currently active</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Candidate Pool (Available/In Process) -->
+                <div class="col-lg-3 col-md-6 mb-3">
+                    <div class="info-box bg-gradient-success">
+                        <span class="info-box-icon"><i class="fas fa-user-friends"></i></span>
+                        <div class="info-box-content">
+                            <span class="info-box-text">Candidate Pool</span>
+                            <span class="info-box-number">{{ $stats['candidate_pool'] ?? 0 }}</span>
+                            <div class="progress">
+                                <div class="progress-bar" style="width: 100%"></div>
+                            </div>
+                            <span class="progress-description">Available or in process</span>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Total Sessions -->
-                <div class="col-lg-3 col-6">
-                    <div class="small-box bg-info">
-                        <div class="inner">
-                            <h3>{{ number_format($stats['total_sessions']) }}</h3>
-                            <p>Total Sessions</p>
+                <div class="col-lg-3 col-md-6 mb-3">
+                    <div class="info-box bg-gradient-warning">
+                        <span class="info-box-icon"><i class="fas fa-layer-group"></i></span>
+                        <div class="info-box-content">
+                            <span class="info-box-text">Total Sessions</span>
+                            <span class="info-box-number">{{ $stats['total_sessions'] ?? 0 }}</span>
+                            <div class="progress">
+                                <div class="progress-bar" style="width: 100%"></div>
+                            </div>
+                            <span class="progress-description">All time applications</span>
                         </div>
-                        <div class="icon">
-                            <i class="fas fa-clipboard-list"></i>
-                        </div>
-                        <a href="{{ route('recruitment.sessions.index') }}" class="small-box-footer">
-                            View all sessions <i class="fas fa-arrow-circle-right"></i>
-                        </a>
                     </div>
                 </div>
 
-                <!-- Active Sessions -->
-                <div class="col-lg-3 col-6">
-                    <div class="small-box bg-success">
-                        <div class="inner">
-                            <h3>{{ number_format($stats['active_sessions']) }}</h3>
-                            <p>Active Sessions</p>
+                <!-- New Applications (This Month) -->
+                <div class="col-lg-3 col-md-6 mb-3">
+                    <div class="info-box bg-gradient-info">
+                        <span class="info-box-icon"><i class="fas fa-calendar-alt"></i></span>
+                        <div class="info-box-content">
+                            <span class="info-box-text">New Applications</span>
+                            <span class="info-box-number">{{ $stats['sessions_this_month'] ?? 0 }}</span>
+                            <div class="progress">
+                                <div class="progress-bar" style="width: 100%"></div>
+                            </div>
+                            <span class="progress-description">Applications in {{ date('M Y') }}</span>
                         </div>
-                        <div class="icon">
-                            <i class="fas fa-clock"></i>
-                        </div>
-                        <a href="{{ route('recruitment.sessions.index') }}?status=in_process" class="small-box-footer">
-                            View active sessions <i class="fas fa-arrow-circle-right"></i>
-                        </a>
-                    </div>
-                </div>
-
-                <!-- Completed Sessions -->
-                <div class="col-lg-3 col-6">
-                    <div class="small-box bg-primary">
-                        <div class="inner">
-                            <h3>{{ number_format($stats['completed_sessions']) }}</h3>
-                            <p>Hired Candidates</p>
-                        </div>
-                        <div class="icon">
-                            <i class="fas fa-user-check"></i>
-                        </div>
-                        <a href="{{ route('recruitment.sessions.index') }}?status=hired" class="small-box-footer">
-                            View hired candidates <i class="fas fa-arrow-circle-right"></i>
-                        </a>
-                    </div>
-                </div>
-
-                <!-- Rejected Sessions -->
-                <div class="col-lg-3 col-6">
-                    <div class="small-box bg-danger">
-                        <div class="inner">
-                            <h3>{{ number_format($stats['rejected_sessions']) }}</h3>
-                            <p>Rejected Sessions</p>
-                        </div>
-                        <div class="icon">
-                            <i class="fas fa-times-circle"></i>
-                        </div>
-                        <a href="{{ route('recruitment.sessions.index') }}?status=rejected" class="small-box-footer">
-                            View rejected sessions <i class="fas fa-arrow-circle-right"></i>
-                        </a>
                     </div>
                 </div>
             </div>
@@ -207,23 +201,23 @@
                                 <table class="table table-striped">
                                     <thead>
                                         <tr>
-                                            <th>Session Number</th>
-                                            <th>Candidate</th>
-                                            <th>Position</th>
-                                            <th>Stage</th>
-                                            <th>Status</th>
-                                            <th>Applied Date</th>
-                                            <th>Action</th>
+                                            <th class="align-middle">FPTK Number</th>
+                                            <th class="align-middle">Position</th>
+                                            <th class="align-middle">Candidate</th>
+                                            <th class="align-middle">Stage</th>
+                                            <th class="align-middle text-center">Status</th>
+                                            <th class="align-middle">Applied Date</th>
+                                            <th class="align-middle text-center">Action</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         @forelse($recentSessions as $session)
                                             <tr>
                                                 <td>
-                                                    <strong>{{ $session->session_number }}</strong>
+                                                    <strong>{{ $session->fptk->request_number ?? 'N/A' }}</strong>
                                                 </td>
-                                                <td>{{ $session->candidate->fullname ?? 'N/A' }}</td>
                                                 <td>{{ $session->fptk->position->position_name ?? 'N/A' }}</td>
+                                                <td>{{ $session->candidate->fullname ?? 'N/A' }}</td>
                                                 <td>
                                                     @php
                                                         $stages = [
@@ -240,7 +234,7 @@
                                                     @endphp
                                                     {{ $stages[$session->current_stage] ?? $session->current_stage }}
                                                 </td>
-                                                <td>
+                                                <td class="text-center">
                                                     @php
                                                         $statusBadges = [
                                                             'in_process' =>
@@ -259,7 +253,7 @@
                                                 </td>
                                                 <td>{{ $session->applied_date ? $session->applied_date->format('d M Y') : 'N/A' }}
                                                 </td>
-                                                <td>
+                                                <td class="text-center">
                                                     <a href="{{ route('recruitment.sessions.candidate', $session->id) }}"
                                                         class="btn btn-sm btn-info">
                                                         <i class="fas fa-eye"></i>
@@ -340,18 +334,6 @@
                                 <a href="{{ route('recruitment.sessions.index') }}" class="btn btn-primary btn-sm">
                                     <i class="fas fa-list mr-1"></i> View All Sessions
                                 </a>
-                                <a href="{{ route('recruitment.sessions.index') }}?status=in_process"
-                                    class="btn btn-success btn-sm">
-                                    <i class="fas fa-clock mr-1"></i> Active Sessions
-                                </a>
-                                <a href="{{ route('recruitment.sessions.index') }}?status=hired"
-                                    class="btn btn-info btn-sm">
-                                    <i class="fas fa-user-check mr-1"></i> Hired Candidates
-                                </a>
-                                <a href="{{ route('recruitment.sessions.index') }}?status=rejected"
-                                    class="btn btn-danger btn-sm">
-                                    <i class="fas fa-times mr-1"></i> Rejected Sessions
-                                </a>
                             </div>
                         </div>
                     </div>
@@ -359,7 +341,11 @@
             </div>
         </div>
     </section>
+@endsection
 
+@section('styles')
+    <link rel="stylesheet" href="{{ asset('assets/plugins/datatables-bs4/css/dataTables.bootstrap4.min.css') }}">
+    <link rel="stylesheet" href="{{ asset('assets/plugins/datatables-buttons/css/buttons.bootstrap4.min.css') }}">
     <style>
         .bg-birthday {
             background-color: #e91e63 !important;
@@ -403,8 +389,10 @@
             margin-top: 5px;
         }
     </style>
+@endsection
 
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+@section('scripts')
+    <script src="{{ asset('assets/plugins/chart.js/Chart.min.js') }}"></script>
     <script>
         $(document).ready(function() {
             // Sessions by Stage Chart

@@ -13,6 +13,9 @@ use App\Models\Education;
 use App\Models\License;
 use App\Models\Administration;
 use App\Models\Project;
+use App\Models\RecruitmentSession;
+use App\Models\RecruitmentRequest;
+use App\Models\RecruitmentCandidate;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Yajra\DataTables\DataTables;
@@ -26,123 +29,34 @@ class DashboardController extends Controller
      */
     public function dashboard()
     {
-        // Get the authenticated user
-        $user = Auth::user();
+        // Redirect root dashboard to Employee dashboard for clarity
+        return redirect()->route('dashboard.employees');
+    }
 
-        // === OFFICIAL TRAVEL DATA ===
-
-        // Count pending recommendations for this user
-        // $pendingRecommendations = 0;
-        // if ($user->can('official-travels.recommend')) {
-        //     $pendingRecommendations = Officialtravel::where('status', 'draft')
-        //         ->where('recommendation_status', 'pending')
-        //         ->where('recommendation_by', $user->id)
-        //         ->count();
-        // }
-
-        // Count pending approvals for this user
-        $pendingApprovals = 0;
-        if ($user->can('official-travels.approve')) {
-            $pendingApprovals = Officialtravel::where('recommendation_status', 'approved')
-                ->where('approval_status', 'pending')
-                ->where('approval_by', $user->id)
-                ->count();
-        }
-
-        // Count pending arrivals
-        $pendingArrivals = 0;
-        if ($user->can('official-travels.stamp')) {
-            $pendingArrivals = Officialtravel::where('status', 'approved')
-                ->whereNull('arrival_at_destination')
-                ->count();
-        }
-
-        // Count pending departures
-        $pendingDepartures = 0;
-        if ($user->can('official-travels.stamp')) {
-            $pendingDepartures = Officialtravel::where('status', 'approved')
-                ->whereNotNull('arrival_at_destination')
-                ->whereNull('departure_from_destination')
-                ->count();
-        }
-
-        // Count total travels
-        $totalTravels = Officialtravel::count();
-
-        // Count active travels (approved and not closed)
-        $activeTravels = Officialtravel::where('status', 'approved')->count();
-
-        // Count travels by status
-        $draftTravels = Officialtravel::where('status', 'draft')->count();
-        $submittedTravels = Officialtravel::where('status', 'submitted')->count();
-        $approvedTravels = Officialtravel::where('status', 'approved')->count();
-        $rejectedTravels = Officialtravel::where('status', 'rejected')->count();
-
-        // Count this month travels
-        $thisMonthTravels = Officialtravel::whereMonth('created_at', now()->month)
-            ->whereYear('created_at', now()->year)
-            ->count();
-
-        // Calculate monthly growth
-        $lastMonthTravels = Officialtravel::whereMonth('created_at', now()->subMonth()->month)
-            ->whereYear('created_at', now()->subMonth()->year)
-            ->count();
-
-        $monthlyGrowth = $lastMonthTravels > 0 ? round((($thisMonthTravels - $lastMonthTravels) / $lastMonthTravels) * 100, 1) : 0;
-
-        // Get top destinations
-        $topDestinations = Officialtravel::select('destination', DB::raw('count(*) as count'))
-            ->groupBy('destination')
-            ->orderBy('count', 'desc')
-            ->limit(5)
-            ->get();
-
-        // Get department stats
-        $departmentStats = Officialtravel::join('employees', 'officialtravels.traveler_id', '=', 'employees.id')
-            ->join('administrations', 'employees.id', '=', 'administrations.employee_id')
-            ->join('positions', 'administrations.position_id', '=', 'positions.id')
-            ->join('departments', 'positions.department_id', '=', 'departments.id')
-            ->select('departments.department_name', DB::raw('count(*) as count'))
-            ->groupBy('departments.id', 'departments.department_name')
-            ->orderBy('count', 'desc')
-            ->limit(5)
-            ->get();
-
-        // Count open travels (for backward compatibility)
-        $openTravel = Officialtravel::where('status', 'approved')->count();
-
-        // Get recent travels
-        $openTravels = Officialtravel::with('traveler.employee')
-            ->orderBy('created_at', 'desc')
-            ->limit(5)
-            ->get();
-
-        // === EMPLOYEE DATA ===
-
-        // Get total employees count
+    /**
+     * Dedicated Employee Dashboard view
+     */
+    public function employee()
+    {
+        // Employee metrics
         $totalEmployees = Employee::whereHas('administration', function ($query) {
             $query->where('is_active', '1');
         })->count();
 
-        // Get employees by department
         $employeesByDepartment = Department::withCount(['administrations' => function ($query) {
             $query->where('is_active', '1');
         }])
             ->where('department_status', '1')
             ->orderBy('administrations_count', 'desc')
-            // ->limit(5)
             ->get();
 
-        // Get employees by project
         $employeesByProject = Project::where('project_status', '1')
             ->withCount(['administrations' => function ($query) {
                 $query->where('is_active', '1');
             }])
             ->orderBy('administrations_count', 'desc')
-            // ->limit(5)
             ->get();
 
-        // Get newest employees (joined in last 30 days)
         $newEmployees = Employee::join('administrations', 'employees.id', '=', 'administrations.employee_id')
             ->join('positions', 'administrations.position_id', '=', 'positions.id')
             ->join('projects', 'administrations.project_id', '=', 'projects.id')
@@ -153,7 +67,6 @@ class DashboardController extends Controller
             ->limit(5)
             ->get();
 
-        // Get employees with contract ending in next 30 days
         $expiringContracts = Administration::with(['employee', 'position'])
             ->where('administrations.is_active', '1')
             ->whereNotNull('administrations.foc')
@@ -161,49 +74,107 @@ class DashboardController extends Controller
             ->orderBy('administrations.foc', 'asc')
             ->get();
 
-
-        // Get staff employees
         $staffEmployees = Administration::where('is_active', '1')->where('class', 'staff')->count();
-
-        // Get non-staff employees
         $nonStaffEmployees = Administration::where('is_active', '1')->where('class', '!=', 'staff')->count();
-
-        // Get permanent employees
         $permanentEmployees = Administration::where('is_active', '1')->whereNull('foc')->count();
-
-        // Get contract employees
         $contractEmployees = Administration::where('is_active', '1')->whereNotNull('foc')->count();
-
-        // Get employees with license
         $employeesWithLicense = License::distinct('employee_id')->count('employee_id');
 
-        // Get employees with birthday in this month
-        // $birthdayEmployees = Employee::with(['administration' => function ($query) {
-        //     $query->where('is_active', '1');
-        // }])->whereMonth('emp_dob', date('m'))->count();
-
         $birthdayEmployees = DB::table('employees')
-            ->join('administrations', 'employees.id', '=', 'administrations.employee_id',)
-            ->join('positions', 'administrations.position_id', '=', 'positions.id')
-            ->join('departments', 'positions.department_id', '=', 'departments.id')
-            ->join('projects', 'administrations.project_id', '=', 'projects.id')
-            ->select(
-                'employees.id',
-                'administrations.nik',
-                'employees.fullname',
-                'employees.emp_dob',
-                'projects.project_code',
-                'positions.position_name',
-                'administrations.class'
-            )
+            ->join('administrations', 'employees.id', '=', 'administrations.employee_id')
             ->where('administrations.is_active', '1')
             ->whereMonth('employees.emp_dob', date('m'))
             ->count();
 
-        return view('dashboard', [
-            'title' => 'Dashboard',
-            'subtitle' => 'Dashboard',
-            // Official Travel data
+        return view('dashboard.employee', [
+            'title' => 'Employee Dashboard',
+            'subtitle' => 'Employee Overview',
+            'totalEmployees' => $totalEmployees,
+            'employeesByDepartment' => $employeesByDepartment,
+            'employeesByProject' => $employeesByProject,
+            'newEmployees' => $newEmployees,
+            'expiringContracts' => $expiringContracts,
+            'employeesWithLicense' => $employeesWithLicense,
+            'birthdayEmployees' => $birthdayEmployees,
+            'staffEmployees' => $staffEmployees,
+            'nonStaffEmployees' => $nonStaffEmployees,
+            'permanentEmployees' => $permanentEmployees,
+            'contractEmployees' => $contractEmployees,
+        ]);
+    }
+
+    /**
+     * Dedicated Official Travel Dashboard view
+     */
+    public function officialTravel()
+    {
+        $user = Auth::user();
+
+        $pendingApprovals = 0;
+        if ($user->can('official-travels.approve')) {
+            $pendingApprovals = Officialtravel::where('recommendation_status', 'approved')
+                ->where('approval_status', 'pending')
+                ->where('approval_by', $user->id)
+                ->count();
+        }
+
+        $pendingArrivals = 0;
+        if ($user->can('official-travels.stamp')) {
+            $pendingArrivals = Officialtravel::where('status', 'approved')
+                ->whereNull('arrival_at_destination')
+                ->count();
+        }
+
+        $pendingDepartures = 0;
+        if ($user->can('official-travels.stamp')) {
+            $pendingDepartures = Officialtravel::where('status', 'approved')
+                ->whereNotNull('arrival_at_destination')
+                ->whereNull('departure_from_destination')
+                ->count();
+        }
+
+        $totalTravels = Officialtravel::count();
+        $activeTravels = Officialtravel::where('status', 'approved')->count();
+        $draftTravels = Officialtravel::where('status', 'draft')->count();
+        $submittedTravels = Officialtravel::where('status', 'submitted')->count();
+        $approvedTravels = Officialtravel::where('status', 'approved')->count();
+        $rejectedTravels = Officialtravel::where('status', 'rejected')->count();
+
+        $thisMonthTravels = Officialtravel::whereMonth('created_at', now()->month)
+            ->whereYear('created_at', now()->year)
+            ->count();
+
+        $lastMonthTravels = Officialtravel::whereMonth('created_at', now()->subMonth()->month)
+            ->whereYear('created_at', now()->subMonth()->year)
+            ->count();
+
+        $monthlyGrowth = $lastMonthTravels > 0 ? round((($thisMonthTravels - $lastMonthTravels) / $lastMonthTravels) * 100, 1) : 0;
+
+        $topDestinations = Officialtravel::select('destination', DB::raw('count(*) as count'))
+            ->groupBy('destination')
+            ->orderBy('count', 'desc')
+            ->limit(5)
+            ->get();
+
+        $departmentStats = Officialtravel::join('employees', 'officialtravels.traveler_id', '=', 'employees.id')
+            ->join('administrations', 'employees.id', '=', 'administrations.employee_id')
+            ->join('positions', 'administrations.position_id', '=', 'positions.id')
+            ->join('departments', 'positions.department_id', '=', 'departments.id')
+            ->select('departments.department_name', DB::raw('count(*) as count'))
+            ->groupBy('departments.id', 'departments.department_name')
+            ->orderBy('count', 'desc')
+            ->limit(5)
+            ->get();
+
+        $openTravel = Officialtravel::where('status', 'approved')->count();
+        $openTravels = Officialtravel::with('traveler.employee')
+            ->orderBy('created_at', 'desc')
+            ->limit(5)
+            ->get();
+
+        return view('dashboard.official-travel', [
+            'title' => 'Official Travel Dashboard',
+            'subtitle' => 'Official Travel Overview',
             'totalTravels' => $totalTravels,
             'activeTravels' => $activeTravels,
             'draftTravels' => $draftTravels,
@@ -219,19 +190,43 @@ class DashboardController extends Controller
             'pendingDepartures' => $pendingDepartures,
             'openTravel' => $openTravel,
             'openTravels' => $openTravels,
-            // Employee data
-            'totalEmployees' => $totalEmployees,
-            'employeesByDepartment' => $employeesByDepartment,
-            'employeesByProject' => $employeesByProject,
-            'newEmployees' => $newEmployees,
-            'expiringContracts' => $expiringContracts,
-            'employeesWithLicense' => $employeesWithLicense,
-            'birthdayEmployees' => $birthdayEmployees,
-            'staffEmployees' => $staffEmployees,
-            'nonStaffEmployees' => $nonStaffEmployees,
-            'permanentEmployees' => $permanentEmployees,
-            'contractEmployees' => $contractEmployees
         ]);
+    }
+
+    /**
+     * Dedicated Recruitment Dashboard view
+     */
+    public function recruitment()
+    {
+        $title = 'Recruitment Dashboard';
+        $subtitle = 'Recruitment Analytics and Overview';
+
+        $stats = [
+            // Sessions
+            'total_sessions' => RecruitmentSession::count(),
+            'active_sessions' => RecruitmentSession::where('status', 'in_process')->count(),
+            'completed_sessions' => RecruitmentSession::where('status', 'hired')->count(),
+            'rejected_sessions' => RecruitmentSession::where('status', 'rejected')->count(),
+            'sessions_this_month' => RecruitmentSession::whereMonth('applied_date', now()->month)
+                ->whereYear('applied_date', now()->year)
+                ->count(),
+            // FPTK / Requests
+            'active_fptk' => RecruitmentRequest::active()->count(), // submitted or approved
+            // Candidates
+            'candidate_pool' => RecruitmentCandidate::whereIn('global_status', ['available', 'in_process'])->count(),
+        ];
+
+        $sessionsByStage = RecruitmentSession::where('status', 'in_process')
+            ->selectRaw('current_stage, COUNT(*) as count')
+            ->groupBy('current_stage')
+            ->get();
+
+        $recentSessions = RecruitmentSession::with(['fptk.position', 'candidate'])
+            ->latest()
+            ->limit(10)
+            ->get();
+
+        return view('dashboard.recruitment', compact('title', 'subtitle', 'stats', 'sessionsByStage', 'recentSessions'));
     }
 
     /**

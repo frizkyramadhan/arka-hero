@@ -118,6 +118,13 @@ Route::group(['middleware' => ['auth']], function () {
     Route::get('/dashboard/pending-arrivals', [DashboardController::class, 'pendingArrivals'])->name('dashboard.pendingArrivals');
     Route::get('/dashboard/pending-departures', [DashboardController::class, 'pendingDepartures'])->name('dashboard.pendingDepartures');
 
+    // Split dashboard routes
+    Route::prefix('dashboard')->name('dashboard.')->group(function () {
+        Route::get('/employees', [DashboardController::class, 'employee'])->name('employees');
+        Route::get('/official-travel', [DashboardController::class, 'officialTravel'])->name('officialtravel');
+        Route::get('/recruitment', [DashboardController::class, 'recruitment'])->name('recruitment');
+    });
+
     // Dashboard Employee routes
     Route::get('/dashboard/employees-by-department', [DashboardController::class, 'employeesByDepartment'])->name('dashboard.employeesByDepartment');
     Route::get('/dashboard/employees-by-project', [DashboardController::class, 'employeesByProject'])->name('dashboard.employeesByProject');
