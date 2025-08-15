@@ -977,8 +977,7 @@ class OfficialtravelController extends Controller
                 'transportation',
                 'accommodation',
                 'details.follower.employee',
-                'recommender',
-                'approver',
+                'approval_plans.approver',
                 'creator'
             ]);
 
@@ -1090,22 +1089,21 @@ class OfficialtravelController extends Controller
                         default => '-'
                     };
 
-                    // $recommendation = match ($officialtravel->recommendation_status) {
-                    //     'pending' => 'Pending',
-                    //     'approved' => 'Approved',
-                    //     'rejected' => 'Rejected',
-                    //     default => '-'
-                    // };
-
-                    // $recommendBy = $officialtravel->recommender ? $officialtravel->recommender->name : '-';
-                    // $recommendDate = $officialtravel->recommendation_date ?
-                    //     date('d/m/Y H:i', strtotime($officialtravel->recommendation_date)) : '-';
-
-
-
-                    // $approveBy = $officialtravel->approver ? $officialtravel->approver->name : '-';
-                    // $approveDate = $officialtravel->approval_date ?
-                    //     date('d/m/Y H:i', strtotime($officialtravel->approval_date)) : '-';
+                    // Latest approval info from approval_plans (status: 1 = approved)
+                    $latestApproval = null;
+                    if (isset($officialtravel->approval_plans)) {
+                        $approvedPlans = $officialtravel->approval_plans->where('status', 1);
+                        if ($approvedPlans->count() > 0) {
+                            $latestApproval = $approvedPlans->sortByDesc(function ($plan) {
+                                return $plan->updated_at ?? $plan->created_at;
+                            })->first();
+                        }
+                    }
+                    $approveBy = ($latestApproval && $latestApproval->approver) ? $latestApproval->approver->name : '-';
+                    $approveDate = $latestApproval && ($latestApproval->updated_at || $latestApproval->created_at)
+                        ? ($latestApproval->updated_at ?? $latestApproval->created_at)->format('d/m/Y H:i')
+                        : '-';
+                    $approveRemarks = $latestApproval && $latestApproval->remarks ? $latestApproval->remarks : '-';
 
                     // Arrival information
                     $arrivalDate = $officialtravel->arrival_at_destination ?
@@ -1126,11 +1124,9 @@ class OfficialtravelController extends Controller
                         $project,
                         $officialtravel->destination,
                         $status,
-                        // $recommendation,
-                        // $recommendBy,
-                        // $recommendDate,
-                        // $approveBy,
-                        // $approveDate,
+                        $approveBy,
+                        $approveDate,
+                        $approveRemarks,
                         $arrivalChecker,
                         $arrivalDate,
                         $arrivalRemarks,

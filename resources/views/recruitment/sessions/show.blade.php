@@ -352,22 +352,77 @@
                                                 $stageIndex = array_search($stage, $stages);
                                                 $currentStageIndex = array_search($currentStage, $stages);
 
+                                                // Determine stage status
                                                 if ($stageIndex < $currentStageIndex) {
+                                                    // Previous stages - check if they passed or failed
                                                     $status = 'completed';
                                                     $icon = 'fas fa-check-circle text-success';
+                                                    $tooltip = 'Completed';
                                                 } elseif ($stageIndex == $currentStageIndex) {
+                                                    // Current stage
                                                     $status = $stageStatus;
-                                                    $icon =
-                                                        $stageStatus == 'completed'
-                                                            ? 'fas fa-check-circle text-success'
-                                                            : 'fas fa-clock text-warning';
+                                                    if ($stageStatus == 'completed') {
+                                                        $icon = 'fas fa-check-circle text-success';
+                                                        $tooltip = 'Completed';
+                                                    } elseif (
+                                                        $stageStatus == 'failed' ||
+                                                        $stageStatus == 'rejected' ||
+                                                        $stageStatus == 'not_recommended'
+                                                    ) {
+                                                        $icon = 'fas fa-times-circle text-danger';
+                                                        $tooltip = 'Failed / Not Recommended';
+                                                    } elseif (
+                                                        $stageStatus == 'in_progress' ||
+                                                        $stageStatus == 'ongoing'
+                                                    ) {
+                                                        $icon = 'fas fa-clock text-warning';
+                                                        $tooltip = 'In Progress';
+                                                    } else {
+                                                        $icon = 'fas fa-clock text-warning';
+                                                        $tooltip = 'Waiting';
+                                                    }
+                                                } elseif (
+                                                    $stageIndex > $currentStageIndex &&
+                                                    $session->status == 'rejected'
+                                                ) {
+                                                    // Future stages but session is rejected - mark as not applicable
+                                                    $status = 'not_applicable';
+                                                    $icon = 'fas fa-ban text-secondary';
+                                                    $tooltip = 'Not Applicable';
                                                 } else {
+                                                    // Future stages
                                                     $status = 'pending';
                                                     $icon = 'fas fa-circle text-muted';
+                                                    $tooltip = 'Pending';
+                                                }
+
+                                                // Check if there's specific stage result data (assuming there might be a stages_result JSON field)
+if (
+    isset($session->stages_result) &&
+    is_array($session->stages_result)
+) {
+    $stageResult = $session->stages_result[$stage] ?? null;
+    if ($stageResult) {
+        if (
+            $stageResult['status'] === 'failed' ||
+            $stageResult['status'] === 'rejected' ||
+            $stageResult['status'] === 'not_recommended'
+        ) {
+            $icon = 'fas fa-times-circle text-danger';
+            $tooltip = 'Failed / Not Recommended';
+        } elseif (
+            $stageResult['status'] === 'passed' ||
+            $stageResult['status'] === 'completed'
+        ) {
+            $icon = 'fas fa-check-circle text-success';
+            $tooltip = 'Passed';
+                                                        }
+                                                    }
                                                 }
                                             @endphp
                                             <td class="text-center">
-                                                <i class="{{ $icon }}" title="{{ ucfirst($status) }}"></i>
+                                                <i class="{{ $icon }}" title="{{ $tooltip }}"
+                                                    data-toggle="tooltip"></i>
                                             </td>
                                         @endforeach
                                         <td class="text-center">
@@ -835,6 +890,35 @@
             border-color: #bd2130;
         }
 
+        /* Stage Status Icons */
+        .sessions-table-card .table td i {
+            font-size: 16px;
+            cursor: help;
+        }
+
+        /* Hover effects for status icons */
+        .sessions-table-card .table td i:hover {
+            transform: scale(1.1);
+            transition: transform 0.2s ease;
+        }
+
+        /* Status specific styling */
+        .sessions-table-card .table td i.text-success {
+            filter: drop-shadow(0 0 2px rgba(40, 167, 69, 0.3));
+        }
+
+        .sessions-table-card .table td i.text-danger {
+            filter: drop-shadow(0 0 2px rgba(220, 53, 69, 0.3));
+        }
+
+        .sessions-table-card .table td i.text-warning {
+            filter: drop-shadow(0 0 2px rgba(255, 193, 7, 0.3));
+        }
+
+        .sessions-table-card .table td i.text-info {
+            filter: drop-shadow(0 0 2px rgba(23, 162, 184, 0.3));
+        }
+
         /* Responsive Adjustments */
         @media (max-width: 992px) {
             .info-grid {
@@ -919,6 +1003,9 @@
 @section('scripts')
     <script>
         $(function() {
+            // Initialize Bootstrap tooltips
+            $('[data-toggle="tooltip"]').tooltip();
+
             // Confirm submit for Close Request with toast feedback
             $(document).on('submit', 'form.confirm-submit', function(e) {
                 const form = this;
