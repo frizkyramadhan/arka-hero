@@ -24,12 +24,7 @@ class OfficialtravelResource extends JsonResource
             'destination' => $this->destination,
             'duration' => $this->duration,
             'departure_from' => $this->departure_from,
-            'recommendation_status' => $this->recommendation_status,
-            'recommendation_remark' => $this->recommendation_remark,
-            'recommendation_date' => $this->recommendation_date,
-            'approval_status' => $this->approval_status,
-            'approval_remark' => $this->approval_remark,
-            'approval_date' => $this->approval_date,
+            // Recommendation/approval legacy fields removed in favor of approval_plans
             'arrival_at_destination' => $this->arrival_at_destination,
             'arrival_remark' => $this->arrival_remark,
             'departure_from_destination' => $this->departure_from_destination,
@@ -198,21 +193,24 @@ class OfficialtravelResource extends JsonResource
                     'user_status' => $this->departureChecker->user_status,
                 ];
             }),
-            'recommender' => $this->whenLoaded('recommender', function () {
-                return [
-                    'id' => $this->recommender->id,
-                    'name' => $this->recommender->name,
-                    'email' => $this->recommender->email,
-                    'user_status' => $this->recommender->user_status,
-                ];
-            }),
-            'approver' => $this->whenLoaded('approver', function () {
-                return [
-                    'id' => $this->approver->id,
-                    'name' => $this->approver->name,
-                    'email' => $this->approver->email,
-                    'user_status' => $this->approver->user_status,
-                ];
+            // Legacy single recommender/approver removed; use approval_plans instead
+            'approval_plans' => $this->whenLoaded('approval_plans', function () {
+                return $this->approval_plans->map(function ($plan) {
+                    return [
+                        'id' => $plan->id,
+                        'approver' => [
+                            'id' => optional($plan->approver)->id,
+                            'name' => optional($plan->approver)->name,
+                            'email' => optional($plan->approver)->email,
+                        ],
+                        'status' => $plan->status,
+                        'remarks' => $plan->remarks,
+                        'is_open' => $plan->is_open,
+                        'is_read' => $plan->is_read,
+                        'created_at' => $plan->created_at,
+                        'updated_at' => $plan->updated_at,
+                    ];
+                })->values();
             }),
             'creator' => $this->whenLoaded('creator', function () {
                 return [

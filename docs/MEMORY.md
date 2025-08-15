@@ -1,0 +1,13 @@
+## 2025-08-14
+
+-   Updated `OfficialtravelController::exportExcel()` to replace deprecated recommend/approver fields with the new `approval_plans` model. Now eager-loads `approval_plans.approver` and maps latest approved plan (approver name, date, remarks). Excel headings now match row data.
+-   Created `RecruitmentReportController` with comprehensive HR analytics suite. Fixed stage progression order: CV Review → Psikotes → Tes Teori → Interview → Offering → MCU → Hiring → Onboarding. Enhanced funnel report with accurate conversion rate logic, stage detail drill-down pages, Reset buttons, and fixed avg days calculation. Stage detail includes interview type column (HR/User) accessing RecruitmentInterview.type field, with proper session-to-stage relationships. Fixed interview stage counting (unique sessions vs individual interviews). Enhanced remarks column with stage-specific details: CV Review (decision + notes), Interview (result + type + notes), Psikotes (online/offline scores + result + notes), Tes Teori (score + result + notes), MCU (result + notes), Offering (letter number + response + notes), Hiring (agreement type + letter number + notes), Onboarding (date + notes). Both stage detail and aging reports use AdminLTE DataTables with Bootstrap styling, export buttons (Copy/CSV/Excel/PDF with landscape orientation/Print), sorting, pagination (25 entries), and responsive design. Stage detail has candidate names linking to recruitment sessions, aging report has request numbers linking to recruitment requests (both open in new tabs). Aging report shows approval remarks from latest approved ApprovalPlan instead of request remarks. Fixed date sorting with data-order attributes for proper chronological ordering. Uses local assets following template pattern. PDF export includes custom formatting with proper margins, header styling, and optimized font sizes for landscape A4 layout. Both reports include navigation buttons, advanced filtering, and Excel export.
+
+## 2025-08-13 - Officialtravel API alignments with Approval Plan
+
+-   Controller `OfficialtravelApiController` fixed invalid `whereNot` usage to `where('<>')`.
+-   Introduced `search_claimable` endpoint: finished trips (`departure_from_destination` not null) and not yet claimed.
+-   `search_claimed` now correctly returns already claimed records.
+-   `updateClaim` now sets `claimed_at` only when claiming (`yes`), resets to null when unclaiming.
+-   Model `Officialtravel::approval_plans()` scoped by `document_type = 'officialtravel'`.
+-   Resource `OfficialtravelResource` now exposes `approval_plans` including approver info for API consumers.

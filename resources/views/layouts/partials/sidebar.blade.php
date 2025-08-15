@@ -40,7 +40,7 @@
                 <li
                     class="nav-item {{ Request::is('/') || Request::is('dashboard*') || Request::is('summary*') || Request::is('officialtravels*') || Request::is('recruitment/sessions/dashboard*') ? 'menu-open' : '' }}">
                     <a href="#"
-                        class="nav-link {{ Request::is('dashboard/employees') || Request::is('dashboard/official-travel') || Request::is('dashboard/recruitment') ? 'active' : '' }}">
+                        class="nav-link {{ Request::is('dashboard/employees') || Request::is('dashboard/official-travel') || Request::is('dashboard/recruitment') || Request::is('dashboard/letter-administration') ? 'active' : '' }}">
                         <i class="nav-icon fas fa-tachometer-alt"></i>
                         <p>
                             Dashboard
@@ -67,6 +67,13 @@
                                 class="nav-link {{ Request::is('dashboard/official-travel') ? 'active' : '' }}">
                                 <i class="far fa-circle nav-icon"></i>
                                 <p>Official Travel</p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="{{ route('dashboard.letter-administration') }}"
+                                class="nav-link {{ Request::is('dashboard/letter-administration') ? 'active' : '' }}">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>Letter Administration</p>
                             </a>
                         </li>
                     </ul>
@@ -317,6 +324,13 @@
                                     </a>
                                 </li>
                             @endcan --}}
+                            <li class="nav-item">
+                                <a href="{{ route('recruitment.reports.index') }}"
+                                    class="nav-link {{ Request::is('recruitment/reports*') ? 'active' : '' }}">
+                                    <i class="far fa-circle nav-icon"></i>
+                                    <p>Reports</p>
+                                </a>
+                            </li>
                         </ul>
                     </li>
                 @endcanany

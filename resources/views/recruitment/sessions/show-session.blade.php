@@ -77,6 +77,45 @@
                                 ];
                                 $currentOrder = $stageOrder[$session->current_stage] ?? 0;
                                 $stageClasses = [];
+                                $stageEditability = [];
+                                $hasFailedStage = false;
+                                $failedStageOrder = null;
+
+                                // First pass: determine if any stage failed and which stage
+                                foreach (array_keys($stageOrder) as $stageKey) {
+                                    $thisOrder = $stageOrder[$stageKey] ?? 0;
+                                    if ($thisOrder <= $currentOrder) {
+                                        $assessment = $session->getAssessmentByStage($stageKey);
+                                        $failed = false;
+
+                                        if ($stageKey === 'interview') {
+                                            $interviewStatus = $session->getInterviewStatus();
+                                            $failed = $interviewStatus === 'danger';
+                                        } else {
+                                            if ($assessment) {
+                                                $decision = $assessment->decision ?? null;
+                                                $result = $assessment->result ?? null;
+                                                if ($stageKey === 'cv_review') {
+                                                    $failed = $decision === 'not_recommended';
+                                                } elseif (in_array($stageKey, ['psikotes', 'tes_teori'])) {
+                                                    $failed = $result === 'fail';
+                                                } elseif ($stageKey === 'offering') {
+                                                    $failed = $result === 'rejected';
+                                                } elseif ($stageKey === 'mcu') {
+                                                    $failed = $result === 'unfit';
+                                                }
+                                            }
+                                        }
+
+                                        if ($failed && !$hasFailedStage) {
+                                            $hasFailedStage = true;
+                                            $failedStageOrder = $thisOrder;
+                                            break;
+                                        }
+                                    }
+                                }
+
+                                // Second pass: set classes and editability
                                 foreach (array_keys($stageOrder) as $stageKey) {
                                     $thisOrder = $stageOrder[$stageKey] ?? 0;
                                     $cls = 'bg-secondary';
@@ -157,16 +196,31 @@
                                         }
                                     }
                                     $stageClasses[$stageKey] = $cls;
+
+                                    // Determine if this stage is editable
+                                    $editable = true;
+                                    if ($hasFailedStage && $thisOrder >= $failedStageOrder) {
+                                        // If there's a failed stage, disable editing for the failed stage and all subsequent stages
+                                        $editable = false;
+                                    }
+                                    $stageEditability[$stageKey] = $editable;
                                 }
                             @endphp
                             <div class="timeline-horizontal">
                                 <!-- CV Review -->
-                                <div class="timeline-item" data-toggle="modal" data-target="#cvReviewModal">
+                                <div class="timeline-item {{ $stageEditability['cv_review'] ? 'editable' : 'disabled' }}"
+                                    @if ($stageEditability['cv_review']) data-toggle="modal" data-target="#cvReviewModal" @endif>
                                     <div class="timeline-marker {{ $stageClasses['cv_review'] }}">
                                         <i class="fas fa-file-alt"></i>
                                     </div>
                                     <div class="timeline-content">
-                                        <div class="timeline-title">CV Review</div>
+                                        <div class="timeline-title">
+                                            CV Review
+                                            @if (!$stageEditability['cv_review'])
+                                                <i class="fas fa-lock ml-1"
+                                                    title="Locked due to previous stage failure"></i>
+                                            @endif
+                                        </div>
                                         <div class="timeline-date">
                                             @if ($session->current_stage === 'cv_review' && $session->stage_started_at)
                                                 {{ date('d M Y', strtotime($session->stage_started_at)) }}
@@ -180,12 +234,19 @@
                                 </div>
 
                                 <!-- Psikotes -->
-                                <div class="timeline-item" data-toggle="modal" data-target="#psikotesModal">
+                                <div class="timeline-item {{ $stageEditability['psikotes'] ? 'editable' : 'disabled' }}"
+                                    @if ($stageEditability['psikotes']) data-toggle="modal" data-target="#psikotesModal" @endif>
                                     <div class="timeline-marker {{ $stageClasses['psikotes'] }}">
                                         <i class="fas fa-brain"></i>
                                     </div>
                                     <div class="timeline-content">
-                                        <div class="timeline-title">Psikotes</div>
+                                        <div class="timeline-title">
+                                            Psikotes
+                                            @if (!$stageEditability['psikotes'])
+                                                <i class="fas fa-lock ml-1"
+                                                    title="Locked due to previous stage failure"></i>
+                                            @endif
+                                        </div>
                                         <div class="timeline-date">
                                             @if ($session->current_stage === 'psikotes' && $session->stage_started_at)
                                                 {{ date('d M Y', strtotime($session->stage_started_at)) }}
@@ -199,12 +260,19 @@
                                 </div>
 
                                 <!-- Tes Teori -->
-                                <div class="timeline-item" data-toggle="modal" data-target="#tesTeoriModal">
+                                <div class="timeline-item {{ $stageEditability['tes_teori'] ? 'editable' : 'disabled' }}"
+                                    @if ($stageEditability['tes_teori']) data-toggle="modal" data-target="#tesTeoriModal" @endif>
                                     <div class="timeline-marker {{ $stageClasses['tes_teori'] }}">
                                         <i class="fas fa-book"></i>
                                     </div>
                                     <div class="timeline-content">
-                                        <div class="timeline-title">Tes Teori</div>
+                                        <div class="timeline-title">
+                                            Tes Teori
+                                            @if (!$stageEditability['tes_teori'])
+                                                <i class="fas fa-lock ml-1"
+                                                    title="Locked due to previous stage failure"></i>
+                                            @endif
+                                        </div>
                                         <div class="timeline-date">
                                             @if ($session->current_stage === 'tes_teori' && $session->stage_started_at)
                                                 {{ date('d M Y', strtotime($session->stage_started_at)) }}
@@ -218,12 +286,19 @@
                                 </div>
 
                                 <!-- Interview -->
-                                <div class="timeline-item" data-toggle="modal" data-target="#interviewModal">
+                                <div class="timeline-item {{ $stageEditability['interview'] ? 'editable' : 'disabled' }}"
+                                    @if ($stageEditability['interview']) data-toggle="modal" data-target="#interviewModal" @endif>
                                     <div class="timeline-marker {{ $stageClasses['interview'] }}">
                                         <i class="fas fa-user-tie"></i>
                                     </div>
                                     <div class="timeline-content">
-                                        <div class="timeline-title">Interview</div>
+                                        <div class="timeline-title">
+                                            Interview
+                                            @if (!$stageEditability['interview'])
+                                                <i class="fas fa-lock ml-1"
+                                                    title="Locked due to previous stage failure"></i>
+                                            @endif
+                                        </div>
                                         <div class="timeline-date">
                                             @if ($session->current_stage === 'interview' && $session->stage_started_at)
                                                 {{ date('d M Y', strtotime($session->stage_started_at)) }}
@@ -237,12 +312,19 @@
                                 </div>
 
                                 <!-- Offering -->
-                                <div class="timeline-item" data-toggle="modal" data-target="#offeringModal">
+                                <div class="timeline-item {{ $stageEditability['offering'] ? 'editable' : 'disabled' }}"
+                                    @if ($stageEditability['offering']) data-toggle="modal" data-target="#offeringModal" @endif>
                                     <div class="timeline-marker {{ $stageClasses['offering'] }}">
                                         <i class="fas fa-handshake"></i>
                                     </div>
                                     <div class="timeline-content">
-                                        <div class="timeline-title">Offering</div>
+                                        <div class="timeline-title">
+                                            Offering
+                                            @if (!$stageEditability['offering'])
+                                                <i class="fas fa-lock ml-1"
+                                                    title="Locked due to previous stage failure"></i>
+                                            @endif
+                                        </div>
                                         <div class="timeline-date">
                                             @if ($session->current_stage === 'offering' && $session->stage_started_at)
                                                 {{ date('d M Y', strtotime($session->stage_started_at)) }}
@@ -256,12 +338,19 @@
                                 </div>
 
                                 <!-- MCU -->
-                                <div class="timeline-item" data-toggle="modal" data-target="#mcuModal">
+                                <div class="timeline-item {{ $stageEditability['mcu'] ? 'editable' : 'disabled' }}"
+                                    @if ($stageEditability['mcu']) data-toggle="modal" data-target="#mcuModal" @endif>
                                     <div class="timeline-marker {{ $stageClasses['mcu'] }}">
                                         <i class="fas fa-user-md"></i>
                                     </div>
                                     <div class="timeline-content">
-                                        <div class="timeline-title">MCU</div>
+                                        <div class="timeline-title">
+                                            MCU
+                                            @if (!$stageEditability['mcu'])
+                                                <i class="fas fa-lock ml-1"
+                                                    title="Locked due to previous stage failure"></i>
+                                            @endif
+                                        </div>
                                         <div class="timeline-date">
                                             @if ($session->current_stage === 'mcu' && $session->stage_started_at)
                                                 {{ date('d M Y', strtotime($session->stage_started_at)) }}
@@ -275,12 +364,19 @@
                                 </div>
 
                                 <!-- Hire -->
-                                <div class="timeline-item" data-toggle="modal" data-target="#hireModal">
+                                <div class="timeline-item {{ $stageEditability['hire'] ? 'editable' : 'disabled' }}"
+                                    @if ($stageEditability['hire']) data-toggle="modal" data-target="#hireModal" @endif>
                                     <div class="timeline-marker {{ $stageClasses['hire'] }}">
                                         <i class="fas fa-user-check"></i>
                                     </div>
                                     <div class="timeline-content">
-                                        <div class="timeline-title">Hire</div>
+                                        <div class="timeline-title">
+                                            Hire
+                                            @if (!$stageEditability['hire'])
+                                                <i class="fas fa-lock ml-1"
+                                                    title="Locked due to previous stage failure"></i>
+                                            @endif
+                                        </div>
                                         <div class="timeline-date">
                                             @if ($session->current_stage === 'hire' && $session->stage_started_at)
                                                 {{ date('d M Y', strtotime($session->stage_started_at)) }}
@@ -294,12 +390,19 @@
                                 </div>
 
                                 <!-- Onboarding -->
-                                <div class="timeline-item" data-toggle="modal" data-target="#onboardingModal">
+                                <div class="timeline-item {{ $stageEditability['onboarding'] ? 'editable' : 'disabled' }}"
+                                    @if ($stageEditability['onboarding']) data-toggle="modal" data-target="#onboardingModal" @endif>
                                     <div class="timeline-marker {{ $stageClasses['onboarding'] }}">
                                         <i class="fas fa-graduation-cap"></i>
                                     </div>
                                     <div class="timeline-content">
-                                        <div class="timeline-title">Onboarding</div>
+                                        <div class="timeline-title">
+                                            Onboarding
+                                            @if (!$stageEditability['onboarding'])
+                                                <i class="fas fa-lock ml-1"
+                                                    title="Locked due to previous stage failure"></i>
+                                            @endif
+                                        </div>
                                         <div class="timeline-date">
                                             @if ($session->current_stage === 'onboarding' && $session->stage_started_at)
                                                 {{ date('d M Y', strtotime($session->stage_started_at)) }}
@@ -805,6 +908,29 @@
             transition: transform 0.2s ease;
             min-width: 70px;
             max-width: 70px;
+        }
+
+        /* Timeline Item States */
+        .timeline-item.editable {
+            cursor: pointer;
+        }
+
+        .timeline-item.disabled {
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+
+        .timeline-item.disabled:hover .timeline-marker {
+            transform: none !important;
+            box-shadow: none !important;
+        }
+
+        .timeline-item.disabled .timeline-title {
+            color: #6c757d !important;
+        }
+
+        .timeline-item.disabled .timeline-date {
+            color: #adb5bd !important;
         }
 
         .timeline-item:hover {
@@ -1390,8 +1516,29 @@
             // Initialize tooltips
             $('[data-toggle="tooltip"]').tooltip();
 
-            // Timeline item click animation
-            $('.timeline-item').click(function() {
+            // Timeline item click animation with validation
+            $('.timeline-item').click(function(e) {
+                // Check if stage is disabled
+                if ($(this).hasClass('disabled')) {
+                    e.preventDefault();
+                    e.stopPropagation();
+
+                    // Show informative message
+                    if (typeof Swal !== 'undefined' && Swal.fire) {
+                        Swal.fire({
+                            icon: 'warning',
+                            title: 'Stage Locked',
+                            text: 'Cannot edit this stage because a previous stage failed or was rejected.',
+                            confirmButtonColor: '#3085d6',
+                            confirmButtonText: 'OK'
+                        });
+                    } else {
+                        alert('Cannot edit this stage because a previous stage failed or was rejected.');
+                    }
+                    return false;
+                }
+
+                // Normal click animation for editable stages
                 $(this).addClass('clicked');
                 setTimeout(() => {
                     $(this).removeClass('clicked');

@@ -72,18 +72,41 @@ class LetterAdministrationImport implements ToModel, WithHeadingRow, WithValidat
                 'par_type' => $row['par_type'],
                 'ticket_classification' => $row['ticket_classification'],
                 'user_id' => auth()->id(),
-                'status' => 'used',
             ];
 
             if (!empty($row['letter_number'])) {
                 // If letter_number is provided, update existing record or create a new one with this number.
-                return LetterNumber::updateOrCreate(
-                    ['letter_number' => $row['letter_number']],
-                    $letterData
-                );
+                $existingRecord = LetterNumber::where('letter_number', $row['letter_number'])->first();
+
+                if ($existingRecord) {
+                    // Update existing record
+                    $existingRecord->update($letterData);
+                    return $existingRecord;
+                } else {
+                    // Create new record with provided letter_number
+                    // Manually set sequence_number to avoid default value issue
+                    if ($category) {
+                        $year = isset($letterData['letter_date']) ? date('Y', strtotime($letterData['letter_date'])) : date('Y');
+                        $letterData['sequence_number'] = LetterNumber::getNextSequenceNumberSafe($category->id, $year);
+                        $letterData['year'] = $year;
+                        $letterData['letter_number'] = $row['letter_number'];
+                        $letterData['status'] = 'used';
+                        $letterData['reserved_by'] = auth()->id() ?? 1;
+                    }
+
+                    return LetterNumber::create($letterData);
+                }
             } else {
                 // If letter_number is not provided, create a new record.
-                // The 'creating' event on the LetterNumber model will generate the number.
+                // Ensure sequence_number is set to avoid database error
+                if ($category) {
+                    $year = isset($letterData['letter_date']) ? date('Y', strtotime($letterData['letter_date'])) : date('Y');
+                    $letterData['sequence_number'] = LetterNumber::getNextSequenceNumberSafe($category->id, $year);
+                    $letterData['year'] = $year;
+                    $letterData['status'] = 'used';
+                    $letterData['reserved_by'] = auth()->id() ?? 1;
+                }
+
                 return LetterNumber::createWithRetry($letterData);
             }
         } catch (\Exception $e) {
@@ -164,19 +187,14 @@ class LetterAdministrationImport implements ToModel, WithHeadingRow, WithValidat
 
     private function validateConditionalRequiredFields($validator, $rowIndex, $row, $categoryCode)
     {
-        // Employee-related categories (PKWT, CRTE, SKPK) require NIK
-        if (in_array($categoryCode, ['PKWT', 'CRTE', 'SKPK'])) {
+        // Employee-related categories (CRTE, SKPK) require NIK - Removed PKWT from required NIK validation
+        if (in_array($categoryCode, ['CRTE', 'SKPK'])) {
             if (empty($row['nik'])) {
                 $validator->errors()->add($rowIndex . '.nik', 'NIK is required for category ' . $categoryCode . '.');
             }
         }
 
-        // Project-related categories (FPTK) require project
-        if ($categoryCode === 'FPTK') {
-            if (empty($row['project_code'])) {
-                $validator->errors()->add($rowIndex . '.project_code', 'Project Code is required for category FPTK.');
-            }
-        }
+        // Removed FPTK project_code required validation
 
         // External letters (A) require classification
         if ($categoryCode === 'A') {
@@ -185,13 +203,10 @@ class LetterAdministrationImport implements ToModel, WithHeadingRow, WithValidat
             }
         }
 
-        // PKWT-specific required fields
+        // PKWT-specific required fields - Removed duration requirement
         if ($categoryCode === 'PKWT') {
             if (empty($row['pkwt_type'])) {
                 $validator->errors()->add($rowIndex . '.pkwt_type', 'PKWT Type is required for category PKWT.');
-            }
-            if (empty($row['duration'])) {
-                $validator->errors()->add($rowIndex . '.duration', 'Duration is required for category PKWT.');
             }
             if (empty($row['start_date'])) {
                 $validator->errors()->add($rowIndex . '.start_date', 'Start Date is required for category PKWT.');
@@ -243,7 +258,7 @@ class LetterAdministrationImport implements ToModel, WithHeadingRow, WithValidat
                 'nullable',
                 Rule::in(['PKWT I', 'PKWT II', 'PKWT III']),
             ],
-            'duration' => 'nullable|string',
+            'duration' => 'nullable',
             'start_date' => 'nullable|date',
             'end_date' => 'nullable|date',
 
@@ -285,7 +300,7 @@ class LetterAdministrationImport implements ToModel, WithHeadingRow, WithValidat
 
             // PKWT validation
             'pkwt_type.in' => 'The selected PKWT Type is invalid. Valid options: PKWT I, PKWT II, PKWT III.',
-            'duration.string' => 'The Duration must be a string.',
+
             'start_date.date' => 'The Start Date must be a valid date.',
             'end_date.date' => 'The End Date must be a valid date.',
 

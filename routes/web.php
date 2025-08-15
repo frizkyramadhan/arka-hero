@@ -5,6 +5,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BankController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\DebugController;
 use App\Http\Controllers\EmailController;
 use App\Http\Controllers\GradeController;
 use App\Http\Controllers\LevelController;
@@ -24,37 +25,37 @@ use App\Http\Controllers\InsuranceController;
 use App\Http\Controllers\PHPMailerController;
 use App\Http\Controllers\DepartmentController;
 use App\Http\Controllers\PermissionController;
-use App\Http\Controllers\TerminationController;
 
-use App\Http\Controllers\EmployeebankController;
+use App\Http\Controllers\TerminationController;
 // Removed import for deleted controller
+use App\Http\Controllers\ApprovalPlanController;
+use App\Http\Controllers\EmployeebankController;
 use App\Http\Controllers\LetterNumberController;
+
 use App\Http\Controllers\OperableunitController;
 use App\Http\Controllers\AccommodationController;
-
+use App\Http\Controllers\ApprovalStageController;
 use App\Http\Controllers\JobexperienceController;
 use App\Http\Controllers\LetterSubjectController;
 use App\Http\Controllers\AdditionaldataController;
 use App\Http\Controllers\AdministrationController;
-use App\Http\Controllers\LetterCategoryController;
-use App\Http\Controllers\OfficialtravelController;
-use App\Http\Controllers\TransportationController;
 
 // Removed import for deleted controller
-use App\Http\Controllers\TaxidentificationController;
+use App\Http\Controllers\LetterCategoryController;
 
+use App\Http\Controllers\OfficialtravelController;
+use App\Http\Controllers\TransportationController;
+use App\Http\Controllers\ApprovalRequestController;
+use App\Http\Controllers\RecruitmentReportController;
+// Removed import for deleted controller
+use App\Http\Controllers\TaxidentificationController;
 use App\Http\Controllers\RecruitmentRequestController;
+
+// Approval System Controllers
 use App\Http\Controllers\RecruitmentSessionController;
 use App\Http\Controllers\EmployeeRegistrationController;
 use App\Http\Controllers\RecruitmentCandidateController;
-// Removed import for deleted controller
 use App\Http\Controllers\EmployeeRegistrationAdminController;
-use App\Http\Controllers\DebugController;
-
-// Approval System Controllers
-use App\Http\Controllers\ApprovalStageController;
-use App\Http\Controllers\ApprovalPlanController;
-use App\Http\Controllers\ApprovalRequestController;
 
 /*
 |--------------------------------------------------------------------------
@@ -123,12 +124,18 @@ Route::group(['middleware' => ['auth']], function () {
         Route::get('/employees', [DashboardController::class, 'employee'])->name('employees');
         Route::get('/official-travel', [DashboardController::class, 'officialTravel'])->name('officialtravel');
         Route::get('/recruitment', [DashboardController::class, 'recruitment'])->name('recruitment');
+        Route::get('/letter-administration', [DashboardController::class, 'letterAdministration'])->name('letter-administration');
     });
 
     // Dashboard Employee routes
     Route::get('/dashboard/employees-by-department', [DashboardController::class, 'employeesByDepartment'])->name('dashboard.employeesByDepartment');
     Route::get('/dashboard/employees-by-project', [DashboardController::class, 'employeesByProject'])->name('dashboard.employeesByProject');
     Route::get('/dashboard/recent-employees', [DashboardController::class, 'recentEmployees'])->name('dashboard.recentEmployees');
+
+    // Dashboard Letter Administration routes
+    Route::get('/dashboard/letters-by-category', [DashboardController::class, 'lettersByCategory'])->name('dashboard.lettersByCategory');
+    Route::get('/dashboard/recent-letters', [DashboardController::class, 'recentLetters'])->name('dashboard.recentLetters');
+    Route::get('/dashboard/letter-administration-stats', [DashboardController::class, 'letterAdministrationStats'])->name('dashboard.letterAdministrationStats');
 
     Route::post('logout', [AuthController::class, 'logout']);
 
@@ -449,6 +456,16 @@ Route::group(['middleware' => ['auth']], function () {
             Route::get('/fptk/{fptkId}/sessions', [RecruitmentSessionController::class, 'getSessionsByFPTK'])->name('by-fptk');
             Route::get('/candidate/{candidateId}/sessions', [RecruitmentSessionController::class, 'getSessionsByCandidate'])->name('by-candidate');
         });
+    });
+
+    // Recruitment Reports
+    Route::prefix('recruitment/reports')->name('recruitment.reports.')->group(function () {
+        Route::get('/', [RecruitmentReportController::class, 'index'])->name('index');
+        Route::get('funnel', [RecruitmentReportController::class, 'funnel'])->name('funnel');
+        Route::get('funnel/export', [RecruitmentReportController::class, 'exportFunnel'])->name('funnel.export');
+        Route::get('funnel/stage/{stage}', [RecruitmentReportController::class, 'stageDetail'])->name('funnel.stage.detail');
+        Route::get('aging', [RecruitmentReportController::class, 'aging'])->name('aging');
+        Route::get('aging/export', [RecruitmentReportController::class, 'exportAging'])->name('aging.export');
     });
 
     // Approval System Routes

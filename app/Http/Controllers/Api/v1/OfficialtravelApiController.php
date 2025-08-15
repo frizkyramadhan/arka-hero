@@ -77,11 +77,13 @@ class OfficialtravelApiController extends Controller
                 'details.follower.project',
                 'arrivalChecker',
                 'departureChecker',
-                'recommender',
-                'approver',
-                'creator'
+                'creator',
+                'approval_plans' => function ($q) {
+                    $q->orderBy('id');
+                },
+                'approval_plans.approver'
             ])
-                ->whereNot('status', 'draft')
+                ->where('status', '<>', 'draft')
                 ->where('is_claimed', 'no')
                 ->orderBy('created_at', 'desc')->get();
 
@@ -164,9 +166,92 @@ class OfficialtravelApiController extends Controller
                 'details.follower.project',
                 'arrivalChecker',
                 'departureChecker',
-                'recommender',
-                'approver',
-                'creator'
+                'creator',
+                'approval_plans' => function ($q) {
+                    $q->orderBy('id');
+                },
+                'approval_plans.approver'
+            ])
+                ->whereNotNull('departure_from_destination')
+                ->where('is_claimed', 'yes')
+                ->orderBy('created_at', 'desc')
+                ->get();
+
+            if ($officialtravels->isEmpty()) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'No official travels found matching your criteria',
+                    'data' => []
+                ], 404);
+            }
+
+            return response()->json([
+                'status' => 'success',
+                'data' => OfficialtravelResource::collection($officialtravels)
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function search_claimable(Request $request)
+    {
+        try {
+            $query = Officialtravel::query();
+            $hasFilters = false;
+
+            if ($request->filled('travel_number')) {
+                $hasFilters = true;
+                $query->where('official_travel_number', 'LIKE', '%' . $request->travel_number . '%');
+            }
+
+            if ($request->filled('traveler')) {
+                $hasFilters = true;
+                $query->whereHas('traveler.employee', function (Builder $q) use ($request) {
+                    $q->where('fullname', 'LIKE', '%' . $request->traveler . '%');
+                });
+            }
+
+            if ($request->filled('department')) {
+                $hasFilters = true;
+                $query->whereHas('traveler.position.department', function (Builder $q) use ($request) {
+                    $q->where('department_name', 'LIKE', '%' . $request->department . '%');
+                });
+            }
+
+            if ($request->filled('project')) {
+                $hasFilters = true;
+                $query->whereHas('project', function (Builder $q) use ($request) {
+                    $q->where('project_code', 'LIKE', '%' . $request->project . '%')
+                        ->orWhere('project_name', 'LIKE', '%' . $request->project . '%');
+                });
+            }
+
+            if (!$hasFilters) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'At least one filter parameter with a non-empty value is required. Available filters: travel_number, traveler, department, project',
+                    'data' => []
+                ], 400);
+            }
+
+            $officialtravels = $query->with([
+                'traveler.employee',
+                'traveler.position.department',
+                'traveler.project',
+                'project',
+                'transportation',
+                'accommodation',
+                'details.follower.employee',
+                'details.follower.position.department',
+                'details.follower.project',
+                'arrivalChecker',
+                'departureChecker',
+                'creator',
+                'approval_plans.approver'
             ])
                 ->whereNotNull('departure_from_destination')
                 ->where('is_claimed', 'no')
@@ -220,9 +305,11 @@ class OfficialtravelApiController extends Controller
                 'details.follower.project',
                 'arrivalChecker',
                 'departureChecker',
-                'recommender',
-                'approver',
-                'creator'
+                'creator',
+                'approval_plans' => function ($q) {
+                    $q->orderBy('id');
+                },
+                'approval_plans.approver'
             ])->where('official_travel_number', $request->travel_number)->first();
 
             if (!$officialtravel) {
@@ -295,8 +382,8 @@ class OfficialtravelApiController extends Controller
                 ], 404);
             }
 
-            // Check if is_claimed is already yes
-            if ($officialtravel->is_claimed === ClaimStatus::YES->value) {
+            // If request asks to claim, prevent double-claim
+            if ($request->is_claimed === ClaimStatus::YES->value && $officialtravel->is_claimed === ClaimStatus::YES->value) {
                 DB::rollBack();
                 return response()->json([
                     'status' => 'error',
@@ -305,9 +392,10 @@ class OfficialtravelApiController extends Controller
                 ], 400);
             }
 
+            // Update claim status and timestamp semantics
             $officialtravel->update([
                 'is_claimed' => $request->is_claimed,
-                'claimed_at' => now()
+                'claimed_at' => $request->is_claimed === ClaimStatus::YES->value ? now() : null,
             ]);
 
             DB::commit();

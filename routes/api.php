@@ -38,7 +38,10 @@ Route::prefix('employees')->group(function () {
 // Official Travel API Routes
 Route::prefix('official-travels')->group(function () {
     Route::post('/search', [OfficialtravelApiController::class, 'search']);
+    // Backward compatibility: this now returns already-claimed records
     Route::post('/search-claimed', [OfficialtravelApiController::class, 'search_claimed']);
+    // New: claimable = finished trip (departure_from_destination not null) and not yet claimed
+    Route::post('/search-claimable', [OfficialtravelApiController::class, 'search_claimable']);
     Route::post('/detail', [OfficialtravelApiController::class, 'show']);
     Route::put('/claim', [OfficialtravelApiController::class, 'updateClaim']);
 });

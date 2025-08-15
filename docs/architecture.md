@@ -63,7 +63,8 @@ Arka Hero is a comprehensive HR management system built with Laravel, focusing o
 
 -   **Recruitment Requests (FPTK)**: Complete CRUD with 3-level approval system (HR → PM → Director)
 -   **Recruitment Candidates**: Full candidate management with DataTables, CV upload, and application tracking
--   **Recruitment Sessions**: Session management for candidate applications to specific FPTKs
+-   **Recruitment Sessions**: Session management for candidate applications to specific FPTKs with comprehensive stage tracking
+-   **Stage Status Display**: Visual stage progress indicators with fail/not recommended status icons
 -   **Approval System**: Multi-level approval workflow with status tracking
 
 ### Employee Management
@@ -89,6 +90,12 @@ Arka Hero is a comprehensive HR management system built with Laravel, focusing o
 -   `positions`: Job positions and levels
 -   `projects`: Project information for FPTK assignment
 
+### Official Travel Tables
+
+-   `officialtravels`: Core SPD document. Legacy recommendation/approval columns exist but the active approval workflow is handled via `approval_plans` with `document_type='officialtravel'`. Status field is `ENUM(draft, submitted, approved, rejected, cancelled, closed)`.
+-   `officialtravel_details`: Followers linked to an official travel.
+-   `approval_plans`: Generic approval workflow table. Used by multiple document types; filtered by `document_type` and `document_id`.
+
 ## API Design
 
 ### Recruitment Endpoints
@@ -102,6 +109,14 @@ Arka Hero is a comprehensive HR management system built with Laravel, focusing o
 -   `POST /recruitment/candidates/{id}/apply-to-fptk` - Apply candidate to FPTK
 
 ### Approval Endpoints
+
+### Official Travel Endpoints
+
+-   `POST /api/official-travels/search` — Filtered list, excludes `draft`, `is_claimed = no`.
+-   `POST /api/official-travels/search-claimable` — Finished trips not yet claimed (`departure_from_destination` not null, `is_claimed = no`).
+-   `POST /api/official-travels/search-claimed` — Claimed trips (`is_claimed = yes`).
+-   `POST /api/official-travels/detail` — Detail by `official_travel_number` with `approval_plans` eager-loaded.
+-   `PUT /api/official-travels/claim` — Update claim status; sets `claimed_at` only when claiming.
 
 -   `POST /approval/requests/{id}/process` - Process approval requests
 -   `POST /approval/plans/bulk-approve` - Bulk approval processing
@@ -143,6 +158,19 @@ All controllers follow consistent patterns:
 -   **Forms**: Bootstrap 4 styling with validation feedback
 -   **DataTables**: Server-side processing with filtering
 -   **Modals**: AJAX-based interactions for dynamic content
+-   **Stage Status Icons**: Comprehensive visual indicators for recruitment stages:
+    -   Green check-circle: Completed stages
+    -   Red times-circle: Failed/not recommended stages
+    -   Yellow clock: In progress and waiting stages
+    -   Gray ban: Not applicable (for rejected sessions)
+    -   Muted circle: Pending stages
+-   **Stage Validation System**: Prevents editing of failed stages and subsequent stages:
+    -   PHP logic to detect failed stages in sequence
+    -   Conditional modal triggers based on stage editability
+    -   Visual lock indicators with tooltips
+    -   JavaScript validation with user-friendly messages
+    -   CSS styling for disabled/locked stages
+-   **Tooltips**: Bootstrap tooltips for enhanced user experience
 
 ## Security Implementation
 

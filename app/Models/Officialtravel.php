@@ -110,7 +110,8 @@ class Officialtravel extends Model
 
     public function approval_plans()
     {
-        return $this->hasMany(ApprovalPlan::class, 'document_id', 'id');
+        return $this->hasMany(ApprovalPlan::class, 'document_id', 'id')
+            ->where('document_type', 'officialtravel');
     }
 
 
