@@ -1,21 +1,490 @@
-## 2025-08-14
+# MEMORY.md
 
--   Updated `OfficialtravelController::exportExcel()` to replace deprecated recommend/approver fields with the new `approval_plans` model. Now eager-loads `approval_plans.approver` and maps latest approved plan (approver name, date, remarks). Excel headings now match row data.
--   Created `RecruitmentReportController` with comprehensive HR analytics suite. Fixed stage progression order: CV Review → Psikotes → Tes Teori → Interview → Offering → MCU → Hiring → Onboarding. Enhanced funnel report with accurate conversion rate logic, stage detail drill-down pages, Reset buttons, and fixed avg days calculation. Stage detail includes interview type column (HR/User) accessing RecruitmentInterview.type field, with proper session-to-stage relationships. Fixed interview stage counting (unique sessions vs individual interviews). Enhanced remarks column with stage-specific details: CV Review (decision + notes), Interview (result + type + notes), Psikotes (online/offline scores + result + notes), Tes Teori (score + result + notes), MCU (result + notes), Offering (letter number + response + notes), Hiring (agreement type + letter number + notes), Onboarding (date + notes). Both stage detail and aging reports use AdminLTE DataTables with Bootstrap styling, export buttons (Copy/CSV/Excel/PDF with landscape orientation/Print), sorting, pagination (25 entries), and responsive design. Stage detail has candidate names linking to recruitment sessions, aging report has request numbers linking to recruitment requests (both open in new tabs). Aging report shows approval remarks from latest approved ApprovalPlan instead of request remarks. Fixed date sorting with data-order attributes for proper chronological ordering. Uses local assets following template pattern. PDF export includes custom formatting with proper margins, header styling, and optimized font sizes for landscape A4 layout. Both reports include navigation buttons, advanced filtering, and Excel export. Implemented Time-to-Hire Analysis report with comprehensive metrics: total days (request to hiring), approval days (request to approval), recruitment days (approval to hiring). Features include date range filtering, department/position/project filters, summary dashboard with averages, color-coded badges for performance indicators, DataTable with export functionality, and request number links to detail pages. Report calculates actual time differences between key milestones using proper date arithmetic. Fixed relationship error by using correct 'sessions' relationship instead of 'recruitmentSessions' in RecruitmentRequest model.
+## Project Memory and Learning
 
-## 2025-08-15 - Time-to-Hire Report UI Consistency & Funnel Report Enhancements
+### 2025-08-18: Server-Side DataTable Implementation for Recruitment Reports
 
--   **Time-to-Hire Report UI Consistency**: Updated Time-to-Hire report layout to match other reports. Moved "Back to Reports" button to header right side, integrated filters directly in card-header (removing separate filter section), moved summary boxes inside card-body, and standardized table styling with `table-sm table-bordered table-striped` classes. Removed breadcrumb navigation in favor of consistent button placement.
--   **Funnel Report Result Mapping**: Enhanced stage detail report for 'hiring' and 'onboarding' stages to automatically map "Pending" and "In Progress" results to "Hired" and "Complete" respectively. This provides more meaningful status information for final recruitment stages.
--   **Controller Improvements**: Updated `RecruitmentReportController::timeToHire()` and `exportTimeToHire()` methods to handle empty date filters gracefully. Date filtering now only applies when both date1 and date2 are provided, allowing reports to show all data when no date range is specified.
--   **Data Consistency**: Ensured Time-to-Hire report includes `session_id` for proper linking to recruitment session details, maintaining consistency with other reports' navigation patterns.
--   **Offer Acceptance Rate Report**: Implemented comprehensive report for tracking offer acceptance/rejection rates and response times. Features include: summary dashboard (Total Offers, Accepted, Rejected, Pending), detailed table with candidate information, offering dates, response times, and status tracking. Report calculates response time in days with color-coded badges (≤3 days: green, ≤7 days: yellow, >7 days: red). Includes DataTable functionality with export options (Copy, CSV, Excel, PDF landscape, Print), filtering by date range, department, position, and project. **Request No** links to recruitment session details (candidate name is display-only). Uses consistent AdminLTE styling and layout patterns matching other reports. Includes debug information to verify data availability and troubleshoot empty date fields.
+**Context**: User requested conversion of all recruitment report tables to server-side DataTables (except "Recruitment Funnel by Stage"), including funnel stage details and all other reports.
 
-## 2025-08-13 - Officialtravel API alignments with Approval Plan
+**Implementation**:
 
--   Controller `OfficialtravelApiController` fixed invalid `whereNot` usage to `where('<>')`.
--   Introduced `search_claimable` endpoint: finished trips (`departure_from_destination` not null) and not yet claimed.
--   `search_claimed` now correctly returns already claimed records.
--   `updateClaim` now sets `claimed_at` only when claiming (`yes`), resets to null when unclaiming.
--   Model `Officialtravel::approval_plans()` scoped by `document_type = 'officialtravel'`.
--   Resource `OfficialtravelResource` now exposes `approval_plans` including approver info for API consumers.
+-   Added new server-side data methods in `RecruitmentReportController`:
+    -   `agingData()` - for Request Aging & SLA report
+    -   `timeToHireData()` - for Time-to-Hire Analysis report
+    -   `offerAcceptanceRateData()` - for Offer Acceptance Rate report
+    -   `interviewAssessmentAnalyticsData()` - for Interview & Assessment Analytics report
+    -   `staleCandidatesData()` - for Stale Candidates report
+    -   `stageDetailData()` - for funnel stage detail reports
+-   Updated routes in `web.php` to add new data endpoints
+-   Modified view files to use DataTables with `processing: true`, `serverSide: true`, and AJAX configuration
+-   Each method handles filtering, searching, ordering, and pagination server-side
+
+**Benefits**:
+
+-   Improved performance for large datasets
+-   Reduced client-side memory usage
+-   Better scalability for reports with many records
+-   Consistent server-side processing across all reports
+
+**Files Modified**:
+
+-   `app/Http/Controllers/RecruitmentReportController.php`
+-   `routes/web.php`
+-   All report view files in `resources/views/recruitment/reports/`
+
+### 2025-08-18: Bug Fixes and Column Optimization for Recruitment Reports
+
+**Context**: User reported errors in "Aging" and "Stale" reports and requested column merging for "Interview Assessment Analytics" report.
+
+**Fixes Applied**:
+
+1. **Aging Report Fixes**:
+
+    - Fixed `approved_at` ordering by adding proper `leftJoin` with `approval_plans` table
+    - Corrected `days_to_approve` calculation to use proper date difference method
+    - Fixed column name reference from `request_no` to `request_number` in ordering
+
+2. **Stale Report Fixes**:
+
+    - Added `candidate` to eager loading relationships
+    - Implemented comprehensive null checks for all relationship fields
+    - Added robust null checks for `count()` method calls on collections
+
+3. **Interview Assessment Analytics Column Merging**:
+    - Combined "Psikotes Result" and "Psikotes Score" into single "Psikotes Result" column
+    - Combined "Tes Teori Result" and "Tes Teori Score" into single "Tes Teori Result" column
+    - Combined "Interview Type" and "Interview Result" into single "Interview Result" column
+    - Updated `calculateOverallAssessment` method to handle combined data format
+
+**Technical Details**:
+
+-   Added `is_object()`, `method_exists()`, and `count()` checks before calling collection methods
+-   Fixed variable naming conflicts in loops (changed `$request` to `$recruitmentRequest` in aging report)
+-   Updated column definitions and ordering logic for proper database field references
+
+**Benefits**:
+
+-   Eliminated "Column not found" SQL errors
+-   Prevented "count() on null" PHP errors
+-   Improved data presentation with combined columns
+-   Enhanced error handling and null safety
+
+**Files Modified**:
+
+-   `app/Http/Controllers/RecruitmentReportController.php` - All fixes and optimizations
+-   `docs/MEMORY.md` - Documentation updates
+
+### 2025-08-18: Additional Fix for Stale Report Method Error
+
+**Context**: User reported "Method App\Http\Controllers\RecruitmentReportController::buildStaleCandidatesData does not exist" error.
+
+**Root Cause**: During previous refactoring, the `staleCandidatesData` method was accidentally removed while converting to server-side DataTables.
+
+**Solution Applied**:
+
+-   Restructured `staleCandidates()` method to only return the view with filter options
+-   Re-added `staleCandidatesData()` method to handle all data processing and AJAX requests
+-   Maintained separation of concerns: view rendering vs. data processing
+
+**Result**: Stale Candidates report now functions correctly with server-side DataTable processing.
+
+### 2025-08-18: Final Fixes for Aging Report DataTable
+
+**Context**: User reported SQL error "Column not found: request_no in order clause" and "Call to undefined method App\Models\RecruitmentRequest::input()".
+
+**Root Causes**:
+
+1. Column name mismatch: `request_no` vs `request_number` in database
+2. Variable naming conflict: HTTP request parameter `$request` vs. loop variable `$request` for RecruitmentRequest model
+
+**Fixes Applied**:
+
+1. **Column Name Fix**: Changed `request_no` to `request_number` in columns array and ordering logic
+2. **Variable Naming Fix**: Renamed loop variable from `$request` to `$recruitmentRequest` to avoid conflicts
+3. **Ordering Logic**: Added specific handling for `request_number` column in ordering
+
+**Technical Details**:
+
+-   Updated `$columns` array to use correct database field names
+-   Modified ordering logic to handle `request_number` column properly
+-   Renamed all loop variables to prevent method call confusion
+-   Maintained consistent data structure for DataTable response
+
+**Result**: Aging report DataTable now functions correctly without SQL or method call errors.
+
+**Files Modified**:
+
+-   `app/Http/Controllers/RecruitmentReportController.php` - agingData method fixes
+
+### 2025-08-18: Standardized Filter Layouts for Recruitment Reports
+
+**Task**: Standardized the filter section layout across all recruitment report views for consistency and better UX.
+
+**Changes Made**:
+
+-   **Layout Standardization**: Converted all filter forms from `form-inline` to `row` grid layout using Bootstrap columns
+-   **Consistent Structure**: All reports now use the same filter structure:
+    -   `card-header` with "Filter Options" title and filter icon
+    -   `card-body` containing the filter form
+    -   6 columns layout: 5 filter fields + 1 button group column
+    -   Each filter field uses `col-md-2` for consistent spacing
+-   **Button Grouping**: All action buttons (Filter, Reset, Export Excel) are now vertically stacked in the last column
+-   **Visual Consistency**: Added proper labels, IDs, and consistent spacing across all reports
+
+**Files Updated**:
+
+1. `funnel.blade.php` - Recruitment Funnel by Stage
+2. `aging.blade.php` - Request Aging & SLA
+3. `time-to-hire.blade.php` - Time-to-Hire Analysis
+4. `offer-acceptance-rate.blade.php` - Offer Acceptance Rate
+5. `interview-assessment-analytics.blade.php` - Interview & Assessment Analytics (includes Scoring Index button)
+6. `stale-candidates.blade.php` - Stale Candidates Report
+
+**Benefits**:
+
+-   **Better UX**: Cleaner, more organized filter interface
+-   **Responsive Design**: Better mobile/tablet experience with grid layout
+-   **Consistency**: All reports now look and behave the same way
+-   **Maintainability**: Easier to update filter layouts across all reports
+-   **Professional Appearance**: More polished and professional-looking interface
+
+**Technical Details**:
+
+-   Used Bootstrap 4 grid system with `col-md-2` for consistent column widths
+-   Implemented `btn-group-vertical d-block` for button stacking
+-   Added proper `for` attributes and `id` attributes for accessibility
+-   Maintained all existing functionality while improving layout
+
+### 2025-08-18: Bug Fixes and Column Optimization for Recruitment Reports
+
+**Task**: Fixed errors in aging and stale reports, and optimized interview assessment analytics by combining related columns.
+
+**Issues Fixed**:
+
+#### **1. Aging Report (Request Aging & SLA)**
+
+-   **Problem**: Error in ordering logic for `approved_at` column and incorrect days calculation
+-   **Solution**:
+    -   Fixed ordering for `approved_at` by adding proper join with `approval_plans` table
+    -   Corrected `days_to_approve` calculation using proper date arithmetic
+    -   Added proper error handling for missing relationships
+-   **Technical Details**:
+
+    ```php
+    // Fixed ordering for approved_at column
+    if ($column === 'approved_at') {
+        $query->leftJoin('approval_plans', function($join) {
+            $join->on('recruitment_requests.id', '=', 'approval_plans.document_id')
+                 ->where('approval_plans.document_type', '=', 'recruitment_request')
+                 ->where('approval_plans.status', '=', 1);
+        });
+        $query->orderBy('approval_plans.updated_at', $orderDir);
+    }
+
+    // Fixed days calculation
+    $daysToApprove = $latestApproval->updated_at ?
+        $latestApproval->updated_at->diffInDays($request->created_at) : null;
+    ```
+
+#### **2. Stale Candidates Report**
+
+-   **Problem**: Missing `candidate` relationship in eager loading and potential null reference errors
+-   **Solution**:
+    -   Added `candidate` to eager loading relationships
+    -   Added null checks for all relationship references
+    -   Fixed data building with proper error handling
+-   **Technical Details**:
+
+    ```php
+    // Added candidate to eager loading
+    ->with([
+        'fptk.department',
+        'fptk.position',
+        'fptk.project',
+        'candidate'  // Added this
+    ])
+
+    // Added null checks
+    'candidate_name' => $session->candidate ? $session->candidate->fullname : '-',
+    'request_id' => $session->fptk ? $session->fptk->id : 0,
+    ```
+
+**Additional Fix**:
+
+-   **Problem**: Method `buildStaleCandidatesData` was called but didn't exist, causing fatal error
+-   **Solution**: Restructured the controller to use server-side DataTable properly:
+    -   `staleCandidates()` method now only returns view with filter options
+    -   `staleCandidatesData()` method handles all data processing and AJAX requests
+    -   Removed unnecessary data building in the main method since DataTable fetches data via AJAX
+
+#### **3. Interview Assessment Analytics Report - Column Optimization**
+
+-   **Task**: Combined related columns to reduce table width and improve readability
+-   **Changes Made**:
+    -   **Psikotes**: Combined `psikotes_result` + `psikotes_score` → single `psikotes_result` column
+    -   **Tes Teori**: Combined `tes_teori_result` + `tes_teori_score` → single `tes_teori_result` column
+    -   **Interview**: Combined `interview_type` + `interview_result` → single `interview_result` column
+-   **Format Examples**:
+    -   **Psikotes**: "Pass (Online: 85.0, Offline: 82.5)" or "Fail"
+    -   **Tes Teori**: "Pass (78.5)" or "Pending"
+    -   **Interview**: "HR - Recommended" or "User - Pass" or "HR, User - Recommended"
+-   **Technical Implementation**:
+
+    ```php
+    // Psikotes combined format
+    $psikotesResult = $result;
+    if (!empty($scoreDetails)) {
+        $psikotesResult .= ' (' . implode(', ', $scoreDetails) . ')';
+    }
+
+    // Tes Teori combined format
+    $tesTeoriResult = $result;
+    if ($score) {
+        $tesTeoriResult .= ' (' . $score . ')';
+    }
+
+    // Interview combined format
+    if ($type && $result) {
+        $interviewResult = $type . ' - ' . $result;
+    }
+    ```
+
+#### **4. Overall Assessment Calculation Fix**
+
+-   **Problem**: Method signature changed after column combination
+-   **Solution**: Updated `calculateOverallAssessment()` method to:
+    -   Extract result part from combined data using regex
+    -   Parse interview type and result from combined string
+    -   Maintain backward compatibility with scoring logic
+-   **Technical Details**:
+
+    ```php
+    // Extract result from combined data
+    $psikotesResult = preg_replace('/\s*\([^)]*\)/', '', $psikotes);
+
+    // Parse interview type and result
+    if (strpos($interviewResult, ' - ') !== false) {
+        list($interviewType, $interviewResultOnly) = explode(' - ', $interviewResult, 2);
+    }
+    ```
+
+**Benefits of Column Optimization**:
+
+-   **Better UX**: Reduced table width, easier to read on all devices
+-   **Data Consolidation**: Related information displayed together logically
+-   **Maintained Functionality**: All data still accessible, just better organized
+-   **Responsive Design**: Table works better on mobile and tablet devices
+-   **Cleaner Interface**: Less cluttered appearance while maintaining all information
+
+**Files Modified**:
+
+1. `app/Http/Controllers/RecruitmentReportController.php` - Fixed aging and stale methods, optimized interview analytics
+2. `resources/views/recruitment/reports/interview-assessment-analytics.blade.php` - Updated table structure and JavaScript rendering
+
+**Testing Required**:
+
+-   Verify aging report sorting works correctly for all columns
+-   Confirm stale candidates report displays data without errors
+-   Test interview analytics with various data combinations
+-   Validate overall assessment calculation still works accurately
+
+### 2025-08-18: Stale Candidates View - count() on null Fix
+
+-   Fixed PHP error `count(): Argument #1 ($value) must be of type Countable|array, null given` in `resources/views/recruitment/reports/stale-candidates.blade.php` by replacing `count($rows)` and related usages with a safe `collect($rows ?? [])` pattern for summary calculations. This aligns with server-side DataTable usage where `$rows` is not provided by the controller.
+
+### 2025-08-18: Aging Report Filter Fix
+
+**Context**: User reported that filters in the aging report were not functioning properly.
+
+**Root Cause**: The DataTable was using hardcoded Blade variables (`{{ $date1 }}`, `{{ $department }}`, etc.) instead of reading actual form input values, and the controller was still using old data building logic.
+
+**Fixes Applied**:
+
+1. **DataTable Filter Integration**: Updated the `ajax.data` function in `aging.blade.php` to read values from actual form inputs using jQuery selectors instead of hardcoded Blade variables
+2. **Controller Cleanup**: Removed unnecessary `buildAgingData()` call and `rows` data from the `aging()` method since it now uses server-side DataTable
+3. **Filter Synchronization**: Ensured that form filters properly trigger DataTable refresh via AJAX
+
+**Technical Details**:
+
+-   Changed `d.date1 = '{{ $date1 }}'` to `d.date1 = $('input[name="date1"]').val()`
+-   Applied same pattern for all filter fields (date2, department, project, status)
+-   Maintained existing filter logic in `agingData()` method for server-side processing
+-   Form submission now properly triggers `table.ajax.reload()` to refresh data with new filters
+
+**Result**: Aging report filters now work correctly, allowing users to filter by date range, department, project, and status with real-time DataTable updates.
+
+**Files Modified**:
+
+-   `resources/views/recruitment/reports/aging.blade.php` - Fixed DataTable filter integration
+-   `app/Http/Controllers/RecruitmentReportController.php` - Cleaned up aging method
+
+### 2025-08-18: Time-to-Hire Report Updates - Filter Integration & Export
+
+**Context**: Applied the same improvements to the time-to-hire report that were made to the aging report: removed DataTables built-in buttons/search, added custom Export Excel with filter integration, and updated project ordering.
+
+**Changes Applied**:
+
+1. **DataTable Simplification**:
+
+    - Removed built-in buttons (copy, csv, excel, print, pdf) and search functionality
+    - Set `searching: false` to disable built-in search
+    - Removed unnecessary DataTables button assets and scripts
+
+2. **Filter Integration**:
+
+    - Updated `ajax.data` function to read values from actual form inputs using jQuery selectors
+    - Changed from hardcoded Blade variables to dynamic form values: `$('input[name="date1"]').val()`
+
+3. **Custom Export Excel**:
+
+    - Replaced static export link with dynamic button that captures current filter values
+    - Export now includes all filter parameters (date1, date2, department, position, project)
+    - Uses JavaScript to build query string and navigate to export route
+
+4. **Controller Cleanup**:
+
+    - Removed old data building logic from `timeToHire()` method since it now uses server-side DataTable
+    - Export method already correctly applies filters, so no changes needed there
+
+5. **Project Ordering**:
+    - Updated project ordering to use `project_code` instead of `project_name` for consistency
+
+**Technical Details**:
+
+-   Filter values are now read dynamically: `d.date1 = $('input[name="date1"]').val()`
+-   Export button builds query string: `$.param({ date1: ..., date2: ..., department: ..., position: ..., project: ... })`
+-   Maintained existing filter logic in `timeToHireData()` method for server-side processing
+-   Form submission properly triggers `table.ajax.reload()` to refresh data with new filters
+
+**Result**: Time-to-hire report now has consistent behavior with aging report:
+
+-   Clean interface with only custom filter controls
+-   Export Excel respects current filter settings
+-   No filter = export all data, with filters = export filtered data only
+-   Consistent project ordering across reports
+
+**Files Modified**:
+
+-   `resources/views/recruitment/reports/time-to-hire.blade.php` - Removed built-in buttons/search, added custom export
+-   `app/Http/Controllers/RecruitmentReportController.php` - Cleaned up timeToHire method
+
+### 2025-08-18: Offer Acceptance Rate Report Updates - Filter Integration & Export
+
+**Context**: Applied the same improvements to the offer acceptance rate report that were made to the aging and time-to-hire reports: removed DataTables built-in buttons/search, added custom Export Excel with filter integration, and updated project ordering.
+
+**Changes Applied**:
+
+1. **DataTable Simplification**:
+
+    - Removed built-in buttons (copy, csv, excel, print, pdf) and search functionality
+    - Set `searching: false` to disable built-in search
+    - Removed unnecessary DataTables button assets and scripts
+
+2. **Filter Integration**:
+
+    - Updated `ajax.data` function to read values from actual form inputs using jQuery selectors
+    - Changed from hardcoded Blade variables to dynamic form values: `$('input[name="date1"]').val()`
+
+3. **Custom Export Excel**:
+
+    - Replaced static export link with dynamic button that captures current filter values
+    - Export now includes all filter parameters (date1, date2, department, position, project)
+    - Uses JavaScript to build query string and navigate to export route
+
+4. **Controller Cleanup**:
+
+    - Removed old data building logic from `offerAcceptanceRate()` method since it now uses server-side DataTable
+    - Export method already correctly applies filters, so no changes needed there
+
+5. **Project Ordering**:
+    - Updated project ordering to use `project_code` instead of `project_name` for consistency
+
+**Technical Details**:
+
+-   Filter values are now read dynamically: `d.date1 = $('input[name="date1"]').val()`
+-   Export button builds query string: `$.param({ date1: ..., date2: ..., department: ..., position: ..., project: ... })`
+-   Maintained existing filter logic in `offerAcceptanceRateData()` method for server-side processing
+-   Form submission properly triggers `table.ajax.reload()` to refresh data with new filters
+
+**Result**: Offer acceptance rate report now has consistent behavior with other reports:
+
+-   Clean interface with only custom filter controls
+-   Export Excel respects current filter settings
+-   No filter = export all data, with filters = export filtered data only
+-   Consistent project ordering across all reports
+
+**Files Modified**:
+
+-   `resources/views/recruitment/reports/offer-acceptance-rate.blade.php` - Removed built-in buttons/search, added custom export
+-   `app/Http/Controllers/RecruitmentReportController.php` - Cleaned up offerAcceptanceRate method
+
+### 2025-08-18: Interview Assessment Analytics & Stale Candidates Reports - Filter Integration & Export
+
+**Context**: Applied the same improvements to the interview assessment analytics and stale candidates reports that were made to the other reports: removed DataTables built-in buttons/search, added custom Export Excel with filter integration, and updated controller methods.
+
+**Changes Applied**:
+
+#### Interview Assessment Analytics Report:
+
+1. **DataTable Simplification**:
+
+    - Removed built-in buttons (copy, csv, excel, print, pdf) and search functionality
+    - Set `searching: false` to disable built-in search
+    - Removed unnecessary DataTables button assets and scripts
+
+2. **Filter Integration**:
+
+    - Updated `ajax.data` function to read values from actual form inputs using jQuery selectors
+    - Changed from hardcoded Blade variables to dynamic form values: `$('input[name="date1"]').val()`
+
+3. **Custom Export Excel**:
+
+    - Replaced static export link with dynamic button that captures current filter values
+    - Export now includes all filter parameters (date1, date2, department, position, project)
+    - Uses JavaScript to build query string and navigate to export route
+
+4. **Controller Cleanup**:
+    - Removed old data building logic from `interviewAssessmentAnalytics()` method since it now uses server-side DataTable
+    - Export method already correctly applies filters, so no changes needed there
+
+#### Stale Candidates Report:
+
+1. **DataTable Simplification**:
+
+    - Removed built-in buttons (copy, csv, excel, print, pdf) and search functionality
+    - Set `searching: false` to disable built-in search
+    - Removed unnecessary DataTables button assets and scripts
+
+2. **Filter Integration**:
+
+    - Updated `ajax.data` function to read values from actual form inputs using jQuery selectors
+    - Changed from hardcoded Blade variables to dynamic form values: `$('input[name="date1"]').val()`
+
+3. **Custom Export Excel**:
+
+    - Replaced static export link with dynamic button that captures current filter values
+    - Export now includes all filter parameters (date1, date2, department, position, project)
+    - Uses JavaScript to build query string and navigate to export route
+
+4. **Controller Cleanup**:
+    - Export method already correctly applies filters, so no changes needed there
+
+**Technical Details**:
+
+-   Filter values are now read dynamically: `d.date1 = $('input[name="date1"]').val()`
+-   Export button builds query string: `$.param({ date1: ..., date2: ..., department: ..., position: ..., project: ... })`
+-   Maintained existing filter logic in respective data methods for server-side processing
+-   Form submission properly triggers `table.ajax.reload()` to refresh data with new filters
+
+**Result**: Both reports now have consistent behavior with other reports:
+
+-   Clean interface with only custom filter controls
+-   Export Excel respects current filter settings
+-   No filter = export all data, with filters = export filtered data only
+-   Consistent project ordering using `project_code` across all reports
+
+**Files Modified**:
+
+-   `resources/views/recruitment/reports/interview-assessment-analytics.blade.php` - Removed built-in buttons/search, added custom export
+-   `resources/views/recruitment/reports/stale-candidates.blade.php` - Removed built-in buttons/search, added custom export
+-   `app/Http/Controllers/RecruitmentReportController.php` - Cleaned up interviewAssessmentAnalytics method

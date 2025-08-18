@@ -461,15 +461,25 @@ Route::group(['middleware' => ['auth']], function () {
     // Recruitment Reports
     Route::prefix('recruitment/reports')->name('recruitment.reports.')->group(function () {
         Route::get('/', [RecruitmentReportController::class, 'index'])->name('index');
-        Route::get('funnel', [RecruitmentReportController::class, 'funnel'])->name('funnel');
-        Route::get('funnel/export', [RecruitmentReportController::class, 'exportFunnel'])->name('funnel.export');
-        Route::get('funnel/stage/{stage}', [RecruitmentReportController::class, 'stageDetail'])->name('funnel.stage.detail');
-        Route::get('aging', [RecruitmentReportController::class, 'aging'])->name('aging');
-        Route::get('aging/export', [RecruitmentReportController::class, 'exportAging'])->name('aging.export');
-        Route::get('time-to-hire', [RecruitmentReportController::class, 'timeToHire'])->name('time-to-hire');
-        Route::get('time-to-hire/export', [RecruitmentReportController::class, 'exportTimeToHire'])->name('time-to-hire.export');
-        Route::get('offer-acceptance-rate', [RecruitmentReportController::class, 'offerAcceptanceRate'])->name('offer-acceptance-rate');
-        Route::get('offer-acceptance-rate/export', [RecruitmentReportController::class, 'exportOfferAcceptanceRate'])->name('offer-acceptance-rate.export');
+        Route::get('/funnel', [RecruitmentReportController::class, 'funnel'])->name('funnel');
+        Route::get('/funnel/export', [RecruitmentReportController::class, 'exportFunnel'])->name('funnel.export');
+        Route::get('/funnel/stage/{stage}', [RecruitmentReportController::class, 'stageDetail'])->name('funnel.stage');
+        Route::get('/aging', [RecruitmentReportController::class, 'aging'])->name('aging');
+        Route::get('/aging/export', [RecruitmentReportController::class, 'exportAging'])->name('aging.export');
+        Route::get('/aging/data', [RecruitmentReportController::class, 'agingData'])->name('aging.data');
+        Route::get('/time-to-hire', [RecruitmentReportController::class, 'timeToHire'])->name('time-to-hire');
+        Route::get('/time-to-hire/export', [RecruitmentReportController::class, 'exportTimeToHire'])->name('time-to-hire.export');
+        Route::get('/time-to-hire/data', [RecruitmentReportController::class, 'timeToHireData'])->name('time-to-hire.data');
+        Route::get('/offer-acceptance-rate', [RecruitmentReportController::class, 'offerAcceptanceRate'])->name('offer-acceptance-rate');
+        Route::get('/offer-acceptance-rate/export', [RecruitmentReportController::class, 'exportOfferAcceptanceRate'])->name('offer-acceptance-rate.export');
+        Route::get('/offer-acceptance-rate/data', [RecruitmentReportController::class, 'offerAcceptanceRateData'])->name('offer-acceptance-rate.data');
+        Route::get('/interview-assessment-analytics', [RecruitmentReportController::class, 'interviewAssessmentAnalytics'])->name('interview-assessment-analytics');
+        Route::get('/interview-assessment-analytics/export', [RecruitmentReportController::class, 'exportInterviewAssessmentAnalytics'])->name('interview-assessment-analytics.export');
+        Route::get('/interview-assessment-analytics/data', [RecruitmentReportController::class, 'interviewAssessmentAnalyticsData'])->name('interview-assessment-analytics.data');
+        Route::get('/stale-candidates', [RecruitmentReportController::class, 'staleCandidates'])->name('stale-candidates');
+        Route::get('/stale-candidates/export', [RecruitmentReportController::class, 'exportStaleCandidates'])->name('stale-candidates.export');
+        Route::get('/stale-candidates/data', [RecruitmentReportController::class, 'staleCandidatesData'])->name('stale-candidates.data');
+        Route::get('/stage-detail/{stage}/data', [RecruitmentReportController::class, 'stageDetailData'])->name('stage-detail.data');
     });
 
     // Approval System Routes

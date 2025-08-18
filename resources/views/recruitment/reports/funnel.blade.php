@@ -22,57 +22,81 @@
         <div class="container-fluid">
             <div class="card">
                 <div class="card-header">
-                    <form method="GET" action="{{ route('recruitment.reports.funnel') }}" class="form-inline">
-                        <div class="form-group mr-2">
-                            <label class="mr-2">Date From</label>
-                            <input type="date" name="date1" class="form-control" value="{{ $date1 }}">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-filter"></i> Filter Options
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="GET" action="{{ route('recruitment.reports.funnel') }}" class="row" id="filterForm">
+                        <div class="col-md-2">
+                            <div class="form-group">
+                                <label for="date1">Date From</label>
+                                <input type="date" name="date1" id="date1" class="form-control"
+                                    value="{{ $date1 }}">
+                            </div>
                         </div>
-                        <div class="form-group mr-2">
-                            <label class="mr-2">Date To</label>
-                            <input type="date" name="date2" class="form-control" value="{{ $date2 }}">
+                        <div class="col-md-2">
+                            <div class="form-group">
+                                <label for="date2">Date To</label>
+                                <input type="date" name="date2" id="date2" class="form-control"
+                                    value="{{ $date2 }}">
+                            </div>
                         </div>
-                        <div class="form-group mr-2">
-                            <label class="mr-2">Department</label>
-                            <select name="department" class="form-control">
-                                <option value="">All Departments</option>
-                                @foreach (\App\Models\Department::orderBy('department_name')->get() as $dept)
-                                    <option value="{{ $dept->id }}" {{ $department == $dept->id ? 'selected' : '' }}>
-                                        {{ $dept->department_name }}
-                                    </option>
-                                @endforeach
-                            </select>
+                        <div class="col-md-2">
+                            <div class="form-group">
+                                <label for="department">Department</label>
+                                <select name="department" id="department" class="form-control">
+                                    <option value="">All Departments</option>
+                                    @foreach (\App\Models\Department::orderBy('department_name')->get() as $dept)
+                                        <option value="{{ $dept->id }}"
+                                            {{ $department == $dept->id ? 'selected' : '' }}>
+                                            {{ $dept->department_name }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
                         </div>
-                        <div class="form-group mr-2">
-                            <label class="mr-2">Position</label>
-                            <select name="position" class="form-control">
-                                <option value="">All Positions</option>
-                                @foreach (\App\Models\Position::orderBy('position_name')->get() as $pos)
-                                    <option value="{{ $pos->id }}" {{ $position == $pos->id ? 'selected' : '' }}>
-                                        {{ $pos->position_name }}
-                                    </option>
-                                @endforeach
-                            </select>
+                        <div class="col-md-2">
+                            <div class="form-group">
+                                <label for="position">Position</label>
+                                <select name="position" id="position" class="form-control">
+                                    <option value="">All Positions</option>
+                                    @foreach (\App\Models\Position::orderBy('position_name')->get() as $pos)
+                                        <option value="{{ $pos->id }}" {{ $position == $pos->id ? 'selected' : '' }}>
+                                            {{ $pos->position_name }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
                         </div>
-                        <div class="form-group mr-2">
-                            <label class="mr-2">Project</label>
-                            <select name="project" class="form-control">
-                                <option value="">All Projects</option>
-                                @foreach (\App\Models\Project::where('project_status', 1)->orderBy('project_name')->get() as $proj)
-                                    <option value="{{ $proj->id }}" {{ $project == $proj->id ? 'selected' : '' }}>
-                                        {{ $proj->project_name }}
-                                    </option>
-                                @endforeach
-                            </select>
+                        <div class="col-md-2">
+                            <div class="form-group">
+                                <label for="project">Project</label>
+                                <select name="project" id="project" class="form-control">
+                                    <option value="">All Projects</option>
+                                    @foreach (\App\Models\Project::where('project_status', 1)->orderBy('project_code')->get() as $proj)
+                                        <option value="{{ $proj->id }}" {{ $project == $proj->id ? 'selected' : '' }}>
+                                            {{ $proj->project_name }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
                         </div>
-                        <button type="submit" class="btn btn-primary mr-2">Filter</button>
-                        <a href="{{ route('recruitment.reports.funnel') }}" class="btn btn-warning mr-2">
-                            <i class="fas fa-undo"></i> Reset
-                        </a>
-                        <a href="{{ route('recruitment.reports.funnel.export', request()->only('date1', 'date2', 'department', 'position', 'project')) }}"
-                            class="btn btn-success">
-                            <i class="fas fa-file-excel"></i> Export Excel
-                        </a>
                     </form>
+                    <div class="row mt-2">
+                        <div class="col-12">
+                            <button type="submit" form="filterForm" class="btn btn-primary mr-2">
+                                <i class="fas fa-search"></i> Filter
+                            </button>
+                            <a href="{{ route('recruitment.reports.funnel') }}" class="btn btn-warning mr-2">
+                                <i class="fas fa-undo"></i> Reset
+                            </a>
+                            <a href="{{ route('recruitment.reports.funnel.export', request()->only('date1', 'date2', 'department', 'position', 'project')) }}"
+                                class="btn btn-success">
+                                <i class="fas fa-file-excel"></i> Export Excel
+                            </a>
+                        </div>
+                    </div>
                 </div>
                 <div class="card-body p-0">
                     <div class="table-responsive">
@@ -163,7 +187,7 @@
                                             @endif
                                         </td>
                                         <td class="text-center">
-                                            <a href="{{ route('recruitment.reports.funnel.stage.detail', ['stage' => strtolower(str_replace(' ', '_', $row['stage'])), 'date1' => $date1, 'date2' => $date2, 'department' => $department, 'position' => $position, 'project' => $project]) }}"
+                                            <a href="{{ route('recruitment.reports.funnel.stage', ['stage' => strtolower(str_replace(' ', '_', $row['stage'])), 'date1' => $date1, 'date2' => $date2, 'department' => $department, 'position' => $position, 'project' => $project]) }}"
                                                 class="btn btn-sm btn-outline-primary">
                                                 <i class="fas fa-eye"></i> Details
                                             </a>
