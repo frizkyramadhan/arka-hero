@@ -466,6 +466,10 @@ Route::group(['middleware' => ['auth']], function () {
         Route::get('funnel/stage/{stage}', [RecruitmentReportController::class, 'stageDetail'])->name('funnel.stage.detail');
         Route::get('aging', [RecruitmentReportController::class, 'aging'])->name('aging');
         Route::get('aging/export', [RecruitmentReportController::class, 'exportAging'])->name('aging.export');
+        Route::get('time-to-hire', [RecruitmentReportController::class, 'timeToHire'])->name('time-to-hire');
+        Route::get('time-to-hire/export', [RecruitmentReportController::class, 'exportTimeToHire'])->name('time-to-hire.export');
+        Route::get('offer-acceptance-rate', [RecruitmentReportController::class, 'offerAcceptanceRate'])->name('offer-acceptance-rate');
+        Route::get('offer-acceptance-rate/export', [RecruitmentReportController::class, 'exportOfferAcceptanceRate'])->name('offer-acceptance-rate.export');
     });
 
     // Approval System Routes

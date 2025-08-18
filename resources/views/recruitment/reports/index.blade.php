@@ -68,12 +68,12 @@
                         </div>
                         <div class="card-body">
                             <p>Measure recruitment efficiency from request creation to candidate onboarding.</p>
-                            <p><strong>Status:</strong> <span class="badge badge-warning">Coming Soon</span></p>
+                            <p><strong>Features:</strong> Total days, approval days, recruitment days, Excel export</p>
                         </div>
                         <div class="card-footer">
-                            <button class="btn btn-secondary" disabled>
-                                <i class="fas fa-hourglass-half"></i> Coming Soon
-                            </button>
+                            <a href="{{ route('recruitment.reports.time-to-hire') }}" class="btn btn-success">
+                                <i class="fas fa-hourglass-half"></i> View Report
+                            </a>
                         </div>
                     </div>
                 </div>
@@ -88,12 +88,12 @@
                         </div>
                         <div class="card-body">
                             <p>Track offer acceptance/rejection rates and response times by department and position.</p>
-                            <p><strong>Status:</strong> <span class="badge badge-warning">Coming Soon</span></p>
+                            <p><strong>Features:</strong> Acceptance rates, response times, Excel export</p>
                         </div>
                         <div class="card-footer">
-                            <button class="btn btn-secondary" disabled>
-                                <i class="fas fa-percentage"></i> Coming Soon
-                            </button>
+                            <a href="{{ route('recruitment.reports.offer-acceptance-rate') }}" class="btn btn-info">
+                                <i class="fas fa-percentage"></i> View Report
+                            </a>
                         </div>
                     </div>
                 </div>
