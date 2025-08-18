@@ -99,7 +99,7 @@
                         </div>
                         <div class="card-body">
                             <div class="row">
-                                <div class="col-md-6">
+                                <div class="col-md-12">
                                     <div class="info-box">
                                         <span class="info-box-icon bg-info"><i class="fas fa-calendar"></i></span>
                                         <div class="info-box-content">
@@ -114,7 +114,7 @@
                                         </div>
                                     </div>
                                 </div>
-                                <div class="col-md-6">
+                                <div class="col-md-12">
                                     <div class="info-box">
                                         <span class="info-box-icon bg-secondary"><i class="fas fa-cogs"></i></span>
                                         <div class="info-box-content">
@@ -127,7 +127,7 @@
                                             </div>
                                             <span class="progress-description">
                                                 <small>
-                                                    OT: {{ $officialTravelLetters }} |
+                                                    LOT: {{ $officialTravelLetters }} |
                                                     FPTK: {{ $fptkLetters }} |
                                                     PKWT: {{ $pkwtLetters }} |
                                                     Offer: {{ $offeringLetters }}
@@ -157,90 +157,7 @@
                 </div>
             </div>
 
-            <!-- Integration Details -->
-            <div class="row">
-                <div class="col-12">
-                    <div class="card">
-                        <div class="card-header">
-                            <h3 class="card-title">
-                                <i class="fas fa-link mr-1"></i>
-                                Document Integration Breakdown
-                            </h3>
-                        </div>
-                        <div class="card-body">
-                            <div class="row">
-                                <div class="col-lg-3 col-md-6">
-                                    <div class="info-box">
-                                        <span class="info-box-icon bg-info"><i class="fas fa-plane"></i></span>
-                                        <div class="info-box-content">
-                                            <span class="info-box-text">Official Travel</span>
-                                            <span
-                                                class="info-box-number">{{ number_format($officialTravelLetters) }}</span>
-                                            <small class="text-muted">Surat Perjalanan Dinas</small>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="col-lg-3 col-md-6">
-                                    <div class="info-box">
-                                        <span class="info-box-icon bg-success"><i class="fas fa-user-plus"></i></span>
-                                        <div class="info-box-content">
-                                            <span class="info-box-text">FPTK</span>
-                                            <span class="info-box-number">{{ number_format($fptkLetters) }}</span>
-                                            <small class="text-muted">Form Permintaan Tenaga Kerja</small>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="col-lg-3 col-md-6">
-                                    <div class="info-box">
-                                        <span class="info-box-icon bg-warning"><i class="fas fa-handshake"></i></span>
-                                        <div class="info-box-content">
-                                            <span class="info-box-text">PKWT</span>
-                                            <span class="info-box-number">{{ number_format($pkwtLetters) }}</span>
-                                            <small class="text-muted">Perjanjian Kerja Waktu Tertentu</small>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="col-lg-3 col-md-6">
-                                    <div class="info-box">
-                                        <span class="info-box-icon bg-danger"><i class="fas fa-gift"></i></span>
-                                        <div class="info-box-content">
-                                            <span class="info-box-text">Offering</span>
-                                            <span class="info-box-number">{{ number_format($offeringLetters) }}</span>
-                                            <small class="text-muted">Surat Penawaran Kerja</small>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
 
-                            @if ($integratedLetters > 0)
-                                <div class="row mt-3">
-                                    <div class="col-12">
-                                        <div class="progress-group">
-                                            <span
-                                                class="float-right"><b>{{ number_format($integratedLetters) }}</b>/{{ number_format($totalLetters) }}</span>
-                                            <span class="text-muted">Integration Usage</span>
-                                            <div class="progress progress-sm">
-                                                <div class="progress-bar bg-info"
-                                                    style="width: {{ $totalLetters > 0 ? ($officialTravelLetters / $totalLetters) * 100 : 0 }}%">
-                                                </div>
-                                                <div class="progress-bar bg-success"
-                                                    style="width: {{ $totalLetters > 0 ? ($fptkLetters / $totalLetters) * 100 : 0 }}%">
-                                                </div>
-                                                <div class="progress-bar bg-warning"
-                                                    style="width: {{ $totalLetters > 0 ? ($pkwtLetters / $totalLetters) * 100 : 0 }}%">
-                                                </div>
-                                                <div class="progress-bar bg-danger"
-                                                    style="width: {{ $totalLetters > 0 ? ($offeringLetters / $totalLetters) * 100 : 0 }}%">
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            @endif
-                        </div>
-                    </div>
-                </div>
-            </div>
 
             <!-- Categories and Recent Activity -->
             <div class="row">
@@ -287,7 +204,7 @@
                                         <th>Category</th>
                                         <th>Status</th>
                                         <th>Created</th>
-                                        <th>Action</th>
+                                        <th class="text-center">Action</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -581,7 +498,8 @@
                         data: 'action',
                         name: 'action',
                         orderable: false,
-                        searchable: false
+                        searchable: false,
+                        className: 'text-center'
                     }
                 ],
                 pageLength: 5,
