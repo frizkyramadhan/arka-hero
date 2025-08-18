@@ -478,8 +478,6 @@ class RecruitmentReportController extends Controller
         $project = $request->get('project');
         $status = $request->get('status');
 
-        $data = $this->buildAgingData($date1, $date2, $department, $project, $status);
-
         return view('recruitment.reports.aging', [
             'title' => 'Recruitment Reports',
             'subtitle' => 'Request Aging & SLA',
@@ -488,7 +486,6 @@ class RecruitmentReportController extends Controller
             'department' => $department,
             'project' => $project,
             'status' => $status,
-            'rows' => $data,
         ]);
     }
 
@@ -499,6 +496,7 @@ class RecruitmentReportController extends Controller
         $department = $request->get('department');
         $project = $request->get('project');
         $status = $request->get('status');
+
         $rows = collect($this->buildAgingData($date1, $date2, $department, $project, $status));
 
         return Excel::download(new class($rows) implements FromCollection, WithHeadings, WithMapping {
@@ -575,9 +573,9 @@ class RecruitmentReportController extends Controller
         $requests = $query->orderBy('created_at', 'desc')->get();
 
         $rows = [];
-        foreach ($requests as $request) {
+        foreach ($requests as $recruitmentRequest) {
             // Calculate days open
-            $daysOpen = now()->diffInDays($request->created_at);
+            $daysOpen = now()->diffInDays($recruitmentRequest->created_at);
 
             // Get latest approval info
             $latestApproval = null;
@@ -586,32 +584,29 @@ class RecruitmentReportController extends Controller
             $latestApprovalName = '-';
             $approvalRemarks = '-';
 
-            if ($request->approval_plans && $request->approval_plans->count() > 0) {
-                $approvedPlans = $request->approval_plans->where('status', 1);
+            if ($recruitmentRequest->approval_plans && $recruitmentRequest->approval_plans->count() > 0) {
+                $approvedPlans = $recruitmentRequest->approval_plans->where('status', 1);
                 if ($approvedPlans->count() > 0) {
                     $latestApproval = $approvedPlans->sortByDesc('updated_at')->first();
                     $approvedAt = $latestApproval->updated_at ? $latestApproval->updated_at->format('d/m/Y H:i') : '-';
-                    $approvedAtSort = $latestApproval->updated_at ? $latestApproval->updated_at->format('Y-m-d H:i:s') : '';
-                    $daysToApprove = $latestApproval->updated_at ? now()->diffInDays($request->created_at, $latestApproval->updated_at) : null;
+                    $daysToApprove = $latestApproval->updated_at ? $latestApproval->updated_at->diffInDays($recruitmentRequest->created_at) : null;
                     $latestApprovalName = $latestApproval->approver ? $latestApproval->approver->name : '-';
                     $approvalRemarks = $latestApproval->remarks ?: '-';
                 }
             }
 
             $rows[] = [
-                'request_id' => $request->id,
-                'request_no' => $request->request_number,
-                'department' => $request->department ? $request->department->department_name : '-',
-                'position' => $request->position ? $request->position->position_name : '-',
-                'project' => $request->project ? $request->project->project_name : '-',
-                'requested_by' => $request->createdBy ? $request->createdBy->name : '-',
-                'requested_at' => $request->created_at->format('d/m/Y H:i'),
-                'requested_at_sort' => $request->created_at->format('Y-m-d H:i:s'),
-                'status' => ucfirst($request->status),
+                'request_id' => $recruitmentRequest->id,
+                'request_no' => $recruitmentRequest->request_number,
+                'department' => $recruitmentRequest->department ? $recruitmentRequest->department->department_name : '-',
+                'position' => $recruitmentRequest->position ? $recruitmentRequest->position->position_name : '-',
+                'project' => $recruitmentRequest->project ? $recruitmentRequest->project->project_name : '-',
+                'requested_by' => $recruitmentRequest->createdBy ? $recruitmentRequest->createdBy->name : '-',
+                'requested_at' => $recruitmentRequest->created_at->format('d/m/Y H:i'),
+                'status' => ucfirst($recruitmentRequest->status),
                 'days_open' => $daysOpen,
                 'latest_approval' => $latestApprovalName,
                 'approved_at' => $approvedAt,
-                'approved_at_sort' => $approvedAtSort ?? '',
                 'days_to_approve' => $daysToApprove ?: '-',
                 'remarks' => $approvalRemarks,
             ];
@@ -630,46 +625,13 @@ class RecruitmentReportController extends Controller
         $position = request('position');
         $project = request('project');
 
-        $query = RecruitmentSession::with([
-            'fptk.department',
-            'fptk.position',
-            'fptk.project',
-            'fptk.approval_plans.approver',
-            'hiring'
-        ])
-            ->whereHas('hiring');
-
-        if ($date1 && $date2) {
-            $query->whereBetween('created_at', [$date1 . ' 00:00:00', $date2 . ' 23:59:59']);
-        }
-
-        if ($department) {
-            $query->whereHas('fptk', function ($q) use ($department) {
-                $q->where('department_id', $department);
-            });
-        }
-        if ($position) {
-            $query->whereHas('fptk', function ($q) use ($position) {
-                $q->where('position_id', $position);
-            });
-        }
-        if ($project) {
-            $query->whereHas('fptk', function ($q) use ($project) {
-                $q->where('project_id', $project);
-            });
-        }
-
-        $sessions = $query->get();
-        $rows = $this->buildTimeToHireData($sessions);
-
         $departments = Department::orderBy('department_name')->get();
         $positions = Position::orderBy('position_name')->get();
-        $projects = Project::orderBy('project_name')->get();
+        $projects = Project::orderBy('project_code')->get();
 
         return view('recruitment.reports.time-to-hire', compact(
             'title',
             'subtitle',
-            'rows',
             'date1',
             'date2',
             'department',
@@ -782,51 +744,13 @@ class RecruitmentReportController extends Controller
         $position = request('position');
         $project = request('project');
 
-        $query = RecruitmentSession::with([
-            'fptk.department',
-            'fptk.position',
-            'fptk.project',
-            'offering'
-        ])
-            ->whereHas('offering');
-
-        if ($date1 && $date2) {
-            $query->whereBetween('created_at', [$date1 . ' 00:00:00', $date2 . ' 23:59:59']);
-        }
-
-        if ($department) {
-            $query->whereHas('fptk', function ($q) use ($department) {
-                $q->where('department_id', $department);
-            });
-        }
-        if ($position) {
-            $query->whereHas('fptk', function ($q) use ($position) {
-                $q->where('position_id', $position);
-            });
-        }
-        if ($project) {
-            $query->whereHas('fptk', function ($q) use ($project) {
-                $q->where('project_id', $project);
-            });
-        }
-
-        $sessions = $query->get();
-
-        // Debug: Check if we have any data
-        $totalOfferings = \App\Models\RecruitmentOffering::count();
-        $totalSessions = RecruitmentSession::count();
-        $sessionsWithOfferings = RecruitmentSession::whereHas('offering')->count();
-
-        $rows = $this->buildOfferAcceptanceData($sessions);
-
         $departments = Department::orderBy('department_name')->get();
         $positions = Position::orderBy('position_name')->get();
-        $projects = Project::orderBy('project_name')->get();
+        $projects = Project::orderBy('project_code')->get();
 
         return view('recruitment.reports.offer-acceptance-rate', compact(
             'title',
             'subtitle',
-            'rows',
             'date1',
             'date2',
             'department',
@@ -834,10 +758,7 @@ class RecruitmentReportController extends Controller
             'project',
             'departments',
             'positions',
-            'projects',
-            'totalOfferings',
-            'totalSessions',
-            'sessionsWithOfferings'
+            'projects'
         ));
     }
 
@@ -1025,7 +946,1633 @@ class RecruitmentReportController extends Controller
                 'notes' => $offering->notes ?? '-',
             ];
         }
-
         return $rows;
+    }
+
+    public function interviewAssessmentAnalytics(Request $request)
+    {
+        $title = 'Recruitment Reports';
+        $subtitle = 'Interview & Assessment Analytics';
+        $date1 = request('date1', '');
+        $date2 = request('date2', '');
+        $department = request('department');
+        $position = request('position');
+        $project = request('project');
+
+        $departments = Department::orderBy('department_name')->get();
+        $positions = Position::orderBy('position_name')->get();
+        $projects = Project::orderBy('project_code')->get();
+
+        return view('recruitment.reports.interview-assessment-analytics', compact(
+            'title',
+            'subtitle',
+            'date1',
+            'date2',
+            'department',
+            'position',
+            'project',
+            'departments',
+            'positions',
+            'projects'
+        ));
+    }
+
+    public function exportInterviewAssessmentAnalytics()
+    {
+        $date1 = request('date1', '');
+        $date2 = request('date2', '');
+        $department = request('department');
+        $position = request('position');
+        $project = request('project');
+
+        $query = RecruitmentSession::with([
+            'fptk.department',
+            'fptk.position',
+            'fptk.project',
+            'cvReview',
+            'psikotes',
+            'tesTeori',
+            'interviews'
+        ])
+            ->whereHas('cvReview', function ($q) {
+                $q->whereNotIn('decision', ['fail', 'rejected', 'not fit', 'declined']);
+            });
+
+        if ($date1 && $date2) {
+            $query->whereBetween('created_at', [$date1 . ' 00:00:00', $date2 . ' 23:59:59']);
+        }
+
+        if ($department) {
+            $query->whereHas('fptk', function ($q) use ($department) {
+                $q->where('department_id', $department);
+            });
+        }
+        if ($position) {
+            $query->whereHas('fptk', function ($q) use ($position) {
+                $q->where('position_id', $position);
+            });
+        }
+        if ($project) {
+            $query->whereHas('fptk', function ($q) use ($project) {
+                $q->where('project_id', $project);
+            });
+        }
+
+        $sessions = $query->get();
+        $rows = $this->buildInterviewAssessmentData($sessions);
+
+        return Excel::download(new class($rows) implements FromCollection, WithHeadings, WithMapping {
+            private $rows;
+
+            public function __construct($rows)
+            {
+                $this->rows = $rows;
+            }
+
+            public function collection()
+            {
+                return collect($this->rows);
+            }
+
+            public function headings(): array
+            {
+                return [
+                    'Request No',
+                    'Department',
+                    'Position',
+                    'Project',
+                    'Candidate Name',
+                    'Psikotes Result',
+                    'Psikotes Score',
+                    'Tes Teori Result',
+                    'Tes Teori Score',
+                    'Interview Type',
+                    'Interview Result',
+                    'Overall Assessment',
+                    'Notes'
+                ];
+            }
+
+            public function map($row): array
+            {
+                return [
+                    $row['request_no'],
+                    $row['department'],
+                    $row['position'],
+                    $row['project'],
+                    $row['candidate_name'],
+                    $row['psikotes_result'],
+                    $row['psikotes_score'],
+                    $row['tes_teori_result'],
+                    $row['tes_teori_score'],
+                    $row['interview_type'],
+                    $row['interview_result'],
+                    $row['overall_assessment'],
+                    $row['notes']
+                ];
+            }
+        }, 'interview_assessment_analytics_' . date('Y-m-d') . '.xlsx');
+    }
+
+    private function buildInterviewAssessmentData($sessions)
+    {
+        $rows = [];
+        foreach ($sessions as $session) {
+            $fptk = $session->fptk;
+            $candidate = $session->candidate;
+
+            if (!$fptk || !$candidate) {
+                continue;
+            }
+
+            // Skip candidates who didn't pass CV Review
+            if (!$session->cvReview || strtolower($session->cvReview->decision ?? '') === 'fail' || strtolower($session->cvReview->decision ?? '') === 'rejected' || strtolower($session->cvReview->decision ?? '') === 'not fit' || strtolower($session->cvReview->decision ?? '') === 'declined') {
+                continue;
+            }
+
+            // Psikotes data
+            $psikotesResult = '-';
+            $psikotesScore = '-';
+            if ($session->psikotes) {
+                $psikotesResult = ucfirst($session->psikotes->result ?? 'pending');
+                $scoreDetails = [];
+                if (isset($session->psikotes->online_score) && $session->psikotes->online_score !== null) {
+                    $scoreDetails[] = 'Online: ' . number_format($session->psikotes->online_score, 1);
+                }
+                if (isset($session->psikotes->offline_score) && $session->psikotes->offline_score !== null) {
+                    $scoreDetails[] = 'Offline: ' . number_format($session->psikotes->offline_score, 1);
+                }
+                $psikotesScore = !empty($scoreDetails) ? implode(', ', $scoreDetails) : '-';
+            }
+
+            // Tes Teori data
+            $tesTeoriResult = '-';
+            $tesTeoriScore = '-';
+            if ($session->tesTeori) {
+                $tesTeoriResult = ucfirst($session->tesTeori->result ?? 'pending');
+                $tesTeoriScore = isset($session->tesTeori->score) ? number_format($session->tesTeori->score, 1) : '-';
+            }
+
+            // Interview data - combine type and result
+            $interviewResult = '-';
+            if ($session->interviews && is_object($session->interviews) && method_exists($session->interviews, 'count') && $session->interviews->count() > 0) {
+                $interviewTypes = [];
+                $interviewResults = [];
+                foreach ($session->interviews as $interview) {
+                    if (isset($interview->type)) {
+                        $interviewTypes[] = $interview->type === 'hr' ? 'HR' : 'User';
+                    }
+                    if (isset($interview->result)) {
+                        $interviewResults[] = ucfirst($interview->result);
+                    }
+                }
+                $type = !empty($interviewTypes) ? implode(', ', array_unique($interviewTypes)) : '';
+                $result = !empty($interviewResults) ? implode(', ', array_unique($interviewResults)) : '';
+
+                if ($type && $result) {
+                    $interviewResult = $type . ' - ' . $result;
+                } elseif ($type) {
+                    $interviewResult = $type;
+                } elseif ($result) {
+                    $interviewResult = $result;
+                }
+            }
+
+            // Calculate overall assessment (excluding CV Review since all candidates passed)
+            $overallAssessment = $this->calculateOverallAssessment($psikotesResult, $tesTeoriResult, $interviewResult);
+
+            $rows[] = [
+                'session_id' => $session->id,
+                'request_id' => $fptk->id,
+                'request_no' => $fptk->request_number,
+                'department' => $fptk->department ? $fptk->department->department_name : '-',
+                'position' => $fptk->position ? $fptk->position->position_name : '-',
+                'project' => $fptk->project ? $fptk->project->project_name : '-',
+                'candidate_name' => $candidate->fullname,
+                'candidate_number' => $candidate->candidate_number,
+                'psikotes_result' => $psikotesResult,
+                'psikotes_score' => $psikotesScore,
+                'tes_teori_result' => $tesTeoriResult,
+                'tes_teori_score' => $tesTeoriScore,
+                'interview_type' => $interviewResult,
+                'interview_result' => $interviewResult,
+                'overall_assessment' => $overallAssessment,
+                'notes' => $this->buildAssessmentNotes($session)
+            ];
+        }
+        return $rows;
+    }
+
+    private function calculateOverallAssessment($psikotes, $tesTeori, $interviewResult)
+    {
+        // Extract result part from combined data (remove score/type info in parentheses)
+        $psikotesResult = preg_replace('/\s*\([^)]*\)/', '', $psikotes);
+        $tesTeoriResult = preg_replace('/\s*\([^)]*\)/', '', $tesTeori);
+
+        // Extract interview type and result from combined string
+        $interviewType = '';
+        $interviewResultOnly = '';
+
+        if (strpos($interviewResult, ' - ') !== false) {
+            list($interviewType, $interviewResultOnly) = explode(' - ', $interviewResult, 2);
+        } elseif (strpos($interviewResult, 'HR') !== false || strpos($interviewResult, 'User') !== false) {
+            $interviewType = $interviewResult;
+            $interviewResultOnly = '';
+        } else {
+            $interviewResultOnly = $interviewResult;
+        }
+
+        // Convert results to numerical scores
+        $psikotesScore = $this->convertResultToScore($psikotesResult);
+        $teoriScore = $this->convertResultToScore($tesTeoriResult);
+
+        // Parse interview results for HR and User
+        $hrScore = 0;
+        $userScore = 0;
+
+        if ($interviewType && $interviewResultOnly) {
+            // Parse HR and User scores based on type and result
+            if (strpos($interviewType, 'HR') !== false || strpos($interviewType, 'hr') !== false) {
+                $hrScore = $this->convertResultToScore($interviewResultOnly);
+            }
+            if (strpos($interviewType, 'User') !== false || strpos($interviewType, 'user') !== false) {
+                $userScore = $this->convertResultToScore($interviewResultOnly);
+            }
+        } elseif ($interviewResultOnly && !$interviewType) {
+            // If no type specified, assume it's a general interview result
+            $hrScore = $this->convertResultToScore($interviewResultOnly);
+        }
+
+        // Calculate total score
+        $totalScore = $psikotesScore + $teoriScore + $hrScore + $userScore;
+
+        // Apply scoring rules
+        if ($psikotesScore === 0) {
+            return 'Poor'; // Psikotes fail = Poor
+        } elseif ($psikotesScore === 1 && $totalScore === 4) {
+            return 'Average'; // Psikotes pending + total 4 = Average
+        } elseif ($psikotesScore === 2) {
+            // Psikotes pass - apply scoring rules
+            if ($totalScore >= 7) {
+                return 'Excellent';
+            } elseif ($totalScore >= 5) {
+                return 'Good';
+            } elseif ($totalScore === 4) {
+                return 'Average';
+            } else {
+                return 'Poor'; // total <= 3
+            }
+        } else {
+            return 'Poor'; // Default fallback
+        }
+    }
+
+    private function convertResultToScore($result)
+    {
+        if ($result === '-' || $result === 'Pending') {
+            return 0; // No data or pending
+        }
+
+        $resultLower = strtolower($result);
+
+        if (in_array($resultLower, ['pass', 'accepted', 'approved', 'fit', 'recommended'])) {
+            return 2; // Pass/Recommended
+        } elseif (in_array($resultLower, ['pending', 'in progress', 'average'])) {
+            return 1; // Pending/Average
+        } else {
+            return 0; // Fail/Not recommended
+        }
+    }
+
+
+
+    private function buildAssessmentNotes($session)
+    {
+        $notes = [];
+
+        if ($session->psikotes && !empty($session->psikotes->notes)) {
+            $notes[] = 'Psikotes: ' . $session->psikotes->notes;
+        }
+        if ($session->tesTeori && !empty($session->tesTeori->notes)) {
+            $notes[] = 'Teori: ' . $session->tesTeori->notes;
+        }
+        if ($session->interviews && $session->interviews->count() > 0) {
+            foreach ($session->interviews as $interview) {
+                if (!empty($interview->notes)) {
+                    $notes[] = 'Interview: ' . $interview->notes;
+                }
+            }
+        }
+
+        return !empty($notes) ? implode(' | ', $notes) : '-';
+    }
+
+    public function staleCandidates(Request $request)
+    {
+        $title = 'Stale Candidates';
+
+        // Get filter options
+        $departments = Department::orderBy('department_name')->get();
+        $positions = Position::orderBy('position_name')->get();
+        $projects = Project::orderBy('project_name')->get();
+
+        return view('recruitment.reports.stale-candidates', compact('departments', 'positions', 'projects', 'title'));
+    }
+
+    public function staleCandidatesData(Request $request)
+    {
+        $query = RecruitmentSession::with([
+            'fptk.department',
+            'fptk.position',
+            'fptk.project',
+            'fptk.approval_plans.approver',
+            'cvReview',
+            'psikotes',
+            'tesTeori',
+            'interviews',
+            'offering',
+            'mcu',
+            'hiring',
+            'onboarding',
+            'candidate'
+        ])
+            ->where('status', 'in_process');
+
+        // Apply filters
+        if ($request->filled('date1') && $request->filled('date2')) {
+            $query->whereBetween('created_at', [$request->date1, $request->date2]);
+        }
+
+        if ($request->filled('department')) {
+            $query->whereHas('fptk', function ($q) use ($request) {
+                $q->where('department_id', $request->department);
+            });
+        }
+
+        if ($request->filled('position')) {
+            $query->whereHas('fptk', function ($q) use ($request) {
+                $q->where('position_id', $request->position);
+            });
+        }
+
+        if ($request->filled('project')) {
+            $query->whereHas('fptk', function ($q) use ($request) {
+                $q->where('project_id', $request->project);
+            });
+        }
+
+        // Get total count before pagination
+        $totalRecords = $query->count();
+
+        // Apply search
+        if ($request->filled('search.value')) {
+            $searchValue = $request->input('search.value');
+            $query->where(function ($q) use ($searchValue) {
+                $q->whereHas('fptk', function ($fptkQuery) use ($searchValue) {
+                    $fptkQuery->where('request_number', 'like', "%{$searchValue}%")
+                        ->orWhereHas('department', function ($deptQuery) use ($searchValue) {
+                            $deptQuery->where('department_name', 'like', "%{$searchValue}%");
+                        })
+                        ->orWhereHas('position', function ($posQuery) use ($searchValue) {
+                            $posQuery->where('position_name', 'like', "%{$searchValue}%");
+                        })
+                        ->orWhereHas('project', function ($projQuery) use ($searchValue) {
+                            $projQuery->where('project_name', 'like', "%{$searchValue}%");
+                        });
+                })
+                    ->orWhereHas('candidate', function ($candidateQuery) use ($searchValue) {
+                        $candidateQuery->where('fullname', 'like', "%{$searchValue}%");
+                    });
+            });
+        }
+
+        // Apply ordering
+        $orderColumn = $request->input('order.0.column', 0);
+        $orderDir = $request->input('order.0.dir', 'desc');
+
+        $columns = [
+            'request_no',
+            'department',
+            'position',
+            'project',
+            'candidate_name',
+            'current_stage',
+            'last_activity_date',
+            'days_since_last_activity',
+            'days_in_current_stage',
+            'status',
+            'notes'
+        ];
+
+        if (isset($columns[$orderColumn])) {
+            $column = $columns[$orderColumn];
+            if ($column === 'days_since_last_activity') {
+                $query->orderBy('created_at', $orderDir);
+            } else {
+                $query->orderBy($column, $orderDir);
+            }
+        }
+
+        // Get filtered count
+        $filteredRecords = $query->count();
+
+        // Apply pagination
+        $start = $request->input('start', 0);
+        $length = $request->input('length', 10);
+        $sessions = $query->skip($start)->take($length)->get();
+
+        // Build data
+        $data = [];
+        foreach ($sessions as $session) {
+            $currentStage = $this->getCurrentStage($session);
+            $lastActivity = $this->getLastActivity($session);
+            $daysSinceLastActivity = $lastActivity ? now()->diffInDays($lastActivity) : 0;
+            $daysInCurrentStage = $this->getDaysInCurrentStage($session, $currentStage);
+
+            if ($this->isCandidateCompletedOrFailed($session)) {
+                continue;
+            }
+
+            $isStale = $daysSinceLastActivity > 7;
+
+            $data[] = [
+                'session_id' => $session->id,
+                'request_id' => $session->fptk ? $session->fptk->id : 0,
+                'request_no' => $session->fptk ? $session->fptk->request_number : '-',
+                'department' => $session->fptk && $session->fptk->department ? $session->fptk->department->department_name : '-',
+                'position' => $session->fptk && $session->fptk->position ? $session->fptk->position->position_name : '-',
+                'project' => $session->fptk && $session->fptk->project ? $session->fptk->project->project_name : '-',
+                'candidate_name' => $session->candidate ? $session->candidate->fullname : '-',
+                'current_stage' => $currentStage,
+                'last_activity_date' => $lastActivity ? $lastActivity->format('d/m/Y') : '-',
+                'days_since_last_activity' => $daysSinceLastActivity,
+                'days_in_current_stage' => $daysInCurrentStage,
+                'status' => $isStale ? 'Stale' : 'Active',
+                'notes' => $this->buildStaleCandidatesNotes($session, $currentStage)
+            ];
+        }
+
+        return response()->json([
+            'draw' => $request->input('draw'),
+            'recordsTotal' => $totalRecords,
+            'recordsFiltered' => $filteredRecords,
+            'data' => $data
+        ]);
+    }
+
+    public function agingData(Request $request)
+    {
+        $query = \App\Models\RecruitmentRequest::with([
+            'department',
+            'position',
+            'project',
+            'createdBy',
+            'approval_plans.approver'
+        ]);
+
+        // Apply filters
+        if ($request->filled('date1') && $request->filled('date2')) {
+            $query->whereBetween('created_at', [$request->date1, $request->date2]);
+        }
+        if ($request->filled('department')) {
+            $query->where('department_id', $request->department);
+        }
+        if ($request->filled('project')) {
+            $query->where('project_id', $request->project);
+        }
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+
+        // Get total count before pagination
+        $totalRecords = $query->count();
+
+        // Apply search
+        if ($request->filled('search.value')) {
+            $searchValue = $request->input('search.value');
+            $query->where(function ($q) use ($searchValue) {
+                $q->where('request_number', 'like', "%{$searchValue}%")
+                    ->orWhereHas('department', function ($deptQuery) use ($searchValue) {
+                        $deptQuery->where('department_name', 'like', "%{$searchValue}%");
+                    })
+                    ->orWhereHas('position', function ($posQuery) use ($searchValue) {
+                        $posQuery->where('position_name', 'like', "%{$searchValue}%");
+                    })
+                    ->orWhereHas('project', function ($projQuery) use ($searchValue) {
+                        $projQuery->where('project_name', 'like', "%{$searchValue}%");
+                    })
+                    ->orWhereHas('createdBy', function ($userQuery) use ($searchValue) {
+                        $userQuery->where('name', 'like', "%{$searchValue}%");
+                    });
+            });
+        }
+
+        // Apply ordering
+        $orderColumn = $request->input('order.0.column', 0);
+        $orderDir = $request->input('order.0.dir', 'desc');
+
+        $columns = [
+            'request_number',
+            'department',
+            'position',
+            'project',
+            'requested_by',
+            'requested_at',
+            'status',
+            'days_open',
+            'latest_approval',
+            'approved_at',
+            'days_to_approve',
+            'remarks'
+        ];
+
+        if (isset($columns[$orderColumn])) {
+            $column = $columns[$orderColumn];
+            if ($column === 'requested_at') {
+                $query->orderBy('created_at', $orderDir);
+            } elseif ($column === 'approved_at') {
+                // For approved_at, we need to join with approval_plans
+                $query->leftJoin('approval_plans', function ($join) {
+                    $join->on('recruitment_requests.id', '=', 'approval_plans.document_id')
+                        ->where('approval_plans.document_type', '=', 'recruitment_request')
+                        ->where('approval_plans.status', '=', 1);
+                });
+                $query->orderBy('approval_plans.updated_at', $orderDir);
+            } elseif ($column === 'request_number') {
+                $query->orderBy('request_number', $orderDir);
+            } else {
+                $query->orderBy($column, $orderDir);
+            }
+        }
+
+        // Get filtered count
+        $filteredRecords = $query->count();
+
+        // Apply pagination
+        $start = $request->input('start', 0);
+        $length = $request->input('length', 10);
+        $requests = $query->skip($start)->take($length)->get();
+
+        // Build data
+        $data = [];
+        foreach ($requests as $recruitmentRequest) {
+            $daysOpen = now()->diffInDays($recruitmentRequest->created_at);
+            $latestApproval = null;
+            $approvedAt = null;
+            $daysToApprove = null;
+            $latestApprovalName = '-';
+            $approvalRemarks = '-';
+
+            if ($recruitmentRequest->approval_plans && $recruitmentRequest->approval_plans->count() > 0) {
+                $approvedPlans = $recruitmentRequest->approval_plans->where('status', 1);
+                if ($approvedPlans->count() > 0) {
+                    $latestApproval = $approvedPlans->sortByDesc('updated_at')->first();
+                    $approvedAt = $latestApproval->updated_at ? $latestApproval->updated_at->format('d/m/Y H:i') : '-';
+                    $daysToApprove = $latestApproval->updated_at ? $latestApproval->updated_at->diffInDays($recruitmentRequest->created_at) : null;
+                    $latestApprovalName = $latestApproval->approver ? $latestApproval->approver->name : '-';
+                    $approvalRemarks = $latestApproval->remarks ?: '-';
+                }
+            }
+
+            $data[] = [
+                'request_id' => $recruitmentRequest->id,
+                'request_no' => $recruitmentRequest->request_number,
+                'department' => $recruitmentRequest->department ? $recruitmentRequest->department->department_name : '-',
+                'position' => $recruitmentRequest->position ? $recruitmentRequest->position->position_name : '-',
+                'project' => $recruitmentRequest->project ? $recruitmentRequest->project->project_name : '-',
+                'requested_by' => $recruitmentRequest->createdBy ? $recruitmentRequest->createdBy->name : '-',
+                'requested_at' => $recruitmentRequest->created_at->format('d/m/Y H:i'),
+                'status' => ucfirst($recruitmentRequest->status),
+                'days_open' => $daysOpen,
+                'latest_approval' => $latestApprovalName,
+                'approved_at' => $approvedAt,
+                'days_to_approve' => $daysToApprove ?: '-',
+                'remarks' => $approvalRemarks,
+            ];
+        }
+
+        return response()->json([
+            'draw' => $request->input('draw'),
+            'recordsTotal' => $totalRecords,
+            'recordsFiltered' => $filteredRecords,
+            'data' => $data
+        ]);
+    }
+
+    public function timeToHireData(Request $request)
+    {
+        $query = RecruitmentSession::with([
+            'fptk.department',
+            'fptk.position',
+            'fptk.project',
+            'fptk.approval_plans.approver',
+            'hiring'
+        ])
+            ->whereHas('hiring');
+
+        if ($request->filled('date1') && $request->filled('date2')) {
+            $query->whereBetween('created_at', [$request->date1 . ' 00:00:00', $request->date2 . ' 23:59:59']);
+        }
+
+        if ($request->filled('department')) {
+            $query->whereHas('fptk', function ($q) use ($request) {
+                $q->where('department_id', $request->department);
+            });
+        }
+        if ($request->filled('position')) {
+            $query->whereHas('fptk', function ($q) use ($request) {
+                $q->where('position_id', $request->position);
+            });
+        }
+        if ($request->filled('project')) {
+            $query->whereHas('fptk', function ($q) use ($request) {
+                $q->where('project_id', $request->project);
+            });
+        }
+
+        // Get total count before pagination
+        $totalRecords = $query->count();
+
+        // Apply search
+        if ($request->filled('search.value')) {
+            $searchValue = $request->input('search.value');
+            $query->where(function ($q) use ($searchValue) {
+                $q->whereHas('fptk', function ($fptkQuery) use ($searchValue) {
+                    $fptkQuery->where('request_number', 'like', "%{$searchValue}%")
+                        ->orWhereHas('department', function ($deptQuery) use ($searchValue) {
+                            $deptQuery->where('department_name', 'like', "%{$searchValue}%");
+                        })
+                        ->orWhereHas('position', function ($posQuery) use ($searchValue) {
+                            $posQuery->where('position_name', 'like', "%{$searchValue}%");
+                        })
+                        ->orWhereHas('project', function ($projQuery) use ($searchValue) {
+                            $projQuery->where('project_name', 'like', "%{$searchValue}%");
+                        });
+                });
+            });
+        }
+
+        // Apply ordering
+        $orderColumn = $request->input('order.0.column', 0);
+        $orderDir = $request->input('order.0.dir', 'desc');
+
+        $columns = [
+            'request_no',
+            'department',
+            'position',
+            'project',
+            'requested_at',
+            'hiring_date',
+            'total_days',
+            'approval_days',
+            'recruitment_days',
+            'status',
+            'latest_approval',
+            'remarks'
+        ];
+
+        if (isset($columns[$orderColumn])) {
+            $column = $columns[$orderColumn];
+            if ($column === 'requested_at') {
+                $query->orderBy('created_at', $orderDir);
+            } else {
+                $query->orderBy($column, $orderDir);
+            }
+        }
+
+        // Get filtered count
+        $filteredRecords = $query->count();
+
+        // Apply pagination
+        $start = $request->input('start', 0);
+        $length = $request->input('length', 10);
+        $sessions = $query->skip($start)->take($length)->get();
+
+        // Build data
+        $data = [];
+        foreach ($sessions as $session) {
+            if (!$session->hiring) {
+                continue;
+            }
+
+            $hiringDate = $session->hiring->created_at->format('Y-m-d');
+            $totalDays = $session->hiring->created_at->diffInDays($session->created_at);
+
+            $approvalDays = 0;
+            $latestApproval = null;
+            if ($session->fptk && $session->fptk->approval_plans && $session->fptk->approval_plans->count() > 0) {
+                $approvedPlans = $session->fptk->approval_plans->where('status', 1);
+                if ($approvedPlans->count() > 0) {
+                    $latestApproval = $approvedPlans->sortByDesc('updated_at')->first();
+                    if ($latestApproval->updated_at) {
+                        $approvalDays = $latestApproval->updated_at->diffInDays($session->fptk->created_at);
+                    }
+                }
+            }
+
+            $recruitmentDays = 0;
+            if ($latestApproval && $latestApproval->updated_at) {
+                $recruitmentDays = $session->hiring->created_at->diffInDays($latestApproval->updated_at);
+            }
+
+            $data[] = [
+                'session_id' => $session->id,
+                'request_id' => $session->fptk ? $session->fptk->id : 0,
+                'request_no' => $session->fptk ? $session->fptk->request_number : '-',
+                'department' => $session->fptk && $session->fptk->department ? $session->fptk->department->department_name : '-',
+                'position' => $session->fptk && $session->fptk->position ? $session->fptk->position->position_name : '-',
+                'project' => $session->fptk && $session->fptk->project ? $session->fptk->project->project_name : '-',
+                'requested_at' => $session->fptk ? $session->fptk->created_at->format('Y-m-d H:i:s') : '-',
+                'hiring_date' => $hiringDate,
+                'total_days' => $totalDays,
+                'approval_days' => $approvalDays,
+                'recruitment_days' => $recruitmentDays,
+                'status' => $session->fptk ? ucfirst($session->fptk->status) : '-',
+                'latest_approval' => $latestApproval && $latestApproval->approver ? $latestApproval->approver->name : '-',
+                'remarks' => $latestApproval ? ($latestApproval->remarks ?: '-') : '-',
+            ];
+        }
+
+        return response()->json([
+            'draw' => $request->input('draw'),
+            'recordsTotal' => $totalRecords,
+            'recordsFiltered' => $filteredRecords,
+            'data' => $data
+        ]);
+    }
+
+    public function offerAcceptanceRateData(Request $request)
+    {
+        $query = RecruitmentSession::with([
+            'fptk.department',
+            'fptk.position',
+            'fptk.project',
+            'offering'
+        ])
+            ->whereHas('offering');
+
+        if ($request->filled('date1') && $request->filled('date2')) {
+            $query->whereBetween('created_at', [$request->date1 . ' 00:00:00', $request->date2 . ' 23:59:59']);
+        }
+
+        if ($request->filled('department')) {
+            $query->whereHas('fptk', function ($q) use ($request) {
+                $q->where('department_id', $request->department);
+            });
+        }
+        if ($request->filled('position')) {
+            $query->whereHas('fptk', function ($q) use ($request) {
+                $q->where('position_id', $request->position);
+            });
+        }
+        if ($request->filled('project')) {
+            $query->whereHas('fptk', function ($q) use ($request) {
+                $q->where('project_id', $request->project);
+            });
+        }
+
+        // Get total count before pagination
+        $totalRecords = $query->count();
+
+        // Apply search
+        if ($request->filled('search.value')) {
+            $searchValue = $request->input('search.value');
+            $query->where(function ($q) use ($searchValue) {
+                $q->whereHas('fptk', function ($fptkQuery) use ($searchValue) {
+                    $fptkQuery->where('request_number', 'like', "%{$searchValue}%")
+                        ->orWhereHas('department', function ($deptQuery) use ($searchValue) {
+                            $deptQuery->where('department_name', 'like', "%{$searchValue}%");
+                        })
+                        ->orWhereHas('position', function ($posQuery) use ($searchValue) {
+                            $posQuery->where('position_name', 'like', "%{$searchValue}%");
+                        })
+                        ->orWhereHas('project', function ($projQuery) use ($searchValue) {
+                            $projQuery->where('project_name', 'like', "%{$searchValue}%");
+                        });
+                })
+                    ->orWhereHas('candidate', function ($candidateQuery) use ($searchValue) {
+                        $candidateQuery->where('fullname', 'like', "%{$searchValue}%");
+                    });
+            });
+        }
+
+        // Apply ordering
+        $orderColumn = $request->input('order.0.column', 0);
+        $orderDir = $request->input('order.0.dir', 'desc');
+
+        $columns = [
+            'request_no',
+            'department',
+            'position',
+            'project',
+            'candidate_name',
+            'offering_date',
+            'response_date',
+            'response_time',
+            'response',
+            'offering_letter_no',
+            'notes'
+        ];
+
+        if (isset($columns[$orderColumn])) {
+            $column = $columns[$orderColumn];
+            if ($column === 'offering_date') {
+                $query->orderBy('created_at', $orderDir);
+            } else {
+                $query->orderBy($column, $orderDir);
+            }
+        }
+
+        // Get filtered count
+        $filteredRecords = $query->count();
+
+        // Apply pagination
+        $start = $request->input('start', 0);
+        $length = $request->input('length', 10);
+        $sessions = $query->skip($start)->take($length)->get();
+
+        // Build data
+        $data = [];
+        foreach ($sessions as $session) {
+            if (!$session->offering) {
+                continue;
+            }
+
+            $offering = $session->offering;
+            $fptk = $session->fptk;
+            $candidate = $session->candidate;
+
+            if (!$fptk || !$candidate) {
+                continue;
+            }
+
+            $responseTime = '-';
+            if ($offering->response_date && $offering->offering_date) {
+                $responseTime = $offering->response_date->diffInDays($offering->offering_date);
+            } elseif ($offering->offering_date) {
+                $responseTime = now()->diffInDays($offering->offering_date);
+            }
+
+            $data[] = [
+                'session_id' => $session->id,
+                'request_id' => $fptk->id,
+                'request_no' => $fptk->request_number,
+                'department' => $fptk->department ? $fptk->department->department_name : '-',
+                'position' => $fptk->position ? $fptk->position->position_name : '-',
+                'project' => $fptk->project ? $fptk->project->project_name : '-',
+                'candidate_name' => $candidate->fullname,
+                'offering_date' => $offering->offering_date ? $offering->offering_date->format('d/m/Y') : '-',
+                'response_date' => $offering->response_date ? $offering->response_date->format('d/m/Y') : '-',
+                'response_time' => $responseTime,
+                'response' => ucfirst($offering->result ?? 'pending'),
+                'offering_letter_no' => $offering->offering_letter_number ?? '-',
+                'notes' => $offering->notes ?? '-',
+            ];
+        }
+
+        return response()->json([
+            'draw' => $request->input('draw'),
+            'recordsTotal' => $totalRecords,
+            'recordsFiltered' => $filteredRecords,
+            'data' => $data
+        ]);
+    }
+
+    public function interviewAssessmentAnalyticsData(Request $request)
+    {
+        $query = RecruitmentSession::with([
+            'fptk.department',
+            'fptk.position',
+            'fptk.project',
+            'cvReview',
+            'psikotes',
+            'tesTeori',
+            'interviews'
+        ])
+            ->whereHas('cvReview', function ($q) {
+                $q->whereNotIn('decision', ['fail', 'rejected', 'not fit', 'declined']);
+            });
+
+        if ($request->filled('date1') && $request->filled('date2')) {
+            $query->whereBetween('created_at', [$request->date1 . ' 00:00:00', $request->date2 . ' 23:59:59']);
+        }
+
+        if ($request->filled('department')) {
+            $query->whereHas('fptk', function ($q) use ($request) {
+                $q->where('department_id', $request->department);
+            });
+        }
+        if ($request->filled('position')) {
+            $query->whereHas('fptk', function ($q) use ($request) {
+                $q->where('position_id', $request->position);
+            });
+        }
+        if ($request->filled('project')) {
+            $query->whereHas('fptk', function ($q) use ($request) {
+                $q->where('project_id', $request->project);
+            });
+        }
+
+        // Get total count before pagination
+        $totalRecords = $query->count();
+
+        // Apply search
+        if ($request->filled('search.value')) {
+            $searchValue = $request->input('search.value');
+            $query->where(function ($q) use ($searchValue) {
+                $q->whereHas('fptk', function ($fptkQuery) use ($searchValue) {
+                    $fptkQuery->where('request_number', 'like', "%{$searchValue}%")
+                        ->orWhereHas('department', function ($deptQuery) use ($searchValue) {
+                            $deptQuery->where('department_name', 'like', "%{$searchValue}%");
+                        })
+                        ->orWhereHas('position', function ($posQuery) use ($searchValue) {
+                            $posQuery->where('position_name', 'like', "%{$searchValue}%");
+                        })
+                        ->orWhereHas('project', function ($projQuery) use ($searchValue) {
+                            $projQuery->where('project_name', 'like', "%{$searchValue}%");
+                        });
+                })
+                    ->orWhereHas('candidate', function ($candidateQuery) use ($searchValue) {
+                        $candidateQuery->where('fullname', 'like', "%{$searchValue}%");
+                    });
+            });
+        }
+
+        // Apply ordering
+        $orderColumn = $request->input('order.0.column', 0);
+        $orderDir = $request->input('order.0.dir', 'asc');
+
+        $columns = [
+            'request_no',
+            'department',
+            'position',
+            'project',
+            'candidate_name',
+            'psikotes_result',
+            'tes_teori_result',
+            'interview_result',
+            'overall_assessment',
+            'notes'
+        ];
+
+        if (isset($columns[$orderColumn])) {
+            $column = $columns[$orderColumn];
+            if ($column === 'request_no') {
+                $query->orderBy('created_at', $orderDir);
+            } else {
+                $query->orderBy($column, $orderDir);
+            }
+        }
+
+        // Get filtered count
+        $filteredRecords = $query->count();
+
+        // Apply pagination
+        $start = $request->input('start', 0);
+        $length = $request->input('length', 10);
+        $sessions = $query->skip($start)->take($length)->get();
+
+        // Build data
+        $data = [];
+        foreach ($sessions as $session) {
+            $fptk = $session->fptk;
+            $candidate = $session->candidate;
+
+            if (!$fptk || !$candidate) {
+                continue;
+            }
+
+            if (!$session->cvReview || strtolower($session->cvReview->decision ?? '') === 'fail' || strtolower($session->cvReview->decision ?? '') === 'rejected' || strtolower($session->cvReview->decision ?? '') === 'not fit' || strtolower($session->cvReview->decision ?? '') === 'declined') {
+                continue;
+            }
+
+            // Psikotes data - combine result and score
+            $psikotesResult = '-';
+            if ($session->psikotes) {
+                $result = ucfirst($session->psikotes->result ?? 'pending');
+                $scoreDetails = [];
+                if (isset($session->psikotes->online_score) && $session->psikotes->online_score !== null) {
+                    $scoreDetails[] = 'Online: ' . number_format($session->psikotes->online_score, 1);
+                }
+                if (isset($session->psikotes->offline_score) && $session->psikotes->offline_score !== null) {
+                    $scoreDetails[] = 'Offline: ' . number_format($session->psikotes->offline_score, 1);
+                }
+                $psikotesResult = $result;
+                if (!empty($scoreDetails)) {
+                    $psikotesResult .= ' (' . implode(', ', $scoreDetails) . ')';
+                }
+            }
+
+            // Tes Teori data - combine result and score
+            $tesTeoriResult = '-';
+            if ($session->tesTeori) {
+                $result = ucfirst($session->tesTeori->result ?? 'pending');
+                $score = isset($session->tesTeori->score) ? number_format($session->tesTeori->score, 1) : null;
+                $tesTeoriResult = $result;
+                if ($score) {
+                    $tesTeoriResult .= ' (' . $score . ')';
+                }
+            }
+
+            // Interview data - combine type and result
+            $interviewResult = '-';
+            if ($session->interviews && is_object($session->interviews) && method_exists($session->interviews, 'count') && $session->interviews->count() > 0) {
+                $interviewTypes = [];
+                $interviewResults = [];
+                foreach ($session->interviews as $interview) {
+                    if (isset($interview->type)) {
+                        $interviewTypes[] = $interview->type === 'hr' ? 'HR' : 'User';
+                    }
+                    if (isset($interview->result)) {
+                        $interviewResults[] = ucfirst($interview->result);
+                    }
+                }
+                $type = !empty($interviewTypes) ? implode(', ', array_unique($interviewTypes)) : '';
+                $result = !empty($interviewResults) ? implode(', ', array_unique($interviewResults)) : '';
+
+                if ($type && $result) {
+                    $interviewResult = $type . ' - ' . $result;
+                } elseif ($type) {
+                    $interviewResult = $type;
+                } elseif ($result) {
+                    $interviewResult = $result;
+                }
+            }
+
+            // Calculate overall assessment
+            $overallAssessment = $this->calculateOverallAssessment($psikotesResult, $tesTeoriResult, $interviewResult);
+
+            $data[] = [
+                'session_id' => $session->id,
+                'request_id' => $fptk->id,
+                'request_no' => $fptk->request_number,
+                'department' => $fptk->department ? $fptk->department->department_name : '-',
+                'position' => $fptk->position ? $fptk->position->position_name : '-',
+                'project' => $fptk->project ? $fptk->project->project_name : '-',
+                'candidate_name' => $candidate->fullname,
+                'psikotes_result' => $psikotesResult,
+                'tes_teori_result' => $tesTeoriResult,
+                'interview_result' => $interviewResult,
+                'overall_assessment' => $overallAssessment,
+                'notes' => $this->buildAssessmentNotes($session)
+            ];
+        }
+
+        return response()->json([
+            'draw' => $request->input('draw'),
+            'recordsTotal' => $totalRecords,
+            'recordsFiltered' => $filteredRecords,
+            'data' => $data
+        ]);
+    }
+
+    public function stageDetailData(Request $request, $stage)
+    {
+        // Map stage names to model classes
+        $stageModels = [
+            'cv_review' => RecruitmentCvReview::class,
+            'psikotes' => RecruitmentPsikotes::class,
+            'tes_teori' => RecruitmentTesTeori::class,
+            'interview' => RecruitmentInterview::class,
+            'offering' => RecruitmentOffering::class,
+            'mcu' => RecruitmentMcu::class,
+            'hiring' => RecruitmentHiring::class,
+            'onboarding' => RecruitmentOnboarding::class,
+        ];
+
+        if (!isset($stageModels[$stage])) {
+            return response()->json(['error' => 'Invalid stage'], 400);
+        }
+
+        $modelClass = $stageModels[$stage];
+
+        // Get recruitment sessions with filters
+        $sessionsQuery = \App\Models\RecruitmentSession::with([
+            'fptk.department',
+            'fptk.position',
+            'fptk.project',
+            'candidate'
+        ]);
+
+        // Apply FPTK-based filters
+        if ($request->filled('department') || $request->filled('position') || $request->filled('project')) {
+            $sessionsQuery->whereHas('fptk', function ($q) use ($request) {
+                if ($request->filled('department')) {
+                    $q->where('department_id', $request->department);
+                }
+                if ($request->filled('position')) {
+                    $q->where('position_id', $request->position);
+                }
+                if ($request->filled('project')) {
+                    $q->where('project_id', $request->project);
+                }
+            });
+        }
+
+        // Apply date filter
+        if ($request->filled('date1') && $request->filled('date2')) {
+            $sessionsQuery->whereBetween('created_at', [$request->date1, $request->date2]);
+        }
+
+        $sessions = $sessionsQuery->get();
+
+        // Get stage records
+        $stageQuery = $modelClass::with(['session.fptk.department', 'session.fptk.position', 'session.fptk.project', 'session.candidate'])
+            ->whereIn('session_id', $sessions->pluck('id'));
+
+        if ($request->filled('date1') && $request->filled('date2')) {
+            $stageQuery->whereBetween('created_at', [$request->date1, $request->date2]);
+        }
+
+        // Get total count before pagination
+        $totalRecords = $stageQuery->count();
+
+        // Apply search
+        if ($request->filled('search.value')) {
+            $searchValue = $request->input('search.value');
+            $stageQuery->where(function ($q) use ($searchValue) {
+                $q->whereHas('session.fptk', function ($fptkQuery) use ($searchValue) {
+                    $fptkQuery->where('request_number', 'like', "%{$searchValue}%")
+                        ->orWhereHas('department', function ($deptQuery) use ($searchValue) {
+                            $deptQuery->where('department_name', 'like', "%{$searchValue}%");
+                        })
+                        ->orWhereHas('position', function ($posQuery) use ($searchValue) {
+                            $posQuery->where('position_name', 'like', "%{$searchValue}%");
+                        })
+                        ->orWhereHas('project', function ($projQuery) use ($searchValue) {
+                            $projQuery->where('project_name', 'like', "%{$searchValue}%");
+                        });
+                })
+                    ->orWhereHas('session.candidate', function ($candidateQuery) use ($searchValue) {
+                        $candidateQuery->where('fullname', 'like', "%{$searchValue}%");
+                    });
+            });
+        }
+
+        // Apply ordering
+        $orderColumn = $request->input('order.0.column', 0);
+        $orderDir = $request->input('order.0.dir', 'desc');
+
+        $columns = [
+            'fptk_number',
+            'department',
+            'position',
+            'project',
+            'candidate_name',
+            'session_number',
+            'stage_date',
+            'days_in_stage',
+            'result',
+            'remarks'
+        ];
+
+        if (isset($columns[$orderColumn])) {
+            $column = $columns[$orderColumn];
+            if ($column === 'stage_date') {
+                $stageQuery->orderBy('created_at', $orderDir);
+            } else {
+                $stageQuery->orderBy($column, $orderDir);
+            }
+        }
+
+        // Get filtered count
+        $filteredRecords = $stageQuery->count();
+
+        // Apply pagination
+        $start = $request->input('start', 0);
+        $length = $request->input('length', 10);
+        $stageRecords = $stageQuery->skip($start)->take($length)->get();
+
+        // Build data
+        $data = [];
+        foreach ($stageRecords as $record) {
+            $session = $record->session;
+            if (!$session || !$session->fptk || !$session->candidate) {
+                continue;
+            }
+
+            $fptk = $session->fptk;
+            $candidate = $session->candidate;
+
+            // Calculate days in stage
+            $daysInStage = 0;
+            if ($record->updated_at && $record->created_at) {
+                $daysInStage = $record->updated_at->diffInDays($record->created_at);
+            } elseif ($record->created_at) {
+                $daysInStage = now()->diffInDays($record->created_at);
+            }
+
+            // Get result/status from record
+            $result = 'Pending';
+            if (isset($record->result)) {
+                $result = ucfirst($record->result);
+            } elseif (isset($record->status)) {
+                $result = ucfirst($record->status);
+            } elseif (isset($record->decision)) {
+                $result = ucfirst($record->decision);
+            }
+
+            // Special handling for hiring and onboarding stages
+            if ($stage === 'hiring') {
+                if ($result === 'Pending' || $result === 'In Progress') {
+                    $result = 'Hired';
+                }
+            } elseif ($stage === 'onboarding') {
+                if ($result === 'Pending' || $result === 'In Progress') {
+                    $result = 'Complete';
+                }
+            }
+
+            // Get interview type for interview stage
+            $interviewType = null;
+            if ($stage === 'interview' && isset($record->type)) {
+                $interviewType = $record->type === 'hr' ? 'HR' : 'User';
+            }
+
+            // Build detailed remarks based on stage type
+            $detailedRemarks = $this->buildStageRemarks($stage, $record);
+
+            $data[] = [
+                'session_id' => $session->id,
+                'fptk_number' => $fptk->request_number,
+                'department' => $fptk->department ? $fptk->department->department_name : '-',
+                'position' => $fptk->position ? $fptk->position->position_name : '-',
+                'project' => $fptk->project ? $fptk->project->project_name : '-',
+                'candidate_name' => $candidate->fullname,
+                'candidate_number' => $candidate->candidate_number,
+                'session_number' => $session->session_number,
+                'stage_date' => $record->created_at->format('d/m/Y H:i'),
+                'days_in_stage' => $daysInStage,
+                'result' => $result,
+                'interview_type' => $interviewType,
+                'remarks' => $detailedRemarks,
+            ];
+        }
+
+        return response()->json([
+            'draw' => $request->input('draw'),
+            'recordsTotal' => $totalRecords,
+            'recordsFiltered' => $filteredRecords,
+            'data' => $data
+        ]);
+    }
+
+    private function getCurrentStage($session)
+    {
+        // Normalize helper
+        $normalize = function ($value) {
+            return strtolower(trim((string) $value));
+        };
+
+        // Treat these as PASS
+        $isPass = function ($value) use ($normalize) {
+            return in_array($normalize($value), ['pass', 'fit', 'approved', 'accepted', 'recommended']);
+        };
+
+        // 1) TRUST session.current_stage when present
+        if (!empty($session->current_stage)) {
+            $stage = $session->current_stage; // raw value like 'tes_teori'
+            switch ($stage) {
+                case 'cv_review':
+                    if ($session->cvReview && !$isPass($session->cvReview->decision)) {
+                        return 'CV Review';
+                    }
+                    break;
+                case 'psikotes':
+                    if ($session->psikotes && !$isPass($session->psikotes->result)) {
+                        return 'Psikotes';
+                    }
+                    break;
+                case 'tes_teori':
+                    if ($session->tesTeori && !$isPass($session->tesTeori->result)) {
+                        return 'Tes Teori';
+                    }
+                    break;
+                case 'interview':
+                    if ($session->interviews && is_object($session->interviews) && method_exists($session->interviews, 'count') && $session->interviews->count() > 0) {
+                        $hasPendingOrFail = $session->interviews->contains(function ($i) use ($isPass) {
+                            return !$isPass($i->result);
+                        });
+                        if ($hasPendingOrFail) {
+                            return 'Interview';
+                        }
+                    }
+                    break;
+                case 'offering':
+                    if ($session->offering && $normalize($session->offering->response) !== 'accepted') {
+                        return 'Offering';
+                    }
+                    break;
+                case 'mcu':
+                    if ($session->mcu && !$isPass($session->mcu->result)) {
+                        return 'MCU';
+                    }
+                    break;
+                case 'hire':
+                    if ($session->hiring && $normalize($session->hiring->result) !== 'hired') {
+                        return 'Hiring';
+                    }
+                    break;
+                case 'onboarding':
+                    if ($session->onboarding && $normalize($session->onboarding->result) !== 'complete') {
+                        return 'Onboarding';
+                    }
+                    break;
+            }
+            // If we reach here, fall back to displaying the declared current_stage text
+            return ucfirst(str_replace('_', ' ', $stage));
+        }
+
+        // 2) Fallback: detect from highest to lowest stage
+        if ($session->onboarding && $normalize($session->onboarding->result) !== 'complete') return 'Onboarding';
+        if ($session->hiring && $normalize($session->hiring->result) !== 'hired') return 'Hiring';
+        if ($session->mcu && !$isPass($session->mcu->result)) return 'MCU';
+        if ($session->offering && $normalize($session->offering->response) !== 'accepted') return 'Offering';
+        if ($session->interviews && is_object($session->interviews) && method_exists($session->interviews, 'count') && $session->interviews->count() > 0) {
+            $hasPendingOrFail = $session->interviews->contains(function ($i) use ($isPass) {
+                return !$isPass($i->result);
+            });
+            if ($hasPendingOrFail) return 'Interview';
+        }
+        if ($session->tesTeori && !$isPass($session->tesTeori->result)) return 'Tes Teori';
+        if ($session->psikotes && !$isPass($session->psikotes->result)) return 'Psikotes';
+        if ($session->cvReview && !$isPass($session->cvReview->decision)) return 'CV Review';
+
+        return 'Unknown';
+    }
+
+    private function getLastActivity($session)
+    {
+        $dates = [];
+
+        if ($session->onboarding && $session->onboarding->updated_at) {
+            $dates[] = $session->onboarding->updated_at;
+        }
+        if ($session->hiring && $session->hiring->updated_at) {
+            $dates[] = $session->hiring->updated_at;
+        }
+        if ($session->mcu && $session->mcu->updated_at) {
+            $dates[] = $session->mcu->updated_at;
+        }
+        if ($session->offering && $session->offering->updated_at) {
+            $dates[] = $session->offering->updated_at;
+        }
+        if ($session->interviews && is_object($session->interviews) && method_exists($session->interviews, 'count') && $session->interviews->count() > 0) {
+            foreach ($session->interviews as $interview) {
+                if ($interview->updated_at) {
+                    $dates[] = $interview->updated_at;
+                }
+            }
+        }
+        if ($session->tesTeori && $session->tesTeori->updated_at) {
+            $dates[] = $session->tesTeori->updated_at;
+        }
+        if ($session->psikotes && $session->psikotes->updated_at) {
+            $dates[] = $session->psikotes->updated_at;
+        }
+        if ($session->cvReview && $session->cvReview->updated_at) {
+            $dates[] = $session->cvReview->updated_at;
+        }
+
+        return !empty($dates) ? max($dates) : $session->updated_at;
+    }
+
+    private function getDaysInCurrentStage($session, $currentStage)
+    {
+        $stageDate = null;
+
+        switch ($currentStage) {
+            case 'Onboarding':
+                $stageDate = $session->onboarding ? $session->onboarding->created_at : null;
+                break;
+            case 'Hiring':
+                $stageDate = $session->hiring ? $session->hiring->created_at : null;
+                break;
+            case 'MCU':
+                $stageDate = $session->mcu ? $session->mcu->created_at : null;
+                break;
+            case 'Offering':
+                $stageDate = $session->offering ? $session->offering->created_at : null;
+                break;
+            case 'Interview':
+                if ($session->interviews && is_object($session->interviews) && method_exists($session->interviews, 'count') && $session->interviews->count() > 0) {
+                    $stageDate = $session->interviews->first()->created_at;
+                }
+                break;
+            case 'Tes Teori':
+                $stageDate = $session->tesTeori ? $session->tesTeori->created_at : null;
+                break;
+            case 'Psikotes':
+                $stageDate = $session->psikotes ? $session->psikotes->created_at : null;
+                break;
+            case 'CV Review':
+                $stageDate = $session->cvReview ? $session->cvReview->created_at : null;
+                break;
+        }
+
+        return $stageDate ? now()->diffInDays($stageDate) : 0;
+    }
+
+    private function buildStaleCandidatesNotes($session, $currentStage)
+    {
+        $notes = [];
+
+        switch ($currentStage) {
+            case 'CV Review':
+                if ($session->cvReview) {
+                    $notes[] = "CV Review: " . ($session->cvReview->decision ?? 'No decision');
+                }
+                break;
+            case 'Psikotes':
+                if ($session->psikotes) {
+                    $notes[] = "Psikotes: " . ($session->psikotes->result ?? 'No result');
+                }
+                break;
+            case 'Tes Teori':
+                if ($session->tesTeori) {
+                    $notes[] = "Tes Teori: " . ($session->tesTeori->result ?? 'No result');
+                }
+                break;
+            case 'Interview':
+                if ($session->interviews && is_object($session->interviews) && method_exists($session->interviews, 'count') && $session->interviews->count() > 0) {
+                    foreach ($session->interviews as $interview) {
+                        $notes[] = "Interview " . ucfirst($interview->type) . ": " . ($interview->result ?? 'No result');
+                    }
+                }
+                break;
+            case 'Offering':
+                if ($session->offering) {
+                    $notes[] = "Offering: " . ($session->offering->response ?? 'No response');
+                }
+                break;
+            case 'MCU':
+                if ($session->mcu) {
+                    $notes[] = "MCU: " . ($session->mcu->result ?? 'No result');
+                }
+                break;
+            case 'Hiring':
+                if ($session->hiring) {
+                    $notes[] = "Hiring: " . ($session->hiring->result ?? 'No result');
+                }
+                break;
+            case 'Onboarding':
+                if ($session->onboarding) {
+                    $notes[] = "Onboarding: " . ($session->onboarding->result ?? 'No result');
+                }
+                break;
+        }
+
+        return implode(' | ', $notes);
+    }
+
+    private function isCandidateCompletedOrFailed($session)
+    {
+        // Check if candidate has completed onboarding
+        if ($session->onboarding && $session->onboarding->result === 'complete') {
+            return true;
+        }
+
+        // Check if candidate has been hired
+        if ($session->hiring && $session->hiring->result === 'hired') {
+            return true;
+        }
+
+        // Check if candidate failed at any stage and was rejected
+        if ($session->cvReview && $session->cvReview->decision === 'fail') {
+            return true;
+        }
+        if ($session->psikotes && $session->psikotes->result === 'fail') {
+            return true;
+        }
+        if ($session->tesTeori && $session->tesTeori->result === 'fail') {
+            return true;
+        }
+        if ($session->interviews && $session->interviews->contains(function ($interview) {
+            return $interview->result === 'fail';
+        })) {
+            return true;
+        }
+        if ($session->offering && $session->offering->response === 'rejected') {
+            return true;
+        }
+        if ($session->mcu && $session->mcu->result === 'fail') {
+            return true;
+        }
+
+        // Check if session status indicates completion or failure
+        if (in_array($session->status, ['hired', 'rejected', 'withdrawn', 'cancelled'])) {
+            return true;
+        }
+
+        return false;
+    }
+
+    public function exportStaleCandidates(Request $request)
+    {
+        $query = \App\Models\RecruitmentSession::with([
+            'fptk.department',
+            'fptk.position',
+            'fptk.project',
+            'cvReview',
+            'psikotes',
+            'tesTeori',
+            'interviews',
+            'offering',
+            'mcu',
+            'hiring',
+            'onboarding',
+            'candidate'
+        ])->where('status', 'in_process');
+
+        if ($request->filled('date1') && $request->filled('date2')) {
+            $query->whereBetween('created_at', [$request->date1, $request->date2]);
+        }
+        if ($request->filled('department')) {
+            $query->whereHas('fptk', function ($q) use ($request) {
+                $q->where('department_id', $request->department);
+            });
+        }
+        if ($request->filled('position')) {
+            $query->whereHas('fptk', function ($q) use ($request) {
+                $q->where('position_id', $request->position);
+            });
+        }
+        if ($request->filled('project')) {
+            $query->whereHas('fptk', function ($q) use ($request) {
+                $q->where('project_id', $request->project);
+            });
+        }
+
+        $sessions = $query->get();
+
+        $rows = [];
+        foreach ($sessions as $session) {
+            // Skip completed/failed per stale logic
+            if ($this->isCandidateCompletedOrFailed($session)) {
+                continue;
+            }
+            $currentStage = $this->getCurrentStage($session);
+            $lastActivity = $this->getLastActivity($session);
+            $daysSinceLastActivity = $lastActivity ? now()->diffInDays($lastActivity) : 0;
+            $daysInCurrentStage = $this->getDaysInCurrentStage($session, $currentStage);
+
+            $rows[] = [
+                'request_no' => $session->fptk ? $session->fptk->request_number : '-',
+                'department' => $session->fptk && $session->fptk->department ? $session->fptk->department->department_name : '-',
+                'position' => $session->fptk && $session->fptk->position ? $session->fptk->position->position_name : '-',
+                'project' => $session->fptk && $session->fptk->project ? $session->fptk->project->project_name : '-',
+                'candidate_name' => $session->candidate ? $session->candidate->fullname : '-',
+                'current_stage' => $currentStage,
+                'last_activity_date' => $lastActivity ? $lastActivity->format('d/m/Y') : '-',
+                'days_since_last_activity' => $daysSinceLastActivity,
+                'days_in_current_stage' => $daysInCurrentStage,
+                'status' => $daysSinceLastActivity > 7 ? 'Stale' : 'Active',
+                'notes' => $this->buildStaleCandidatesNotes($session, $currentStage),
+            ];
+        }
+
+        return Excel::download(new class(collect($rows)) implements FromCollection, WithHeadings, WithMapping {
+            private $rows;
+            public function __construct($rows)
+            {
+                $this->rows = $rows;
+            }
+            public function collection()
+            {
+                return $this->rows;
+            }
+            public function headings(): array
+            {
+                return [
+                    'Request No',
+                    'Department',
+                    'Position',
+                    'Project',
+                    'Candidate Name',
+                    'Current Stage',
+                    'Last Activity Date',
+                    'Days Since Last Activity',
+                    'Days in Current Stage',
+                    'Status',
+                    'Notes'
+                ];
+            }
+            public function map($row): array
+            {
+                return [
+                    $row['request_no'],
+                    $row['department'],
+                    $row['position'],
+                    $row['project'],
+                    $row['candidate_name'],
+                    $row['current_stage'],
+                    $row['last_activity_date'],
+                    $row['days_since_last_activity'],
+                    $row['days_in_current_stage'],
+                    $row['status'],
+                    $row['notes'],
+                ];
+            }
+        }, 'recruitment_stale_candidates_' . date('YmdHis') . '.xlsx');
     }
 }

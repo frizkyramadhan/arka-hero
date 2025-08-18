@@ -1,11 +1,13 @@
 @extends('layouts.main')
 
+@section('title', 'Stale Candidates Report')
+
 @section('content')
     <section class="content-header">
         <div class="container-fluid">
             <div class="row mb-2">
                 <div class="col-sm-6">
-                    <h1>{{ $subtitle }}</h1>
+                    <h1>{{ $title }}</h1>
                 </div>
                 <div class="col-sm-6">
                     <div class="float-right">
@@ -27,20 +29,20 @@
                     </h5>
                 </div>
                 <div class="card-body">
-                    <form method="GET" action="{{ route('recruitment.reports.time-to-hire') }}" class="row"
+                    <form method="GET" action="{{ route('recruitment.reports.stale-candidates') }}" class="row"
                         id="filterForm">
                         <div class="col-md-2">
                             <div class="form-group">
                                 <label for="date1">Date From</label>
                                 <input type="date" name="date1" id="date1" class="form-control"
-                                    value="{{ $date1 }}">
+                                    value="{{ request('date1') }}">
                             </div>
                         </div>
                         <div class="col-md-2">
                             <div class="form-group">
                                 <label for="date2">Date To</label>
                                 <input type="date" name="date2" id="date2" class="form-control"
-                                    value="{{ $date2 }}">
+                                    value="{{ request('date2') }}">
                             </div>
                         </div>
                         <div class="col-md-2">
@@ -50,7 +52,7 @@
                                     <option value="">All Departments</option>
                                     @foreach ($departments as $dept)
                                         <option value="{{ $dept->id }}"
-                                            {{ $department == $dept->id ? 'selected' : '' }}>
+                                            {{ request('department') == $dept->id ? 'selected' : '' }}>
                                             {{ $dept->department_name }}
                                         </option>
                                     @endforeach
@@ -63,7 +65,8 @@
                                 <select name="position" id="position" class="form-control">
                                     <option value="">All Positions</option>
                                     @foreach ($positions as $pos)
-                                        <option value="{{ $pos->id }}" {{ $position == $pos->id ? 'selected' : '' }}>
+                                        <option value="{{ $pos->id }}"
+                                            {{ request('position') == $pos->id ? 'selected' : '' }}>
                                             {{ $pos->position_name }}
                                         </option>
                                     @endforeach
@@ -76,7 +79,8 @@
                                 <select name="project" id="project" class="form-control">
                                     <option value="">All Projects</option>
                                     @foreach ($projects as $proj)
-                                        <option value="{{ $proj->id }}" {{ $project == $proj->id ? 'selected' : '' }}>
+                                        <option value="{{ $proj->id }}"
+                                            {{ request('project') == $proj->id ? 'selected' : '' }}>
                                             {{ $proj->project_name }}
                                         </option>
                                     @endforeach
@@ -89,7 +93,7 @@
                             <button type="submit" form="filterForm" class="btn btn-primary mr-2">
                                 <i class="fas fa-search"></i> Filter
                             </button>
-                            <a href="{{ route('recruitment.reports.time-to-hire') }}" class="btn btn-warning mr-2">
+                            <a href="{{ route('recruitment.reports.stale-candidates') }}" class="btn btn-warning mr-2">
                                 <i class="fas fa-undo"></i> Reset
                             </a>
                             <button type="button" id="exportExcelBtn" class="btn btn-success">
@@ -99,22 +103,28 @@
                     </div>
                 </div>
                 <div class="card-body">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i>
+                        <strong>Note:</strong> This report only shows candidates who are still <strong>in process</strong>.
+                        Candidates who are completed, hired, rejected, or failed are automatically excluded.
+                    </div>
+
+                    <!-- Data Table -->
                     <div class="table-responsive">
-                        <table id="timeToHireTable" class="table table-sm table-bordered table-striped">
+                        <table id="staleCandidatesTable" class="table table-sm table-bordered table-striped">
                             <thead>
                                 <tr>
                                     <th class="align-middle">Request No</th>
                                     <th class="align-middle">Department</th>
                                     <th class="align-middle">Position</th>
                                     <th class="align-middle">Project</th>
-                                    <th class="align-middle">Requested At</th>
-                                    <th class="align-middle">Hiring Date</th>
-                                    <th class="align-middle">Total Days</th>
-                                    <th class="align-middle">Approval Days</th>
-                                    <th class="align-middle">Recruitment Days</th>
+                                    <th class="align-middle">Candidate Name</th>
+                                    <th class="align-middle">Current Stage</th>
+                                    <th class="align-middle">Last Activity Date</th>
+                                    <th class="align-middle">Days Since Last Activity</th>
+                                    <th class="align-middle">Days in Current Stage</th>
                                     <th class="align-middle">Status</th>
-                                    <th class="align-middle">Latest Approval</th>
-                                    <th class="align-middle">Approval Remarks</th>
+                                    <th class="align-middle">Notes</th>
                                 </tr>
                             </thead>
                         </table>
@@ -140,12 +150,12 @@
 
     <script>
         $(document).ready(function() {
-            var table = $('#timeToHireTable').DataTable({
+            var table = $('#staleCandidatesTable').DataTable({
                 processing: true,
                 serverSide: true,
                 searching: false,
                 ajax: {
-                    url: '{{ route('recruitment.reports.time-to-hire.data') }}',
+                    url: '{{ route('recruitment.reports.stale-candidates.data') }}',
                     type: 'GET',
                     data: function(d) {
                         d.date1 = $('input[name="date1"]').val();
@@ -173,34 +183,41 @@
                         data: 'project'
                     },
                     {
-                        data: 'requested_at'
+                        data: 'candidate_name'
                     },
                     {
-                        data: 'hiring_date'
+                        data: 'current_stage'
                     },
                     {
-                        data: 'total_days'
+                        data: 'last_activity_date'
                     },
                     {
-                        data: 'approval_days'
+                        data: 'days_since_last_activity',
+                        render: function(data, type, row) {
+                            var colorClass = data <= 7 ? 'badge-success' : (data <= 14 ?
+                                'badge-warning' : 'badge-danger');
+                            return '<span class="badge ' + colorClass + '">' + data +
+                                ' days</span>';
+                        }
                     },
                     {
-                        data: 'recruitment_days'
+                        data: 'days_in_current_stage'
                     },
                     {
-                        data: 'status'
+                        data: 'status',
+                        render: function(data, type, row) {
+                            var colorClass = data === 'Stale' ? 'badge-danger' : 'badge-success';
+                            return '<span class="badge ' + colorClass + '">' + data + '</span>';
+                        }
                     },
                     {
-                        data: 'latest_approval'
-                    },
-                    {
-                        data: 'remarks'
+                        data: 'notes'
                     }
                 ],
                 responsive: true,
                 pageLength: 25,
                 order: [
-                    [4, 'desc']
+                    [7, 'desc']
                 ],
                 language: {
                     processing: '<i class="fa fa-spinner fa-spin fa-3x fa-fw"></i><span class="sr-only">Loading...</span>'
@@ -222,7 +239,7 @@
                     position: $('select[name="position"]').val(),
                     project: $('select[name="project"]').val()
                 });
-                window.location.href = '{{ route('recruitment.reports.time-to-hire.export') }}' + '?' +
+                window.location.href = '{{ route('recruitment.reports.stale-candidates.export') }}' + '?' +
                     params;
             });
         });

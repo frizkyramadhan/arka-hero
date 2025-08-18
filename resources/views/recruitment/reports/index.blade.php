@@ -109,13 +109,14 @@
                             </h3>
                         </div>
                         <div class="card-body">
-                            <p>Analyze interview scheduling efficiency and assessment pass/fail rates.</p>
-                            <p><strong>Status:</strong> <span class="badge badge-warning">Coming Soon</span></p>
+                            <p>Analyze assessment performance for candidates who passed CV Review.</p>
+                            <p><strong>Features:</strong> Assessment results, score tracking, overall evaluation</p>
                         </div>
                         <div class="card-footer">
-                            <button class="btn btn-secondary" disabled>
-                                <i class="fas fa-chart-pie"></i> Coming Soon
-                            </button>
+                            <a href="{{ route('recruitment.reports.interview-assessment-analytics') }}"
+                                class="btn btn-warning">
+                                <i class="fas fa-chart-pie"></i> View Report
+                            </a>
                         </div>
                     </div>
                 </div>
@@ -124,18 +125,18 @@
                     <div class="card">
                         <div class="card-header">
                             <h3 class="card-title">
-                                <i class="fas fa-exclamation-triangle"></i>
+                                <i class="fas fa-clock"></i>
                                 Stale Candidates Report
                             </h3>
                         </div>
                         <div class="card-body">
-                            <p>Identify candidates with no progress for extended periods (7/14/30+ days).</p>
-                            <p><strong>Status:</strong> <span class="badge badge-warning">Coming Soon</span></p>
+                            <p>Identify candidates with no recent activity or progress updates.</p>
+                            <p><strong>Features:</strong> Activity tracking, stage analysis, Excel export</p>
                         </div>
                         <div class="card-footer">
-                            <button class="btn btn-secondary" disabled>
-                                <i class="fas fa-user-clock"></i> Coming Soon
-                            </button>
+                            <a href="{{ route('recruitment.reports.stale-candidates') }}" class="btn btn-warning">
+                                <i class="fas fa-arrow-right"></i> View Report
+                            </a>
                         </div>
                     </div>
                 </div>
