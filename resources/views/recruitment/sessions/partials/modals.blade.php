@@ -34,7 +34,15 @@
                     </div>
 
                     <div class="form-group">
-                        <label for="cv_review_notes" class="font-weight-bold">Notes *</label>
+                        <label for="cv_review_reviewed_at" class="font-weight-bold">Review Date <span
+                                class="text-danger">*</span></label>
+                        <input type="datetime-local" class="form-control" id="cv_review_reviewed_at" name="reviewed_at"
+                            value="{{ now()->format('Y-m-d\TH:i') }}" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="cv_review_notes" class="font-weight-bold">Notes <span
+                                class="text-danger">*</span></label>
                         <textarea class="form-control" id="cv_review_notes" name="notes" rows="3" required></textarea>
                     </div>
                 </div>
@@ -117,6 +125,12 @@
                             <div class="row mt-3">
                                 <div class="col-12">
                                     <div class="form-group">
+                                        <label for="psikotes_reviewed_at" class="font-weight-bold">Review Date
+                                            <span class="text-danger">*</span></label>
+                                        <input type="datetime-local" class="form-control" id="psikotes_reviewed_at"
+                                            name="reviewed_at" value="{{ now()->format('Y-m-d\TH:i') }}" required>
+                                    </div>
+                                    <div class="form-group">
                                         <label for="psikotes_notes">Catatan</label>
                                         <textarea class="form-control" id="psikotes_notes" name="notes" rows="3"
                                             placeholder="Masukkan catatan tambahan (opsional)"></textarea>
@@ -168,6 +182,16 @@
                                 </div>
                                 <div class="col-md-6">
                                     <div class="form-group">
+                                        <label for="tes_teori_reviewed_at" class="font-weight-bold">Review Date
+                                            <span class="text-danger">*</span></label>
+                                        <input type="datetime-local" class="form-control" id="tes_teori_reviewed_at"
+                                            name="reviewed_at" value="{{ now()->format('Y-m-d\TH:i') }}" required>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-12">
+                                    <div class="form-group">
                                         <label for="tes_teori_notes">Catatan</label>
                                         <textarea class="form-control" id="tes_teori_notes" name="notes" rows="3"
                                             placeholder="Masukkan catatan tambahan (opsional)"></textarea>
@@ -205,7 +229,8 @@
 
                     <!-- Interview Type Selection -->
                     <div class="form-group mb-4">
-                        <label for="interview_type" class="font-weight-bold">Interview Type *</label>
+                        <label for="interview_type" class="font-weight-bold">Interview Type <span
+                                class="text-danger">*</span></label>
                         <select class="form-control" id="interview_type" name="type" required>
                             <option value="">Select Interview Type</option>
                             <option value="hr">HR Interview</option>
@@ -230,8 +255,16 @@
                     </div>
 
                     <div class="form-group">
-                        <label for="interview_notes" class="font-weight-bold">Notes *</label>
+                        <label for="interview_notes" class="font-weight-bold">Notes <span
+                                class="text-danger">*</span></label>
                         <textarea class="form-control" id="interview_notes" name="notes" rows="3" required></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="interview_reviewed_at" class="font-weight-bold">Review Date <span
+                                class="text-danger">*</span></label>
+                        <input type="datetime-local" class="form-control" id="interview_reviewed_at"
+                            name="reviewed_at" value="{{ now()->format('Y-m-d\TH:i') }}" required>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -314,6 +347,13 @@
                         <textarea class="form-control" id="offering_notes" name="notes" rows="3"
                             placeholder="Enter offering notes (optional)"></textarea>
                     </div>
+
+                    <div class="form-group">
+                        <label for="offering_reviewed_at" class="font-weight-bold">Review Date <span
+                                class="text-danger">*</span></label>
+                        <input type="datetime-local" class="form-control" id="offering_reviewed_at"
+                            name="reviewed_at" value="{{ now()->format('Y-m-d\TH:i') }}" required>
+                    </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
@@ -365,6 +405,12 @@
                             <div class="form-group">
                                 <label for="mcu_notes">Notes</label>
                                 <textarea class="form-control" id="mcu_notes" name="notes" rows="3" placeholder="Enter notes (optional)"></textarea>
+                            </div>
+                            <div class="form-group">
+                                <label for="mcu_reviewed_at" class="font-weight-bold">Review Date <span
+                                        class="text-danger">*</span></label>
+                                <input type="datetime-local" class="form-control" id="mcu_reviewed_at"
+                                    name="reviewed_at" value="{{ now()->format('Y-m-d\TH:i') }}" required>
                             </div>
                         </div>
                     </div>
@@ -642,6 +688,13 @@
                         <textarea class="form-control" id="hire_notes" name="notes" rows="3"
                             placeholder="Enter hiring notes (optional)"></textarea>
                     </div>
+
+                    <div class="form-group">
+                        <label for="hire_reviewed_at" class="font-weight-bold">Review Date <span
+                                class="text-danger">*</span></label>
+                        <input type="datetime-local" class="form-control" id="hire_reviewed_at" name="reviewed_at"
+                            value="{{ now()->format('Y-m-d\TH:i') }}" required>
+                    </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
@@ -674,6 +727,12 @@
                         <label for="onboarding_date">Onboarding Date <span class="text-danger">*</span></label>
                         <input type="date" class="form-control" id="onboarding_date" name="onboarding_date"
                             required>
+                    </div>
+                    <div class="form-group">
+                        <label for="onboarding_reviewed_at" class="font-weight-bold">Review Date <span
+                                class="text-danger">*</span></label>
+                        <input type="datetime-local" class="form-control" id="onboarding_reviewed_at"
+                            name="reviewed_at" value="{{ now()->format('Y-m-d\TH:i') }}" required>
                     </div>
                     <div class="form-group">
                         <label for="onboarding_notes">Notes</label>

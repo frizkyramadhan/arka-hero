@@ -182,8 +182,8 @@
             <div class="row">
                 <div class="col-md-12">
                     <div class="form-group">
-                        <label>Select Employee <span class="text-danger">*</span></label>
-                        <select class="form-control select2bs4" name="administration_id" id="administration_id" required>
+                        <label>Select Employee</label>
+                        <select class="form-control select2bs4" name="administration_id" id="administration_id">
                             <option value="">- Select Employee -</option>
                             @foreach($administrations as $admin)
                                 <option value="{{ $admin->id }}"
@@ -364,14 +364,14 @@
             dynamicFieldsContainer.empty(); // Kosongkan field
 
             // Tampilkan field berdasarkan kategori
-            if (categoryCode === 'PKWT' || categoryCode === 'CRTE' || categoryCode === 'SKPK') {
+            // Employee selection for PKWT, PAR, CRTE - nullable (not required) for manual processes
+            if (categoryCode === 'PKWT' || categoryCode === 'PAR' || categoryCode === 'CRTE') {
                 dynamicFieldsContainer.append($('#employee-template').html());
                 // Inisialisasi Select2 untuk field employee
                 $('#administration_id').select2({
                     theme: 'bootstrap4'
                 });
             }
-
             if (categoryCode === 'PKWT') {
                 dynamicFieldsContainer.append($('#pkwt-template').html());
             } else if (categoryCode === 'PAR') {
