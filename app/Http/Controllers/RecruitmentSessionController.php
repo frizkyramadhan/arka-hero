@@ -621,7 +621,8 @@ class RecruitmentSessionController extends Controller
             // Validate request
             $request->validate([
                 'decision' => 'required|in:recommended,not_recommended',
-                'notes' => 'nullable|string',
+                'notes' => 'required|string',
+                'reviewed_at' => 'required|date',
             ]);
 
             // Check if session is in CV review stage
@@ -638,7 +639,7 @@ class RecruitmentSessionController extends Controller
                     'decision' => $request->decision,
                     'notes' => $request->notes,
                     'reviewed_by' => auth()->id(),
-                    'reviewed_at' => now(),
+                    'reviewed_at' => $request->reviewed_at,
                 ]);
                 $cvReview->save();
             } else {
@@ -647,7 +648,7 @@ class RecruitmentSessionController extends Controller
                     'decision' => $request->decision,
                     'notes' => $request->notes,
                     'reviewed_by' => auth()->id(),
-                    'reviewed_at' => now(),
+                    'reviewed_at' => $request->reviewed_at,
                 ]);
             }
 
@@ -718,6 +719,7 @@ class RecruitmentSessionController extends Controller
                 'online_score' => 'nullable|numeric|min:0|max:100',
                 'offline_score' => 'nullable|numeric|min:0|max:10',
                 'notes' => 'nullable|string',
+                'reviewed_at' => 'required|date',
             ]);
 
             // Check if session is in psikotes stage
@@ -766,7 +768,7 @@ class RecruitmentSessionController extends Controller
                     'result' => $overallResult,
                     'notes' => $request->notes,
                     'reviewed_by' => auth()->id(),
-                    'reviewed_at' => now(),
+                    'reviewed_at' => $request->reviewed_at,
                 ]);
                 $psikotes->save();
             } else {
@@ -777,7 +779,7 @@ class RecruitmentSessionController extends Controller
                     'result' => $overallResult,
                     'notes' => $request->notes,
                     'reviewed_by' => auth()->id(),
-                    'reviewed_at' => now(),
+                    'reviewed_at' => $request->reviewed_at,
                 ]);
             }
 
@@ -847,6 +849,7 @@ class RecruitmentSessionController extends Controller
             $request->validate([
                 'score' => 'required|numeric|min:0|max:100',
                 'notes' => 'nullable|string',
+                'reviewed_at' => 'required|date',
             ]);
 
             // Check if session is in tes teori stage
@@ -892,7 +895,7 @@ class RecruitmentSessionController extends Controller
                     'result' => $result,
                     'notes' => $notes,
                     'reviewed_by' => auth()->id(),
-                    'reviewed_at' => now(),
+                    'reviewed_at' => $request->reviewed_at,
                 ]);
                 $tesTeori->save();
             } else {
@@ -902,7 +905,7 @@ class RecruitmentSessionController extends Controller
                     'result' => $result,
                     'notes' => $notes,
                     'reviewed_by' => auth()->id(),
-                    'reviewed_at' => now(),
+                    'reviewed_at' => $request->reviewed_at,
                 ]);
             }
 
@@ -972,7 +975,8 @@ class RecruitmentSessionController extends Controller
             $request->validate([
                 'type' => 'required|in:hr,user',
                 'result' => 'required|in:recommended,not_recommended',
-                'notes' => 'nullable|string',
+                'notes' => 'required|string',
+                'reviewed_at' => 'required|date',
             ]);
 
             $type = $request->type;
@@ -993,7 +997,7 @@ class RecruitmentSessionController extends Controller
                     'result' => $result,
                     'notes' => $request->notes,
                     'reviewed_by' => auth()->id(),
-                    'reviewed_at' => now(),
+                    'reviewed_at' => $request->reviewed_at,
                 ]);
                 $interview->save();
             } else {
@@ -1002,7 +1006,7 @@ class RecruitmentSessionController extends Controller
                     'result' => $result,
                     'notes' => $request->notes,
                     'reviewed_by' => auth()->id(),
-                    'reviewed_at' => now(),
+                    'reviewed_at' => $request->reviewed_at,
                 ]);
             }
 
@@ -1072,16 +1076,18 @@ class RecruitmentSessionController extends Controller
 
     public function updateOffering(Request $request, $sessionId)
     {
-        $request->validate([
-            'result' => 'required|in:accepted,rejected',
-            'offering_letter_number_id' => 'required|exists:letter_numbers,id',
-            'notes' => 'nullable|string'
-        ]);
-
         try {
             DB::beginTransaction();
 
             $session = RecruitmentSession::with(['candidate', 'offering'])->findOrFail($sessionId);
+
+            // Validate request
+            $request->validate([
+                'offering_letter_number_id' => 'required|exists:letter_numbers,id',
+                'result' => 'required|in:accepted,rejected',
+                'notes' => 'nullable|string',
+                'reviewed_at' => 'required|date',
+            ]);
 
             // Check if session is in offering stage
             if ($session->current_stage !== 'offering') {
@@ -1106,7 +1112,7 @@ class RecruitmentSessionController extends Controller
                     'result' => $request->result,
                     'notes' => $request->notes,
                     'reviewed_by' => auth()->id(),
-                    'reviewed_at' => now(),
+                    'reviewed_at' => $request->reviewed_at,
                 ]
             );
 
@@ -1171,6 +1177,7 @@ class RecruitmentSessionController extends Controller
         $request->validate([
             'overall_health' => 'required|in:fit,unfit,follow_up',
             'notes' => 'nullable|string',
+            'reviewed_at' => 'required|date',
         ]);
 
         try {
@@ -1192,7 +1199,7 @@ class RecruitmentSessionController extends Controller
                     'result' => $overallHealth,
                     'notes' => $request->notes,
                     'reviewed_by' => auth()->id(),
-                    'reviewed_at' => now(),
+                    'reviewed_at' => $request->reviewed_at,
                 ]
             );
 
@@ -1254,34 +1261,23 @@ class RecruitmentSessionController extends Controller
     public function updateHiring(Request $request, $sessionId)
     {
         $request->validate([
-            'agreement_type' => 'required|in:pkwt,pkwtt',
-            'hiring_letter_number_id' => 'required|exists:letter_numbers,id',
-            'notes' => 'nullable|string',
-
-            // Employee personal data
-            'employee.identity_card' => 'required|string|unique:employees,identity_card',
+            'employee' => 'required|array',
             'employee.fullname' => 'required|string',
+            'employee.identity_card' => 'required|string',
             'employee.emp_pob' => 'required|string',
             'employee.emp_dob' => 'required|date',
             'employee.religion_id' => 'required|exists:religions,id',
             'employee.gender' => 'nullable|in:male,female',
-            'employee.marital' => 'nullable|string',
-            'employee.address' => 'nullable|string',
-            'employee.phone' => 'nullable|string',
-            'employee.email' => 'nullable|email',
-
-            // Administration data
-            'administration.nik' => 'required|string|unique:administrations,nik',
-            'administration.project_id' => 'nullable|exists:projects,id',
-            'administration.position_id' => 'nullable|exists:positions,id',
-            'administration.grade_id' => 'nullable|exists:grades,id',
-            'administration.level_id' => 'nullable|exists:levels,id',
-            'administration.doh' => 'required|date',
-            'administration.poh' => 'required|string',
-            'administration.class' => 'required|string',
-            'administration.foc' => 'nullable|date',
-            'administration.agreement' => 'nullable|string',
-            'administration.no_fptk' => 'nullable|string',
+            'administration' => 'required|array',
+            'administration.department_id' => 'required|exists:departments,id',
+            'administration.position_id' => 'required|exists:positions,id',
+            'administration.project_id' => 'required|exists:projects,id',
+            'administration.level_id' => 'required|exists:levels,id',
+            'administration.foc' => 'required_if:agreement_type,pkwt|nullable|date',
+            'hiring_letter_number_id' => 'required|exists:letter_numbers,id',
+            'agreement_type' => 'required|in:pkwt,pkwtt',
+            'notes' => 'nullable|string',
+            'reviewed_at' => 'required|date',
         ], [
             'employee.identity_card.unique' => 'Identity Card No already exists',
             'administration.nik.unique' => 'NIK already exists',
@@ -1317,7 +1313,7 @@ class RecruitmentSessionController extends Controller
                     'letter_number' => $fullLetterNumber,
                     'notes' => $request->notes,
                     'reviewed_by' => auth()->id(),
-                    'reviewed_at' => now(),
+                    'reviewed_at' => $request->reviewed_at,
                 ]
             );
 
@@ -1432,6 +1428,7 @@ class RecruitmentSessionController extends Controller
         $request->validate([
             'onboarding_date' => 'required|date',
             'notes' => 'nullable|string',
+            'reviewed_at' => 'required|date',
         ]);
 
         try {
@@ -1451,7 +1448,7 @@ class RecruitmentSessionController extends Controller
                     'onboarding_date' => $request->onboarding_date,
                     'notes' => $request->notes,
                     'reviewed_by' => auth()->id(),
-                    'reviewed_at' => now(),
+                    'reviewed_at' => $request->reviewed_at,
                 ]
             );
 

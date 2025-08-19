@@ -1023,7 +1023,7 @@ class LetterNumberController extends Controller
         if ($category) {
             switch ($category->category_code) {
                 case 'PKWT':
-                    $rules['administration_id'] = 'required|exists:administrations,id';
+                    // PKWT no longer requires administration_id (NIK) - allowing import without NIK
                     $rules['duration'] = 'required|string';
                     $rules['start_date'] = 'required|date';
                     $rules['end_date'] = 'required|date|after:start_date';
@@ -1031,13 +1031,16 @@ class LetterNumberController extends Controller
                     break;
 
                 case 'PAR':
-                    $rules['administration_id'] = 'required|exists:administrations,id';
+                    // PAR no longer requires administration_id (NIK) - allowing import without NIK
                     $rules['par_type'] = 'required|in:new hire,promosi,mutasi,demosi';
                     break;
 
                 case 'CRTE':
+                    // CRTE no longer requires administration_id (NIK) - allowing import without NIK
+                    break;
+
                 case 'SKPK':
-                    $rules['administration_id'] = 'required|exists:administrations,id';
+                    // SKPK no longer requires administration_id (NIK)
                     break;
             }
         }
@@ -1891,7 +1894,7 @@ class LetterNumberController extends Controller
         if ($category) {
             switch ($category->category_code) {
                 case 'PKWT':
-                    $rules['administration_id'] = 'required|exists:administrations,id';
+                    // PKWT no longer requires administration_id (NIK) - allowing import without NIK
                     $rules['duration'] = 'required|string';
                     $rules['start_date'] = 'required|date';
                     $rules['end_date'] = 'required|date|after:start_date';
@@ -1899,13 +1902,16 @@ class LetterNumberController extends Controller
                     break;
 
                 case 'PAR':
-                    $rules['administration_id'] = 'required|exists:administrations,id';
+                    // PAR no longer requires administration_id (NIK) - allowing import without NIK
                     $rules['par_type'] = 'required|in:new hire,promosi,mutasi,demosi';
                     break;
 
                 case 'CRTE':
+                    // CRTE no longer requires administration_id (NIK) - allowing import without NIK
+                    break;
+
                 case 'SKPK':
-                    $rules['administration_id'] = 'required|exists:administrations,id';
+                    // SKPK no longer requires administration_id (NIK)
                     break;
             }
         }

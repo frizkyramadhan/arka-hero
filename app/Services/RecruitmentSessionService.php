@@ -424,14 +424,14 @@ class RecruitmentSessionService
                 'decision' => $decision,
                 'notes' => $assessmentData['notes'] ?? null,
                 'reviewed_by' => auth()->id(),
-                'reviewed_at' => now(),
+                'reviewed_at' => $assessmentData['reviewed_at'] ?? now(),
             ]);
         } else {
             $cvReview->update([
                 'decision' => $decision,
                 'notes' => $assessmentData['notes'] ?? null,
                 'reviewed_by' => auth()->id(),
-                'reviewed_at' => now(),
+                'reviewed_at' => $assessmentData['reviewed_at'] ?? now(),
             ]);
         }
 
@@ -531,7 +531,7 @@ class RecruitmentSessionService
                 'result' => $overallResult,
                 'notes' => $assessmentData['notes'] ?? $resultDetails,
                 'reviewed_by' => auth()->id(),
-                'reviewed_at' => now(),
+                'reviewed_at' => $assessmentData['reviewed_at'] ?? now(),
             ]);
         } else {
             $psikotes->update([
@@ -540,7 +540,7 @@ class RecruitmentSessionService
                 'result' => $overallResult,
                 'notes' => $assessmentData['notes'] ?? $resultDetails,
                 'reviewed_by' => auth()->id(),
-                'reviewed_at' => now(),
+                'reviewed_at' => $assessmentData['reviewed_at'] ?? now(),
             ]);
         }
 
@@ -623,7 +623,7 @@ class RecruitmentSessionService
                 'result' => $result,
                 'notes' => $assessmentData['notes'] ?? null,
                 'reviewed_by' => auth()->id(),
-                'reviewed_at' => now(),
+                'reviewed_at' => $assessmentData['reviewed_at'] ?? now(),
             ]);
         } else {
             $tesTeori->update([
@@ -631,7 +631,7 @@ class RecruitmentSessionService
                 'result' => $result,
                 'notes' => $assessmentData['notes'] ?? null,
                 'reviewed_by' => auth()->id(),
-                'reviewed_at' => now(),
+                'reviewed_at' => $assessmentData['reviewed_at'] ?? now(),
             ]);
         }
 
@@ -714,14 +714,14 @@ class RecruitmentSessionService
                 'result' => $result === 'pass' ? 'recommended' : 'not_recommended',
                 'notes' => $assessmentData['notes'] ?? null,
                 'reviewed_by' => auth()->id(),
-                'reviewed_at' => now(),
+                'reviewed_at' => $assessmentData['reviewed_at'] ?? now(),
             ]);
         } else {
             $interviewHr->update([
                 'result' => $result === 'pass' ? 'recommended' : 'not_recommended',
                 'notes' => $assessmentData['notes'] ?? null,
                 'reviewed_by' => auth()->id(),
-                'reviewed_at' => now(),
+                'reviewed_at' => $assessmentData['reviewed_at'] ?? now(),
             ]);
         }
 
@@ -804,14 +804,14 @@ class RecruitmentSessionService
                 'result' => $result === 'pass' ? 'recommended' : 'not_recommended',
                 'notes' => $assessmentData['notes'] ?? null,
                 'reviewed_by' => auth()->id(),
-                'reviewed_at' => now(),
+                'reviewed_at' => $assessmentData['reviewed_at'] ?? now(),
             ]);
         } else {
             $interviewUser->update([
                 'result' => $result === 'pass' ? 'recommended' : 'not_recommended',
                 'notes' => $assessmentData['notes'] ?? null,
                 'reviewed_by' => auth()->id(),
-                'reviewed_at' => now(),
+                'reviewed_at' => $assessmentData['reviewed_at'] ?? now(),
             ]);
         }
 
@@ -893,14 +893,14 @@ class RecruitmentSessionService
                 'result' => $result,
                 'notes' => $assessmentData['notes'] ?? null,
                 'reviewed_by' => auth()->id(),
-                'reviewed_at' => now(),
+                'reviewed_at' => $assessmentData['reviewed_at'] ?? now(),
             ]);
         } else {
             $mcu->update([
                 'result' => $result,
                 'notes' => $assessmentData['notes'] ?? null,
                 'reviewed_by' => auth()->id(),
-                'reviewed_at' => now(),
+                'reviewed_at' => $assessmentData['reviewed_at'] ?? now(),
             ]);
         }
 
@@ -982,7 +982,7 @@ class RecruitmentSessionService
                 'result' => $status,
                 'notes' => $assessmentData['notes'] ?? null,
                 'reviewed_by' => auth()->id(),
-                'reviewed_at' => now(),
+                'reviewed_at' => $assessmentData['reviewed_at'] ?? now(),
             ]);
         } else {
             $offering->update([
@@ -990,7 +990,7 @@ class RecruitmentSessionService
                 'result' => $status,
                 'notes' => $assessmentData['notes'] ?? null,
                 'reviewed_by' => auth()->id(),
-                'reviewed_at' => now(),
+                'reviewed_at' => $assessmentData['reviewed_at'] ?? now(),
             ]);
         }
 
@@ -1072,7 +1072,7 @@ class RecruitmentSessionService
                 'letter_number' => $assessmentData['letter_number'] ?? null,
                 'notes' => $assessmentData['notes'] ?? null,
                 'reviewed_by' => auth()->id(),
-                'reviewed_at' => now(),
+                'reviewed_at' => $assessmentData['reviewed_at'] ?? now(),
             ]);
         } else {
             $hiring->update([
@@ -1080,7 +1080,7 @@ class RecruitmentSessionService
                 'letter_number' => $assessmentData['letter_number'] ?? null,
                 'notes' => $assessmentData['notes'] ?? null,
                 'reviewed_by' => auth()->id(),
-                'reviewed_at' => now(),
+                'reviewed_at' => $assessmentData['reviewed_at'] ?? now(),
             ]);
         }
 
@@ -1141,14 +1141,14 @@ class RecruitmentSessionService
                 'onboarding_date' => $assessmentData['onboarding_date'] ?? now()->toDateString(),
                 'notes' => $assessmentData['notes'] ?? null,
                 'reviewed_by' => auth()->id(),
-                'reviewed_at' => now(),
+                'reviewed_at' => $assessmentData['reviewed_at'] ?? now(),
             ]);
         } else {
             $onboarding->update([
                 'onboarding_date' => $assessmentData['onboarding_date'] ?? now()->toDateString(),
                 'notes' => $assessmentData['notes'] ?? null,
                 'reviewed_by' => auth()->id(),
-                'reviewed_at' => now(),
+                'reviewed_at' => $assessmentData['reviewed_at'] ?? now(),
             ]);
         }
 

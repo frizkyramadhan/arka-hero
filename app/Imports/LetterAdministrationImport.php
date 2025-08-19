@@ -46,7 +46,11 @@ class LetterAdministrationImport implements ToModel, WithHeadingRow, WithValidat
 
         try {
             $category = $this->letterCategories->where('category_code', $row['category_code'])->first();
-            $administration = isset($row['nik']) ? Administration::where('nik', $row['nik'])->first() : null;
+            // NIK lookup - if not found, administration_id will be null (allowing import without NIK)
+            $administration = null;
+            if (!empty($row['nik'])) {
+                $administration = Administration::where('nik', $row['nik'])->first();
+            }
             $project = isset($row['project_code']) ? Project::where('project_code', $row['project_code'])->first() : null;
             $subject = null;
             if ($category && !empty($row['subject_master'])) {
@@ -187,12 +191,7 @@ class LetterAdministrationImport implements ToModel, WithHeadingRow, WithValidat
 
     private function validateConditionalRequiredFields($validator, $rowIndex, $row, $categoryCode)
     {
-        // Employee-related categories (CRTE, SKPK) require NIK - Removed PKWT from required NIK validation
-        if (in_array($categoryCode, ['CRTE', 'SKPK'])) {
-            if (empty($row['nik'])) {
-                $validator->errors()->add($rowIndex . '.nik', 'NIK is required for category ' . $categoryCode . '.');
-            }
-        }
+        // NIK validation removed for all categories - allowing import even when NIK not yet in administrations table
 
         // Removed FPTK project_code required validation
 
@@ -241,8 +240,8 @@ class LetterAdministrationImport implements ToModel, WithHeadingRow, WithValidat
             'destination' => 'nullable|string',
             'remarks' => 'nullable|string',
             'subject_custom' => 'nullable|string',
-            // Employee-related categories (PKWT, CRTE, SKPK) require NIK
-            'nik' => 'nullable|exists:administrations,nik',
+            // NIK field - no longer required for any categories, allowing import without NIK validation
+            'nik' => 'nullable',
 
             // Project-related categories (FPTK) require project
             'project_code' => 'nullable|exists:projects,project_code',
@@ -290,7 +289,7 @@ class LetterAdministrationImport implements ToModel, WithHeadingRow, WithValidat
             'subject_custom.string' => 'The Custom Subject must be a string.',
 
             // Employee-related validation
-            'nik.exists' => 'The selected NIK does not exist in administrations.',
+            // NIK validation removed - allowing import even when NIK not yet in administrations table
 
             // Project-related validation
             'project_code.exists' => 'The selected Project Code does not exist.',

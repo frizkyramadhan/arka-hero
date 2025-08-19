@@ -532,63 +532,126 @@ ALTER TABLE recruitment_sessions ADD COLUMN stage_durations JSON;
 **📊 Week 1 Deliverables:**
 
 -   Complete database schema
--   Working migrations with rollback capability
--   Test data for development
--   Basic Laravel project structure
-
-### **Week 2: Core Models & Authentication**
-
-#### **Day 1-3: Eloquent Models & Relationships**
-
--   [ ] **Core Models Creation**
-    ```php
-    // Models with relationships
-    - RecruitmentRequest (FPTK)
-    - RecruitmentCandidate (CV)
-    - RecruitmentSession (Core)
-    - RecruitmentAssessment
-    - RecruitmentOffer
-    - RecruitmentDocument
-    ```
--   [ ] **Model Relationships** implementation
-    -   HasMany, BelongsTo, HasManyThrough relationships
-    -   Polymorphic relationships where needed
--   [ ] **Model Traits** implementation
-    -   UUID trait, SoftDeletes, Timestamps
--   [ ] **Model Factories** for testing data
-
-#### **Day 4-5: Authentication & Authorization**
-
--   [ ] **Laravel Sanctum** setup for API authentication
--   [ ] **Role-Based Access Control (RBAC)** implementation
-    -   Roles: Super Admin, HR Manager, HR Staff, Department Head, Interviewer
-    -   Permissions: create, read, update, delete for each module
--   [ ] **Middleware** for authentication and authorization
--   [ ] **Guard Configuration** for different user types
-
-#### **Day 6-7: Service Layer Architecture**
-
--   [ ] **Base Service Classes** setup
--   [ ] **Core Service Implementation**
-    ```php
-    // Service classes with basic structure
-    - RecruitmentSessionService
-    - RecruitmentWorkflowService
-    - RecruitmentNotificationService
-    ```
--   [ ] **Repository Pattern** implementation (optional)
--   [ ] **Service Provider** registration
-
-**📊 Week 2 Deliverables:**
-
--   Complete model structure with relationships
--   Working authentication system
--   Basic service layer architecture
--   Unit tests for models and relationships
+-   Working migrations and seeders
+-   Basic model relationships
+-   Development environment setup
 
 ---
 
-## **🔧 PHASE 2: CORE FUNCTIONALITY (Week 3-4)**
+## **📅 RECENT UPDATES & IMPROVEMENTS**
+
+### **✅ REVIEWED_AT INPUT FIELD IMPLEMENTATION (Latest)**
+
+**Overview:** Implemented editable `reviewed_at` input fields for all recruitment stage forms, allowing users to specify custom review dates instead of automatic timestamp generation.
+
+**Changes Made:**
+
+#### **1. View Layer Updates (Modals)**
+
+-   **CV Review Modal**: Added `reviewed_at` datetime-local input with default value `now()`
+-   **Psikotes Modal**: Added `reviewed_at` datetime-local input with default value `now()`
+-   **Tes Teori Modal**: Added `reviewed_at` datetime-local input with default value `now()`
+-   **Interview Modal**: Added `reviewed_at` datetime-local input with default value `now()`
+-   **Offering Modal**: Added `reviewed_at` datetime-local input with default value `now()`
+-   **MCU Modal**: Added `reviewed_at` datetime-local input with default value `now()`
+-   **Hire Modal**: Added `reviewed_at` datetime-local input with default value `now()`
+-   **Onboarding Modal**: Added `reviewed_at` datetime-local input with default value `now()`
+
+#### **2. Controller Layer Updates**
+
+-   **RecruitmentSessionController**: Updated all `update*` methods to:
+    -   Accept `reviewed_at` from request
+    -   Validate `reviewed_at` as required date field
+    -   Use request value instead of `now()`
+    -   Maintain backward compatibility with fallback to `now()`
+
+#### **3. Service Layer Updates**
+
+-   **RecruitmentSessionService**: Updated all `process*Assessment` methods to:
+    -   Use `reviewed_at` from `assessmentData` parameter
+    -   Fallback to `now()` if not provided
+    -   Maintain existing functionality
+
+**Technical Implementation:**
+
+```php
+// Controller validation
+$request->validate([
+    'reviewed_at' => 'required|date',
+    // ... other fields
+]);
+
+// Controller usage
+'reviewed_at' => $request->reviewed_at,
+
+// Service layer usage
+'reviewed_at' => $assessmentData['reviewed_at'] ?? now(),
+```
+
+**Benefits:**
+
+-   **User Control**: HR staff can specify exact review completion times
+-   **Audit Trail**: Accurate timestamp recording for compliance
+-   **Flexibility**: Support for batch processing and offline reviews
+-   **Backward Compatibility**: Existing functionality preserved
+
+**Files Modified:**
+
+-   `resources/views/recruitment/sessions/partials/modals.blade.php`
+-   `app/Http/Controllers/RecruitmentSessionController.php`
+-   `app/Services/RecruitmentSessionService.php`
+
+---
+
+### **✅ REQUIRED FIELD STYLING UPDATE (Latest)**
+
+**Overview:** Updated all required field indicators (\*) to use consistent red styling across all recruitment stage modals for better visual consistency and user experience.
+
+**Changes Made:**
+
+#### **1. Required Field Styling Standardization**
+
+-   **All Required Fields**: Updated to use `<span class="text-danger">*</span>` for consistent red asterisk styling
+-   **Fields Updated**:
+    -   CV Review: Decision, Review Date, Notes
+    -   Psikotes: Review Date
+    -   Tes Teori: Review Date
+    -   Interview: Type, Decision, Notes, Review Date
+    -   Offering: Decision, Review Date
+    -   MCU: Review Date
+    -   Hire: Personal Data fields, Review Date
+    -   Onboarding: Date, Review Date
+
+#### **2. Visual Consistency Improvements**
+
+-   **Before**: Mixed styling with some asterisks in plain text
+-   **After**: All required field indicators consistently use `text-danger` class
+-   **Benefit**: Better user experience and professional appearance
+
+**Technical Implementation:**
+
+```html
+<!-- Before (inconsistent) -->
+<label>Field Name *</label>
+
+<!-- After (consistent) -->
+<label>Field Name <span class="text-danger">*</span></label>
+```
+
+**Benefits:**
+
+-   **Visual Consistency**: All required fields have uniform red asterisk styling
+-   **User Experience**: Clear indication of mandatory fields
+-   **Professional Appearance**: Consistent with modern UI/UX standards
+-   **Accessibility**: Better contrast for required field identification
+
+**Files Modified:**
+
+-   `resources/views/recruitment/sessions/partials/modals.blade.php`
+
+---
+
+## **🏗️ PHASE 2: CORE FUNCTIONALITY (Week 3-4)**
 
 ### **Week 3: FPTK & Candidate Management**
 

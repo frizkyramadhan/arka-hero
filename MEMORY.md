@@ -10,6 +10,24 @@
 **Purpose**: AI's persistent knowledge base for project context and learnings
 **Last Updated**: 2025-01-15
 
+### SKPK Category NIK Requirement Removal (2025-01-15) ✅ COMPLETE
+
+**Challenge**: The SKPK letter category was requiring NIK validation during import, causing validation errors as shown in the import validation screenshot where NIK "15740" was flagged as required but doesn't exist in administrations.
+
+**Solution**:
+
+-   Updated `LetterAdministrationImport.php` to remove NIK requirement for SKPK category in `validateConditionalRequiredFields()` method
+-   Modified `LetterNumberController.php` store and update methods to remove `administration_id` requirement for SKPK category
+-   Updated frontend views (`create.blade.php` and `edit.blade.php`) to not show employee selection for SKPK category
+-   Maintained NIK requirement for CRTE category as it still needs employee association
+-   Updated validation logic to be consistent across import, controller, and UI layers
+
+**Key Learning**:
+
+-   Category-specific validation rules must be consistently applied across all layers (import, controller, UI)
+-   When removing field requirements, ensure both backend validation and frontend UI are updated
+-   Import validation errors should guide which fields need requirement adjustments
+
 ### Offering Stage Functionality Completion (2025-01-15) ✅ COMPLETE
 
 **Challenge**: The offering stage functionality was incomplete with JavaScript errors, model inconsistencies between RecruitmentOffer (non-existent) and RecruitmentOffering (actual), and missing RecruitmentAssessment model causing linter errors.
@@ -383,7 +401,7 @@
 -   Added `created_by` field to track who blacklisted the candidate
 -   Used `updated_at` timestamp to track when candidate was blacklisted
 -   Implemented proper form submission with POST method and CSRF protection
--   Added validation for blacklist reason (required, max 2000 characters)
+-   Added validation for blacklist reason (required, max 2025-01-15)
 -   Updated view to display blacklist information only when status is 'blacklisted'
 -   Implemented remove from blacklist functionality that clears remarks and resets status
 
@@ -969,3 +987,47 @@
 -   UUID foreign keys maintain referential integrity
 -   New structure supports better data validation and type checking
 -   Auto-advancement logic preserved in service layer
+
+## Recent Changes and Learnings
+
+### SKPK Category NIK Requirement Removal (2025-01-15) ✅ COMPLETE
+
+**Challenge**: User requested to remove NIK requirement for SKPK category in letter number import to allow import process to continue even when NIK is not yet available in administrations table.
+
+**Solution**:
+
+-   Modified `app/Imports/LetterAdministrationImport.php`: Removed 'SKPK' from categories requiring NIK validation
+-   Updated `app/Http/Controllers/LetterNumberController.php`: Removed `administration_id` requirement for SKPK in both store and update methods
+-   Updated frontend views: Removed employee selection field for SKPK category in create and edit forms
+-   Updated documentation in `docs/LETTER_NUMBERING_SYSTEM.md`
+
+**Key Learning**: When removing validation requirements, ensure consistency across import validation, controller validation, and frontend UI components.
+
+### Multiple Categories NIK Requirement Removal (2025-01-15) ✅ COMPLETE
+
+**Challenge**: User requested to allow import for other categories that require NIK (PKWT, PAR, CRTE) to proceed even when NIK is not yet available in administrations table.
+
+**Solution**:
+
+-   Modified `app/Imports/LetterAdministrationImport.php`: Changed NIK validation from `'nullable|exists:administrations,nik'` to `'nullable'` to remove existence check
+-   Updated `app/Http/Controllers/LetterNumberController.php`: Removed `administration_id` requirement for PKWT, PAR, and CRTE categories in both store and update methods
+-   Frontend views: Employee selection fields remain visible for PKWT, PAR, and CRTE categories but are now nullable (not required) for manual create/edit processes
+-   Updated documentation in `docs/LETTER_NUMBERING_SYSTEM.md` to reflect all changes
+
+**Key Learning**: For import processes, it's often better to allow data import without strict foreign key validation, especially when dealing with data that may not be fully synchronized across tables yet. This approach enables bulk data processing while maintaining data integrity through application-level validation. For manual processes, keeping fields visible but nullable provides better user experience.
+
+**Categories Affected**:
+
+-   **SKPK**: Surat Keterangan Pengalaman Kerja - No longer requires NIK
+-   **PKWT**: Perjanjian Kerja Waktu Tertentu - No longer requires NIK
+-   **PAR**: Personal Action Request - No longer requires NIK
+-   **CRTE**: Certificate - No longer requires NIK
+
+**Technical Changes**:
+
+1. Import validation: NIK field is now `nullable` without existence check
+2. Controller validation: `administration_id` field no longer required for affected categories
+3. Frontend UI: Employee selection fields remain visible but are nullable (not required) for manual processes
+4. Documentation: Updated to reflect current validation rules
+
+**Important Note**: Employee selection fields are still displayed in the UI for manual create/edit processes to maintain good user experience, but they are no longer required. This allows users to optionally select an employee if available, while still being able to proceed without selection.

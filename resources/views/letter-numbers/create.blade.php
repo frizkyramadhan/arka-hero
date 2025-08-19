@@ -339,7 +339,8 @@
                     } else if (['A'].includes(categoryCode)) {
                         dynamicFieldsContainer.append($('#classification-template').html());
                     }
-                    if (['PKWT', 'CRTE', 'SKPK'].includes(categoryCode)) {
+                    // Employee selection for PKWT, PAR, CRTE - nullable (not required) for manual processes
+                    if (['PKWT', 'PAR', 'CRTE', 'SKPK'].includes(categoryCode)) {
                         dynamicFieldsContainer.append($('#employee-template').html());
                         $('#administration_id').select2({
                             theme: 'bootstrap4'
