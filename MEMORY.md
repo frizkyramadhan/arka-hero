@@ -1031,3 +1031,69 @@
 4. Documentation: Updated to reflect current validation rules
 
 **Important Note**: Employee selection fields are still displayed in the UI for manual create/edit processes to maintain good user experience, but they are no longer required. This allows users to optionally select an employee if available, while still being able to proceed without selection.
+
+### PKWT Type Enum Update (2025-01-15) ✅ COMPLETE
+
+**Challenge**: User requested to change pkwt_type enum from ['PKWT I', 'PKWT II', 'PKWT III'] to ['PKWT', 'PKWTT'].
+
+**Solution**:
+
+-   **Migration Created**: New migration `2025_08_20_101358_alter_pkwt_type_enum_in_letter_numbers_table.php`
+-   **Migration Strategy**: Used column replacement approach (add new column → copy data → drop old → rename new) to avoid enum compatibility issues
+-   **Data Migration**: Existing data mapped from old enum to new enum (PKWT I/II/III → PKWT)
+-   **Code Updates**: Updated all references in controller, import, views, and documentation
+-   **Backward Compatibility**: Migration includes rollback functionality to restore old enum values
+
+**Migration Approach**:
+
+-   **Up**: Add new column → Copy data with mapping → Drop old column → Rename new column
+-   **Down**: Add old column → Copy data with reverse mapping → Drop new column → Rename old column
+-   **Data Safety**: No data loss, all existing values properly mapped
+
+**Key Changes**:
+
+-   **Database**: Changed enum values from ['PKWT I', 'PKWT II', 'PKWT III'] to ['PKWT', 'PKWTT']
+-   **Controller**: Updated validation rules in both store and update methods
+-   **Import**: Updated validation rules and error messages
+-   **Views**: Updated create and edit form options
+-   **Documentation**: Updated all references in LETTER_NUMBERING_SYSTEM.md
+
+**Files Modified**:
+
+-   `database/migrations/2025_08_20_101358_alter_pkwt_type_enum_in_letter_numbers_table.php` - New migration
+-   `app/Http/Controllers/LetterNumberController.php` - Updated validation rules
+-   `app/Imports/LetterAdministrationImport.php` - Updated import validation
+-   `resources/views/letter-numbers/create.blade.php` - Updated form options
+-   `resources/views/letter-numbers/edit.blade.php` - Updated form options
+-   `docs/LETTER_NUMBERING_SYSTEM.md` - Updated documentation
+
+**Status**: ✅ **MIGRATION SUCCESSFUL** - Database updated, all code changes applied, system ready for new enum values
+
+---
+
+### Letter Number Import/Export Enhancement (2025-01-15) ✅ COMPLETE
+
+**Challenge**: User requested to add sequence_number column after letter_number in export/import and improve status handling during import.
+
+**Solution**:
+
+-   **Export Enhancement**: Added `sequence_number` column after `letter_number` in `LetterAdministrationExport.php` headings and mapping
+-   **Import Enhancement**: Added `sequence_number` field validation in `LetterAdministrationImport.php` rules method
+-   **Status Handling**: Modified import logic to use status from imported row instead of hardcoded 'used' status
+-   **Validation**: Added validation for sequence_number (nullable, integer, min:1) and status (nullable, in:reserved,used,cancelled)
+-   **Auto-generation**: If sequence_number not provided in import, system auto-generates using existing logic
+-   **Flexibility**: Import now supports both manual sequence_number assignment and auto-generation
+
+**Key Benefits**:
+
+-   Users can now see and import sequence_number for better tracking
+-   Status field can be imported with specific values (reserved, used, cancelled)
+-   Backward compatibility maintained - existing imports without sequence_number still work
+-   Better data integrity with proper validation
+
+**Files Modified**:
+
+-   `app/Exports/LetterAdministrationExport.php` - Added sequence_number column
+-   `app/Imports/LetterAdministrationImport.php` - Added sequence_number and status handling
+
+---

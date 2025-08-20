@@ -111,8 +111,9 @@
                     {
                         data: 'candidate_name',
                         render: function(data, type, row) {
-                            return '<a href="/recruitment/sessions/' + row.session_id +
-                                '/candidate" target="_blank" title="View Session Details">' + data +
+                            return '<a href="{{ route('recruitment.sessions.candidate', '') }}/' +
+                                row.session_id +
+                                '" target="_blank" title="View FPTK Details">' + data +
                                 '</a><br><small>' + (row.candidate_number || '') + '</small>';
                         }
                     },

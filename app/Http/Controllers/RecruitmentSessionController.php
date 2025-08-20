@@ -266,6 +266,9 @@ class RecruitmentSessionController extends Controller
             $query->whereDate('required_date', '<=', $request->required_date_to);
         }
 
+        // Order by sessions count descending (most sessions first)
+        $query->withCount('sessions')->orderBy('sessions_count', 'desc');
+
         return datatables()->of($query)
             ->addIndexColumn()
             ->addColumn('fptk_number', function ($fptk) {

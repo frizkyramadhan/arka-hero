@@ -166,6 +166,14 @@ Route::group(['middleware' => ['auth']], function () {
         Route::post('/truncate/operableunits', [DebugController::class, 'truncateOperableunits'])->name('truncate.operableunits');
         Route::post('/truncate/emrgcalls', [DebugController::class, 'truncateEmrgcalls'])->name('truncate.emrgcalls');
         Route::post('/truncate/additionaldatas', [DebugController::class, 'truncateAdditionaldatas'])->name('truncate.additionaldatas');
+
+        // Recruitment tables truncate routes
+        Route::post('/truncate/recruitment-requests', [DebugController::class, 'truncateRecruitmentRequests'])->name('truncate.recruitment_requests');
+        Route::post('/truncate/recruitment-candidates', [DebugController::class, 'truncateRecruitmentCandidates'])->name('truncate.recruitment_candidates');
+        Route::post('/truncate/recruitment-sessions', [DebugController::class, 'truncateRecruitmentSessions'])->name('truncate.recruitment_sessions');
+        Route::post('/truncate/recruitment-stages', [DebugController::class, 'truncateRecruitmentStages'])->name('truncate.recruitment_stages');
+        Route::post('/truncate/recruitment-all', [DebugController::class, 'truncateRecruitmentAll'])->name('truncate.recruitment_all');
+
         Route::post('/truncate/all', [DebugController::class, 'truncateAll'])->name('truncate.all');
     });
 
@@ -464,6 +472,7 @@ Route::group(['middleware' => ['auth']], function () {
         Route::get('/funnel', [RecruitmentReportController::class, 'funnel'])->name('funnel');
         Route::get('/funnel/export', [RecruitmentReportController::class, 'exportFunnel'])->name('funnel.export');
         Route::get('/funnel/stage/{stage}', [RecruitmentReportController::class, 'stageDetail'])->name('funnel.stage');
+        Route::get('/funnel/stage/{stage}/data', [RecruitmentReportController::class, 'stageDetailData'])->name('stage-detail.data');
         Route::get('/aging', [RecruitmentReportController::class, 'aging'])->name('aging');
         Route::get('/aging/export', [RecruitmentReportController::class, 'exportAging'])->name('aging.export');
         Route::get('/aging/data', [RecruitmentReportController::class, 'agingData'])->name('aging.data');
@@ -479,7 +488,6 @@ Route::group(['middleware' => ['auth']], function () {
         Route::get('/stale-candidates', [RecruitmentReportController::class, 'staleCandidates'])->name('stale-candidates');
         Route::get('/stale-candidates/export', [RecruitmentReportController::class, 'exportStaleCandidates'])->name('stale-candidates.export');
         Route::get('/stale-candidates/data', [RecruitmentReportController::class, 'staleCandidatesData'])->name('stale-candidates.data');
-        Route::get('/stage-detail/{stage}/data', [RecruitmentReportController::class, 'stageDetailData'])->name('stage-detail.data');
     });
 
     // Approval System Routes

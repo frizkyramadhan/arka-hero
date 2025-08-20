@@ -208,39 +208,38 @@
     <script type="text/template" id="pkwt-template">
     <div class="card">
         <div class="card-header">
-            <h3 class="card-title">PKWT Data</h3>
+            <h3 class="card-title">Agreement Data</h3>
         </div>
         <div class="card-body">
             <div class="row">
                 <div class="col-md-6">
                     <div class="form-group">
-                        <label>PKWT Type <span class="text-danger">*</span></label>
-                        <select class="form-control" name="pkwt_type" required>
+                        <label>Type</label>
+                        <select class="form-control" name="pkwt_type">
                             <option value="">- Select Type -</option>
-                            <option value="PKWT I">PKWT I</option>
-                            <option value="PKWT II">PKWT II</option>
-                            <option value="PKWT III">PKWT III</option>
+                            <option value="PKWT">PKWT</option>
+                            <option value="PKWTT">PKWTT</option>
                         </select>
                     </div>
                 </div>
                 <div class="col-md-6">
                     <div class="form-group">
-                        <label>Duration <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control" name="duration" placeholder="Example: 12 months" required>
+                        <label>Duration</label>
+                        <input type="text" class="form-control" name="duration" placeholder="Example: 12 months">
                     </div>
                 </div>
             </div>
             <div class="row">
                 <div class="col-md-6">
                     <div class="form-group">
-                        <label>Start Date <span class="text-danger">*</span></label>
-                        <input type="date" class="form-control" name="start_date" required>
+                        <label>Start Date</label>
+                        <input type="date" class="form-control" name="start_date">
                     </div>
                 </div>
                 <div class="col-md-6">
                     <div class="form-group">
-                        <label>End Date <span class="text-danger">*</span></label>
-                        <input type="date" class="form-control" name="end_date" required>
+                        <label>End Date</label>
+                        <input type="date" class="form-control" name="end_date">
                     </div>
                 </div>
             </div>

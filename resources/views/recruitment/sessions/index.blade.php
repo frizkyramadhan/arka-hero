@@ -268,7 +268,7 @@
                     data: "overall_progress",
                     name: "overall_progress",
                     orderable: false,
-                    className: 'text-center'
+                    className: 'text-center',
                 }, {
                     data: "final_status",
                     name: "final_status",

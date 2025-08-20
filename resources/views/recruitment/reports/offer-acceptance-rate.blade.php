@@ -104,17 +104,17 @@
                         <table id="offerAcceptanceTable" class="table table-sm table-bordered table-striped">
                             <thead>
                                 <tr>
-                                    <th>Request No</th>
-                                    <th>Department</th>
-                                    <th>Position</th>
-                                    <th>Project</th>
-                                    <th>Candidate Name</th>
-                                    <th>Offering Date</th>
-                                    <th>Response Date</th>
-                                    <th>Response Time (Days)</th>
-                                    <th>Response</th>
-                                    <th>Offering Letter No</th>
-                                    <th>Notes</th>
+                                    <th class="align-middle">Request No</th>
+                                    <th class="align-middle">Department</th>
+                                    <th class="align-middle">Position</th>
+                                    <th class="align-middle">Project</th>
+                                    <th class="align-middle">Candidate Name</th>
+                                    <th class="align-middle">Offering Date</th>
+                                    <th class="align-middle">Response Date</th>
+                                    <th class="align-middle">Response Time (Days)</th>
+                                    <th class="align-middle">Response</th>
+                                    <th class="align-middle">Offering Letter No</th>
+                                    <th class="align-middle">Notes</th>
                                 </tr>
                             </thead>
                         </table>
@@ -156,19 +156,32 @@
                     }
                 },
                 columns: [{
-                        data: 'request_no',
+                        data: 'request_no'
+                    },
+                    {
+                        data: 'department'
+                    },
+                    {
+                        data: 'position'
+                    },
+                    {
+                        data: 'project'
+                    },
+                    {
+                        data: 'candidate_name',
                         render: function(data, type, row) {
-                            return '<a href="/recruitment/sessions/' + row.session_id +
-                                '/candidate" target="_blank" title="View Session Details">' + data +
-                                '</a>';
+                            return '<a href="{{ route('recruitment.sessions.candidate', '') }}/' +
+                                row.session_id +
+                                '" target="_blank" title="View Request Details">' + data +
+                                '</a><br><small>' + (row.session_number || '') + '</small>';
                         }
                     },
-                    { data: 'department' },
-                    { data: 'position' },
-                    { data: 'project' },
-                    { data: 'candidate_name' },
-                    { data: 'offering_date' },
-                    { data: 'response_date' },
+                    {
+                        data: 'offering_date'
+                    },
+                    {
+                        data: 'response_date'
+                    },
                     {
                         data: 'response_time',
                         render: function(data, type, row) {
@@ -188,12 +201,18 @@
                             return '<span class="badge ' + colorClass + '">' + data + '</span>';
                         }
                     },
-                    { data: 'offering_letter_no' },
-                    { data: 'notes' }
+                    {
+                        data: 'offering_letter_no'
+                    },
+                    {
+                        data: 'notes'
+                    }
                 ],
                 responsive: true,
                 pageLength: 25,
-                order: [[5, 'desc']],
+                order: [
+                    [5, 'desc']
+                ],
                 language: {
                     processing: '<i class="fa fa-spinner fa-spin fa-3x fa-fw"></i><span class="sr-only">Loading...</span>'
                 }
@@ -214,7 +233,8 @@
                     position: $('select[name="position"]').val(),
                     project: $('select[name="project"]').val()
                 });
-                window.location.href = '{{ route('recruitment.reports.offer-acceptance-rate.export') }}' + '?' + params;
+                window.location.href = '{{ route('recruitment.reports.offer-acceptance-rate.export') }}' +
+                    '?' + params;
             });
         });
     </script>

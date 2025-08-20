@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\RecruitmentCandidate;
+use App\Models\Position;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Str;
 
@@ -15,28 +16,18 @@ class RecruitmentCandidateSeeder extends Seeder
      */
     public function run()
     {
-        $positions = [
-            'Software Developer',
-            'System Analyst',
-            'Project Manager',
-            'Business Analyst',
-            'Quality Assurance',
-            'UI/UX Designer',
-            'DevOps Engineer',
-            'Database Administrator',
-            'Network Engineer',
-            'IT Support',
-            'Product Manager',
-            'Scrum Master',
-            'Technical Writer',
-            'Data Analyst',
-            'Security Engineer',
-            'Mobile Developer',
-            'Frontend Developer',
-            'Backend Developer',
-            'Full Stack Developer',
-            'Cloud Engineer'
-        ];
+        // Get actual positions from database
+        $allPositions = Position::where('position_status', 1)->get();
+
+        if ($allPositions->isEmpty()) {
+            $this->command->error('No active positions found in database. Please run PositionSeeder first!');
+            return;
+        }
+
+        // Get mechanic positions to ensure some candidates apply for them
+        $mechanicPositions = $allPositions->filter(function ($position) {
+            return str_contains(strtolower($position->position_name), 'mechanic');
+        });
 
         $educationLevels = ['SMA/SMK', 'D1', 'D2', 'D3', 'S1', 'S2', 'S3'];
 
@@ -95,7 +86,7 @@ class RecruitmentCandidateSeeder extends Seeder
 
         $domains = ['gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 'ymail.com'];
 
-        for ($i = 1; $i <= 50; $i++) {
+        for ($i = 1; $i <= 20; $i++) {
             $name = $indonesianNames[$i - 1];
             $firstName = explode(' ', $name)[0];
             $lastName = explode(' ', $name)[1] ?? '';
@@ -105,6 +96,13 @@ class RecruitmentCandidateSeeder extends Seeder
 
             $candidateNumber = 'CAN-' . date('Y') . '-' . str_pad($i, 4, '0', STR_PAD_LEFT);
 
+            // Ensure at least 6-8 candidates apply for mechanic positions (30-40% of total)
+            if ($i <= 8 && $mechanicPositions->isNotEmpty()) {
+                $appliedPosition = $mechanicPositions->random()->position_name;
+            } else {
+                $appliedPosition = $allPositions->random()->position_name;
+            }
+
             RecruitmentCandidate::create([
                 'id' => Str::uuid(),
                 'candidate_number' => $candidateNumber,
@@ -112,7 +110,7 @@ class RecruitmentCandidateSeeder extends Seeder
                 'email' => $email,
                 'phone' => $phone,
                 'education_level' => $educationLevels[array_rand($educationLevels)],
-                'position_applied' => $positions[array_rand($positions)],
+                'position_applied' => $appliedPosition,
                 'experience_years' => rand(0, 15),
                 'global_status' => 'available',
                 'remarks' => rand(0, 1) ? 'Kandidat potensial dengan pengalaman yang relevan.' : null,

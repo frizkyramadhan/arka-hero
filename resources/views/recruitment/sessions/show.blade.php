@@ -136,6 +136,27 @@
                                         <div class="info-value">{{ $fptk->createdBy->name ?? 'N/A' }}</div>
                                     </div>
                                 </div>
+                                <div class="info-item">
+                                    <div class="info-icon" style="background-color: #e91e63;">
+                                        <i class="fas fa-book"></i>
+                                    </div>
+                                    <div class="info-content">
+                                        <div class="info-label">Theory Test Requirement</div>
+                                        <div class="info-value">
+                                            @if ($fptk->requires_theory_test)
+                                                <span class="badge badge-warning">
+                                                    <i class="fas fa-check-circle"></i> Required
+                                                </span>
+                                                <br><small class="text-muted">Posisi mekanik/teknis</small>
+                                            @else
+                                                <span class="badge badge-secondary">
+                                                    <i class="fas fa-times-circle"></i> Not Required
+                                                </span>
+                                                <br><small class="text-muted">Posisi non-teknis</small>
+                                            @endif
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -146,6 +167,35 @@
                             <h2><i class="fas fa-chart-line"></i> Recruitment Progress</h2>
                         </div>
                         <div class="card-body">
+                            <!-- Theory Test Requirement Info -->
+                            <div class="theory-test-info mb-4">
+                                <div class="alert {{ $fptk->requires_theory_test ? 'alert-warning' : 'alert-info' }} mb-0">
+                                    <div class="d-flex align-items-center">
+                                        <i class="fas {{ $fptk->requires_theory_test ? 'fa-exclamation-triangle' : 'fa-info-circle' }} mr-3"
+                                            style="font-size: 1.2em;"></i>
+                                        <div>
+                                            <strong>
+                                                @if ($fptk->requires_theory_test)
+                                                    Posisi ini memerlukan Tes Teori
+                                                @else
+                                                    Posisi ini tidak memerlukan Tes Teori
+                                                @endif
+                                            </strong>
+                                            <br>
+                                            <small class="text-muted">
+                                                @if ($fptk->requires_theory_test)
+                                                    Kandidat harus lulus tes teori sebelum interview. Stage tes teori akan
+                                                    muncul di timeline recruitment.
+                                                @else
+                                                    Kandidat langsung ke interview setelah psikotes. Stage tes teori akan
+                                                    di-skip di timeline recruitment.
+                                                @endif
+                                            </small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
                             @php
                                 $hiredCount = $sessions->where('status', 'hired')->count();
                                 $inProcessCount = $sessions
@@ -302,6 +352,12 @@
             <div class="fptk-card sessions-table-card">
                 <div class="card-head">
                     <h2><i class="fas fa-list"></i> Candidate Sessions</h2>
+                    @if (!$fptk->requires_theory_test)
+                        <small class="text-muted">
+                            <i class="fas fa-info-circle"></i>
+                            Tes Teori stage di-skip untuk posisi non-mekanik
+                        </small>
+                    @endif
                 </div>
                 <div class="card-body">
                     <div class="table-responsive">
@@ -312,7 +368,9 @@
                                     <th class="align-middle">Candidate Name</th>
                                     <th class="text-center align-middle">CV Review</th>
                                     <th class="text-center align-middle">Psikotes</th>
-                                    <th class="text-center align-middle">Tes Teori</th>
+                                    @if ($fptk->requires_theory_test)
+                                        <th class="text-center align-middle">Tes Teori</th>
+                                    @endif
                                     <th class="text-center align-middle">Interview HR</th>
                                     <th class="text-center align-middle">Interview User</th>
                                     <th class="text-center align-middle">Offering</th>
@@ -333,17 +391,31 @@
                                             <small class="text-muted">Session: {{ $session->session_number }}</small>
                                         </td>
                                         @php
-                                            $stages = [
-                                                'cv_review',
-                                                'psikotes',
-                                                'tes_teori',
-                                                'interview_hr',
-                                                'interview_user',
-                                                'offering',
-                                                'mcu',
-                                                'hire',
-                                                'onboarding',
-                                            ];
+                                            // Define stages based on theory test requirement
+                                            if ($fptk->requires_theory_test) {
+                                                $stages = [
+                                                    'cv_review',
+                                                    'psikotes',
+                                                    'tes_teori',
+                                                    'interview_hr',
+                                                    'interview_user',
+                                                    'offering',
+                                                    'mcu',
+                                                    'hire',
+                                                    'onboarding',
+                                                ];
+                                            } else {
+                                                $stages = [
+                                                    'cv_review',
+                                                    'psikotes',
+                                                    'interview_hr',
+                                                    'interview_user',
+                                                    'offering',
+                                                    'mcu',
+                                                    'hire',
+                                                    'onboarding',
+                                                ];
+                                            }
                                             $currentStage = $session->current_stage;
                                             $stageStatus = $session->stage_status;
                                         @endphp
@@ -352,29 +424,30 @@
                                                 $stageIndex = array_search($stage, $stages);
                                                 $currentStageIndex = array_search($currentStage, $stages);
 
-                                                // Determine stage status
-                                                if ($stageIndex < $currentStageIndex) {
-                                                    // Previous stages - check if they passed or failed
-                                                    $status = 'completed';
-                                                    $icon = 'fas fa-check-circle text-success';
-                                                    $tooltip = 'Completed';
-                                                } elseif ($stageIndex == $currentStageIndex) {
-                                                    // Current stage
-                                                    $status = $stageStatus;
-                                                    if ($stageStatus == 'completed') {
+                                                // Use model method to check if stage is completed
+                                                $isStageCompleted = $session->isStageCompleted($stage);
+                                                $assessment = $session->getAssessmentByStage($stage);
+
+                                                // Determine stage status based on actual data
+                                                if ($stageIndex < $currentStageIndex || $isStageCompleted) {
+                                                    // Previous stages or completed stages
+                                                    if ($isStageCompleted) {
                                                         $icon = 'fas fa-check-circle text-success';
                                                         $tooltip = 'Completed';
-                                                    } elseif (
-                                                        $stageStatus == 'failed' ||
-                                                        $stageStatus == 'rejected' ||
-                                                        $stageStatus == 'not_recommended'
-                                                    ) {
+                                                    } else {
+                                                        // Stage was attempted but not completed (failed)
                                                         $icon = 'fas fa-times-circle text-danger';
-                                                        $tooltip = 'Failed / Not Recommended';
-                                                    } elseif (
-                                                        $stageStatus == 'in_progress' ||
-                                                        $stageStatus == 'ongoing'
-                                                    ) {
+                                                        $tooltip = 'Failed';
+                                                    }
+                                                } elseif ($stageIndex == $currentStageIndex) {
+                                                    // Current stage - check actual status
+                                                    if ($stageStatus == 'completed' || $isStageCompleted) {
+                                                        $icon = 'fas fa-check-circle text-success';
+                                                        $tooltip = 'Completed';
+                                                    } elseif ($stageStatus == 'failed' || $stageStatus == 'rejected') {
+                                                        $icon = 'fas fa-times-circle text-danger';
+                                                        $tooltip = 'Failed';
+                                                    } elseif ($stageStatus == 'in_progress') {
                                                         $icon = 'fas fa-clock text-warning';
                                                         $tooltip = 'In Progress';
                                                     } else {
@@ -385,38 +458,96 @@
                                                     $stageIndex > $currentStageIndex &&
                                                     $session->status == 'rejected'
                                                 ) {
-                                                    // Future stages but session is rejected - mark as not applicable
-                                                    $status = 'not_applicable';
+                                                    // Future stages but session is rejected
                                                     $icon = 'fas fa-ban text-secondary';
                                                     $tooltip = 'Not Applicable';
                                                 } else {
                                                     // Future stages
-                                                    $status = 'pending';
                                                     $icon = 'fas fa-circle text-muted';
                                                     $tooltip = 'Pending';
                                                 }
 
-                                                // Check if there's specific stage result data (assuming there might be a stages_result JSON field)
-if (
-    isset($session->stages_result) &&
-    is_array($session->stages_result)
-) {
-    $stageResult = $session->stages_result[$stage] ?? null;
-    if ($stageResult) {
-        if (
-            $stageResult['status'] === 'failed' ||
-            $stageResult['status'] === 'rejected' ||
-            $stageResult['status'] === 'not_recommended'
-        ) {
-            $icon = 'fas fa-times-circle text-danger';
-            $tooltip = 'Failed / Not Recommended';
-        } elseif (
-            $stageResult['status'] === 'passed' ||
-            $stageResult['status'] === 'completed'
-        ) {
-            $icon = 'fas fa-check-circle text-success';
-            $tooltip = 'Passed';
-                                                        }
+                                                // Override with specific assessment result if available
+                                                if ($assessment) {
+                                                    switch ($stage) {
+                                                        case 'cv_review':
+                                                            if (isset($assessment->decision)) {
+                                                                if ($assessment->decision === 'recommended') {
+                                                                    $icon = 'fas fa-check-circle text-success';
+                                                                    $tooltip = 'Recommended';
+                                                                } elseif ($assessment->decision === 'not_recommended') {
+                                                                    $icon = 'fas fa-times-circle text-danger';
+                                                                    $tooltip = 'Not Recommended';
+                                                                } else {
+                                                                    $icon = 'fas fa-clock text-warning';
+                                                                    $tooltip = 'Under Review';
+                                                                }
+                                                            }
+                                                            break;
+                                                        case 'psikotes':
+                                                        case 'tes_teori':
+                                                            if (isset($assessment->result)) {
+                                                                if ($assessment->result === 'pass') {
+                                                                    $icon = 'fas fa-check-circle text-success';
+                                                                    $tooltip = 'Passed';
+                                                                } elseif ($assessment->result === 'fail') {
+                                                                    $icon = 'fas fa-times-circle text-danger';
+                                                                    $tooltip = 'Failed';
+                                                                } else {
+                                                                    $icon = 'fas fa-clock text-warning';
+                                                                    $tooltip = 'In Progress';
+                                                                }
+                                                            }
+                                                            break;
+                                                        case 'interview_hr':
+                                                        case 'interview_user':
+                                                            if (isset($assessment->result)) {
+                                                                if ($assessment->result === 'recommended') {
+                                                                    $icon = 'fas fa-check-circle text-success';
+                                                                    $tooltip = 'Recommended';
+                                                                } elseif ($assessment->result === 'not_recommended') {
+                                                                    $icon = 'fas fa-times-circle text-danger';
+                                                                    $tooltip = 'Not Recommended';
+                                                                } else {
+                                                                    $icon = 'fas fa-clock text-warning';
+                                                                    $tooltip = 'In Progress';
+                                                                }
+                                                            }
+                                                            break;
+                                                        case 'offering':
+                                                            if (isset($assessment->response)) {
+                                                                if ($assessment->response === 'accepted') {
+                                                                    $icon = 'fas fa-check-circle text-success';
+                                                                    $tooltip = 'Accepted';
+                                                                } elseif ($assessment->response === 'rejected') {
+                                                                    $icon = 'fas fa-times-circle text-danger';
+                                                                    $tooltip = 'Rejected';
+                                                                } else {
+                                                                    $icon = 'fas fa-clock text-warning';
+                                                                    $tooltip = 'Waiting Response';
+                                                                }
+                                                            }
+                                                            break;
+                                                        case 'mcu':
+                                                            if (isset($assessment->result)) {
+                                                                if ($assessment->result === 'fit') {
+                                                                    $icon = 'fas fa-check-circle text-success';
+                                                                    $tooltip = 'Fit';
+                                                                } elseif ($assessment->result === 'unfit') {
+                                                                    $icon = 'fas fa-times-circle text-danger';
+                                                                    $tooltip = 'Unfit';
+                                                                } else {
+                                                                    $icon = 'fas fa-clock text-warning';
+                                                                    $tooltip = 'In Progress';
+                                                                }
+                                                            }
+                                                            break;
+                                                        case 'hire':
+                                                        case 'onboarding':
+                                                            // These stages just need to exist to be considered completed
+                                                            $icon = 'fas fa-check-circle text-success';
+                                                            $tooltip = 'Completed';
+                                                            break;
                                                     }
                                                 }
                                             @endphp
@@ -457,7 +588,8 @@ if (
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="13" class="text-center text-muted">
+                                        <td colspan="{{ $fptk->requires_theory_test ? '13' : '12' }}"
+                                            class="text-center text-muted">
                                             <i class="fas fa-inbox fa-2x mb-2"></i>
                                             <br>No candidate sessions found for this FPTK
                                         </td>
@@ -658,6 +790,17 @@ if (
             gap: 8px;
         }
 
+        .card-head small {
+            margin-top: 5px;
+            font-size: 12px;
+            color: #6c757d;
+            display: block;
+        }
+
+        .card-head small i {
+            margin-right: 5px;
+        }
+
         .card-body {
             padding: 20px;
         }
@@ -708,6 +851,39 @@ if (
             display: flex;
             flex-direction: column;
             gap: 15px;
+        }
+
+        /* Theory Test Info Styling */
+        .theory-test-info .alert {
+            border-radius: 8px;
+            border: none;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .theory-test-info .alert-warning {
+            background-color: #fff3cd;
+            border-left: 4px solid #ffc107;
+            color: #856404;
+        }
+
+        .theory-test-info .alert-info {
+            background-color: #d1ecf1;
+            border-left: 4px solid #17a2b8;
+            color: #0c5460;
+        }
+
+        .theory-test-info .alert i {
+            color: inherit;
+        }
+
+        .theory-test-info .alert strong {
+            font-size: 14px;
+            line-height: 1.4;
+        }
+
+        .theory-test-info .alert small {
+            font-size: 12px;
+            line-height: 1.3;
         }
 
         .progress-item {

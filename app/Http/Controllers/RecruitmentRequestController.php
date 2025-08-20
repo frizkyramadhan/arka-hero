@@ -190,6 +190,7 @@ class RecruitmentRequestController extends Controller
             'required_physical' => 'nullable|string|max:500',
             'required_mental' => 'nullable|string|max:500',
             'other_requirements' => 'nullable|string|max:1000',
+            'requires_theory_test' => 'nullable|boolean',
 
             // Approval hierarchy fields
             // 'known_by' => 'required|exists:users,id',
@@ -272,6 +273,7 @@ class RecruitmentRequestController extends Controller
                 'required_physical' => $request->required_physical,
                 'required_mental' => $request->required_mental,
                 'other_requirements' => $request->other_requirements,
+                'requires_theory_test' => $request->boolean('requires_theory_test'),
 
                 // Approval hierarchy fields
                 // 'known_by' => $request->known_by,
@@ -489,6 +491,7 @@ class RecruitmentRequestController extends Controller
                 'required_physical' => $request->required_physical,
                 'required_mental' => $request->required_mental,
                 'other_requirements' => $request->other_requirements,
+                'requires_theory_test' => $request->boolean('requires_theory_test'),
                 // Approval hierarchy fields
                 // 'known_by' => $request->known_by,
                 // 'approved_by_pm' => $request->approved_by_pm,

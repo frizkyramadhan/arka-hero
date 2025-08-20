@@ -173,7 +173,7 @@ CREATE TABLE letter_numbers (
     start_date DATE NULL,
     end_date DATE NULL,
     classification ENUM('Umum', 'Lembaga Pendidikan', 'Pemerintah') NULL,
-    pkwt_type ENUM('PKWT I', 'PKWT II', 'PKWT III') NULL,
+    pkwt_type ENUM('PKWT', 'PKWTT') NULL,
     par_type ENUM('new hire', 'promosi', 'mutasi', 'demosi') NULL,
     termination_reason ENUM('mengundurkan diri', 'termination', 'end of contract', 'end of project', 'pensiun', 'meninggal dunia') NULL,
     skpk_reason ENUM('PKWT Berakhir', 'Surat Pengalaman Kerja Hilang') NULL,
@@ -901,7 +901,7 @@ return new class extends Migration
             $table->date('start_date')->nullable();
             $table->date('end_date')->nullable();
             $table->enum('classification', ['Umum', 'Lembaga Pendidikan', 'Pemerintah'])->nullable();
-            $table->enum('pkwt_type', ['PKWT I', 'PKWT II', 'PKWT III'])->nullable();
+            $table->enum('pkwt_type', ['PKWT', 'PKWTT'])->nullable();
             $table->enum('par_type', ['new hire', 'promosi', 'mutasi', 'demosi'])->nullable();
             $table->enum('termination_reason', ['mengundurkan diri', 'termination', 'end of contract', 'end of project', 'pensiun', 'meninggal dunia'])->nullable();
             $table->enum('skpk_reason', ['PKWT Berakhir', 'Surat Pengalaman Kerja Hilang'])->nullable();
@@ -1027,7 +1027,7 @@ class LetterNumberController extends Controller
                     $rules['duration'] = 'required|string';
                     $rules['start_date'] = 'required|date';
                     $rules['end_date'] = 'required|date|after:start_date';
-                    $rules['pkwt_type'] = 'required|in:PKWT I,PKWT II,PKWT III';
+                    $rules['pkwt_type'] = 'required|in:PKWT,PKWTT';
                     break;
 
                 case 'PAR':
@@ -1898,7 +1898,7 @@ class LetterNumberController extends Controller
                     $rules['duration'] = 'required|string';
                     $rules['start_date'] = 'required|date';
                     $rules['end_date'] = 'required|date|after:start_date';
-                    $rules['pkwt_type'] = 'required|in:PKWT I,PKWT II,PKWT III';
+                    $rules['pkwt_type'] = 'required|in:PKWT,PKWTT';
                     break;
 
                 case 'PAR':

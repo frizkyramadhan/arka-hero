@@ -420,12 +420,7 @@
                     }
                 },
                 columns: [{
-                        data: 'request_no',
-                        render: function(data, type, row) {
-                            return '<a href="/recruitment/sessions/' + row.session_id +
-                                '/candidate" target="_blank" title="View Session Details">' + data +
-                                '</a>';
-                        }
+                        data: 'request_no'
                     },
                     {
                         data: 'department'
@@ -437,7 +432,13 @@
                         data: 'project'
                     },
                     {
-                        data: 'candidate_name'
+                        data: 'candidate_name',
+                        render: function(data, type, row) {
+                            return '<a href="{{ route('recruitment.sessions.candidate', '') }}/' +
+                                row.session_id +
+                                '" target="_blank" title="View Request Details">' + data +
+                                '</a>';
+                        }
                     },
                     {
                         data: 'psikotes_result',

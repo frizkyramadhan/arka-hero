@@ -170,10 +170,10 @@ class LetterNumberController extends Controller
 
                 case 'PKWT':
                     // PKWT no longer requires administration_id (NIK) - allowing import without NIK
-                    $rules['duration'] = 'required|string';
-                    $rules['start_date'] = 'required|date';
-                    $rules['end_date'] = 'required|date|after:start_date';
-                    $rules['pkwt_type'] = 'required|in:PKWT I,PKWT II,PKWT III';
+                    $rules['duration'] = 'nullable';
+                    $rules['start_date'] = 'nullable|date';
+                    $rules['end_date'] = 'nullable|date|after:start_date';
+                    $rules['pkwt_type'] = 'required|in:PKWT, PKWTT';
                     break;
 
                 case 'PAR':
@@ -282,10 +282,10 @@ class LetterNumberController extends Controller
 
                 case 'PKWT':
                     // PKWT no longer requires administration_id (NIK) - allowing import without NIK
-                    $rules['duration'] = 'required|string';
-                    $rules['start_date'] = 'required|date';
-                    $rules['end_date'] = 'required|date|after:start_date';
-                    $rules['pkwt_type'] = 'required|in:PKWT I,PKWT II,PKWT III';
+                    $rules['duration'] = 'nullable';
+                    $rules['start_date'] = 'nullable|date';
+                    $rules['end_date'] = 'nullable|date|after:start_date';
+                    $rules['pkwt_type'] = 'nullable|in:PKWT, PKWTT';
                     break;
 
                 case 'PAR':

@@ -138,6 +138,27 @@
                                         </div>
                                     </div>
                                 </div>
+                                <div class="info-item">
+                                    <div class="info-icon" style="background-color: #e91e63;">
+                                        <i class="fas fa-book"></i>
+                                    </div>
+                                    <div class="info-content">
+                                        <div class="info-label">Theory Test Requirement</div>
+                                        <div class="info-value">
+                                            @if ($fptk->requires_theory_test)
+                                                <span class="badge badge-warning">
+                                                    <i class="fas fa-check-circle"></i> Required
+                                                </span>
+                                                <br><small class="text-muted">Posisi mekanik/teknis</small>
+                                            @else
+                                                <span class="badge badge-secondary">
+                                                    <i class="fas fa-times-circle"></i> Not Required
+                                                </span>
+                                                <br><small class="text-muted">Posisi non-teknis</small>
+                                            @endif
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -280,6 +301,50 @@
                                             <div class="section-content">{{ $fptk->other_requirements }}</div>
                                         </div>
                                     @endif
+
+                                    <!-- Theory Test Requirement Section -->
+                                    <div class="requirement-section">
+                                        <div class="section-header">
+                                            <div class="section-icon" style="background-color: #e91e63;">
+                                                <i class="fas fa-book"></i>
+                                            </div>
+                                            <div class="section-title">Theory Test Requirement</div>
+                                        </div>
+                                        <div class="section-content">
+                                            @if ($fptk->requires_theory_test)
+                                                <div class="theory-test-required">
+                                                    <div class="alert alert-warning mb-0">
+                                                        <i class="fas fa-exclamation-triangle"></i>
+                                                        <strong>Posisi ini memerlukan Tes Teori</strong>
+                                                    </div>
+                                                    <div class="theory-test-details mt-3">
+                                                        <p class="mb-2"><strong>Alasan:</strong></p>
+                                                        <ul class="mb-0">
+                                                            <li>Posisi mekanik yang memerlukan kompetensi teknis</li>
+                                                            <li>Kandidat harus lulus tes teori sebelum interview</li>
+                                                            <li>Stage tes teori akan muncul di timeline recruitment</li>
+                                                        </ul>
+                                                    </div>
+                                                </div>
+                                            @else
+                                                <div class="theory-test-not-required">
+                                                    <div class="alert alert-info mb-0">
+                                                        <i class="fas fa-info-circle"></i>
+                                                        <strong>Posisi ini tidak memerlukan Tes Teori</strong>
+                                                    </div>
+                                                    <div class="theory-test-details mt-3">
+                                                        <p class="mb-2"><strong>Alasan:</strong></p>
+                                                        <ul class="mb-0">
+                                                            <li>Posisi non-teknis yang tidak memerlukan kompetensi mekanik
+                                                            </li>
+                                                            <li>Kandidat langsung ke interview setelah psikotes</li>
+                                                            <li>Stage tes teori akan di-skip di timeline recruitment</li>
+                                                        </ul>
+                                                    </div>
+                                                </div>
+                                            @endif
+                                        </div>
+                                    </div>
                                 </div>
                             @endif
                         </div>
@@ -1045,6 +1110,40 @@
         .detailed-requirements {
             border-top: 1px solid #e9ecef;
             padding-top: 20px;
+        }
+
+        /* Theory Test Requirement Styling */
+        .theory-test-required .alert-warning {
+            background-color: #fff3cd;
+            border-color: #ffeaa7;
+            color: #856404;
+        }
+
+        .theory-test-not-required .alert-info {
+            background-color: #d1ecf1;
+            border-color: #bee5eb;
+            color: #0c5460;
+        }
+
+        .theory-test-details {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 4px;
+            border-left: 4px solid #e9ecef;
+        }
+
+        .theory-test-details ul {
+            margin-bottom: 0;
+            padding-left: 20px;
+        }
+
+        .theory-test-details li {
+            margin-bottom: 5px;
+            color: #495057;
+        }
+
+        .theory-test-details li:last-child {
+            margin-bottom: 0;
         }
 
         /* Sessions */

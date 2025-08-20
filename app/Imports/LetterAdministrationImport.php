@@ -78,6 +78,24 @@ class LetterAdministrationImport implements ToModel, WithHeadingRow, WithValidat
                 'user_id' => auth()->id(),
             ];
 
+            // Handle sequence_number and status from import
+            $year = isset($letterData['letter_date']) ? date('Y', strtotime($letterData['letter_date'])) : date('Y');
+            $letterData['year'] = $year;
+
+            // Use sequence_number from import if provided, otherwise auto-generate
+            if (!empty($row['sequence_number'])) {
+                $letterData['sequence_number'] = (int) $row['sequence_number'];
+            } else {
+                $letterData['sequence_number'] = LetterNumber::getNextSequenceNumberSafe($category->id, $year);
+            }
+
+            // Use status from import if provided, otherwise default to 'used'
+            if (!empty($row['status'])) {
+                $letterData['status'] = $row['status'];
+            } else {
+                $letterData['status'] = 'used';
+            }
+
             if (!empty($row['letter_number'])) {
                 // If letter_number is provided, update existing record or create a new one with this number.
                 $existingRecord = LetterNumber::where('letter_number', $row['letter_number'])->first();
@@ -88,28 +106,14 @@ class LetterAdministrationImport implements ToModel, WithHeadingRow, WithValidat
                     return $existingRecord;
                 } else {
                     // Create new record with provided letter_number
-                    // Manually set sequence_number to avoid default value issue
-                    if ($category) {
-                        $year = isset($letterData['letter_date']) ? date('Y', strtotime($letterData['letter_date'])) : date('Y');
-                        $letterData['sequence_number'] = LetterNumber::getNextSequenceNumberSafe($category->id, $year);
-                        $letterData['year'] = $year;
-                        $letterData['letter_number'] = $row['letter_number'];
-                        $letterData['status'] = 'used';
-                        $letterData['reserved_by'] = auth()->id() ?? 1;
-                    }
+                    $letterData['letter_number'] = $row['letter_number'];
+                    $letterData['reserved_by'] = auth()->id() ?? 1;
 
                     return LetterNumber::create($letterData);
                 }
             } else {
                 // If letter_number is not provided, create a new record.
-                // Ensure sequence_number is set to avoid database error
-                if ($category) {
-                    $year = isset($letterData['letter_date']) ? date('Y', strtotime($letterData['letter_date'])) : date('Y');
-                    $letterData['sequence_number'] = LetterNumber::getNextSequenceNumberSafe($category->id, $year);
-                    $letterData['year'] = $year;
-                    $letterData['status'] = 'used';
-                    $letterData['reserved_by'] = auth()->id() ?? 1;
-                }
+                $letterData['reserved_by'] = auth()->id() ?? 1;
 
                 return LetterNumber::createWithRetry($letterData);
             }
@@ -242,6 +246,10 @@ class LetterAdministrationImport implements ToModel, WithHeadingRow, WithValidat
             'subject_custom' => 'nullable|string',
             // NIK field - no longer required for any categories, allowing import without NIK validation
             'nik' => 'nullable',
+            // Sequence number field - can be imported or auto-generated
+            'sequence_number' => 'nullable|integer|min:1',
+            // Status field - can be imported or default to 'used'
+            'status' => 'nullable|in:reserved,used,cancelled',
 
             // Project-related categories (FPTK) require project
             'project_code' => 'nullable|exists:projects,project_code',
@@ -255,7 +263,7 @@ class LetterAdministrationImport implements ToModel, WithHeadingRow, WithValidat
             // PKWT-specific fields
             'pkwt_type' => [
                 'nullable',
-                Rule::in(['PKWT I', 'PKWT II', 'PKWT III']),
+                Rule::in(['PKWT', 'PKWTT']),
             ],
             'duration' => 'nullable',
             'start_date' => 'nullable|date',
@@ -291,6 +299,13 @@ class LetterAdministrationImport implements ToModel, WithHeadingRow, WithValidat
             // Employee-related validation
             // NIK validation removed - allowing import even when NIK not yet in administrations table
 
+            // Sequence number validation
+            'sequence_number.integer' => 'The Sequence Number must be an integer.',
+            'sequence_number.min' => 'The Sequence Number must be at least 1.',
+
+            // Status validation
+            'status.in' => 'The Status must be one of: reserved, used, cancelled.',
+
             // Project-related validation
             'project_code.exists' => 'The selected Project Code does not exist.',
 
@@ -298,7 +313,7 @@ class LetterAdministrationImport implements ToModel, WithHeadingRow, WithValidat
             'classification.in' => 'The selected Classification is invalid. Valid options: Umum, Lembaga Pendidikan, Pemerintah.',
 
             // PKWT validation
-            'pkwt_type.in' => 'The selected PKWT Type is invalid. Valid options: PKWT I, PKWT II, PKWT III.',
+            'pkwt_type.in' => 'The selected PKWT Type is invalid. Valid options: PKWT, PKWTT.',
 
             'start_date.date' => 'The Start Date must be a valid date.',
             'end_date.date' => 'The End Date must be a valid date.',

@@ -461,6 +461,19 @@
                                         <div class="invalid-feedback">{{ $message }}</div>
                                     @enderror
                                 </div>
+
+                                <div class="form-group">
+                                    <div class="custom-control custom-checkbox">
+                                        <input type="checkbox" class="custom-control-input" id="requires_theory_test"
+                                            name="requires_theory_test" value="1"
+                                            {{ old('requires_theory_test') ? 'checked' : '' }}>
+                                        <label class="custom-control-label" for="requires_theory_test">
+                                            <strong>Posisi ini memerlukan Tes Teori</strong><br>
+                                            <small class="text-muted">Centang jika posisi adalah mekanik atau memerlukan
+                                                kompetensi teknis</small>
+                                        </label>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
