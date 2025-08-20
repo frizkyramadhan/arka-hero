@@ -151,6 +151,133 @@ class DebugController extends Controller
         }
     }
 
+    public function truncateRecruitmentRequests()
+    {
+        try {
+            // Disable foreign key checks temporarily
+            DB::statement('SET FOREIGN_KEY_CHECKS=0');
+
+            // Truncate requests table
+            DB::table('recruitment_requests')->truncate();
+
+            // Re-enable foreign key checks
+            DB::statement('SET FOREIGN_KEY_CHECKS=1');
+
+            return redirect()->back()->with('toast_success', 'Recruitment requests table truncated successfully');
+        } catch (\Exception $e) {
+            // Re-enable foreign key checks in case of error
+            DB::statement('SET FOREIGN_KEY_CHECKS=1');
+            return redirect()->back()->with('toast_error', 'Failed to truncate recruitment requests table: ' . $e->getMessage());
+        }
+    }
+
+    public function truncateRecruitmentCandidates()
+    {
+        try {
+            // Disable foreign key checks temporarily
+            DB::statement('SET FOREIGN_KEY_CHECKS=0');
+
+            // Truncate candidates table
+            DB::table('recruitment_candidates')->truncate();
+
+            // Re-enable foreign key checks
+            DB::statement('SET FOREIGN_KEY_CHECKS=1');
+
+            return redirect()->back()->with('toast_success', 'Recruitment candidates table truncated successfully');
+        } catch (\Exception $e) {
+            // Re-enable foreign key checks in case of error
+            DB::statement('SET FOREIGN_KEY_CHECKS=1');
+            return redirect()->back()->with('toast_error', 'Failed to truncate recruitment candidates table: ' . $e->getMessage());
+        }
+    }
+
+    public function truncateRecruitmentSessions()
+    {
+        try {
+            // Disable foreign key checks temporarily
+            DB::statement('SET FOREIGN_KEY_CHECKS=0');
+
+            // Truncate sessions table
+            DB::table('recruitment_sessions')->truncate();
+
+            // Re-enable foreign key checks
+            DB::statement('SET FOREIGN_KEY_CHECKS=1');
+
+            return redirect()->back()->with('toast_success', 'Recruitment sessions table truncated successfully');
+        } catch (\Exception $e) {
+            // Re-enable foreign key checks in case of error
+            DB::statement('SET FOREIGN_KEY_CHECKS=1');
+            return redirect()->back()->with('toast_error', 'Failed to truncate recruitment sessions table: ' . $e->getMessage());
+        }
+    }
+
+    public function truncateRecruitmentStages()
+    {
+        try {
+            $stageTables = [
+                'recruitment_cv_reviews',
+                'recruitment_psikotes',
+                'recruitment_tes_teori',
+                'recruitment_interviews',
+                'recruitment_offerings',
+                'recruitment_mcu',
+                'recruitment_hiring',
+                'recruitment_onboarding'
+            ];
+
+            foreach ($stageTables as $table) {
+                if (Schema::hasTable($table)) {
+                    DB::table($table)->truncate();
+                }
+            }
+
+            return redirect()->back()->with('toast_success', 'All recruitment stage tables truncated successfully');
+        } catch (\Exception $e) {
+            return redirect()->back()->with('toast_error', 'Failed to truncate recruitment stage tables: ' . $e->getMessage());
+        }
+    }
+
+    public function truncateRecruitmentAll()
+    {
+        try {
+            // Disable foreign key checks temporarily
+            DB::statement('SET FOREIGN_KEY_CHECKS=0');
+
+            // Order matters: child tables first, then parent tables
+            $recruitmentTables = [
+                // Stage tables first (child tables)
+                'recruitment_cv_reviews',
+                'recruitment_psikotes',
+                'recruitment_tes_teori',
+                'recruitment_interviews',
+                'recruitment_offerings',
+                'recruitment_mcu',
+                'recruitment_hiring',
+                'recruitment_onboarding',
+                'recruitment_documents',
+                // Then parent tables
+                'recruitment_sessions',
+                'recruitment_candidates',
+                'recruitment_requests'
+            ];
+
+            foreach ($recruitmentTables as $table) {
+                if (Schema::hasTable($table)) {
+                    DB::table($table)->truncate();
+                }
+            }
+
+            // Re-enable foreign key checks
+            DB::statement('SET FOREIGN_KEY_CHECKS=1');
+
+            return redirect()->back()->with('toast_success', 'All recruitment tables truncated successfully');
+        } catch (\Exception $e) {
+            // Re-enable foreign key checks in case of error
+            DB::statement('SET FOREIGN_KEY_CHECKS=1');
+            return redirect()->back()->with('toast_error', 'Failed to truncate recruitment tables: ' . $e->getMessage());
+        }
+    }
+
     public function truncateAll()
     {
         try {

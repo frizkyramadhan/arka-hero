@@ -37,6 +37,7 @@ class RecruitmentRequest extends Model
         'required_physical',
         'required_mental',
         'other_requirements',
+        'requires_theory_test',
         'created_by',
         'status',
         'positions_filled',
@@ -431,6 +432,16 @@ class RecruitmentRequest extends Model
         }
 
         return sprintf('REQ/%04d/FPTK/%02d/%s', $sequence, $month, $year);
+    }
+
+    /**
+     * Check if this FPTK requires theory test
+     *
+     * @return bool
+     */
+    public function requiresTheoryTest(): bool
+    {
+        return $this->requires_theory_test;
     }
 
     /**

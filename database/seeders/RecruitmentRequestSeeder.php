@@ -32,6 +32,13 @@ class RecruitmentRequestSeeder extends Seeder
         $requestReasons = ['replacement_resign', 'replacement_promotion', 'additional_workplan', 'other'];
         $statuses = ['approved']; // All approved as requested
 
+        // Get mechanic positions to ensure some are included
+        $mechanicPositions = $positions->filter(function ($position) {
+            return str_contains(strtolower($position->position_name), 'mechanic');
+        });
+
+        // Remove technical positions array - we only need to check for mechanic positions
+
         $otherReasons = [
             'Ekspansi tim development',
             'Proyek baru membutuhkan tenaga ahli',
@@ -68,15 +75,26 @@ class RecruitmentRequestSeeder extends Seeder
             'Dapat bekerja di bawah tekanan dan deadline'
         ];
 
-        for ($i = 1; $i <= 50; $i++) {
+        for ($i = 1; $i <= 20; $i++) {
             $department = $departments->random();
-            $position = $positions->random();
+
+            // Ensure at least 6-8 mechanic positions are generated (30-40% of total)
+            if ($i <= 8 && $mechanicPositions->isNotEmpty()) {
+                $position = $mechanicPositions->random();
+            } else {
+                $position = $positions->random();
+            }
+
             $project = $projects->random();
 
             $requestNumber = 'FPTK-' . date('Y') . '-' . str_pad($i, 4, '0', STR_PAD_LEFT);
 
             $requestReason = $requestReasons[array_rand($requestReasons)];
             $otherReason = $requestReason === 'other' ? $otherReasons[array_rand($otherReasons)] : null;
+
+            // Determine if theory test is required
+            // Simple logic: Only mechanic positions require theory test
+            $requiresTheoryTest = str_contains(strtolower($position->position_name), 'mechanic');
 
             RecruitmentRequest::create([
                 'id' => Str::uuid(),
@@ -101,6 +119,7 @@ class RecruitmentRequestSeeder extends Seeder
                 'required_physical' => 'Sehat jasmani dan rohani',
                 'required_mental' => 'Dapat bekerja dalam tim dan memiliki komunikasi yang baik',
                 'other_requirements' => 'Dapat bekerja di bawah tekanan dan deadline',
+                'requires_theory_test' => $requiresTheoryTest,
                 'created_by' => rand(1, 4),
                 'status' => $statuses[array_rand($statuses)],
                 'positions_filled' => 0,

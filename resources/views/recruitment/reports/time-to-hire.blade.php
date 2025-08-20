@@ -158,8 +158,9 @@
                 columns: [{
                         data: 'request_no',
                         render: function(data, type, row) {
-                            return '<a href="/recruitment/sessions/' + row.session_id +
-                                '/candidate" target="_blank" title="View Session Details">' + data +
+                            return '<a href="{{ route('recruitment.sessions.show', '') }}/' + row
+                                .request_id +
+                                '" target="_blank" title="View Request Details">' + data +
                                 '</a>';
                         }
                     },

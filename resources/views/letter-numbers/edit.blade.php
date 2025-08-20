@@ -220,43 +220,42 @@
     <script type="text/template" id="pkwt-template">
     <div class="card">
         <div class="card-header">
-            <h3 class="card-title">PKWT Data</h3>
+            <h3 class="card-title">Agreement Data</h3>
         </div>
         <div class="card-body">
             <div class="row">
                 <div class="col-md-6">
                     <div class="form-group">
-                        <label>PKWT Type <span class="text-danger">*</span></label>
-                        <select class="form-control" name="pkwt_type" required>
+                        <label>Type</label>
+                        <select class="form-control" name="pkwt_type">
                             <option value="">- Select Type -</option>
-                            <option value="PKWT I" {{ old('pkwt_type', $letterNumber->pkwt_type) == 'PKWT I' ? 'selected' : '' }}>PKWT I</option>
-                            <option value="PKWT II" {{ old('pkwt_type', $letterNumber->pkwt_type) == 'PKWT II' ? 'selected' : '' }}>PKWT II</option>
-                            <option value="PKWT III" {{ old('pkwt_type', $letterNumber->pkwt_type) == 'PKWT III' ? 'selected' : '' }}>PKWT III</option>
+                            <option value="PKWT" {{ old('pkwt_type', $letterNumber->pkwt_type) == 'PKWT' ? 'selected' : '' }}>PKWT</option>
+                            <option value="PKWTT" {{ old('pkwt_type', $letterNumber->pkwt_type) == 'PKWTT' ? 'selected' : '' }}>PKWTT</option>
                         </select>
                     </div>
                 </div>
                 <div class="col-md-6">
                     <div class="form-group">
-                        <label>Duration <span class="text-danger">*</span></label>
+                        <label>Duration</label>
                         <input type="text" class="form-control" name="duration"
                                value="{{ old('duration', $letterNumber->duration) }}"
-                               placeholder="Example: 12 months" required>
+                               placeholder="Example: 12 months">
                     </div>
                 </div>
             </div>
             <div class="row">
                 <div class="col-md-6">
                     <div class="form-group">
-                        <label>Start Date <span class="text-danger">*</span></label>
+                        <label>Start Date</label>
                         <input type="date" class="form-control" name="start_date"
-                               value="{{ old('start_date', $letterNumber->start_date ? $letterNumber->start_date->format('Y-m-d') : '') }}" required>
+                               value="{{ old('start_date', $letterNumber->start_date ? $letterNumber->start_date->format('Y-m-d') : '') }}">
                     </div>
                 </div>
                 <div class="col-md-6">
                     <div class="form-group">
-                        <label>End Date <span class="text-danger">*</span></label>
+                        <label>End Date</label>
                         <input type="date" class="form-control" name="end_date"
-                               value="{{ old('end_date', $letterNumber->end_date ? $letterNumber->end_date->format('Y-m-d') : '') }}" required>
+                               value="{{ old('end_date', $letterNumber->end_date ? $letterNumber->end_date->format('Y-m-d') : '') }}">
                     </div>
                 </div>
             </div>

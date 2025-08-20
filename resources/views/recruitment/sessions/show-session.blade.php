@@ -75,6 +75,15 @@
                                     'hire' => 7,
                                     'onboarding' => 8,
                                 ];
+
+                                // Adjust stage order if tes_teori should be skipped
+                                if ($session->shouldSkipTheoryTest()) {
+                                    $stageOrder['interview'] = 3;
+                                    $stageOrder['offering'] = 4;
+                                    $stageOrder['mcu'] = 5;
+                                    $stageOrder['hire'] = 6;
+                                    $stageOrder['onboarding'] = 7;
+                                }
                                 $currentOrder = $stageOrder[$session->current_stage] ?? 0;
                                 $stageClasses = [];
                                 $stageEditability = [];
@@ -260,30 +269,33 @@
                                 </div>
 
                                 <!-- Tes Teori -->
-                                <div class="timeline-item {{ $stageEditability['tes_teori'] ? 'editable' : 'disabled' }}"
-                                    @if ($stageEditability['tes_teori']) data-toggle="modal" data-target="#tesTeoriModal" @endif>
-                                    <div class="timeline-marker {{ $stageClasses['tes_teori'] }}">
-                                        <i class="fas fa-book"></i>
-                                    </div>
-                                    <div class="timeline-content">
-                                        <div class="timeline-title">
-                                            Tes Teori
-                                            @if (!$stageEditability['tes_teori'])
-                                                <i class="fas fa-lock ml-1"
-                                                    title="Locked due to previous stage failure"></i>
-                                            @endif
+                                <!-- Tes Teori - Only show for mechanic positions -->
+                                @if (!$session->shouldSkipTheoryTest())
+                                    <div class="timeline-item {{ $stageEditability['tes_teori'] ? 'editable' : 'disabled' }}"
+                                        @if ($stageEditability['tes_teori']) data-toggle="modal" data-target="#tesTeoriModal" @endif>
+                                        <div class="timeline-marker {{ $stageClasses['tes_teori'] }}">
+                                            <i class="fas fa-book"></i>
                                         </div>
-                                        <div class="timeline-date">
-                                            @if ($session->current_stage === 'tes_teori' && $session->stage_started_at)
-                                                {{ date('d M Y', strtotime($session->stage_started_at)) }}
-                                            @elseif($session->getProgressPercentage() >= 30)
-                                                {{ date('d M Y', strtotime($session->stage_completed_at ?? now())) }}
-                                            @else
-                                                -
-                                            @endif
+                                        <div class="timeline-content">
+                                            <div class="timeline-title">
+                                                Tes Teori
+                                                @if (!$stageEditability['tes_teori'])
+                                                    <i class="fas fa-lock ml-1"
+                                                        title="Locked due to previous stage failure"></i>
+                                                @endif
+                                            </div>
+                                            <div class="timeline-date">
+                                                @if ($session->current_stage === 'tes_teori' && $session->stage_started_at)
+                                                    {{ date('d M Y', strtotime($session->stage_started_at)) }}
+                                                @elseif($session->getProgressPercentage() >= 30)
+                                                    {{ date('d M Y', strtotime($session->stage_completed_at ?? now())) }}
+                                                @else
+                                                    -
+                                                @endif
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
+                                @endif
 
                                 <!-- Interview -->
                                 <div class="timeline-item {{ $stageEditability['interview'] ? 'editable' : 'disabled' }}"

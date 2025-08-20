@@ -104,19 +104,64 @@
                             <thead>
                                 <tr>
                                     <th>Stage</th>
+                                    <th class="text-center">Flow Type</th>
                                     <th class="text-center">Previous Stage</th>
                                     <th class="text-center">Total Candidates</th>
                                     <th class="text-right">Conversion Rate</th>
                                     <th class="text-right">Avg Days in Stage</th>
-                                    <th style="width:20%">Progress</th>
+                                    <th style="width:15%">Progress</th>
                                     <th class="text-center" style="width:10%">Action</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 @forelse($rows as $row)
-                                    <tr>
+                                    <tr
+                                        class="{{ isset($row['flow_type']) && $row['flow_type'] === 'technical_only' ? 'table-warning' : (isset($row['flow_type']) && $row['flow_type'] === 'combined' ? 'table-info' : '') }}">
                                         <td>
-                                            <strong>{{ $row['stage'] }}</strong>
+                                            <strong>
+                                                @if (isset($row['stage_display']))
+                                                    {{ $row['stage_display'] }}
+                                                @else
+                                                    {{ $row['stage'] }}
+                                                @endif
+                                            </strong>
+                                            @if (isset($row['flow_type']) && $row['flow_type'] === 'technical_only')
+                                                <br><small class="text-muted">
+                                                    <i class="fas fa-cog"></i> Technical positions only
+                                                </small>
+                                            @elseif (isset($row['flow_type']) && $row['flow_type'] === 'combined')
+                                                <br><small class="text-muted">
+                                                    <i class="fas fa-merge"></i> Combined from both flows
+                                                </small>
+                                            @endif
+                                        </td>
+                                        <td class="text-center">
+                                            @if (isset($row['flow_type']))
+                                                @switch($row['flow_type'])
+                                                    @case('standard')
+                                                        <span class="badge badge-secondary">
+                                                            <i class="fas fa-stream"></i> Standard
+                                                        </span>
+                                                    @break
+
+                                                    @case('technical_only')
+                                                        <span class="badge badge-warning">
+                                                            <i class="fas fa-cog"></i> Technical
+                                                        </span>
+                                                    @break
+
+                                                    @case('combined')
+                                                        <span class="badge badge-info">
+                                                            <i class="fas fa-merge"></i> Combined
+                                                        </span>
+                                                    @break
+
+                                                    @default
+                                                        <span class="badge badge-light">-</span>
+                                                @endswitch
+                                            @else
+                                                <span class="badge badge-light">-</span>
+                                            @endif
                                         </td>
                                         <td class="text-center">
                                             @if ($row['stage'] === 'CV Review')
@@ -124,10 +169,21 @@
                                             @else
                                                 <span
                                                     class="badge badge-secondary">{{ $row['previous_stage_count'] }}</span>
+                                                @if (isset($row['flow_type']) && $row['flow_type'] === 'combined')
+                                                    <br><small class="text-muted">
+                                                        Tech: {{ $row['from_technical'] ?? 0 }} |
+                                                        Non-Tech: {{ $row['from_non_technical'] ?? 0 }}
+                                                    </small>
+                                                @endif
                                             @endif
                                         </td>
                                         <td class="text-center">
                                             <span class="badge badge-primary">{{ $row['total_candidates'] }}</span>
+                                            @if (isset($row['eligible_candidates']) && $row['eligible_candidates'] > 0)
+                                                <br><small class="text-muted">
+                                                    from {{ $row['eligible_candidates'] }} eligible
+                                                </small>
+                                            @endif
                                         </td>
                                         <td class="text-right">
                                             @if ($row['conversion_rate'] > 0)
@@ -193,32 +249,57 @@
                                             </a>
                                         </td>
                                     </tr>
-                                @empty
-                                    <tr>
-                                        <td colspan="6" class="text-center">No data found</td>
-                                    </tr>
-                                @endforelse
-                            </tbody>
-                        </table>
+                                    @empty
+                                        <tr>
+                                            <td colspan="8" class="text-center">No data found</td>
+                                        </tr>
+                                    @endforelse
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
+                    @if (count($rows) > 0)
+                        <div class="card-footer">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <small class="text-muted">
+                                        <i class="fas fa-info-circle"></i>
+                                        <strong>Conversion Rate:</strong> Percentage of candidates progressing from previous
+                                        stage.
+                                        <br>
+                                        <strong>Colors:</strong>
+                                        <span class="text-success">Green ≥70%</span>,
+                                        <span class="text-warning">Yellow 40-69%</span>,
+                                        <span class="text-danger">Red < 40%</span>
+                                                <br>
+                                                <strong>Days in Stage:</strong>
+                                                <span class="text-success">Green ≤3 days</span>,
+                                                <span class="text-warning">Yellow 4-7 days</span>,
+                                                <span class="text-danger">Red >7 days</span>
+                                    </small>
+                                </div>
+                                <div class="col-md-6">
+                                    <small class="text-muted">
+                                        <i class="fas fa-route"></i>
+                                        <strong>Flow Types:</strong>
+                                        <br>
+                                        <span class="badge badge-secondary badge-sm">
+                                            <i class="fas fa-stream"></i> Standard
+                                        </span> All positions follow this stage
+                                        <br>
+                                        <span class="badge badge-warning badge-sm">
+                                            <i class="fas fa-cog"></i> Technical
+                                        </span> Only technical positions (requires theory test)
+                                        <br>
+                                        <span class="badge badge-info badge-sm">
+                                            <i class="fas fa-merge"></i> Combined
+                                        </span> Merged from both technical & non-technical flows
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                    @endif
                 </div>
-                @if (count($rows) > 0)
-                    <div class="card-footer">
-                        <small class="text-muted">
-                            <i class="fas fa-info-circle"></i>
-                            <strong>Conversion Rate:</strong> Percentage of candidates progressing from previous stage.
-                            <strong>Colors:</strong>
-                            <span class="text-success">Green ≥70%</span>,
-                            <span class="text-warning">Yellow 40-69%</span>,
-                            <span class="text-danger">Red < 40%</span>
-                                    | <strong>Days in Stage:</strong>
-                                    <span class="text-success">Green ≤3 days</span>,
-                                    <span class="text-warning">Yellow 4-7 days</span>,
-                                    <span class="text-danger">Red >7 days</span>
-                        </small>
-                    </div>
-                @endif
             </div>
-        </div>
-    </section>
-@endsection
+        </section>
+    @endsection

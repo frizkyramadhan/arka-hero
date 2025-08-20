@@ -1,5 +1,54 @@
 # MEMORY.md
 
+## Recent Implementations & Learnings
+
+### 2025-08-19: Conditional Theory Test Implementation
+
+**Business Rule Implemented**: Tes Teori hanya dilakukan untuk posisi mekanik yang memerlukan kompetensi teknis.
+
+**Technical Implementation**:
+
+-   Added `requires_theory_test` BOOLEAN column to `recruitment_requests` table
+-   Updated `RecruitmentRequest` model with helper method `requiresTheoryTest()`
+-   Modified `RecruitmentSession` model to conditionally skip tes_teori stage
+-   Updated timeline view to conditionally show/hide tes_teori stage
+-   Added checkbox in FPTK create/edit forms for HR to set requirement
+
+**Key Benefits of This Approach**:
+
+1. **Per-FPTK Control**: HR can set theory test requirement per recruitment request
+2. **Flexible**: Same position can have different requirements per project/department
+3. **Simple Implementation**: Single boolean field vs complex position classification
+4. **Backward Compatible**: Existing FPTKs default to FALSE (no breaking changes)
+
+**Files Modified**:
+
+-   `database/migrations/2025_08_19_110333_add_requires_theory_test_to_recruitment_requests.php`
+-   `app/Models/RecruitmentRequest.php` - Added field and helper method
+-   `app/Models/RecruitmentSession.php` - Updated stage progression logic
+-   `resources/views/recruitment/sessions/show-session.blade.php` - Conditional timeline rendering
+-   `resources/views/recruitment/requests/create.blade.php` - Added checkbox
+-   `resources/views/recruitment/requests/edit.blade.php` - Added checkbox
+-   `app/Http/Controllers/RecruitmentRequestController.php` - Handle new field
+
+**Stage Flow Changes**:
+
+-   **Mechanic Positions** (`requires_theory_test = TRUE`): Full flow including tes_teori
+-   **Non-Mechanic Positions** (`requires_theory_test = FALSE`): Skip tes_teori, direct from psikotes to interview
+
+**Progress Calculation**:
+
+-   Adjusted progress percentages for non-mechanic positions to maintain smooth progression
+-   Interview stage gets higher weight when tes_teori is skipped
+
+**User Experience**:
+
+-   HR can easily identify which FPTKs require theory tests
+-   Timeline automatically adjusts based on position requirements
+-   No confusion about missing tes_teori stage for non-mechanic positions
+
+---
+
 ## Project Memory and Learning
 
 ### 2025-08-18: Server-Side DataTable Implementation for Recruitment Reports

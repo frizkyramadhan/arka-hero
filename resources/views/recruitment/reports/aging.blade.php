@@ -106,18 +106,18 @@
                         <table id="agingTable" class="table table-sm table-bordered table-striped">
                             <thead>
                                 <tr>
-                                    <th>Request No</th>
-                                    <th>Department</th>
-                                    <th>Position</th>
-                                    <th>Project</th>
-                                    <th>Requested By</th>
-                                    <th>Requested At</th>
-                                    <th>Status</th>
-                                    <th>Days Open</th>
-                                    <th>Latest Approval</th>
-                                    <th>Approved At</th>
-                                    <th>Days to Approve</th>
-                                    <th>Remarks</th>
+                                    <th class="align-middle">Request No</th>
+                                    <th class="align-middle">Department</th>
+                                    <th class="align-middle">Position</th>
+                                    <th class="align-middle">Project</th>
+                                    <th class="align-middle">Requested By</th>
+                                    <th class="align-middle">Requested At</th>
+                                    <th class="align-middle">Status</th>
+                                    <th class="align-middle">Days Open</th>
+                                    <th class="align-middle">Latest Approval</th>
+                                    <th class="align-middle">Approved At</th>
+                                    <th class="align-middle">Days to Approve</th>
+                                    <th class="align-middle">Remarks</th>
                                 </tr>
                             </thead>
                         </table>
@@ -161,7 +161,8 @@
                 columns: [{
                         data: 'request_no',
                         render: function(data, type, row) {
-                            return '<a href="/recruitment/requests/' + row.request_id +
+                            return '<a href="{{ route('recruitment.sessions.show', '') }}/' +
+                                row.request_id +
                                 '" target="_blank" title="View Request Details">' + data + '</a>';
                         }
                     },

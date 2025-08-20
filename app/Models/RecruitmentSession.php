@@ -79,6 +79,27 @@ class RecruitmentSession extends Model
         'onboarding' => 100,
     ];
 
+    /**
+     * Get adjusted stage progress based on position requirements
+     */
+    public function getAdjustedStageProgress(): array
+    {
+        if ($this->shouldSkipTheoryTest()) {
+            // Adjust progress for non-mechanic positions (skip tes_teori)
+            return [
+                'cv_review' => 12.5,    // 10/8 * 10
+                'psikotes' => 25,       // 20/8 * 10
+                'interview' => 56.25,   // 45/8 * 10
+                'offering' => 75,
+                'mcu' => 85,
+                'hire' => 95,
+                'onboarding' => 100,
+            ];
+        }
+
+        return self::STAGE_PROGRESS;
+    }
+
     // Duration targets per stage (in hours)
     public const STAGE_DURATION_TARGETS = [
         'cv_review' => 48,      // 1-2 days
@@ -239,6 +260,11 @@ class RecruitmentSession extends Model
             return false;
         }
 
+        // Handle tes_teori stage for non-mechanic positions
+        if ($stage === 'tes_teori' && $this->shouldSkipTheoryTest()) {
+            return true; // Consider as completed for non-mechanic positions
+        }
+
         switch ($stage) {
             case 'cv_review':
                 return $assessment->decision === 'recommended';
@@ -378,14 +404,29 @@ class RecruitmentSession extends Model
 
     public function getNextStageAttribute()
     {
-        $stages = self::STAGES;
-        $currentIndex = array_search($this->current_stage, $stages);
+        // Define stage order with conditional tes_teori
+        $stageOrder = [
+            'cv_review' => 'psikotes',
+            'psikotes' => $this->shouldSkipTheoryTest() ? 'interview' : 'tes_teori',
+            'tes_teori' => 'interview',
+            'interview' => 'offering',
+            'offering' => 'mcu',
+            'mcu' => 'hire',
+            'hire' => 'onboarding',
+            'onboarding' => null
+        ];
 
-        if ($currentIndex === false || $currentIndex === count($stages) - 1) {
-            return null;
-        }
+        return $stageOrder[$this->current_stage] ?? null;
+    }
 
-        return $stages[$currentIndex + 1];
+    /**
+     * Check if this session should skip theory test
+     *
+     * @return bool
+     */
+    public function shouldSkipTheoryTest(): bool
+    {
+        return !$this->fptk->requiresTheoryTest();
     }
 
     public function getCurrentStageDurationAttribute()

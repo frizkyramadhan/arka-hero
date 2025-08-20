@@ -29,6 +29,7 @@ class LetterAdministrationExport implements FromQuery, WithHeadings, WithMapping
     {
         return [
             'letter_number',
+            'sequence_number',
             'category_code',
             'category_name',
             'letter_date',
@@ -60,6 +61,7 @@ class LetterAdministrationExport implements FromQuery, WithHeadings, WithMapping
 
         return [
             $letterNumber->letter_number,
+            $letterNumber->sequence_number,
             $letterNumber->category?->category_code,
             $letterNumber->category?->category_name,
             $letterNumber->letter_date ? date('d F Y', strtotime($letterNumber->letter_date)) : '',

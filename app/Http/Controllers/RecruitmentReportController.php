@@ -132,7 +132,16 @@ class RecruitmentReportController extends Controller
 
         $sessions = $sessionsQuery->get();
 
-        // Define stage progression - FIXED ORDER
+        // Separate sessions by theory test requirement
+        $sessionsWithTheory = $sessions->filter(function ($session) {
+            return $session->fptk && $session->fptk->requires_theory_test;
+        });
+
+        $sessionsWithoutTheory = $sessions->filter(function ($session) {
+            return $session->fptk && !$session->fptk->requires_theory_test;
+        });
+
+        // Define stage progression models
         $stageModels = [
             'CV Review' => RecruitmentCvReview::class,
             'Psikotes' => RecruitmentPsikotes::class,
@@ -145,10 +154,12 @@ class RecruitmentReportController extends Controller
         ];
 
         $rows = [];
+
+        // Build standard stages (CV Review, Psikotes)
         $previousStageCount = 0;
 
-        foreach ($stageModels as $stageName => $modelClass) {
-            // Get stage data with session filtering
+        foreach (['CV Review', 'Psikotes'] as $stageName) {
+            $modelClass = $stageModels[$stageName];
             $stageQuery = $modelClass::whereIn('session_id', $sessions->pluck('id'));
 
             if (!empty($date1) && !empty($date2)) {
@@ -156,40 +167,18 @@ class RecruitmentReportController extends Controller
             }
 
             $stageRecords = $stageQuery->get();
+            $totalCandidates = $stageRecords->count();
 
-            // For interview stage, count unique sessions (not individual interviews)
-            if ($stageName === 'Interview') {
-                $totalCandidates = $stageRecords->pluck('session_id')->unique()->count();
-            } else {
-                $totalCandidates = $stageRecords->count();
-            }
-
-            // Calculate conversion rate (from previous stage)
+            // Calculate conversion rate
             $conversionRate = 0;
             if ($stageName === 'CV Review') {
-                // First stage: conversion rate is meaningless, show as 100% only if there are candidates
                 $conversionRate = $totalCandidates > 0 ? 100 : 0;
             } elseif ($previousStageCount > 0) {
                 $conversionRate = round(($totalCandidates / $previousStageCount) * 100, 2);
-            } else {
-                // No previous stage data, can't calculate conversion
-                $conversionRate = 0;
             }
 
             // Calculate average days in stage
-            $avgDaysInStage = 0;
-            if ($totalCandidates > 0) {
-                $totalDays = $stageRecords->sum(function ($record) {
-                    if ($record->updated_at && $record->created_at) {
-                        return $record->updated_at->diffInDays($record->created_at);
-                    } elseif ($record->created_at) {
-                        // If no updated_at, calculate from created_at to now
-                        return now()->diffInDays($record->created_at);
-                    }
-                    return 1; // Default to 1 day if no dates available
-                });
-                $avgDaysInStage = $totalDays > 0 ? round($totalDays / $totalCandidates, 1) : 1;
-            }
+            $avgDaysInStage = $this->calculateAvgDays($stageRecords, $totalCandidates);
 
             $rows[] = [
                 'stage' => $stageName,
@@ -197,6 +186,103 @@ class RecruitmentReportController extends Controller
                 'previous_stage_count' => $previousStageCount,
                 'conversion_rate' => $conversionRate,
                 'avg_days_in_stage' => $avgDaysInStage,
+                'flow_type' => 'standard',
+                'date1' => $date1,
+                'date2' => $date2,
+            ];
+
+            $previousStageCount = $totalCandidates;
+        }
+
+        // Handle Tes Teori stage (conditional)
+        $tesTeoriQuery = $stageModels['Tes Teori']::whereIn('session_id', $sessionsWithTheory->pluck('id'));
+        if (!empty($date1) && !empty($date2)) {
+            $tesTeoriQuery->whereBetween('created_at', [$date1, $date2]);
+        }
+        $tesTeoriRecords = $tesTeoriQuery->get();
+        $tesTeoriCandidates = $tesTeoriRecords->count();
+
+        // Calculate Psikotes candidates for positions requiring theory test
+        $psikotesWithTheoryQuery = $stageModels['Psikotes']::whereIn('session_id', $sessionsWithTheory->pluck('id'));
+        if (!empty($date1) && !empty($date2)) {
+            $psikotesWithTheoryQuery->whereBetween('created_at', [$date1, $date2]);
+        }
+        $psikotesWithTheoryCandidates = $psikotesWithTheoryQuery->count();
+
+        $tesTeoriConversionRate = $psikotesWithTheoryCandidates > 0 ? round(($tesTeoriCandidates / $psikotesWithTheoryCandidates) * 100, 2) : 0;
+        $tesTeoriAvgDays = $this->calculateAvgDays($tesTeoriRecords, $tesTeoriCandidates);
+
+        $rows[] = [
+            'stage' => 'Tes Teori',
+            'stage_display' => 'Tes Teori (Technical Positions Only)',
+            'total_candidates' => $tesTeoriCandidates,
+            'previous_stage_count' => $psikotesWithTheoryCandidates,
+            'conversion_rate' => $tesTeoriConversionRate,
+            'avg_days_in_stage' => $tesTeoriAvgDays,
+            'flow_type' => 'technical_only',
+            'eligible_candidates' => $psikotesWithTheoryCandidates,
+            'date1' => $date1,
+            'date2' => $date2,
+        ];
+
+        // Handle Interview stage (combined from both flows)
+        $interviewQuery = $stageModels['Interview']::whereIn('session_id', $sessions->pluck('id'));
+        if (!empty($date1) && !empty($date2)) {
+            $interviewQuery->whereBetween('created_at', [$date1, $date2]);
+        }
+        $interviewRecords = $interviewQuery->get();
+        $interviewCandidates = $interviewRecords->pluck('session_id')->unique()->count();
+
+        // Calculate previous stage count for interview (from both flows)
+        $interviewPreviousCount = $tesTeoriCandidates; // From technical positions
+        $psikotesWithoutTheoryQuery = $stageModels['Psikotes']::whereIn('session_id', $sessionsWithoutTheory->pluck('id'));
+        if (!empty($date1) && !empty($date2)) {
+            $psikotesWithoutTheoryQuery->whereBetween('created_at', [$date1, $date2]);
+        }
+        $psikotesWithoutTheoryCandidates = $psikotesWithoutTheoryQuery->count();
+        $interviewPreviousCount += $psikotesWithoutTheoryCandidates; // From non-technical positions
+
+        $interviewConversionRate = $interviewPreviousCount > 0 ? round(($interviewCandidates / $interviewPreviousCount) * 100, 2) : 0;
+        $interviewAvgDays = $this->calculateAvgDays($interviewRecords, $interviewCandidates);
+
+        $rows[] = [
+            'stage' => 'Interview',
+            'stage_display' => 'Interview (Combined Flows)',
+            'total_candidates' => $interviewCandidates,
+            'previous_stage_count' => $interviewPreviousCount,
+            'conversion_rate' => $interviewConversionRate,
+            'avg_days_in_stage' => $interviewAvgDays,
+            'flow_type' => 'combined',
+            'from_technical' => $tesTeoriCandidates,
+            'from_non_technical' => $psikotesWithoutTheoryCandidates,
+            'date1' => $date1,
+            'date2' => $date2,
+        ];
+
+        // Continue with remaining stages (Offering, MCU, Hiring, Onboarding)
+        $previousStageCount = $interviewCandidates;
+
+        foreach (['Offering', 'MCU', 'Hiring', 'Onboarding'] as $stageName) {
+            $modelClass = $stageModels[$stageName];
+            $stageQuery = $modelClass::whereIn('session_id', $sessions->pluck('id'));
+
+            if (!empty($date1) && !empty($date2)) {
+                $stageQuery->whereBetween('created_at', [$date1, $date2]);
+            }
+
+            $stageRecords = $stageQuery->get();
+            $totalCandidates = $stageRecords->count();
+
+            $conversionRate = $previousStageCount > 0 ? round(($totalCandidates / $previousStageCount) * 100, 2) : 0;
+            $avgDaysInStage = $this->calculateAvgDays($stageRecords, $totalCandidates);
+
+            $rows[] = [
+                'stage' => $stageName,
+                'total_candidates' => $totalCandidates,
+                'previous_stage_count' => $previousStageCount,
+                'conversion_rate' => $conversionRate,
+                'avg_days_in_stage' => $avgDaysInStage,
+                'flow_type' => 'standard',
                 'date1' => $date1,
                 'date2' => $date2,
             ];
@@ -205,6 +291,22 @@ class RecruitmentReportController extends Controller
         }
 
         return $rows;
+    }
+
+    private function calculateAvgDays($stageRecords, $totalCandidates): float
+    {
+        if ($totalCandidates <= 0) return 0;
+
+        $totalDays = $stageRecords->sum(function ($record) {
+            if ($record->updated_at && $record->created_at) {
+                return $record->updated_at->diffInDays($record->created_at);
+            } elseif ($record->created_at) {
+                return now()->diffInDays($record->created_at);
+            }
+            return 1;
+        });
+
+        return $totalDays > 0 ? round($totalDays / $totalCandidates, 1) : 1;
     }
 
     public function stageDetail(Request $request, $stage)
@@ -2130,6 +2232,21 @@ class RecruitmentReportController extends Controller
             $column = $columns[$orderColumn];
             if ($column === 'stage_date') {
                 $stageQuery->orderBy('created_at', $orderDir);
+            } elseif ($column === 'fptk_number') {
+                // Order by FPTK request_number through relationship
+                $stageQuery->orderBy('session.fptk.request_number', $orderDir);
+            } elseif ($column === 'department') {
+                // Order by department name through relationship
+                $stageQuery->orderBy('session.fptk.department.department_name', $orderDir);
+            } elseif ($column === 'position') {
+                // Order by position name through relationship
+                $stageQuery->orderBy('session.fptk.position.position_name', $orderDir);
+            } elseif ($column === 'project') {
+                // Order by project name through relationship
+                $stageQuery->orderBy('session.fptk.project.project_name', $orderDir);
+            } elseif ($column === 'candidate_name') {
+                // Order by candidate name through relationship
+                $stageQuery->orderBy('session.candidate.fullname', $orderDir);
             } else {
                 $stageQuery->orderBy($column, $orderDir);
             }
@@ -2194,6 +2311,7 @@ class RecruitmentReportController extends Controller
 
             $data[] = [
                 'session_id' => $session->id,
+                'fptk_id' => $fptk->id,
                 'fptk_number' => $fptk->request_number,
                 'department' => $fptk->department ? $fptk->department->department_name : '-',
                 'position' => $fptk->position ? $fptk->position->position_name : '-',
