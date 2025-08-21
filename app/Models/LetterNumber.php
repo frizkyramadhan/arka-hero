@@ -332,6 +332,36 @@ class LetterNumber extends Model
     }
 
     /**
+     * Create or Update letter number berdasarkan ID atau letter_number
+     *
+     * @param array $attributes
+     * @return static
+     */
+    public static function createOrUpdate(array $attributes)
+    {
+        // Priority 1: Update by ID if provided
+        if (!empty($attributes['id'])) {
+            $existingRecord = static::find($attributes['id']);
+            if ($existingRecord) {
+                $existingRecord->update($attributes);
+                return $existingRecord;
+            }
+        }
+
+        // Priority 2: Update by letter_number if provided
+        if (!empty($attributes['letter_number'])) {
+            $existingRecord = static::where('letter_number', $attributes['letter_number'])->first();
+            if ($existingRecord) {
+                $existingRecord->update($attributes);
+                return $existingRecord;
+            }
+        }
+
+        // Priority 3: Create new record
+        return static::create($attributes);
+    }
+
+    /**
      * Get estimated next letter number for a category
      */
     public static function getEstimatedNextNumber($categoryId, $year = null)
@@ -444,7 +474,8 @@ class LetterNumber extends Model
         parent::boot();
 
         static::creating(function ($model) {
-            if (empty($model->letter_number)) {
+            // Hanya generate jika letter_number benar-benar kosong
+            if (empty($model->letter_number) || $model->letter_number === null) {
                 try {
                     $model->generateLetterNumberReliable();
                 } catch (\Exception $e) {
@@ -453,8 +484,27 @@ class LetterNumber extends Model
                     throw $e;
                 }
             }
-            $model->reserved_by = auth()->id() ?? 1; // Default to user ID 1 if no auth
-            $model->status = 'reserved';
+
+            // Set default values hanya jika belum diset
+            if (empty($model->reserved_by)) {
+                $model->reserved_by = auth()->id() ?? 1;
+            }
+            if (empty($model->status)) {
+                $model->status = 'reserved';
+            }
+        });
+
+        static::updating(function ($model) {
+            // Pastikan letter_number tidak di-override saat update
+            if ($model->isDirty('letter_number') && !empty($model->getOriginal('letter_number'))) {
+                // Jika letter_number berubah dan sebelumnya sudah ada, log perubahan
+                \Illuminate\Support\Facades\Log::info('Letter number updated', [
+                    'id' => $model->id,
+                    'old_letter_number' => $model->getOriginal('letter_number'),
+                    'new_letter_number' => $model->letter_number,
+                    'user_id' => auth()->id()
+                ]);
+            }
         });
     }
 }

@@ -113,6 +113,13 @@
                                             <div class="row">
                                                 <div class="col-md-2">
                                                     <div class="form-group">
+                                                        <label>Letter Number</label>
+                                                        <input type="text" class="form-control" id="filter-letter-number"
+                                                            placeholder="Search letter number...">
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-2">
+                                                    <div class="form-group">
                                                         <label>Date From</label>
                                                         <input type="date" class="form-control" id="filter-date-from">
                                                     </div>
@@ -151,26 +158,43 @@
                                                 <div class="col-md-2">
                                                     <div class="form-group">
                                                         <label>Destination</label>
-                                                        <input type="text" class="form-control" id="filter-destination"
-                                                            placeholder="Search destination...">
+                                                        <input type="text" class="form-control"
+                                                            id="filter-destination" placeholder="Search destination...">
                                                     </div>
                                                 </div>
-                                                <div class="col-md-2">
+                                            </div>
+                                            <div class="row">
+                                                <div class="col-md-3">
                                                     <div class="form-group">
                                                         <label>Remarks</label>
                                                         <input type="text" class="form-control" id="filter-remarks"
                                                             placeholder="Search remarks...">
                                                     </div>
                                                 </div>
-                                            </div>
-                                            <div class="row">
-                                                <div class="col-md-12 text-right">
+                                                <div class="col-md-9 text-right">
                                                     <button type="button" id="btn-reset-filter" class="btn btn-danger">
                                                         <i class="fas fa-times"></i> Reset Filter
                                                     </button>
                                                 </div>
                                             </div>
                                         </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Filter State Indicator -->
+                            <div id="filter-state-indicator" class="alert alert-light alert-sm mb-3 d-none">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <i class="fas fa-info-circle mr-2"></i>
+                                        <strong>Filters Applied:</strong>
+                                        <span id="active-filter-count">0</span> active filter(s)
+                                    </div>
+                                    <div>
+                                        <button type="button" class="btn btn-sm btn-outline-secondary"
+                                            id="btn-quick-reset">
+                                            <i class="fas fa-undo mr-1"></i>Quick Reset
+                                        </button>
                                     </div>
                                 </div>
                             </div>
@@ -291,6 +315,74 @@
             color: #fff;
             text-decoration: none;
         }
+
+        /* DataTable Header Styling */
+        #letter-numbers-table thead th {
+            background-color: #f8f9fa;
+            border-color: #dee2e6;
+            font-weight: 600;
+            color: #495057;
+            cursor: pointer;
+            position: relative;
+        }
+
+        #letter-numbers-table thead th.sortable {
+            background-color: #e9ecef;
+        }
+
+        #letter-numbers-table thead th.sortable:hover {
+            background-color: #dee2e6;
+        }
+
+        #letter-numbers-table thead th.sorting_asc::after {
+            content: '\f0de';
+            font-family: 'Font Awesome 5 Free';
+            font-weight: 900;
+            position: absolute;
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #007bff;
+        }
+
+        #letter-numbers-table thead th.sorting_desc::after {
+            content: '\f0dd';
+            font-family: 'Font Awesome 5 Free';
+            font-weight: 900;
+            position: absolute;
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #007bff;
+        }
+
+        #letter-numbers-table thead th.sortable::after {
+            content: '\f0dc';
+            font-family: 'Font Awesome 5 Free';
+            font-weight: 400;
+            position: absolute;
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #6c757d;
+            opacity: 0.5;
+        }
+
+        #letter-numbers-table thead th.sortable:hover::after {
+            opacity: 1;
+        }
+
+        /* Filter improvements */
+        .form-group label {
+            font-weight: 500;
+            color: #495057;
+            margin-bottom: 0.25rem;
+        }
+
+        .form-control:focus {
+            border-color: #007bff;
+            box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+        }
     </style>
 @endsection
 
@@ -313,6 +405,7 @@
 
             // Function to set filter values from URL parameters
             function setFiltersFromUrl() {
+                var letterNumber = getUrlParameter('letter_number');
                 var categoryId = getUrlParameter('letter_category_id');
                 var status = getUrlParameter('status');
                 var dateFrom = getUrlParameter('date_from');
@@ -320,6 +413,9 @@
                 var destination = getUrlParameter('destination');
                 var remarks = getUrlParameter('remarks');
 
+                if (letterNumber) {
+                    $('#filter-letter-number').val(letterNumber);
+                }
                 if (categoryId) {
                     $('#filter-category').val(categoryId).trigger('change');
                 }
@@ -345,6 +441,7 @@
 
             // Function to update page title and show active filters
             function updatePageTitleAndFilters() {
+                var letterNumber = $('#filter-letter-number').val();
                 var categoryId = $('#filter-category').val();
                 var status = $('#filter-status').val();
                 var dateFrom = $('#filter-date-from').val();
@@ -355,6 +452,10 @@
                 var activeFilters = [];
                 var pageTitle = 'Letter Number Administration';
 
+                if (letterNumber) {
+                    activeFilters.push('Letter Number: ' + letterNumber);
+                    pageTitle += ' - ' + letterNumber;
+                }
                 if (categoryId) {
                     var categoryText = $('#filter-category option:selected').text();
                     activeFilters.push('Category: ' + categoryText);
@@ -383,7 +484,7 @@
 
                 // Show active filters info
                 if (activeFilters.length > 0) {
-                    var filterInfo = '<div class="alert alert-info alert-sm mb-3">' +
+                    var filterInfo = '<div class="alert alert-info alert-sm mb-3" id="active-filters-info">' +
                         '<i class="fas fa-filter mr-2"></i><strong>Active Filters:</strong> ' +
                         activeFilters.join(' | ') +
                         ' <button type="button" class="btn btn-sm btn-outline-info ml-2" id="btn-clear-url-filters">' +
@@ -413,6 +514,7 @@
                 ajax: {
                     url: "{{ route('letter-numbers.data') }}",
                     data: function(d) {
+                        d.letter_number = $('#filter-letter-number').val();
                         d.letter_category_id = $('#filter-category').val();
                         d.status = $('#filter-status').val();
                         d.date_from = $('#filter-date-from').val();
@@ -429,23 +531,33 @@
                     },
                     {
                         data: 'letter_number',
-                        name: 'letter_number'
+                        name: 'letter_number',
+                        orderable: true,
+                        searchable: true
                     },
                     {
                         data: 'category_name',
-                        name: 'category.category_name'
+                        name: 'category.category_name',
+                        orderable: true,
+                        searchable: true
                     },
                     {
                         data: 'subject_display',
-                        name: 'subject_display'
+                        name: 'subject_display',
+                        orderable: true,
+                        searchable: true
                     },
                     {
                         data: 'letter_date',
-                        name: 'letter_date'
+                        name: 'letter_date',
+                        orderable: true,
+                        searchable: true
                     },
                     {
                         data: 'destination',
-                        name: 'destination'
+                        name: 'destination',
+                        orderable: true,
+                        searchable: true
                     },
                     // {
                     //     data: 'employee_display',
@@ -464,7 +576,9 @@
                     {
                         data: 'status_badge',
                         name: 'status',
-                        className: 'text-center'
+                        className: 'text-center',
+                        orderable: true,
+                        searchable: true
                     },
                     {
                         data: 'action',
@@ -479,9 +593,6 @@
                     [10, 25, 50, 100, -1],
                     ['10', '25', '50', '100', 'All']
                 ],
-                order: [
-                    [4, 'desc']
-                ], // Order by letter_date desc
                 language: {
                     processing: "Processing...",
                     lengthMenu: "Show _MENU_ entries per page",
@@ -501,27 +612,31 @@
 
             // Filter events
             $('#btn-reset-filter').click(function() {
+                $('#filter-letter-number').val('');
                 $('#filter-category').val('').trigger('change');
                 $('#filter-status').val('').trigger('change');
                 $('#filter-date-from, #filter-date-to').val('');
                 $('#filter-destination, #filter-remarks').val('');
                 table.draw();
                 updatePageTitleAndFilters(); // Reset page title and filters info
+                showFilterState(); // Show filter state
             });
 
             // Auto apply filter on change
             $('#filter-category, #filter-status, #filter-date-from, #filter-date-to').on('change', function() {
                 table.draw();
                 updatePageTitleAndFilters(); // Update page title and filters info on change
+                showFilterState(); // Show filter state
             });
 
             // Auto apply filter on keyup for text inputs (with debounce)
             var timeout;
-            $('#filter-destination, #filter-remarks').on('keyup', function() {
+            $('#filter-letter-number, #filter-destination, #filter-remarks').on('keyup', function() {
                 clearTimeout(timeout);
                 timeout = setTimeout(function() {
                     table.draw();
                     updatePageTitleAndFilters(); // Update page title and filters info on keyup
+                    showFilterState(); // Show filter state
                 }, 500); // Wait 500ms after user stops typing
             });
 
@@ -533,6 +648,7 @@
             // Function to clear URL filters and redirect to clean URL
             function clearUrlFilters() {
                 // Clear all filter values
+                $('#filter-letter-number').val('');
                 $('#filter-category').val('').trigger('change');
                 $('#filter-status').val('').trigger('change');
                 $('#filter-date-from, #filter-date-to').val('');
@@ -549,6 +665,56 @@
                 // Remove the active filters info
                 $('#active-filters-info').remove();
             }
+
+            // Function to test letter number filter (for debugging)
+            function testLetterNumberFilter() {
+                var testNumber = $('#filter-letter-number').val();
+                if (testNumber) {
+                    console.log('Testing letter number filter:', testNumber);
+                    table.draw();
+                }
+            }
+
+            // Add filter state indicator
+            function showFilterState() {
+                var hasFilters = $('#filter-letter-number').val() ||
+                    $('#filter-category').val() ||
+                    $('#filter-status').val() ||
+                    $('#filter-date-from').val() ||
+                    $('#filter-date-to').val() ||
+                    $('#filter-destination').val() ||
+                    $('#filter-remarks').val();
+
+                var filterCount = 0;
+                if ($('#filter-letter-number').val()) filterCount++;
+                if ($('#filter-category').val()) filterCount++;
+                if ($('#filter-status').val()) filterCount++;
+                if ($('#filter-date-from').val()) filterCount++;
+                if ($('#filter-date-to').val()) filterCount++;
+                if ($('#filter-destination').val()) filterCount++;
+                if ($('#filter-remarks').val()) filterCount++;
+
+                $('#active-filter-count').text(filterCount);
+
+                if (hasFilters) {
+                    $('#filter-state-indicator').removeClass('d-none').addClass('d-block');
+                } else {
+                    $('#filter-state-indicator').removeClass('d-block').addClass('d-none');
+                }
+            }
+
+            // Quick reset button event
+            $(document).on('click', '#btn-quick-reset', function() {
+                $('#filter-letter-number').val('');
+                $('#filter-category').val('').trigger('change');
+                $('#filter-status').val('').trigger('change');
+                $('#filter-date-from, #filter-date-to').val('');
+                $('#filter-destination, #filter-remarks').val('');
+
+                table.draw();
+                updatePageTitleAndFilters();
+                showFilterState();
+            });
 
             // Delete function
             $(document).on('click', '.btn-delete', function() {

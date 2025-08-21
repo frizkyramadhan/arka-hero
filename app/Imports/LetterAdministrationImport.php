@@ -94,27 +94,20 @@ class LetterAdministrationImport implements ToModel, WithHeadingRow, WithValidat
                 $letterData['status'] = 'used';
             }
 
-            if (!empty($row['letter_number'])) {
-                // If letter_number is provided, update existing record or create a new one with this number.
-                $existingRecord = LetterNumber::where('letter_number', $row['letter_number'])->first();
-
-                if ($existingRecord) {
-                    // Update existing record
-                    $existingRecord->update($letterData);
-                    return $existingRecord;
-                } else {
-                    // Create new record with provided letter_number
-                    $letterData['letter_number'] = $row['letter_number'];
-                    $letterData['reserved_by'] = auth()->id() ?? 1;
-
-                    return LetterNumber::create($letterData);
-                }
-            } else {
-                // If letter_number is not provided, create a new record.
-                $letterData['reserved_by'] = auth()->id() ?? 1;
-
-                return LetterNumber::createWithRetry($letterData);
+            // Use createOrUpdate method for better handling
+            if (!empty($row['id'])) {
+                $letterData['id'] = $row['id'];
             }
+
+            if (!empty($row['letter_number'])) {
+                $letterData['letter_number'] = $row['letter_number'];
+            }
+
+            // Set default values
+            $letterData['reserved_by'] = auth()->id() ?? 1;
+
+            // Use createOrUpdate method
+            return LetterNumber::createOrUpdate($letterData);
         } catch (\Exception $e) {
             $this->onFailure(new Failure(
                 $this->rowNumber,
@@ -134,6 +127,14 @@ class LetterAdministrationImport implements ToModel, WithHeadingRow, WithValidat
             foreach ($rows as $rowIndex => $row) {
                 if (empty($row['category_code'])) {
                     continue;
+                }
+
+                // Validate ID if provided
+                if (!empty($row['id'])) {
+                    $existingRecord = LetterNumber::find($row['id']);
+                    if (!$existingRecord) {
+                        $validator->errors()->add($rowIndex . '.id', 'The ID does not exist in the system.');
+                    }
                 }
 
                 $categoryCode = $row['category_code'];
@@ -235,6 +236,8 @@ class LetterAdministrationImport implements ToModel, WithHeadingRow, WithValidat
     public function rules(): array
     {
         return [
+            // ID field for update existing records
+            'id' => 'nullable|exists:letter_numbers,id',
             // Basic required fields
             'category_code' => 'required|exists:letter_categories,category_code',
             'letter_date' => 'required|date',
@@ -284,6 +287,9 @@ class LetterAdministrationImport implements ToModel, WithHeadingRow, WithValidat
     public function customValidationMessages()
     {
         return [
+            // ID validation messages
+            'id.exists' => 'The ID does not exist in the system.',
+
             // Basic validation messages
             'category_code.required' => 'Category Code is required.',
             'category_code.exists' => 'The selected Category Code is invalid.',
