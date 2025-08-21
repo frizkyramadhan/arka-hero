@@ -18,11 +18,9 @@ use Maatwebsite\Excel\Concerns\SkipsOnFailure;
 use Maatwebsite\Excel\Concerns\ToModel;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
 use Maatwebsite\Excel\Concerns\WithValidation;
-use Maatwebsite\Excel\Concerns\WithChunkReading;
-use Maatwebsite\Excel\Concerns\WithBatchInserts;
 use Maatwebsite\Excel\Validators\Failure;
 
-class LetterAdministrationImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnFailure, SkipsOnError, SkipsEmptyRows, WithChunkReading, WithBatchInserts
+class LetterAdministrationImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnFailure, SkipsOnError, SkipsEmptyRows
 {
     use Importable, SkipsFailures, SkipsErrors;
 
@@ -324,15 +322,5 @@ class LetterAdministrationImport implements ToModel, WithHeadingRow, WithValidat
             // Travel request validation
             'ticket_classification.in' => 'The selected Ticket Classification is invalid. Valid options: Pesawat, Kereta Api, Bus.',
         ];
-    }
-
-    public function chunkSize(): int
-    {
-        return 500;
-    }
-
-    public function batchSize(): int
-    {
-        return 500;
     }
 }

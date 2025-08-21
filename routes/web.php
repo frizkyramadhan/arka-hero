@@ -174,6 +174,12 @@ Route::group(['middleware' => ['auth']], function () {
         Route::post('/truncate/recruitment-stages', [DebugController::class, 'truncateRecruitmentStages'])->name('truncate.recruitment_stages');
         Route::post('/truncate/recruitment-all', [DebugController::class, 'truncateRecruitmentAll'])->name('truncate.recruitment_all');
 
+        // Letter tables truncate routes
+        Route::post('/truncate/letter-numbers', [DebugController::class, 'truncateLetterNumbers'])->name('truncate.letter_numbers');
+        Route::post('/truncate/letter-categories', [DebugController::class, 'truncateLetterCategories'])->name('truncate.letter_categories');
+        Route::post('/truncate/letter-subjects', [DebugController::class, 'truncateLetterSubjects'])->name('truncate.letter_subjects');
+        Route::post('/truncate/letter-all', [DebugController::class, 'truncateLetterAll'])->name('truncate.letter_all');
+
         Route::post('/truncate/all', [DebugController::class, 'truncateAll'])->name('truncate.all');
     });
 

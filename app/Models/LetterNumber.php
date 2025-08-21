@@ -331,6 +331,114 @@ class LetterNumber extends Model
         throw new \Exception("Failed to create letter number after {$maxAttempts} attempts");
     }
 
+    /**
+     * Get estimated next letter number for a category
+     */
+    public static function getEstimatedNextNumber($categoryId, $year = null)
+    {
+        if (!$year) {
+            $year = date('Y');
+        }
+
+        try {
+            $category = LetterCategory::find($categoryId);
+            if (!$category) {
+                return null;
+            }
+
+            $query = static::where('letter_category_id', $categoryId);
+
+            // Check if numbering_behavior exists and handle accordingly
+            if (isset($category->numbering_behavior) && $category->numbering_behavior === 'annual_reset') {
+                $query->whereYear('letter_date', $year);
+            }
+
+            $lastNumber = $query->orderBy('sequence_number', 'desc')->first();
+            $nextSequence = $lastNumber ? $lastNumber->sequence_number + 1 : 1;
+            $formattedSequence = sprintf('%04d', $nextSequence);
+
+            return [
+                'next_sequence' => $nextSequence,
+                'next_letter_number' => "{$category->category_code}{$formattedSequence}",
+                'year' => $year,
+                'category_code' => $category->category_code
+            ];
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Error getting estimated next number: ' . $e->getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Get estimated next numbers for all active categories
+     */
+    public static function getEstimatedNextNumbersForAllCategories($year = null)
+    {
+        if (!$year) {
+            $year = date('Y');
+        }
+
+        $categories = LetterCategory::where('is_active', 1)->get();
+        $estimates = [];
+
+        foreach ($categories as $category) {
+            $estimates[$category->id] = self::getEstimatedNextNumber($category->id, $year);
+        }
+
+        return $estimates;
+    }
+
+    /**
+     * Get last few numbers for a category
+     */
+    public static function getLastNumbersForCategory($categoryId, $limit = 5, $year = null)
+    {
+        try {
+            $category = LetterCategory::find($categoryId);
+            if (!$category) {
+                return collect();
+            }
+
+            $query = static::where('letter_category_id', $categoryId)
+                ->where('status', '!=', 'cancelled')
+                ->orderBy('sequence_number', 'desc');
+
+            if (isset($category->numbering_behavior) && $category->numbering_behavior === 'annual_reset' && $year) {
+                $query->whereYear('letter_date', $year);
+            }
+
+            return $query->limit($limit)->get();
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Error getting last numbers for category: ' . $e->getMessage());
+            return collect();
+        }
+    }
+
+    /**
+     * Get letter count for a category
+     */
+    public static function getLetterCountForCategory($categoryId, $year = null)
+    {
+        try {
+            $category = LetterCategory::find($categoryId);
+            if (!$category) {
+                return 0;
+            }
+
+            $query = static::where('letter_category_id', $categoryId)
+                ->where('status', '!=', 'cancelled');
+
+            if (isset($category->numbering_behavior) && $category->numbering_behavior === 'annual_reset' && $year) {
+                $query->whereYear('letter_date', $year);
+            }
+
+            return $query->count();
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Error getting letter count for category: ' . $e->getMessage());
+            return 0;
+        }
+    }
+
     protected static function boot()
     {
         parent::boot();
@@ -341,7 +449,7 @@ class LetterNumber extends Model
                     $model->generateLetterNumberReliable();
                 } catch (\Exception $e) {
                     // Log error dan throw kembali untuk handling di controller
-                    Log::error('Failed to generate letter number: ' . $e->getMessage());
+                    \Illuminate\Support\Facades\Log::error('Failed to generate letter number: ' . $e->getMessage());
                     throw $e;
                 }
             }

@@ -23,6 +23,10 @@ class RecruitmentRequestController extends Controller
     public function __construct(RecruitmentLetterNumberService $letterNumberService)
     {
         $this->letterNumberService = $letterNumberService;
+        $this->middleware('permission:recruitment-requests.show')->only('index', 'show', 'getRecruitmentRequests', 'getFPTKData', 'print');
+        $this->middleware('permission:recruitment-requests.create')->only('create', 'store');
+        $this->middleware('permission:recruitment-requests.edit')->only('edit', 'update', 'submitForApproval', 'acknowledge', 'approveByPM', 'approveByDirector', 'approve', 'reject', 'assignLetterNumber');
+        $this->middleware('permission:recruitment-requests.delete')->only('destroy');
     }
 
     /**

@@ -543,17 +543,8 @@
                                                     <option value="" {{ old('agreement') == '' ? 'selected' : '' }}>
                                                         -Select
                                                         Agreement-</option>
-                                                    <option value="PKWT1"
-                                                        {{ old('agreement') == 'PKWT1' ? 'selected' : '' }}>PKWT1
-                                                    </option>
-                                                    <option value="PKWT2"
-                                                        {{ old('agreement') == 'PKWT2' ? 'selected' : '' }}>PKWT2
-                                                    </option>
-                                                    <option value="PKWT3"
-                                                        {{ old('agreement') == 'PKWT3' ? 'selected' : '' }}>PKWT3
-                                                    </option>
-                                                    <option value="PKWT4"
-                                                        {{ old('agreement') == 'PKWT4' ? 'selected' : '' }}>PKWT4
+                                                    <option value="PKWT"
+                                                        {{ old('agreement') == 'PKWT' ? 'selected' : '' }}>PKWT
                                                     </option>
                                                     <option value="PKWTT"
                                                         {{ old('agreement') == 'PKWTT' ? 'selected' : '' }}>PKWTT

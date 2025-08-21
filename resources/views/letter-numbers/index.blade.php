@@ -243,9 +243,55 @@
 @endsection
 
 @section('styles')
-    <link rel="stylesheet" href="{{ asset('assets/plugins/datatables-bs4/css/dataTables.bootstrap4.min.css') }}">
     <link rel="stylesheet" href="{{ asset('assets/plugins/select2/css/select2.min.css') }}">
     <link rel="stylesheet" href="{{ asset('assets/plugins/select2-bootstrap4-theme/select2-bootstrap4.min.css') }}">
+    <link rel="stylesheet" href="{{ asset('assets/plugins/datatables-bs4/css/dataTables.bootstrap4.min.css') }}">
+    <link rel="stylesheet" href="{{ asset('assets/plugins/datatables-responsive/css/responsive.bootstrap4.min.css') }}">
+    <link rel="stylesheet" href="{{ asset('assets/plugins/datatables-buttons/css/buttons.bootstrap4.min.css') }}">
+    <style>
+        /* Active Filters Alert Styling */
+        .alert-sm {
+            padding: 0.5rem 0.75rem;
+            font-size: 0.875rem;
+        }
+
+        .alert-info {
+            background-color: #d1ecf1;
+            border-color: #bee5eb;
+            color: #0c5460;
+        }
+
+        .btn-outline-info {
+            color: #17a2b8;
+            border-color: #17a2b8;
+        }
+
+        .btn-outline-info:hover {
+            background-color: #17a2b8;
+            border-color: #17a2b8;
+            color: #fff;
+        }
+
+        /* Filter card improvements */
+        .card-primary {
+            border-color: #007bff;
+        }
+
+        .card-primary .card-header {
+            background-color: #007bff;
+            border-color: #007bff;
+        }
+
+        .card-primary .card-header a {
+            color: #fff;
+            text-decoration: none;
+        }
+
+        .card-primary .card-header a:hover {
+            color: #fff;
+            text-decoration: none;
+        }
+    </style>
 @endsection
 
 @section('scripts')
@@ -257,10 +303,108 @@
 
     <script>
         $(function() {
+            // Function to get URL parameters
+            function getUrlParameter(name) {
+                name = name.replace(/[\[]/, '\\[').replace(/[\]]/, '\\]');
+                var regex = new RegExp('[\\?&]' + name + '=([^&#]*)');
+                var results = regex.exec(location.search);
+                return results === null ? '' : decodeURIComponent(results[1].replace(/\+/g, ' '));
+            }
+
+            // Function to set filter values from URL parameters
+            function setFiltersFromUrl() {
+                var categoryId = getUrlParameter('letter_category_id');
+                var status = getUrlParameter('status');
+                var dateFrom = getUrlParameter('date_from');
+                var dateTo = getUrlParameter('date_to');
+                var destination = getUrlParameter('destination');
+                var remarks = getUrlParameter('remarks');
+
+                if (categoryId) {
+                    $('#filter-category').val(categoryId).trigger('change');
+                }
+                if (status) {
+                    $('#filter-status').val(status).trigger('change');
+                }
+                if (dateFrom) {
+                    $('#filter-date-from').val(dateFrom);
+                }
+                if (dateTo) {
+                    $('#filter-date-to').val(dateTo);
+                }
+                if (destination) {
+                    $('#filter-destination').val(destination);
+                }
+                if (remarks) {
+                    $('#filter-remarks').val(remarks);
+                }
+
+                // Update page title and show active filters
+                updatePageTitleAndFilters();
+            }
+
+            // Function to update page title and show active filters
+            function updatePageTitleAndFilters() {
+                var categoryId = $('#filter-category').val();
+                var status = $('#filter-status').val();
+                var dateFrom = $('#filter-date-from').val();
+                var dateTo = $('#filter-date-to').val();
+                var destination = $('#filter-destination').val();
+                var remarks = $('#filter-remarks').val();
+
+                var activeFilters = [];
+                var pageTitle = 'Letter Number Administration';
+
+                if (categoryId) {
+                    var categoryText = $('#filter-category option:selected').text();
+                    activeFilters.push('Category: ' + categoryText);
+                    pageTitle += ' - ' + categoryText;
+                }
+                if (status) {
+                    var statusText = $('#filter-status option:selected').text();
+                    activeFilters.push('Status: ' + statusText);
+                    pageTitle += ' - ' + statusText;
+                }
+                if (dateFrom || dateTo) {
+                    var dateFilter = [];
+                    if (dateFrom) dateFilter.push('From: ' + dateFrom);
+                    if (dateTo) dateFilter.push('To: ' + dateTo);
+                    activeFilters.push('Date: ' + dateFilter.join(' to '));
+                }
+                if (destination) {
+                    activeFilters.push('Destination: ' + destination);
+                }
+                if (remarks) {
+                    activeFilters.push('Remarks: ' + remarks);
+                }
+
+                // Update page title
+                document.title = pageTitle;
+
+                // Show active filters info
+                if (activeFilters.length > 0) {
+                    var filterInfo = '<div class="alert alert-info alert-sm mb-3">' +
+                        '<i class="fas fa-filter mr-2"></i><strong>Active Filters:</strong> ' +
+                        activeFilters.join(' | ') +
+                        ' <button type="button" class="btn btn-sm btn-outline-info ml-2" id="btn-clear-url-filters">' +
+                        '<i class="fas fa-times mr-1"></i>Clear All</button></div>';
+
+                    // Insert filter info after the filter card
+                    if ($('#active-filters-info').length === 0) {
+                        $('#accordion').after(filterInfo);
+                    } else {
+                        $('#active-filters-info').replaceWith(filterInfo);
+                    }
+                }
+            }
+
             // Initialize Select2
             $('.select2bs4').select2({
                 theme: 'bootstrap4'
             });
+
+            // Set filters from URL parameters before initializing DataTable
+            setFiltersFromUrl();
 
             // Initialize DataTable
             var table = $("#letter-numbers-table").DataTable({
@@ -362,11 +506,13 @@
                 $('#filter-date-from, #filter-date-to').val('');
                 $('#filter-destination, #filter-remarks').val('');
                 table.draw();
+                updatePageTitleAndFilters(); // Reset page title and filters info
             });
 
             // Auto apply filter on change
             $('#filter-category, #filter-status, #filter-date-from, #filter-date-to').on('change', function() {
                 table.draw();
+                updatePageTitleAndFilters(); // Update page title and filters info on change
             });
 
             // Auto apply filter on keyup for text inputs (with debounce)
@@ -375,8 +521,34 @@
                 clearTimeout(timeout);
                 timeout = setTimeout(function() {
                     table.draw();
+                    updatePageTitleAndFilters(); // Update page title and filters info on keyup
                 }, 500); // Wait 500ms after user stops typing
             });
+
+            // Clear URL filters button
+            $(document).on('click', '#btn-clear-url-filters', function() {
+                clearUrlFilters();
+            });
+
+            // Function to clear URL filters and redirect to clean URL
+            function clearUrlFilters() {
+                // Clear all filter values
+                $('#filter-category').val('').trigger('change');
+                $('#filter-status').val('').trigger('change');
+                $('#filter-date-from, #filter-date-to').val('');
+                $('#filter-destination, #filter-remarks').val('');
+
+                // Redirect to clean URL without parameters
+                var cleanUrl = window.location.pathname;
+                window.history.replaceState({}, document.title, cleanUrl);
+
+                // Refresh datatable and update page
+                table.draw();
+                updatePageTitleAndFilters();
+
+                // Remove the active filters info
+                $('#active-filters-info').remove();
+            }
 
             // Delete function
             $(document).on('click', '.btn-delete', function() {

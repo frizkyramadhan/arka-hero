@@ -20,147 +20,212 @@
     <section class="content">
         <div class="container-fluid">
 
-            <!-- Letter Summary Cards -->
-            <div class="row">
-                <!-- Total Letters -->
-                <div class="col-lg-3 col-6">
-                    <div class="small-box bg-primary">
-                        <div class="inner">
-                            <h3>{{ number_format($totalLetters) }}</h3>
-                            <p>Total Letter Numbers</p>
-                        </div>
-                        <div class="icon">
-                            <i class="fas fa-file-alt"></i>
-                        </div>
-                        <a href="{{ route('letter-numbers.index') }}" class="small-box-footer">
-                            View all letters <i class="fas fa-arrow-circle-right"></i>
+            <!-- Summary Overview Card -->
+            <div class="card mb-4">
+                <div class="card-header bg-gradient-dark">
+                    <h3 class="card-title text-white">
+                        <i class="fas fa-chart-line"></i> Letter Administration Summary
+                        <small class="text-white-50 ml-2">Overview & Key Metrics</small>
+                    </h3>
+                    <div class="card-tools">
+                        <a href="{{ route('letter-numbers.index') }}" class="btn btn-sm btn-outline-light">
+                            <i class="fas fa-list mr-1"></i>View All Letters
                         </a>
                     </div>
                 </div>
-
-                <!-- Reserved Letters -->
-                <div class="col-lg-3 col-6">
-                    <div class="small-box bg-warning">
-                        <div class="inner">
-                            <h3>{{ number_format($reservedLetters) }}</h3>
-                            <p>Reserved Letters</p>
-                        </div>
-                        <div class="icon">
-                            <i class="fas fa-clock"></i>
-                        </div>
-                        <a href="{{ route('letter-numbers.index') }}?status=reserved" class="small-box-footer">
-                            View reserved <i class="fas fa-arrow-circle-right"></i>
-                        </a>
-                    </div>
-                </div>
-
-                <!-- Used Letters -->
-                <div class="col-lg-3 col-6">
-                    <div class="small-box bg-success">
-                        <div class="inner">
-                            <h3>{{ number_format($usedLetters) }}</h3>
-                            <p>Used Letters</p>
-                        </div>
-                        <div class="icon">
-                            <i class="fas fa-check-circle"></i>
-                        </div>
-                        <a href="{{ route('letter-numbers.index') }}?status=used" class="small-box-footer">
-                            View used <i class="fas fa-arrow-circle-right"></i>
-                        </a>
-                    </div>
-                </div>
-
-                <!-- Usage Efficiency -->
-                <div class="col-lg-3 col-6">
-                    <div class="small-box bg-info">
-                        <div class="inner">
-                            <h3>{{ $usageEfficiency }}%</h3>
-                            <p>Usage Efficiency</p>
-                        </div>
-                        <div class="icon">
-                            <i class="fas fa-chart-pie"></i>
-                        </div>
-                        <div class="small-box-footer">
-                            <small>Used / Total Letters</small>
-                        </div>
+                <div class="card-body py-2">
+                    <div class="row text-center">
+                        @php
+                            $stats = [
+                                [
+                                    'icon' => 'fa-file-alt',
+                                    'bg' => 'primary',
+                                    'val' => $totalLetters,
+                                    'label' => 'Total Letters',
+                                ],
+                                [
+                                    'icon' => 'fa-clock',
+                                    'bg' => 'warning',
+                                    'val' => $reservedLetters,
+                                    'label' => 'Reserved',
+                                ],
+                                [
+                                    'icon' => 'fa-check-circle',
+                                    'bg' => 'success',
+                                    'val' => $usedLetters,
+                                    'label' => 'Used',
+                                ],
+                                [
+                                    'icon' => 'fa-calendar-alt',
+                                    'bg' => 'info',
+                                    'val' => $thisMonthLetters,
+                                    'label' => 'This Month',
+                                ],
+                            ];
+                        @endphp
+                        @foreach ($stats as $s)
+                            <div class="col-6 col-md-3 mb-2">
+                                <div
+                                    class="d-flex align-items-center justify-content-center border rounded bg-light py-2 px-1 h-100">
+                                    <span class="badge bg-{{ $s['bg'] }} mr-2"
+                                        style="font-size:1.3rem;padding:.5rem .7rem;">
+                                        <i class="fas {{ $s['icon'] }} text-white"></i>
+                                    </span>
+                                    <div class="text-left">
+                                        <div class="font-weight-bold text-{{ $s['bg'] }}" style="font-size:1.1rem;">
+                                            {{ number_format($s['val']) }}
+                                        </div>
+                                        <small class="text-muted">{{ $s['label'] }}</small>
+                                    </div>
+                                </div>
+                            </div>
+                        @endforeach
                     </div>
                 </div>
             </div>
 
-            <!-- Monthly Statistics and Growth -->
-            <div class="row">
-                <div class="col-lg-6">
-                    <div class="card">
-                        <div class="card-header">
-                            <h3 class="card-title">
-                                <i class="fas fa-calendar-alt mr-1"></i>
-                                Monthly Statistics
-                            </h3>
-                        </div>
-                        <div class="card-body">
-                            <div class="row">
-                                <div class="col-md-12">
-                                    <div class="info-box">
-                                        <span class="info-box-icon bg-info"><i class="fas fa-calendar"></i></span>
-                                        <div class="info-box-content">
-                                            <span class="info-box-text">This Month</span>
-                                            <span class="info-box-number">{{ number_format($thisMonthLetters) }}</span>
-                                            <div class="progress">
-                                                <div class="progress-bar bg-info" style="width: 70%"></div>
+            <!-- Estimated Next Numbers -->
+            <div class="card mb-4">
+                <div class="card-header bg-gradient-info">
+                    <h3 class="card-title text-white">
+                        <i class="fas fa-calculator"></i> Estimated Next Numbers
+                        <small class="text-white-50 ml-2">Current Year: {{ date('Y') }}</small>
+                    </h3>
+                    <div class="card-tools">
+                        <button type="button" class="btn btn-tool" data-card-widget="collapse">
+                            <i class="fas fa-minus text-white"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- Category Cards Grid -->
+                    <div class="row">
+                        @foreach ($categories as $category)
+                            @php
+                                $estimate = $estimatedNextNumbers[$category->id] ?? null;
+                                $letterCount = $letterCountsByCategory[$category->id] ?? 0;
+                                $lastNumbers = $lastNumbersByCategory[$category->id] ?? collect();
+                            @endphp
+                            <div class="col-lg-4 col-md-6 col-sm-6 col-12 mb-3">
+                                <div class="card h-100 border-0 shadow-sm compact-card">
+                                    <div class="card-header bg-light border-0 py-2">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <h6 class="mb-0 font-weight-bold text-dark compact-title">
+                                                    <span
+                                                        class="badge badge-primary mr-2">{{ $category->category_code }}</span>
+                                                    {{ $category->category_name }}
+                                                </h6>
                                             </div>
-                                            <span class="progress-description">
-                                                {{ $monthlyGrowth > 0 ? '+' : '' }}{{ $monthlyGrowth }}% from last month
-                                            </span>
                                         </div>
                                     </div>
-                                </div>
-                                <div class="col-md-12">
-                                    <div class="info-box">
-                                        <span class="info-box-icon bg-secondary"><i class="fas fa-cogs"></i></span>
-                                        <div class="info-box-content">
-                                            <span class="info-box-text">Integrated</span>
-                                            <span class="info-box-number">{{ number_format($integratedLetters) }}</span>
-                                            <div class="progress">
-                                                <div class="progress-bar bg-secondary"
-                                                    style="width: {{ $totalLetters > 0 ? ($integratedLetters / $totalLetters) * 100 : 0 }}%">
+                                    <div class="card-body compact-body">
+                                        @if ($estimate)
+                                            <!-- Next Number Display -->
+                                            <div class="text-center mb-2">
+                                                <div class="display-5 font-weight-bold text-primary mb-1">
+                                                    {{ $estimate['next_letter_number'] }}
+                                                </div>
+                                                <div class="text-muted">
+                                                    <small>Next Available Number</small>
                                                 </div>
                                             </div>
-                                            <span class="progress-description">
-                                                <small>
-                                                    LOT: {{ $officialTravelLetters }} |
-                                                    FPTK: {{ $fptkLetters }} |
-                                                    PKWT: {{ $pkwtLetters }} |
-                                                    Offer: {{ $offeringLetters }}
-                                                </small>
-                                            </span>
+
+                                            <!-- Numbering Info -->
+                                            <div class="row text-center mb-2">
+                                                <div class="col-6">
+                                                    <div class="border-right">
+                                                        <div class="h6 text-info mb-0">{{ $estimate['next_sequence'] }}
+                                                        </div>
+                                                        <small class="text-muted">Sequence</small>
+                                                    </div>
+                                                </div>
+                                                <div class="col-6">
+                                                    <div class="h6 text-success mb-0">{{ $estimate['year'] }}</div>
+                                                    <small class="text-muted">Year</small>
+                                                </div>
+                                            </div>
+
+                                            <!-- Behavior & Count -->
+                                            <div class="row mb-2">
+                                                <div class="col-6">
+                                                    @if (isset($category->numbering_behavior))
+                                                        @if ($category->numbering_behavior === 'annual_reset')
+                                                            <span class="badge badge-warning badge-pill compact-badge"
+                                                                data-toggle="tooltip" title="Numbers reset to 1 each year">
+                                                                <i class="fas fa-calendar-alt mr-1"></i>Annual Reset
+                                                            </span>
+                                                        @else
+                                                            <span class="badge badge-success badge-pill compact-badge"
+                                                                data-toggle="tooltip"
+                                                                title="Numbers continue from previous sequence">
+                                                                <i class="fas fa-arrow-up mr-1"></i>Continuous
+                                                            </span>
+                                                        @endif
+                                                    @endif
+                                                </div>
+                                                <div class="col-6 text-right">
+                                                    <span class="badge badge-secondary badge-pill compact-badge">
+                                                        <i class="fas fa-file-alt mr-1"></i>{{ $letterCount }} letters
+                                                    </span>
+                                                </div>
+                                            </div>
+
+                                            <!-- Recent Numbers -->
+                                            @if ($lastNumbers->count() > 0)
+                                                <div class="border-top pt-2">
+                                                    <small class="text-muted d-block mb-1">
+                                                        <i class="fas fa-history mr-1"></i>Recent Numbers:
+                                                    </small>
+                                                    <div class="d-flex flex-wrap">
+                                                        @foreach ($lastNumbers->take(3) as $lastNumber)
+                                                            <span
+                                                                class="badge badge-light mr-1 mb-1 px-1 py-0 compact-number-badge">
+                                                                <code>{{ $lastNumber->letter_number }}</code>
+                                                            </span>
+                                                        @endforeach
+                                                    </div>
+                                                </div>
+                                            @endif
+                                        @else
+                                            <!-- No Data State -->
+                                            <div class="text-center py-3">
+                                                <div class="text-muted mb-1">
+                                                    <i class="fas fa-inbox fa-2x"></i>
+                                                </div>
+                                                <div class="h6 text-muted">No Data Available</div>
+                                                <small class="text-muted">No previous numbers found</small>
+                                            </div>
+                                        @endif
+                                    </div>
+                                    <div class="card-footer bg-light border-0 compact-footer">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <small class="text-muted">
+                                                <i class="fas fa-clock mr-1"></i>Updated: {{ now()->format('M d, H:i') }}
+                                            </small>
+                                            <div class="btn-group btn-group-sm">
+                                                <a href="{{ route('letter-numbers.index', ['letter_category_id' => $category->id]) }}"
+                                                    class="btn btn-outline-secondary"
+                                                    title="View all letters in {{ $category->category_name }} category">
+                                                    <i class="fas fa-list mr-1"></i>View All
+                                                </a>
+                                                <a href="{{ route('letter-numbers.create', ['categoryId' => $category->category_code]) }}"
+                                                    class="btn btn-outline-primary">
+                                                    <i class="fas fa-plus mr-1"></i>Create
+                                                </a>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
-                        </div>
+                        @endforeach
                     </div>
-                </div>
 
-                <!-- Status Distribution Chart -->
-                <div class="col-lg-6">
-                    <div class="card">
-                        <div class="card-header">
-                            <h3 class="card-title">
-                                <i class="fas fa-chart-pie mr-1"></i>
-                                Status Distribution
-                            </h3>
-                        </div>
-                        <div class="card-body">
-                            <canvas id="statusChart" style="height:250px"></canvas>
-                        </div>
-                    </div>
                 </div>
             </div>
 
-
-
             <!-- Categories and Recent Activity -->
-            <div class="row">
+            <div class="row mb-4">
                 <!-- Categories Stats -->
                 <div class="col-lg-6">
                     <div class="card">
@@ -216,84 +281,8 @@
                 </div>
             </div>
 
-            <!-- Yearly Trends and Top Users -->
-            <div class="row">
-                <!-- Yearly Statistics -->
-                <div class="col-lg-8">
-                    <div class="card">
-                        <div class="card-header">
-                            <h3 class="card-title">
-                                <i class="fas fa-chart-line mr-1"></i>
-                                Yearly Trends
-                            </h3>
-                        </div>
-                        <div class="card-body">
-                            @if ($yearlyStats->count() > 0)
-                                <div class="row">
-                                    @foreach ($yearlyStats as $yearStat)
-                                        <div class="col-md-4">
-                                            <div class="info-box">
-                                                <span class="info-box-icon bg-gradient-primary">
-                                                    <i class="fas fa-calendar-alt"></i>
-                                                </span>
-                                                <div class="info-box-content">
-                                                    <span class="info-box-text">{{ $yearStat->year }}</span>
-                                                    <span
-                                                        class="info-box-number">{{ number_format($yearStat->total) }}</span>
-                                                    <div class="progress">
-                                                        <div class="progress-bar bg-primary"
-                                                            style="width: {{ $yearStat->total > 0 ? ($yearStat->used / $yearStat->total) * 100 : 0 }}%">
-                                                        </div>
-                                                    </div>
-                                                    <span class="progress-description">
-                                                        {{ number_format($yearStat->used) }} Used,
-                                                        {{ number_format($yearStat->reserved) }} Reserved
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    @endforeach
-                                </div>
-                            @else
-                                <p class="text-muted">No yearly data available yet.</p>
-                            @endif
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Top Users -->
-                <div class="col-lg-4">
-                    <div class="card">
-                        <div class="card-header">
-                            <h3 class="card-title">
-                                <i class="fas fa-users mr-1"></i>
-                                Top Contributors
-                            </h3>
-                        </div>
-                        <div class="card-body">
-                            @if ($topUsers->count() > 0)
-                                @foreach ($topUsers as $user)
-                                    <div class="d-flex justify-content-between align-items-center border-bottom pb-3 mb-3">
-                                        <div class="d-flex align-items-center">
-                                            <i class="fas fa-user-circle fa-2x text-muted mr-3"></i>
-                                            <div>
-                                                <div class="text-dark">{{ $user->user->name ?? 'Unknown User' }}</div>
-                                                <small class="text-muted">{{ $user->count }} letters generated</small>
-                                            </div>
-                                        </div>
-                                        <span class="badge badge-primary">{{ $user->count }}</span>
-                                    </div>
-                                @endforeach
-                            @else
-                                <p class="text-muted">No user data available yet.</p>
-                            @endif
-                        </div>
-                    </div>
-                </div>
-            </div>
-
             <!-- Action Cards -->
-            <div class="row">
+            <div class="row mb-4">
                 <div class="col-lg-3 col-6">
                     <div class="card bg-gradient-primary">
                         <div class="card-body">
@@ -420,10 +409,578 @@
 @endsection
 
 @section('styles')
-    <!-- DataTables -->
-    <link rel="stylesheet" href="{{ asset('assets/plugins/datatables-bs4/css/dataTables.bootstrap4.min.css') }}">
-    <link rel="stylesheet" href="{{ asset('assets/plugins/datatables-responsive/css/responsive.bootstrap4.min.css') }}">
-    <link rel="stylesheet" href="{{ asset('assets/plugins/datatables-buttons/css/buttons.bootstrap4.min.css') }}">
+    <link rel="stylesheet" href="{{ asset('assets/plugins/select2/css/select2.min.css') }}">
+    <link rel="stylesheet" href="{{ asset('assets/plugins/select2-bootstrap4-theme/select2-bootstrap4.min.css') }}">
+    <style>
+        /* Enhanced Estimated Next Numbers Styling */
+        .card.shadow-sm {
+            transition: all 0.3s ease;
+            border-radius: 0.75rem;
+        }
+
+        .card.shadow-sm:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+        }
+
+        .display-4 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            line-height: 1.2;
+        }
+
+        .badge-pill {
+            border-radius: 50rem;
+            padding: 0.5em 1em;
+        }
+
+        .bg-gradient-primary {
+            background: linear-gradient(45deg, #007bff, #0056b3);
+        }
+
+        .bg-gradient-success {
+            background: linear-gradient(45deg, #28a745, #1e7e34);
+        }
+
+        .bg-gradient-warning {
+            background: linear-gradient(45deg, #ffc107, #e0a800);
+        }
+
+        .bg-gradient-info {
+            background: linear-gradient(45deg, #17a2b8, #138496);
+        }
+
+        .bg-gradient-secondary {
+            background: linear-gradient(45deg, #6c757d, #545b62);
+        }
+
+        .info-box.bg-gradient-primary .info-box-icon,
+        .info-box.bg-gradient-success .info-box-icon,
+        .info-box.bg-gradient-warning .info-box-icon,
+        .info-box.bg-gradient-info .info-box-icon {
+            background: rgba(255, 255, 255, 0.2);
+            color: #fff;
+        }
+
+        .info-box.bg-gradient-primary .info-box-content,
+        .info-box.bg-gradient-success .info-box-content,
+        .info-box.bg-gradient-warning .info-box-content,
+        .info-box.bg-gradient-info .info-box-content {
+            color: #fff;
+        }
+
+        .info-box.bg-gradient-primary .info-box-text,
+        .info-box.bg-gradient-success .info-box-text,
+        .info-box.bg-gradient-warning .info-box-text,
+        .info-box.bg-gradient-info .info-box-text {
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .border-right {
+            border-right: 1px solid #dee2e6 !important;
+        }
+
+        .card-header.bg-light {
+            background-color: #f8f9fa !important;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .dropdown-toggle::after {
+            margin-left: 0.255em;
+        }
+
+        .btn-outline-secondary:hover {
+            background-color: #6c757d;
+            border-color: #6c757d;
+            color: #fff;
+        }
+
+        .text-white-50 {
+            color: rgba(255, 255, 255, 0.5) !important;
+        }
+
+        .card-tools .btn-tool {
+            color: rgba(255, 255, 255, 0.8);
+            background: transparent;
+            border: none;
+            padding: 0.25rem 0.5rem;
+        }
+
+        .card-tools .btn-tool:hover {
+            color: #fff;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .h5 {
+            font-size: 1.25rem;
+            font-weight: 500;
+        }
+
+        .h6 {
+            font-size: 1rem;
+            font-weight: 500;
+        }
+
+        .font-weight-bold {
+            font-weight: 700 !important;
+        }
+
+        .text-dark {
+            color: #343a40 !important;
+        }
+
+        .d-flex.flex-wrap {
+            flex-wrap: wrap;
+        }
+
+        .badge-light {
+            background-color: #f8f9fa;
+            color: #6c757d;
+            border: 1px solid #dee2e6;
+        }
+
+        .badge-light code {
+            background: transparent;
+            color: inherit;
+            padding: 0;
+        }
+
+        .py-3 {
+            padding-top: 1rem !important;
+            padding-bottom: 1rem !important;
+        }
+
+        .py-4 {
+            padding-top: 1.5rem !important;
+            padding-bottom: 1.5rem !important;
+        }
+
+        .pt-3 {
+            padding-top: 1rem !important;
+        }
+
+        .mb-0 {
+            margin-bottom: 0 !important;
+        }
+
+        .mb-1 {
+            margin-bottom: 0.25rem !important;
+        }
+
+        .mb-2 {
+            margin-bottom: 0.5rem !important;
+        }
+
+        .mb-3 {
+            margin-bottom: 1rem !important;
+        }
+
+        .mb-4 {
+            margin-bottom: 1.5rem !important;
+        }
+
+        .mt-4 {
+            margin-top: 1.5rem !important;
+        }
+
+        .mr-1 {
+            margin-right: 0.25rem !important;
+        }
+
+        .mr-2 {
+            margin-right: 0.5rem !important;
+        }
+
+        .ml-2 {
+            margin-left: 0.5rem !important;
+        }
+
+        .px-2 {
+            padding-left: 0.5rem !important;
+            padding-right: 0.5rem !important;
+        }
+
+        .py-1 {
+            padding-top: 0.25rem !important;
+            padding-bottom: 0.25rem !important;
+        }
+
+        .d-block {
+            display: block !important;
+        }
+
+        .text-center {
+            text-align: center !important;
+        }
+
+        .text-right {
+            text-align: right !important;
+        }
+
+        .justify-content-between {
+            justify-content: space-between !important;
+        }
+
+        .align-items-center {
+            align-items: center !important;
+        }
+
+        .fa-3x {
+            font-size: 3em;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .display-4 {
+                font-size: 2rem;
+            }
+
+            .h5 {
+                font-size: 1.1rem;
+            }
+
+            .col-xl-4 {
+                margin-bottom: 1rem;
+            }
+        }
+
+        /* Compact Category Cards Styling */
+        .compact-card {
+            transition: all 0.3s ease;
+            border-radius: 0.5rem;
+        }
+
+        .compact-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+        }
+
+        .compact-title {
+            font-size: 0.9rem;
+            line-height: 1.2;
+        }
+
+        .compact-title+small a {
+            color: #6c757d;
+            transition: color 0.2s ease;
+        }
+
+        .compact-title+small a:hover {
+            color: #007bff;
+        }
+
+        .compact-title+small .fas {
+            font-size: 0.7rem;
+        }
+
+        .compact-body {
+            padding: 0.75rem;
+        }
+
+        .compact-footer {
+            padding: 0.5rem 0.75rem;
+        }
+
+        .display-5 {
+            font-size: 2rem;
+            font-weight: 700;
+            line-height: 1.1;
+        }
+
+        .compact-badge {
+            font-size: 0.7rem;
+            padding: 0.3em 0.6em;
+        }
+
+        .compact-number-badge {
+            font-size: 0.65rem;
+            padding: 0.2em 0.4em;
+        }
+
+        .compact-btn {
+            padding: 0.2rem 0.4rem;
+            font-size: 0.8rem;
+        }
+
+        .compact-action-btn {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.8rem;
+        }
+
+        .compact-card .card-header {
+            padding: 0.5rem 0.75rem;
+        }
+
+        .compact-card .card-body {
+            padding: 0.75rem;
+        }
+
+        .compact-card .card-footer {
+            padding: 0.5rem 0.75rem;
+        }
+
+        .compact-card .h6 {
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        .compact-card .small {
+            font-size: 0.75rem;
+        }
+
+        .compact-card .text-muted {
+            font-size: 0.75rem;
+        }
+
+        .compact-card .fa-2x {
+            font-size: 1.5em;
+        }
+
+        .compact-card .border-top {
+            margin-top: 0.5rem;
+        }
+
+        .compact-card .pt-2 {
+            padding-top: 0.5rem !important;
+        }
+
+        .compact-card .mb-2 {
+            margin-bottom: 0.5rem !important;
+        }
+
+        .compact-card .mb-1 {
+            margin-bottom: 0.25rem !important;
+        }
+
+        .compact-card .py-3 {
+            padding-top: 0.75rem !important;
+            padding-bottom: 0.75rem !important;
+        }
+
+        .compact-card .py-2 {
+            padding-top: 0.5rem !important;
+            padding-bottom: 0.5rem !important;
+        }
+
+        .compact-card .py-1 {
+            padding-top: 0.25rem !important;
+            padding-bottom: 0.25rem !important;
+        }
+
+        .compact-card .px-1 {
+            padding-left: 0.25rem !important;
+            padding-right: 0.25rem !important;
+        }
+
+        .compact-card .py-0 {
+            padding-top: 0 !important;
+            padding-bottom: 0 !important;
+        }
+
+        /* Reduce spacing between cards */
+        .col-lg-4.mb-3,
+        .col-md-6.mb-3,
+        .col-sm-6.mb-3,
+        .col-12.mb-3 {
+            margin-bottom: 1rem !important;
+        }
+
+        /* Responsive adjustments for compact cards */
+        @media (max-width: 992px) {
+            .col-lg-4 {
+                margin-bottom: 0.75rem !important;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .col-md-6 {
+                margin-bottom: 0.75rem !important;
+            }
+
+            .compact-card .display-5 {
+                font-size: 1.75rem;
+            }
+
+            .compact-card .h6 {
+                font-size: 0.85rem;
+            }
+        }
+
+        @media (max-width: 576px) {
+            .col-sm-6 {
+                margin-bottom: 0.75rem !important;
+            }
+
+            .compact-card .display-5 {
+                font-size: 1.5rem;
+            }
+
+            .compact-card .compact-body {
+                padding: 0.5rem;
+            }
+
+            .compact-card .compact-footer {
+                padding: 0.4rem 0.5rem;
+            }
+        }
+
+        /* Make badges more compact */
+        .compact-badge.badge-pill {
+            border-radius: 1rem;
+        }
+
+        .compact-number-badge.badge-light {
+            border-radius: 0.25rem;
+        }
+
+        /* Optimize text sizes for compact display */
+        .compact-card .info-box-number {
+            font-size: 1.5rem;
+        }
+
+        .compact-card .info-box-text {
+            font-size: 0.8rem;
+        }
+
+        /* Reduce icon sizes in compact mode */
+        .compact-card .fas.fa-ellipsis-v {
+            font-size: 0.8rem;
+        }
+
+        .compact-card .fas.fa-plus,
+        .compact-card .fas.fa-clock {
+            font-size: 0.7rem;
+        }
+
+        .compact-card .fas.fa-calendar-alt,
+        .compact-card .fas.fa-arrow-up,
+        .compact-card .fas.fa-file-alt,
+        .compact-card .fas.fa-history {
+            font-size: 0.7rem;
+        }
+
+        /* Button group styling for compact cards */
+        .compact-footer .btn-group-sm .btn {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.8rem;
+            border-radius: 0.25rem;
+        }
+
+        .compact-footer .btn-group-sm .btn:first-child {
+            border-top-right-radius: 0;
+            border-bottom-right-radius: 0;
+        }
+
+        .compact-footer .btn-group-sm .btn:last-child {
+            border-top-left-radius: 0;
+            border-bottom-left-radius: 0;
+        }
+
+        .compact-footer .btn-group-sm .btn:not(:first-child):not(:last-child) {
+            border-radius: 0;
+        }
+
+        /* Dropdown menu badge styling */
+        .dropdown-item .badge-sm {
+            font-size: 0.65rem;
+            padding: 0.2em 0.4em;
+        }
+
+        .dropdown-item .ml-2 {
+            margin-left: 0.5rem !important;
+        }
+
+        /* Summary Overview Card Styling */
+        .bg-gradient-dark {
+            background: linear-gradient(45deg, #343a40, #495057);
+        }
+
+        .summary-stat {
+            padding: 1rem 0;
+            text-align: center;
+        }
+
+        .summary-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1rem;
+            font-size: 1.5rem;
+        }
+
+        .summary-number {
+            font-size: 2rem;
+            font-weight: 700;
+            line-height: 1.2;
+            margin-bottom: 0.5rem;
+        }
+
+        .summary-label {
+            font-size: 0.9rem;
+            color: #6c757d;
+            font-weight: 500;
+        }
+
+        .summary-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* Card tools button styling */
+        .card-tools .btn-outline-light {
+            border-color: rgba(255, 255, 255, 0.3);
+            color: rgba(255, 255, 255, 0.8);
+            transition: all 0.2s ease;
+        }
+
+        .card-tools .btn-outline-light:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.5);
+            color: #fff;
+        }
+
+        .card-tools .btn-sm {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.8rem;
+        }
+
+        /* Responsive adjustments for summary card */
+        @media (max-width: 768px) {
+            .summary-number {
+                font-size: 1.5rem;
+            }
+
+            .summary-icon {
+                width: 50px;
+                height: 50px;
+                font-size: 1.25rem;
+            }
+
+            .summary-label {
+                font-size: 0.8rem;
+            }
+        }
+
+        @media (max-width: 576px) {
+            .summary-number {
+                font-size: 1.25rem;
+            }
+
+            .summary-icon {
+                width: 45px;
+                height: 45px;
+                font-size: 1.1rem;
+            }
+
+            .summary-label {
+                font-size: 0.75rem;
+            }
+        }
+    </style>
 @endsection
 
 @section('scripts')
@@ -511,46 +1068,8 @@
                 ]
             });
 
-            // Status Distribution Chart
-            var ctx = document.getElementById('statusChart').getContext('2d');
-            new Chart(ctx, {
-                type: 'doughnut',
-                data: {
-                    labels: ['Used', 'Reserved', 'Cancelled'],
-                    datasets: [{
-                        data: [{{ $usedLetters }}, {{ $reservedLetters }},
-                            {{ $cancelledLetters }}
-                        ],
-                        backgroundColor: [
-                            '#28a745', // Green for used
-                            '#ffc107', // Yellow for reserved
-                            '#dc3545' // Red for cancelled
-                        ],
-                        borderWidth: 2,
-                        borderColor: '#fff'
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    legend: {
-                        position: 'bottom'
-                    },
-                    plugins: {
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    var total = {{ $totalLetters }};
-                                    var percentage = total > 0 ? ((context.parsed / total) * 100)
-                                        .toFixed(1) : 0;
-                                    return context.label + ': ' + context.parsed + ' (' + percentage +
-                                        '%)';
-                                }
-                            }
-                        }
-                    }
-                }
-            });
+            // Initialize any charts or additional functionality here
+            console.log('Estimated Next Numbers dashboard initialized');
         });
     </script>
 @endsection

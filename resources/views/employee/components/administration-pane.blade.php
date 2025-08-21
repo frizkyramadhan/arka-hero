@@ -89,7 +89,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="11">
+                        <td colspan="12">
                             <div class="empty-state">
                                 <i class="fas fa-exclamation-circle"></i>
                                 <h6>No Data Available</h6>

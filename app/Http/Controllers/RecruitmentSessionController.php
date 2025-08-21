@@ -28,10 +28,10 @@ class RecruitmentSessionController extends Controller
         RecruitmentSessionService $sessionService
     ) {
         $this->sessionService = $sessionService;
-        $this->middleware('role_or_permission:recruitment-sessions.show')->only('index', 'show');
-        $this->middleware('role_or_permission:recruitment-sessions.create')->only('create');
-        $this->middleware('role_or_permission:recruitment-sessions.edit')->only('edit', 'advanceStage', 'reject', 'complete', 'cancel', 'withdraw');
-        $this->middleware('role_or_permission:recruitment-sessions.delete')->only('destroy');
+        $this->middleware('permission:recruitment-sessions.show')->only('index', 'show', 'showSession', 'getSessions', 'getSessionData', 'getSessionsByFPTK', 'getSessionsByCandidate');
+        $this->middleware('permission:recruitment-sessions.create')->only('store');
+        $this->middleware('permission:recruitment-sessions.edit')->only('updateCvReview', 'updatePsikotes', 'updateTesTeori', 'updateInterview', 'updateOffering', 'updateMcu', 'updateHiring', 'updateOnboarding', 'closeRequest');
+        $this->middleware('permission:recruitment-sessions.delete')->only('destroy');
     }
 
     /**
@@ -551,14 +551,6 @@ class RecruitmentSessionController extends Controller
     {
         try {
             $session = RecruitmentSession::with(['candidate', 'fptk'])->findOrFail($id);
-
-            // Check if user has permission to delete
-            if (!auth()->user()->can('recruitment-sessions.delete')) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'You do not have permission to remove candidates from sessions.'
-                ], 403);
-            }
 
             // Check if session can be deleted (not in final stages)
             if (in_array($session->status, ['hired', 'onboarding'])) {

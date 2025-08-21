@@ -20,6 +20,10 @@ class RecruitmentCandidateController extends Controller
     public function __construct(RecruitmentSessionService $sessionService)
     {
         $this->sessionService = $sessionService;
+        $this->middleware('permission:recruitment-candidates.show')->only('index', 'show', 'search', 'getRecruitmentCandidates', 'getCandidateData', 'getAvailableFPTKs', 'print', 'downloadCV');
+        $this->middleware('permission:recruitment-candidates.create')->only('create', 'store', 'applyToFPTK');
+        $this->middleware('permission:recruitment-candidates.edit')->only('edit', 'update', 'blacklist', 'removeFromBlacklist');
+        $this->middleware('permission:recruitment-candidates.delete')->only('destroy', 'deleteCV');
     }
 
     /**

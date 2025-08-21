@@ -10,6 +10,51 @@
 **Purpose**: AI's persistent knowledge base for project context and learnings
 **Last Updated**: 2025-01-15
 
+### Estimated Next Letter Numbers Feature (2025-01-15) ✅ COMPLETE
+
+**Challenge**: Users needed to see estimated next letter numbers for each category when creating new letter numbers to understand the numbering sequence and plan accordingly.
+
+**Solution**:
+
+-   Added `getEstimatedNextNumber()` and `getEstimatedNextNumbersForAllCategories()` methods to LetterNumber model to calculate next numbers based on numbering behavior (annual_reset vs continuous)
+-   Enhanced LetterNumberController create method to pass estimated next numbers and last few numbers for each category
+-   Created comprehensive "Estimated Next Numbers" section in create.blade.php showing:
+    -   Next letter number preview for each category with sequence and year info
+    -   Numbering behavior badges (Annual Reset/Continuous) with icons
+    -   Recent letter numbers for context (last 3 numbers per category)
+    -   Summary statistics (total categories, categories with numbers, total sequences)
+-   Added dynamic next number preview in form area when category is selected
+-   Implemented responsive grid layout with AdminLTE info-box styling and custom CSS
+-   Added error handling and null checks for robust data display
+
+**Key Learning**:
+
+-   Numbering behavior (annual_reset vs continuous) significantly affects sequence calculation logic
+-   Visual representation of next numbers helps users understand the system before creating letters
+-   Showing recent numbers provides context and helps verify numbering sequence
+-   Responsive design with AdminLTE components ensures consistent UI experience
+-   Error handling in model methods prevents crashes when category data is incomplete
+
+### Letter Management Truncate Functionality (2025-01-15) ✅ COMPLETE
+
+**Challenge**: Need to add truncate functionality for letter-related tables (letter_numbers, letter_categories, letter_subjects) to the DebugController for database management and testing purposes.
+
+**Solution**:
+
+-   Added four new methods to DebugController: `truncateLetterNumbers()`, `truncateLetterCategories()`, `truncateLetterSubjects()`, and `truncateLetterAll()`
+-   Implemented proper foreign key constraint handling with `SET FOREIGN_KEY_CHECKS=0/1` for safe truncation
+-   Added corresponding routes in web.php: `/truncate/letter-numbers`, `/truncate/letter-categories`, `/truncate/letter-subjects`, `/truncate/letter-all`
+-   Created new "Letter Management" tab in debug/index.blade.php with individual truncate buttons and bulk operation
+-   Used consistent AdminLTE styling with info color scheme and proper confirmation dialogs
+-   Maintained same pattern as existing recruitment and employee truncate functionality
+
+**Key Learning**:
+
+-   Foreign key constraints must be temporarily disabled during truncate operations to avoid constraint violations
+-   Truncate order matters: child tables should be truncated before parent tables
+-   UI consistency is important - following existing patterns makes the interface intuitive
+-   Bulk operations should be clearly separated from individual table operations with appropriate warning styling
+
 ### SKPK Category NIK Requirement Removal (2025-01-15) ✅ COMPLETE
 
 **Challenge**: The SKPK letter category was requiring NIK validation during import, causing validation errors as shown in the import validation screenshot where NIK "15740" was flagged as required but doesn't exist in administrations.
