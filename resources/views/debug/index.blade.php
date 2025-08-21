@@ -51,6 +51,12 @@
                                         <i class="fas fa-users"></i> Recruitment System
                                     </button>
                                 </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link" id="letter-tab" data-toggle="tab" data-target="#letter"
+                                        type="button" role="tab" aria-controls="letter" aria-selected="false">
+                                        <i class="fas fa-envelope"></i> Letter Management
+                                    </button>
+                                </li>
                             </ul>
 
                             <!-- Tab Content -->
@@ -137,7 +143,8 @@
                                                                             <td>
                                                                                 <form
                                                                                     action="{{ route('debug.truncate.taxidentifications') }}"
-                                                                                    method="POST" style="display: inline;">
+                                                                                    method="POST"
+                                                                                    style="display: inline;">
                                                                                     @csrf
                                                                                     <button type="submit"
                                                                                         class="btn btn-danger btn-sm"
@@ -558,6 +565,156 @@
                                                                         onclick="return confirm('⚠️ WARNING: This will truncate ALL recruitment tables and assessment data. This action is IRREVERSIBLE. Are you absolutely sure?')">
                                                                         <i class="fas fa-users-slash"></i> TRUNCATE ALL
                                                                         RECRUITMENT TABLES
+                                                                    </button>
+                                                                </form>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Letter Management Tab -->
+                                <div class="tab-pane fade" id="letter" role="tabpanel" aria-labelledby="letter-tab">
+                                    <div class="row mt-4">
+                                        <div class="col-12">
+                                            <div class="card border-info">
+                                                <div class="card-header bg-info">
+                                                    <h4 class="card-title text-white mb-0">
+                                                        <i class="fas fa-envelope"></i> Letter Management System
+                                                    </h4>
+                                                </div>
+                                                <div class="card-body">
+                                                    <div class="row">
+                                                        <div class="col-md-6">
+                                                            <h5 class="text-info">
+                                                                <i class="fas fa-database"></i> Core Letter Tables
+                                                            </h5>
+                                                            <div class="table-responsive">
+                                                                <table class="table table-hover table-bordered">
+                                                                    <thead class="thead-light">
+                                                                        <tr>
+                                                                            <th>Table Name</th>
+                                                                            <th width="120">Action</th>
+                                                                        </tr>
+                                                                    </thead>
+                                                                    <tbody>
+                                                                        <tr>
+                                                                            <td><i class="fas fa-hashtag"></i> Letter
+                                                                                Numbers</td>
+                                                                            <td>
+                                                                                <form
+                                                                                    action="{{ route('debug.truncate.letter_numbers') }}"
+                                                                                    method="POST"
+                                                                                    style="display: inline;">
+                                                                                    @csrf
+                                                                                    <button type="submit"
+                                                                                        class="btn btn-info btn-sm"
+                                                                                        onclick="return confirm('Are you sure you want to truncate letter numbers table?')">
+                                                                                        <i class="fas fa-trash"></i>
+                                                                                        Truncate
+                                                                                    </button>
+                                                                                </form>
+                                                                            </td>
+                                                                        </tr>
+                                                                        <tr>
+                                                                            <td><i class="fas fa-tags"></i> Letter Subjects
+                                                                            </td>
+                                                                            <td>
+                                                                                <form
+                                                                                    action="{{ route('debug.truncate.letter_subjects') }}"
+                                                                                    method="POST"
+                                                                                    style="display: inline;">
+                                                                                    @csrf
+                                                                                    <button type="submit"
+                                                                                        class="btn btn-info btn-sm"
+                                                                                        onclick="return confirm('Are you sure you want to truncate letter subjects table?')">
+                                                                                        <i class="fas fa-trash"></i>
+                                                                                        Truncate
+                                                                                    </button>
+                                                                                </form>
+                                                                            </td>
+                                                                        </tr>
+                                                                        <tr>
+                                                                            <td><i class="fas fa-folder"></i> Letter
+                                                                                Categories</td>
+                                                                            <td>
+                                                                                <form
+                                                                                    action="{{ route('debug.truncate.letter_categories') }}"
+                                                                                    method="POST"
+                                                                                    style="display: inline;">
+                                                                                    @csrf
+                                                                                    <button type="submit"
+                                                                                        class="btn btn-info btn-sm"
+                                                                                        onclick="return confirm('Are you sure you want to truncate letter categories table?')">
+                                                                                        <i class="fas fa-trash"></i>
+                                                                                        Truncate
+                                                                                    </button>
+                                                                                </form>
+                                                                            </td>
+                                                                        </tr>
+                                                                    </tbody>
+                                                                </table>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-md-6">
+                                                            <div class="alert alert-info mt-3">
+                                                                <h6><i class="fas fa-info-circle"></i> Table Information:
+                                                                </h6>
+                                                                <div class="row">
+                                                                    <div class="col-12">
+                                                                        <ul class="list-unstyled mb-0 small">
+                                                                            <li><i class="fas fa-hashtag text-primary"></i>
+                                                                                <strong>Letter Numbers:</strong> Main table
+                                                                                for letter numbering system
+                                                                            </li>
+                                                                            <li><i class="fas fa-tags text-success"></i>
+                                                                                <strong>Letter Subjects:</strong> Master
+                                                                                data for letter subjects
+                                                                            </li>
+                                                                            <li><i class="fas fa-folder text-warning"></i>
+                                                                                <strong>Letter Categories:</strong> Master
+                                                                                data for letter categories
+                                                                            </li>
+                                                                        </ul>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+
+                                                            <div class="alert alert-success mt-2">
+                                                                <h6><i class="fas fa-shield-check"></i> Smart Constraint
+                                                                    Handling:</h6>
+                                                                <p class="mb-0 small">
+                                                                    <i class="fas fa-check-circle text-success"></i>
+                                                                    Foreign key constraints automatically handled<br>
+                                                                    <i class="fas fa-check-circle text-success"></i>
+                                                                    Dependencies resolved in proper order<br>
+                                                                    <i class="fas fa-check-circle text-success"></i> Safe
+                                                                    truncation guaranteed
+                                                                </p>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <!-- Letter Bulk Operation -->
+                                                    <div class="row mt-4">
+                                                        <div class="col-12">
+                                                            <div class="alert alert-info border-info">
+                                                                <h5><i class="fas fa-bomb"></i> <strong>LETTER SYSTEM
+                                                                        RESET</strong></h5>
+                                                                <p class="mb-3">This will truncate <strong>ALL
+                                                                        letter-related tables</strong> including numbers,
+                                                                    subjects, and categories.</p>
+                                                                <form action="{{ route('debug.truncate.letter_all') }}"
+                                                                    method="POST" style="display: inline;">
+                                                                    @csrf
+                                                                    <button type="submit"
+                                                                        class="btn btn-danger btn-lg shadow"
+                                                                        onclick="return confirm('⚠️ WARNING: This will truncate ALL letter tables and related data. This action is IRREVERSIBLE. Are you absolutely sure?')">
+                                                                        <i class="fas fa-envelope-open"></i> TRUNCATE ALL
+                                                                        LETTER TABLES
                                                                     </button>
                                                                 </form>
                                                             </div>

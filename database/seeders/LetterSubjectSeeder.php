@@ -128,7 +128,7 @@ class LetterSubjectSeeder extends Seeder
 
             // PKWT
             [
-                'subject_name' => 'Perjanjian Kerja Waktu Tertentu - PKWT I',
+                'subject_name' => 'Perjanjian Kerja Waktu Tertentu - PKWT',
                 'letter_category_id' => $categories['PKWT'],
                 'is_active' => 1,
                 'user_id' => 1,
@@ -136,15 +136,7 @@ class LetterSubjectSeeder extends Seeder
                 'updated_at' => now(),
             ],
             [
-                'subject_name' => 'Perjanjian Kerja Waktu Tertentu - PKWT II',
-                'letter_category_id' => $categories['PKWT'],
-                'is_active' => 1,
-                'user_id' => 1,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ],
-            [
-                'subject_name' => 'Perjanjian Kerja Waktu Tertentu - PKWT III',
+                'subject_name' => 'Perjanjian Kerja Waktu Tertentu - PKWTT',
                 'letter_category_id' => $categories['PKWT'],
                 'is_active' => 1,
                 'user_id' => 1,

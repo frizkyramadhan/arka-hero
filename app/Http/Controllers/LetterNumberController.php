@@ -63,8 +63,8 @@ class LetterNumberController extends Controller
             ->when($request->remarks, function ($query, $remarks) {
                 return $query->where('remarks', 'like', '%' . $remarks . '%');
             })
-            ->orderBy('created_at', 'desc')
-            ->orderBy('sequence_number', 'desc');
+            ->orderBy('sequence_number', 'desc')
+            ->orderBy('created_at', 'desc');
 
         return datatables()->of($letterNumbers)
             ->addIndexColumn()
@@ -140,13 +140,27 @@ class LetterNumberController extends Controller
             }
         }
 
+        // Get estimated next numbers for all categories
+        $estimatedNextNumbers = LetterNumber::getEstimatedNextNumbersForAllCategories();
+
+        // Get last numbers for each category for context
+        $lastNumbersByCategory = [];
+        $letterCountsByCategory = [];
+        foreach ($categories as $category) {
+            $lastNumbersByCategory[$category->id] = LetterNumber::getLastNumbersForCategory($category->id, 3);
+            $letterCountsByCategory[$category->id] = LetterNumber::getLetterCountForCategory($category->id);
+        }
+
         return view('letter-numbers.create', compact(
             'title',
             'categories',
             'subjects',
             'administrations',
             'projects',
-            'selectedCategory'
+            'selectedCategory',
+            'estimatedNextNumbers',
+            'lastNumbersByCategory',
+            'letterCountsByCategory'
         ));
     }
 

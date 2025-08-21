@@ -30,6 +30,26 @@
                                 <h3 class="card-title">Basic Information</h3>
                             </div>
                             <div class="card-body">
+                                <!-- Next Number Preview -->
+                                <div id="form-next-number-preview" style="display: none;" class="alert alert-info mb-3">
+                                    <div class="row align-items-center">
+                                        <div class="col-md-8">
+                                            <h6 class="mb-1">
+                                                <i class="fas fa-eye"></i> Next Number Preview
+                                            </h6>
+                                            <p class="mb-0">
+                                                The next letter number for this category will be:
+                                                <strong id="form-next-letter-number" class="text-warning"></strong>
+                                            </p>
+                                        </div>
+                                        <div class="col-md-4 text-right">
+                                            <span class="badge badge-info">
+                                                Sequence: <span id="form-next-sequence"></span>
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+
                                 <div class="row">
                                     <div class="col-md-6">
                                         <div class="form-group">
@@ -309,6 +329,158 @@
 @section('styles')
     <link rel="stylesheet" href="{{ asset('assets/plugins/select2/css/select2.min.css') }}">
     <link rel="stylesheet" href="{{ asset('assets/plugins/select2-bootstrap4-theme/select2-bootstrap4.min.css') }}">
+    <style>
+        .info-box {
+            min-height: 80px;
+            box-shadow: 0 0 1px rgba(0, 0, 0, .125), 0 1px 3px rgba(0, 0, 0, .2);
+            border-radius: 0.25rem;
+            background-color: #fff;
+            display: flex;
+            margin-bottom: 1rem;
+            position: relative;
+        }
+
+        .info-box-icon {
+            border-radius: 0.25rem 0 0 0.25rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.875rem;
+            font-weight: 300;
+            text-align: center;
+            width: 70px;
+            color: #fff;
+        }
+
+        .info-box-content {
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            height: auto;
+            min-height: 80px;
+            flex: 1;
+            padding: 0 10px;
+        }
+
+        .info-box-text {
+            display: block;
+            font-size: 14px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            color: #6c757d;
+        }
+
+        .info-box-number {
+            display: block;
+            font-weight: 700;
+            font-size: 18px;
+        }
+
+        .progress {
+            height: 3px;
+            margin: 5px 0;
+        }
+
+        .progress-description {
+            display: block;
+            font-size: 12px;
+            color: #6c757d;
+        }
+
+        .bg-light {
+            background-color: #f8f9fa !important;
+        }
+
+        .text-primary {
+            color: #007bff !important;
+        }
+
+        .text-info {
+            color: #17a2b8 !important;
+        }
+
+        .text-muted {
+            color: #6c757d !important;
+        }
+
+        .font-weight-bold {
+            font-weight: 700 !important;
+        }
+
+        .alert-secondary {
+            background-color: #f8f9fa;
+            border-color: #dee2e6;
+            color: #495057;
+        }
+
+        .text-success {
+            color: #28a745 !important;
+        }
+
+        .text-warning {
+            color: #ffc107 !important;
+        }
+
+        .badge-info {
+            background-color: #17a2b8;
+            color: #fff;
+        }
+
+        .mb-2 {
+            margin-bottom: 0.5rem !important;
+        }
+
+        .mt-3 {
+            margin-top: 1rem !important;
+        }
+
+        .ml-2 {
+            margin-left: 0.5rem !important;
+        }
+
+        .badge-light {
+            background-color: #f8f9fa;
+            color: #6c757d;
+            border: 1px solid #dee2e6;
+        }
+
+        .badge-sm {
+            font-size: 0.75em;
+            padding: 0.25em 0.5em;
+        }
+
+        .mr-1 {
+            margin-right: 0.25rem !important;
+        }
+
+        .mt-2 {
+            margin-top: 0.5rem !important;
+        }
+
+        .badge-warning {
+            background-color: #ffc107;
+            color: #212529;
+        }
+
+        .badge-success {
+            background-color: #28a745;
+            color: #fff;
+        }
+
+        .badge-secondary {
+            background-color: #6c757d;
+            color: #fff;
+        }
+
+        .text-dark {
+            color: #343a40 !important;
+        }
+
+        .mt-1 {
+            margin-top: 0.25rem !important;
+        }
+    </style>
 @endsection
 
 @section('scripts')
@@ -321,7 +493,11 @@
                 theme: 'bootstrap4'
             });
 
+            // Initialize tooltips
+            $('[data-toggle="tooltip"]').tooltip();
+
             var categories = @json($categories->keyBy('id'));
+            var estimatedNextNumbers = @json($estimatedNextNumbers);
 
             function updateDynamicFields(categoryId) {
                 var categoryCode = categories[categoryId] ? categories[categoryId].category_code : null;
@@ -358,6 +534,24 @@
                 }
             }
 
+            function updateNextNumberInfo(categoryId) {
+                var estimate = estimatedNextNumbers[categoryId];
+                if (estimate) {
+                    // Update sidebar info
+                    $('#next-letter-number').text(estimate.next_letter_number);
+                    $('#next-sequence').text(estimate.next_sequence);
+                    $('#next-number-info').show();
+
+                    // Update form preview
+                    $('#form-next-letter-number').text(estimate.next_letter_number);
+                    $('#form-next-sequence').text(estimate.next_sequence);
+                    $('#form-next-number-preview').show();
+                } else {
+                    $('#next-number-info').hide();
+                    $('#form-next-number-preview').hide();
+                }
+            }
+
             function updateSubjects(categoryId) {
                 var subjectSelect = $('#subject_id');
                 subjectSelect.empty().append('<option value="">- Select Subject -</option>');
@@ -384,6 +578,7 @@
                 updateDynamicFields(categoryId);
                 updateCategoryInfo(categoryId);
                 updateSubjects(categoryId);
+                updateNextNumberInfo(categoryId); // Call this function here
             });
 
             // Initial call if a category is pre-selected

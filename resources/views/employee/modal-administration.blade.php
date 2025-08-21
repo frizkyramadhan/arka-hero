@@ -121,14 +121,8 @@
                                     <select name="agreement" id="agreement_add"
                                         class="form-control @error('agreement') is-invalid @enderror">
                                         <option value="">-Select Agreement-</option>
-                                        <option value="PKWT1" {{ old('agreement') == 'PKWT1' ? 'selected' : '' }}>
-                                            PKWT1</option>
-                                        <option value="PKWT2" {{ old('agreement') == 'PKWT2' ? 'selected' : '' }}>
-                                            PKWT2</option>
-                                        <option value="PKWT3" {{ old('agreement') == 'PKWT3' ? 'selected' : '' }}>
-                                            PKWT3</option>
-                                        <option value="PKWT4" {{ old('agreement') == 'PKWT4' ? 'selected' : '' }}>
-                                            PKWT4</option>
+                                        <option value="PKWT" {{ old('agreement') == 'PKWT' ? 'selected' : '' }}>
+                                            PKWT</option>
                                         <option value="PKWTT" {{ old('agreement') == 'PKWTT' ? 'selected' : '' }}>
                                             PKWTT</option>
                                         <option value="Daily" {{ old('agreement') == 'Daily' ? 'selected' : '' }}>
@@ -551,18 +545,9 @@
                                         <select name="agreement" id="agreement_edit_{{ $administration->id }}"
                                             class="form-control @error('agreement') is-invalid @enderror">
                                             <option value="">-Select Agreement-</option>
-                                            <option value="PKWT1"
-                                                {{ old('agreement', $administration->agreement) == 'PKWT1' ? 'selected' : '' }}>
-                                                PKWT1</option>
-                                            <option value="PKWT2"
-                                                {{ old('agreement', $administration->agreement) == 'PKWT2' ? 'selected' : '' }}>
-                                                PKWT2</option>
-                                            <option value="PKWT3"
-                                                {{ old('agreement', $administration->agreement) == 'PKWT3' ? 'selected' : '' }}>
-                                                PKWT3</option>
-                                            <option value="PKWT4"
-                                                {{ old('agreement', $administration->agreement) == 'PKWT4' ? 'selected' : '' }}>
-                                                PKWT4</option>
+                                            <option value="PKWT"
+                                                {{ old('agreement', $administration->agreement) == 'PKWT' ? 'selected' : '' }}>
+                                                PKWT</option>
                                             <option value="PKWTT"
                                                 {{ old('agreement', $administration->agreement) == 'PKWTT' ? 'selected' : '' }}>
                                                 PKWTT</option>

@@ -327,6 +327,18 @@ class DashboardController extends Controller
             ->orderBy('day')
             ->get();
 
+        // Get estimated next numbers for all categories
+        $estimatedNextNumbers = LetterNumber::getEstimatedNextNumbersForAllCategories();
+
+        // Get last numbers for each category for context
+        $categories = LetterCategory::where('is_active', 1)->orderBy('category_code', 'asc')->get();
+        $lastNumbersByCategory = [];
+        $letterCountsByCategory = [];
+        foreach ($categories as $category) {
+            $lastNumbersByCategory[$category->id] = LetterNumber::getLastNumbersForCategory($category->id, 3);
+            $letterCountsByCategory[$category->id] = LetterNumber::getLetterCountForCategory($category->id);
+        }
+
         return view('dashboard.letter-administration', compact(
             'title',
             'subtitle',
@@ -348,7 +360,11 @@ class DashboardController extends Controller
             'recentLetters',
             'topUsers',
             'yearlyStats',
-            'dailyTrend'
+            'dailyTrend',
+            'categories',
+            'estimatedNextNumbers',
+            'lastNumbersByCategory',
+            'letterCountsByCategory'
         ));
     }
 

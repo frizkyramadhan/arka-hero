@@ -278,6 +278,95 @@ class DebugController extends Controller
         }
     }
 
+    public function truncateLetterNumbers()
+    {
+        try {
+            // Disable foreign key checks temporarily
+            DB::statement('SET FOREIGN_KEY_CHECKS=0');
+
+            DB::table('letter_numbers')->truncate();
+
+            // Re-enable foreign key checks
+            DB::statement('SET FOREIGN_KEY_CHECKS=1');
+
+            return redirect()->back()->with('toast_success', 'Letter numbers table truncated successfully');
+        } catch (\Exception $e) {
+            // Re-enable foreign key checks in case of error
+            DB::statement('SET FOREIGN_KEY_CHECKS=1');
+            return redirect()->back()->with('toast_error', 'Failed to truncate letter numbers table: ' . $e->getMessage());
+        }
+    }
+
+    public function truncateLetterCategories()
+    {
+        try {
+            // Disable foreign key checks temporarily
+            DB::statement('SET FOREIGN_KEY_CHECKS=0');
+
+            DB::table('letter_categories')->truncate();
+
+            // Re-enable foreign key checks
+            DB::statement('SET FOREIGN_KEY_CHECKS=1');
+
+            return redirect()->back()->with('toast_success', 'Letter categories table truncated successfully');
+        } catch (\Exception $e) {
+            // Re-enable foreign key checks in case of error
+            DB::statement('SET FOREIGN_KEY_CHECKS=1');
+            return redirect()->back()->with('toast_error', 'Failed to truncate letter categories table: ' . $e->getMessage());
+        }
+    }
+
+    public function truncateLetterSubjects()
+    {
+        try {
+            // Disable foreign key checks temporarily
+            DB::statement('SET FOREIGN_KEY_CHECKS=0');
+
+            DB::table('letter_subjects')->truncate();
+
+            // Re-enable foreign key checks
+            DB::statement('SET FOREIGN_KEY_CHECKS=1');
+
+            return redirect()->back()->with('toast_success', 'Letter subjects table truncated successfully');
+        } catch (\Exception $e) {
+            // Re-enable foreign key checks in case of error
+            DB::statement('SET FOREIGN_KEY_CHECKS=1');
+            return redirect()->back()->with('toast_error', 'Failed to truncate letter subjects table: ' . $e->getMessage());
+        }
+    }
+
+    public function truncateLetterAll()
+    {
+        try {
+            // Disable foreign key checks temporarily
+            DB::statement('SET FOREIGN_KEY_CHECKS=0');
+
+            // Order matters: child tables first, then parent tables
+            $letterTables = [
+                // Child tables first
+                'letter_numbers',
+                'letter_subjects',
+                // Then parent tables
+                'letter_categories'
+            ];
+
+            foreach ($letterTables as $table) {
+                if (Schema::hasTable($table)) {
+                    DB::table($table)->truncate();
+                }
+            }
+
+            // Re-enable foreign key checks
+            DB::statement('SET FOREIGN_KEY_CHECKS=1');
+
+            return redirect()->back()->with('toast_success', 'All letter tables truncated successfully');
+        } catch (\Exception $e) {
+            // Re-enable foreign key checks in case of error
+            DB::statement('SET FOREIGN_KEY_CHECKS=1');
+            return redirect()->back()->with('toast_error', 'Failed to truncate letter tables: ' . $e->getMessage());
+        }
+    }
+
     public function truncateAll()
     {
         try {

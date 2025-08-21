@@ -87,6 +87,148 @@
                 </div>
             </div>
 
+            <!-- Quick Actions Card -->
+            @can('employees.create')
+                <div class="row">
+                    <div class="col-12">
+                        <div class="card card-outline card-info">
+                            <div class="card-header">
+                                <h3 class="card-title">
+                                    <i class="fas fa-rocket mr-2"></i>Quick Actions
+                                </h3>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <!-- Personal & Administration -->
+                                    <div class="col-lg-3 col-md-6 mb-3">
+                                        <div class="quick-action-group">
+                                            <h6 class="text-muted mb-3"><i class="fas fa-user mr-2"></i>Personal & Admin</h6>
+                                            <div class="quick-action-buttons">
+                                                <a href="{{ url('personals') }}" class="btn btn-primary btn-sm">
+                                                    <i class="fa fa-house-user mr-2"></i>Personal Details
+                                                </a>
+                                                <a href="{{ url('administrations') }}" class="btn btn-success btn-sm">
+                                                    <i class="fa fa-folder mr-2"></i>Administrations
+                                                </a>
+                                                <a href="{{ url('employeebanks') }}" class="btn btn-info btn-sm">
+                                                    <i class="fa fa-credit-card mr-2"></i>Bank Accounts
+                                                </a>
+                                                <a href="{{ url('taxidentifications') }}" class="btn btn-warning btn-sm">
+                                                    <i class="fa fa-user-md mr-2"></i>Tax Identification
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Insurance & Licenses -->
+                                    <div class="col-lg-3 col-md-6 mb-3">
+                                        <div class="quick-action-group">
+                                            <h6 class="text-muted mb-3"><i class="fas fa-shield-alt mr-2"></i>Insurance &
+                                                Licenses</h6>
+                                            <div class="quick-action-buttons">
+                                                <a href="{{ url('insurances') }}" class="btn btn-danger btn-sm">
+                                                    <i class="fa fa-medkit mr-2"></i>Insurances
+                                                </a>
+                                                <a href="{{ url('licenses') }}" class="btn btn-purple btn-sm">
+                                                    <i class="fa fa-car mr-2"></i>Driver Licenses
+                                                </a>
+                                                <a href="{{ url('families') }}" class="btn btn-pink btn-sm">
+                                                    <i class="fa fa-address-card mr-2"></i>Employee Families
+                                                </a>
+                                                <a href="{{ url('emrgcalls') }}" class="btn btn-orange btn-sm">
+                                                    <i class="fa fa-ambulance mr-2"></i>Emergency Calls
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Education & Training -->
+                                    <div class="col-lg-3 col-md-6 mb-3">
+                                        <div class="quick-action-group">
+                                            <h6 class="text-muted mb-3"><i class="fas fa-graduation-cap mr-2"></i>Education &
+                                                Training</h6>
+                                            <div class="quick-action-buttons">
+                                                <a href="{{ url('educations') }}" class="btn btn-indigo btn-sm">
+                                                    <i class="fa fa-university mr-2"></i>Educations
+                                                </a>
+                                                <a href="{{ url('courses') }}" class="btn btn-teal btn-sm">
+                                                    <i class="fa fa-graduation-cap mr-2"></i>Courses
+                                                </a>
+                                                <a href="{{ url('jobexperiences') }}" class="btn btn-cyan btn-sm">
+                                                    <i class="fa fa-building mr-2"></i>Job Experiences
+                                                </a>
+                                                <a href="{{ url('additionaldatas') }}" class="btn btn-secondary btn-sm">
+                                                    <i class="fa fa-list mr-2"></i>Additional Data
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Operations & Management -->
+                                    <div class="col-lg-3 col-md-6 mb-3">
+                                        <div class="quick-action-group">
+                                            <h6 class="text-muted mb-3"><i class="fas fa-cogs mr-2"></i>Operations &
+                                                Management</h6>
+                                            <div class="quick-action-buttons">
+                                                <a href="{{ url('operableunits') }}" class="btn btn-dark btn-sm">
+                                                    <i class="fa fa-truck mr-2"></i>Operable Units
+                                                </a>
+                                                <a href="{{ route('employees.create') }}" class="btn btn-success btn-sm">
+                                                    <i class="fas fa-user-plus mr-2"></i>Add New Employee
+                                                </a>
+                                                <a href="{{ route('employees.index') }}" class="btn btn-primary btn-sm">
+                                                    <i class="fas fa-list mr-2"></i>View All Employees
+                                                </a>
+                                                <button type="button" class="btn btn-warning btn-sm" data-toggle="modal"
+                                                    data-target="#importModal">
+                                                    <i class="fas fa-upload mr-2"></i>Import Data
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            @endcan
+
+            <!-- Import Modal -->
+            <div class="modal fade" id="importModal" tabindex="-1">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header bg-warning">
+                            <h4 class="modal-title">
+                                <i class="fas fa-upload mr-2"></i>Import Employees
+                            </h4>
+                            <button type="button" class="close" data-dismiss="modal">
+                                <span>&times;</span>
+                            </button>
+                        </div>
+                        <form action="{{ route('employees.import') }}" method="POST" enctype="multipart/form-data">
+                            @csrf
+                            <div class="modal-body">
+                                <div class="form-group">
+                                    <label>Choose Excel File</label>
+                                    <div class="custom-file">
+                                        <input type="file" class="custom-file-input" id="import_file"
+                                            name="import_file" accept=".xlsx,.xls">
+                                        <label class="custom-file-label" for="import_file">Choose file...</label>
+                                    </div>
+                                    <small class="text-muted">Only Excel files (.xlsx, .xls) are allowed</small>
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                                <button type="submit" class="btn btn-warning">
+                                    <i class="fas fa-upload mr-2"></i>Import
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
             <!-- Employee Analytics & Recent Employees -->
             <div class="row">
                 <!-- Employees by Department Chart -->
@@ -417,6 +559,161 @@
         .progress-bar {
             border-radius: 3px;
         }
+
+        /* Quick Actions Styles */
+        .quick-action-group {
+            border: 1px solid #e3e6f0;
+            border-radius: 10px;
+            padding: 20px;
+            height: 100%;
+            transition: all 0.3s ease;
+            background: #fff;
+        }
+
+        .quick-action-group:hover {
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .quick-action-group h6 {
+            font-weight: 600;
+            border-bottom: 2px solid #f8f9fa;
+            padding-bottom: 8px;
+        }
+
+        .quick-action-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        .quick-action-buttons .btn {
+            border-radius: 6px !important;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            font-size: 11px;
+            padding: 8px 6px;
+            text-align: center;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .quick-action-buttons .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        .quick-action-buttons .btn i {
+            font-size: 10px;
+        }
+
+        /* Custom Button Colors */
+        .btn-purple {
+            background-color: #6f42c1;
+            border-color: #6f42c1;
+            color: #fff;
+        }
+
+        .btn-purple:hover {
+            background-color: #5a359a;
+            border-color: #5a359a;
+            color: #fff;
+        }
+
+        .btn-indigo {
+            background-color: #6610f2;
+            border-color: #6610f2;
+            color: #fff;
+        }
+
+        .btn-indigo:hover {
+            background-color: #520dc2;
+            border-color: #520dc2;
+            color: #fff;
+        }
+
+        .btn-orange {
+            background-color: #fd7e14;
+            border-color: #fd7e14;
+            color: #fff;
+        }
+
+        .btn-orange:hover {
+            background-color: #e76500;
+            border-color: #e76500;
+            color: #fff;
+        }
+
+        .btn-teal {
+            background-color: #20c997;
+            border-color: #20c997;
+            color: #fff;
+        }
+
+        .btn-teal:hover {
+            background-color: #1ba085;
+            border-color: #1ba085;
+            color: #fff;
+        }
+
+        .btn-cyan {
+            background-color: #17a2b8;
+            border-color: #17a2b8;
+            color: #fff;
+        }
+
+        .btn-cyan:hover {
+            background-color: #138496;
+            border-color: #138496;
+            color: #fff;
+        }
+
+        .btn-pink {
+            background-color: #e83e8c;
+            border-color: #e83e8c;
+            color: #fff;
+        }
+
+        .btn-pink:hover {
+            background-color: #d91a72;
+            border-color: #d91a72;
+            color: #fff;
+        }
+
+        /* Card improvements */
+        .card-outline.card-info {
+            border-top: 3px solid #17a2b8;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .quick-action-buttons {
+                grid-template-columns: 1fr;
+                gap: 6px;
+            }
+
+            .quick-action-buttons .btn {
+                font-size: 12px;
+                padding: 10px 8px;
+            }
+
+            .quick-action-group {
+                padding: 15px;
+                margin-bottom: 15px;
+            }
+        }
+
+        @media (max-width: 576px) {
+            .quick-action-buttons .btn {
+                font-size: 11px;
+                padding: 8px 6px;
+            }
+
+            .quick-action-buttons .btn i {
+                font-size: 9px;
+            }
+        }
     </style>
 @endsection
 
@@ -434,6 +731,12 @@
     <script src="{{ asset('assets/plugins/datatables-buttons/js/buttons.colVis.min.js') }}"></script>
     <script>
         $(function() {
+            // File input handling for import modal
+            $('.custom-file-input').on('change', function() {
+                var fileName = $(this).val().split('\\').pop();
+                $(this).next('.custom-file-label').addClass("selected").html(fileName);
+            });
+
             // Employee DataTables
             $('#employees-by-department-table').DataTable({
                 processing: true,
