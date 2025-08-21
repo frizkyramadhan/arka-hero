@@ -45,6 +45,9 @@ class LetterNumberController extends Controller
             'reservedBy',
             'usedBy'
         ])
+            ->when($request->letter_number, function ($query, $letterNumber) {
+                return $query->where('letter_number', 'like', '%' . $letterNumber . '%');
+            })
             ->when($request->letter_category_id, function ($query, $category) {
                 return $query->where('letter_category_id', $category);
             })

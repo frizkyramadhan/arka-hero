@@ -28,6 +28,7 @@ class LetterAdministrationExport implements FromQuery, WithHeadings, WithMapping
     public function headings(): array
     {
         return [
+            'id',
             'letter_number',
             'sequence_number',
             'category_code',
@@ -60,10 +61,11 @@ class LetterAdministrationExport implements FromQuery, WithHeadings, WithMapping
         $projectCode = $letterNumber->project?->project_code ?? $letterNumber->administration?->project?->project_code;
 
         return [
+            $letterNumber->id,
             $letterNumber->letter_number,
             $letterNumber->sequence_number,
             $letterNumber->category?->category_code,
-            $letterNumber->category?->category_name,
+            $letterNumber->category_name,
             $letterNumber->letter_date ? date('d F Y', strtotime($letterNumber->letter_date)) : '',
             $letterNumber->status,
             $letterNumber->destination,
