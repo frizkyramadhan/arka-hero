@@ -69,8 +69,6 @@ class PersonalImport implements ToModel, WithHeadingRow, WithMultipleSheets, Wit
         return [
             'identity_card_no' => ['required', 'string', 'max:50'],
             'full_name' => ['required', 'string', 'max:255'],
-            'place_of_birth' => ['required', 'string', 'max:100'],
-            'date_of_birth' => ['required'],
             'blood_type' => ['nullable'],
             'religion' => ['required', 'exists:religions,religion_name'],
             'nationality' => ['nullable', 'string', 'max:50'],
@@ -136,8 +134,6 @@ class PersonalImport implements ToModel, WithHeadingRow, WithMultipleSheets, Wit
             'identity_card_no.max' => 'Identity Card No cannot exceed 50 characters',
             'full_name.required' => 'Full Name is required',
             'full_name.max' => 'Full Name cannot exceed 255 characters',
-            'place_of_birth.required' => 'Place of Birth is required',
-            'date_of_birth.required' => 'Date of Birth is required',
             'religion.required' => 'Religion is required',
             'religion.exists' => 'Selected Religion does not exist in our database',
             'gender.required' => 'Gender is required',
@@ -191,7 +187,60 @@ class PersonalImport implements ToModel, WithHeadingRow, WithMultipleSheets, Wit
                 if (is_numeric($row['date_of_birth'])) {
                     $employeeData['emp_dob'] = Date::excelToDateTimeObject($row['date_of_birth']);
                 } else {
-                    $employeeData['emp_dob'] = \Carbon\Carbon::parse($row['date_of_birth']);
+                    try {
+                        // Try to parse Indonesian date format first
+                        $dateString = $row['date_of_birth'];
+
+                        // Handle Indonesian month names
+                        $indonesianMonths = [
+                            'januari' => '01',
+                            'februari' => '02',
+                            'maret' => '03',
+                            'april' => '04',
+                            'mei' => '05',
+                            'juni' => '06',
+                            'juli' => '07',
+                            'agustus' => '08',
+                            'september' => '09',
+                            'oktober' => '10',
+                            'november' => '11',
+                            'desember' => '12'
+                        ];
+
+                        // Convert Indonesian month names to English
+                        foreach ($indonesianMonths as $indonesian => $english) {
+                            $dateString = str_ireplace($indonesian, $english, $dateString);
+                        }
+
+                        // Try to parse the converted date
+                        $employeeData['emp_dob'] = \Carbon\Carbon::parse($dateString);
+                    } catch (\Exception $e) {
+                        // If parsing fails, try alternative formats
+                        try {
+                            // Try common date formats
+                            $formats = ['d/m/Y', 'd-m-Y', 'Y-m-d', 'd.m.Y', 'd M Y', 'd F Y'];
+                            $parsed = false;
+
+                            foreach ($formats as $format) {
+                                try {
+                                    $employeeData['emp_dob'] = \Carbon\Carbon::createFromFormat($format, $row['date_of_birth']);
+                                    $parsed = true;
+                                    break;
+                                } catch (\Exception $formatException) {
+                                    continue;
+                                }
+                            }
+
+                            if (!$parsed) {
+                                // If all formats fail, set to null and log the issue
+                                $employeeData['emp_dob'] = null;
+                                \Illuminate\Support\Facades\Log::warning("Could not parse date of birth: {$row['date_of_birth']} for employee: {$row['full_name']}");
+                            }
+                        } catch (\Exception $fallbackException) {
+                            $employeeData['emp_dob'] = null;
+                            \Illuminate\Support\Facades\Log::warning("Could not parse date of birth: {$row['date_of_birth']} for employee: {$row['full_name']}");
+                        }
+                    }
                 }
             }
 
