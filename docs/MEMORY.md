@@ -2,6 +2,45 @@
 
 ## Recent Implementations & Learnings
 
+### 2025-01-27: PersonalImport Validation and Date Parsing Improvements
+
+**Context**: User reported import errors for employee personal data, specifically issues with place of birth and date of birth validation, and date parsing errors for Indonesian date formats like '28 Oktober 1972'.
+
+**Changes Made**:
+
+1. **Removed Validation Rules**:
+
+    - Removed `place_of_birth` required validation
+    - Removed `date_of_birth` required validation
+    - Updated validation messages accordingly
+
+2. **Enhanced Date Parsing**:
+    - Added support for Indonesian month names (Januari, Februari, Maret, etc.)
+    - Implemented fallback date parsing with multiple format attempts
+    - Added error handling to prevent import failures due to date parsing issues
+    - Added logging for unparseable dates to help with debugging
+
+**Technical Implementation**:
+
+-   Modified `app/Imports/PersonalImport.php` validation rules
+-   Enhanced date processing logic in the `model()` method
+-   Added Indonesian month name mapping to English month numbers
+-   Implemented multiple date format fallback attempts
+-   Added proper error handling and logging
+
+**Benefits**:
+
+-   More flexible import process that doesn't fail on missing birth data
+-   Better handling of Indonesian date formats commonly used in local data
+-   Improved error resilience and debugging capabilities
+-   Maintains data integrity while allowing for incomplete records
+
+**Files Modified**:
+
+-   `app/Imports/PersonalImport.php`
+
+---
+
 ### 2025-08-19: Conditional Theory Test Implementation
 
 **Business Rule Implemented**: Tes Teori hanya dilakukan untuk posisi mekanik yang memerlukan kompetensi teknis.
