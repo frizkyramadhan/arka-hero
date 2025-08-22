@@ -200,6 +200,7 @@ Route::group(['middleware' => ['auth']], function () {
 
     Route::get('positions/data', [PositionController::class, 'getPositions'])->name('positions.data');
     Route::post('positions/import', [PositionController::class, 'import'])->name('positions.import');
+    Route::get('positions/export', [PositionController::class, 'export'])->name('positions.export');
     Route::resource('positions', PositionController::class)->except(['show', 'create', 'edit']);
 
     Route::get('grades/data', [GradeController::class, 'getGrades'])->name('grades.data');

@@ -6,6 +6,7 @@ use App\Models\Position;
 use App\Models\Department;
 use Illuminate\Http\Request;
 use App\Imports\PositionImport;
+use App\Exports\PositionExport;
 use Maatwebsite\Excel\Facades\Excel;
 
 class PositionController extends Controller
@@ -117,10 +118,66 @@ class PositionController extends Controller
     {
         $this->validate($request, [
             'file' => 'required|mimes:xls,xlsx'
+        ], [
+            'file.required' => 'Please select a file to import',
+            'file.mimes' => 'The file must be a file of type: xls, xlsx',
         ]);
 
-        Excel::import(new PositionImport, request()->file('file'));
+        try {
+            $import = new PositionImport();
+            Excel::import($import, $request->file('file'));
 
-        return redirect('positions')->with('toast_success', 'Position imported successfully');
+            // Check for validation failures
+            $failures = collect();
+
+            if (method_exists($import, 'failures')) {
+                foreach ($import->failures() as $failure) {
+                    $failures->push([
+                        'sheet'     => method_exists($import, 'getSheetName') ? $import->getSheetName() : 'positions',
+                        'row'       => $failure->row(),
+                        'attribute' => $failure->attribute(),
+                        'value'     => $failure->values()[$failure->attribute()] ?? null,
+                        'errors'    => implode(', ', $failure->errors()),
+                    ]);
+                }
+            }
+
+            if ($failures->isNotEmpty()) {
+                return back()->with('failures', $failures);
+            }
+
+            return redirect('positions')->with('toast_success', 'Positions imported successfully');
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            $failures = collect();
+            $sheetName = 'positions';
+
+            foreach ($e->errors() as $attribute => $errors) {
+                $failures->push([
+                    'sheet'     => $sheetName,
+                    'row'       => '-',
+                    'attribute' => $attribute,
+                    'value'     => null,
+                    'errors'    => implode(', ', $errors),
+                ]);
+            }
+
+            return back()->with('failures', $failures);
+        } catch (\Throwable $e) {
+            $failures = collect([
+                [
+                    'sheet' => 'positions',
+                    'row' => '-',
+                    'attribute' => 'System Error',
+                    'value' => null,
+                    'errors' => 'An error occurred during import: ' . $e->getMessage()
+                ]
+            ]);
+            return back()->with('failures', $failures);
+        }
+    }
+
+    public function export()
+    {
+        return (new PositionExport())->download('positions-export-' . date('Y-m-d') . '.xlsx');
     }
 }

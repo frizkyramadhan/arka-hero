@@ -2,6 +2,72 @@
 
 ## Recent Implementations & Learnings
 
+### 2025-01-27: Position Export/Import Feature Implementation
+
+**Context**: User requested to implement export and import features for positions similar to EmployeeController, with proper failure handling and updateOrCreate functionality using ID as key.
+
+**Changes Made**:
+
+1. **Created PositionExport Class**:
+
+    - Exports position data with columns: ID, Position Name, Department Name, Position Status
+    - Uses proper Excel formatting and styling
+    - Includes department relationship data via leftJoin
+
+2. **Enhanced PositionImport Class**:
+
+    - Updated to use `updateOrCreate` with ID as primary key
+    - Added comprehensive failure handling with proper error messages
+    - Improved validation rules and custom validation messages
+    - Added support for status text conversion (Active/Inactive)
+    - Implemented proper error handling for database operations
+
+3. **Updated PositionController**:
+
+    - Added export method for downloading position data
+    - Enhanced import method with comprehensive failure handling
+    - Added proper validation and error handling similar to EmployeeController
+
+4. **Updated Routes and Views**:
+    - Added export route: `GET /positions/export`
+    - Added export button to position index view
+    - Implemented failure display modal for import validation errors
+
+**Technical Implementation**:
+
+-   **Export**: `app/Exports/PositionExport.php` - Handles data export with proper formatting
+-   **Import**: `app/Imports/PositionImport.php` - Enhanced with failure handling and updateOrCreate
+-   **Controller**: `app/Http/Controllers/PositionController.php` - Added export method and improved import
+-   **Routes**: `routes/web.php` - Added export route
+-   **View**: `resources/views/position/index.blade.php` - Added export button and failure modal
+
+**Key Features**:
+
+-   **Export**: Downloads Excel file with ID, Position Name, Department Name, Position Status
+-   **Import**: Supports both creating new positions and updating existing ones via ID
+-   **Validation**: Comprehensive validation with custom error messages
+-   **Failure Handling**: Detailed error display modal showing validation failures
+-   **Status Handling**: Converts text status (Active/Inactive) to boolean values
+-   **Department Lookup**: Validates department names against existing departments
+
+**Benefits**:
+
+-   Complete data portability for positions
+-   Efficient bulk updates using existing IDs
+-   Comprehensive error reporting for import issues
+-   Consistent with existing employee import/export patterns
+-   Better data integrity through validation
+
+**Files Modified**:
+
+-   `app/Exports/PositionExport.php` (new)
+-   `app/Imports/PositionImport.php` (enhanced)
+-   `app/Http/Controllers/PositionController.php` (updated)
+-   `routes/web.php` (added export route)
+-   `resources/views/position/index.blade.php` (added export button and failure modal)
+
+---
+
 ### 2025-01-27: PersonalImport Validation and Date Parsing Improvements
 
 **Context**: User reported import errors for employee personal data, specifically issues with place of birth and date of birth validation, and date parsing errors for Indonesian date formats like '28 Oktober 1972'.
