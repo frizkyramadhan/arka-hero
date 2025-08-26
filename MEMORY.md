@@ -347,6 +347,7 @@ Now the approval status card should display:
 
 -   **Phase 1, 2, 3, 4 & 7 COMPLETED**:
 -   Created 2 migration files: `create_approval_stage_details_table`, `update_approval_stages_table_structure`
+-   **Migration Issue Resolved**: Fixed foreign key constraint error by implementing robust constraint detection and safe dropping
 -   Skipped `migrate_approval_stages_data` since table is currently empty
 -   Updated `ApprovalStage` model to remove project/department fields and add details relationship
 -   Created new `ApprovalStageDetail` model with proper relationships and scopes
