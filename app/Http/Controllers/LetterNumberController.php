@@ -66,8 +66,8 @@ class LetterNumberController extends Controller
             ->when($request->remarks, function ($query, $remarks) {
                 return $query->where('remarks', 'like', '%' . $remarks . '%');
             })
-            ->orderBy('sequence_number', 'desc')
-            ->orderBy('created_at', 'desc');
+            ->orderBy('created_at', 'desc')
+            ->orderBy('sequence_number', 'desc');
 
         return datatables()->of($letterNumbers)
             ->addIndexColumn()

@@ -231,15 +231,67 @@
                                     )
                                         ->where('document_type', $approvalPlan->document_type)
                                         ->where('is_open', true)
-                                        ->orderBy('id', 'asc')
+                                        ->orderBy('approval_order', 'asc')
                                         ->get();
                                 @endphp
 
                                 <div class="approval-flow">
                                     @foreach ($allApprovalPlans as $index => $plan)
-                                        <div
-                                            class="approval-step {{ $plan->id === $approvalPlan->id ? 'current-step' : '' }} {{ $plan->status !== 0 ? 'completed-step' : '' }}">
-                                            <div class="step-number">{{ $index + 1 }}</div>
+                                        @php
+                                            // Determine step classes
+                                            $stepClasses = 'approval-step';
+
+                                            // Check if this is the current user's step
+if ($plan->id === $approvalPlan->id) {
+    $stepClasses .= ' current-step';
+}
+
+// Check if step is completed
+if ($plan->status !== 0) {
+    $stepClasses .= ' completed-step';
+}
+
+// Check if step can be processed (for sequential approval)
+$canProcess = true;
+if ($plan->approval_order > 1 && $plan->status === 0) {
+    for ($order = 1; $order < $plan->approval_order; $order++) {
+        $previousApproval = $allApprovalPlans
+            ->where('approval_order', $order)
+            ->first();
+        if (!$previousApproval || $previousApproval->status !== 1) {
+            $canProcess = false;
+            break;
+        }
+    }
+}
+
+// Add waiting class if step cannot be processed yet
+if (
+    $plan->id === $approvalPlan->id &&
+    $plan->status === 0 &&
+    !$canProcess
+) {
+    $stepClasses .= ' waiting-step';
+}
+
+// Add specific status classes for better styling
+if ($plan->status === 1) {
+    $stepClasses .= ' step-approved';
+} elseif ($plan->status === 2) {
+    $stepClasses .= ' step-rejected';
+} elseif ($plan->status === 0) {
+    if ($plan->id === $approvalPlan->id && !$canProcess) {
+        $stepClasses .= ' step-waiting';
+    } elseif ($plan->id === $approvalPlan->id && $canProcess) {
+        $stepClasses .= ' step-ready';
+    } else {
+        $stepClasses .= ' step-pending';
+                                                }
+                                            }
+                                        @endphp
+
+                                        <div class="{{ $stepClasses }}">
+                                            <div class="step-number">{{ $plan->approval_order ?? $index + 1 }}</div>
                                             <div class="step-content">
                                                 <div class="step-header">
                                                     <div class="approver-info">
@@ -278,9 +330,34 @@
                                                 @endif
 
                                                 @if ($plan->id === $approvalPlan->id && $plan->status === 0)
-                                                    <div class="current-step-indicator">
-                                                        <i class="fas fa-arrow-right"></i> Your turn to review
-                                                    </div>
+                                                    @php
+                                                        // Check if this step can be processed (all previous steps approved)
+                                                        $canProcess = true;
+                                                        if ($plan->approval_order > 1) {
+                                                            for ($order = 1; $order < $plan->approval_order; $order++) {
+                                                                $previousApproval = $allApprovalPlans
+                                                                    ->where('approval_order', $order)
+                                                                    ->first();
+                                                                if (
+                                                                    !$previousApproval ||
+                                                                    $previousApproval->status !== 1
+                                                                ) {
+                                                                    $canProcess = false;
+                                                                    break;
+                                                                }
+                                                            }
+                                                        }
+                                                    @endphp
+
+                                                    @if ($canProcess)
+                                                        <div class="current-step-indicator">
+                                                            <i class="fas fa-arrow-right"></i> Your turn to review
+                                                        </div>
+                                                    @else
+                                                        <div class="current-step-waiting">
+                                                            <i class="fas fa-clock"></i> Waiting for previous approvals
+                                                        </div>
+                                                    @endif
                                                 @endif
                                             </div>
                                         </div>
@@ -290,61 +367,6 @@
                                     @endforeach
                                 </div>
                             </div>
-
-                            <!-- Document Status Summary -->
-                            {{-- <div class="status-summary-section mt-4">
-                                <h3 class="section-title">
-                                    <i class="fas fa-chart-pie"></i> Status Summary
-                                </h3>
-                                <div class="status-summary">
-                                    @php
-                                        $totalApprovers = $allApprovalPlans->count();
-                                        $approvedCount = $allApprovalPlans->where('status', 1)->count();
-                                        $rejectedCount = $allApprovalPlans->where('status', 2)->count();
-                                        $pendingCount = $allApprovalPlans->where('status', 0)->count();
-                                    @endphp
-
-                                    <div class="summary-item">
-                                        <div class="summary-icon approved">
-                                            <i class="fas fa-check-circle"></i>
-                                        </div>
-                                        <div class="summary-content">
-                                            <div class="summary-count">{{ $approvedCount }}</div>
-                                            <div class="summary-label">Approved</div>
-                                        </div>
-                                    </div>
-
-                                    <div class="summary-item">
-                                        <div class="summary-icon rejected">
-                                            <i class="fas fa-times-circle"></i>
-                                        </div>
-                                        <div class="summary-content">
-                                            <div class="summary-count">{{ $rejectedCount }}</div>
-                                            <div class="summary-label">Rejected</div>
-                                        </div>
-                                    </div>
-
-                                    <div class="summary-item">
-                                        <div class="summary-icon pending">
-                                            <i class="fas fa-clock"></i>
-                                        </div>
-                                        <div class="summary-content">
-                                            <div class="summary-count">{{ $pendingCount }}</div>
-                                            <div class="summary-label">Pending</div>
-                                        </div>
-                                    </div>
-
-                                    <div class="summary-item">
-                                        <div class="summary-icon total">
-                                            <i class="fas fa-users"></i>
-                                        </div>
-                                        <div class="summary-content">
-                                            <div class="summary-count">{{ $totalApprovers }}</div>
-                                            <div class="summary-label">Total</div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div> --}}
                         </div>
                     </div>
                 </div>
@@ -495,6 +517,117 @@
             border-radius: 10px;
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
             margin-bottom: 30px;
+        }
+
+        .approval-status-card {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+
+        /* Current Approval Summary Styles */
+        .current-approval-summary {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            border-left: 4px solid #3498db;
+        }
+
+        .current-status-display {
+            margin-top: 15px;
+        }
+
+        .status-overview {
+            text-align: center;
+        }
+
+        .status-badge-large {
+            margin-bottom: 20px;
+        }
+
+        .status-badge-large .badge {
+            font-size: 1.2rem;
+            padding: 10px 20px;
+            border-radius: 6px;
+        }
+
+        .status-details-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .status-detail-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px;
+            background: white;
+            border-radius: 6px;
+            border: 1px solid #e9ecef;
+        }
+
+        .status-detail-item i {
+            color: #3498db;
+            width: 16px;
+        }
+
+        .detail-label {
+            font-weight: 600;
+            color: #495057;
+            font-size: 0.9rem;
+        }
+
+        .detail-value {
+            color: #2c3e50;
+            font-weight: 500;
+            margin-left: auto;
+        }
+
+        .status-message .alert {
+            margin-bottom: 0;
+            font-size: 0.9rem;
+            border-radius: 6px;
+        }
+
+        .approval-status-info {
+            padding: 10px 0;
+        }
+
+        .status-badge {
+            text-align: center;
+        }
+
+        .status-badge .badge {
+            font-size: 1rem;
+            padding: 8px 16px;
+        }
+
+        .status-details {
+            font-size: 0.9rem;
+        }
+
+        .status-item {
+            margin-bottom: 12px;
+            padding: 8px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .status-item:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+        }
+
+        .status-item i {
+            width: 16px;
+            color: #6c757d;
+        }
+
+        .status-message .alert {
+            margin-bottom: 0;
+            font-size: 0.85rem;
         }
 
         .card-head {
@@ -895,10 +1028,48 @@
             box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
         }
 
+        .waiting-step .step-number {
+            background: #f39c12;
+            color: white;
+            border-color: #f39c12;
+        }
+
         .completed-step .step-number {
             background: #27ae60;
             color: white;
             border-color: #27ae60;
+        }
+
+        /* Specific status step number styling */
+        .step-approved .step-number {
+            background: #27ae60;
+            color: white;
+            border-color: #27ae60;
+        }
+
+        .step-rejected .step-number {
+            background: #e74c3c;
+            color: white;
+            border-color: #e74c3c;
+        }
+
+        .step-waiting .step-number {
+            background: #f39c12;
+            color: white;
+            border-color: #f39c12;
+        }
+
+        .step-ready .step-number {
+            background: #3498db;
+            color: white;
+            border-color: #3498db;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+        }
+
+        .step-pending .step-number {
+            background: #e9ecef;
+            color: #6c757d;
+            border-color: #dee2e6;
         }
 
         .step-content {
@@ -914,8 +1085,39 @@
             background: #e3f2fd;
         }
 
+        .waiting-step .step-content {
+            border-left-color: #f39c12;
+            background: #fff3cd;
+        }
+
         .completed-step .step-content {
             border-left-color: #27ae60;
+        }
+
+        /* Specific status step content styling */
+        .step-approved .step-content {
+            border-left-color: #27ae60;
+            background: #d4edda;
+        }
+
+        .step-rejected .step-content {
+            border-left-color: #e74c3c;
+            background: #f8d7da;
+        }
+
+        .step-waiting .step-content {
+            border-left-color: #f39c12;
+            background: #fff3cd;
+        }
+
+        .step-ready .step-content {
+            border-left-color: #3498db;
+            background: #e3f2fd;
+        }
+
+        .step-pending .step-content {
+            border-left-color: #dee2e6;
+            background: #f8f9fa;
         }
 
         .step-header {
@@ -994,6 +1196,19 @@
             margin-top: 8px;
             padding: 6px 12px;
             background: #3498db;
+            color: white;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-weight: 500;
+        }
+
+        .current-step-waiting {
+            margin-top: 8px;
+            padding: 6px 12px;
+            background: #f39c12;
             color: white;
             border-radius: 4px;
             font-size: 0.85rem;

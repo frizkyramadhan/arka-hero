@@ -132,6 +132,7 @@
                                                         data-position="{{ $employee['position'] }}"
                                                         data-project="{{ $employee['project'] }}"
                                                         data-department="{{ $employee['department'] }}"
+                                                        data-department-id="{{ $employee['department_id'] }}"
                                                         {{ old('traveler_id') == $employee['id'] ? 'selected' : '' }}>
                                                         {{ $employee['nik'] }} - {{ $employee['fullname'] }}
                                                     </option>
@@ -311,6 +312,7 @@
                                                                             data-position="{{ $employee['position'] }}"
                                                                             data-project="{{ $employee['project'] }}"
                                                                             data-department="{{ $employee['department'] }}"
+                                                                            data-department-id="{{ $employee['department_id'] }}"
                                                                             {{ $employee['id'] == $followerId ? 'selected' : '' }}>
                                                                             {{ $employee['nik'] }} -
                                                                             {{ $employee['fullname'] }}
@@ -398,22 +400,13 @@
                         </div>
 
                         <!-- Approval Preview Card -->
-                        <div class="card card-info card-outline elevation-3">
-                            <div class="card-header">
-                                <h3 class="card-title">
-                                    <i class="fas fa-eye mr-2"></i>
-                                    <strong>Approval Preview</strong>
-                                </h3>
-                            </div>
-                            <div class="card-body">
-                                <div id="approvalPreview">
-                                    <div class="text-muted text-center py-3">
-                                        <i class="fas fa-info-circle"></i>
-                                        Select project to see approval flow
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                        @include('components.approval-status-card', [
+                            'documentType' => 'officialtravel',
+                            'mode' => 'preview',
+                            'title' => 'Approval Preview',
+                            'projectId' => old('official_travel_origin'),
+                            'departmentId' => null,
+                        ])
 
                         <!-- Action Buttons -->
                         <div class="card elevation-3">
@@ -575,29 +568,7 @@
             color: #856404;
         }
 
-        /* Approval Preview Styling */
-        .approval-flow {
-            max-height: 300px;
-            overflow-y: auto;
-        }
 
-        .approval-step {
-            padding: 0.5rem;
-            border-left: 3px solid #007bff;
-            background: #f8f9fa;
-            border-radius: 0.25rem;
-        }
-
-        .approval-step:last-child {
-            border-left-color: #28a745;
-        }
-
-        .approval-step .badge {
-            min-width: 25px;
-            height: 25px;
-            line-height: 15px;
-            font-size: 0.75rem;
-        }
 
         /* Mobile responsive button spacing */
         @media (max-width: 767.98px) {
@@ -699,7 +670,8 @@
                             <option value="{{ $employee['id'] }}"
                                 data-position="{{ $employee['position'] }}"
                                 data-project="{{ $employee['project'] }}"
-                                data-department="{{ $employee['department'] }}">
+                                data-department="{{ $employee['department'] }}"
+                                data-department-id="{{ $employee['department_id'] }}">
                                 {{ $employee['nik'] }} - {{ $employee['fullname'] }}
                             </option>
                         @endforeach
@@ -780,12 +752,27 @@
             // Approval Preview Functions
             function loadApprovalPreview() {
                 const projectId = $('#official_travel_origin').val();
+                const travelerId = $('#traveler_id').val();
 
-                if (!projectId) {
+                if (!projectId || !travelerId) {
                     $('#approvalPreview').html(`
                         <div class="text-muted text-center py-3">
                             <i class="fas fa-info-circle"></i>
-                            Select project to see approval flow
+                            ${!projectId ? 'Select project' : ''}${!projectId && !travelerId ? ' and ' : ''}${!travelerId ? 'main traveler' : ''} to see approval flow
+                        </div>
+                    `);
+                    return;
+                }
+
+                // Get department_id from selected traveler
+                const selectedOption = $('#traveler_id option:selected');
+                const departmentId = selectedOption.data('department-id');
+
+                if (!departmentId) {
+                    $('#approvalPreview').html(`
+                        <div class="text-warning text-center py-3">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <div class="mt-2">Selected traveler has no department assigned</div>
                         </div>
                     `);
                     return;
@@ -805,6 +792,7 @@
                     method: 'GET',
                     data: {
                         project_id: projectId,
+                        department_id: departmentId,
                         document_type: 'officialtravel'
                     },
                     success: function(response) {
@@ -815,13 +803,12 @@
 
                             response.approvers.forEach((approver, index) => {
                                 html += `
-                                    <div class="approval-step mb-2">
-                                        <div class="d-flex align-items-center">
-                                            <span class="badge badge-primary mr-2">${index + 1}</span>
-                                            <div class="flex-grow-1">
-                                                <strong>${approver.name}</strong>
-                                                <small class="text-muted d-block">${approver.department}</small>
-                                            </div>
+                                    <div class="approval-step preview-step">
+                                        <div class="step-number">${approver.order || index + 1}</div>
+                                        <div class="step-content">
+                                            <div class="approver-name">${approver.name}</div>
+                                            <div class="approver-department">${approver.department}</div>
+                                            <div class="step-label">Step ${approver.order || index + 1}</div>
                                         </div>
                                     </div>
                                 `;
@@ -833,7 +820,7 @@
                             $('#approvalPreview').html(`
                                 <div class="text-warning text-center py-3">
                                     <i class="fas fa-exclamation-triangle"></i>
-                                    <div class="mt-2">No approval flow configured for this project/department</div>
+                                    <div class="mt-2">No approval flow configured for this project/department combination</div>
                                 </div>
                             `);
                         }
@@ -849,18 +836,20 @@
                 });
             }
 
-            // Listen for project changes
-            $('#official_travel_origin').on('change', function() {
+            // Listen for project and traveler changes
+            $('#official_travel_origin, #traveler_id').on('change', function() {
                 loadApprovalPreview();
             });
 
-            // Load approval preview on page load if project is selected
+            // Load approval preview on page load if project and traveler are selected
             $(document).ready(function() {
                 // Check if there's old input from validation errors
                 const hasOldInput = {{ json_encode(old('official_travel_origin') ? true : false) }};
+                const hasOldTraveler = {{ json_encode(old('traveler_id') ? true : false) }};
                 const projectValue = $('#official_travel_origin').val();
+                const travelerValue = $('#traveler_id').val();
 
-                if (hasOldInput || projectValue) {
+                if ((hasOldInput || projectValue) && (hasOldTraveler || travelerValue)) {
                     // Small delay to ensure all elements are loaded
                     setTimeout(function() {
                         loadApprovalPreview();
@@ -871,7 +860,7 @@
             // Ensure approval preview is loaded when form has validation errors
             @if ($errors->any())
                 $(document).ready(function() {
-                    if ($('#official_travel_origin').val()) {
+                    if ($('#official_travel_origin').val() && $('#traveler_id').val()) {
                         setTimeout(function() {
                             loadApprovalPreview();
                         }, 200);
@@ -881,7 +870,7 @@
 
             // Load approval preview when returning from other pages or after form submission
             $(window).on('load', function() {
-                if ($('#official_travel_origin').val()) {
+                if ($('#official_travel_origin').val() && $('#traveler_id').val()) {
                     setTimeout(function() {
                         loadApprovalPreview();
                     }, 300);

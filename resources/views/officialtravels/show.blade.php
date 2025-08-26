@@ -216,8 +216,8 @@
                 <!-- Right Column -->
                 <div class="col-lg-4">
                     <!-- Approval Status Card -->
-                    <x-approval-status-card :documentType="'officialtravel'" :documentId="$officialtravel->id" title="Approval Status" />
-
+                    <x-approval-status-card :documentType="'officialtravel'" :documentId="$officialtravel->id" :mode="$officialtravel->status === 'draft' ? 'preview' : 'status'" :projectId="$officialtravel->official_travel_origin"
+                        :departmentId="$officialtravel->traveler->position->department_id ?? null" title="Approval Status" />
                     <!-- Action Buttons -->
                     <div class="travel-action-buttons">
                         <a href="{{ route('officialtravels.index') }}" class="btn-action back-btn">
@@ -559,106 +559,7 @@
 
 
 
-        .step-icon {
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 40px;
-            height: 40px;
-            background: #e0e0e0;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            z-index: 1;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-        }
 
-        .step-icon.approved {
-            background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
-        }
-
-        .step-icon.rejected {
-            background: linear-gradient(135deg, #fa709a 0%, #ff0844 100%);
-        }
-
-        .step-icon.pending {
-            background: linear-gradient(135deg, #f6d365 0%, #fda085 100%);
-        }
-
-        .step-content {
-            background: white;
-            border-radius: 10px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-            padding: 15px;
-        }
-
-        .step-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 10px;
-        }
-
-        .step-header h4 {
-            margin: 0;
-            font-size: 18px;
-            color: #333;
-        }
-
-        .step-status {
-            padding: 4px 10px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: bold;
-            text-transform: uppercase;
-        }
-
-        .step-status.approved {
-            background-color: #e6f9e6;
-            color: #0f8c0f;
-        }
-
-        .step-status.rejected {
-            background-color: #ffe6e6;
-            color: #cc0000;
-        }
-
-        .step-status.pending {
-            background-color: #fff4e6;
-            color: #cc7a00;
-        }
-
-        .step-details {
-            display: flex;
-            justify-content: space-between;
-            font-size: 13px;
-            color: #777;
-            margin-bottom: 15px;
-        }
-
-        .step-person,
-        .step-date {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .step-remark {
-            padding-top: 10px;
-            border-top: 1px dashed #eee;
-        }
-
-        .remark-text {
-            margin: 0;
-            padding: 10px 15px;
-            background-color: #f8f9fa;
-            border-radius: 8px;
-            font-size: 14px;
-            color: #555;
-            border-left: 3px solid #6c757d;
-        }
 
         /* Followers Card */
         .followers-card {

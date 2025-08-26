@@ -30,41 +30,46 @@ class ApprovalPlanController extends Controller
         if ($document_type == 'officialtravel') {
             $document = Officialtravel::findOrFail($document_id);
             $project = $document->official_travel_origin;
+            // For official travel, use department from main traveler's position
+            $traveler = $document->traveler;
+            if (!$traveler || !$traveler->position || !$traveler->position->department) {
+                Log::error("Main traveler or position/department not found for official travel {$document_id}");
+                return false;
+            }
+            $department_id = $traveler->position->department_id;
         } elseif ($document_type == 'recruitment_request') {
             $document = RecruitmentRequest::findOrFail($document_id);
             $project = $document->project_id;
+            // For recruitment request, use the department_id from the document
+            $department_id = $document->department_id;
         } else {
             return false; // Invalid document type
         }
 
-        // Get all approvers for this document type, project and department
-        $user = Auth::user();
-
-        // Check if user has departments
-        if (!$user->departments || $user->departments->isEmpty()) {
-            Log::error("User {$user->id} has no departments assigned");
-            return false;
-        }
-
-        $department_id = $user->departments->first()->id;
-
         // Debug logging
         Log::info("Creating approval plan for document_type: {$document_type}, document_id: {$document_id}, project: {$project}, department_id: {$department_id}");
 
-        $approvers = ApprovalStage::where('project_id', $project)
-            ->where('department_id', $department_id)
+        // Use the new structure with approval_stage_details
+        $approvers = ApprovalStage::with(['approver', 'details'])
             ->where('document_type', $document_type)
+            ->whereHas('details', function ($query) use ($project, $department_id) {
+                $query->where('project_id', $project)
+                    ->where('department_id', $department_id);
+            })
+            ->orderBy('approval_order', 'asc')
             ->get();
 
         // Debug logging
         Log::info("Found {$approvers->count()} approvers for this document");
         foreach ($approvers as $approver) {
-            Log::info("Approver ID: {$approver->approver_id}, Project ID: {$approver->project_id}, Department ID: {$approver->department_id}");
+            Log::info("Approver ID: {$approver->approver_id}, Approval Order: {$approver->approval_order}");
         }
 
         // If approvers exist, create approval plans
         if ($approvers->count() > 0) {
             $created_count = 0;
+            $error_count = 0;
+            $errors = [];
 
             // Create an approval plan for each approver
             foreach ($approvers as $approver) {
@@ -80,16 +85,31 @@ class ApprovalPlanController extends Controller
                         continue;
                     }
 
+                    // Validate approval_order
+                    if (empty($approver->approval_order)) {
+                        $error_msg = "Approval order is empty for approver {$approver->approver_id}";
+                        Log::error($error_msg);
+                        $errors[] = $error_msg;
+                        $error_count++;
+                        continue;
+                    }
+
                     $approval_plan = ApprovalPlan::create([
                         'document_id' => $document_id,
                         'document_type' => $document_type,
                         'approver_id' => $approver->approver_id,
+                        'approval_order' => $approver->approval_order,
+                        'status' => 0, // Pending
+                        'is_open' => true,
                     ]);
 
                     $created_count++;
-                    Log::info("Created approval plan ID: {$approval_plan->id} for approver: {$approver->approver_id}");
+                    Log::info("Created approval plan ID: {$approval_plan->id} for approver: {$approver->approver_id} with order: {$approver->approval_order}");
                 } catch (\Exception $e) {
-                    Log::error("Failed to create approval plan for approver {$approver->approver_id}: " . $e->getMessage());
+                    $error_msg = "Failed to create approval plan for approver {$approver->approver_id}: " . $e->getMessage();
+                    Log::error($error_msg);
+                    $errors[] = $error_msg;
+                    $error_count++;
                 }
             }
 
@@ -97,11 +117,16 @@ class ApprovalPlanController extends Controller
             $document->submit_at = Carbon::now();
             $document->save();
 
-            Log::info("Created {$created_count} approval plans out of {$approvers->count()} approvers");
+            Log::info("Created {$created_count} approval plans out of {$approvers->count()} approvers. Errors: {$error_count}");
 
             // Clear cache for pending approvals count for all approvers
             foreach ($approvers as $approver) {
                 cache()->forget('pending_approvals_' . $approver->approver_id);
+            }
+
+            // If there were errors, log them for debugging
+            if (!empty($errors)) {
+                Log::error("Errors during approval plan creation: " . implode("; ", $errors));
             }
 
             return $created_count; // Return number of approvers actually created
@@ -109,7 +134,9 @@ class ApprovalPlanController extends Controller
 
         // Return false if no approvers found
         Log::warning("No approvers found for document_type: {$document_type}, project: {$project}, department_id: {$department_id}");
-        return false;
+
+        // Throw exception with clear message for user
+        throw new \Exception("No approval stages configured for this project and department combination. Please contact administrator to set up approval workflow.");
     }
 
     /**
@@ -129,8 +156,24 @@ class ApprovalPlanController extends Controller
      */
     public function update(Request $request, $id)
     {
-        // Find and update the approval plan with the decision
+        // Find the approval plan
         $approval_plan = ApprovalPlan::findOrFail($id);
+
+        // Check if approval can be processed (sequential validation)
+        if (!$approval_plan->canBeProcessed()) {
+            $response = [
+                'success' => false,
+                'message' => 'Previous approvals must be completed first. Please wait for earlier approvers to process their approvals.'
+            ];
+
+            if ($request->ajax()) {
+                return response()->json($response, 422);
+            }
+
+            return redirect()->back()->with('toast_error', $response['message']);
+        }
+
+        // Update the approval plan with the decision
         $approval_plan->update([
             'status' => $request->status,
             'remarks' => $request->remarks,
@@ -177,8 +220,8 @@ class ApprovalPlanController extends Controller
             $this->closeOpenApprovalPlans($document_type, $document->id);
         }
 
-        // Handle document approval (when all approvers have approved)
-        if ($approved_count === $approval_plans->count()) {
+        // Handle document approval (when all sequential approvals are completed)
+        if ($this->areAllSequentialApprovalsCompleted($approval_plan)) {
             // Update document status to approved
             $updateData = [
                 'status' => 'approved',
@@ -186,6 +229,14 @@ class ApprovalPlanController extends Controller
             ];
 
             $document->update($updateData);
+
+            // Log the approval completion
+            Log::info("Document approved successfully", [
+                'document_type' => $document_type,
+                'document_id' => $document->id,
+                'approved_at' => $approval_plan->updated_at,
+                'approver_id' => $approval_plan->approver_id
+            ]);
         }
 
         // Determine the appropriate success message based on the approval status
@@ -358,5 +409,31 @@ class ApprovalPlanController extends Controller
                 'message' => 'Failed to approve any documents',
             ], 422);
         }
+    }
+
+    /**
+     * Check if all sequential approvals are completed for a document
+     */
+    private function areAllSequentialApprovalsCompleted($approvalPlan)
+    {
+        $allApprovals = ApprovalPlan::where('document_id', $approvalPlan->document_id)
+            ->where('document_type', $approvalPlan->document_type)
+            ->where('is_open', true)
+            ->get();
+
+        // If no approvals exist, return false
+        if ($allApprovals->isEmpty()) {
+            return false;
+        }
+
+        // Check if all approvals are completed (status = 1 for approved)
+        foreach ($allApprovals as $approval) {
+            if ($approval->status != 1) { // Not approved
+                return false;
+            }
+        }
+
+        // All approvals are completed
+        return true;
     }
 }

@@ -115,6 +115,7 @@
                                                         data-position="{{ $employee['position'] }}"
                                                         data-project="{{ $employee['project'] }}"
                                                         data-department="{{ $employee['department'] }}"
+                                                        data-department-id="{{ $employee['department_id'] }}"
                                                         {{ old('traveler_id', $officialtravel->traveler_id) == $employee['id'] ? 'selected' : '' }}>
                                                         {{ $employee['nik'] }} - {{ $employee['fullname'] }}
                                                     </option>
@@ -262,6 +263,7 @@
                                                                     data-position="{{ $employee['position'] }}"
                                                                     data-project="{{ $employee['project'] }}"
                                                                     data-department="{{ $employee['department'] }}"
+                                                                    data-department-id="{{ $employee['department_id'] }}"
                                                                     {{ $detail->follower_id == $employee['id'] ? 'selected' : '' }}>
                                                                     {{ $employee['nik'] }} - {{ $employee['fullname'] }}
                                                                 </option>
@@ -342,23 +344,9 @@
                             </div>
                         </div>
 
-                        <!-- Approval Preview Card -->
-                        <div class="card card-info card-outline elevation-3">
-                            <div class="card-header">
-                                <h3 class="card-title">
-                                    <i class="fas fa-eye mr-2"></i>
-                                    <strong>Approval Preview</strong>
-                                </h3>
-                            </div>
-                            <div class="card-body">
-                                <div id="approvalPreview">
-                                    <div class="text-muted text-center py-3">
-                                        <i class="fas fa-info-circle"></i>
-                                        Select project to see approval flow
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                        <!-- Approval Status Card -->
+                        <x-approval-status-card :documentType="'officialtravel'" :documentId="$officialtravel->id" mode="preview" :projectId="old('official_travel_origin', $officialtravel->official_travel_origin)"
+                            :departmentId="$officialtravel->traveler->position->department_id ?? null" title="Approval Status" id="dynamicApprovalCard" />
 
                         <!-- Action Buttons -->
                         <div class="card elevation-3">
@@ -479,32 +467,6 @@
         .remove-follower:hover {
             color: #bd2130;
         }
-
-        /* Approval Preview Styling */
-        .approval-flow {
-            max-height: 300px;
-            overflow-y: auto;
-        }
-
-        .approval-step {
-            padding: 0.5rem;
-            border-left: 3px solid #007bff;
-            background: #f8f9fa;
-            border-radius: 0.25rem;
-        }
-
-        .approval-step:last-child {
-            border-left-color: #28a745;
-        }
-
-        .approval-step .badge {
-            min-width: 25px;
-            height: 25px;
-            line-height: 15px;
-            font-size: 0.75rem;
-        }
-
-        /* Approval flow styling */
     </style>
 @endsection
 
@@ -596,7 +558,8 @@
                                     <option value="{{ $employee['id'] }}"
                                         data-position="{{ $employee['position'] }}"
                                         data-project="{{ $employee['project'] }}"
-                                        data-department="{{ $employee['department'] }}">
+                                        data-department="{{ $employee['department'] }}"
+                                        data-department-id="{{ $employee['department_id'] }}">
                                         {{ $employee['nik'] }} - {{ $employee['fullname'] }}
                                     </option>
                                 @endforeach
@@ -627,115 +590,107 @@
                 });
             });
 
-            // Approval Preview Functions
-            function loadApprovalPreview() {
+            // Dynamic Approval Status Card Update
+            function updateApprovalStatusCard() {
                 const projectId = $('#official_travel_origin').val();
+                const departmentId = $('#traveler_id option:selected').data('department-id');
 
-                if (!projectId) {
-                    $('#approvalPreview').html(`
-                        <div class="text-muted text-center py-3">
-                            <i class="fas fa-info-circle"></i>
-                            Select project to see approval flow
-                        </div>
-                    `);
+                console.log('Updating approval status card with:', {
+                    projectId,
+                    departmentId
+                });
+
+                // Get the approval status card component
+                const $approvalCard = $('#dynamicApprovalCard');
+
+                if (!$approvalCard.length) {
+                    console.error('Approval status card not found');
                     return;
                 }
 
-                // Show loading
-                $('#approvalPreview').html(`
-                    <div class="text-center py-3">
-                        <i class="fas fa-spinner fa-spin text-info"></i>
-                        <div class="mt-2">Loading approval flow...</div>
-                    </div>
-                `);
+                // Update the component props by re-rendering it
+                if (projectId && departmentId) {
+                    // Show loading state
+                    $approvalCard.find('.card-body').html(`
+                        <div class="text-center py-3">
+                            <i class="fas fa-spinner fa-spin text-info"></i>
+                            <div class="mt-2">Loading approval flow...</div>
+                        </div>
+                    `);
 
-                // Fetch approval stages
-                $.ajax({
-                    url: '{{ route('approval.stages.preview') }}',
-                    method: 'GET',
-                    data: {
-                        project_id: projectId,
-                        document_type: 'officialtravel'
-                    },
-                    success: function(response) {
-                        if (response.success && response.approvers.length > 0) {
-                            let html = '<div class="approval-flow">';
-                            html +=
-                                '<h6 class="text-info mb-3"><i class="fas fa-route"></i> Approval Flow</h6>';
+                    // Fetch new approval stages
+                    $.ajax({
+                        url: '{{ route('approval.stages.preview') }}',
+                        method: 'GET',
+                        data: {
+                            project_id: projectId,
+                            department_id: departmentId,
+                            document_type: 'officialtravel'
+                        },
+                        success: function(response) {
+                            console.log('Updated approval preview response:', response);
+                            if (response.success && response.approvers.length > 0) {
+                                let html = '<div class="approval-flow preview-mode">';
 
-                            response.approvers.forEach((approver, index) => {
-                                html += `
-                                    <div class="approval-step mb-2">
-                                        <div class="d-flex align-items-center">
-                                            <span class="badge badge-primary mr-2">${index + 1}</span>
-                                            <div class="flex-grow-1">
-                                                <strong>${approver.name}</strong>
-                                                <small class="text-muted d-block">${approver.department}</small>
+                                response.approvers.forEach((approver, index) => {
+                                    html += `
+                                        <div class="approval-step preview-step">
+                                            <div class="step-number">${approver.order || index + 1}</div>
+                                            <div class="step-content">
+                                                <div class="approver-name">${approver.name}</div>
+                                                <div class="approver-department">${approver.department}</div>
+                                                <div class="step-label">Step ${approver.order || index + 1}</div>
                                             </div>
                                         </div>
-                                    </div>
-                                `;
-                            });
+                                    `;
+                                });
 
-                            html += '</div>';
-                            $('#approvalPreview').html(html);
-                        } else {
-                            $('#approvalPreview').html(`
-                                <div class="text-warning text-center py-3">
+                                html += '</div>';
+                                $approvalCard.find('.card-body').html(html);
+                            } else {
+                                $approvalCard.find('.card-body').html(`
+                                    <div class="text-center text-muted py-3">
+                                        <i class="fas fa-info-circle"></i>
+                                        <div class="mt-2">No approval flow configured for this project and department</div>
+                                        <small class="text-muted">Project ID: ${projectId}, Department ID: ${departmentId}</small>
+                                    </div>
+                                `);
+                            }
+                        },
+                        error: function(xhr, status, error) {
+                            console.log('Approval preview update error:', {
+                                xhr,
+                                status,
+                                error
+                            });
+                            $approvalCard.find('.card-body').html(`
+                                <div class="text-center text-danger py-3">
                                     <i class="fas fa-exclamation-triangle"></i>
-                                    <div class="mt-2">No approval flow configured for this project/department</div>
+                                    <div class="mt-2">Failed to load approval flow</div>
+                                    <small class="text-muted">${error}</small>
                                 </div>
                             `);
                         }
-                    },
-                    error: function() {
-                        $('#approvalPreview').html(`
-                            <div class="text-danger text-center py-3">
-                                <i class="fas fa-times-circle"></i>
-                                <div class="mt-2">Failed to load approval flow</div>
-                            </div>
-                        `);
-                    }
-                });
+                    });
+                } else {
+                    // Show message when project or department is not selected
+                    $approvalCard.find('.card-body').html(`
+                        <div class="text-center text-muted py-3">
+                            <i class="fas fa-info-circle"></i>
+                            <div class="mt-2">Select both project and main traveler to see approval flow</div>
+                        </div>
+                    `);
+                }
             }
 
-            // Listen for project changes
-            $('#official_travel_origin').on('change', function() {
-                loadApprovalPreview();
+            // Listen for project and main traveler changes
+            $('#official_travel_origin, #traveler_id').on('change', function() {
+                updateApprovalStatusCard();
             });
 
-            // Load approval preview on page load if project is selected
+            // Initial load of approval status card
             $(document).ready(function() {
-                // Check if there's old input from validation errors
-                const hasOldInput = {{ json_encode(old('official_travel_origin') ? true : false) }};
-                const projectValue = $('#official_travel_origin').val();
-
-                if (hasOldInput || projectValue) {
-                    // Small delay to ensure all elements are loaded
-                    setTimeout(function() {
-                        loadApprovalPreview();
-                    }, 100);
-                }
-            });
-
-            // Ensure approval preview is loaded when form has validation errors
-            @if ($errors->any())
-                $(document).ready(function() {
-                    if ($('#official_travel_origin').val()) {
-                        setTimeout(function() {
-                            loadApprovalPreview();
-                        }, 200);
-                    }
-                });
-            @endif
-
-            // Load approval preview when returning from other pages or after form submission
-            $(window).on('load', function() {
-                if ($('#official_travel_origin').val()) {
-                    setTimeout(function() {
-                        loadApprovalPreview();
-                    }, 300);
-                }
+                updateApprovalStatusCard();
             });
 
             // Form validation

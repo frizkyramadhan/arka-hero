@@ -150,7 +150,7 @@ class RecruitmentRequestController extends Controller
         $title = 'Recruitment';
         $subtitle = 'Add Recruitment Request (FPTK)';
         $departments = Department::get();
-        $projects = Project::get();
+        $projects = Project::where('project_status', '1')->get();
         $positions = Position::get();
         $levels = Level::get();
 
@@ -349,9 +349,6 @@ class RecruitmentRequestController extends Controller
             'position',
             'level',
             'createdBy',
-            // 'acknowledger',
-            // 'projectManagerApprover',
-            // 'directorApprover',
             'letterNumber.category',
             'sessions.candidate',
             'sessions.cvReview',
@@ -420,7 +417,7 @@ class RecruitmentRequestController extends Controller
         }
 
         $departments = Department::get();
-        $projects = Project::get();
+        $projects = Project::where('project_status', '1')->get();
         $positions = Position::get();
         $levels = Level::get();
 
@@ -552,341 +549,6 @@ class RecruitmentRequestController extends Controller
                 ->with('toast_success', 'Recruitment request has been submitted for approval. ' . $response . ' approver(s) will review your request.');
         } catch (\Exception $e) {
             return redirect()->back()->with('toast_error', 'Failed to submit for approval. ' . $e->getMessage());
-        }
-    }
-
-    /**
-     * HR Acknowledgment (known_by)
-     */
-    public function acknowledge(Request $request, $id)
-    {
-        $fptk = RecruitmentRequest::findOrFail($id);
-
-        // Check if user is the assigned acknowledger
-        if (Auth::id() != $fptk->known_by) {
-            return redirect()->route('recruitment.requests.show', $id)
-                ->with('toast_error', 'Anda tidak memiliki izin untuk melakukan acknowledgment FPTK ini.');
-        }
-
-        if ($fptk->known_status !== 'pending') {
-            return redirect()->route('recruitment.requests.show', $id)
-                ->with('toast_error', 'FPTK sudah diproses acknowledgment.');
-        }
-
-        $request->validate([
-            'acknowledgment_status' => 'required|in:approved,rejected',
-            'acknowledgment_remark' => 'required|string|max:1000'
-        ]);
-
-        try {
-            DB::beginTransaction();
-
-            $fptk->update([
-                'known_status' => $request->acknowledgment_status,
-                'known_remark' => $request->acknowledgment_remark,
-                'known_at' => now(),
-                'known_timestamps' => now()
-            ]);
-
-            // If rejected, update status
-            if ($request->acknowledgment_status === 'rejected') {
-                $fptk->update(['status' => 'rejected']);
-            }
-
-            DB::commit();
-
-            $status = $request->acknowledgment_status === 'approved' ? 'disetujui' : 'ditolak';
-            return redirect()->route('recruitment.requests.show', $fptk->id)
-                ->with('toast_success', "Acknowledgment FPTK berhasil $status.");
-        } catch (Exception $e) {
-            DB::rollback();
-            Log::error('Error acknowledging FPTK: ' . $e->getMessage());
-
-            return redirect()->back()
-                ->with('toast_error', 'Terjadi kesalahan saat melakukan acknowledgment. Silakan coba lagi.');
-        }
-    }
-
-    /**
-     * Project Manager Approval
-     */
-    public function approveByPM(Request $request, $id)
-    {
-        $fptk = RecruitmentRequest::findOrFail($id);
-
-        // Check if user is the assigned PM approver
-        if (Auth::id() != $fptk->approved_by_pm) {
-            return redirect()->route('recruitment.requests.show', $id)
-                ->with('toast_error', 'Anda tidak memiliki izin untuk melakukan approval PM FPTK ini.');
-        }
-
-        // Check if HR acknowledgment is approved
-        if ($fptk->known_status !== 'approved') {
-            return redirect()->route('recruitment.requests.show', $id)
-                ->with('toast_error', 'FPTK harus disetujui HR terlebih dahulu.');
-        }
-
-        if ($fptk->pm_approval_status !== 'pending') {
-            return redirect()->route('recruitment.requests.show', $id)
-                ->with('toast_error', 'FPTK sudah diproses approval PM.');
-        }
-
-        $request->validate([
-            'pm_approval_status' => 'required|in:approved,rejected',
-            'pm_approval_remark' => 'required|string|max:1000'
-        ]);
-
-        try {
-            DB::beginTransaction();
-
-            $fptk->update([
-                'pm_approval_status' => $request->pm_approval_status,
-                'pm_approval_remark' => $request->pm_approval_remark,
-                'pm_approved_at' => now(),
-                'pm_approval_timestamps' => now()
-            ]);
-
-            // If rejected, update final status
-            if ($request->pm_approval_status === 'rejected') {
-                $fptk->update(['status' => 'rejected']);
-            }
-
-            DB::commit();
-
-            $status = $request->pm_approval_status === 'approved' ? 'disetujui' : 'ditolak';
-            return redirect()->route('recruitment.requests.show', $fptk->id)
-                ->with('toast_success', "Approval PM FPTK berhasil $status.");
-        } catch (Exception $e) {
-            DB::rollback();
-            Log::error('Error PM approving FPTK: ' . $e->getMessage());
-
-            return redirect()->back()
-                ->with('toast_error', 'Terjadi kesalahan saat melakukan approval PM. Silakan coba lagi.');
-        }
-    }
-
-    /**
-     * Director Approval
-     */
-    public function approveByDirector(Request $request, $id)
-    {
-        $fptk = RecruitmentRequest::findOrFail($id);
-
-        // Check if user is the assigned director approver
-        if (Auth::id() != $fptk->approved_by_director) {
-            return redirect()->route('recruitment.requests.show', $id)
-                ->with('toast_error', 'Anda tidak memiliki izin untuk melakukan approval Director FPTK ini.');
-        }
-
-        // Check if PM approval is approved
-        if ($fptk->pm_approval_status !== 'approved') {
-            return redirect()->route('recruitment.requests.show', $id)
-                ->with('toast_error', 'FPTK harus disetujui Project Manager terlebih dahulu.');
-        }
-
-        if ($fptk->director_approval_status !== 'pending') {
-            return redirect()->route('recruitment.requests.show', $id)
-                ->with('toast_error', 'FPTK sudah diproses approval Director.');
-        }
-
-        $request->validate([
-            'director_approval_status' => 'required|in:approved,rejected',
-            'director_approval_remark' => 'required|string|max:1000'
-        ]);
-
-        try {
-            DB::beginTransaction();
-
-            $fptk->update([
-                'director_approval_status' => $request->director_approval_status,
-                'director_approval_remark' => $request->director_approval_remark,
-                'director_approved_at' => now(),
-                'director_approval_timestamps' => now()
-            ]);
-
-            // If approved by director, update final status and assign letter number
-            if ($request->director_approval_status === 'approved') {
-                $fptk->update(['status' => 'approved']);
-
-                // Auto-assign letter number if not already assigned
-                if (!$fptk->hasLetterNumber()) {
-                    $success = $this->letterNumberService->assignLetterNumberToFPTK($fptk);
-                    if ($success) {
-                        Log::info('Letter number auto-assigned for approved FPTK', [
-                            'fptk_id' => $fptk->id,
-                            'letter_number' => $fptk->fresh()->getFPTKLetterNumber()
-                        ]);
-                    }
-                }
-            } else {
-                $fptk->update(['status' => 'rejected']);
-            }
-
-            DB::commit();
-
-            $status = $request->director_approval_status === 'approved' ? 'disetujui' : 'ditolak';
-            $message = "Approval Director FPTK berhasil $status.";
-
-            if ($request->director_approval_status === 'approved' && $fptk->hasLetterNumber()) {
-                $message .= ' Nomor surat: ' . $fptk->fresh()->getFPTKLetterNumber();
-            }
-
-            return redirect()->route('recruitment.requests.show', $fptk->id)
-                ->with('toast_success', $message);
-        } catch (Exception $e) {
-            DB::rollback();
-            Log::error('Error Director approving FPTK: ' . $e->getMessage());
-
-            return redirect()->back()
-                ->with('toast_error', 'Terjadi kesalahan saat melakukan approval Director. Silakan coba lagi.');
-        }
-    }
-
-    /**
-     * Approve FPTK (Legacy method - kept for backward compatibility)
-     */
-    public function approve(Request $request, $id)
-    {
-        $fptk = RecruitmentRequest::findOrFail($id);
-
-        if ($fptk->status !== 'submitted') {
-            return redirect()->route('recruitment.requests.show', $id)
-                ->with('toast_error', 'FPTK hanya dapat disetujui dalam status submitted.');
-        }
-
-        try {
-            DB::beginTransaction();
-
-            // Determine which approval level the current user can perform
-            $userId = Auth::id();
-
-            if ($userId == $fptk->known_by && $fptk->known_status === 'pending') {
-                // HR Acknowledgment
-                $fptk->update([
-                    'known_status' => 'approved',
-                    'known_remark' => $request->notes ?? 'Approved by HR',
-                    'known_at' => now(),
-                    'known_timestamps' => now()
-                ]);
-
-                $message = 'HR Acknowledgment FPTK berhasil disetujui.';
-            } elseif ($userId == $fptk->approved_by_pm && $fptk->pm_approval_status === 'pending' && $fptk->known_status === 'approved') {
-                // Project Manager Approval
-                $fptk->update([
-                    'pm_approval_status' => 'approved',
-                    'pm_approval_remark' => $request->notes ?? 'Approved by Project Manager',
-                    'pm_approved_at' => now(),
-                    'pm_approval_timestamps' => now()
-                ]);
-
-                $message = 'Project Manager Approval FPTK berhasil disetujui.';
-            } elseif ($userId == $fptk->approved_by_director && $fptk->director_approval_status === 'pending' && $fptk->pm_approval_status === 'approved') {
-                // Director Approval
-                $fptk->update([
-                    'director_approval_status' => 'approved',
-                    'director_approval_remark' => $request->notes ?? 'Approved by Director',
-                    'director_approved_at' => now(),
-                    'director_approval_timestamps' => now(),
-                    'status' => 'approved'
-                ]);
-
-                // Auto-assign letter number
-                if (!$fptk->hasLetterNumber()) {
-                    $success = $this->letterNumberService->assignLetterNumberToFPTK($fptk);
-                    if ($success) {
-                        $message = 'Director Approval FPTK berhasil disetujui. Nomor surat: ' . $fptk->fresh()->getFPTKLetterNumber();
-                    } else {
-                        $message = 'Director Approval FPTK berhasil disetujui.';
-                    }
-                } else {
-                    $message = 'Director Approval FPTK berhasil disetujui. Nomor surat: ' . $fptk->fresh()->getFPTKLetterNumber();
-                }
-            } else {
-                throw new \Exception('User tidak memiliki izin untuk melakukan approval pada tahap ini.');
-            }
-
-            DB::commit();
-
-            return redirect()->route('recruitment.requests.show', $fptk->id)
-                ->with('toast_success', $message);
-        } catch (Exception $e) {
-            DB::rollback();
-            Log::error('Error approving FPTK: ' . $e->getMessage());
-
-            return redirect()->back()
-                ->with('toast_error', 'Terjadi kesalahan saat menyetujui FPTK. ' . $e->getMessage());
-        }
-    }
-
-    /**
-     * Reject FPTK (Legacy method - kept for backward compatibility)
-     */
-    public function reject(Request $request, $id)
-    {
-        $request->validate([
-            'rejection_reason' => 'required|string|max:1000'
-        ]);
-
-        $fptk = RecruitmentRequest::findOrFail($id);
-
-        if ($fptk->status !== 'submitted') {
-            return redirect()->route('recruitment.requests.show', $id)
-                ->with('toast_error', 'FPTK hanya dapat ditolak dalam status submitted.');
-        }
-
-        try {
-            DB::beginTransaction();
-
-            // Determine which approval level the current user can perform
-            $userId = Auth::id();
-
-            if ($userId == $fptk->known_by && $fptk->known_status === 'pending') {
-                // HR Rejection
-                $fptk->update([
-                    'known_status' => 'rejected',
-                    'known_remark' => $request->rejection_reason,
-                    'known_at' => now(),
-                    'known_timestamps' => now(),
-                    'status' => 'rejected'
-                ]);
-
-                $message = 'FPTK berhasil ditolak oleh HR.';
-            } elseif ($userId == $fptk->approved_by_pm && $fptk->pm_approval_status === 'pending' && $fptk->known_status === 'approved') {
-                // Project Manager Rejection
-                $fptk->update([
-                    'pm_approval_status' => 'rejected',
-                    'pm_approval_remark' => $request->rejection_reason,
-                    'pm_approved_at' => now(),
-                    'pm_approval_timestamps' => now(),
-                    'status' => 'rejected'
-                ]);
-
-                $message = 'FPTK berhasil ditolak oleh Project Manager.';
-            } elseif ($userId == $fptk->approved_by_director && $fptk->director_approval_status === 'pending' && $fptk->pm_approval_status === 'approved') {
-                // Director Rejection
-                $fptk->update([
-                    'director_approval_status' => 'rejected',
-                    'director_approval_remark' => $request->rejection_reason,
-                    'director_approved_at' => now(),
-                    'director_approval_timestamps' => now(),
-                    'status' => 'rejected'
-                ]);
-
-                $message = 'FPTK berhasil ditolak oleh Director.';
-            } else {
-                throw new \Exception('User tidak memiliki izin untuk melakukan rejection pada tahap ini.');
-            }
-
-            DB::commit();
-
-            return redirect()->route('recruitment.requests.show', $fptk->id)
-                ->with('toast_success', $message);
-        } catch (Exception $e) {
-            DB::rollback();
-            Log::error('Error rejecting FPTK: ' . $e->getMessage());
-
-            return redirect()->back()
-                ->with('toast_error', 'Terjadi kesalahan saat menolak FPTK. ' . $e->getMessage());
         }
     }
 
@@ -1027,6 +689,341 @@ class RecruitmentRequestController extends Controller
         }
         return $result;
     }
+
+    /**
+     * HR Acknowledgment (known_by)
+     */
+    // public function acknowledge(Request $request, $id)
+    // {
+    //     $fptk = RecruitmentRequest::findOrFail($id);
+
+    //     // Check if user is the assigned acknowledger
+    //     if (Auth::id() != $fptk->known_by) {
+    //         return redirect()->route('recruitment.requests.show', $id)
+    //             ->with('toast_error', 'Anda tidak memiliki izin untuk melakukan acknowledgment FPTK ini.');
+    //     }
+
+    //     if ($fptk->known_status !== 'pending') {
+    //         return redirect()->route('recruitment.requests.show', $id)
+    //             ->with('toast_error', 'FPTK sudah diproses acknowledgment.');
+    //     }
+
+    //     $request->validate([
+    //         'acknowledgment_status' => 'required|in:approved,rejected',
+    //         'acknowledgment_remark' => 'required|string|max:1000'
+    //     ]);
+
+    //     try {
+    //         DB::beginTransaction();
+
+    //         $fptk->update([
+    //             'known_status' => $request->acknowledgment_status,
+    //             'known_remark' => $request->acknowledgment_remark,
+    //             'known_at' => now(),
+    //             'known_timestamps' => now()
+    //         ]);
+
+    //         // If rejected, update status
+    //         if ($request->acknowledgment_status === 'rejected') {
+    //             $fptk->update(['status' => 'rejected']);
+    //         }
+
+    //         DB::commit();
+
+    //         $status = $request->acknowledgment_status === 'approved' ? 'disetujui' : 'ditolak';
+    //         return redirect()->route('recruitment.requests.show', $fptk->id)
+    //             ->with('toast_success', "Acknowledgment FPTK berhasil $status.");
+    //     } catch (Exception $e) {
+    //         DB::rollback();
+    //         Log::error('Error acknowledging FPTK: ' . $e->getMessage());
+
+    //         return redirect()->back()
+    //             ->with('toast_error', 'Terjadi kesalahan saat melakukan acknowledgment. Silakan coba lagi.');
+    //     }
+    // }
+
+    /**
+     * Project Manager Approval
+     */
+    // public function approveByPM(Request $request, $id)
+    // {
+    //     $fptk = RecruitmentRequest::findOrFail($id);
+
+    //     // Check if user is the assigned PM approver
+    //     if (Auth::id() != $fptk->approved_by_pm) {
+    //         return redirect()->route('recruitment.requests.show', $id)
+    //             ->with('toast_error', 'Anda tidak memiliki izin untuk melakukan approval PM FPTK ini.');
+    //     }
+
+    //     // Check if HR acknowledgment is approved
+    //     if ($fptk->known_status !== 'approved') {
+    //         return redirect()->route('recruitment.requests.show', $id)
+    //             ->with('toast_error', 'FPTK harus disetujui HR terlebih dahulu.');
+    //     }
+
+    //     if ($fptk->pm_approval_status !== 'pending') {
+    //         return redirect()->route('recruitment.requests.show', $id)
+    //             ->with('toast_error', 'FPTK sudah diproses approval PM.');
+    //     }
+
+    //     $request->validate([
+    //         'pm_approval_status' => 'required|in:approved,rejected',
+    //         'pm_approval_remark' => 'required|string|max:1000'
+    //     ]);
+
+    //     try {
+    //         DB::beginTransaction();
+
+    //         $fptk->update([
+    //             'pm_approval_status' => $request->pm_approval_status,
+    //             'pm_approval_remark' => $request->pm_approval_remark,
+    //             'pm_approved_at' => now(),
+    //             'pm_approval_timestamps' => now()
+    //         ]);
+
+    //         // If rejected, update final status
+    //         if ($request->pm_approval_status === 'rejected') {
+    //             $fptk->update(['status' => 'rejected']);
+    //         }
+
+    //         DB::commit();
+
+    //         $status = $request->pm_approval_status === 'approved' ? 'disetujui' : 'ditolak';
+    //         return redirect()->route('recruitment.requests.show', $fptk->id)
+    //             ->with('toast_success', "Approval PM FPTK berhasil $status.");
+    //     } catch (Exception $e) {
+    //         DB::rollback();
+    //         Log::error('Error PM approving FPTK: ' . $e->getMessage());
+
+    //         return redirect()->back()
+    //             ->with('toast_error', 'Terjadi kesalahan saat melakukan approval PM. Silakan coba lagi.');
+    //     }
+    // }
+
+    /**
+     * Director Approval
+     */
+    // public function approveByDirector(Request $request, $id)
+    // {
+    //     $fptk = RecruitmentRequest::findOrFail($id);
+
+    //     // Check if user is the assigned director approver
+    //     if (Auth::id() != $fptk->approved_by_director) {
+    //         return redirect()->route('recruitment.requests.show', $id)
+    //             ->with('toast_error', 'Anda tidak memiliki izin untuk melakukan approval Director FPTK ini.');
+    //     }
+
+    //     // Check if PM approval is approved
+    //     if ($fptk->pm_approval_status !== 'approved') {
+    //         return redirect()->route('recruitment.requests.show', $id)
+    //             ->with('toast_error', 'FPTK harus disetujui Project Manager terlebih dahulu.');
+    //     }
+
+    //     if ($fptk->director_approval_status !== 'pending') {
+    //         return redirect()->route('recruitment.requests.show', $id)
+    //             ->with('toast_error', 'FPTK sudah diproses approval Director.');
+    //     }
+
+    //     $request->validate([
+    //         'director_approval_status' => 'required|in:approved,rejected',
+    //         'director_approval_remark' => 'required|string|max:1000'
+    //     ]);
+
+    //     try {
+    //         DB::beginTransaction();
+
+    //         $fptk->update([
+    //             'director_approval_status' => $request->director_approval_status,
+    //             'director_approval_remark' => $request->director_approval_remark,
+    //             'director_approved_at' => now(),
+    //             'director_approval_timestamps' => now()
+    //         ]);
+
+    //         // If approved by director, update final status and assign letter number
+    //         if ($request->director_approval_status === 'approved') {
+    //             $fptk->update(['status' => 'approved']);
+
+    //             // Auto-assign letter number if not already assigned
+    //             if (!$fptk->hasLetterNumber()) {
+    //                 $success = $this->letterNumberService->assignLetterNumberToFPTK($fptk);
+    //                 if ($success) {
+    //                     Log::info('Letter number auto-assigned for approved FPTK', [
+    //                         'fptk_id' => $fptk->id,
+    //                         'letter_number' => $fptk->fresh()->getFPTKLetterNumber()
+    //                     ]);
+    //                 }
+    //             }
+    //         } else {
+    //             $fptk->update(['status' => 'rejected']);
+    //         }
+
+    //         DB::commit();
+
+    //         $status = $request->director_approval_status === 'approved' ? 'disetujui' : 'ditolak';
+    //         $message = "Approval Director FPTK berhasil $status.";
+
+    //         if ($request->director_approval_status === 'approved' && $fptk->hasLetterNumber()) {
+    //             $message .= ' Nomor surat: ' . $fptk->fresh()->getFPTKLetterNumber();
+    //         }
+
+    //         return redirect()->route('recruitment.requests.show', $fptk->id)
+    //             ->with('toast_success', $message);
+    //     } catch (Exception $e) {
+    //         DB::rollback();
+    //         Log::error('Error Director approving FPTK: ' . $e->getMessage());
+
+    //         return redirect()->back()
+    //             ->with('toast_error', 'Terjadi kesalahan saat melakukan approval Director. Silakan coba lagi.');
+    //     }
+    // }
+
+    /**
+     * Approve FPTK (Legacy method - kept for backward compatibility)
+     */
+    // public function approve(Request $request, $id)
+    // {
+    //     $fptk = RecruitmentRequest::findOrFail($id);
+
+    //     if ($fptk->status !== 'submitted') {
+    //         return redirect()->route('recruitment.requests.show', $id)
+    //             ->with('toast_error', 'FPTK hanya dapat disetujui dalam status submitted.');
+    //     }
+
+    //     try {
+    //         DB::beginTransaction();
+
+    //         // Determine which approval level the current user can perform
+    //         $userId = Auth::id();
+
+    //         if ($userId == $fptk->known_by && $fptk->known_status === 'pending') {
+    //             // HR Acknowledgment
+    //             $fptk->update([
+    //                 'known_status' => 'approved',
+    //                 'known_remark' => $request->notes ?? 'Approved by HR',
+    //                 'known_at' => now(),
+    //                 'known_timestamps' => now()
+    //             ]);
+
+    //             $message = 'HR Acknowledgment FPTK berhasil disetujui.';
+    //         } elseif ($userId == $fptk->approved_by_pm && $fptk->pm_approval_status === 'pending' && $fptk->known_status === 'approved') {
+    //             // Project Manager Approval
+    //             $fptk->update([
+    //                 'pm_approval_status' => 'approved',
+    //                 'pm_approval_remark' => $request->notes ?? 'Approved by Project Manager',
+    //                 'pm_approved_at' => now(),
+    //                 'pm_approval_timestamps' => now()
+    //             ]);
+
+    //             $message = 'Project Manager Approval FPTK berhasil disetujui.';
+    //         } elseif ($userId == $fptk->approved_by_director && $fptk->director_approval_status === 'pending' && $fptk->pm_approval_status === 'approved') {
+    //             // Director Approval
+    //             $fptk->update([
+    //                 'director_approval_status' => 'approved',
+    //                 'director_approval_remark' => $request->notes ?? 'Approved by Director',
+    //                 'director_approved_at' => now(),
+    //                 'director_approval_timestamps' => now(),
+    //                 'status' => 'approved'
+    //             ]);
+
+    //             // Auto-assign letter number
+    //             if (!$fptk->hasLetterNumber()) {
+    //                 $success = $this->letterNumberService->assignLetterNumberToFPTK($fptk);
+    //                 if ($success) {
+    //                     $message = 'Director Approval FPTK berhasil disetujui. Nomor surat: ' . $fptk->fresh()->getFPTKLetterNumber();
+    //                 } else {
+    //                     $message = 'Director Approval FPTK berhasil disetujui.';
+    //                 }
+    //             } else {
+    //                 $message = 'Director Approval FPTK berhasil disetujui. Nomor surat: ' . $fptk->fresh()->getFPTKLetterNumber();
+    //             }
+    //         } else {
+    //             throw new \Exception('User tidak memiliki izin untuk melakukan approval pada tahap ini.');
+    //         }
+
+    //         DB::commit();
+
+    //         return redirect()->route('recruitment.requests.show', $fptk->id)
+    //             ->with('toast_success', $message);
+    //     } catch (Exception $e) {
+    //         DB::rollback();
+    //         Log::error('Error approving FPTK: ' . $e->getMessage());
+
+    //         return redirect()->back()
+    //             ->with('toast_error', 'Terjadi kesalahan saat menyetujui FPTK. ' . $e->getMessage());
+    //     }
+    // }
+
+    /**
+     * Reject FPTK (Legacy method - kept for backward compatibility)
+     */
+    // public function reject(Request $request, $id)
+    // {
+    //     $request->validate([
+    //         'rejection_reason' => 'required|string|max:1000'
+    //     ]);
+
+    //     $fptk = RecruitmentRequest::findOrFail($id);
+
+    //     if ($fptk->status !== 'submitted') {
+    //         return redirect()->route('recruitment.requests.show', $id)
+    //             ->with('toast_error', 'FPTK hanya dapat ditolak dalam status submitted.');
+    //     }
+
+    //     try {
+    //         DB::beginTransaction();
+
+    //         // Determine which approval level the current user can perform
+    //         $userId = Auth::id();
+
+    //         if ($userId == $fptk->known_by && $fptk->known_status === 'pending') {
+    //             // HR Rejection
+    //             $fptk->update([
+    //                 'known_status' => 'rejected',
+    //                 'known_remark' => $request->rejection_reason,
+    //                 'known_at' => now(),
+    //                 'known_timestamps' => now(),
+    //                 'status' => 'rejected'
+    //             ]);
+
+    //             $message = 'FPTK berhasil ditolak oleh HR.';
+    //         } elseif ($userId == $fptk->approved_by_pm && $fptk->pm_approval_status === 'pending' && $fptk->known_status === 'approved') {
+    //             // Project Manager Rejection
+    //             $fptk->update([
+    //                 'pm_approval_status' => 'rejected',
+    //                 'pm_approval_remark' => $request->rejection_reason,
+    //                 'pm_approved_at' => now(),
+    //                 'pm_approval_timestamps' => now(),
+    //                 'status' => 'rejected'
+    //             ]);
+
+    //             $message = 'FPTK berhasil ditolak oleh Project Manager.';
+    //         } elseif ($userId == $fptk->approved_by_director && $fptk->director_approval_status === 'pending' && $fptk->pm_approval_status === 'approved') {
+    //             // Director Rejection
+    //             $fptk->update([
+    //                 'director_approval_status' => 'rejected',
+    //                 'director_approval_remark' => $request->rejection_reason,
+    //                 'director_approved_at' => now(),
+    //                 'director_approval_timestamps' => now(),
+    //                 'status' => 'rejected'
+    //             ]);
+
+    //             $message = 'FPTK berhasil ditolak oleh Director.';
+    //         } else {
+    //             throw new \Exception('User tidak memiliki izin untuk melakukan rejection pada tahap ini.');
+    //         }
+
+    //         DB::commit();
+
+    //         return redirect()->route('recruitment.requests.show', $fptk->id)
+    //             ->with('toast_success', $message);
+    //     } catch (Exception $e) {
+    //         DB::rollback();
+    //         Log::error('Error rejecting FPTK: ' . $e->getMessage());
+
+    //         return redirect()->back()
+    //             ->with('toast_error', 'Terjadi kesalahan saat menolak FPTK. ' . $e->getMessage());
+    //     }
+    // }
 
     /**
      * Show HR Acknowledgment form
