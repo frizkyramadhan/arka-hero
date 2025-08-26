@@ -45,11 +45,24 @@ Include relevant context in brackets to help with future AI-assisted coding:
 ## Working On Now
 
 -   `[WIP] P1: Complete recruitment system integration [recruitment candidates, sessions, requests]`
+-   `[WIP] P1: Implement approval stage restructure to separated tables [service layer, testing, deployment]`
+-   `[done] P1: Execute database migrations for approval stage restructure [database structure updated successfully] (completed: 2025-01-15)`
 -   `[done] P1: Add dedicated dashboards and routes for Employees, Official Travel, Recruitment [routes/web.php, DashboardController, RecruitmentSessionController, resources/views/dashboard/*] (completed: 2025-08-13)`
 -   `[done] P2: Update recruitment dashboard statistic cards to stage-based metrics (In Interview, Offering & MCU) [resources/views/dashboard/recruitment.blade.php] (completed: 2025-08-13)`
+-   `[done] P1: Fix approval status card to show approval flow preview for draft recruitment requests [resources/views/recruitment/requests/show.blade.php, resources/views/recruitment/requests/edit.blade.php, resources/views/components/approval-status-card.blade.php] (completed: 2025-01-15)`
+-   `[done] P1: Debug approval status card loading issues and jQuery dependency [resources/views/components/approval-status-card.blade.php, app/Http/Controllers/ApprovalStageController.php] (completed: 2025-01-15)`
+-   `[done] P1: Make approval status card dynamic in edit form [resources/views/recruitment/requests/edit.blade.php, resources/views/components/approval-status-card.blade.php] (completed: 2025-01-15)`
+-   `[done] P1: Fix approval system queries to use new approval_stage_details structure [app/Http/Controllers/ApprovalPlanController.php, app/Http/Controllers/ApprovalRequestController.php] (completed: 2025-01-15)`
+-   `[done] P1: Apply approval status card improvements to official travel system [resources/views/officialtravels/show.blade.php, resources/views/officialtravels/edit.blade.php] (completed: 2025-01-15)`
+-   `[done] P1: Fix official travel approval status card data access issues [app/Http/Controllers/OfficialtravelController.php, resources/views/officialtravels/edit.blade.php] (completed: 2025-01-15)`
+-   `[done] P1: Fix official travel approval status card styling conflicts and department display [resources/views/officialtravels/show.blade.php, app/Http/Controllers/ApprovalStageController.php, resources/views/components/approval-status-card.blade.php] (completed: 2025-01-15)`
 
 ## Up Next (This Week)
 
+-   `[done] P1: Create migration files for approval stage restructure [create_approval_stages_table, create_approval_stage_details_table, migrate_approval_stages_data] (completed: 2025-01-15)`
+-   `[done] P1: Update ApprovalStage and create ApprovalStageDetail models [app/Models/ApprovalStage.php, app/Models/ApprovalStageDetail.php] (completed: 2025-01-15)`
+-   `[done] P1: Update ApprovalStageController for new table structure [store, update, edit, data, preview methods] (completed: 2025-01-15)`
+-   `[done] P1: Update approval stage views for new structure [create.blade.php, edit.blade.php, index.blade.php] (completed: 2025-01-15)`
 -   `[ ] P1: Test CV file upload with new UUID folder structure [candidate ID as folder name]`
 -   `[ ] P1: Test recruitment candidate DataTables functionality [app/Http/Controllers/RecruitmentCandidateController.php:getRecruitmentCandidates()]`
 -   `[ ] P1: Verify all recruitment routes are working [routes/web.php:recruitment candidates section]`
@@ -61,6 +74,7 @@ Include relevant context in brackets to help with future AI-assisted coding:
 
 ## Recently Completed
 
+-   `[done] P1: Fix TaxImport date validation for Excel serial numbers [app/Imports/TaxImport.php, removed strict date validation, added Excel date range checking, enhanced error handling] (completed: 2024-12-19)`
 -   `[done] P1: Implemented stage validation system preventing editing of failed stages and subsequent stages with visual indicators and user-friendly messaging [resources/views/recruitment/sessions/show-session.blade.php, stage validation logic, modal controls, CSS styling] (completed: 2025-01-15)`
 -   `[done] P1: Enhanced recruitment session stage display with yellow clock icons for waiting/in progress states and comprehensive fail/not recommended indicators [resources/views/recruitment/sessions/show.blade.php, Bootstrap tooltips, stage status logic] (completed: 2025-01-15)`
 -   `[done] P1: Create comprehensive recruitment reports system with funnel and aging reports [app/Http/Controllers/RecruitmentReportController.php, routes/web.php, resources/views/recruitment/reports/{index,funnel,aging}.blade.php, sidebar navigation] (completed: 2025-08-14)`

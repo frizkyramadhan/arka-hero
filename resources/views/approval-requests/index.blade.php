@@ -81,16 +81,16 @@
                         <table class="table table-striped table-hover" id="approvalRequestsTable">
                             <thead>
                                 <tr>
-                                    <th width="5%">
+                                    <th class="align-middle" width="5%">
                                         <input type="checkbox" id="selectAll">
                                     </th>
-                                    <th>Document Type</th>
-                                    <th>Document Number</th>
-                                    <th>Remarks</th>
-                                    <th>Submitted By</th>
-                                    <th>Submitted At</th>
-                                    <th>Status</th>
-                                    <th class="text-center">Action</th>
+                                    <th class="align-middle">Document Type</th>
+                                    <th class="align-middle">Document Number</th>
+                                    <th class="align-middle">Remarks</th>
+                                    <th class="align-middle">Submitted By</th>
+                                    <th class="align-middle">Submitted At</th>
+                                    <th class="align-middle">Current Approval</th>
+                                    <th class="text-center align-middle">Action</th>
                                 </tr>
                             </thead>
                         </table>
@@ -194,7 +194,9 @@
                         data: 'submitted_at'
                     },
                     {
-                        data: 'status'
+                        data: 'current_approval',
+                        orderable: false,
+                        searchable: false
                     },
                     {
                         data: 'id',

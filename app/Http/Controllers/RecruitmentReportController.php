@@ -603,14 +603,17 @@ class RecruitmentReportController extends Controller
 
         return Excel::download(new class($rows) implements FromCollection, WithHeadings, WithMapping {
             private $rows;
+
             public function __construct($rows)
             {
                 $this->rows = $rows;
             }
+
             public function collection()
             {
                 return $this->rows;
             }
+
             public function headings(): array
             {
                 return [
@@ -625,9 +628,13 @@ class RecruitmentReportController extends Controller
                     'Latest Approval',
                     'Approved At',
                     'Days to Approve',
+                    'SLA Target (Days)',
+                    'SLA Status',
+                    'SLA Days Remaining',
                     'Approval Remarks',
                 ];
             }
+
             public function map($row): array
             {
                 return [
@@ -641,11 +648,92 @@ class RecruitmentReportController extends Controller
                     $row['days_open'],
                     $row['latest_approval'],
                     $row['approved_at'],
-                    $row['days_to_approve'],
+                    // Fix Excel display issue with integer 0
+                    ($row['days_to_approve'] === 0 || $row['days_to_approve'] === '0')
+                        ? '0'
+                        : (is_numeric($row['days_to_approve']) ? (string)$row['days_to_approve'] : $row['days_to_approve']),
+                    $row['sla_target'],
+                    $row['sla_status'],
+                    $row['sla_days_remaining'] !== null ? $row['sla_days_remaining'] : '-',
                     $row['remarks'],
                 ];
             }
         }, 'recruitment_aging_' . date('YmdHis') . '.xlsx');
+    }
+
+    /**
+     * Calculate days to approve from requested_at to approved_at
+     */
+    private function calculateDaysToApprove($requestedAt, $approvedAt)
+    {
+        try {
+            // Check if both dates are valid and approved_at is not empty
+            if (!$requestedAt || !$approvedAt || $approvedAt === '-') {
+                return '-';
+            }
+
+            // Parse dates with error handling
+            $requestDate = \Carbon\Carbon::createFromFormat('d/m/Y H:i', $requestedAt);
+            $approvalDate = \Carbon\Carbon::createFromFormat('d/m/Y H:i', $approvedAt);
+
+            // Calculate difference in days
+            $days = $requestDate->diffInDays($approvalDate);
+
+            return $days;
+        } catch (\Exception $e) {
+            // Log error for debugging
+            \Illuminate\Support\Facades\Log::error('Error calculating days to approve', [
+                'requested_at' => $requestedAt,
+                'approved_at' => $approvedAt,
+                'error' => $e->getMessage()
+            ]);
+
+            return '-';
+        }
+    }
+
+    /**
+     * Calculate SLA metrics for a recruitment request
+     */
+    private function calculateSLAMetrics($recruitmentRequest, $latestApproval, $daysToApprove): array
+    {
+        $slaTarget = 180; // Target: 6 months (180 days) from approval completion
+        $slaStatus = '-';
+        $slaClass = '';
+        $slaDaysRemaining = null;
+
+        if ($daysToApprove !== null) {
+            // Calculate days from approval completion to 6 months target
+            $approvalCompletionDate = $latestApproval->updated_at;
+            $slaDeadline = $approvalCompletionDate->addDays($slaTarget);
+            $currentDate = now();
+
+            if ($currentDate <= $slaDeadline) {
+                $slaStatus = 'Active';
+                $slaClass = 'badge-success';
+                $slaDaysRemaining = $currentDate->diffInDays($slaDeadline);
+            } else {
+                $slaStatus = 'Overdue';
+                $slaClass = 'badge-danger';
+                $slaDaysRemaining = $currentDate->diffInDays($slaDeadline);
+            }
+        } elseif ($recruitmentRequest->status === 'submitted') {
+            $slaStatus = 'Pending Approval';
+            $slaClass = 'badge-warning';
+            $slaDaysRemaining = null;
+        } else {
+            // For other statuses (draft, rejected, closed)
+            $slaStatus = '-';
+            $slaClass = '';
+            $slaDaysRemaining = null;
+        }
+
+        return [
+            'sla_target' => $slaTarget,
+            'sla_status' => $slaStatus,
+            'sla_class' => $slaClass,
+            'sla_days_remaining' => $slaDaysRemaining
+        ];
     }
 
     private function buildAgingData(?string $date1, ?string $date2, ?string $department, ?string $project, ?string $status): array
@@ -689,12 +777,42 @@ class RecruitmentReportController extends Controller
             if ($recruitmentRequest->approval_plans && $recruitmentRequest->approval_plans->count() > 0) {
                 $approvedPlans = $recruitmentRequest->approval_plans->where('status', 1);
                 if ($approvedPlans->count() > 0) {
-                    $latestApproval = $approvedPlans->sortByDesc('updated_at')->first();
+                    // Get the latest approval by approval_order (step) instead of updated_at
+                    $latestApproval = $approvedPlans->sortByDesc('approval_order')->first();
                     $approvedAt = $latestApproval->updated_at ? $latestApproval->updated_at->format('d/m/Y H:i') : '-';
-                    $daysToApprove = $latestApproval->updated_at ? $latestApproval->updated_at->diffInDays($recruitmentRequest->created_at) : null;
+
+                    // Calculate days to approve: from request creation to the LAST approval step completion
+                    $daysToApprove = $latestApproval->updated_at ? $recruitmentRequest->created_at->diffInDays($latestApproval->updated_at) : null;
+
                     $latestApprovalName = $latestApproval->approver ? $latestApproval->approver->name : '-';
                     $approvalRemarks = $latestApproval->remarks ?: '-';
                 }
+            }
+
+            // Calculate SLA metrics - 6 months from approval completion
+            $slaTarget = 180; // Target: 6 months (180 days) from approval completion
+            $slaStatus = '-';
+            $slaClass = '';
+            $slaDaysRemaining = null;
+
+            if ($daysToApprove !== null) {
+                // Calculate days from approval completion to 6 months target
+                $approvalCompletionDate = $latestApproval->updated_at;
+                $slaDeadline = $approvalCompletionDate->addDays($slaTarget);
+                $currentDate = now();
+
+                if ($currentDate <= $slaDeadline) {
+                    $slaStatus = 'Active';
+                    $slaClass = 'badge-success';
+                    $slaDaysRemaining = $currentDate->diffInDays($slaDeadline);
+                } else {
+                    $slaStatus = 'Overdue';
+                    $slaClass = 'badge-danger';
+                    $slaDaysRemaining = $currentDate->diffInDays($slaDeadline);
+                }
+            } elseif ($recruitmentRequest->status === 'submitted') {
+                $slaStatus = 'Pending Approval';
+                $slaClass = 'badge-warning';
             }
 
             $rows[] = [
@@ -709,7 +827,11 @@ class RecruitmentReportController extends Controller
                 'days_open' => $daysOpen,
                 'latest_approval' => $latestApprovalName,
                 'approved_at' => $approvedAt,
-                'days_to_approve' => $daysToApprove ?: '-',
+                'days_to_approve' => $daysToApprove !== null ? $daysToApprove : '-',
+                'sla_target' => $slaTarget,
+                'sla_status' => $slaStatus,
+                'sla_class' => $slaClass,
+                'sla_days_remaining' => $slaDaysRemaining,
                 'remarks' => $approvalRemarks,
             ];
         }
@@ -1628,12 +1750,42 @@ class RecruitmentReportController extends Controller
             if ($recruitmentRequest->approval_plans && $recruitmentRequest->approval_plans->count() > 0) {
                 $approvedPlans = $recruitmentRequest->approval_plans->where('status', 1);
                 if ($approvedPlans->count() > 0) {
-                    $latestApproval = $approvedPlans->sortByDesc('updated_at')->first();
+                    // Get the latest approval by approval_order (step) instead of updated_at
+                    $latestApproval = $approvedPlans->sortByDesc('approval_order')->first();
                     $approvedAt = $latestApproval->updated_at ? $latestApproval->updated_at->format('d/m/Y H:i') : '-';
-                    $daysToApprove = $latestApproval->updated_at ? $latestApproval->updated_at->diffInDays($recruitmentRequest->created_at) : null;
+
+                    // Calculate days to approve: from request creation to the LAST approval step completion
+                    $daysToApprove = $latestApproval->updated_at ? $recruitmentRequest->created_at->diffInDays($latestApproval->updated_at) : null;
+
                     $latestApprovalName = $latestApproval->approver ? $latestApproval->approver->name : '-';
                     $approvalRemarks = $latestApproval->remarks ?: '-';
                 }
+            }
+
+            // Calculate SLA metrics - 6 months from approval completion
+            $slaTarget = 180; // Target: 6 months (180 days) from approval completion
+            $slaStatus = '-';
+            $slaClass = '';
+            $slaDaysRemaining = null;
+
+            if ($daysToApprove !== null) {
+                // Calculate days from approval completion to 6 months target
+                $approvalCompletionDate = $latestApproval->updated_at;
+                $slaDeadline = $approvalCompletionDate->addDays($slaTarget);
+                $currentDate = now();
+
+                if ($currentDate <= $slaDeadline) {
+                    $slaStatus = 'Active';
+                    $slaClass = 'badge-success';
+                    $slaDaysRemaining = $currentDate->diffInDays($slaDeadline);
+                } else {
+                    $slaStatus = 'Overdue';
+                    $slaClass = 'badge-danger';
+                    $slaDaysRemaining = $currentDate->diffInDays($slaDeadline);
+                }
+            } elseif ($recruitmentRequest->status === 'submitted') {
+                $slaStatus = 'Pending Approval';
+                $slaClass = 'badge-warning';
             }
 
             $data[] = [
@@ -1648,7 +1800,11 @@ class RecruitmentReportController extends Controller
                 'days_open' => $daysOpen,
                 'latest_approval' => $latestApprovalName,
                 'approved_at' => $approvedAt,
-                'days_to_approve' => $daysToApprove ?: '-',
+                'days_to_approve' => $daysToApprove !== null ? $daysToApprove : '-',
+                'sla_target' => $slaTarget,
+                'sla_status' => $slaStatus,
+                'sla_class' => $slaClass,
+                'sla_days_remaining' => $slaDaysRemaining,
                 'remarks' => $approvalRemarks,
             ];
         }

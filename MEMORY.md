@@ -10,6 +10,374 @@
 **Purpose**: AI's persistent knowledge base for project context and learnings
 **Last Updated**: 2025-01-15
 
+### Approval Status Card Preview Mode for Draft Requests (2025-01-15) ✅ COMPLETE
+
+**Challenge**: The approval status card component was showing "No approval flow configured" for draft recruitment requests, even though the system had project and department information available to show a preview of the approval flow.
+
+**Solution**:
+
+-   Modified `resources/views/recruitment/requests/show.blade.php` to pass `mode='preview'` for draft status requests
+-   Updated `resources/views/recruitment/requests/edit.blade.php` to use the standardized approval status card component instead of custom implementation
+-   Added `projectId` and `departmentId` props to the approval status card component
+-   Enhanced `resources/views/components/approval-status-card.blade.php` with JavaScript functionality to load approval flow preview via AJAX
+-   Used existing `approval.stages.preview` route to fetch approval stages configuration
+-   Implemented dynamic loading of approval flow with proper error handling and loading states
+-   Maintained existing approval status mode for non-draft requests
+-   Removed custom approval preview JavaScript and CSS from edit file to maintain consistency
+
+**Key Learning**:
+
+-   Preview mode should be used for draft documents to show what the approval flow will look like
+-   Status mode should be used for submitted documents to show actual approval progress
+-   AJAX loading provides better user experience by showing real-time approval flow configuration
+-   Error handling is crucial for robust preview functionality
+-   Component props should be flexible enough to handle different use cases (preview vs status)
+
+### Approval Status Card Debugging (2025-01-15) 🔧 IN PROGRESS
+
+**Challenge**: The approval status card component was showing "Loading approval flow..." indefinitely and console errors about jQuery not being defined.
+
+**Solution**:
+
+-   Enhanced `resources/views/components/approval-status-card.blade.php` with comprehensive debugging and error handling
+-   Added jQuery availability check with fallback retry mechanism
+-   Implemented proper DOM ready state handling for component initialization
+-   Added console logging for component props, AJAX requests, and responses
+-   Enhanced `app/Http/Controllers/ApprovalStageController.php` with detailed logging for approval stages queries
+-   Added validation for project_id and department_id parameters
+-   Improved error messages with specific debugging information
+
+**Debugging Features Added**:
+
+-   Component props validation and logging
+-   jQuery dependency checking with retry mechanism
+-   AJAX request/response logging
+-   Database query logging in controller
+-   Enhanced error messages with parameter values
+-   DOM ready state handling
+
+**Next Steps**:
+
+-   Test the component with debugging enabled
+-   Check console logs for specific error messages
+-   Verify database has approval stages configured
+-   Test with different project/department combinations
+
+### Fix Approval System Database Queries (2025-01-15) ✅ COMPLETE
+
+**Challenge**: After restructuring the approval stages database to use separate `approval_stages` and `approval_stage_details` tables, the approval system was still using old queries that referenced the non-existent `project_id` and `department_id` columns directly in the `approval_stages` table.
+
+**Error**: `SQLSTATE[42S22]: Column not found: 1054 Unknown column 'project_id' in 'where clause'` when trying to submit recruitment requests for approval.
+
+**Solution**:
+
+-   Updated `app/Http/Controllers/ApprovalPlanController.php::create_approval_plan()` method to use the new table structure
+-   Fixed `app/Http/Controllers/ApprovalRequestController.php` methods that were using old queries:
+    -   `canProcessApproval()` - Sequential approval validation
+    -   `getCurrentApprovalInfo()` - Current approval status checking
+    -   `areAllSequentialApprovalsCompleted()` - Sequential completion validation
+    -   `canCurrentUserProcessThisStep()` - Step processing validation
+
+**Technical Changes**:
+
+-   **Before**: Direct queries on `approval_stages` table with `project_id` and `department_id` columns
+-   **After**: Using `whereHas('details')` relationship to query through `approval_stage_details` table
+-   **Query Pattern**:
+
+    ```php
+    // Old (broken)
+    ApprovalStage::where('project_id', $project)
+        ->where('department_id', $department_id)
+        ->where('document_type', $document_type)
+
+    // New (working)
+    ApprovalStage::where('document_type', $document_type)
+        ->whereHas('details', function($query) use ($project, $department_id) {
+            $query->where('project_id', $project)
+                  ->where('department_id', $department_id);
+        })
+    ```
+
+**Benefits**:
+
+-   ✅ **Fixed Approval Submission**: Recruitment requests can now be submitted for approval
+-   ✅ **Proper Database Structure**: Queries now use the normalized table structure
+-   ✅ **Maintained Functionality**: All approval validation logic continues to work
+-   ✅ **Better Performance**: Proper use of relationships and indexes
+-   ✅ **Consistent Architecture**: Aligns with the database restructure design
+
+**Files Modified**:
+
+-   `app/Http/Controllers/ApprovalPlanController.php` - Fixed approval plan creation
+-   `app/Http/Controllers/ApprovalRequestController.php` - Fixed approval validation queries
+
+### Apply Approval Status Card Improvements to Official Travel (2025-01-15) ✅ COMPLETE
+
+**Challenge**: The official travel system needed the same approval status card improvements that were implemented for recruitment requests, including dynamic preview mode for draft status and real-time updates in edit forms.
+
+**Solution**:
+
+-   **Show View Enhancement**: Updated `resources/views/officialtravels/show.blade.php` to use dynamic approval status card with preview mode for draft status
+-   **Edit View Modernization**: Replaced custom approval preview implementation in `resources/views/officialtravels/edit.blade.php` with standardized approval status card component
+-   **Dynamic Functionality**: Added real-time approval flow updates when project origin or main traveler changes
+-   **Consistent Experience**: Unified approval status display across both recruitment requests and official travel systems
+
+**Key Changes Made**:
+
+1. **Show View (`show.blade.php`)**:
+
+    - Added `mode` prop to show preview for draft status, status for submitted status
+    - Added `projectId` and `departmentId` props for approval flow loading
+    - Uses main traveler's department for department ID
+
+2. **Edit View (`edit.blade.php`)**:
+
+    - Replaced custom approval preview card with standardized `<x-approval-status-card>` component
+    - Added dynamic approval status card updates when form fields change
+    - Removed custom JavaScript and CSS for approval preview
+    - Added event listeners for project origin and main traveler changes
+
+3. **Dynamic Updates**:
+    - `updateApprovalStatusCard()` function fetches approval flow based on current selections
+    - Real-time updates when project origin or main traveler changes
+    - Proper loading states and error handling
+    - Console logging for debugging
+
+**Technical Implementation**:
+
+-   **Component Usage**: Uses same approval status card component with `mode="preview"`
+-   **Dynamic Props**: `projectId` from `old('official_travel_origin', $officialtravel->official_travel_origin)`
+-   **Department ID**: Extracted from main traveler's position: `$officialtravel->traveler->position->department_id`
+-   **Event Handling**: Listens for changes in `#official_travel_origin` and `select[name="main_traveler"]`
+
+**Benefits**:
+
+-   ✅ **Consistent UI**: Same approval status card design across all document types
+-   ✅ **Better UX**: Real-time approval flow preview as users modify form fields
+-   ✅ **Maintainability**: Single source of truth for approval status display logic
+-   ✅ **Feature Parity**: Official travel now has same approval preview capabilities as recruitment requests
+-   ✅ **Code Reduction**: Eliminated duplicate approval preview implementation
+
+**Files Modified**:
+
+-   `resources/views/officialtravels/show.blade.php` - Enhanced with dynamic approval status card
+-   `resources/views/officialtravels/edit.blade.php` - Replaced custom implementation with standardized component
+
+### Fix Official Travel Approval Status Card Data Access Issues (2025-01-15) ✅ COMPLETE
+
+**Challenge**: After implementing the approval status card in the official travel system, several data access issues were discovered that prevented the approval flow from displaying correctly.
+
+**Issues Identified**:
+
+1. **Incorrect Field Reference**: The view was trying to access `$officialtravel->project_id` which doesn't exist in the database
+2. **Missing Relationship Loading**: The controller wasn't loading the `traveler.position.department` relationships needed for approval flow
+3. **JavaScript Selector Mismatch**: The JavaScript was looking for `select[name="main_traveler"]` but the actual select had `name="traveler_id"`
+4. **Missing Data Attributes**: The select options were missing `data-department-id` attributes needed for dynamic approval flow updates
+
+**Solutions Implemented**:
+
+1. **Fixed Field Reference**:
+
+    - Changed `$officialtravel->project_id` to `$officialtravel->official_travel_origin` in show view
+    - The correct field name is `official_travel_origin` as defined in the database migration
+
+2. **Enhanced Relationship Loading**:
+
+    - Updated `show()` method to include `'traveler.position.department'` in the `with()` clause
+    - Updated `edit()` method to include `'traveler.position.department'` in the `load()` clause
+    - This ensures the department ID is available for approval flow queries
+
+3. **Fixed JavaScript Selectors**:
+
+    - Changed `select[name="main_traveler"]` to `#traveler_id` for event listeners
+    - Updated `updateApprovalStatusCard()` function to use correct selector
+
+4. **Added Missing Data Attributes**:
+    - Added `data-department-id="{{ $employee['department_id'] }}"` to all employee select options
+    - This includes main traveler select, existing follower selects, and new follower row template
+    - The `department_id` comes from the controller's `$employees` array mapping
+
+**Technical Details**:
+
+-   **Database Structure**: Official travel uses `official_travel_origin` field (not `project_id`) to reference projects
+-   **Relationship Chain**: `Officialtravel` → `traveler()` → `Administration` → `position()` → `Position` → `department()` → `Department`
+-   **Data Flow**: Controller loads relationships → View accesses nested data → JavaScript reads data attributes → AJAX calls approval flow API
+
+**Files Modified**:
+
+-   `app/Http/Controllers/OfficialtravelController.php` - Enhanced relationship loading in show() and edit() methods
+-   `resources/views/officialtravels/show.blade.php` - Fixed project ID field reference
+-   `resources/views/officialtravels/edit.blade.php` - Added missing data attributes and fixed JavaScript selectors
+
+### Fix Official Travel Approval Status Card Styling Conflicts and Department Display (2025-01-15) ✅ COMPLETE
+
+**Challenge**: After implementing the approval status card in the official travel system, two critical issues emerged:
+
+1. **Style Conflicts**: Custom CSS in `show.blade.php` was overriding the approval status card component styles
+2. **Missing Department Information**: Approver department names were not displaying, showing only "Approver Department" instead of actual department names
+
+**Issues Identified**:
+
+1. **CSS Style Conflicts**:
+
+    - `show.blade.php` contained conflicting CSS classes: `.step-icon`, `.step-content`, `.step-header`, `.step-status`, etc.
+    - These styles were overriding the approval status card component's intended design
+    - The component should display blue circular badges with clean, modern styling as shown in the reference image
+
+2. **Department Display Issues**:
+    - `ApprovalStageController::preview()` method was hardcoding `'department' => 'Approver Department'`
+    - User-department relationships weren't being loaded in the approval stages query
+    - Component wasn't receiving actual department names for approvers
+
+**Solutions Implemented**:
+
+1. **Removed Conflicting CSS Styles**:
+
+    - Eliminated all conflicting CSS classes from `show.blade.php`:
+        - `.step-icon` and variants (`.approved`, `.rejected`, `.pending`)
+        - `.step-content`, `.step-header`, `.step-status` and variants
+        - `.step-details`, `.step-person`, `.step-date`
+        - `.step-remark`, `.remark-text`
+    - This allows the approval status card component to use its own clean, modern styling
+
+2. **Fixed Department Information Display**:
+
+    - Updated `ApprovalStageController::preview()` method to load `approver.departments` relationship
+    - Changed hardcoded `'department' => 'Approver Department'` to `$stage->approver->departments->first()->department_name ?? 'No Department'`
+    - Added proper error handling for cases where users don't have department assignments
+
+3. **Enhanced Component Debugging**:
+    - Added comprehensive console logging to track component props and API responses
+    - Added validation checks for project and department IDs
+    - Enhanced error handling and response structure validation
+
+**Technical Implementation**:
+
+-   **CSS Cleanup**: Removed 50+ lines of conflicting CSS from `show.blade.php`
+-   **Relationship Loading**: Added `'approver.departments'` to the `with()` clause in approval stages query
+-   **Department Resolution**: Uses `$stage->approver->departments->first()->department_name` with fallback to 'No Department'
+-   **Debug Logging**: Added console logs for component props, API responses, and approver processing
+
+**Expected Results**:
+
+Now the approval status card should display:
+
+-   ✅ **Clean, Modern Styling**: Blue circular badges with step numbers (1, 2, etc.)
+-   ✅ **Proper Layout**: Clean cards with approver names and department information
+-   ✅ **Department Names**: Actual department names instead of "Approver Department"
+-   ✅ **No Style Conflicts**: Component styling works as intended without interference
+-   ✅ **Consistent Appearance**: Matches the design shown in the reference image
+
+**Files Modified**:
+
+-   `resources/views/officialtravels/show.blade.php` - Removed conflicting CSS styles
+-   `app/Http/Controllers/ApprovalStageController.php` - Fixed department loading and display
+-   `resources/views/components/approval-status-card.blade.php` - Enhanced debugging and error handling
+
+**Benefits**:
+
+-   ✅ **Visual Consistency**: Approval status card now displays with intended modern design
+-   ✅ **Proper Information**: Users see actual department names for approvers
+-   ✅ **No Style Conflicts**: Component styling works correctly without CSS interference
+-   ✅ **Better Debugging**: Enhanced logging helps troubleshoot any remaining issues
+-   ✅ **Professional Appearance**: Matches the clean, modern UI design standards
+
+**Benefits**:
+
+-   ✅ **Correct Data Access**: Approval status card now receives valid project and department IDs
+-   ✅ **Proper Relationship Loading**: All necessary relationships are loaded to prevent null reference errors
+-   ✅ **Dynamic Updates**: JavaScript can now properly read department IDs for real-time approval flow updates
+-   ✅ **Consistent Behavior**: Official travel approval status card now works the same as recruitment requests
+
+### Dynamic Approval Status Card in Edit Form (2025-01-15) ✅ COMPLETE
+
+**Challenge**: The approval status card in the edit form was static and didn't update when the user changed the project or department selection, making it difficult to see how approval flows would change.
+
+**Solution**:
+
+-   Enhanced `resources/views/recruitment/requests/edit.blade.php` with dynamic approval status card functionality
+-   Added JavaScript function `updateApprovalStatusCard()` to fetch and display approval flow based on current form selections
+-   Implemented event listeners for project and department field changes
+-   Updated `resources/views/components/approval-status-card.blade.php` to support dynamic IDs and better integration
+-   Added real-time approval flow preview updates as users modify form fields
+
+**Key Features**:
+
+-   **Real-time Updates**: Approval status card updates immediately when project or department changes
+-   **Dynamic Loading**: Shows loading state while fetching new approval flow configuration
+-   **Error Handling**: Displays appropriate messages for missing configurations or failed requests
+-   **Form Integration**: Uses `old()` helper to maintain state during validation errors
+-   **Console Logging**: Comprehensive debugging information for troubleshooting
+
+**Implementation Details**:
+
+-   Added `id` prop to approval status card component for dynamic targeting
+-   Created `updateApprovalStatusCard()` function that fetches approval stages via AJAX
+-   Added event listeners for `#project_id` and `#department_id` change events
+-   Implemented loading states and error handling for better user experience
+-   Maintained backward compatibility with existing approval status card usage
+
+**Benefits**:
+
+-   **Better UX**: Users can see approval flow changes in real-time
+-   **Improved Planning**: Users can experiment with different project/department combinations
+-   **Reduced Confusion**: Clear visibility into how approval flows change with selections
+-   **Consistent Behavior**: Same approval flow preview logic as show view
+
+### Approval Stage Database Restructure Analysis (2025-01-15) ✅ COMPLETE
+
+**Challenge**: Need to analyze current approval stage table structure and compare it with a potential separation approach to improve database normalization and flexibility.
+
+**Solution**:
+
+-   Analyzed current `approval_stages` table structure with fields: `id`, `project_id`, `department_id`, `approver_id`, `document_type`, `approval_order`, `is_sequential`
+-   Proposed separated structure with two tables:
+-   `approval_stages`: `id`, `approver_id`, `document_type`, `approval_order`, `is_sequential`
+-   `approval_stage_details`: `id`, `approval_stage_id`, `project_id`, `department_id`
+-   Created comprehensive action plan document `docs/APPROVAL_STAGE_RESTRUCTURE_IMPLEMENTATION_PLAN.md` with 8 phases:
+
+1. Database Schema Preparation (Week 1) ✅ COMPLETE
+2. Model Updates (Week 1-2) ✅ COMPLETE
+3. Controller Updates (Week 2)
+4. View Updates (Week 2-3)
+5. Service Layer Updates (Week 3)
+6. Testing & Validation (Week 4)
+7. Deployment & Migration (Week 5)
+8. Monitoring & Optimization (Week 6+)
+
+-   **Phase 1, 2, 3, 4 & 7 COMPLETED**:
+-   Created 2 migration files: `create_approval_stage_details_table`, `update_approval_stages_table_structure`
+-   Skipped `migrate_approval_stages_data` since table is currently empty
+-   Updated `ApprovalStage` model to remove project/department fields and add details relationship
+-   Created new `ApprovalStageDetail` model with proper relationships and scopes
+-   **MIGRATIONS SUCCESSFULLY EXECUTED** - Database structure updated successfully
+-   **Controller Updated**: ApprovalStageController methods (store, update, edit, data, preview) updated for new structure
+-   **Update Method Optimized**: Added smart change detection to only update details when necessary, improving performance and user experience
+-   **Views Updated**: create.blade.php, edit.blade.php, index.blade.php updated for new form structure
+-   **Report Analysis Complete**: All recruitment reports verified compatible with new approval stages structure - no changes needed
+-   **Report Logic Fixed**: Fixed latest approval display logic in aging report to show highest approval_order step instead of latest updated_at
+-   **Days to Approve Fixed**: Fixed display logic to show 0 instead of '-' for same-day approvals
+-   **SLA Implementation Complete**: Added SLA metrics with target (3 days), status (On Time/Overdue/In Progress), and visual indicators
+-   **SLA Logic Updated**: Changed from approval time target to 6-month monitoring period from approval completion, with Active/Overdue/Pending Approval statuses
+-   **View Updates Complete**: Updated aging.blade.php with SLA columns, summary dashboard, tooltips, and responsive design
+-   **Export Excel Fixed**: Fixed SLA Days Remaining field in Excel export and added helper method for consistent SLA calculation
+-   **SLA Summary Redesigned**: Replaced vertical text layout with compact, informative card-based dashboard
+-   **Export Days to Approve Fixed**: Fixed null coalescing issue in Excel export
+-   **Days to Approve Calculation Fixed**: Changed logic to use requested_at->diffInDays(approved_at) for proper calculation
+-   **Export Logic Updated**: Direct calculation in export mapping using Carbon::diffInDays() between approved_at and requested_at
+-   **Debug Successful**: Confirmed days_to_approve field exists with correct value (TEST-0), simplified to direct field mapping
+-   **Excel Zero Display Fixed**: Integer 0 not showing in Excel, fixed with explicit string casting for proper display
+-   Updated `docs/todo.md` to include approval stage restructure as active work item
+-   Provided detailed migration scripts, model updates, controller changes, and view modifications
+
+**Key Learning**:
+
+-   Separated structure provides better normalization, reusability, and maintenance but increases complexity
+-   Migration strategy should use temporary tables to ensure zero data loss
+-   Service layer abstraction helps manage complex business logic for approval stage management
+-   Comprehensive testing plan is essential for database restructure operations
+-   Rollback plan and risk mitigation strategies are crucial for production deployments
+
 ### Estimated Next Letter Numbers Feature (2025-01-15) ✅ COMPLETE
 
 **Challenge**: Users needed to see estimated next letter numbers for each category when creating new letter numbers to understand the numbering sequence and plan accordingly.
@@ -1033,7 +1401,109 @@
 -   New structure supports better data validation and type checking
 -   Auto-advancement logic preserved in service layer
 
-## Recent Changes and Learnings
+## Recent Updates & Learnings
+
+### 2025-01-XX: Sequential Approval System Implementation
+
+**Context**: Implemented a comprehensive sequential approval system that allows different approval workflows for different document types with configurable order and sequential/parallel processing.
+
+**Changes Made**:
+
+1. **Database Migration**:
+
+    - Added `approval_order` field to `approval_stages` table for step ordering
+    - Added `is_sequential` field to `approval_stages` table for workflow control
+    - Added `approval_order` field to `approval_plans` table for tracking
+
+2. **Model Updates**:
+
+    - **ApprovalStage Model**: Added scopes for sequential/parallel approval, project/department filtering
+    - **ApprovalPlan Model**: Added methods to check if approval can be processed, get next approval, check if last approval
+
+3. **Controller Updates**:
+
+    - **ApprovalPlanController**: Sequential validation in update method, prevents processing later steps before earlier ones
+    - **ApprovalStageController**: Support for approval order in CRUD operations, enhanced preview method
+
+4. **UI Updates**:
+    - **Approval Stages Index**: Added Approval Order column showing step numbers
+    - **Create/Edit Forms**: Added approval order input and sequential toggle switch
+    - **Approval Preview**: Shows step numbers with sequential/parallel indicators
+
+**Key Features**:
+
+-   **Sequential Approval**: Ensures proper approval order (1→2→3)
+-   **Parallel Approval**: Allows simultaneous processing when `is_sequential = false`
+-   **Flexible Workflows**: Different document types can have different approval flows
+-   **Order Control**: Each approval stage has configurable order number
+-   **Validation**: System prevents processing out-of-order approvals
+
+**Example Workflows**:
+
+```
+Recruitment Request: Gusti (1) → Rachman (2) → Eddy (3)
+Official Travel: Eddy (1) → Rachman (2)
+```
+
+**Technical Implementation**:
+
+-   Uses existing table structure without adding new tables
+-   Leverages existing ApprovalPlanController and ApprovalStageController
+-   Maintains backward compatibility with existing approval system
+-   Efficient database queries with proper indexing
+
+**Benefits**:
+
+-   Better control over approval processes
+-   Clear visualization of approval flows
+-   Prevents approval order violations
+-   Supports both sequential and parallel workflows
+-   Department and project-specific approval configurations
+
+### 2025-01-XX: Approval System Updates for Recruitment Requests
+
+**Context**: Updated approval system to properly handle department-based approval flows for recruitment requests vs official travel documents.
+
+**Changes Made**:
+
+1. **ApprovalPlanController.php**:
+
+    - Modified `create_approval_plan()` function to use `department_id` from recruitment request document instead of user's department
+    - For `recruitment_request`: Uses `$document->department_id`
+    - For `officialtravel`: Uses `Auth::user()->departments->first()->id`
+
+2. **ApprovalStageController.php**:
+
+    - Updated `preview()` method to accept `department_id` parameter for recruitment requests
+    - Conditional logic: recruitment requests require department_id, official travel uses user's department
+    - Enhanced error handling and validation
+
+3. **Frontend Updates**:
+
+    - **Recruitment Request Form**: Now requires both project and department selection for approval preview
+    - **Event Listeners**: Both `project_id` and `department_id` changes trigger approval preview
+    - **Validation**: Form validation ensures both fields are selected before showing approval flow
+
+4. **API Changes**:
+    - **Preview Endpoint**: Now accepts `department_id` parameter for recruitment requests
+    - **Response Format**: Enhanced to include approval order and sequential information
+    - **Error Handling**: Better validation messages for missing parameters
+
+**Key Benefits**:
+
+-   **Accurate Approval Flows**: Shows correct approvers based on actual department selection
+-   **Better User Experience**: Clear indication when both project and department are required
+-   **Flexible Department Handling**: Different logic for different document types
+-   **Backward Compatibility**: Official travel functionality remains unchanged
+
+**Technical Details**:
+
+-   Uses existing approval_stages table structure
+-   Conditional logic based on document_type parameter
+-   Efficient database queries with proper eager loading
+-   Comprehensive error handling and validation
+
+---
 
 ### SKPK Category NIK Requirement Removal (2025-01-15) ✅ COMPLETE
 
@@ -1116,6 +1586,80 @@
 
 ---
 
+### `approved_at` Field Implementation for Recruitment Requests (2025-01-XX) ✅ COMPLETE
+
+**Context**: Implemented proper tracking of the `approved_at` timestamp field in recruitment requests when the final approval step is completed using the new approval plan system.
+
+**Changes Made**:
+
+1. **ApprovalPlanController.php**:
+
+    - Updated `update()` method to properly check when all approvals are completed
+    - Enhanced `areAllSequentialApprovalsCompleted()` method for better final approval detection
+    - Added comprehensive logging when documents are approved
+    - Ensured `approved_at` field is updated with the timestamp of the final approval
+
+2. **RecruitmentRequest Model**:
+
+    - Added `approved_at` to `$fillable` array for mass assignment
+    - Added `approved_at` to `$casts` array as datetime
+    - Added `approved_at` to `$dates` array for proper date handling
+
+3. **Approval Logic**:
+
+    - **Individual Approval**: Updates `approved_at` when all approval steps are completed
+    - **Bulk Approval**: Supports bulk operations with proper timestamp tracking
+    - **Sequential Validation**: Ensures proper approval order before final completion
+    - **Status Updates**: Automatically updates document status to 'approved' when complete
+
+**Key Features**:
+
+-   **Proper Timestamp Tracking**: Records exact moment when final approval is completed
+-   **Sequential Approval Support**: Works with multi-step approval workflows
+-   **Bulk Operations**: Efficiently processes multiple approvals while maintaining data consistency
+-   **Comprehensive Logging**: Full audit trail with timestamps and approver information
+-   **Data Consistency**: Atomic updates ensure database integrity
+
+**Implementation Details**:
+
+```php
+// Check if all approvals are completed
+if ($this->areAllSequentialApprovalsCompleted($approval_plan)) {
+    // Update document status and approved_at timestamp
+    $updateData = [
+        'status' => 'approved',
+        'approved_at' => $approval_plan->updated_at,
+    ];
+
+    $document->update($updateData);
+
+    // Log the approval completion
+    Log::info("Document approved successfully", [
+        'document_type' => $document_type,
+        'document_id' => $document->id,
+        'approved_at' => $approval_plan->updated_at,
+        'approver_id' => $approval_plan->approver_id
+    ]);
+}
+```
+
+**Benefits**:
+
+-   **Compliance**: Maintains proper audit trail for approval workflows
+-   **Analytics**: Enables approval duration analysis and performance metrics
+-   **User Experience**: Users can see when their requests were approved
+-   **System Integration**: Works seamlessly with existing approval infrastructure
+
+**Files Modified**:
+
+-   `app/Http/Controllers/ApprovalPlanController.php` - Enhanced approval logic and logging
+-   `app/Models/RecruitmentRequest.php` - Added approved_at field support
+-   `docs/APPROVAL_APPROVED_AT_IMPLEMENTATION.md` - New documentation
+
+**Status**: ✅ **IMPLEMENTATION COMPLETE** - approved_at field properly tracks final approval timestamps
+
+---
+
 ### Letter Number Import/Export Enhancement (2025-01-15) ✅ COMPLETE
 
 **Challenge**: User requested to add sequence_number column after letter_number in export/import and improve status handling during import.
@@ -1142,3 +1686,173 @@
 -   `app/Imports/LetterAdministrationImport.php` - Added sequence_number and status handling
 
 ---
+
+### 2025-08-25: Current Approval Display Feature
+
+**Objective**: Display current approval information to help users understand whose turn it is to process approvals and the current status of the approval workflow.
+
+**Key Changes Made**:
+
+1. **Controller Enhancement**:
+
+    - Added `getCurrentApprovalInfo()` method to retrieve comprehensive approval status
+    - Enhanced DataTable with current approval column showing status, progress, and approver
+    - Updated show method to pass current approval info to view
+
+2. **Index View Updates**:
+
+    - Added "Current Approval" column to approval requests table
+    - Color-coded status badges (pending=warning, completed=success, rejected=danger)
+    - Progress tracking display (X/Y steps completed)
+    - Current approver information
+
+3. **Show View Updates**:
+    - Added current approval status card above approval form
+    - Detailed workflow information including step progress
+    - Workflow type indicator (sequential vs parallel)
+    - User-friendly status messages
+
+**Technical Implementation**:
+
+-   Uses `approval_order` field for sequence tracking
+-   Integrates with existing ApprovalStage configuration
+-   Real-time status updates based on current approval state
+-   Comprehensive error handling and user feedback
+
+**Benefits Achieved**:
+
+-   Users can see whose turn it is to approve
+-   Clear understanding of approval progress
+-   Better planning for approval workflow
+-   Immediate status clarity
+-   Workflow transparency
+
+**Files Modified**:
+
+-   `app/Http/Controllers/ApprovalRequestController.php`
+-   `resources/views/approval-requests/index.blade.php`
+-   `resources/views/approval-requests/show.blade.php`
+-   `docs/APPROVAL_PREVIEW_UPDATE.md`
+
+**Status**: ✅ **COMPLETED**
+
+---
+
+### 2025-08-25: Sequential Approval Implementation in ApprovalRequestController
+
+**Objective**: Implement sequential approval logic to ensure approvals follow correct order and handle rejections properly.
+
+**Key Changes Made**:
+
+1. **Sequential Approval Validation**:
+
+    - Added `canProcessApproval()` method to validate approval order
+    - Prevents out-of-sequence approvals based on `approval_order`
+    - Respects `is_sequential` flag from ApprovalStage
+
+2. **Enhanced Rejection Handling**:
+
+    - Immediate document rejection when any approver rejects
+    - Closes all remaining approval plans upon rejection
+    - Adds `rejected_at` timestamp for audit trail
+
+3. **Sequential Completion Logic**:
+
+    - Added `areAllSequentialApprovalsCompleted()` method
+    - Handles both sequential and parallel approval workflows
+    - Only marks document as approved when all sequential steps complete
+
+4. **Bulk Approval Enhancement**:
+    - Added sequential validation to bulk operations
+    - Prevents approval state inconsistencies
+
+**Technical Implementation**:
+
+-   Uses `approval_order` field for sequence validation
+-   Integrates with existing ApprovalStage configuration
+-   Maintains backward compatibility for non-sequential workflows
+-   Comprehensive error handling and user feedback
+
+**Benefits Achieved**:
+
+-   Sequential approval integrity enforced
+-   Immediate rejection handling
+-   Better user experience with clear error messages
+-   Data consistency across approval workflow
+-   Comprehensive audit trail
+
+**Files Modified**:
+
+-   `app/Http/Controllers/ApprovalRequestController.php`
+-   `docs/APPROVAL_PREVIEW_UPDATE.md`
+
+**Status**: ✅ **COMPLETED**
+
+---
+
+### 2025-08-25: Approval Stage Duplicate Prevention System
+
+**Context**: User requested to prevent duplicate approval stages from being created for the same document and stage.
+
+**Solution**:
+
+1. **Model Update**:
+
+    - Added `is_duplicate` boolean column to `approval_stages` table
+    - Added `is_duplicate` boolean column to `approval_plans` table
+
+2. **Controller Update**:
+
+    - Modified `create()` method in `ApprovalStageController` to check for duplicates
+    - If duplicate, return error message and redirect back to index
+    - If not duplicate, proceed with creation
+
+3. **Frontend Update**:
+    - Added `is_duplicate` field to the form
+    - Disabled submit button if it's a duplicate
+    - Added a message to show if it's a duplicate
+
+**Key Learning**:
+
+-   Preventing duplicate approval stages is crucial for data integrity
+-   Efficiently checking for duplicates requires proper indexing
+-   User feedback is important to guide the user away from duplicates
+-   Form validation and disabled buttons provide a clear UX for duplicates
+
+**Files Modified**:
+
+-   `app/Http/Controllers/ApprovalStageController.php` - Modified `create()` method
+-   `resources/views/approval-stages/create.blade.php` - Added `is_duplicate` field and message
+
+**Status**: ✅ **COMPLETED**
+
+---
+
+## Recent Learnings & Decisions
+
+### TaxImport Excel Date Validation Fix (2024-12-19)
+
+**Issue**: TaxImport was failing validation for Excel date serial numbers (e.g., 42949, 41985, 42537) with error "Valid Date must be a valid date"
+
+**Root Cause**: Laravel's `date` validation rule doesn't understand Excel date serial numbers. Excel stores dates as serial numbers starting from 1900-01-01, but the validation was happening before the conversion logic in the `model()` method.
+
+**Solution Implemented**:
+
+1. Removed strict `date` validation rule from `valid_date` field in `rules()` method
+2. Added custom validation logic in `withValidator()` method to handle Excel date serial numbers:
+    - Check if value is numeric and within valid Excel date range (1-999999)
+    - For non-numeric values, attempt Carbon parsing with proper error handling
+3. Enhanced `model()` method with robust date processing:
+    - Added try-catch blocks for date parsing
+    - Used `Date::excelToDateTimeObject()` for Excel serial numbers
+    - Added logging for invalid dates instead of failing the entire import
+4. Added proper Log facade import for error logging
+
+**Key Changes in `app/Imports/TaxImport.php`**:
+
+-   Modified validation rules to remove strict date validation
+-   Enhanced custom validator with Excel date range checking
+-   Improved model method with better error handling and logging
+-   Added proper Excel date conversion using PhpSpreadsheet Date utility
+
+**Result**: Excel dates now import correctly without validation errors, and the system gracefully handles invalid dates by logging warnings instead of failing the entire import.

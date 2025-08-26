@@ -42,6 +42,7 @@ class RecruitmentRequest extends Model
         'status',
         'positions_filled',
         'submit_at',
+        'approved_at',
         // HR Acknowledgment fields
         'known_by',
         'known_status',
@@ -69,6 +70,7 @@ class RecruitmentRequest extends Model
         'required_age_min' => 'integer',
         'required_age_max' => 'integer',
         'submit_at' => 'datetime',
+        'approved_at' => 'datetime',
         // HR Acknowledgment casts
         'known_at' => 'datetime',
         'known_timestamps' => 'datetime',
@@ -85,6 +87,7 @@ class RecruitmentRequest extends Model
         'created_at',
         'updated_at',
         'deleted_at',
+        'approved_at',
         // HR Acknowledgment dates
         'known_at',
         'known_timestamps',

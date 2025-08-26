@@ -38,12 +38,13 @@
                                 style="width: 100%;">
                                 <thead>
                                     <tr>
-                                        <th>No</th>
-                                        <th>Approver</th>
-                                        <th>Projects</th>
-                                        <th>Departments</th>
-                                        <th>Document Types</th>
-                                        <th class="text-center" style="width: 12%;">Action</th>
+                                        <th class="align-middle">No</th>
+                                        <th class="align-middle">Approver</th>
+                                        <th class="align-middle">Document Type</th>
+                                        <th class="align-middle">Approval Order</th>
+                                        <th class="align-middle">Projects</th>
+                                        <th class="align-middle">Departments</th>
+                                        <th class="text-center align-middle" style="width: 12%;">Action</th>
                                     </tr>
                                 </thead>
                             </table>
@@ -70,6 +71,25 @@
     <script src="{{ asset('assets/plugins/toastr/toastr.min.js') }}"></script>
     <script>
         $(document).ready(function() {
+            // Initialize Toastr configuration
+            toastr.options = {
+                "closeButton": true,
+                "debug": false,
+                "newestOnTop": false,
+                "progressBar": true,
+                "positionClass": "toast-top-right",
+                "preventDuplicates": false,
+                "onclick": null,
+                "showDuration": "300",
+                "hideDuration": "1000",
+                "timeOut": "5000",
+                "extendedTimeOut": "1000",
+                "showEasing": "swing",
+                "hideEasing": "linear",
+                "showMethod": "fadeIn",
+                "hideMethod": "fadeOut"
+            };
+
             // Initialize DataTable
             $('#approval-stages-table').DataTable({
                 processing: true,
@@ -86,16 +106,21 @@
                         name: 'approver'
                     },
                     {
+                        data: 'document_type',
+                        name: 'document_type'
+                    },
+                    {
+                        data: 'approval_order',
+                        name: 'approval_order',
+                        className: 'text-center'
+                    },
+                    {
                         data: 'projects',
                         name: 'projects'
                     },
                     {
                         data: 'departments',
                         name: 'departments'
-                    },
-                    {
-                        data: 'documents',
-                        name: 'documents'
                     },
                     {
                         data: 'action',
@@ -124,16 +149,36 @@
                             _token: '{{ csrf_token() }}'
                         },
                         success: function(response) {
-                            // Reload the page to show toast messages
-                            window.location.reload();
+                            if (response.success) {
+                                // Show success message
+                                toastr.success(response.message);
+
+                                // Reload DataTable instead of full page
+                                $('#approval-stages-table').DataTable().ajax.reload();
+                            } else {
+                                // Show error message from response
+                                toastr.error(response.message ||
+                                    'Failed to delete approval stages');
+                            }
                         },
                         error: function(xhr) {
                             let errorMessage =
                                 'An error occurred while deleting the approval stages.';
-                            if (xhr.responseJSON && xhr.responseJSON.error) {
-                                errorMessage = xhr.responseJSON.error;
+
+                            // Try to get error message from response
+                            if (xhr.responseJSON) {
+                                if (xhr.responseJSON.message) {
+                                    errorMessage = xhr.responseJSON.message;
+                                } else if (xhr.responseJSON.error) {
+                                    errorMessage = xhr.responseJSON.error;
+                                }
                             }
+
+                            // Show error message
                             toastr.error(errorMessage);
+
+                            // Log error for debugging
+                            console.error('Delete approval stage error:', xhr);
                         }
                     });
                 }

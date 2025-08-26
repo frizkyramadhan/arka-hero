@@ -29,6 +29,7 @@
                         <form action="{{ route('approval.stages.store') }}" method="POST">
                             @csrf
                             <div class="card-body">
+                                <!-- Approver Selection -->
                                 <div class="form-group">
                                     <label for="approver_id">Approver <span class="text-danger">*</span></label>
                                     <select class="form-control select2 @error('approver_id') is-invalid @enderror"
@@ -46,10 +47,58 @@
                                     @enderror
                                 </div>
 
+                                <!-- Document Type Selection -->
+                                <div class="form-group">
+                                    <label for="document_type">Document Type <span class="text-danger">*</span></label>
+                                    <select class="form-control select2 @error('document_type') is-invalid @enderror"
+                                        name="document_type" id="document_type" required>
+                                        <option value="">Select Document Type</option>
+                                        <option value="officialtravel"
+                                            {{ old('document_type') == 'officialtravel' ? 'selected' : '' }}>
+                                            Official Travel
+                                        </option>
+                                        <option value="recruitment_request"
+                                            {{ old('document_type') == 'recruitment_request' ? 'selected' : '' }}>
+                                            Recruitment Request
+                                        </option>
+                                    </select>
+                                    <small class="form-text text-muted">
+                                        Select the document type for this approval stage
+                                    </small>
+                                    @error('document_type')
+                                        <span class="invalid-feedback">{{ $message }}</span>
+                                    @enderror
+                                </div>
+
+                                <!-- Duplicate Error Display -->
+                                @error('duplicate')
+                                    <div class="alert alert-danger">
+                                        <i class="fas fa-exclamation-triangle"></i>
+                                        <strong>Duplicate Combination Error:</strong>
+                                        <div class="mt-2">
+                                            {!! nl2br(e($message)) !!}
+                                        </div>
+                                    </div>
+                                @enderror
+
+                                <!-- Approval Order Input -->
+                                <div class="form-group">
+                                    <label for="approval_order">Approval Order <span class="text-danger">*</span></label>
+                                    <input type="number" class="form-control @error('approval_order') is-invalid @enderror"
+                                        name="approval_order" id="approval_order" value="{{ old('approval_order', 1) }}"
+                                        min="1" required placeholder="Enter approval order (e.g., 1, 2, 3)">
+                                    <small class="form-text text-muted">
+                                        Sequential order for approval process. Lower numbers are processed first.
+                                    </small>
+                                    @error('approval_order')
+                                        <span class="invalid-feedback">{{ $message }}</span>
+                                    @enderror
+                                </div>
+
                                 <!-- Selection Panels -->
                                 <div class="row">
                                     <!-- Projects Selection -->
-                                    <div class="col-md-4">
+                                    <div class="col-md-6">
                                         <div class="card card-primary">
                                             <div class="card-header">
                                                 <div class="d-flex justify-content-between align-items-center">
@@ -85,7 +134,7 @@
                                     </div>
 
                                     <!-- Departments Selection -->
-                                    <div class="col-md-4">
+                                    <div class="col-md-6">
                                         <div class="card card-success">
                                             <div class="card-header">
                                                 <div class="d-flex justify-content-between align-items-center">
@@ -121,50 +170,22 @@
                                             <span class="text-danger">{{ $message }}</span>
                                         @enderror
                                     </div>
+                                </div>
 
-                                    <!-- Document Types Selection -->
-                                    <div class="col-md-4">
-                                        <div class="card card-warning">
-                                            <div class="card-header">
-                                                <div class="d-flex justify-content-between align-items-center">
-                                                    <h6 class="mb-0">Document Types</h6>
-                                                    <div class="custom-control custom-checkbox">
-                                                        <input type="checkbox" class="custom-control-input"
-                                                            id="select_all_documents">
-                                                        <label class="custom-control-label" for="select_all_documents"
-                                                            style="font-size: 12px;">
-                                                            Select All
-                                                        </label>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <div class="card-body">
-                                                <div class="custom-control custom-checkbox">
-                                                    <input type="checkbox" class="custom-control-input document-checkbox"
-                                                        id="document_officialtravel" name="documents[]"
-                                                        value="officialtravel"
-                                                        {{ in_array('officialtravel', old('documents', [])) ? 'checked' : '' }}>
-                                                    <label class="custom-control-label" for="document_officialtravel"
-                                                        style="font-size: 13px;">
-                                                        Official Travel
-                                                    </label>
-                                                </div>
-                                                <div class="custom-control custom-checkbox">
-                                                    <input type="checkbox" class="custom-control-input document-checkbox"
-                                                        id="document_recruitment_request" name="documents[]"
-                                                        value="recruitment_request"
-                                                        {{ in_array('recruitment_request', old('documents', [])) ? 'checked' : '' }}>
-                                                    <label class="custom-control-label" for="document_recruitment_request"
-                                                        style="font-size: 13px;">
-                                                        Recruitment Request
-                                                    </label>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        @error('documents')
-                                            <span class="text-danger">{{ $message }}</span>
-                                        @enderror
+                                <!-- Sequential Approval Toggle -->
+                                <div class="form-group">
+                                    <div class="custom-control custom-switch">
+                                        <input type="checkbox" class="custom-control-input" id="is_sequential"
+                                            name="is_sequential" value="1"
+                                            {{ old('is_sequential', true) ? 'checked' : '' }}>
+                                        <label class="custom-control-label" for="is_sequential">
+                                            Sequential Approval Required
+                                        </label>
                                     </div>
+                                    <small class="form-text text-muted">
+                                        If enabled, previous approvals must be completed before this step can be
+                                        processed.
+                                    </small>
                                 </div>
                             </div>
                             <div class="card-footer">
@@ -199,7 +220,6 @@
                 theme: 'bootstrap4'
             });
 
-
             // Function to handle select all functionality
             function handleSelectAll(selectAllId, checkboxClass) {
                 $(selectAllId).on('change', function() {
@@ -230,13 +250,11 @@
             // Initialize select all functionality
             handleSelectAll('#select_all_projects', '.project-checkbox');
             handleSelectAll('#select_all_departments', '.department-checkbox');
-            handleSelectAll('#select_all_documents', '.document-checkbox');
 
             // Initialize states after DOM is ready
             setTimeout(function() {
                 updateSelectAllState('#select_all_projects', '.project-checkbox');
                 updateSelectAllState('#select_all_departments', '.department-checkbox');
-                updateSelectAllState('#select_all_documents', '.document-checkbox');
             }, 200);
         });
     </script>

@@ -35,8 +35,8 @@ class OfficialtravelController extends Controller
         $this->middleware('permission:official-travels.delete')->only('destroy');
 
         $this->middleware('permission:official-travels.stamp')->only(['showArrivalForm', 'showDepartureForm']);
-        $this->middleware('permission:official-travels.recommend')->only(['showRecommendForm', 'recommend']);
-        $this->middleware('permission:official-travels.approve')->only(['showApprovalForm', 'approve']);
+        // $this->middleware('permission:official-travels.recommend')->only(['showRecommendForm', 'recommend']);
+        // $this->middleware('permission:official-travels.approve')->only(['showApprovalForm', 'approve']);
     }
 
     /**
@@ -466,6 +466,7 @@ class OfficialtravelController extends Controller
         $subtitle = 'Official Travel Details';
         $officialtravel = Officialtravel::with([
             'traveler.employee',
+            'traveler.position.department',
             'project',
             'transportation',
             'accommodation',
@@ -494,7 +495,7 @@ class OfficialtravelController extends Controller
         $projects = Project::whereIn('id', $user->projects->pluck('id'))->where('project_status', 1)->get();
         $accommodations = Accommodation::where('accommodation_status', 1)->get();
         $transportations = Transportation::where('transportation_status', 1)->get();
-        $officialtravel->load(['details']);
+        $officialtravel->load(['details', 'traveler.position.department']);
 
         // Load employees with their relationships
         $employees = Administration::with([
@@ -515,28 +516,6 @@ class OfficialtravelController extends Controller
             ];
         });
 
-        // Get recommenders for recommendation
-        $recommenders = User::permission('official-travels.recommend')
-            ->select('id', 'name')
-            ->get()
-            ->map(function ($user) {
-                return [
-                    'id' => $user->id,
-                    'name' => $user->name
-                ];
-            });
-
-        // Get approvers for approval
-        $approvers = User::permission('official-travels.approve')
-            ->select('id', 'name')
-            ->get()
-            ->map(function ($user) {
-                return [
-                    'id' => $user->id,
-                    'name' => $user->name
-                ];
-            });
-
         // Get selected followers
         $selectedFollowers = $officialtravel->details->pluck('follower_id')->toArray();
 
@@ -549,8 +528,6 @@ class OfficialtravelController extends Controller
             'transportations',
             'employees',
             'selectedFollowers',
-            'recommenders',
-            'approvers'
         ));
     }
 

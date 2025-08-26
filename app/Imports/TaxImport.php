@@ -18,6 +18,7 @@ use Maatwebsite\Excel\Events\BeforeSheet;
 use Maatwebsite\Excel\Concerns\WithChunkReading;
 use Maatwebsite\Excel\Concerns\WithBatchInserts;
 use Maatwebsite\Excel\Validators\Failure;
+use Illuminate\Support\Facades\Log;
 
 class TaxImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnFailure, SkipsOnError, WithEvents, WithChunkReading, WithBatchInserts
 {
@@ -74,7 +75,7 @@ class TaxImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnFailu
             'full_name' => ['required', 'string', 'exists:employees,fullname'],
             'identity_card_no' => ['required', 'string', 'exists:employees,identity_card'],
             'tax_identification_no' => ['required'],
-            'valid_date' => ['nullable', 'date'],
+            'valid_date' => ['nullable'],
         ];
     }
 
@@ -86,7 +87,7 @@ class TaxImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnFailu
             'identity_card_no.required' => 'Identity Card No is required',
             'identity_card_no.exists' => 'Employee with this Identity Card does not exist',
             'tax_identification_no.required' => 'Tax Identification Number is required',
-            'valid_date.date' => 'Valid Date must be a valid date',
+
         ];
     }
 
@@ -105,6 +106,38 @@ class TaxImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnFailu
                     empty($row['tax_identification_no'])
                 ) {
                     continue;
+                }
+
+                // Validate valid_date field
+                if (!empty($row['valid_date'])) {
+                    $validDate = $row['valid_date'];
+
+                    // Check if it's a valid Excel date serial number
+                    if (is_numeric($validDate)) {
+                        // Excel dates start from 1900-01-01, so check reasonable range
+                        if ($validDate < 1 || $validDate > 999999) {
+                            $validator->errors()->add(
+                                $rowIndex . '.valid_date',
+                                "Valid Date must be a valid date. Excel date value '{$validDate}' is out of valid range."
+                            );
+                        }
+                    } else {
+                        // Try to parse as regular date string
+                        try {
+                            $parsedDate = \Carbon\Carbon::parse($validDate);
+                            if (!$parsedDate->isValid()) {
+                                $validator->errors()->add(
+                                    $rowIndex . '.valid_date',
+                                    "Valid Date must be a valid date. Value '{$validDate}' could not be parsed."
+                                );
+                            }
+                        } catch (\Exception $e) {
+                            $validator->errors()->add(
+                                $rowIndex . '.valid_date',
+                                "Valid Date must be a valid date. Value '{$validDate}' could not be parsed."
+                            );
+                        }
+                    }
                 }
 
                 // First check if employee exists in database
@@ -172,10 +205,30 @@ class TaxImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnFailu
 
             // Process valid date
             if (!empty($row['valid_date'])) {
-                if (is_numeric($row['valid_date'])) {
-                    $taxData['tax_valid_date'] = Date::excelToDateTimeObject($row['valid_date']);
-                } else {
-                    $taxData['tax_valid_date'] = \Carbon\Carbon::parse($row['valid_date']);
+                try {
+                    if (is_numeric($row['valid_date'])) {
+                        // Convert Excel serial number to date
+                        $excelDate = (float) $row['valid_date'];
+
+                        // Validate Excel date range (Excel dates start from 1900-01-01)
+                        if ($excelDate >= 1 && $excelDate <= 999999) {
+                            $taxData['tax_valid_date'] = Date::excelToDateTimeObject($excelDate);
+                        } else {
+                            // Log invalid Excel date but continue without setting the date
+                            Log::warning("Invalid Excel date value in TaxImport: {$excelDate} for employee {$employee->fullname}");
+                        }
+                    } else {
+                        // Try to parse as regular date string
+                        $parsedDate = \Carbon\Carbon::parse($row['valid_date']);
+                        if ($parsedDate->isValid()) {
+                            $taxData['tax_valid_date'] = $parsedDate;
+                        } else {
+                            Log::warning("Invalid date string in TaxImport: {$row['valid_date']} for employee {$employee->fullname}");
+                        }
+                    }
+                } catch (\Exception $e) {
+                    Log::error("Error parsing date in TaxImport: {$row['valid_date']} for employee {$employee->fullname}. Error: " . $e->getMessage());
+                    // Continue without setting the date rather than failing the entire import
                 }
             }
 
