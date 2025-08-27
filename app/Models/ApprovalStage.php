@@ -17,12 +17,10 @@ class ApprovalStage extends Model
     protected $fillable = [
         'approver_id',
         'document_type',
-        'approval_order',
-        'is_sequential'
+        'approval_order'
     ];
 
     protected $casts = [
-        'is_sequential' => 'boolean',
         'approval_order' => 'integer'
     ];
 
@@ -34,19 +32,6 @@ class ApprovalStage extends Model
     public function details()
     {
         return $this->hasMany(ApprovalStageDetail::class);
-    }
-
-    // Scope untuk approval berurutan
-    public function scopeSequential($query)
-    {
-        return $query->where('is_sequential', true)
-            ->orderBy('approval_order', 'asc');
-    }
-
-    // Scope untuk approval parallel
-    public function scopeParallel($query)
-    {
-        return $query->where('is_sequential', false);
     }
 
     // Scope untuk dokumen tertentu

@@ -89,6 +89,7 @@
                                         min="1" required placeholder="Enter approval order (e.g., 1, 2, 3)">
                                     <small class="form-text text-muted">
                                         Sequential order for approval process. Lower numbers are processed first.
+                                        <br><strong>Note:</strong> Steps with the same order number can be processed in parallel after previous orders are completed.
                                     </small>
                                     @error('approval_order')
                                         <span class="invalid-feedback">{{ $message }}</span>
@@ -170,22 +171,6 @@
                                             <span class="text-danger">{{ $message }}</span>
                                         @enderror
                                     </div>
-                                </div>
-
-                                <!-- Sequential Approval Toggle -->
-                                <div class="form-group">
-                                    <div class="custom-control custom-switch">
-                                        <input type="checkbox" class="custom-control-input" id="is_sequential"
-                                            name="is_sequential" value="1"
-                                            {{ old('is_sequential', true) ? 'checked' : '' }}>
-                                        <label class="custom-control-label" for="is_sequential">
-                                            Sequential Approval Required
-                                        </label>
-                                    </div>
-                                    <small class="form-text text-muted">
-                                        If enabled, previous approvals must be completed before this step can be
-                                        processed.
-                                    </small>
                                 </div>
                             </div>
                             <div class="card-footer">

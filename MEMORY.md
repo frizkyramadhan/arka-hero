@@ -1857,3 +1857,48 @@ if ($this->areAllSequentialApprovalsCompleted($approval_plan)) {
 -   Added proper Excel date conversion using PhpSpreadsheet Date utility
 
 **Result**: Excel dates now import correctly without validation errors, and the system gracefully handles invalid dates by logging warnings instead of failing the entire import.
+
+### 2025-08-27: Removed Unused `is_sequential` Column
+
+**Objective**: Clean up the approval system by removing the unused `is_sequential` column and focusing on `approval_order` functionality.
+
+**Changes Made**:
+1. **Migration**: Created migration to remove `is_sequential` column from `approval_stages` table
+2. **Model**: Updated `ApprovalStage` model to remove `is_sequential` from fillable, casts, and scopes
+3. **Controller**: Updated `ApprovalStageController` to remove all `is_sequential` references
+4. **Views**: Removed `is_sequential` checkbox from create and edit forms
+5. **Documentation**: Updated help text to explain approval order functionality
+
+**Key Learnings**:
+- **`is_sequential` field** was cosmetic only, not functional
+- **`approval_order`** is the real driver for approval workflow
+- **Parallel processing** is achieved by setting same order numbers
+- **Sequential processing** is achieved by setting different order numbers
+
+**Approval Order Logic**:
+- **Order 1**: Can be processed anytime (first step)
+- **Order 2**: Can be processed after Order 1 is completed
+- **Same Order**: Multiple steps with same order can be processed in parallel
+- **Different Order**: Steps with different orders must be processed sequentially
+
+**Example Workflow**:
+```
+Step 1: Order = 1 (HR Manager) ← Must approve first
+Step 2: Order = 2 (Department Head) ← Can approve after Step 1
+Step 3: Order = 2 (Finance Manager) ← Can approve after Step 1 (parallel with Step 2)
+```
+
+**Benefits**:
+- ✅ **Cleaner codebase** - removed unused functionality
+- ✅ **Clearer logic** - approval order is the single source of truth
+- ✅ **Better UX** - simplified forms and explanations
+- ✅ **Maintainable** - less confusion about unused fields
+
+**Files Modified**:
+- `database/migrations/2025_08_27_094407_remove_is_sequential_from_approval_stages_table.php`
+- `app/Models/ApprovalStage.php`
+- `app/Http/Controllers/ApprovalStageController.php`
+- `resources/views/approval-stages/create.blade.php`
+- `resources/views/approval-stages/edit.blade.php`
+
+**Status**: ✅ COMPLETE - `is_sequential` column successfully removed, approval order functionality working perfectly
