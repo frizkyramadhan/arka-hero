@@ -42,7 +42,6 @@ class ApprovalStageController extends Controller
             'approver_id' => 'required',
             'document_type' => 'required|string|in:officialtravel,recruitment_request',
             'approval_order' => 'required|integer|min:1',
-            'is_sequential' => 'boolean',
             'projects' => 'required|array|min:1',
             'departments' => 'required|array|min:1'
         ]);
@@ -64,7 +63,6 @@ class ApprovalStageController extends Controller
             'approver_id' => $request->approver_id,
             'document_type' => $request->document_type,
             'approval_order' => $request->approval_order,
-            'is_sequential' => $request->is_sequential ?? true,
         ]);
 
         // Create details for each project-department combination
@@ -109,7 +107,6 @@ class ApprovalStageController extends Controller
             'approver_id' => 'required',
             'document_type' => 'required|string|in:officialtravel,recruitment_request',
             'approval_order' => 'required|integer|min:1',
-            'is_sequential' => 'boolean',
             'projects' => 'required|array|min:1',
             'departments' => 'required|array|min:1'
         ]);
@@ -132,8 +129,7 @@ class ApprovalStageController extends Controller
         // Check if approval stage fields have changed
         $stageChanged = $approvalStage->approver_id != $request->approver_id ||
             $approvalStage->document_type != $request->document_type ||
-            $approvalStage->approval_order != $request->approval_order ||
-            $approvalStage->is_sequential != ($request->is_sequential ?? true);
+            $approvalStage->approval_order != $request->approval_order;
 
         // Check if project/department combinations have changed
         $currentProjects = $approvalStage->details->pluck('project_id')->unique()->sort()->toArray();
@@ -149,7 +145,6 @@ class ApprovalStageController extends Controller
                 'approver_id' => $request->approver_id,
                 'document_type' => $request->document_type,
                 'approval_order' => $request->approval_order,
-                'is_sequential' => $request->is_sequential ?? true,
             ]);
         }
 
@@ -345,7 +340,7 @@ class ApprovalStageController extends Controller
                 return $html;
             })
             ->addColumn('approval_order', function ($stage) {
-                $orderClass = $stage->is_sequential ? 'badge-primary' : 'badge-secondary';
+                $orderClass = 'badge-secondary'; // Default to secondary
                 $html = '<span class="badge ' . $orderClass . ' mr-1 mb-1" title="' . ucfirst(str_replace('_', ' ', $stage->document_type)) . '">';
                 $html .= $stage->approval_order;
                 $html .= '</span>';
@@ -427,7 +422,6 @@ class ApprovalStageController extends Controller
                     'name' => $stage->approver->name,
                     'department' => $stage->approver->departments->first()->department_name ?? 'No Department',
                     'order' => $stage->approval_order,
-                    'is_sequential' => $stage->is_sequential,
                 ];
             });
 
