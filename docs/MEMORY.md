@@ -2,6 +2,66 @@
 
 ## Recent Implementations & Learnings
 
+### 2025-01-27: Termination Reason Enhancement - Added "Efficiency" and "Passed Away"
+
+**Context**: User requested to add two new termination reasons: "Efficiency" and "Passed Away" to the existing termination system.
+
+**Changes Made**:
+
+1. **Updated TerminationImport Validation**:
+
+    - Added "Efficiency" and "Passed Away" to validation rules
+    - Updated validation messages to include new reasons
+    - File: `app/Imports/TerminationImport.php`
+
+2. **Updated All Termination Forms**:
+
+    - Added new options to all termination reason dropdowns
+    - Updated both add and edit forms in administration modals
+    - Updated standalone termination forms
+    - Files updated:
+        - `resources/views/employee/modal-administration.blade.php`
+        - `resources/views/termination/create.blade.php`
+        - `resources/views/termination/action.blade.php`
+        - `resources/views/employee/modal-termination.blade.php`
+
+3. **Updated Database Migration**:
+    - Added new reasons to letter_numbers table enum
+    - File: `database/migrations/2025_06_25_142000_create_letter_numbers_table.php`
+
+**New Termination Reasons Added**:
+
+-   **Efficiency**: For performance-based terminations
+-   **Passed Away**: For employees who have passed away
+
+**Complete List of Termination Reasons**:
+
+1. End of Contract
+2. End of Project
+3. Resign
+4. Termination
+5. Retired
+6. Efficiency (NEW)
+7. Passed Away (NEW)
+
+**Benefits**:
+
+-   More comprehensive termination tracking
+-   Better categorization of termination reasons
+-   Improved reporting and analytics
+-   Consistent with business requirements
+
+**Files Modified**:
+
+-   `app/Imports/TerminationImport.php`
+-   `resources/views/employee/modal-administration.blade.php`
+-   `resources/views/termination/create.blade.php`
+-   `resources/views/termination/action.blade.php`
+-   `resources/views/employee/modal-termination.blade.php`
+-   `database/migrations/2025_06_25_142000_create_letter_numbers_table.php`
+
+---
+
 ### 2025-01-27: Position Export/Import Feature Implementation
 
 **Context**: User requested to implement export and import features for positions similar to EmployeeController, with proper failure handling and updateOrCreate functionality using ID as key.

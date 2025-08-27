@@ -92,7 +92,7 @@ class TerminationImport implements
             'position' => ['nullable', 'string', 'exists:positions,position_name'],
             'project_code' => ['nullable', 'string', 'exists:projects,project_code'],
             'termination_date' => ['nullable'],
-            'termination_reason' => ['required', 'in:End of Contract,End of Project,Resign,Termination,Retired'],
+            'termination_reason' => ['required', 'in:End of Contract,End of Project,Resign,Termination,Retired,Efficiency,Passed Away'],
             'coe_no' => ['nullable', 'string'],
         ];
     }
@@ -108,7 +108,7 @@ class TerminationImport implements
             'position.exists' => 'Position does not exist',
             'project_code.exists' => 'Project Code does not exist',
             'termination_reason.required' => 'Termination Reason is required',
-            'termination_reason.in' => 'Termination Reason must be one of: End of Contract, End of Project, Resign, Termination, Retired',
+            'termination_reason.in' => 'Termination Reason must be one of: End of Contract, End of Project, Resign, Termination, Retired, Efficiency, Passed Away',
         ];
     }
 

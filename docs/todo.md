@@ -74,7 +74,9 @@ Include relevant context in brackets to help with future AI-assisted coding:
 
 ## Recently Completed
 
+-   `[done] P1: Add new termination reasons "Efficiency" and "Passed Away" to all termination forms and validation [app/Imports/TerminationImport.php, modal-administration.blade.php, termination forms, database migration] (completed: 2025-01-27)`
 -   `[done] P1: Fix TaxImport date validation for Excel serial numbers [app/Imports/TaxImport.php, removed strict date validation, added Excel date range checking, enhanced error handling] (completed: 2024-12-19)`
+-   `[done] P1: Fix LicenseImport date validation for Excel serial numbers [app/Imports/LicenseImport.php, removed strict date validation, added Excel date range checking, enhanced error handling] (completed: 2024-12-19)`
 -   `[done] P1: Implemented stage validation system preventing editing of failed stages and subsequent stages with visual indicators and user-friendly messaging [resources/views/recruitment/sessions/show-session.blade.php, stage validation logic, modal controls, CSS styling] (completed: 2025-01-15)`
 -   `[done] P1: Enhanced recruitment session stage display with yellow clock icons for waiting/in progress states and comprehensive fail/not recommended indicators [resources/views/recruitment/sessions/show.blade.php, Bootstrap tooltips, stage status logic] (completed: 2025-01-15)`
 -   `[done] P1: Create comprehensive recruitment reports system with funnel and aging reports [app/Http/Controllers/RecruitmentReportController.php, routes/web.php, resources/views/recruitment/reports/{index,funnel,aging}.blade.php, sidebar navigation] (completed: 2025-08-14)`

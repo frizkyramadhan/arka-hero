@@ -1907,6 +1907,31 @@ if ($this->areAllSequentialApprovalsCompleted($approval_plan)) {
 
 **Result**: Excel dates now import correctly without validation errors, and the system gracefully handles invalid dates by logging warnings instead of failing the entire import.
 
+### LicenseImport Excel Date Validation Fix (2024-12-19)
+
+**Issue**: LicenseImport was also failing validation for Excel date serial numbers in the `valid_date` field (driver license expiry date) with similar "Valid Date must be a valid date" errors.
+
+**Solution Applied**: Applied the same fix pattern from TaxImport to LicenseImport:
+
+1. Removed strict `date` validation rule from `valid_date` field in `rules()` method
+2. Added custom validation logic in `withValidator()` method to handle Excel date serial numbers:
+    - Check if value is numeric and within valid Excel date range (1-999999)
+    - For non-numeric values, attempt Carbon parsing with proper error handling
+3. Enhanced `createNewData()` method with robust date processing:
+    - Added try-catch blocks for date parsing
+    - Used `Date::excelToDateTimeObject()` for Excel serial numbers
+    - Added logging for invalid dates instead of failing the entire import
+4. Added proper Log facade import for error logging
+
+**Key Changes in `app/Imports/LicenseImport.php`**:
+
+-   Modified validation rules to remove strict date validation
+-   Enhanced custom validator with Excel date range checking
+-   Improved date processing in createNewData method with better error handling and logging
+-   Added proper Excel date conversion using PhpSpreadsheet Date utility
+
+**Result**: Driver license expiry dates now import correctly without validation errors, maintaining consistency with the TaxImport fix.
+
 ### 2025-08-27: Removed Unused `is_sequential` Column
 
 **Objective**: Clean up the approval system by removing the unused `is_sequential` column and focusing on `approval_order` functionality.
