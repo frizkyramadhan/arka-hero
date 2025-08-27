@@ -36,7 +36,10 @@ class TaxidentificationController extends Controller
                 return $taxidentifications->tax_no;
             })
             ->addColumn('tax_valid_date', function ($taxidentifications) {
-                return $taxidentifications->tax_valid_date;
+                if (!$taxidentifications->tax_valid_date) {
+                    return '-';
+                }
+                return $taxidentifications->tax_valid_date->format('d F Y');
             })
             // ->addColumn('position_status', function ($position) {
             //     if ($position->position_status == '1') {
@@ -58,10 +61,6 @@ class TaxidentificationController extends Controller
             ->addColumn('action', function ($taxidentifications) {
                 $employees = Employee::orderBy('fullname', 'asc')->get();
                 return view('taxidentification.action', compact('employees', 'taxidentifications'));
-            })
-            ->addColumn('tax_valid_date', function ($taxidentifications) {
-                $date = date("d F Y", strtotime($taxidentifications->tax_valid_date));
-                return $date;
             })
             ->rawColumns(['fullname', 'action'])
             ->toJson();

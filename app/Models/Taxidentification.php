@@ -12,6 +12,10 @@ class Taxidentification extends Model
 
     protected $guarded = [];
 
+    protected $casts = [
+        'tax_valid_date' => 'date',
+    ];
+
     public function employees()
     {
         return $this->belongsTo(Employee::class);
