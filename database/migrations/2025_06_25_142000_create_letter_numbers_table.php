@@ -42,7 +42,7 @@ return new class extends Migration
             $table->enum('classification', ['Umum', 'Lembaga Pendidikan', 'Pemerintah'])->nullable();
             $table->enum('pkwt_type', ['PKWT I', 'PKWT II', 'PKWT III'])->nullable();
             $table->enum('par_type', ['new hire', 'promosi', 'mutasi', 'demosi'])->nullable();
-            $table->enum('termination_reason', ['mengundurkan diri', 'termination', 'end of contract', 'end of project', 'pensiun', 'meninggal dunia'])->nullable();
+            $table->enum('termination_reason', ['mengundurkan diri', 'termination', 'end of contract', 'end of project', 'pensiun', 'meninggal dunia', 'efficiency', 'passed away'])->nullable();
             $table->enum('skpk_reason', ['PKWT Berakhir', 'Surat Pengalaman Kerja Hilang'])->nullable();
             $table->enum('ticket_classification', ['Pesawat', 'Kereta Api', 'Bus'])->nullable();
 

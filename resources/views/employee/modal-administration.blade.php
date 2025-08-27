@@ -372,6 +372,12 @@
                                         <option value="Retired"
                                             {{ old('termination_reason') == 'Retired' ? 'selected' : '' }}>
                                             Retired</option>
+                                        <option value="Efficiency"
+                                            {{ old('termination_reason') == 'Efficiency' ? 'selected' : '' }}>
+                                            Efficiency</option>
+                                        <option value="Passed Away"
+                                            {{ old('termination_reason') == 'Passed Away' ? 'selected' : '' }}>
+                                            Passed Away</option>
                                     </select>
                                     @error('termination_reason')
                                         <div class="invalid-feedback">{{ $message }}</div>
@@ -826,6 +832,12 @@
                                             <option value="Retired"
                                                 {{ old('termination_reason', $administration->termination_reason) == 'Retired' ? 'selected' : '' }}>
                                                 Retired</option>
+                                            <option value="Efficiency"
+                                                {{ old('termination_reason', $administration->termination_reason) == 'Efficiency' ? 'selected' : '' }}>
+                                                Efficiency</option>
+                                            <option value="Passed Away"
+                                                {{ old('termination_reason', $administration->termination_reason) == 'Passed Away' ? 'selected' : '' }}>
+                                                Passed Away</option>
                                         </select>
                                         @error('termination_reason')
                                             <div class="invalid-feedback">{{ $message }}</div>

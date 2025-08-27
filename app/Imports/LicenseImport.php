@@ -19,6 +19,7 @@ use Maatwebsite\Excel\Events\BeforeSheet;
 use Maatwebsite\Excel\Concerns\WithChunkReading;
 use Maatwebsite\Excel\Concerns\WithBatchInserts;
 use Maatwebsite\Excel\Validators\Failure;
+use Illuminate\Support\Facades\Log;
 
 class LicenseImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnError, SkipsOnFailure, WithEvents, WithChunkReading, WithBatchInserts
 {
@@ -76,7 +77,7 @@ class LicenseImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnE
             'identity_card_no' => ['required', 'string', 'exists:employees,identity_card'],
             'driver_license_no' => ['required'],
             'driver_license_type' => ['required'],
-            'valid_date' => ['nullable', 'date'],
+            'valid_date' => ['nullable'],
         ];
     }
 
@@ -89,7 +90,7 @@ class LicenseImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnE
             'identity_card_no.exists' => 'Employee with this Identity Card does not exist',
             'driver_license_no.required' => 'Driver License Number is required',
             'driver_license_type.required' => 'Driver License Type is required',
-            'valid_date.date' => 'Driver License Expiry Date must be a valid date',
+
         ];
     }
 
@@ -108,6 +109,38 @@ class LicenseImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnE
                     empty($row['driver_license_type'])
                 ) {
                     continue;
+                }
+
+                // Validate valid_date field
+                if (!empty($row['valid_date'])) {
+                    $validDate = $row['valid_date'];
+
+                    // Check if it's a valid Excel date serial number
+                    if (is_numeric($validDate)) {
+                        // Excel dates start from 1900-01-01, so check reasonable range
+                        if ($validDate < 1 || $validDate > 999999) {
+                            $validator->errors()->add(
+                                $rowIndex . '.valid_date',
+                                "Driver License Expiry Date must be a valid date. Excel date value '{$validDate}' is out of valid range."
+                            );
+                        }
+                    } else {
+                        // Try to parse as regular date string
+                        try {
+                            $parsedDate = \Carbon\Carbon::parse($validDate);
+                            if (!$parsedDate->isValid()) {
+                                $validator->errors()->add(
+                                    $rowIndex . '.valid_date',
+                                    "Driver License Expiry Date must be a valid date. Value '{$validDate}' could not be parsed."
+                                );
+                            }
+                        } catch (\Exception $e) {
+                            $validator->errors()->add(
+                                $rowIndex . '.valid_date',
+                                "Driver License Expiry Date must be a valid date. Value '{$validDate}' could not be parsed."
+                            );
+                        }
+                    }
                 }
 
                 // First check if employee exists in database
@@ -208,10 +241,30 @@ class LicenseImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnE
 
         // Process expiry date
         if (!empty($row['valid_date'])) {
-            if (is_numeric($row['valid_date'])) {
-                $licenseData['driver_license_exp'] = Date::excelToDateTimeObject($row['valid_date']);
-            } else {
-                $licenseData['driver_license_exp'] = \Carbon\Carbon::parse($row['valid_date']);
+            try {
+                if (is_numeric($row['valid_date'])) {
+                    // Convert Excel serial number to date
+                    $excelDate = (float) $row['valid_date'];
+
+                    // Validate Excel date range (Excel dates start from 1900-01-01)
+                    if ($excelDate >= 1 && $excelDate <= 999999) {
+                        $licenseData['driver_license_exp'] = Date::excelToDateTimeObject($excelDate);
+                    } else {
+                        // Log invalid Excel date but continue without setting the date
+                        Log::warning("Invalid Excel date value in LicenseImport: {$excelDate} for employee {$employee->fullname}");
+                    }
+                } else {
+                    // Try to parse as regular date string
+                    $parsedDate = \Carbon\Carbon::parse($row['valid_date']);
+                    if ($parsedDate->isValid()) {
+                        $licenseData['driver_license_exp'] = $parsedDate;
+                    } else {
+                        Log::warning("Invalid date string in LicenseImport: {$row['valid_date']} for employee {$employee->fullname}");
+                    }
+                }
+            } catch (\Exception $e) {
+                Log::error("Error parsing date in LicenseImport: {$row['valid_date']} for employee {$employee->fullname}. Error: " . $e->getMessage());
+                // Continue without setting the date rather than failing the entire import
             }
         }
 

@@ -89,6 +89,21 @@ Arka Hero is a comprehensive HR management system built with Laravel, focusing o
 -   `departments`: Organizational departments
 -   `positions`: Job positions and levels
 -   `projects`: Project information for FPTK assignment
+-   `administrations`: Employee administration data including termination information
+
+### Employee Termination System
+
+-   **Termination Reasons**: 7 standardized reasons for employee termination
+-   **Data Structure**: Stored in `administrations` table with `termination_date`, `termination_reason`, and `coe_no`
+-   **Reasons Available**:
+    1.  End of Contract
+    2.  End of Project
+    3.  Resign
+    4.  Termination
+    5.  Retired
+    6.  Efficiency (performance-based)
+    7.  Passed Away
+-   **Features**: Single termination, mass termination, import/export via Excel, integration with letter numbering system
 
 ### Official Travel Tables
 
