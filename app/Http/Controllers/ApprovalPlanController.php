@@ -344,6 +344,12 @@ class ApprovalPlanController extends Controller
                 continue;
             }
 
+            // Check sequential approval order - prevent approval of higher order steps before lower order steps
+            if (!$this->canProcessSequentialApproval($approval_plan)) {
+                $failCount++;
+                continue;
+            }
+
             // Update the approval plan
             $approval_plan->update([
                 'status' => 1, // Approved
@@ -409,6 +415,35 @@ class ApprovalPlanController extends Controller
                 'message' => 'Failed to approve any documents',
             ], 422);
         }
+    }
+
+    /**
+     * Check if an approval plan can be processed sequentially.
+     * This prevents approval of higher order steps before lower order steps are completed.
+     * Same approval_order values can be processed in parallel after previous orders are completed.
+     *
+     * @param ApprovalPlan $approvalPlan The approval plan to check.
+     * @return bool True if it can be processed, false otherwise.
+     */
+    private function canProcessSequentialApproval($approvalPlan)
+    {
+        // If approval_order is null or empty, allow processing (fallback)
+        if (empty($approvalPlan->approval_order)) {
+            return true;
+        }
+
+        // Check if previous approvals are completed based on approval_order
+        $previousApprovals = ApprovalPlan::where('document_id', $approvalPlan->document_id)
+            ->where('document_type', $approvalPlan->document_type)
+            ->where('approval_order', '<', $approvalPlan->approval_order)
+            ->where('status', 1) // Approved
+            ->count();
+
+        $expectedPrevious = $approvalPlan->approval_order - 1;
+
+        // If previous orders are completed, this order can be processed
+        // Multiple steps with same approval_order can be processed in parallel
+        return $previousApprovals >= $expectedPrevious;
     }
 
     /**

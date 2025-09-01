@@ -259,7 +259,7 @@ class ApprovalRequestController extends Controller
      */
     private function canProcessApproval($approvalPlan)
     {
-        // Get approval stage to check if sequential approval is required
+        // Get approval stage to check approval order
         $approvalStage = ApprovalStage::where('document_type', $approvalPlan->document_type)
             ->where('approver_id', $approvalPlan->approver_id)
             ->whereHas('details', function ($query) use ($approvalPlan) {
@@ -268,12 +268,12 @@ class ApprovalRequestController extends Controller
             })
             ->first();
 
-        // If no approval stage found or not sequential, allow processing
-        if (!$approvalStage || !$approvalStage->is_sequential) {
+        // If no approval stage found, allow processing
+        if (!$approvalStage) {
             return true;
         }
 
-        // Check if previous approvals are completed
+        // Check if previous approvals are completed based on approval_order
         $previousApprovals = ApprovalPlan::where('document_id', $approvalPlan->document_id)
             ->where('document_type', $approvalPlan->document_type)
             ->where('approval_order', '<', $approvalPlan->approval_order)
@@ -282,6 +282,8 @@ class ApprovalRequestController extends Controller
 
         $expectedPrevious = $approvalPlan->approval_order - 1;
 
+        // If previous orders are completed, this order can be processed
+        // Multiple steps with same approval_order can be processed in parallel
         return $previousApprovals >= $expectedPrevious;
     }
 
@@ -321,7 +323,7 @@ class ApprovalRequestController extends Controller
     private function getCurrentApprovalInfo($documentId, $documentType)
     {
         // Get all approval plans for this document ordered by approval_order
-        $allApprovalPlans = ApprovalPlan::where('document_id', $documentId)
+        $allApprovalPlans = ApprovalPlan::with('approver')->where('document_id', $documentId)
             ->where('document_type', $documentType)
             ->where('is_open', true)
             ->orderBy('approval_order', 'asc')
@@ -331,10 +333,25 @@ class ApprovalRequestController extends Controller
             return null;
         }
 
-        // Find the first pending approval (current approval)
-        $currentApproval = $allApprovalPlans->where('status', 0)->first();
+        // Check if there are any rejections
+        $rejectedApprovals = $allApprovalPlans->where('status', 2);
+        if ($rejectedApprovals->isNotEmpty()) {
+            $firstRejection = $rejectedApprovals->first();
+            return [
+                'status' => 'rejected',
+                'current_approver' => $firstRejection->approver->name,
+                'current_order' => $firstRejection->approval_order,
+                'total_orders' => $allApprovalPlans->count(),
+                'completed_orders' => $allApprovalPlans->where('status', 1)->count(),
+                'rejected_orders' => $allApprovalPlans->where('status', 2)->count(),
+                'message' => 'Document rejected'
+            ];
+        }
 
-        if (!$currentApproval) {
+        // Find pending approvals
+        $pendingApprovals = $allApprovalPlans->where('status', 0);
+
+        if ($pendingApprovals->isEmpty()) {
             // All approvals are completed
             $lastApproval = $allApprovalPlans->where('status', 1)->last();
             return [
@@ -348,43 +365,42 @@ class ApprovalRequestController extends Controller
             ];
         }
 
-        // Check if there are any rejections
-        $rejectedApprovals = $allApprovalPlans->where('status', 2);
-        if ($rejectedApprovals->isNotEmpty()) {
-            $firstRejection = $rejectedApprovals->first();
-            return [
-                'status' => 'rejected',
-                'current_approver' => $firstRejection->approver->name,
-                'current_order' => $firstRejection->approval_order,
-                'total_orders' => $allApprovalPlans->count(),
-                'completed_orders' => $allApprovalPlans->where('status', 1)->count(),
-                'rejected_orders' => $allApprovalPlans->count(),
-                'message' => 'Document rejected'
-            ];
+        // Find the current approval order (minimum order among pending)
+        $currentOrder = $pendingApprovals->min('approval_order');
+
+        // Get all pending approvals for the current order
+        $currentOrderApprovals = $pendingApprovals->where('approval_order', $currentOrder);
+
+        // Check if current order has multiple approvers (parallel approval)
+        $isParallel = $currentOrderApprovals->count() > 1;
+
+        // Prepare approver information
+        if ($isParallel) {
+            // Multiple approvers for the same order (parallel)
+            $approverNames = $currentOrderApprovals->pluck('approver.name')->toArray();
+            $approversList = implode(', ', array_slice($approverNames, 0, -1)) .
+                (count($approverNames) > 1 ? ' and ' . end($approverNames) : $approverNames[0]);
+
+            $message = "Waiting for {$approversList} (Step {$currentOrder} - Parallel)";
+            $currentApprover = $approversList;
+        } else {
+            // Single approver for this order (sequential)
+            $singleApproval = $currentOrderApprovals->first();
+            $currentApprover = $singleApproval->approver->name;
+            $message = "Waiting for {$currentApprover} (Step {$currentOrder})";
         }
-
-        // Get approval stage info to check if sequential
-        $approvalStage = ApprovalStage::where('document_type', $documentType)
-            ->where('approver_id', $currentApproval->approver_id)
-            ->whereHas('details', function ($query) use ($currentApproval) {
-                $query->where('project_id', $this->getDocumentProjectId($currentApproval))
-                    ->where('department_id', $this->getDocumentDepartmentId($currentApproval));
-            })
-            ->first();
-
-        $isSequential = $approvalStage ? $approvalStage->is_sequential : false;
 
         return [
             'status' => 'pending',
-            'current_approver' => $currentApproval->approver->name,
-            'current_order' => $currentApproval->approval_order,
+            'current_approver' => $currentApprover,
+            'current_order' => $currentOrder,
             'total_orders' => $allApprovalPlans->count(),
             'completed_orders' => $allApprovalPlans->where('status', 1)->count(),
             'rejected_orders' => 0,
-            'is_sequential' => $isSequential,
-            'message' => $isSequential
-                ? "Waiting for {$currentApproval->approver->name} (Step {$currentApproval->approval_order})"
-                : "Pending approval from {$currentApproval->approver->name}"
+            'is_sequential' => !$isParallel,
+            'is_parallel' => $isParallel,
+            'parallel_approvers_count' => $currentOrderApprovals->count(),
+            'message' => $message
         ];
     }
 
@@ -402,12 +418,11 @@ class ApprovalRequestController extends Controller
             })
             ->first();
 
-        // If not sequential, check if all approvals are completed
-        if (!$approvalStage || !$approvalStage->is_sequential) {
-            $approvedCount = $allApprovalPlans->where('status', 1)->count();
-            $pendingCount = $allApprovalPlans->where('status', 0)->count();
-            return $approvedCount === $allApprovalPlans->count() && $pendingCount === 0;
-        }
+        // All approvals are sequential by default based on approval_order
+        // Check if all approvals are completed
+        $approvedCount = $allApprovalPlans->where('status', 1)->count();
+        $pendingCount = $allApprovalPlans->where('status', 0)->count();
+        return $approvedCount === $allApprovalPlans->count() && $pendingCount === 0;
 
         // For sequential approval, check if all previous orders are approved
         $maxOrder = $allApprovalPlans->max('approval_order');
@@ -437,10 +452,8 @@ class ApprovalRequestController extends Controller
             })
             ->first();
 
-        // If not sequential, allow processing
-        if (!$approvalStage || !$approvalStage->is_sequential) {
-            return true;
-        }
+        // All approvals are sequential by default based on approval_order
+        // Allow processing for first order, check previous orders for others
 
         // For sequential approval, check if all previous orders are approved
         $currentOrder = $approvalPlan->approval_order;
@@ -656,8 +669,12 @@ class ApprovalRequestController extends Controller
                         $message .= " ({$failCount} failed)";
                     }
 
-                    return redirect()->route('approval.requests.index')
-                        ->with('toast_success', $message);
+                    return response()->json([
+                        'success' => true,
+                        'message' => $message,
+                        'successCount' => $successCount,
+                        'failCount' => $failCount
+                    ]);
                 } else {
                     // No successful approvals, rollback transaction
                     DB::rollBack();
@@ -670,30 +687,35 @@ class ApprovalRequestController extends Controller
                         }
                     }
 
-                    return redirect()->back()
-                        ->with('toast_error', $errorMessage)
-                        ->withInput();
+                    return response()->json([
+                        'success' => false,
+                        'message' => $errorMessage,
+                        'errors' => $errors
+                    ], 400);
                 }
             } catch (\Exception $e) {
                 DB::rollBack();
                 throw $e;
             }
         } catch (\Illuminate\Validation\ValidationException $e) {
-            return redirect()->back()
-                ->withErrors($e->validator)
-                ->withInput()
-                ->with('toast_error', 'Validation failed. Please check your input.');
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed. Please check your input.',
+                'errors' => $e->validator->errors()
+            ], 422);
         } catch (\Exception $e) {
             Log::error('Bulk approval failed: ' . $e->getMessage(), [
                 'user_id' => Auth::id(),
-                'request_ids' => $request->ids,
+                'request_ids' => $request->ids ?? [],
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);
 
-            return redirect()->back()
-                ->with('toast_error', 'Failed to process bulk approval. Please try again.')
-                ->withInput();
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to process bulk approval. Please try again.',
+                'error' => $e->getMessage()
+            ], 500);
         }
     }
 }

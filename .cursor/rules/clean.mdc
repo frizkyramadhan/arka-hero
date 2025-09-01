@@ -1,0 +1,6 @@
+---
+alwaysApply: true
+---
+
+1. buat code seringkas dan se-clean mungkin
+2. don't use tinker, use Model Context Protocol Server MySQL from benborla/mcp-server-mysql reference in context7

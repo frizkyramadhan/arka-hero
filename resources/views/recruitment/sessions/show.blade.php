@@ -355,7 +355,12 @@
                     @if (!$fptk->requires_theory_test)
                         <small class="text-muted">
                             <i class="fas fa-info-circle"></i>
-                            Tes Teori stage di-skip untuk posisi non-mekanik
+                            Tes Teori dan Interview Trainer stage di-skip untuk posisi non-mekanik
+                        </small>
+                    @else
+                        <small class="text-muted">
+                            <i class="fas fa-info-circle"></i>
+                            Posisi mekanik/teknis memerlukan Tes Teori dan Interview Trainer
                         </small>
                     @endif
                 </div>
@@ -372,11 +377,13 @@
                                         <th class="text-center align-middle">Tes Teori</th>
                                     @endif
                                     <th class="text-center align-middle">Interview HR</th>
+                                    @if ($fptk->requires_theory_test)
+                                        <th class="text-center align-middle">Interview Trainer</th>
+                                    @endif
                                     <th class="text-center align-middle">Interview User</th>
                                     <th class="text-center align-middle">Offering</th>
                                     <th class="text-center align-middle">MCU</th>
-                                    <th class="text-center align-middle">Hire</th>
-                                    <th class="text-center align-middle">Onboarding</th>
+                                    <th class="text-center align-middle">Hiring & Onboarding</th>
                                     <th class="text-center align-middle">Final Status</th>
                                     <th class="text-center align-middle" style="width: 120px;">Action</th>
                                 </tr>
@@ -398,11 +405,11 @@
                                                     'psikotes',
                                                     'tes_teori',
                                                     'interview_hr',
+                                                    'interview_trainer',
                                                     'interview_user',
                                                     'offering',
                                                     'mcu',
                                                     'hire',
-                                                    'onboarding',
                                                 ];
                                             } else {
                                                 $stages = [
@@ -413,7 +420,6 @@
                                                     'offering',
                                                     'mcu',
                                                     'hire',
-                                                    'onboarding',
                                                 ];
                                             }
                                             $currentStage = $session->current_stage;
@@ -501,6 +507,7 @@
                                                             break;
                                                         case 'interview_hr':
                                                         case 'interview_user':
+                                                        case 'interview_trainer':
                                                             if (isset($assessment->result)) {
                                                                 if ($assessment->result === 'recommended') {
                                                                     $icon = 'fas fa-check-circle text-success';
@@ -511,6 +518,27 @@
                                                                 } else {
                                                                     $icon = 'fas fa-clock text-warning';
                                                                     $tooltip = 'In Progress';
+                                                                }
+                                                            } else {
+                                                                // If no result, check if interview exists
+                                                                $interviewType = str_replace('interview_', '', $stage);
+                                                                $interview = $session
+                                                                    ->interviews()
+                                                                    ->where('type', $interviewType)
+                                                                    ->first();
+                                                                if ($interview) {
+                                                                    if ($interview->result === 'recommended') {
+                                                                        $icon = 'fas fa-check-circle text-success';
+                                                                        $tooltip = 'Recommended';
+                                                                    } elseif (
+                                                                        $interview->result === 'not_recommended'
+                                                                    ) {
+                                                                        $icon = 'fas fa-times-circle text-danger';
+                                                                        $tooltip = 'Not Recommended';
+                                                                    } else {
+                                                                        $icon = 'fas fa-clock text-warning';
+                                                                        $tooltip = 'In Progress';
+                                                                    }
                                                                 }
                                                             }
                                                             break;
@@ -543,8 +571,7 @@
                                                             }
                                                             break;
                                                         case 'hire':
-                                                        case 'onboarding':
-                                                            // These stages just need to exist to be considered completed
+                                                            // This stage just needs to exist to be considered completed
                                                             $icon = 'fas fa-check-circle text-success';
                                                             $tooltip = 'Completed';
                                                             break;
@@ -588,7 +615,7 @@
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="{{ $fptk->requires_theory_test ? '13' : '12' }}"
+                                        <td colspan="{{ $fptk->requires_theory_test ? '13' : '11' }}"
                                             class="text-center text-muted">
                                             <i class="fas fa-inbox fa-2x mb-2"></i>
                                             <br>No candidate sessions found for this FPTK

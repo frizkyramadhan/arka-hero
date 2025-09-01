@@ -40,6 +40,7 @@ use Illuminate\Support\Facades\File;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Imports\AdministrationImport;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Log;
 use Maatwebsite\Excel\Validators\ValidationException;
 use App\Models\Grade;
 use App\Models\Level;
@@ -48,7 +49,7 @@ class EmployeeController extends Controller
 {
     public function __construct()
     {
-        $this->middleware('role_or_permission:employees.show')->only('index', 'show');
+        $this->middleware('role_or_permission:employees.show')->only('index', 'show', 'getDepartment');
         $this->middleware('role_or_permission:employees.create')->only('create');
         $this->middleware('role_or_permission:employees.edit')->only('edit');
         $this->middleware('role_or_permission:employees.delete')->only('destroy');
@@ -529,10 +530,13 @@ class EmployeeController extends Controller
     {
         $this->validate($request, [
             'fullname' => 'required',
+            'identity_card' => 'required|unique:employees,identity_card,' . $id,
             'emp_pob' => 'required',
             'emp_dob' => 'required',
         ], [
             'fullname.required' => 'Full Name is required',
+            'identity_card.required' => 'Identity Card No is required',
+            'identity_card.unique' => 'Identity Card No already exists',
             'emp_pob.required' => 'Place of Birth is required',
             'emp_dob.required' => 'Date of Birth is required',
         ]);
@@ -715,11 +719,29 @@ class EmployeeController extends Controller
 
     public function getDepartment()
     {
-        $departments = Department::whereHas('positions', function ($query) {
-            $query->whereId(request()->input('position_id', 0));
-        })->orderBy('department_name', 'asc')->first();
+        try {
+            $positionId = request()->input('position_id');
 
-        return response()->json($departments);
+            if (!$positionId || $positionId == '0') {
+                return response()->json(['error' => 'Position ID is required'], 400);
+            }
+
+            $department = Department::whereHas('positions', function ($query) use ($positionId) {
+                $query->whereId($positionId);
+            })->orderBy('department_name', 'asc')->first();
+
+            if (!$department) {
+                return response()->json(['department_name' => null]);
+            }
+
+            return response()->json([
+                'id' => $department->id,
+                'department_name' => $department->department_name
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error in getDepartment: ' . $e->getMessage());
+            return response()->json(['error' => 'Internal server error'], 500);
+        }
     }
 
     public function personal()

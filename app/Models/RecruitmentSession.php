@@ -60,8 +60,7 @@ class RecruitmentSession extends Model
         'interview',
         'offering',
         'mcu',
-        'hire',
-        'onboarding'
+        'hire'
     ];
 
     public const STAGE_STATUSES = ['pending', 'in_progress', 'completed', 'failed', 'skipped'];
@@ -69,14 +68,13 @@ class RecruitmentSession extends Model
 
     // Stage progress percentages
     public const STAGE_PROGRESS = [
-        'cv_review' => 10,
-        'psikotes' => 20,
-        'tes_teori' => 30,
-        'interview' => 45,
-        'offering' => 75,
-        'mcu' => 85,
-        'hire' => 95,
-        'onboarding' => 100,
+        'cv_review' => 14.3,
+        'psikotes' => 28.6,
+        'tes_teori' => 42.9,
+        'interview' => 57.1,
+        'offering' => 71.4,
+        'mcu' => 85.7,
+        'hire' => 100,
     ];
 
     /**
@@ -86,18 +84,27 @@ class RecruitmentSession extends Model
     {
         if ($this->shouldSkipTheoryTest()) {
             // Adjust progress for non-mechanic positions (skip tes_teori)
+            // Total stages: 6 (cv_review, psikotes, interview, offering, mcu, hire)
             return [
-                'cv_review' => 12.5,    // 10/8 * 10
-                'psikotes' => 25,       // 20/8 * 10
-                'interview' => 56.25,   // 45/8 * 10
-                'offering' => 75,
-                'mcu' => 85,
-                'hire' => 95,
-                'onboarding' => 100,
+                'cv_review' => 16.7,    // 1/6 * 100
+                'psikotes' => 33.3,     // 2/6 * 100
+                'interview' => 50.0,    // 3/6 * 100
+                'offering' => 66.7,     // 4/6 * 100
+                'mcu' => 83.3,          // 5/6 * 100
+                'hire' => 100,          // 6/6 * 100
             ];
         }
 
-        return self::STAGE_PROGRESS;
+        // Total stages: 7 (cv_review, psikotes, tes_teori, interview, offering, mcu, hire)
+        return [
+            'cv_review' => 14.3,    // 1/7 * 100
+            'psikotes' => 28.6,     // 2/7 * 100
+            'tes_teori' => 42.9,    // 3/7 * 100
+            'interview' => 57.1,    // 4/7 * 100
+            'offering' => 71.4,     // 5/7 * 100
+            'mcu' => 85.7,          // 6/7 * 100
+            'hire' => 100,          // 7/7 * 100
+        ];
     }
 
     // Duration targets per stage (in hours)
@@ -166,6 +173,11 @@ class RecruitmentSession extends Model
         return $this->hasOne(RecruitmentInterview::class, 'session_id')->where('type', 'user');
     }
 
+    public function interviewTrainer()
+    {
+        return $this->hasOne(RecruitmentInterview::class, 'session_id')->where('type', 'trainer');
+    }
+
     public function offering()
     {
         return $this->hasOne(RecruitmentOffering::class, 'session_id');
@@ -211,7 +223,8 @@ class RecruitmentSession extends Model
             case 'tes_teori':
                 return $this->tesTeori;
             case 'interview':
-                return $this->interviews; // Return all interviews for this stage
+                // Return interview summary instead of collection
+                return $this->getInterviewSummary();
             case 'offering':
                 return $this->offering;
             case 'mcu':
@@ -235,10 +248,15 @@ class RecruitmentSession extends Model
                 return $this->psikotes;
             case 'tes_teori':
                 return $this->tesTeori;
+            case 'interview':
+                // Return interview summary instead of collection
+                return $this->getInterviewSummary();
             case 'interview_hr':
                 return $this->interviewHr;
             case 'interview_user':
                 return $this->interviewUser;
+            case 'interview_trainer':
+                return $this->interviewTrainer;
             case 'offering':
                 return $this->offering;
             case 'mcu':
@@ -272,8 +290,32 @@ class RecruitmentSession extends Model
                 return $assessment->result === 'pass';
             case 'tes_teori':
                 return $assessment->result === 'pass';
+            case 'interview':
+                // Interview stage is completed when all required interviews are completed and recommended
+                $hrInterview = $this->interviews()->where('type', 'hr')->first();
+                $userInterview = $this->interviews()->where('type', 'user')->first();
+                $trainerInterview = $this->interviews()->where('type', 'trainer')->first();
+
+                // Check HR and User interviews (always required)
+                if (
+                    !$hrInterview || !$userInterview ||
+                    $hrInterview->result !== 'recommended' ||
+                    $userInterview->result !== 'recommended'
+                ) {
+                    return false;
+                }
+
+                // Check trainer interview only if theory test is required
+                if (!$this->shouldSkipTheoryTest()) {
+                    if (!$trainerInterview || $trainerInterview->result !== 'recommended') {
+                        return false;
+                    }
+                }
+
+                return true;
             case 'interview_hr':
             case 'interview_user':
+            case 'interview_trainer':
                 return $assessment->result === 'recommended';
             case 'offering':
                 return $assessment->result === 'accepted';
@@ -295,12 +337,10 @@ class RecruitmentSession extends Model
             'cv_review' => $this->cvReview,
             'psikotes' => $this->psikotes,
             'tes_teori' => $this->tesTeori,
-            'interview_hr' => $this->interviewHr,
-            'interview_user' => $this->interviewUser,
+            'interview' => $this->getInterviewSummary(), // Return interview summary instead of collection
             'offering' => $this->offering,
             'mcu' => $this->mcu,
             'hire' => $this->hiring,
-            'onboarding' => $this->onboarding,
         ];
     }
 
@@ -351,6 +391,116 @@ class RecruitmentSession extends Model
     }
 
     /**
+     * Check if interview type is already completed
+     */
+    public function isInterviewTypeCompleted($type)
+    {
+        return $this->interviews()->where('type', $type)->exists();
+    }
+
+
+
+
+
+    /**
+     * Get interview summary for display
+     */
+    public function getInterviewSummary()
+    {
+        $summary = [
+            'hr' => [
+                'completed' => false,
+                'result' => null,
+                'reviewed_at' => null,
+                'reviewer' => null,
+                'status' => 'Pending'
+            ],
+            'user' => [
+                'completed' => false,
+                'result' => null,
+                'reviewed_at' => null,
+                'reviewer' => null,
+                'status' => 'Pending'
+            ]
+        ];
+
+        // Add trainer interview only if theory test is required
+        if (!$this->shouldSkipTheoryTest()) {
+            $summary['trainer'] = [
+                'completed' => false,
+                'result' => null,
+                'reviewed_at' => null,
+                'reviewer' => null,
+                'status' => 'Pending'
+            ];
+        }
+
+        // Get individual interviews by type
+        $hrInterview = $this->interviews()->where('type', 'hr')->first();
+        $userInterview = $this->interviews()->where('type', 'user')->first();
+        $trainerInterview = null;
+
+        // Get trainer interview only if theory test is required
+        if (!$this->shouldSkipTheoryTest()) {
+            $trainerInterview = $this->interviews()->where('type', 'trainer')->first();
+        }
+
+        if ($hrInterview) {
+            $summary['hr'] = [
+                'completed' => true,
+                'result' => $hrInterview->result,
+                'reviewed_at' => $hrInterview->reviewed_at,
+                'reviewer' => $hrInterview->reviewer->name ?? 'N/A',
+                'status' => ucfirst($hrInterview->result),
+                'notes' => $hrInterview->notes
+            ];
+        }
+
+        if ($userInterview) {
+            $summary['user'] = [
+                'completed' => true,
+                'result' => $userInterview->result,
+                'reviewed_at' => $userInterview->reviewed_at,
+                'reviewer' => $userInterview->reviewer->name ?? 'N/A',
+                'status' => ucfirst($userInterview->result),
+                'notes' => $userInterview->notes
+            ];
+        }
+
+        // Add trainer interview data if exists
+        if ($trainerInterview) {
+            $summary['trainer'] = [
+                'completed' => true,
+                'result' => $trainerInterview->result,
+                'reviewed_at' => $trainerInterview->reviewed_at,
+                'reviewer' => $trainerInterview->reviewer->name ?? 'N/A',
+                'status' => ucfirst($trainerInterview->result),
+                'notes' => $trainerInterview->notes
+            ];
+        }
+
+        return $summary;
+    }
+
+    /**
+     * Check if all required interviews are completed
+     */
+    public function areAllInterviewsCompleted()
+    {
+        $requiredCount = $this->shouldSkipTheoryTest() ? 2 : 3; // 2 if no theory test, 3 if theory test required
+        return $this->interviews()->count() === $requiredCount;
+    }
+
+    /**
+     * Check if all interviews passed (recommended)
+     */
+    public function didAllInterviewsPass()
+    {
+        $requiredCount = $this->shouldSkipTheoryTest() ? 2 : 3; // 2 if no theory test, 3 if theory test required
+        return $this->interviews()->where('result', 'recommended')->count() === $requiredCount;
+    }
+
+    /**
      * Scopes
      */
     public function scopeActive($query)
@@ -392,6 +542,21 @@ class RecruitmentSession extends Model
     /**
      * Accessors & Mutators
      */
+    public function getInterviewHrAttribute()
+    {
+        return $this->interviewHr()->first();
+    }
+
+    public function getInterviewUserAttribute()
+    {
+        return $this->interviewUser()->first();
+    }
+
+    public function getInterviewTrainerAttribute()
+    {
+        return $this->interviewTrainer()->first();
+    }
+
     public function getIsActiveAttribute()
     {
         return $this->status === 'in_process';
@@ -508,7 +673,7 @@ class RecruitmentSession extends Model
             'stage_status' => 'pending',
             'stage_started_at' => now(),
             'stage_completed_at' => null,
-            'overall_progress' => self::STAGE_PROGRESS[$nextStage],
+            'overall_progress' => $this->calculateActualProgress(),
         ]);
 
         return true;
@@ -537,6 +702,7 @@ class RecruitmentSession extends Model
         $this->update([
             'stage_status' => 'completed',
             'stage_completed_at' => now(),
+            'overall_progress' => $this->calculateActualProgress(),
         ]);
 
         // Record duration
@@ -681,6 +847,40 @@ class RecruitmentSession extends Model
     {
         return $this->overall_progress ?? 0.0;
     }
+
+    /**
+     * Calculate actual progress based on completed stages
+     * Progress should only increase when stages are actually completed
+     *
+     * @return float
+     */
+    public function calculateActualProgress(): float
+    {
+        $adjustedProgress = $this->getAdjustedStageProgress();
+        $completedStages = [];
+
+        // Check each stage to see if it's completed
+        $stages = $this->shouldSkipTheoryTest()
+            ? ['cv_review', 'psikotes', 'interview', 'offering', 'mcu', 'hire']
+            : ['cv_review', 'psikotes', 'tes_teori', 'interview', 'offering', 'mcu', 'hire'];
+
+        foreach ($stages as $stage) {
+            if ($this->isStageCompleted($stage)) {
+                $completedStages[] = $stage;
+            }
+        }
+
+        // If no stages completed, return 0
+        if (empty($completedStages)) {
+            return 0.0;
+        }
+
+        // Get the last completed stage progress
+        $lastCompletedStage = end($completedStages);
+        return $adjustedProgress[$lastCompletedStage] ?? 0.0;
+    }
+
+
 
     /**
      * Boot method

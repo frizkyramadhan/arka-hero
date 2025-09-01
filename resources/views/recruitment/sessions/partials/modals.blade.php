@@ -233,10 +233,65 @@
                                 class="text-danger">*</span></label>
                         <select class="form-control" id="interview_type" name="type" required>
                             <option value="">Select Interview Type</option>
-                            <option value="hr">HR Interview</option>
-                            <option value="user">User Interview</option>
+                            <option value="hr" {{ $session->isInterviewTypeCompleted('hr') ? 'disabled' : '' }}>
+                                HR Interview
+                                @if ($session->isInterviewTypeCompleted('hr'))
+                                    ({{ $session->interviews()->where('type', 'hr')->first()->result === 'recommended' ? 'Recommended' : 'Not Recommended' }})
+                                @endif
+                            </option>
+                            <option value="user" {{ $session->isInterviewTypeCompleted('user') ? 'disabled' : '' }}>
+                                User Interview
+                                @if ($session->isInterviewTypeCompleted('user'))
+                                    ({{ $session->interviews()->where('type', 'user')->first()->result === 'recommended' ? 'Recommended' : 'Not Recommended' }})
+                                @endif
+                            </option>
+                            @if (!$session->shouldSkipTheoryTest())
+                                <option value="trainer"
+                                    {{ $session->isInterviewTypeCompleted('trainer') ? 'disabled' : '' }}>
+                                    Trainer Interview
+                                    @if ($session->isInterviewTypeCompleted('trainer'))
+                                        ({{ $session->interviews()->where('type', 'trainer')->first()->result === 'recommended' ? 'Recommended' : 'Not Recommended' }})
+                                    @endif
+                                </option>
+                            @endif
                         </select>
+                        <small class="form-text text-muted">
+                            Interview types that have already been completed are disabled.
+                        </small>
                     </div>
+
+                    <!-- Show existing interview results -->
+                    @if ($session->interviews()->exists())
+                        @php
+                            $interviewSummary = $session->getInterviewSummary();
+                        @endphp
+                        <div class="alert alert-info">
+                            <h6><i class="fas fa-info-circle"></i> Interview Status:</h6>
+                            @php
+                                $interviewTypes = ['hr', 'user'];
+                                if (!$session->shouldSkipTheoryTest()) {
+                                    $interviewTypes[] = 'trainer';
+                                }
+                            @endphp
+                            @foreach ($interviewTypes as $type)
+                                <div class="mb-2">
+                                    <strong>{{ ucfirst($type) }} Interview:</strong>
+                                    @if ($interviewSummary[$type]['completed'])
+                                        <span
+                                            class="badge badge-{{ $interviewSummary[$type]['result'] === 'recommended' ? 'success' : 'danger' }}">
+                                            {{ ucfirst($interviewSummary[$type]['result']) }}
+                                        </span>
+                                        <small class="ml-2">
+                                            {{ date('d M Y H:i', strtotime($interviewSummary[$type]['reviewed_at'])) }}
+                                            by {{ $interviewSummary[$type]['reviewer'] }}
+                                        </small>
+                                    @else
+                                        <span class="badge badge-secondary">Pending</span>
+                                    @endif
+                                </div>
+                            @endforeach
+                        </div>
+                    @endif
 
                     <div class="form-group">
                         <label class="form-label mb-2">
@@ -457,80 +512,136 @@
                                 <div class="col-md-6">
                                     <div class="form-group">
                                         <label>Fullname <span class="text-danger">*</span></label>
-                                        <input type="text" class="form-control" name="employee[fullname]"
-                                            value="{{ $session->candidate->fullname }}" required>
+                                        <input type="text"
+                                            class="form-control @error('employee.fullname') is-invalid @enderror"
+                                            name="employee[fullname]"
+                                            value="{{ old('employee.fullname', $session->candidate->fullname) }}"
+                                            required>
+                                        @error('employee.fullname')
+                                            <div class="invalid-feedback">{{ $message }}</div>
+                                        @enderror
                                     </div>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="form-group">
                                         <label>Identity Card No <span class="text-danger">*</span></label>
-                                        <input type="text" class="form-control" name="employee[identity_card]"
+                                        <input type="text"
+                                            class="form-control @error('employee.identity_card') is-invalid @enderror"
+                                            name="employee[identity_card]"
+                                            value="{{ old('employee.identity_card') }}"
                                             placeholder="Enter KTP/ID number" required>
+                                        @error('employee.identity_card')
+                                            <div class="invalid-feedback">{{ $message }}</div>
+                                        @enderror
                                     </div>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="form-group">
                                         <label>Place of Birth <span class="text-danger">*</span></label>
-                                        <input type="text" class="form-control" name="employee[emp_pob]"
+                                        <input type="text"
+                                            class="form-control @error('employee.emp_pob') is-invalid @enderror"
+                                            name="employee[emp_pob]" value="{{ old('employee.emp_pob') }}"
                                             placeholder="Enter birthplace" required>
+                                        @error('employee.emp_pob')
+                                            <div class="invalid-feedback">{{ $message }}</div>
+                                        @enderror
                                     </div>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="form-group">
                                         <label>Date of Birth <span class="text-danger">*</span></label>
-                                        <input type="date" class="form-control" name="employee[emp_dob]"
-                                            value="{{ optional($session->candidate->date_of_birth)->format('Y-m-d') }}"
+                                        <input type="date"
+                                            class="form-control @error('employee.emp_dob') is-invalid @enderror"
+                                            name="employee[emp_dob]"
+                                            value="{{ old('employee.emp_dob', optional($session->candidate->date_of_birth)->format('Y-m-d')) }}"
                                             required>
+                                        @error('employee.emp_dob')
+                                            <div class="invalid-feedback">{{ $message }}</div>
+                                        @enderror
                                     </div>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="form-group">
                                         <label>Religion <span class="text-danger">*</span></label>
-                                        <select class="form-control" name="employee[religion_id]" required>
+                                        <select
+                                            class="form-control @error('employee.religion_id') is-invalid @enderror"
+                                            name="employee[religion_id]" required>
                                             <option value="">Select religion</option>
                                             @foreach (\App\Models\Religion::get() as $religion)
-                                                <option value="{{ $religion->id }}">{{ $religion->religion_name }}
+                                                <option value="{{ $religion->id }}"
+                                                    {{ old('employee.religion_id') == $religion->id ? 'selected' : '' }}>
+                                                    {{ $religion->religion_name }}
                                                 </option>
                                             @endforeach
                                         </select>
+                                        @error('employee.religion_id')
+                                            <div class="invalid-feedback">{{ $message }}</div>
+                                        @enderror
                                     </div>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="form-group">
                                         <label>Gender</label>
-                                        <select class="form-control" name="employee[gender]">
+                                        <select class="form-control @error('employee.gender') is-invalid @enderror"
+                                            name="employee[gender]">
                                             <option value="">Select gender</option>
-                                            <option value="male">Male</option>
-                                            <option value="female">Female</option>
+                                            <option value="male"
+                                                {{ old('employee.gender') == 'male' ? 'selected' : '' }}>Male</option>
+                                            <option value="female"
+                                                {{ old('employee.gender') == 'female' ? 'selected' : '' }}>Female
+                                            </option>
                                         </select>
+                                        @error('employee.gender')
+                                            <div class="invalid-feedback">{{ $message }}</div>
+                                        @enderror
                                     </div>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="form-group">
                                         <label>Marital Status</label>
-                                        <input type="text" class="form-control" name="employee[marital]"
+                                        <input type="text"
+                                            class="form-control @error('employee.marital') is-invalid @enderror"
+                                            name="employee[marital]" value="{{ old('employee.marital') }}"
                                             placeholder="Single/Married/etc">
+                                        @error('employee.marital')
+                                            <div class="invalid-feedback">{{ $message }}</div>
+                                        @enderror
                                     </div>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="form-group">
                                         <label>Phone</label>
-                                        <input type="text" class="form-control" name="employee[phone]"
-                                            value="{{ $session->candidate->phone }}">
+                                        <input type="text"
+                                            class="form-control @error('employee.phone') is-invalid @enderror"
+                                            name="employee[phone]"
+                                            value="{{ old('employee.phone', $session->candidate->phone) }}">
+                                        @error('employee.phone')
+                                            <div class="invalid-feedback">{{ $message }}</div>
+                                        @enderror
                                     </div>
                                 </div>
                                 <div class="col-md-12">
                                     <div class="form-group">
                                         <label>Address</label>
-                                        <input type="text" class="form-control" name="employee[address]"
-                                            value="{{ $session->candidate->address }}">
+                                        <input type="text"
+                                            class="form-control @error('employee.address') is-invalid @enderror"
+                                            name="employee[address]"
+                                            value="{{ old('employee.address', $session->candidate->address) }}">
+                                        @error('employee.address')
+                                            <div class="invalid-feedback">{{ $message }}</div>
+                                        @enderror
                                     </div>
                                 </div>
                                 <div class="col-md-12">
                                     <div class="form-group">
                                         <label>Email</label>
-                                        <input type="email" class="form-control" name="employee[email]"
-                                            value="{{ $session->candidate->email }}">
+                                        <input type="email"
+                                            class="form-control @error('employee.email') is-invalid @enderror"
+                                            name="employee[email]"
+                                            value="{{ old('employee.email', $session->candidate->email) }}">
+                                        @error('employee.email')
+                                            <div class="invalid-feedback">{{ $message }}</div>
+                                        @enderror
                                     </div>
                                 </div>
                             </div>
@@ -544,80 +655,136 @@
                                 <div class="col-md-6">
                                     <div class="form-group">
                                         <label>NIK <span class="text-danger">*</span></label>
-                                        <input type="text" class="form-control" name="administration[nik]"
+                                        <input type="text"
+                                            class="form-control @error('administration.nik') is-invalid @enderror"
+                                            name="administration[nik]" value="{{ old('administration.nik') }}"
                                             placeholder="Enter employee NIK" required>
+                                        @error('administration.nik')
+                                            <div class="invalid-feedback">{{ $message }}</div>
+                                        @enderror
                                     </div>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="form-group">
                                         <label>Date of Hire <span class="text-danger">*</span></label>
-                                        <input type="date" class="form-control" name="administration[doh]"
-                                            value="{{ now()->format('Y-m-d') }}" required>
+                                        <input type="date"
+                                            class="form-control @error('administration.doh') is-invalid @enderror"
+                                            name="administration[doh]"
+                                            value="{{ old('administration.doh', now()->format('Y-m-d')) }}" required>
+                                        @error('administration.doh')
+                                            <div class="invalid-feedback">{{ $message }}</div>
+                                        @enderror
                                     </div>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="form-group">
                                         <label>Place of Hire (POH) <span class="text-danger">*</span></label>
-                                        <input type="text" class="form-control" name="administration[poh]"
+                                        <input type="text"
+                                            class="form-control @error('administration.poh') is-invalid @enderror"
+                                            name="administration[poh]" value="{{ old('administration.poh') }}"
                                             placeholder="Enter POH" required>
+                                        @error('administration.poh')
+                                            <div class="invalid-feedback">{{ $message }}</div>
+                                        @enderror
                                     </div>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="form-group">
                                         <label>Class <span class="text-danger">*</span></label>
-                                        <select class="form-control" name="administration[class]" required>
+                                        <select
+                                            class="form-control @error('administration.class') is-invalid @enderror"
+                                            name="administration[class]" required>
                                             <option value="">Select class</option>
-                                            <option value="Staff">Staff</option>
-                                            <option value="Non Staff">Non Staff</option>
+                                            <option value="Staff"
+                                                {{ old('administration.class') == 'Staff' ? 'selected' : '' }}>Staff
+                                            </option>
+                                            <option value="Non Staff"
+                                                {{ old('administration.class') == 'Non Staff' ? 'selected' : '' }}>Non
+                                                Staff</option>
                                         </select>
+                                        @error('administration.class')
+                                            <div class="invalid-feedback">{{ $message }}</div>
+                                        @enderror
                                     </div>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="form-group">
-                                        <label>Project</label>
-                                        <select class="form-control" name="administration[project_id]">
-                                            <option value="">Select project</option>
-                                            @foreach (\App\Models\Project::orderBy('project_code', 'asc')->get() as $project)
-                                                <option value="{{ $project->id }}"
-                                                    {{ optional($session->fptk)->project_id == $project->id ? 'selected' : '' }}>
-                                                    {{ $project->project_code }}</option>
-                                            @endforeach
-                                        </select>
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="form-group">
-                                        <label>Position</label>
-                                        <select class="form-control" name="administration[position_id]">
+                                        <label>Position <span class="text-danger">*</span></label>
+                                        <select
+                                            class="form-control @error('administration.position_id') is-invalid @enderror"
+                                            name="administration[position_id]" id="hire_position_id" required>
                                             <option value="">Select position</option>
                                             @foreach (\App\Models\Position::orderBy('position_name', 'asc')->get() as $position)
                                                 <option value="{{ $position->id }}"
-                                                    {{ optional($session->fptk)->position_id == $position->id ? 'selected' : '' }}>
+                                                    {{ old('administration.position_id', optional($session->fptk)->position_id) == $position->id ? 'selected' : '' }}>
                                                     {{ $position->position_name }}</option>
                                             @endforeach
                                         </select>
+                                        @error('administration.position_id')
+                                            <div class="invalid-feedback">{{ $message }}</div>
+                                        @enderror
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label>Department</label>
+                                        <input type="text" class="form-control" id="hire_department" readonly>
+                                        <small class="form-text text-muted">Department will be automatically filled
+                                            based on position selection</small>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label>Project <span class="text-danger">*</span></label>
+                                        <select
+                                            class="form-control @error('administration.project_id') is-invalid @enderror"
+                                            name="administration[project_id]" required>
+                                            <option value="">Select project</option>
+                                            @foreach (\App\Models\Project::orderBy('project_code', 'asc')->get() as $project)
+                                                <option value="{{ $project->id }}"
+                                                    {{ old('administration.project_id', optional($session->fptk)->project_id) == $project->id ? 'selected' : '' }}>
+                                                    {{ $project->project_code }}</option>
+                                            @endforeach
+                                        </select>
+                                        @error('administration.project_id')
+                                            <div class="invalid-feedback">{{ $message }}</div>
+                                        @enderror
                                     </div>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="form-group">
                                         <label>Grade</label>
-                                        <select class="form-control" name="administration[grade_id]">
+                                        <select
+                                            class="form-control @error('administration.grade_id') is-invalid @enderror"
+                                            name="administration[grade_id]">
                                             <option value="">Select grade</option>
                                             @foreach (\App\Models\Grade::where('is_active', 1)->orderBy('name', 'asc')->get() as $grade)
-                                                <option value="{{ $grade->id }}">{{ $grade->name }}</option>
+                                                <option value="{{ $grade->id }}"
+                                                    {{ old('administration.grade_id') == $grade->id ? 'selected' : '' }}>
+                                                    {{ $grade->name }}</option>
                                             @endforeach
                                         </select>
+                                        @error('administration.grade_id')
+                                            <div class="invalid-feedback">{{ $message }}</div>
+                                        @enderror
                                     </div>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="form-group">
-                                        <label>Level</label>
-                                        <select class="form-control" name="administration[level_id]">
+                                        <label>Level <span class="text-danger">*</span></label>
+                                        <select
+                                            class="form-control @error('administration.level_id') is-invalid @enderror"
+                                            name="administration[level_id]" required>
                                             <option value="">Select level</option>
                                             @foreach (\App\Models\Level::where('is_active', 1)->orderBy('name', 'asc')->get() as $level)
-                                                <option value="{{ $level->id }}">{{ $level->name }}</option>
+                                                <option value="{{ $level->id }}"
+                                                    {{ old('administration.level_id') == $level->id ? 'selected' : '' }}>
+                                                    {{ $level->name }}</option>
                                             @endforeach
                                         </select>
+                                        @error('administration.level_id')
+                                            <div class="invalid-feedback">{{ $message }}</div>
+                                        @enderror
                                     </div>
                                 </div>
                                 <div class="col-md-6">
@@ -674,8 +841,13 @@
                                 <div class="col-md-6" id="foc_container" style="display:none;">
                                     <div class="form-group">
                                         <label>Finish of Contract (FOC) <span class="text-danger">*</span></label>
-                                        <input type="date" class="form-control" name="administration[foc]"
+                                        <input type="date"
+                                            class="form-control @error('administration.foc') is-invalid @enderror"
+                                            name="administration[foc]" value="{{ old('administration.foc') }}"
                                             id="administration_foc">
+                                        @error('administration.foc')
+                                            <div class="invalid-feedback">{{ $message }}</div>
+                                        @enderror
                                     </div>
                                 </div>
                             </div>
@@ -685,64 +857,28 @@
                     <!-- Notes -->
                     <div class="form-group">
                         <label for="hire_notes" class="form-label"><strong>Notes</strong></label>
-                        <textarea class="form-control" id="hire_notes" name="notes" rows="3"
-                            placeholder="Enter hiring notes (optional)"></textarea>
+                        <textarea class="form-control @error('notes') is-invalid @enderror" id="hire_notes" name="notes" rows="3"
+                            placeholder="Enter hiring notes (optional)">{{ old('notes') }}</textarea>
+                        @error('notes')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
                     </div>
 
                     <div class="form-group">
                         <label for="hire_reviewed_at" class="font-weight-bold">Review Date <span
                                 class="text-danger">*</span></label>
-                        <input type="datetime-local" class="form-control" id="hire_reviewed_at" name="reviewed_at"
-                            value="{{ now()->format('Y-m-d\TH:i') }}" required>
+                        <input type="datetime-local" class="form-control @error('reviewed_at') is-invalid @enderror"
+                            id="hire_reviewed_at" name="reviewed_at"
+                            value="{{ old('reviewed_at', now()->format('Y-m-d\TH:i')) }}" required>
+                        @error('reviewed_at')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
                     </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
                     <button type="submit" class="btn btn-primary submit-btn" id="hire_submit_btn" disabled>Submit
                         Hire</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-
-<!-- Onboarding Modal -->
-<div class="modal fade" id="onboardingModal">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h4 class="modal-title">
-                    <i class="fas fa-graduation-cap"></i> Onboarding Stage
-                </h4>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-            <form id="onboardingForm" method="POST" class="confirm-submit"
-                data-confirm-message="Submit onboarding? You cannot edit after submission."
-                action="{{ route('recruitment.sessions.update-onboarding', $session->id) }}">
-                <div class="modal-body">
-                    @csrf
-                    <div class="form-group">
-                        <label for="onboarding_date">Onboarding Date <span class="text-danger">*</span></label>
-                        <input type="date" class="form-control" id="onboarding_date" name="onboarding_date"
-                            required>
-                    </div>
-                    <div class="form-group">
-                        <label for="onboarding_reviewed_at" class="font-weight-bold">Review Date <span
-                                class="text-danger">*</span></label>
-                        <input type="datetime-local" class="form-control" id="onboarding_reviewed_at"
-                            name="reviewed_at" value="{{ now()->format('Y-m-d\TH:i') }}" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="onboarding_notes">Notes</label>
-                        <textarea class="form-control" id="onboarding_notes" name="notes" rows="3"
-                            placeholder="Enter notes (optional)"></textarea>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-                    <button type="submit" class="btn btn-primary">Submit Onboarding</button>
                 </div>
             </form>
         </div>

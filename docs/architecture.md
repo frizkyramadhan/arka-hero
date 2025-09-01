@@ -125,6 +125,25 @@ Arka Hero is a comprehensive HR management system built with Laravel, focusing o
 
 ### Approval Endpoints
 
+-   `GET /approval/requests` - List pending approvals for current user with DataTables
+-   `GET /approval/requests/data` - DataTables data for approval requests listing
+-   `GET /approval/requests/{id}` - Show approval form for specific request
+-   `POST /approval/requests/{id}/process` - Process individual approval decision
+-   `POST /approval/requests/bulk-approve` - Bulk approval processing
+-   `POST /approval/requests/filter-by-type` - Filter approvals by document type
+
+### Approval System Features
+
+The approval system supports both sequential and parallel approval workflows:
+
+-   **Sequential Approvals**: Approvers must complete approvals in order (approval_order: 1, 2, 3)
+-   **Parallel Approvals**: Multiple approvers can approve simultaneously (approval_order: 1, 2, 2)
+-   **Dynamic Status Display**: Shows current approval status with appropriate messaging:
+    -   Sequential: "Waiting for John Doe (Step 2)"
+    -   Parallel: "Waiting for John Doe, Jane Smith and Bob Johnson (Step 2 - Parallel)"
+-   **Progress Tracking**: Shows completed vs total approvals with visual progress indicators
+-   **Validation**: Ensures approvals are processed in correct order for sequential workflows
+
 ### Official Travel Endpoints
 
 -   `POST /api/official-travels/search` — Filtered list, excludes `draft`, `is_claimed = no`.

@@ -77,12 +77,14 @@ class RecruitmentCandidateController extends Controller
             ]);
         }
 
-        $candidates = RecruitmentCandidate::where('fullname', 'LIKE', "%{$query}%")
-            ->orWhere('email', 'LIKE', "%{$query}%")
-            ->orWhere('phone', 'LIKE', "%{$query}%")
-            ->orWhere('candidate_number', 'LIKE', "%{$query}%")
-            ->orWhere('position_applied', 'LIKE', "%{$query}%")
-            ->where('global_status', '!=', 'blacklisted')
+        $candidates = RecruitmentCandidate::where('global_status', 'available')
+            ->where(function ($q) use ($query) {
+                $q->where('fullname', 'LIKE', "%{$query}%")
+                    ->orWhere('email', 'LIKE', "%{$query}%")
+                    ->orWhere('phone', 'LIKE', "%{$query}%")
+                    ->orWhere('candidate_number', 'LIKE', "%{$query}%")
+                    ->orWhere('position_applied', 'LIKE', "%{$query}%");
+            })
             ->limit(10)
             ->get(['id', 'fullname as name', 'email', 'phone', 'position_applied']);
 

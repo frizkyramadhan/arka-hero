@@ -73,7 +73,6 @@
                                     'offering' => 5,
                                     'mcu' => 6,
                                     'hire' => 7,
-                                    'onboarding' => 8,
                                 ];
 
                                 // Adjust stage order if tes_teori should be skipped
@@ -82,7 +81,6 @@
                                     $stageOrder['offering'] = 4;
                                     $stageOrder['mcu'] = 5;
                                     $stageOrder['hire'] = 6;
-                                    $stageOrder['onboarding'] = 7;
                                 }
                                 $currentOrder = $stageOrder[$session->current_stage] ?? 0;
                                 $stageClasses = [];
@@ -233,8 +231,8 @@
                                         <div class="timeline-date">
                                             @if ($session->current_stage === 'cv_review' && $session->stage_started_at)
                                                 {{ date('d M Y', strtotime($session->stage_started_at)) }}
-                                            @elseif($session->getProgressPercentage() >= 10)
-                                                {{ date('d M Y', strtotime($session->stage_completed_at ?? now())) }}
+                                            @elseif($session->cvReview && $session->cvReview->reviewed_at)
+                                                {{ date('d M Y', strtotime($session->cvReview->reviewed_at)) }}
                                             @else
                                                 -
                                             @endif
@@ -259,8 +257,8 @@
                                         <div class="timeline-date">
                                             @if ($session->current_stage === 'psikotes' && $session->stage_started_at)
                                                 {{ date('d M Y', strtotime($session->stage_started_at)) }}
-                                            @elseif($session->getProgressPercentage() >= 20)
-                                                {{ date('d M Y', strtotime($session->stage_completed_at ?? now())) }}
+                                            @elseif($session->psikotes && $session->psikotes->reviewed_at)
+                                                {{ date('d M Y', strtotime($session->psikotes->reviewed_at)) }}
                                             @else
                                                 -
                                             @endif
@@ -287,8 +285,8 @@
                                             <div class="timeline-date">
                                                 @if ($session->current_stage === 'tes_teori' && $session->stage_started_at)
                                                     {{ date('d M Y', strtotime($session->stage_started_at)) }}
-                                                @elseif($session->getProgressPercentage() >= 30)
-                                                    {{ date('d M Y', strtotime($session->stage_completed_at ?? now())) }}
+                                                @elseif($session->tesTeori && $session->tesTeori->reviewed_at)
+                                                    {{ date('d M Y', strtotime($session->tesTeori->reviewed_at)) }}
                                                 @else
                                                     -
                                                 @endif
@@ -309,13 +307,29 @@
                                             @if (!$stageEditability['interview'])
                                                 <i class="fas fa-lock ml-1"
                                                     title="Locked due to previous stage failure"></i>
+                                            @elseif($session->areAllInterviewsCompleted())
+                                                <i class="fas fa-check-circle ml-1 text-success"
+                                                    title="All interviews completed"></i>
+                                            @elseif($session->interviews()->exists())
+                                                <i class="fas fa-clock ml-1 text-warning"
+                                                    title="Some interviews pending"></i>
                                             @endif
                                         </div>
                                         <div class="timeline-date">
                                             @if ($session->current_stage === 'interview' && $session->stage_started_at)
                                                 {{ date('d M Y', strtotime($session->stage_started_at)) }}
-                                            @elseif($session->getProgressPercentage() >= 40)
-                                                {{ date('d M Y', strtotime($session->stage_completed_at ?? now())) }}
+                                            @elseif($session->interviews()->exists())
+                                                @php
+                                                    $latestInterview = $session
+                                                        ->interviews()
+                                                        ->latest('reviewed_at')
+                                                        ->first();
+                                                @endphp
+                                                @if ($latestInterview)
+                                                    {{ date('d M Y', strtotime($latestInterview->reviewed_at)) }}
+                                                @else
+                                                    -
+                                                @endif
                                             @else
                                                 -
                                             @endif
@@ -340,8 +354,8 @@
                                         <div class="timeline-date">
                                             @if ($session->current_stage === 'offering' && $session->stage_started_at)
                                                 {{ date('d M Y', strtotime($session->stage_started_at)) }}
-                                            @elseif($session->getProgressPercentage() >= 60)
-                                                {{ date('d M Y', strtotime($session->stage_completed_at ?? now())) }}
+                                            @elseif($session->offering && $session->offering->reviewed_at)
+                                                {{ date('d M Y', strtotime($session->offering->reviewed_at)) }}
                                             @else
                                                 -
                                             @endif
@@ -366,8 +380,8 @@
                                         <div class="timeline-date">
                                             @if ($session->current_stage === 'mcu' && $session->stage_started_at)
                                                 {{ date('d M Y', strtotime($session->stage_started_at)) }}
-                                            @elseif($session->getProgressPercentage() >= 70)
-                                                {{ date('d M Y', strtotime($session->stage_completed_at ?? now())) }}
+                                            @elseif($session->mcu && $session->mcu->reviewed_at)
+                                                {{ date('d M Y', strtotime($session->mcu->reviewed_at)) }}
                                             @else
                                                 -
                                             @endif
@@ -383,7 +397,7 @@
                                     </div>
                                     <div class="timeline-content">
                                         <div class="timeline-title">
-                                            Hire
+                                            Hiring & Onboarding
                                             @if (!$stageEditability['hire'])
                                                 <i class="fas fa-lock ml-1"
                                                     title="Locked due to previous stage failure"></i>
@@ -392,34 +406,8 @@
                                         <div class="timeline-date">
                                             @if ($session->current_stage === 'hire' && $session->stage_started_at)
                                                 {{ date('d M Y', strtotime($session->stage_started_at)) }}
-                                            @elseif($session->getProgressPercentage() >= 80)
-                                                {{ date('d M Y', strtotime($session->stage_completed_at ?? now())) }}
-                                            @else
-                                                -
-                                            @endif
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <!-- Onboarding -->
-                                <div class="timeline-item {{ $stageEditability['onboarding'] ? 'editable' : 'disabled' }}"
-                                    @if ($stageEditability['onboarding']) data-toggle="modal" data-target="#onboardingModal" @endif>
-                                    <div class="timeline-marker {{ $stageClasses['onboarding'] }}">
-                                        <i class="fas fa-graduation-cap"></i>
-                                    </div>
-                                    <div class="timeline-content">
-                                        <div class="timeline-title">
-                                            Onboarding
-                                            @if (!$stageEditability['onboarding'])
-                                                <i class="fas fa-lock ml-1"
-                                                    title="Locked due to previous stage failure"></i>
-                                            @endif
-                                        </div>
-                                        <div class="timeline-date">
-                                            @if ($session->current_stage === 'onboarding' && $session->stage_started_at)
-                                                {{ date('d M Y', strtotime($session->stage_started_at)) }}
-                                            @elseif($session->getProgressPercentage() >= 90)
-                                                {{ date('d M Y', strtotime($session->stage_completed_at ?? now())) }}
+                                            @elseif($session->hiring && $session->hiring->reviewed_at)
+                                                {{ date('d M Y', strtotime($session->hiring->reviewed_at)) }}
                                             @else
                                                 -
                                             @endif
@@ -480,7 +468,22 @@
                                     <div class="info-content">
                                         <div class="info-label">Current Stage</div>
                                         <div class="info-value">
-                                            {{ ucfirst(str_replace('_', ' ', $session->current_stage)) }}</div>
+                                            {{ ucfirst(str_replace('_', ' ', $session->current_stage)) }}
+                                            @if ($session->current_stage === 'interview')
+                                                <br>
+                                                @php
+                                                    $interviewSummary = $session->getInterviewSummary();
+                                                    $completedInterviews = collect($interviewSummary)
+                                                        ->where('completed', true)
+                                                        ->count();
+                                                    $totalRequired = $session->shouldSkipTheoryTest() ? 2 : 3;
+                                                @endphp
+                                                <span
+                                                    class="badge badge-{{ $completedInterviews === $totalRequired ? 'success' : 'warning' }}">
+                                                    {{ $completedInterviews }}/{{ $totalRequired }} Completed
+                                                </span>
+                                            @endif
+                                        </div>
                                     </div>
                                 </div>
                                 <div class="info-item">
@@ -546,12 +549,8 @@
                                                     <span class="badge badge-warning">Tes Teori</span>
                                                 @break
 
-                                                @case('interview_hr')
-                                                    <span class="badge badge-success">Interview HR</span>
-                                                @break
-
-                                                @case('interview_user')
-                                                    <span class="badge badge-success">Interview User</span>
+                                                @case('interview')
+                                                    <span class="badge badge-success">Interview</span>
                                                 @break
 
                                                 @case('offering')
@@ -563,11 +562,7 @@
                                                 @break
 
                                                 @case('hire')
-                                                    <span class="badge badge-success">Hiring</span>
-                                                @break
-
-                                                @case('onboarding')
-                                                    <span class="badge badge-success">Onboarding</span>
+                                                    <span class="badge badge-success">Hiring & Onboarding</span>
                                                 @break
 
                                                 @default
@@ -576,6 +571,41 @@
                                             @endswitch
                                         </div>
                                     </div>
+                                    @if ($session->current_stage === 'interview')
+                                        <div class="progress-detail-item">
+                                            <div class="detail-label">Interview Progress</div>
+                                            <div class="detail-value">
+                                                @php
+                                                    $interviewSummary = $session->getInterviewSummary();
+                                                    $hrStatus = $interviewSummary['hr']['completed']
+                                                        ? ($interviewSummary['hr']['result'] === 'recommended'
+                                                            ? 'success'
+                                                            : 'danger')
+                                                        : 'secondary';
+                                                    $userStatus = $interviewSummary['user']['completed']
+                                                        ? ($interviewSummary['user']['result'] === 'recommended'
+                                                            ? 'success'
+                                                            : 'danger')
+                                                        : 'secondary';
+                                                    $trainerStatus = null;
+                                                    if (!$session->shouldSkipTheoryTest()) {
+                                                        $trainerStatus = $interviewSummary['trainer']['completed']
+                                                            ? ($interviewSummary['trainer']['result'] === 'recommended'
+                                                                ? 'success'
+                                                                : 'danger')
+                                                            : 'secondary';
+                                                    }
+                                                @endphp
+                                                <div class="d-flex flex-column gap-1">
+                                                    <span class="badge badge-{{ $hrStatus }}">HR</span>
+                                                    @if (!$session->shouldSkipTheoryTest())
+                                                        <span class="badge badge-{{ $trainerStatus }}">Trainer</span>
+                                                    @endif
+                                                    <span class="badge badge-{{ $userStatus }}">User</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    @endif
                                     <div class="progress-detail-item">
                                         <div class="detail-label">Total Days</div>
                                         <div class="detail-value">
@@ -635,7 +665,41 @@
             <!-- Full-width Assessments Section -->
             @php
                 $allAssessments = $session->getAllAssessments();
-                $hasAssessments = collect($allAssessments)->filter()->isNotEmpty();
+
+                // Filter assessments based on current stage
+                $currentStage = $session->current_stage;
+                $stageOrder = [
+                    'cv_review' => 1,
+                    'psikotes' => 2,
+                    'tes_teori' => 3,
+                    'interview' => 4,
+                    'offering' => 5,
+                    'mcu' => 6,
+                    'hire' => 7,
+                ];
+
+                // Adjust stage order if tes_teori should be skipped
+                if ($session->shouldSkipTheoryTest()) {
+                    $stageOrder['interview'] = 3;
+                    $stageOrder['offering'] = 4;
+                    $stageOrder['mcu'] = 5;
+                    $stageOrder['hire'] = 6;
+                }
+
+                $currentOrder = $stageOrder[$currentStage] ?? 0;
+
+                // Filter assessments to only show stages up to current stage
+                $filteredAssessments = [];
+                foreach ($allAssessments as $stage => $assessment) {
+                    if ($assessment && isset($stageOrder[$stage])) {
+                        $stageOrderNum = $stageOrder[$stage];
+                        if ($stageOrderNum <= $currentOrder) {
+                            $filteredAssessments[$stage] = $assessment;
+                        }
+                    }
+                }
+
+                $hasAssessments = collect($filteredAssessments)->filter()->isNotEmpty();
             @endphp
             @if ($hasAssessments)
                 <div class="row">
@@ -657,85 +721,160 @@
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            @foreach ($allAssessments as $stage => $assessment)
+                                            @foreach ($filteredAssessments as $stage => $assessment)
                                                 @if ($assessment)
                                                     <tr>
                                                         <td>
                                                             @switch($stage)
                                                                 @case('cv_review')
                                                                     <strong>CV Review</strong>
+                                                                    @if ($stage === $session->current_stage)
+                                                                        <span class="badge badge-primary ml-2">Current</span>
+                                                                    @endif
                                                                 @break
 
                                                                 @case('psikotes')
                                                                     <strong>Psikotes</strong>
+                                                                    @if ($stage === $session->current_stage)
+                                                                        <span class="badge badge-primary ml-2">Current</span>
+                                                                    @endif
                                                                 @break
 
                                                                 @case('tes_teori')
                                                                     <strong>Tes Teori</strong>
+                                                                    @if ($stage === $session->current_stage)
+                                                                        <span class="badge badge-primary ml-2">Current</span>
+                                                                    @endif
                                                                 @break
 
-                                                                @case('interview_hr')
-                                                                    <strong>Interview HR</strong>
-                                                                @break
-
-                                                                @case('interview_user')
-                                                                    <strong>Interview User</strong>
+                                                                @case('interview')
+                                                                    <strong>Interview</strong>
+                                                                    @if ($stage === $session->current_stage)
+                                                                        <span class="badge badge-primary ml-2">Current</span>
+                                                                    @endif
                                                                 @break
 
                                                                 @case('offering')
                                                                     <strong>Offering</strong>
+                                                                    @if ($stage === $session->current_stage)
+                                                                        <span class="badge badge-primary ml-2">Current</span>
+                                                                    @endif
                                                                 @break
 
                                                                 @case('mcu')
                                                                     <strong>MCU</strong>
+                                                                    @if ($stage === $session->current_stage)
+                                                                        <span class="badge badge-primary ml-2">Current</span>
+                                                                    @endif
                                                                 @break
 
                                                                 @case('hire')
-                                                                    <strong>Hiring</strong>
-                                                                @break
-
-                                                                @case('onboarding')
-                                                                    <strong>Onboarding</strong>
+                                                                    <strong>Hiring & Onboarding</strong>
+                                                                    @if ($stage === $session->current_stage)
+                                                                        <span class="badge badge-primary ml-2">Current</span>
+                                                                    @endif
                                                                 @break
 
                                                                 @default
                                                                     <strong>{{ ucfirst(str_replace('_', ' ', $stage)) }}</strong>
+                                                                    @if ($stage === $session->current_stage)
+                                                                        <span class="badge badge-primary ml-2">Current</span>
+                                                                    @endif
                                                             @endswitch
                                                         </td>
-                                                        <td>{{ $assessment->reviewed_at ? date('d M Y', strtotime($assessment->reviewed_at)) : 'N/A' }}
+                                                        <td>
+                                                            @if ($stage === 'interview' && is_array($assessment))
+                                                                @php
+                                                                    $interviewSummary = $assessment;
+                                                                    $hasCompletedInterviews =
+                                                                        collect($interviewSummary)
+                                                                            ->where('completed', true)
+                                                                            ->count() > 0;
+                                                                @endphp
+                                                                @if ($hasCompletedInterviews)
+                                                                    @foreach ($interviewSummary as $type => $interview)
+                                                                        @if ($interview['completed'])
+                                                                            <div class="mb-1">
+                                                                                <small
+                                                                                    class="text-muted">{{ ucfirst($type) }}:</small>
+                                                                                {{ date('d M Y', strtotime($interview['reviewed_at'])) }}
+                                                                            </div>
+                                                                        @endif
+                                                                    @endforeach
+                                                                @else
+                                                                    N/A
+                                                                @endif
+                                                            @else
+                                                                {{ $assessment->reviewed_at ? date('d M Y', strtotime($assessment->reviewed_at)) : 'N/A' }}
+                                                            @endif
                                                         </td>
                                                         <td>
-                                                            @php
-                                                                $statusMap = [
-                                                                    'recommended' =>
-                                                                        '<span class="badge badge-success">Recommended</span>',
-                                                                    'not_recommended' =>
-                                                                        '<span class="badge badge-danger">Not Recommended</span>',
-                                                                    'pass' =>
-                                                                        '<span class="badge badge-success">Pass</span>',
-                                                                    'fail' =>
-                                                                        '<span class="badge badge-danger">Fail</span>',
-                                                                    'accepted' =>
-                                                                        '<span class="badge badge-success">Accepted</span>',
-                                                                    'rejected' =>
-                                                                        '<span class="badge badge-danger">Rejected</span>',
-                                                                    'fit' =>
-                                                                        '<span class="badge badge-success">Fit</span>',
-                                                                    'unfit' =>
-                                                                        '<span class="badge badge-danger">Unfit</span>',
-                                                                    'follow_up' =>
-                                                                        '<span class="badge badge-warning">Follow Up</span>',
-                                                                ];
-                                                                $result =
-                                                                    $assessment->decision ??
-                                                                    ($assessment->result ?? null);
-                                                                if ($stage === 'hire' && $assessment) {
-                                                                    $statusMap['hired'] =
-                                                                        '<span class="badge badge-success">Hired</span>';
-                                                                    $result = 'hired';
-                                                                }
-                                                            @endphp
-                                                            {!! $statusMap[$result] ?? '<span class="badge badge-info">Completed</span>' !!}
+                                                            @if ($stage === 'interview' && is_array($assessment))
+                                                                @php
+                                                                    $interviewSummary = $assessment;
+                                                                    $completedInterviews = collect(
+                                                                        $interviewSummary,
+                                                                    )->where('completed', true);
+                                                                    $totalRequired = $session->shouldSkipTheoryTest()
+                                                                        ? 2
+                                                                        : 3;
+                                                                    $allRecommended =
+                                                                        $completedInterviews
+                                                                            ->where('result', 'recommended')
+                                                                            ->count() === $completedInterviews->count();
+                                                                    $hasRejected =
+                                                                        $completedInterviews
+                                                                            ->where('result', 'not_recommended')
+                                                                            ->count() > 0;
+                                                                @endphp
+                                                                @if ($completedInterviews->count() > 0)
+                                                                    @if ($allRecommended && $completedInterviews->count() === $totalRequired)
+                                                                        <span class="badge badge-success">All
+                                                                            Recommended</span>
+                                                                    @elseif($hasRejected)
+                                                                        <span class="badge badge-danger">Some Not
+                                                                            Recommended</span>
+                                                                    @else
+                                                                        <span class="badge badge-warning">Partial
+                                                                            ({{ $completedInterviews->count() }}/{{ $totalRequired }})
+                                                                        </span>
+                                                                    @endif
+                                                                @else
+                                                                    <span class="badge badge-secondary">Not Started</span>
+                                                                @endif
+                                                            @else
+                                                                @php
+                                                                    $statusMap = [
+                                                                        'recommended' =>
+                                                                            '<span class="badge badge-success">Recommended</span>',
+                                                                        'not_recommended' =>
+                                                                            '<span class="badge badge-danger">Not Recommended</span>',
+                                                                        'pass' =>
+                                                                            '<span class="badge badge-success">Pass</span>',
+                                                                        'fail' =>
+                                                                            '<span class="badge badge-danger">Fail</span>',
+                                                                        'accepted' =>
+                                                                            '<span class="badge badge-success">Accepted</span>',
+                                                                        'rejected' =>
+                                                                            '<span class="badge badge-danger">Rejected</span>',
+                                                                        'fit' =>
+                                                                            '<span class="badge badge-success">Fit</span>',
+                                                                        'unfit' =>
+                                                                            '<span class="badge badge-danger">Unfit</span>',
+                                                                        'follow_up' =>
+                                                                            '<span class="badge badge-warning">Follow Up</span>',
+                                                                    ];
+                                                                    $result =
+                                                                        $assessment->decision ??
+                                                                        ($assessment->result ?? null);
+                                                                    if ($stage === 'hire' && $assessment) {
+                                                                        $statusMap['hired'] =
+                                                                            '<span class="badge badge-success">Hired</span>';
+                                                                        $result = 'hired';
+                                                                    }
+                                                                @endphp
+                                                                {!! $statusMap[$result] ?? '<span class="badge badge-info">Completed</span>' !!}
+                                                            @endif
                                                         </td>
                                                         <td>
                                                             @switch($stage)
@@ -760,9 +899,34 @@
                                                                     {{ $assessment->score ?? 'N/A' }}
                                                                 @break
 
-                                                                @case('interview_hr')
-                                                                @case('interview_user')
-                                                                    {{ $assessment->result ?? 'N/A' }}
+                                                                @case('interview')
+                                                                    @if (is_array($assessment))
+                                                                        @php
+                                                                            $interviewSummary = $assessment;
+                                                                            $completedInterviews = collect(
+                                                                                $interviewSummary,
+                                                                            )->where('completed', true);
+                                                                            $totalRequired = $session->shouldSkipTheoryTest()
+                                                                                ? 2
+                                                                                : 3;
+                                                                        @endphp
+                                                                        @if ($completedInterviews->count() > 0)
+                                                                            @foreach ($completedInterviews as $type => $interview)
+                                                                                <div class="mb-1">
+                                                                                    <small
+                                                                                        class="text-muted">{{ ucfirst($type) }}:</small>
+                                                                                    <span
+                                                                                        class="badge badge-{{ $interview['result'] === 'recommended' ? 'success' : 'danger' }}">
+                                                                                        {{ ucfirst($interview['result']) }}
+                                                                                    </span>
+                                                                                </div>
+                                                                            @endforeach
+                                                                        @else
+                                                                            N/A
+                                                                        @endif
+                                                                    @else
+                                                                        {{ $assessment->result ?? 'N/A' }}
+                                                                    @endif
                                                                 @break
 
                                                                 @case('offering')
@@ -777,15 +941,32 @@
                                                                     {{ strtoupper($assessment->agreement_type) ?? 'N/A' }}
                                                                 @break
 
-                                                                @case('onboarding')
-                                                                    {{ $assessment->onboarding_date ? date('d M Y', strtotime($assessment->onboarding_date)) : 'N/A' }}
-                                                                @break
-
                                                                 @default
                                                                     N/A
                                                             @endswitch
                                                         </td>
-                                                        <td>{{ Str::limit($assessment->notes, 50) ?? 'N/A' }}</td>
+                                                        <td>
+                                                            @if ($stage === 'interview' && is_array($assessment))
+                                                                @php
+                                                                    $completedInterviews = collect($assessment)->where(
+                                                                        'completed',
+                                                                        true,
+                                                                    );
+                                                                @endphp
+                                                                @if ($completedInterviews->count() > 0)
+                                                                    @foreach ($completedInterviews as $type => $interview)
+                                                                        <div class="mb-1">
+                                                                            <strong>{{ ucfirst($type) }}:</strong>
+                                                                            {{ Str::limit($interview['notes'] ?? 'N/A', 30) }}
+                                                                        </div>
+                                                                    @endforeach
+                                                                @else
+                                                                    N/A
+                                                                @endif
+                                                            @else
+                                                                {{ Str::limit($assessment->notes, 50) ?? 'N/A' }}
+                                                            @endif
+                                                        </td>
                                                     </tr>
                                                 @endif
                                             @endforeach
@@ -1179,6 +1360,26 @@
             font-weight: 500;
             color: #6c757d;
             font-size: 14px;
+        }
+
+        /* Interview Progress Badges */
+        .progress-detail-item .d-flex.flex-column.gap-1 {
+            gap: 0.25rem !important;
+        }
+
+        .progress-detail-item .badge {
+            font-size: 0.75rem;
+            padding: 0.25rem 0.5rem;
+        }
+
+        /* Current Stage Badge */
+        .badge.ml-2 {
+            margin-left: 0.5rem !important;
+        }
+
+        .badge.badge-primary {
+            background-color: #007bff;
+            color: white;
         }
 
         .detail-value {
@@ -1743,7 +1944,11 @@
                 const hasStatus = interviewStatusInput.value !== '';
                 const hasRemark = interviewRemarkTextarea.value.trim() !== '';
 
-                if (hasType && hasStatus && hasRemark) {
+                // Check if selected interview type is already completed
+                const selectedType = $('#interview_type').val();
+                const isTypeCompleted = selectedType && $('#interview_type option:selected').prop('disabled');
+
+                if (hasType && hasStatus && hasRemark && !isTypeCompleted) {
                     interviewSubmitBtn.disabled = false;
                     interviewSubmitBtn.classList.remove('btn-secondary');
                     interviewSubmitBtn.classList.add('btn-primary');
@@ -1761,6 +1966,19 @@
 
             // Listen for interview type changes
             $('#interview_type').on('change', function() {
+                const selectedType = $(this).val();
+                const selectedOption = $(this).find('option:selected');
+
+                // Check if selected type is already completed
+                if (selectedOption.prop('disabled')) {
+                    // Reset selection if disabled option is selected
+                    $(this).val('');
+                    toast_error(
+                        'This interview type has already been completed. Please select a different type.'
+                    );
+                    return;
+                }
+
                 checkInterviewFormValidity();
             });
 
@@ -1773,6 +1991,16 @@
                 if (!type) {
                     e.preventDefault();
                     toast_error('Please select an interview type first.');
+                    return;
+                }
+
+                // Check if interview type is already completed
+                const selectedOption = $('#interview_type option:selected');
+                if (selectedOption.prop('disabled')) {
+                    e.preventDefault();
+                    toast_error(
+                        'This interview type has already been completed. Please select a different type.'
+                    );
                     return;
                 }
 
@@ -1798,6 +2026,17 @@
                 $('.decision-btn').removeClass('active');
                 $('.submit-btn').prop('disabled', true).removeClass('btn-primary').addClass(
                     'btn-secondary');
+
+                // Re-enable all options first, then disable completed ones
+                $('#interview_type option').prop('disabled', false);
+                $('#interview_type option[value="hr"]').prop('disabled',
+                    {{ $session->isInterviewTypeCompleted('hr') ? 'true' : 'false' }});
+                $('#interview_type option[value="user"]').prop('disabled',
+                    {{ $session->isInterviewTypeCompleted('user') ? 'true' : 'false' }});
+                @if (!$session->shouldSkipTheoryTest())
+                    $('#interview_type option[value="trainer"]').prop('disabled',
+                        {{ $session->isInterviewTypeCompleted('trainer') ? 'true' : 'false' }});
+                @endif
             });
 
             // MCU Form -> standard POST with hidden assessment_data
@@ -2018,14 +2257,7 @@
                 }
             });
 
-            // Onboarding simple validation: require date
-            $('#onboardingForm').on('submit', function(e) {
-                const date = $('#onboarding_date').val();
-                if (!date) {
-                    e.preventDefault();
-                    toast_error('Please select onboarding date');
-                }
-            });
+
 
             // Simple validations for non-assessment forms (still standard POST)
             $('#rejectForm').on('submit', function(e) {
@@ -2150,6 +2382,51 @@
             } else {
                 alert('Error: ' + message);
             }
+        }
+
+        // Autofill department based on position selection in hire modal
+        $('#hire_position_id').on('change', function() {
+            var position_id = $(this).val();
+
+            if (position_id) {
+                var url = "{{ route('employees.getDepartment') }}";
+
+                $.ajax({
+                    url: url,
+                    type: "GET",
+                    data: {
+                        position_id: position_id
+                    },
+                    dataType: 'json',
+                    success: function(data) {
+                        if (data && data.department_name) {
+                            $('#hire_department').val(data.department_name);
+                        } else {
+                            $('#hire_department').val('');
+                        }
+                    },
+                    error: function(jqXHR, textStatus, errorThrown) {
+                        console.error("Error fetching department: ", textStatus, errorThrown);
+                        $('#hire_department').val('');
+                    }
+                });
+            } else {
+                $('#hire_department').val('');
+            }
+        });
+
+        // Initialize department when hire modal is shown
+        $('#hireModal').on('shown.bs.modal', function() {
+            var selectedPosition = $('#hire_position_id').val();
+            if (selectedPosition) {
+                $('#hire_position_id').trigger('change');
+            }
+        });
+
+        // Also initialize department when page loads if position is pre-selected
+        var selectedPosition = $('#hire_position_id').val();
+        if (selectedPosition) {
+            $('#hire_position_id').trigger('change');
         }
     </script>
 @endsection
