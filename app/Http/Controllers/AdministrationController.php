@@ -183,7 +183,7 @@ class AdministrationController extends Controller
             'position_id' => 'required',
             'grade_id' => 'nullable|exists:grades,id',
             'level_id' => 'nullable|exists:levels,id',
-            'nik' => 'required',
+            'nik' => 'required|unique:administrations,nik,' . $id,
             'class' => 'required',
             'doh' => 'required',
             'poh' => 'required',

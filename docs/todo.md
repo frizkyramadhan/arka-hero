@@ -44,6 +44,7 @@ Include relevant context in brackets to help with future AI-assisted coding:
 
 ## Working On Now
 
+-   `[done] P1: Implement interview type validation to prevent duplicate interviews for same type [app/Http/Controllers/RecruitmentSessionController.php, app/Models/RecruitmentSession.php, resources/views/recruitment/sessions/partials/modals.blade.php, JavaScript validation, database unique constraint enforcement] (completed: 2025-01-27)`
 -   `[WIP] P1: Complete recruitment system integration [recruitment candidates, sessions, requests]`
 -   `[WIP] P1: Implement approval stage restructure to separated tables [service layer, testing, deployment]`
 -   `[done] P1: Execute database migrations for approval stage restructure [database structure updated successfully] (completed: 2025-01-15)`
@@ -74,6 +75,8 @@ Include relevant context in brackets to help with future AI-assisted coding:
 
 ## Recently Completed
 
+-   `[done] P1: Merge onboarding stage into hiring stage - simplified workflow and removed onboarding complexity [database migration, controller updates, service updates, view updates, model updates] (completed: 2025-08-29)`
+-   `[done] P1: Remove department validation from recruitment hire stage and implement automatic department filling [app/Http/Controllers/RecruitmentSessionController.php, resources/views/recruitment/sessions/partials/modals.blade.php, JavaScript AJAX functionality, fixed jQuery error by moving script to @section('scripts'), enhanced validation with proper error messages and old data handling] (completed: 2025-01-27)`
 -   `[done] P1: Add new termination reasons "Efficiency" and "Passed Away" to all termination forms and validation [app/Imports/TerminationImport.php, modal-administration.blade.php, termination forms, database migration] (completed: 2025-01-27)`
 -   `[done] P1: Fix TaxImport date validation for Excel serial numbers [app/Imports/TaxImport.php, removed strict date validation, added Excel date range checking, enhanced error handling] (completed: 2024-12-19)`
 -   `[done] P1: Fix LicenseImport date validation for Excel serial numbers [app/Imports/LicenseImport.php, removed strict date validation, added Excel date range checking, enhanced error handling] (completed: 2024-12-19)`

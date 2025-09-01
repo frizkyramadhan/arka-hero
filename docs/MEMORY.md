@@ -2,6 +2,340 @@
 
 ## Recent Implementations & Learnings
 
+### 2025-01-28: Parallel Approval Information Enhancement
+
+**Context**: User requested enhancement to the approval information system to properly handle and display parallel approvals (same approval_order) versus sequential approvals.
+
+**Changes Made**:
+
+1. **Enhanced getCurrentApprovalInfo Method**:
+
+    - Modified `ApprovalRequestController::getCurrentApprovalInfo()` to detect parallel approvals
+    - Added logic to identify when multiple approvers have the same approval_order
+    - Enhanced waiting message to display all parallel approvers when applicable
+
+2. **Parallel Approval Detection**:
+
+    - Finds the minimum pending approval_order among all pending approvals
+    - Gets all approvers with the same current approval_order
+    - Detects if current step is parallel (multiple approvers) or sequential (single approver)
+
+3. **Improved Message Display**:
+    - **Sequential**: "Waiting for John Doe (Step 1)"
+    - **Parallel**: "Waiting for John Doe, Jane Smith and Bob Johnson (Step 2 - Parallel)"
+    - Uses proper grammar for multiple approver names (comma separation with "and")
+
+**Technical Implementation**:
+
+-   Added `is_parallel` and `parallel_approvers_count` to return array
+-   Enhanced approver name formatting for multiple approvers
+-   Added "Parallel" indicator in message when multiple approvers exist for same order
+-   Maintained backward compatibility with existing sequential approval logic
+
+**Benefits**:
+
+-   Clear distinction between sequential and parallel approval steps
+-   Better user understanding of approval workflow status
+-   Improved visibility for parallel approvals waiting status
+-   Enhanced user experience with detailed approval information
+
+**Files Modified**:
+
+-   `app/Http/Controllers/ApprovalRequestController.php` - Enhanced getCurrentApprovalInfo method
+
+### 2025-01-28: Bulk Approve Function Enhancement - Fixed Toast Issues
+
+**Context**: User reported "toastr is not defined" error in bulk approve functionality and requested proper validation and toast implementation using existing application toast system.
+
+**Issues Fixed**:
+
+1. **Toastr Library Conflict**: Application uses SweetAlert2 for notifications, but bulk approve was using undefined toastr library
+2. **Inconsistent Response Handling**: Controller was returning redirect responses instead of JSON for AJAX calls
+3. **Missing Validation Enhancement**: No selection validation needed improvement
+
+**Changes Made**:
+
+1. **Replaced Toastr with SweetAlert2**:
+
+    - Removed toastr CSS and JS includes from approval requests index view
+    - Updated all notification calls to use SweetAlert2 (`Swal.fire()`)
+    - Aligned with existing application toast system from `scripts.blade.php`
+
+2. **Enhanced Controller JSON Responses**:
+
+    - Updated `bulkApprove()` method to return JSON responses instead of redirects
+    - Added proper success/error JSON structure for AJAX handling
+    - Maintained transaction rollback and error logging functionality
+
+3. **Improved JavaScript Validation**:
+    - Enhanced no-selection validation with proper SweetAlert2 warning
+    - Added loading state with spinner during processing
+    - Improved confirmation dialog with better messaging
+    - Added detailed success/error handling with process details
+
+**Benefits**:
+
+-   Consistent toast system throughout application
+-   Better user experience with improved validation messages
+-   Proper AJAX response handling without page redirects
+-   Enhanced error reporting with detailed information
+-   Loading state feedback during bulk processing
+
+**Files Modified**:
+
+-   `app/Http/Controllers/ApprovalRequestController.php` - Updated bulkApprove method for JSON responses
+-   `resources/views/approval-requests/index.blade.php` - Replaced toastr with SweetAlert2, enhanced validation
+
+### 2025-01-28: Official Travel Display Synchronization in Approval Requests
+
+**Context**: User requested to synchronize the display and information layout for officialtravel documents in approval-requests show.blade.php to match the layout used in officialtravels show.blade.php for travel details, traveler, and followers sections.
+
+**Changes Made**:
+
+1. **Updated Travel Details Section**:
+
+    - Restructured info-grid to match officialtravels layout with 6 key information items
+    - Updated icons and styling to match original travel details format
+    - Added proper eager loading for all relationships to prevent N+1 queries
+
+2. **Added Dedicated Traveler Information Section**:
+
+    - Created separate traveler-info-card matching officialtravels layout
+    - Displays NIK-Name, Title, Business Unit, and Division/Department
+    - Uses consistent traveler-detail-item structure with icons and styling
+
+3. **Added Followers Section**:
+
+    - Added followers-info-card for accompanying travelers when they exist
+    - Shows detailed follower information including name, position, NIK, department, and project
+    - Includes followers count badge and scrollable list for multiple followers
+    - Maintains consistent styling with officialtravels followers display
+
+4. **Enhanced CSS Styling**:
+    - Added specific styles for traveler-info-card, traveler-details, and traveler-detail-item
+    - Added followers-info-card styling with proper scrollable list
+    - Updated info-grid to use 2-column layout matching officialtravels
+    - Added responsive adjustments for mobile view
+    - Aligned icon sizes, colors, and spacing with original officialtravel layout
+
+**Information Displayed**:
+
+**Travel Details**: Destination, Purpose, Duration, Departure Date, Transportation, Accommodation  
+**Traveler Info**: NIK-Name, Title, Business Unit, Division/Department  
+**Followers**: Complete list with names, positions, NIK, departments, and projects
+
+**Benefits**:
+
+-   Consistent user experience between approval and detail views
+-   Better information organization and readability
+-   Enhanced visual hierarchy with dedicated sections
+-   Improved data presentation for approval decision making
+-   Responsive design for all device sizes
+
+**Files Modified**:
+
+-   `resources/views/approval-requests/show.blade.php` - Complete officialtravel section redesign with traveler and followers sections
+
+### 2025-01-28: Layout Restructure - Moved Approval Sections to Right Column
+
+**Context**: User requested to move the "Approval Status" and "Approval Decision" sections to the right column for better layout organization.
+
+**Changes Made**:
+
+1. **Layout Restructure**:
+
+    - Moved "Approval Status" section from left column (col-lg-8) to right column (col-lg-4)
+    - "Approval Decision" section remains in right column below approval status
+    - Left column now contains only document details, traveler info, and followers info
+
+2. **Column Organization**:
+
+    - **Left Column**: Document Details, Traveler Information, Followers (if any)
+    - **Right Column**: Approval Status + Approval Decision sections stacked vertically
+
+3. **Improved Layout Flow**:
+    - Better separation of document information vs approval workflow
+    - More logical grouping of approval-related sections together
+    - Improved user experience with dedicated approval column
+
+**Benefits**:
+
+-   Better visual organization with approval sections grouped together
+-   More logical information hierarchy and flow
+-   Improved readability and user experience
+-   Better use of screen real estate
+
+**Files Modified**:
+
+-   `resources/views/approval-requests/show.blade.php` - Restructured layout columns
+
+### 2025-01-28: Recruitment Request Display Enhancement - Complete Layout Synchronization
+
+**Context**: User requested to synchronize the recruitment request display in `approval-requests/show.blade.php` with the comprehensive layout from `recruitment/requests/show.blade.php`.
+
+**Changes Made**:
+
+1. **Enhanced Info Grid**:
+
+    - Expanded from 4 items to 9 comprehensive information items
+    - Added Department, Project (with code), Position, Level, Required Quantity, Required Date, Employment Type, Request Reason, Theory Test Requirement
+    - Updated icons and colors to match source file
+    - Improved data formatting (project code + name, quantity with plural handling, full date format)
+
+2. **Job Description & Requirements Section**:
+
+    - Created dedicated requirements card with proper sectioning
+    - Added structured job description with section header and content styling
+    - Implemented basic requirements grid for Gender, Marital Status, Age Range, Education
+    - Added conditional display for optional requirements (age range, education)
+
+3. **Detailed Requirements Sections**:
+
+    - Added comprehensive sections for Skills, Experience, Physical, Mental, Other requirements
+    - Each section has dedicated icons and color coding
+    - Conditional display based on data availability
+    - Proper content formatting with background styling
+
+4. **Theory Test Requirement Enhancement**:
+
+    - Added detailed theory test section with alert-style displays
+    - Different styling for required (warning) vs not required (info) states
+    - Added explanatory content with bullet points for context
+    - Included background styling and proper spacing
+
+5. **CSS Styling Additions**:
+
+    - Added comprehensive CSS for requirements-grid, requirement-item, requirement-icon, requirement-content
+    - Added section-header, section-icon, section-title, section-content styling
+    - Added theory-test specific styling with alert color schemes
+    - Added responsive adjustments for mobile display
+    - Added detailed-requirements border and spacing
+
+6. **Layout Structure Maintained**:
+    - Kept approval status and decision in right column as requested
+    - Enhanced left column with comprehensive recruitment information
+    - Maintained responsive behavior for all device sizes
+
+**Benefits**:
+
+-   Complete visual and functional consistency with recruitment/requests/show.blade.php
+-   Enhanced information density and organization
+-   Better user experience with structured requirement display
+-   Improved readability with proper iconography and color coding
+-   Comprehensive theory test requirement explanation for better decision making
+-   Responsive design maintained across all breakpoints
+
+**Files Modified**:
+
+-   `resources/views/approval-requests/show.blade.php` - Complete recruitment request display enhancement with layout synchronization
+
+### 2025-01-28: UI Spacing Optimization - Reduced Padding for Better Layout
+
+**Context**: User requested to reduce padding in approval requests show page for more compact and efficient layout.
+
+**Changes Made**:
+
+1. **Header Spacing Reduction**:
+
+    - Reduced header height from 120px to 110px
+    - Reduced header padding from 20px 30px to 18px 25px
+    - Reduced header margin-bottom from 30px to 25px
+
+2. **Content Spacing Optimization**:
+
+    - Reduced document-content padding from 20px to 15px
+    - Reduced card-body padding from 20px to 15px
+    - Reduced card-head padding from 20px to 15px
+    - Reduced document-card margin-bottom from 30px to 20px
+
+3. **Grid Spacing Adjustment**:
+
+    - Reduced info-grid gap from 20px to 15px
+    - Reduced info-grid padding from 20px to 15px
+
+4. **Layout Structure Confirmation**:
+    - Verified that approval status and decision are properly positioned in right column (col-lg-4)
+    - Confirmed both official travel and recruitment request sections have approval sections in right column
+    - Layout structure is correct with document details in left column and approval workflow in right column
+
+**Benefits**:
+
+-   More compact and efficient use of screen space
+-   Better visual density without compromising readability
+-   Improved mobile responsiveness with optimized spacing
+-   Confirmed proper column organization for both document types
+
+**Files Modified**:
+
+-   `resources/views/approval-requests/show.blade.php` - UI spacing optimization and layout confirmation
+
+### 2025-01-28: Document Type Structure Separation - Clear Left Column Organization
+
+**Context**: User requested to properly separate the left column content between officialtravel and recruitment_request document types to eliminate confusion and improve code organization.
+
+**Changes Made**:
+
+1. **Document Type Structure Refactoring**:
+
+    - Moved `@if ($approvalPlan->document_type === 'officialtravel')` to the top level of left column
+    - Each document type now has its own dedicated card structure
+    - Eliminated nested document-info-card structure that was causing confusion
+
+2. **Official Travel Section**:
+
+    - Now has its own `document-card document-info-card` with title "Official Travel Details"
+    - Icon changed to `fas fa-plane` for better identification
+    - Contains: Travel Details, Traveler Information, Followers sections
+    - Proper closing structure with dedicated `@endif`
+
+3. **Recruitment Request Section**:
+
+    - Now has its own separate `document-card document-info-card` with title "FPTK Information"
+    - Icon set to `fas fa-user-tie` for recruitment identification
+    - Contains: FPTK Information grid + Job Description & Requirements card
+    - All indentation properly fixed for consistent code structure
+
+4. **Improved Code Organization**:
+
+    - Fixed all indentation issues throughout recruitment request sections
+    - Each section now has proper 4-space indentation hierarchy
+    - Clear separation between document types with no overlap
+    - Consistent structure pattern for both document types
+
+5. **Layout Structure**:
+    ```
+    Left Column (col-lg-8):
+    @if officialtravel
+      - Official Travel Details Card
+        - Travel Details Grid
+        - Traveler Information Card
+        - Followers Card (if any)
+    @elseif recruitment_request
+      - FPTK Information Card
+        - Enhanced Info Grid (9 items)
+      - Job Description & Requirements Card
+        - Job Description Section
+        - Basic Requirements Grid
+        - Detailed Requirements Sections
+        - Theory Test Section
+    @endif
+    ```
+
+**Benefits**:
+
+-   Clear structural separation between document types
+-   Improved code readability and maintainability
+-   Eliminated confusion between officialtravel and recruitment_request sections
+-   Consistent indentation and organization throughout
+-   Each document type has dedicated card structure with appropriate titles and icons
+-   Better developer experience for future modifications
+
+**Files Modified**:
+
+-   `resources/views/approval-requests/show.blade.php` - Complete document type structure separation and organization
+
+---
+
 ### 2025-01-27: Termination Reason Enhancement - Added "Efficiency" and "Passed Away"
 
 **Context**: User requested to add two new termination reasons: "Efficiency" and "Passed Away" to the existing termination system.

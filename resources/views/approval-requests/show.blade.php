@@ -35,149 +35,533 @@
             <div class="row">
                 <!-- Document Details -->
                 <div class="col-lg-8">
-                    <div class="document-card document-info-card">
-                        <div class="card-head">
-                            <h2><i class="fas fa-info-circle"></i> Document Details</h2>
-                        </div>
-                        <div class="card-body">
-                            @if ($approvalPlan->document_type === 'officialtravel')
-                                @php $document = App\Models\Officialtravel::find($approvalPlan->document_id); @endphp
+                    @if ($approvalPlan->document_type === 'officialtravel')
+                        <!-- Official Travel Document -->
+                        <div class="document-card document-info-card">
+                            <div class="card-head">
+                                <h2><i class="fas fa-plane"></i> Official Travel Details</h2>
+                            </div>
+                            <div class="card-body">
+                                @php $document = App\Models\Officialtravel::with(['traveler.employee', 'traveler.position.department', 'traveler.project', 'transportation', 'accommodation', 'details.follower.employee', 'details.follower.position.department', 'details.follower.project'])->find($approvalPlan->document_id); @endphp
+
+                                <!-- Travel Details -->
                                 <div class="info-grid">
                                     <div class="info-item">
                                         <div class="info-icon" style="background-color: #3498db;">
-                                            <i class="fas fa-user"></i>
-                                        </div>
-                                        <div class="info-content">
-                                            <div class="info-label">Main Traveler</div>
-                                            <div class="info-value">{{ $document->traveler->employee->fullname ?? 'N/A' }}
-                                            </div>
-                                            <div class="info-meta">
-                                                {{ $document->traveler->position->position_name ?? 'N/A' }}</div>
-                                        </div>
-                                    </div>
-
-                                    <div class="info-item">
-                                        <div class="info-icon" style="background-color: #e74c3c;">
                                             <i class="fas fa-map-marker-alt"></i>
                                         </div>
                                         <div class="info-content">
                                             <div class="info-label">Destination</div>
                                             <div class="info-value">{{ $document->destination }}</div>
-                                            <div class="info-meta">Duration: {{ $document->duration }}</div>
                                         </div>
                                     </div>
-
+                                    <div class="info-item">
+                                        <div class="info-icon" style="background-color: #e74c3c;">
+                                            <i class="fas fa-tasks"></i>
+                                        </div>
+                                        <div class="info-content">
+                                            <div class="info-label">Purpose</div>
+                                            <div class="info-value">{{ $document->purpose }}</div>
+                                        </div>
+                                    </div>
                                     <div class="info-item">
                                         <div class="info-icon" style="background-color: #f1c40f;">
-                                            <i class="fas fa-calendar-check"></i>
+                                            <i class="fas fa-clock"></i>
+                                        </div>
+                                        <div class="info-content">
+                                            <div class="info-label">Duration</div>
+                                            <div class="info-value">{{ $document->duration }}</div>
+                                        </div>
+                                    </div>
+                                    <div class="info-item">
+                                        <div class="info-icon" style="background-color: #9b59b6;">
+                                            <i class="fas fa-calendar-plus"></i>
                                         </div>
                                         <div class="info-content">
                                             <div class="info-label">Departure Date</div>
                                             <div class="info-value">
-                                                {{ date('d M Y', strtotime($document->departure_from)) }}</div>
-                                            <div class="info-meta">Expected Return: {{ $document->arrival_at_destination }}
-                                            </div>
+                                                {{ date('d F Y', strtotime($document->departure_from)) }}</div>
                                         </div>
                                     </div>
-
                                     <div class="info-item">
-                                        <div class="info-icon" style="background-color: #27ae60;">
-                                            <i class="fas fa-plane"></i>
+                                        <div class="info-icon" style="background-color: #1abc9c;">
+                                            <i class="fas fa-bus"></i>
                                         </div>
                                         <div class="info-content">
                                             <div class="info-label">Transportation</div>
                                             <div class="info-value">
                                                 {{ $document->transportation->transportation_name ?? 'N/A' }}</div>
-                                            <div class="info-meta">
+                                        </div>
+                                    </div>
+                                    <div class="info-item">
+                                        <div class="info-icon" style="background-color: #e67e22;">
+                                            <i class="fas fa-hotel"></i>
+                                        </div>
+                                        <div class="info-content">
+                                            <div class="info-label">Accommodation</div>
+                                            <div class="info-value">
                                                 {{ $document->accommodation->accommodation_name ?? 'N/A' }}</div>
                                         </div>
                                     </div>
                                 </div>
+                            </div>
+                        </div>
 
-                                <div class="purpose-section mt-4">
-                                    <h3><i class="fas fa-bullseye"></i> Travel Purpose</h3>
-                                    <div class="purpose-content">
-                                        {{ $document->purpose }}
-                                    </div>
-                                </div>
-
-                                @if ($document->details && $document->details->count() > 0)
-                                    <div class="additional-travelers mt-4">
-                                        <h3><i class="fas fa-users"></i> Accompanying Travelers</h3>
-                                        <div class="traveler-list">
-                                            @foreach ($document->details as $detail)
-                                                <div class="traveler-item">
-                                                    <i class="fas fa-user"></i>
-                                                    <span>{{ $detail->follower->employee->fullname ?? 'Unknown' }}</span>
-                                                </div>
-                                            @endforeach
+                        <!-- Traveler Information -->
+                        <div class="document-card traveler-info-card">
+                            <div class="card-head">
+                                <h2><i class="fas fa-user"></i> Traveler</h2>
+                            </div>
+                            <div class="card-body">
+                                <div class="traveler-details">
+                                    <div class="traveler-detail-item">
+                                        <i class="fas fa-id-card detail-icon"></i>
+                                        <div class="detail-content">
+                                            <div class="detail-label">NIK - Name</div>
+                                            <div class="detail-value">{{ $document->traveler->nik }} -
+                                                {{ $document->traveler->employee->fullname ?? 'Unknown Employee' }}</div>
                                         </div>
                                     </div>
-                                @endif
-                            @elseif($approvalPlan->document_type === 'recruitment_request')
-                                @php $document = App\Models\RecruitmentRequest::find($approvalPlan->document_id); @endphp
+                                    <div class="traveler-detail-item">
+                                        <i class="fas fa-sitemap detail-icon"></i>
+                                        <div class="detail-content">
+                                            <div class="detail-label">Title</div>
+                                            <div class="detail-value">
+                                                {{ $document->traveler->position->position_name ?? 'No Position' }}</div>
+                                        </div>
+                                    </div>
+                                    <div class="traveler-detail-item">
+                                        <i class="fas fa-globe detail-icon"></i>
+                                        <div class="detail-content">
+                                            <div class="detail-label">Business Unit</div>
+                                            <div class="detail-value">
+                                                {{ $document->traveler->project->project_code ?? 'No Code' }} :
+                                                {{ $document->traveler->project->project_name ?? 'No Project' }}</div>
+                                        </div>
+                                    </div>
+                                    <div class="traveler-detail-item">
+                                        <i class="fas fa-building detail-icon"></i>
+                                        <div class="detail-content">
+                                            <div class="detail-label">Division / Department</div>
+                                            <div class="detail-value">
+                                                {{ $document->traveler->position->department->department_name ?? 'No Department' }}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Followers List -->
+                        @if ($document->details && $document->details->isNotEmpty())
+                            <div class="document-card followers-info-card">
+                                <div class="card-head">
+                                    <h2><i class="fas fa-users"></i> Followers <span
+                                            class="followers-count">{{ $document->details->count() }}</span></h2>
+                                </div>
+                                <div class="card-body p-0">
+                                    <div class="followers-list">
+                                        @foreach ($document->details as $detail)
+                                            <div class="follower-item">
+                                                <div class="follower-info">
+                                                    <div class="follower-name">
+                                                        {{ $detail->follower->employee->fullname ?? 'Unknown Employee' }}
+                                                    </div>
+                                                    <div class="follower-position">
+                                                        {{ $detail->follower->position->position_name ?? 'No Position' }}
+                                                    </div>
+                                                    <div class="follower-meta">
+                                                        <span class="follower-nik"><i class="fas fa-id-card"></i>
+                                                            {{ $detail->follower->nik }}</span>
+                                                        <span class="follower-department"><i class="fas fa-sitemap"></i>
+                                                            {{ $detail->follower->position->department->department_name ?? 'No Department' }}</span>
+                                                    </div>
+                                                    <div class="follower-project">
+                                                        <i class="fas fa-project-diagram"></i>
+                                                        {{ $detail->follower->project->project_code ?? 'No Code' }} :
+                                                        {{ $detail->follower->project->project_name ?? 'No Project' }}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        @endforeach
+                                    </div>
+                                </div>
+                            </div>
+                        @endif
+                    @elseif($approvalPlan->document_type === 'recruitment_request')
+                        @php $document = App\Models\RecruitmentRequest::with(['department', 'project', 'position', 'level', 'createdBy'])->find($approvalPlan->document_id); @endphp
+
+                        <!-- FPTK Information Card -->
+                        <div class="document-card document-info-card">
+                            <div class="card-head">
+                                <h2><i class="fas fa-user-tie"></i> FPTK Information</h2>
+                            </div>
+                            <div class="card-body">
                                 <div class="info-grid">
                                     <div class="info-item">
                                         <div class="info-icon" style="background-color: #3498db;">
-                                            <i class="fas fa-user-tie"></i>
-                                        </div>
-                                        <div class="info-content">
-                                            <div class="info-label">Position Title</div>
-                                            <div class="info-value">{{ $document->position->position_name }}</div>
-                                            <div class="info-meta">Quantity: {{ $document->required_qty }}</div>
-                                        </div>
-                                    </div>
-
-                                    <div class="info-item">
-                                        <div class="info-icon" style="background-color: #e74c3c;">
                                             <i class="fas fa-building"></i>
                                         </div>
                                         <div class="info-content">
                                             <div class="info-label">Department</div>
-                                            <div class="info-value">{{ $document->department->department_name ?? 'N/A' }}
-                                            </div>
-                                            <div class="info-meta">{{ $document->project->project_name ?? 'N/A' }}</div>
+                                            <div class="info-value">{{ $document->department->department_name }}</div>
                                         </div>
                                     </div>
-
                                     <div class="info-item">
-                                        <div class="info-icon" style="background-color: #27ae60;">
+                                        <div class="info-icon" style="background-color: #e74c3c;">
+                                            <i class="fas fa-project-diagram"></i>
+                                        </div>
+                                        <div class="info-content">
+                                            <div class="info-label">Project</div>
+                                            <div class="info-value">{{ $document->project->project_code }} -
+                                                {{ $document->project->project_name }}</div>
+                                        </div>
+                                    </div>
+                                    <div class="info-item">
+                                        <div class="info-icon" style="background-color: #f1c40f;">
+                                            <i class="fas fa-user-tie"></i>
+                                        </div>
+                                        <div class="info-content">
+                                            <div class="info-label">Position</div>
+                                            <div class="info-value">{{ $document->position->position_name }}</div>
+                                        </div>
+                                    </div>
+                                    <div class="info-item">
+                                        <div class="info-icon" style="background-color: #9b59b6;">
                                             <i class="fas fa-layer-group"></i>
                                         </div>
                                         <div class="info-content">
                                             <div class="info-label">Level</div>
                                             <div class="info-value">{{ $document->level->name }}</div>
-                                            <div class="info-meta">Type: {{ $document->employment_type }}</div>
                                         </div>
                                     </div>
-
                                     <div class="info-item">
-                                        <div class="info-icon" style="background-color: #f1c40f;">
+                                        <div class="info-icon" style="background-color: #1abc9c;">
+                                            <i class="fas fa-users"></i>
+                                        </div>
+                                        <div class="info-content">
+                                            <div class="info-label">Required Quantity</div>
+                                            <div class="info-value">{{ $document->required_qty }}
+                                                {{ $document->required_qty > 1 ? 'persons' : 'person' }}</div>
+                                        </div>
+                                    </div>
+                                    <div class="info-item">
+                                        <div class="info-icon" style="background-color: #e67e22;">
                                             <i class="fas fa-calendar-check"></i>
                                         </div>
                                         <div class="info-content">
                                             <div class="info-label">Required Date</div>
                                             <div class="info-value">
-                                                {{ date('d M Y', strtotime($document->required_date)) }}</div>
-                                            <div class="info-meta">Reason:
+                                                {{ date('d F Y', strtotime($document->required_date)) }}</div>
+                                        </div>
+                                    </div>
+                                    <div class="info-item">
+                                        <div class="info-icon" style="background-color: #34495e;">
+                                            <i class="fas fa-briefcase"></i>
+                                        </div>
+                                        <div class="info-content">
+                                            <div class="info-label">Employment Type</div>
+                                            <div class="info-value">
+                                                {{ ucfirst(str_replace('_', ' ', $document->employment_type)) }}</div>
+                                        </div>
+                                    </div>
+                                    <div class="info-item">
+                                        <div class="info-icon" style="background-color: #2c3e50;">
+                                            <i class="fas fa-question-circle"></i>
+                                        </div>
+                                        <div class="info-content">
+                                            <div class="info-label">Request Reason</div>
+                                            <div class="info-value">
                                                 {{ $document->request_reason == 'other' ? $document->other_reason : ucfirst(str_replace('_', ' ', $document->request_reason)) }}
                                             </div>
                                         </div>
                                     </div>
+                                    <div class="info-item">
+                                        <div class="info-icon" style="background-color: #e91e63;">
+                                            <i class="fas fa-book"></i>
+                                        </div>
+                                        <div class="info-content">
+                                            <div class="info-label">Theory Test Requirement</div>
+                                            <div class="info-value">
+                                                @if ($document->requires_theory_test)
+                                                    <span class="badge badge-warning">
+                                                        <i class="fas fa-check-circle"></i> Required
+                                                    </span>
+                                                    <br><small class="text-muted">Posisi mekanik/teknis</small>
+                                                @else
+                                                    <span class="badge badge-secondary">
+                                                        <i class="fas fa-times-circle"></i> Not Required
+                                                    </span>
+                                                    <br><small class="text-muted">Posisi non-teknis</small>
+                                                @endif
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Job Description & Requirements -->
+                        <div class="document-card requirements-card">
+                            <div class="card-head">
+                                <h2><i class="fas fa-clipboard-list"></i> Job Description & Requirements</h2>
+                            </div>
+                            <div class="card-body">
+                                <!-- Job Description -->
+                                <div class="requirement-section">
+                                    <div class="section-header">
+                                        <div class="section-icon" style="background-color: #3498db;">
+                                            <i class="fas fa-clipboard-list"></i>
+                                        </div>
+                                        <div class="section-title">Job Description</div>
+                                    </div>
+                                    <div class="section-content">
+                                        {!! nl2br(e($document->job_description)) !!}
+                                    </div>
                                 </div>
 
-                                @if ($document->job_description)
-                                    <div class="purpose-section mt-4">
-                                        <h3><i class="fas fa-bullseye"></i> Job Description</h3>
-                                        <div class="purpose-content">
-                                            {{ $document->job_description }}
+                                <!-- Basic Requirements Grid -->
+                                <div class="requirements-grid">
+                                    <div class="requirement-item">
+                                        <div class="requirement-icon" style="background-color: #3498db;">
+                                            <i class="fas fa-venus-mars"></i>
+                                        </div>
+                                        <div class="requirement-content">
+                                            <div class="requirement-label">Gender</div>
+                                            <div class="requirement-value">{{ ucfirst($document->required_gender) }}</div>
+                                        </div>
+                                    </div>
+                                    <div class="requirement-item">
+                                        <div class="requirement-icon" style="background-color: #e74c3c;">
+                                            <i class="fas fa-heart"></i>
+                                        </div>
+                                        <div class="requirement-content">
+                                            <div class="requirement-label">Marital Status</div>
+                                            <div class="requirement-value">
+                                                {{ ucfirst($document->required_marital_status) }}</div>
+                                        </div>
+                                    </div>
+                                    @if ($document->required_age_min || $document->required_age_max)
+                                        <div class="requirement-item">
+                                            <div class="requirement-icon" style="background-color: #f1c40f;">
+                                                <i class="fas fa-birthday-cake"></i>
+                                            </div>
+                                            <div class="requirement-content">
+                                                <div class="requirement-label">Age Range</div>
+                                                <div class="requirement-value">
+                                                    @if ($document->required_age_min && $document->required_age_max)
+                                                        {{ $document->required_age_min }} -
+                                                        {{ $document->required_age_max }} years
+                                                    @elseif($document->required_age_min)
+                                                        Min {{ $document->required_age_min }} years
+                                                    @elseif($document->required_age_max)
+                                                        Max {{ $document->required_age_max }} years
+                                                    @endif
+                                                </div>
+                                            </div>
+                                        </div>
+                                    @endif
+                                    @if ($document->required_education)
+                                        <div class="requirement-item">
+                                            <div class="requirement-icon" style="background-color: #9b59b6;">
+                                                <i class="fas fa-graduation-cap"></i>
+                                            </div>
+                                            <div class="requirement-content">
+                                                <div class="requirement-label">Education</div>
+                                                <div class="requirement-value">{{ $document->required_education }}</div>
+                                            </div>
+                                        </div>
+                                    @endif
+                                </div>
+
+                                <!-- Detailed Requirements -->
+                                @if (
+                                    $document->required_skills ||
+                                        $document->required_experience ||
+                                        $document->required_physical ||
+                                        $document->required_mental ||
+                                        $document->other_requirements)
+                                    <div class="detailed-requirements">
+                                        @if ($document->required_skills)
+                                            <div class="requirement-section">
+                                                <div class="section-header">
+                                                    <div class="section-icon" style="background-color: #e67e22;">
+                                                        <i class="fas fa-tools"></i>
+                                                    </div>
+                                                    <div class="section-title">Required Skills</div>
+                                                </div>
+                                                <div class="section-content">{{ $document->required_skills }}</div>
+                                            </div>
+                                        @endif
+
+                                        @if ($document->required_experience)
+                                            <div class="requirement-section">
+                                                <div class="section-header">
+                                                    <div class="section-icon" style="background-color: #27ae60;">
+                                                        <i class="fas fa-briefcase"></i>
+                                                    </div>
+                                                    <div class="section-title">Required Experience</div>
+                                                </div>
+                                                <div class="section-content">{{ $document->required_experience }}</div>
+                                            </div>
+                                        @endif
+
+                                        @if ($document->required_physical)
+                                            <div class="requirement-section">
+                                                <div class="section-header">
+                                                    <div class="section-icon" style="background-color: #f39c12;">
+                                                        <i class="fas fa-dumbbell"></i>
+                                                    </div>
+                                                    <div class="section-title">Physical Requirements</div>
+                                                </div>
+                                                <div class="section-content">{{ $document->required_physical }}</div>
+                                            </div>
+                                        @endif
+
+                                        @if ($document->required_mental)
+                                            <div class="requirement-section">
+                                                <div class="section-header">
+                                                    <div class="section-icon" style="background-color: #8e44ad;">
+                                                        <i class="fas fa-brain"></i>
+                                                    </div>
+                                                    <div class="section-title">Mental Requirements</div>
+                                                </div>
+                                                <div class="section-content">{{ $document->required_mental }}</div>
+                                            </div>
+                                        @endif
+
+                                        @if ($document->other_requirements)
+                                            <div class="requirement-section">
+                                                <div class="section-header">
+                                                    <div class="section-icon" style="background-color: #34495e;">
+                                                        <i class="fas fa-plus-circle"></i>
+                                                    </div>
+                                                    <div class="section-title">Other Requirements</div>
+                                                </div>
+                                                <div class="section-content">{{ $document->other_requirements }}</div>
+                                            </div>
+                                        @endif
+
+                                        <!-- Theory Test Requirement Section -->
+                                        <div class="requirement-section">
+                                            <div class="section-header">
+                                                <div class="section-icon" style="background-color: #e91e63;">
+                                                    <i class="fas fa-book"></i>
+                                                </div>
+                                                <div class="section-title">Theory Test Requirement</div>
+                                            </div>
+                                            <div class="section-content">
+                                                @if ($document->requires_theory_test)
+                                                    <div class="theory-test-required">
+                                                        <div class="alert alert-warning mb-0">
+                                                            <i class="fas fa-exclamation-triangle"></i>
+                                                            <strong>Posisi ini memerlukan Tes Teori</strong>
+                                                        </div>
+                                                        <div class="theory-test-details mt-3">
+                                                            <p class="mb-2"><strong>Alasan:</strong></p>
+                                                            <ul class="mb-0">
+                                                                <li>Posisi mekanik yang memerlukan kompetensi teknis</li>
+                                                                <li>Kandidat harus lulus tes teori sebelum interview</li>
+                                                                <li>Stage tes teori akan muncul di timeline recruitment</li>
+                                                            </ul>
+                                                        </div>
+                                                    </div>
+                                                @else
+                                                    <div class="theory-test-not-required">
+                                                        <div class="alert alert-info mb-0">
+                                                            <i class="fas fa-info-circle"></i>
+                                                            <strong>Posisi ini tidak memerlukan Tes Teori</strong>
+                                                        </div>
+                                                        <div class="theory-test-details mt-3">
+                                                            <p class="mb-2"><strong>Alasan:</strong></p>
+                                                            <ul class="mb-0">
+                                                                <li>Posisi non-teknis yang tidak memerlukan kompetensi
+                                                                    mekanik</li>
+                                                                <li>Kandidat langsung ke interview setelah psikotes</li>
+                                                                <li>Stage tes teori akan di-skip di timeline recruitment
+                                                                </li>
+                                                            </ul>
+                                                        </div>
+                                                    </div>
+                                                @endif
+                                            </div>
                                         </div>
                                     </div>
                                 @endif
-                            @endif
+                            </div>
+                        </div>
+                    @endif
+                </div>
+
+                <!-- Approval Form goes here-->
+
+                <!-- Approval Form -->
+                <div class="col-lg-4">
+                    <!-- Approval Decision -->
+                    <div class="document-card approval-card">
+                        <div class="card-head">
+                            <h2><i class="fas fa-user-shield"></i> Approval Decision</h2>
+                        </div>
+                        <div class="card-body">
+                            <!-- Decision Buttons -->
+                            <div class="decision-buttons mb-4">
+                                <div class="decision-header">
+                                    <h3>Choose Your Decision</h3>
+                                    <p>Select one of the options below to proceed</p>
+                                </div>
+                                <div class="decision-options">
+                                    <button type="button" class="decision-btn approve-btn" data-status="1">
+                                        <div class="btn-icon">
+                                            <i class="fas fa-check-circle"></i>
+                                        </div>
+                                        <div class="btn-content">
+                                            <div class="btn-title">Approve</div>
+                                        </div>
+                                    </button>
+                                    <button type="button" class="decision-btn reject-btn" data-status="2">
+                                        <div class="btn-icon">
+                                            <i class="fas fa-times-circle"></i>
+                                        </div>
+                                        <div class="btn-content">
+                                            <div class="btn-title">Reject</div>
+                                        </div>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Approval Form -->
+                            <form action="{{ route('approval.requests.process', $approvalPlan->id) }}" method="POST"
+                                id="approvalForm">
+                                @csrf
+                                <input type="hidden" name="status" id="status" value="">
+
+                                <div class="form-group">
+                                    <label for="remarks">Approval Notes <span class="text-danger">*</span></label>
+                                    <textarea class="form-control @error('remarks') is-invalid @enderror" name="remarks" id="remarks" rows="4"
+                                        placeholder="Please provide your approval details:
+• Decision rationale
+• Any conditions or requirements
+• Additional notes or observations"
+                                        required>{{ old('remarks') }}</textarea>
+                                    @error('remarks')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                    @enderror
+                                </div>
+
+                                <div class="form-actions">
+                                    <button type="submit" class="btn btn-success btn-block submit-btn" disabled>
+                                        <i class="fas fa-paper-plane"></i>
+                                        Submit Decision
+                                    </button>
+                                    <a href="{{ route('approval.requests.index') }}"
+                                        class="btn btn-secondary btn-block mt-2">
+                                        <i class="fas fa-times"></i>
+                                        Cancel
+                                    </a>
+                                </div>
+                            </form>
                         </div>
                     </div>
-
                     <!-- Approval Status -->
                     <div class="document-card approval-status-card">
                         <div class="card-head">
@@ -209,10 +593,6 @@
                                                 @elseif($approvalPlan->document_type === 'recruitment_request')
                                                     {{ $document->submit_at ? date('d M Y H:i', strtotime($document->submit_at)) : 'N/A' }}
                                                 @endif
-                                            </span>
-                                            <span class="submit-status">
-                                                <i class="fas fa-clock"></i>
-                                                Pending Approval
                                             </span>
                                         </div>
                                     </div>
@@ -370,76 +750,9 @@ if ($plan->status === 1) {
                         </div>
                     </div>
                 </div>
-
-                <!-- Approval Form -->
-                <div class="col-lg-4">
-                    <div class="document-card approval-card">
-                        <div class="card-head">
-                            <h2><i class="fas fa-user-shield"></i> Approval Decision</h2>
-                        </div>
-                        <div class="card-body">
-                            <!-- Decision Buttons -->
-                            <div class="decision-buttons mb-4">
-                                <div class="decision-header">
-                                    <h3>Choose Your Decision</h3>
-                                    <p>Select one of the options below to proceed</p>
-                                </div>
-                                <div class="decision-options">
-                                    <button type="button" class="decision-btn approve-btn" data-status="1">
-                                        <div class="btn-icon">
-                                            <i class="fas fa-check-circle"></i>
-                                        </div>
-                                        <div class="btn-content">
-                                            <div class="btn-title">Approve</div>
-                                        </div>
-                                    </button>
-                                    <button type="button" class="decision-btn reject-btn" data-status="2">
-                                        <div class="btn-icon">
-                                            <i class="fas fa-times-circle"></i>
-                                        </div>
-                                        <div class="btn-content">
-                                            <div class="btn-title">Reject</div>
-                                        </div>
-                                    </button>
-                                </div>
-                            </div>
-
-                            <!-- Approval Form -->
-                            <form action="{{ route('approval.requests.process', $approvalPlan->id) }}" method="POST"
-                                id="approvalForm">
-                                @csrf
-                                <input type="hidden" name="status" id="status" value="">
-
-                                <div class="form-group">
-                                    <label for="remarks">Approval Notes <span class="text-danger">*</span></label>
-                                    <textarea class="form-control @error('remarks') is-invalid @enderror" name="remarks" id="remarks" rows="4"
-                                        placeholder="Please provide your approval details:
-• Decision rationale
-• Any conditions or requirements
-• Additional notes or observations"
-                                        required>{{ old('remarks') }}</textarea>
-                                    @error('remarks')
-                                        <div class="invalid-feedback">{{ $message }}</div>
-                                    @enderror
-                                </div>
-
-                                <div class="form-actions">
-                                    <button type="submit" class="btn btn-success btn-block submit-btn" disabled>
-                                        <i class="fas fa-paper-plane"></i>
-                                        Submit Decision
-                                    </button>
-                                    <a href="{{ route('approval.requests.index') }}"
-                                        class="btn btn-secondary btn-block mt-2">
-                                        <i class="fas fa-times"></i>
-                                        Cancel
-                                    </a>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
-                </div>
             </div>
         </div>
+    </div>
     </div>
 @endsection
 
@@ -454,10 +767,10 @@ if ($plan->status === 1) {
         /* Header */
         .document-header {
             position: relative;
-            height: 120px;
+            height: 110px;
             color: white;
-            padding: 20px 30px;
-            margin-bottom: 30px;
+            padding: 18px 25px;
+            margin-bottom: 25px;
             background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
         }
@@ -509,14 +822,14 @@ if ($plan->status === 1) {
 
         /* Content Styles */
         .document-content {
-            padding: 0 20px;
+            padding: 0 15px;
         }
 
         .document-card {
             background: white;
             border-radius: 10px;
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-            margin-bottom: 30px;
+            margin-bottom: 20px;
         }
 
         .approval-status-card {
@@ -631,7 +944,7 @@ if ($plan->status === 1) {
         }
 
         .card-head {
-            padding: 20px;
+            padding: 15px;
             border-bottom: 1px solid #eee;
         }
 
@@ -642,32 +955,32 @@ if ($plan->status === 1) {
         }
 
         .card-body {
-            padding: 20px;
+            padding: 15px;
         }
 
         .info-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            padding: 15px;
         }
 
         .info-item {
             display: flex;
-            align-items: center;
-            padding: 15px;
-            background: #f8f9fa;
-            border-radius: 8px;
+            align-items: flex-start;
+            gap: 12px;
         }
 
         .info-icon {
-            width: 45px;
-            height: 45px;
-            border-radius: 50%;
+            width: 32px;
+            height: 32px;
+            border-radius: 4px;
             display: flex;
             align-items: center;
             justify-content: center;
-            margin-right: 15px;
             color: white;
+            font-size: 14px;
+            background-color: #3498db;
         }
 
         .info-content {
@@ -675,14 +988,14 @@ if ($plan->status === 1) {
         }
 
         .info-label {
-            color: #666;
-            font-size: 0.9rem;
-            margin-bottom: 5px;
+            font-size: 12px;
+            color: #777;
+            margin-bottom: 4px;
         }
 
         .info-value {
             font-weight: 600;
-            color: #2c3e50;
+            color: #333;
         }
 
         .info-meta {
@@ -727,6 +1040,114 @@ if ($plan->status === 1) {
             display: flex;
             align-items: center;
             gap: 10px;
+        }
+
+        /* Traveler Info Card Styles */
+        .traveler-info-card {
+            overflow: hidden;
+        }
+
+        .traveler-details {
+            padding: 15px;
+        }
+
+        .traveler-detail-item {
+            display: flex;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid #edf2f7;
+        }
+
+        .traveler-detail-item:last-child {
+            border-bottom: none;
+        }
+
+        .detail-icon {
+            color: #3498db;
+            margin-right: 12px;
+            font-size: 16px;
+        }
+
+        .detail-content {
+            flex: 1;
+        }
+
+        .detail-label {
+            font-size: 12px;
+            color: #777;
+            margin-bottom: 4px;
+        }
+
+        .detail-value {
+            font-weight: 600;
+            color: #333;
+        }
+
+        /* Followers Info Card Styles */
+        .followers-info-card {
+            overflow: hidden;
+        }
+
+        .followers-count {
+            background: #3498db;
+            color: white;
+            font-size: 14px;
+            border-radius: 4px;
+            padding: 2px 8px;
+            margin-left: 8px;
+        }
+
+        .followers-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .follower-item {
+            padding: 15px;
+            border-bottom: 1px solid #edf2f7;
+        }
+
+        .follower-name {
+            font-size: 16px;
+            font-weight: 500;
+            color: #2c3e50;
+            margin-bottom: 4px;
+        }
+
+        .follower-position {
+            font-size: 15px;
+            color: #64748b;
+            margin-bottom: 6px;
+        }
+
+        .follower-meta {
+            display: flex;
+            gap: 15px;
+            font-size: 14px;
+            color: #64748b;
+            margin-bottom: 6px;
+        }
+
+        .follower-nik,
+        .follower-department {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .follower-project {
+            font-size: 14px;
+            color: #64748b;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .follower-meta i,
+        .follower-project i {
+            font-size: 14px;
+            width: 16px;
+            text-align: center;
         }
 
         /* Status Grid */
@@ -1293,6 +1714,7 @@ if ($plan->status === 1) {
 
             .info-grid {
                 grid-template-columns: 1fr;
+                padding: 15px;
             }
 
             .status-grid {
@@ -1303,9 +1725,154 @@ if ($plan->status === 1) {
                 grid-template-columns: 1fr;
             }
 
+            .followers-list {
+                max-height: 300px;
+            }
+
+            .info-grid {
+                grid-template-columns: 1fr;
+                padding: 15px;
+            }
+
             .decision-options {
                 grid-template-columns: 1fr 1fr;
             }
+
+            .requirements-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Requirements Card */
+        .requirements-card {
+            margin-top: 20px;
+        }
+
+        /* Requirements Grid */
+        .requirements-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .requirement-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+        }
+
+        .requirement-icon {
+            width: 28px;
+            height: 28px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 12px;
+        }
+
+        .requirement-content {
+            flex: 1;
+        }
+
+        .requirement-label {
+            font-size: 13px;
+            color: #777;
+            margin-bottom: 2px;
+        }
+
+        .requirement-value {
+            font-weight: 600;
+            color: #333;
+            font-size: 14px;
+        }
+
+        /* Section Headers for Requirements */
+        .section-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .section-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 14px;
+        }
+
+        .section-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .section-content {
+            font-size: 14px;
+            line-height: 1.6;
+            color: #333;
+            background-color: #ffffff;
+            padding: 15px;
+            border-radius: 4px;
+            border: 1px solid #e9ecef;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        }
+
+        .requirement-section {
+            margin-bottom: 20px;
+        }
+
+        .requirement-section:last-child {
+            margin-bottom: 0;
+        }
+
+        .detailed-requirements {
+            border-top: 1px solid #e9ecef;
+            padding-top: 20px;
+        }
+
+        /* Theory Test Requirement Styling */
+        .theory-test-required .alert-warning {
+            background-color: #fff3cd;
+            border-color: #ffeaa7;
+            color: #856404;
+        }
+
+        .theory-test-not-required .alert-info {
+            background-color: #d1ecf1;
+            border-color: #bee5eb;
+            color: #0c5460;
+        }
+
+        .theory-test-details {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 4px;
+            border-left: 4px solid #e9ecef;
+        }
+
+        .theory-test-details ul {
+            margin-bottom: 0;
+            padding-left: 20px;
+        }
+
+        .theory-test-details li {
+            margin-bottom: 5px;
+            color: #495057;
+        }
+
+        .theory-test-details li:last-child {
+            margin-bottom: 0;
         }
     </style>
 @endsection

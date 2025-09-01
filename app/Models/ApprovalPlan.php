@@ -55,12 +55,17 @@ class ApprovalPlan extends Model
     // Check if this approval can be processed (sequential validation)
     public function canBeProcessed()
     {
-        // Jika tidak ada approval stage atau bukan sequential, langsung bisa diproses
-        if (!$this->approvalStage || !$this->approvalStage->is_sequential) {
+        // If no approval stage found, allow processing
+        if (!$this->approvalStage) {
             return true;
         }
 
-        // Check if previous approvals are completed
+        // If approval_order is null or empty, allow processing (fallback)
+        if (empty($this->approval_order)) {
+            return true;
+        }
+
+        // Check if previous approvals are completed based on approval_order
         $previousApprovals = static::where('document_id', $this->document_id)
             ->where('document_type', $this->document_type)
             ->where('approval_order', '<', $this->approval_order)
@@ -69,6 +74,8 @@ class ApprovalPlan extends Model
 
         $expectedPrevious = $this->approval_order - 1;
 
+        // If previous orders are completed, this order can be processed
+        // Multiple steps with same approval_order can be processed in parallel
         return $previousApprovals >= $expectedPrevious;
     }
 

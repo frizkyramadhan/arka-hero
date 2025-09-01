@@ -500,13 +500,13 @@
                             <p>Approval Stages</p>
                         </a>
                     </li>
-                    <li class="nav-item">
+                    {{-- <li class="nav-item">
                         <a href="{{ route('debug.index') }}"
                             class="nav-link {{ Request::is('debug*') ? 'active' : '' }}">
                             <i class="nav-icon fas fa-bug"></i>
                             <p>Debug Tools</p>
                         </a>
-                    </li>
+                    </li> --}}
                 @endcanany
             </ul>
         </nav>

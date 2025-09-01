@@ -12,7 +12,7 @@ use App\Models\RecruitmentInterview;
 use App\Models\RecruitmentOffering;
 use App\Models\RecruitmentMcu;
 use App\Models\RecruitmentHiring;
-use App\Models\RecruitmentOnboarding;
+
 use App\Models\User;
 use App\Services\RecruitmentLetterNumberService;
 use Illuminate\Support\Facades\DB;
@@ -75,7 +75,7 @@ class RecruitmentSessionService
                 'current_stage' => 'cv_review',
                 'stage_status' => 'pending',
                 'stage_started_at' => now(),
-                'overall_progress' => 10, // CV Review = 10%
+                'overall_progress' => 14.3, // CV Review = 14.3% (will be adjusted based on theory test requirement)
                 'status' => 'in_process',
                 'responsible_person_id' => $data['responsible_person_id'] ?? null,
             ]);
@@ -236,7 +236,7 @@ class RecruitmentSessionService
                 'offering' => 'Offering',
                 'mcu' => 'MCU',
                 'hire' => 'Hire',
-                'onboarding' => 'Onboarding'
+
             ];
 
             $currentStageName = $stageNames[$session->current_stage] ?? $session->current_stage;
@@ -296,7 +296,7 @@ class RecruitmentSessionService
                 'stage_status' => 'pending',
                 'stage_started_at' => now(),
                 'stage_completed_at' => null,
-                'overall_progress' => RecruitmentSession::STAGE_PROGRESS[$nextStage],
+                'overall_progress' => $session->getAdjustedStageProgress()[$nextStage] ?? 0,
                 'responsible_person_id' => $data['responsible_person_id'] ?? null,
             ]);
 
@@ -373,8 +373,7 @@ class RecruitmentSessionService
                 case 'hire':
                     return $this->processHireAssessment($session, $assessmentData);
 
-                case 'onboarding':
-                    return $this->processOnboardingAssessment($session, $assessmentData);
+
 
                 default:
                     // For other stages, just log the data
@@ -460,16 +459,17 @@ class RecruitmentSessionService
         $session->update([
             'stage_status' => 'completed',
             'stage_completed_at' => now(),
+            'overall_progress' => $session->calculateActualProgress(),
         ]);
 
         // Automatically advance to next stage (psikotes)
-        $nextStage = $this->getNextStage($session->current_stage);
+        $nextStage = $session->getNextStageAttribute();
         if ($nextStage) {
             $session->update([
                 'current_stage' => $nextStage,
                 'stage_status' => 'pending',
                 'stage_started_at' => now(),
-                'overall_progress' => RecruitmentSession::STAGE_PROGRESS[$nextStage],
+                'overall_progress' => $session->calculateActualProgress(),
             ]);
 
             return [
@@ -569,16 +569,17 @@ class RecruitmentSessionService
         $session->update([
             'stage_status' => 'completed',
             'stage_completed_at' => now(),
+            'overall_progress' => $session->calculateActualProgress(),
         ]);
 
         // Automatically advance to next stage (tes teori)
-        $nextStage = $this->getNextStage($session->current_stage);
+        $nextStage = $session->getNextStageAttribute();
         if ($nextStage) {
             $session->update([
                 'current_stage' => $nextStage,
                 'stage_status' => 'pending',
                 'stage_started_at' => now(),
-                'overall_progress' => RecruitmentSession::STAGE_PROGRESS[$nextStage],
+                'overall_progress' => $session->calculateActualProgress(),
             ]);
 
             return [
@@ -660,16 +661,17 @@ class RecruitmentSessionService
         $session->update([
             'stage_status' => 'completed',
             'stage_completed_at' => now(),
+            'overall_progress' => $session->calculateActualProgress(),
         ]);
 
         // Automatically advance to next stage (interview HR)
-        $nextStage = $this->getNextStage($session->current_stage);
+        $nextStage = $session->getNextStageAttribute();
         if ($nextStage) {
             $session->update([
                 'current_stage' => $nextStage,
                 'stage_status' => 'pending',
                 'stage_started_at' => now(),
-                'overall_progress' => RecruitmentSession::STAGE_PROGRESS[$nextStage],
+                'overall_progress' => $session->calculateActualProgress(),
             ]);
 
             return [
@@ -750,16 +752,17 @@ class RecruitmentSessionService
         $session->update([
             'stage_status' => 'completed',
             'stage_completed_at' => now(),
+            'overall_progress' => $session->calculateActualProgress(),
         ]);
 
         // Automatically advance to next stage (interview user)
-        $nextStage = $this->getNextStage($session->current_stage);
+        $nextStage = $session->getNextStageAttribute();
         if ($nextStage) {
             $session->update([
                 'current_stage' => $nextStage,
                 'stage_status' => 'pending',
                 'stage_started_at' => now(),
-                'overall_progress' => RecruitmentSession::STAGE_PROGRESS[$nextStage],
+                'overall_progress' => $session->calculateActualProgress(),
             ]);
 
             return [
@@ -840,16 +843,17 @@ class RecruitmentSessionService
         $session->update([
             'stage_status' => 'completed',
             'stage_completed_at' => now(),
+            'overall_progress' => $session->calculateActualProgress(),
         ]);
 
         // Automatically advance to next stage (offering)
-        $nextStage = $this->getNextStage($session->current_stage);
+        $nextStage = $session->getNextStageAttribute();
         if ($nextStage) {
             $session->update([
                 'current_stage' => $nextStage,
                 'stage_status' => 'pending',
                 'stage_started_at' => now(),
-                'overall_progress' => RecruitmentSession::STAGE_PROGRESS[$nextStage],
+                'overall_progress' => $session->calculateActualProgress(),
             ]);
 
             return [
@@ -929,16 +933,17 @@ class RecruitmentSessionService
         $session->update([
             'stage_status' => 'completed',
             'stage_completed_at' => now(),
+            'overall_progress' => $session->calculateActualProgress(),
         ]);
 
         // Automatically advance to next stage (hire)
-        $nextStage = $this->getNextStage($session->current_stage);
+        $nextStage = $session->getNextStageAttribute();
         if ($nextStage) {
             $session->update([
                 'current_stage' => $nextStage,
                 'stage_status' => 'pending',
                 'stage_started_at' => now(),
-                'overall_progress' => RecruitmentSession::STAGE_PROGRESS[$nextStage],
+                'overall_progress' => $session->calculateActualProgress(),
             ]);
 
             return [
@@ -1019,16 +1024,17 @@ class RecruitmentSessionService
         $session->update([
             'stage_status' => 'completed',
             'stage_completed_at' => now(),
+            'overall_progress' => $session->calculateActualProgress(),
         ]);
 
         // Automatically advance to next stage (mcu)
-        $nextStage = $this->getNextStage($session->current_stage);
+        $nextStage = $session->getNextStageAttribute();
         if ($nextStage) {
             $session->update([
                 'current_stage' => $nextStage,
                 'stage_status' => 'pending',
                 'stage_started_at' => now(),
-                'overall_progress' => RecruitmentSession::STAGE_PROGRESS[$nextStage],
+                'overall_progress' => $session->calculateActualProgress(),
             ]);
 
             return [
@@ -1088,26 +1094,23 @@ class RecruitmentSessionService
         $session->update([
             'stage_status' => 'completed',
             'stage_completed_at' => now(),
+            'overall_progress' => $session->calculateActualProgress(),
         ]);
 
-        // Automatically advance to next stage (onboarding)
-        $nextStage = $this->getNextStage($session->current_stage);
-        if ($nextStage) {
-            $session->update([
-                'current_stage' => $nextStage,
-                'stage_status' => 'pending',
-                'stage_started_at' => now(),
-                // Keep progress at 'hire' while waiting for onboarding completion
-                'overall_progress' => RecruitmentSession::STAGE_PROGRESS['hire'],
-            ]);
+        // Mark stage as completed and complete the session
+        $session->update([
+            'status' => 'hired',
+            'final_decision_date' => now(),
+            'final_decision_by' => auth()->id(),
+            'final_decision_notes' => 'Hire completed successfully',
+            'overall_progress' => 100.0,
+        ]);
 
-            return [
-                'success' => true,
-                'message' => 'Hire assessment completed successfully. Candidate hired and advanced to Onboarding stage.',
-                'auto_advanced' => true,
-                'next_stage' => $nextStage
-            ];
-        }
+        return [
+            'success' => true,
+            'message' => 'Hire assessment completed successfully. Candidate hired and recruitment session completed.',
+            'session_completed' => true
+        ];
 
         return [
             'success' => true,
@@ -1122,53 +1125,7 @@ class RecruitmentSessionService
      * @param array $assessmentData
      * @return array
      */
-    protected function processOnboardingAssessment(RecruitmentSession $session, array $assessmentData): array
-    {
-        $status = $assessmentData['status'] ?? null;
 
-        if (!$status) {
-            return [
-                'success' => false,
-                'message' => 'Invalid onboarding assessment data. Status is required.'
-            ];
-        }
-
-        // Create or update onboarding assessment
-        $onboarding = $session->onboarding;
-        if (!$onboarding) {
-            $onboarding = RecruitmentOnboarding::create([
-                'session_id' => $session->id,
-                'onboarding_date' => $assessmentData['onboarding_date'] ?? now()->toDateString(),
-                'notes' => $assessmentData['notes'] ?? null,
-                'reviewed_by' => auth()->id(),
-                'reviewed_at' => $assessmentData['reviewed_at'] ?? now(),
-            ]);
-        } else {
-            $onboarding->update([
-                'onboarding_date' => $assessmentData['onboarding_date'] ?? now()->toDateString(),
-                'notes' => $assessmentData['notes'] ?? null,
-                'reviewed_by' => auth()->id(),
-                'reviewed_at' => $assessmentData['reviewed_at'] ?? now(),
-            ]);
-        }
-
-        // Mark stage as completed and complete the session
-        $session->update([
-            'stage_status' => 'completed',
-            'stage_completed_at' => now(),
-            'status' => 'hired',
-            'final_decision_date' => now(),
-            'final_decision_by' => auth()->id(),
-            'final_decision_notes' => 'Onboarding completed successfully',
-            'overall_progress' => 100.0,
-        ]);
-
-        return [
-            'success' => true,
-            'message' => 'Onboarding assessment completed successfully. Recruitment session completed and candidate is fully hired.',
-            'session_completed' => true
-        ];
-    }
 
     /**
      * Reject session with reason
@@ -1235,7 +1192,7 @@ class RecruitmentSessionService
         try {
             // Update session to hired
             $session->update([
-                'current_stage' => 'onboarding',
+                'current_stage' => 'hire',
                 'stage_status' => 'completed',
                 'stage_completed_at' => now(),
                 'overall_progress' => 100,
@@ -1342,7 +1299,7 @@ class RecruitmentSessionService
             'offering',
             'mcu',
             'hiring',
-            'onboarding'
+
         ])->find($sessionId);
 
         if (!$session) {
@@ -1356,7 +1313,7 @@ class RecruitmentSessionService
             $stageData = [
                 'stage' => $stage,
                 'name' => $this->getStageDisplayName($stage),
-                'progress' => RecruitmentSession::STAGE_PROGRESS[$stage],
+                'progress' => $session->getAdjustedStageProgress()[$stage] ?? 0,
                 'target_hours' => RecruitmentSession::STAGE_DURATION_TARGETS[$stage],
                 'status' => 'pending',
                 'started_at' => null,
@@ -1457,12 +1414,10 @@ class RecruitmentSessionService
             'cv_review' => 'CV Review',
             'psikotes' => 'Psikotes',
             'tes_teori' => 'Tes Teori',
-            'interview_hr' => 'Interview HR',
-            'interview_user' => 'Interview User',
+            'interview' => 'Interview',
             'offering' => 'Offering',
             'mcu' => 'MCU',
             'hire' => 'Hire',
-            'onboarding' => 'Onboarding',
         ];
 
         return $names[$stage] ?? ucfirst(str_replace('_', ' ', $stage));
@@ -1476,16 +1431,16 @@ class RecruitmentSessionService
      */
     protected function getNextStage(string $currentStage): ?string
     {
+        // This method should use the model's getNextStageAttribute() instead
+        // For backward compatibility, we'll keep this but it should be deprecated
         $stageOrder = [
             'cv_review' => 'psikotes',
             'psikotes' => 'tes_teori',
-            'tes_teori' => 'interview_hr',
-            'interview_hr' => 'interview_user',
-            'interview_user' => 'offering',
+            'tes_teori' => 'interview', // Changed to unified interview stage
+            'interview' => 'offering',
             'offering' => 'mcu',
             'mcu' => 'hire',
-            'hire' => 'onboarding',
-            'onboarding' => null // Final stage
+            'hire' => null // Final stage
         ];
 
         return $stageOrder[$currentStage] ?? null;
@@ -1500,6 +1455,7 @@ class RecruitmentSessionService
     protected function getProgressForStage(string $stage): float
     {
         // Normalize to model-level single source of truth
-        return RecruitmentSession::STAGE_PROGRESS[$stage] ?? 0.0;
+        // This method should not be used anymore - use getAdjustedStageProgress() instead
+        return 0.0;
     }
 }

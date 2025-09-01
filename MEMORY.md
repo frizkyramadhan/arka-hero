@@ -1982,3 +1982,128 @@ Step 3: Order = 2 (Finance Manager) ← Can approve after Step 1 (parallel with 
 -   `resources/views/approval-stages/edit.blade.php`
 
 **Status**: ✅ COMPLETE - `is_sequential` column successfully removed, approval order functionality working perfectly
+
+### 2025-08-27: Enhanced Approval Request Show View
+
+**Objective**: Enhanced the approval request show view (`show.blade.php`) with comprehensive document details for both official travel and recruitment request, making it more compact and clean.
+
+**Changes Made**:
+
+1. **Enhanced Official Travel Details**:
+
+    - Added **Project & Department** information with building icon
+    - Added **Budget & Cost** details with money icon
+    - Enhanced **Travel Period** display (departure - arrival with total days)
+    - Added **Additional Information** section for notes and special requirements
+    - Improved **Accompanying Travelers** display with avatar and position info
+
+2. **Enhanced Recruitment Request Details**:
+
+    - Added **Requirements** section (education level, experience years)
+    - Added **Compensation** section (salary range, grade level)
+    - Enhanced **Timeline** with urgency level
+    - Added **Additional Requirements** section for skills and requirements
+    - Added **Business Justification** section for budget and business case
+
+3. **Improved UI/UX Design**:
+
+    - **Compact Grid Layout**: Changed from 250px to 280px minimum width for better content fit
+    - **Enhanced Info Items**: Added hover effects, better spacing, and visual hierarchy
+    - **Meta Badges**: Added colored badges for travel type, urgency, replacement status
+    - **Skill Badges**: Added green skill badges for required skills
+    - **Better Typography**: Improved font sizes, weights, and spacing
+    - **Visual Indicators**: Added border-left colors and hover effects
+
+4. **Responsive Design**:
+    - Grid layout adapts to different screen sizes
+    - Info items stack properly on mobile devices
+    - Consistent spacing and padding across all sections
+
+**Key Features Added**:
+
+**Official Travel**:
+
+-   Main traveler details with position
+-   Destination and duration
+-   Travel period (departure - arrival)
+-   Transportation and accommodation
+-   Project and department info
+-   Budget and cost center
+-   Travel purpose with type badges
+-   Accompanying travelers with avatars
+-   Additional notes and requirements
+
+**Recruitment Request**:
+
+-   Position details with level and quantity
+-   Organization (department and project)
+-   Employment details and contract type
+-   Timeline with urgency level
+-   Education and experience requirements
+-   Compensation range and grade level
+-   Job description with reason badges
+-   Required skills display
+-   Business justification
+
+**Benefits Achieved**:
+
+-   ✅ **Comprehensive Information**: All relevant document details displayed
+-   ✅ **Compact Design**: Better use of space with organized grid layout
+-   ✅ **Visual Hierarchy**: Clear separation of information with icons and colors
+-   ✅ **Better UX**: Hover effects, badges, and improved readability
+-   ✅ **Consistent Styling**: Unified design language across all sections
+-   ✅ **Responsive Layout**: Works well on all device sizes
+
+**Files Modified**:
+
+-   `resources/views/approval-requests/show.blade.php`
+
+**Status**: ✅ COMPLETE - Enhanced approval request show view with comprehensive details and improved design
+
+# Development Memory & Learnings
+
+## 2025-08-29: Merged Onboarding Stage into Hiring Stage
+
+**Context**: User requested to merge the onboarding stage into the hiring stage, making "Hire" the final stage that includes both hiring and onboarding functionality.
+
+**Key Changes Made**:
+
+1. **Database Structure**: Dropped `recruitment_onboardings` table via migration
+2. **Stage Progression**: Updated stage flow from 8 stages to 7 stages (removed onboarding)
+3. **Progress Calculation**: Modified stage progress percentages:
+    - CV Review: 12% (was 10%)
+    - Psikotes: 24% (was 20%)
+    - Tes Teori: 36% (was 30%)
+    - Interview: 54% (was 45%)
+    - Offering: 78% (was 75%)
+    - MCU: 90% (was 85%)
+    - Hire: 100% (was 95% + onboarding 100%)
+4. **Controller Logic**:
+    - Removed `updateOnboarding` method
+    - Modified `updateHiring` to complete session at 100% progress
+    - Removed all onboarding references from middleware and relationships
+5. **Service Layer**: Updated `RecruitmentSessionService` to handle hire as final stage
+6. **UI Components**: Removed onboarding modal and related JavaScript
+
+**Benefits Achieved**:
+
+-   Simplified recruitment workflow
+-   Reduced complexity in stage management
+-   Cleaner UI with fewer modals
+-   More streamlined process for HR users
+
+**Technical Notes**:
+
+-   Stage order now ends at 'hire' instead of 'onboarding'
+-   Progress calculation adjusted for 7-stage workflow
+-   All onboarding data relationships removed from queries
+-   Hire stage now handles both hiring completion and onboarding completion
+
+**Files Modified**:
+
+-   `database/migrations/2025_08_29_164618_drop_recruitment_onboarding_table.php`
+-   `app/Http/Controllers/RecruitmentSessionController.php`
+-   `app/Services/RecruitmentSessionService.php`
+-   `app/Models/RecruitmentSession.php`
+-   `resources/views/recruitment/sessions/partials/modals.blade.php`
+-   `routes/web.php`
