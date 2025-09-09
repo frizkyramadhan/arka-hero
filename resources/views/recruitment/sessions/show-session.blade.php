@@ -55,6 +55,10 @@
 
         <!-- Main Content -->
         <div class="fptk-content">
+            @php
+                // Check if this is magang or harian employment type
+                $isSimplifiedProcess = in_array($session->fptk->employment_type, ['magang', 'harian']);
+            @endphp
             <div class="row">
                 <!-- Left Column -->
                 <div class="col-lg-8">
@@ -65,26 +69,36 @@
                         </div>
                         <div class="card-body">
                             @php
-                                $stageOrder = [
-                                    'cv_review' => 1,
-                                    'psikotes' => 2,
-                                    'tes_teori' => 3,
-                                    'interview' => 4,
-                                    'offering' => 5,
-                                    'mcu' => 6,
-                                    'hire' => 7,
-                                ];
 
-                                // Adjust stage order if tes_teori should be skipped
-                                if ($session->shouldSkipTheoryTest()) {
-                                    $stageOrder['interview'] = 3;
-                                    $stageOrder['offering'] = 4;
-                                    $stageOrder['mcu'] = 5;
-                                    $stageOrder['hire'] = 6;
+                                if ($isSimplifiedProcess) {
+                                    // For magang and harian: only MCU and Hire stages
+                                    $stageOrder = [
+                                        'mcu' => 1,
+                                        'hire' => 2,
+                                    ];
+                                } else {
+                                    $stageOrder = [
+                                        'cv_review' => 1,
+                                        'psikotes' => 2,
+                                        'tes_teori' => 3,
+                                        'interview' => 4,
+                                        'offering' => 5,
+                                        'mcu' => 6,
+                                        'hire' => 7,
+                                    ];
+
+                                    // Adjust stage order if tes_teori should be skipped
+                                    if ($session->shouldSkipTheoryTest()) {
+                                        $stageOrder['interview'] = 3;
+                                        $stageOrder['offering'] = 4;
+                                        $stageOrder['mcu'] = 5;
+                                        $stageOrder['hire'] = 6;
+                                    }
                                 }
                                 $currentOrder = $stageOrder[$session->current_stage] ?? 0;
                                 $stageClasses = [];
                                 $stageEditability = [];
+                                $stageLockReasons = [];
                                 $hasFailedStage = false;
                                 $failedStageOrder = null;
 
@@ -206,87 +220,185 @@
 
                                     // Determine if this stage is editable
                                     $editable = true;
+                                    $lockReason = '';
+
+                                    // Lock failed stages and all subsequent stages
                                     if ($hasFailedStage && $thisOrder >= $failedStageOrder) {
-                                        // If there's a failed stage, disable editing for the failed stage and all subsequent stages
                                         $editable = false;
+                                        $lockReason =
+                                            'Cannot edit this stage because a previous stage failed or was rejected.';
                                     }
+                                    // Lock completed stages (except current stage and pending stages)
+                                    else {
+                                        $isCompleted = false;
+                                        $isCurrentStage = $thisOrder == $currentOrder;
+
+                                        if ($stageKey === 'interview') {
+                                            // For interview, check if all interviews are completed
+                                            $isCompleted = $session->areAllInterviewsCompleted();
+                                        } else {
+                                            // For other stages, check if assessment exists and is completed
+                                            $assessment = $session->getAssessmentByStage($stageKey);
+                                            if ($assessment) {
+                                                $isCompleted = $session->isStageCompleted($stageKey);
+                                            }
+                                        }
+
+                                        // Lock if completed (including current stage if completed)
+                                        if ($isCompleted) {
+                                            $editable = false;
+                                            $lockReason = 'This stage has been completed and cannot be edited.';
+                                        }
+                                    }
+
                                     $stageEditability[$stageKey] = $editable;
+                                    $stageLockReasons[$stageKey] = $lockReason;
                                 }
                             @endphp
                             <div class="timeline-horizontal">
-                                <!-- CV Review -->
-                                <div class="timeline-item {{ $stageEditability['cv_review'] ? 'editable' : 'disabled' }}"
-                                    @if ($stageEditability['cv_review']) data-toggle="modal" data-target="#cvReviewModal" @endif>
-                                    <div class="timeline-marker {{ $stageClasses['cv_review'] }}">
-                                        <i class="fas fa-file-alt"></i>
-                                    </div>
-                                    <div class="timeline-content">
-                                        <div class="timeline-title">
-                                            CV Review
-                                            @if (!$stageEditability['cv_review'])
-                                                <i class="fas fa-lock ml-1"
-                                                    title="Locked due to previous stage failure"></i>
-                                            @endif
-                                        </div>
-                                        <div class="timeline-date">
-                                            @if ($session->current_stage === 'cv_review' && $session->stage_started_at)
-                                                {{ date('d M Y', strtotime($session->stage_started_at)) }}
-                                            @elseif($session->cvReview && $session->cvReview->reviewed_at)
-                                                {{ date('d M Y', strtotime($session->cvReview->reviewed_at)) }}
-                                            @else
-                                                -
-                                            @endif
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <!-- Psikotes -->
-                                <div class="timeline-item {{ $stageEditability['psikotes'] ? 'editable' : 'disabled' }}"
-                                    @if ($stageEditability['psikotes']) data-toggle="modal" data-target="#psikotesModal" @endif>
-                                    <div class="timeline-marker {{ $stageClasses['psikotes'] }}">
-                                        <i class="fas fa-brain"></i>
-                                    </div>
-                                    <div class="timeline-content">
-                                        <div class="timeline-title">
-                                            Psikotes
-                                            @if (!$stageEditability['psikotes'])
-                                                <i class="fas fa-lock ml-1"
-                                                    title="Locked due to previous stage failure"></i>
-                                            @endif
-                                        </div>
-                                        <div class="timeline-date">
-                                            @if ($session->current_stage === 'psikotes' && $session->stage_started_at)
-                                                {{ date('d M Y', strtotime($session->stage_started_at)) }}
-                                            @elseif($session->psikotes && $session->psikotes->reviewed_at)
-                                                {{ date('d M Y', strtotime($session->psikotes->reviewed_at)) }}
-                                            @else
-                                                -
-                                            @endif
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <!-- Tes Teori -->
-                                <!-- Tes Teori - Only show for mechanic positions -->
-                                @if (!$session->shouldSkipTheoryTest())
-                                    <div class="timeline-item {{ $stageEditability['tes_teori'] ? 'editable' : 'disabled' }}"
-                                        @if ($stageEditability['tes_teori']) data-toggle="modal" data-target="#tesTeoriModal" @endif>
-                                        <div class="timeline-marker {{ $stageClasses['tes_teori'] }}">
-                                            <i class="fas fa-book"></i>
+                                @if (!$isSimplifiedProcess)
+                                    <!-- CV Review -->
+                                    <div class="timeline-item {{ $stageEditability['cv_review'] ? 'editable' : 'disabled' }}"
+                                        @if ($stageEditability['cv_review']) data-toggle="modal" data-target="#cvReviewModal" @endif>
+                                        <div class="timeline-marker {{ $stageClasses['cv_review'] }}">
+                                            <i class="fas fa-file-alt"></i>
                                         </div>
                                         <div class="timeline-content">
                                             <div class="timeline-title">
-                                                Tes Teori
-                                                @if (!$stageEditability['tes_teori'])
+                                                CV Review
+                                                @if (!$stageEditability['cv_review'])
                                                     <i class="fas fa-lock ml-1"
-                                                        title="Locked due to previous stage failure"></i>
+                                                        title="{{ $stageLockReasons['cv_review'] }}"></i>
                                                 @endif
                                             </div>
                                             <div class="timeline-date">
-                                                @if ($session->current_stage === 'tes_teori' && $session->stage_started_at)
+                                                @if ($session->current_stage === 'cv_review' && $session->stage_started_at)
                                                     {{ date('d M Y', strtotime($session->stage_started_at)) }}
-                                                @elseif($session->tesTeori && $session->tesTeori->reviewed_at)
-                                                    {{ date('d M Y', strtotime($session->tesTeori->reviewed_at)) }}
+                                                @elseif($session->cvReview && $session->cvReview->reviewed_at)
+                                                    {{ date('d M Y', strtotime($session->cvReview->reviewed_at)) }}
+                                                @else
+                                                    -
+                                                @endif
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Psikotes -->
+                                    <div class="timeline-item {{ $stageEditability['psikotes'] ? 'editable' : 'disabled' }}"
+                                        @if ($stageEditability['psikotes']) data-toggle="modal" data-target="#psikotesModal" @endif>
+                                        <div class="timeline-marker {{ $stageClasses['psikotes'] }}">
+                                            <i class="fas fa-brain"></i>
+                                        </div>
+                                        <div class="timeline-content">
+                                            <div class="timeline-title">
+                                                Psikotes
+                                                @if (!$stageEditability['psikotes'])
+                                                    <i class="fas fa-lock ml-1"
+                                                        title="{{ $stageLockReasons['psikotes'] }}"></i>
+                                                @endif
+                                            </div>
+                                            <div class="timeline-date">
+                                                @if ($session->current_stage === 'psikotes' && $session->stage_started_at)
+                                                    {{ date('d M Y', strtotime($session->stage_started_at)) }}
+                                                @elseif($session->psikotes && $session->psikotes->reviewed_at)
+                                                    {{ date('d M Y', strtotime($session->psikotes->reviewed_at)) }}
+                                                @else
+                                                    -
+                                                @endif
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Tes Teori -->
+                                    <!-- Tes Teori - Only show for mechanic positions -->
+                                    @if (!$session->shouldSkipTheoryTest())
+                                        <div class="timeline-item {{ $stageEditability['tes_teori'] ? 'editable' : 'disabled' }}"
+                                            @if ($stageEditability['tes_teori']) data-toggle="modal" data-target="#tesTeoriModal" @endif>
+                                            <div class="timeline-marker {{ $stageClasses['tes_teori'] }}">
+                                                <i class="fas fa-book"></i>
+                                            </div>
+                                            <div class="timeline-content">
+                                                <div class="timeline-title">
+                                                    Tes Teori
+                                                    @if (!$stageEditability['tes_teori'])
+                                                        <i class="fas fa-lock ml-1"
+                                                            title="{{ $stageLockReasons['tes_teori'] }}"></i>
+                                                    @endif
+                                                </div>
+                                                <div class="timeline-date">
+                                                    @if ($session->current_stage === 'tes_teori' && $session->stage_started_at)
+                                                        {{ date('d M Y', strtotime($session->stage_started_at)) }}
+                                                    @elseif($session->tesTeori && $session->tesTeori->reviewed_at)
+                                                        {{ date('d M Y', strtotime($session->tesTeori->reviewed_at)) }}
+                                                    @else
+                                                        -
+                                                    @endif
+                                                </div>
+                                            </div>
+                                        </div>
+                                    @endif
+
+                                    <!-- Interview -->
+                                    <div class="timeline-item {{ $stageEditability['interview'] ? 'editable' : 'disabled' }}"
+                                        @if ($stageEditability['interview']) data-toggle="modal" data-target="#interviewModal" @endif>
+                                        <div class="timeline-marker {{ $stageClasses['interview'] }}">
+                                            <i class="fas fa-user-tie"></i>
+                                        </div>
+                                        <div class="timeline-content">
+                                            <div class="timeline-title">
+                                                Interview
+                                                @if (!$stageEditability['interview'])
+                                                    <i class="fas fa-lock ml-1"
+                                                        title="{{ $stageLockReasons['interview'] }}"></i>
+                                                @elseif($session->areAllInterviewsCompleted())
+                                                    <i class="fas fa-check-circle ml-1 text-success"
+                                                        title="All interviews completed"></i>
+                                                @elseif($session->interviews()->exists())
+                                                    <i class="fas fa-clock ml-1 text-warning"
+                                                        title="Some interviews pending"></i>
+                                                @endif
+                                            </div>
+                                            <div class="timeline-date">
+                                                @if ($session->current_stage === 'interview' && $session->stage_started_at)
+                                                    {{ date('d M Y', strtotime($session->stage_started_at)) }}
+                                                @elseif($session->interviews()->exists())
+                                                    @php
+                                                        $latestInterview = $session
+                                                            ->interviews()
+                                                            ->latest('reviewed_at')
+                                                            ->first();
+                                                    @endphp
+                                                    @if ($latestInterview)
+                                                        {{ date('d M Y', strtotime($latestInterview->reviewed_at)) }}
+                                                    @else
+                                                        -
+                                                    @endif
+                                                @else
+                                                    -
+                                                @endif
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Offering -->
+                                    <div class="timeline-item {{ $stageEditability['offering'] ? 'editable' : 'disabled' }}"
+                                        @if ($stageEditability['offering']) data-toggle="modal" data-target="#offeringModal" @endif>
+                                        <div class="timeline-marker {{ $stageClasses['offering'] }}">
+                                            <i class="fas fa-handshake"></i>
+                                        </div>
+                                        <div class="timeline-content">
+                                            <div class="timeline-title">
+                                                Offering
+                                                @if (!$stageEditability['offering'])
+                                                    <i class="fas fa-lock ml-1"
+                                                        title="{{ $stageLockReasons['offering'] }}"></i>
+                                                @endif
+                                            </div>
+                                            <div class="timeline-date">
+                                                @if ($session->current_stage === 'offering' && $session->stage_started_at)
+                                                    {{ date('d M Y', strtotime($session->stage_started_at)) }}
+                                                @elseif($session->offering && $session->offering->reviewed_at)
+                                                    {{ date('d M Y', strtotime($session->offering->reviewed_at)) }}
                                                 @else
                                                     -
                                                 @endif
@@ -294,74 +406,6 @@
                                         </div>
                                     </div>
                                 @endif
-
-                                <!-- Interview -->
-                                <div class="timeline-item {{ $stageEditability['interview'] ? 'editable' : 'disabled' }}"
-                                    @if ($stageEditability['interview']) data-toggle="modal" data-target="#interviewModal" @endif>
-                                    <div class="timeline-marker {{ $stageClasses['interview'] }}">
-                                        <i class="fas fa-user-tie"></i>
-                                    </div>
-                                    <div class="timeline-content">
-                                        <div class="timeline-title">
-                                            Interview
-                                            @if (!$stageEditability['interview'])
-                                                <i class="fas fa-lock ml-1"
-                                                    title="Locked due to previous stage failure"></i>
-                                            @elseif($session->areAllInterviewsCompleted())
-                                                <i class="fas fa-check-circle ml-1 text-success"
-                                                    title="All interviews completed"></i>
-                                            @elseif($session->interviews()->exists())
-                                                <i class="fas fa-clock ml-1 text-warning"
-                                                    title="Some interviews pending"></i>
-                                            @endif
-                                        </div>
-                                        <div class="timeline-date">
-                                            @if ($session->current_stage === 'interview' && $session->stage_started_at)
-                                                {{ date('d M Y', strtotime($session->stage_started_at)) }}
-                                            @elseif($session->interviews()->exists())
-                                                @php
-                                                    $latestInterview = $session
-                                                        ->interviews()
-                                                        ->latest('reviewed_at')
-                                                        ->first();
-                                                @endphp
-                                                @if ($latestInterview)
-                                                    {{ date('d M Y', strtotime($latestInterview->reviewed_at)) }}
-                                                @else
-                                                    -
-                                                @endif
-                                            @else
-                                                -
-                                            @endif
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <!-- Offering -->
-                                <div class="timeline-item {{ $stageEditability['offering'] ? 'editable' : 'disabled' }}"
-                                    @if ($stageEditability['offering']) data-toggle="modal" data-target="#offeringModal" @endif>
-                                    <div class="timeline-marker {{ $stageClasses['offering'] }}">
-                                        <i class="fas fa-handshake"></i>
-                                    </div>
-                                    <div class="timeline-content">
-                                        <div class="timeline-title">
-                                            Offering
-                                            @if (!$stageEditability['offering'])
-                                                <i class="fas fa-lock ml-1"
-                                                    title="Locked due to previous stage failure"></i>
-                                            @endif
-                                        </div>
-                                        <div class="timeline-date">
-                                            @if ($session->current_stage === 'offering' && $session->stage_started_at)
-                                                {{ date('d M Y', strtotime($session->stage_started_at)) }}
-                                            @elseif($session->offering && $session->offering->reviewed_at)
-                                                {{ date('d M Y', strtotime($session->offering->reviewed_at)) }}
-                                            @else
-                                                -
-                                            @endif
-                                        </div>
-                                    </div>
-                                </div>
 
                                 <!-- MCU -->
                                 <div class="timeline-item {{ $stageEditability['mcu'] ? 'editable' : 'disabled' }}"
@@ -373,8 +417,7 @@
                                         <div class="timeline-title">
                                             MCU
                                             @if (!$stageEditability['mcu'])
-                                                <i class="fas fa-lock ml-1"
-                                                    title="Locked due to previous stage failure"></i>
+                                                <i class="fas fa-lock ml-1" title="{{ $stageLockReasons['mcu'] }}"></i>
                                             @endif
                                         </div>
                                         <div class="timeline-date">
@@ -399,8 +442,7 @@
                                         <div class="timeline-title">
                                             Hiring & Onboarding
                                             @if (!$stageEditability['hire'])
-                                                <i class="fas fa-lock ml-1"
-                                                    title="Locked due to previous stage failure"></i>
+                                                <i class="fas fa-lock ml-1" title="{{ $stageLockReasons['hire'] }}"></i>
                                             @endif
                                         </div>
                                         <div class="timeline-date">
@@ -493,6 +535,29 @@
                                     <div class="info-content">
                                         <div class="info-label">Progress</div>
                                         <div class="info-value">{{ $progressPercentage }}%</div>
+                                    </div>
+                                </div>
+                                <div class="info-item">
+                                    <div class="info-icon" style="background-color: #2c3e50;">
+                                        <i class="fas fa-file-alt"></i>
+                                    </div>
+                                    <div class="info-content">
+                                        <div class="info-label">FPTK No.</div>
+                                        <div class="info-value">{{ $session->fptk->request_number ?? 'N/A' }}</div>
+                                    </div>
+                                </div>
+                                <div class="info-item">
+                                    <div class="info-icon" style="background-color: #8e44ad;">
+                                        <i class="fas fa-briefcase"></i>
+                                    </div>
+                                    <div class="info-content">
+                                        <div class="info-label">Employment Type</div>
+                                        <div class="info-value">
+                                            <span
+                                                class="badge badge-{{ $session->fptk->employment_type === 'pkwtt' ? 'success' : ($session->fptk->employment_type === 'pkwt' ? 'primary' : ($session->fptk->employment_type === 'magang' ? 'warning' : 'info')) }}">
+                                                {{ $session->fptk->employment_type === 'magang' ? 'INTERN' : ($session->fptk->employment_type === 'harian' ? 'DAILY' : strtoupper($session->fptk->employment_type)) }}
+                                            </span>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -668,22 +733,31 @@
 
                 // Filter assessments based on current stage
                 $currentStage = $session->current_stage;
-                $stageOrder = [
-                    'cv_review' => 1,
-                    'psikotes' => 2,
-                    'tes_teori' => 3,
-                    'interview' => 4,
-                    'offering' => 5,
-                    'mcu' => 6,
-                    'hire' => 7,
-                ];
 
-                // Adjust stage order if tes_teori should be skipped
-                if ($session->shouldSkipTheoryTest()) {
-                    $stageOrder['interview'] = 3;
-                    $stageOrder['offering'] = 4;
-                    $stageOrder['mcu'] = 5;
-                    $stageOrder['hire'] = 6;
+                if ($isSimplifiedProcess) {
+                    // For magang and harian: only MCU and Hire stages
+                    $stageOrder = [
+                        'mcu' => 1,
+                        'hire' => 2,
+                    ];
+                } else {
+                    $stageOrder = [
+                        'cv_review' => 1,
+                        'psikotes' => 2,
+                        'tes_teori' => 3,
+                        'interview' => 4,
+                        'offering' => 5,
+                        'mcu' => 6,
+                        'hire' => 7,
+                    ];
+
+                    // Adjust stage order if tes_teori should be skipped
+                    if ($session->shouldSkipTheoryTest()) {
+                        $stageOrder['interview'] = 3;
+                        $stageOrder['offering'] = 4;
+                        $stageOrder['mcu'] = 5;
+                        $stageOrder['hire'] = 6;
+                    }
                 }
 
                 $currentOrder = $stageOrder[$currentStage] ?? 0;
@@ -1217,6 +1291,11 @@
             padding: 0.25em 0.5em;
         }
 
+        .badge-lg {
+            font-size: 0.9em;
+            padding: 0.5em 0.75em;
+        }
+
         /* Action Buttons */
         .fptk-action-buttons {
             display: grid;
@@ -1674,6 +1753,11 @@
                 padding: 15px;
             }
 
+            .info-grid {
+                gap: 15px;
+                padding: 15px;
+            }
+
             .timeline-horizontal {
                 padding: 10px 0;
             }
@@ -1699,6 +1783,11 @@
 
             .decision-btn {
                 min-width: 100%;
+            }
+
+            .info-grid {
+                gap: 12px;
+                padding: 12px;
             }
         }
 
@@ -1736,17 +1825,21 @@
                     e.preventDefault();
                     e.stopPropagation();
 
+                    // Get the specific lock reason from tooltip
+                    const lockReason = $(this).find('.fas.fa-lock').attr('title') ||
+                        'This stage is locked and cannot be edited.';
+
                     // Show informative message
                     if (typeof Swal !== 'undefined' && Swal.fire) {
                         Swal.fire({
                             icon: 'warning',
                             title: 'Stage Locked',
-                            text: 'Cannot edit this stage because a previous stage failed or was rejected.',
+                            text: lockReason,
                             confirmButtonColor: '#3085d6',
                             confirmButtonText: 'OK'
                         });
                     } else {
-                        alert('Cannot edit this stage because a previous stage failed or was rejected.');
+                        alert(lockReason);
                     }
                     return false;
                 }
@@ -2150,22 +2243,16 @@
             });
 
             // Hiring handlers: mirror offering patterns
-            // Auto-fill PKWT letter number display
+            // Auto-fill letter number display based on employment type
             $(document).on('change', '[name="hiring_letter_number_id"]', function() {
                 const selectedOption = $(this).find('option:selected');
                 const rawText = selectedOption.text();
                 const baseLetterNumber = rawText ? rawText.split(' - ')[0] : '';
                 const $display = $('#hiring_letter_number');
 
-                // Format: 0001/ARKA-HO/PKWT-I/VIII/2025
-                const months = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'];
-                const now = new Date();
-                const romanMonth = months[now.getMonth()];
-                const year = now.getFullYear();
-                // Remove any leading alpha prefix like 'PKWT' from the base to get pure number (e.g., PKWT0001 -> 0001)
-                const numericBase = baseLetterNumber ? baseLetterNumber.replace(/^[A-Za-z]+/, '') : '';
-                const formatted = numericBase ?
-                    `${numericBase}/ARKA-HO/PKWT-I/${romanMonth}/${year}` : '';
+                // Get employment type from the form or session data
+                const employmentType = getEmploymentType();
+                const formatted = formatLetterNumber(baseLetterNumber, employmentType);
 
                 if (selectedOption.val() && formatted) {
                     $display.val(formatted);
@@ -2177,50 +2264,79 @@
                 validateHireForm();
             });
 
-            // Agreement type buttons
-            const hirePkwtBtn = document.querySelector(
-                '#hireModal .decision-btn.btn-outline-success[data-agreement="pkwt"]');
-            const hirePkwttBtn = document.querySelector(
-                '#hireModal .decision-btn.btn-outline-warning[data-agreement="pkwtt"]');
-            const agreementHidden = document.getElementById('agreement_type');
+            // Function to get employment type
+            function getEmploymentType() {
+                // Try to get from modal data attribute first
+                const modal = $('#hireModal');
+                if (modal.length && modal.data('employment-type')) {
+                    return modal.data('employment-type');
+                }
+
+                // Fallback: try to get from hidden input
+                const hiddenInput = $('input[name="agreement_type"]');
+                if (hiddenInput.length && hiddenInput.val()) {
+                    return hiddenInput.val();
+                }
+
+                // Default fallback
+                return 'pkwt';
+            }
+
+            // Function to format letter number based on employment type
+            function formatLetterNumber(baseLetterNumber, employmentType) {
+                if (!baseLetterNumber) return '';
+
+                const months = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'];
+                const now = new Date();
+                const romanMonth = months[now.getMonth()];
+                const year = now.getFullYear();
+
+                // Remove any leading alpha prefix to get pure number
+                const numericBase = baseLetterNumber.replace(/^[A-Za-z]+/, '');
+
+                switch (employmentType) {
+                    case 'harian':
+                        // Format: Bxxxx/ARKA-HR/I{bulan}/2025{tahun}
+                        return `B${numericBase}/ARKA-HR/${romanMonth}/${year}`;
+
+                    case 'magang':
+                        // Format: xxxx/ARKA-HO/SPM/IV{bulan}/2025{tahun}
+                        return `${numericBase}/ARKA-HO/SPM/${romanMonth}/${year}`;
+
+                    case 'pkwt':
+                    case 'pkwtt':
+                    default:
+                        // Format: 0001/ARKA-HO/PKWT-I/VIII/2025
+                        return `${numericBase}/ARKA-HO/PKWT-I/${romanMonth}/${year}`;
+                }
+            }
+
+            // Hire form validation and initialization
             const hireSubmitBtn = document.getElementById('hire_submit_btn');
 
-            function selectAgreement(val) {
-                if (hirePkwtBtn) hirePkwtBtn.classList.remove('active');
-                if (hirePkwttBtn) hirePkwttBtn.classList.remove('active');
-                if (val === 'pkwt' && hirePkwtBtn) hirePkwtBtn.classList.add('active');
-                if (val === 'pkwtt' && hirePkwttBtn) hirePkwttBtn.classList.add('active');
-                agreementHidden.value = val;
-                // Toggle FOC required for PKWT
-                if (val === 'pkwt') {
+            function validateHireForm() {
+                const hasLetter = $('[name="hiring_letter_number_id"]').val();
+                if (hireSubmitBtn) hireSubmitBtn.disabled = !hasLetter;
+            }
+
+            // Initialize FOC visibility based on employment type
+            function initializeFOCVisibility() {
+                const employmentType = getEmploymentType();
+                if (employmentType === 'pkwt') {
                     $('#foc_container').show();
                     $('#administration_foc').attr('required', true);
                 } else {
                     $('#foc_container').hide();
                     $('#administration_foc').removeAttr('required').val('');
                 }
-                validateHireForm();
-            }
-
-            if (hirePkwtBtn) hirePkwtBtn.addEventListener('click', () => selectAgreement('pkwt'));
-            if (hirePkwttBtn) hirePkwttBtn.addEventListener('click', () => selectAgreement('pkwtt'));
-
-            function validateHireForm() {
-                const hasAgreement = $('#agreement_type').val() !== '';
-                const hasLetter = $('[name="hiring_letter_number_id"]').val();
-                if (hireSubmitBtn) hireSubmitBtn.disabled = !(hasAgreement && hasLetter);
             }
 
             // Reset Hire modal state when shown
             $('#hireModal').on('show.bs.modal', function() {
-                if (hirePkwtBtn) hirePkwtBtn.classList.remove('active');
-                if (hirePkwttBtn) hirePkwttBtn.classList.remove('active');
-                $('#agreement_type').val('');
                 $('#hiring_letter_number').val('Select letter number above').removeClass('alert-success')
                     .addClass('alert-warning');
                 if (hireSubmitBtn) hireSubmitBtn.disabled = true;
-                $('#foc_container').hide();
-                $('#administration_foc').removeAttr('required').val('');
+                initializeFOCVisibility();
             });
 
             // Global confirmation for all stage submit forms
@@ -2415,11 +2531,48 @@
             }
         });
 
+        // Autofill department for Magang & Harian form
+        $('#hire_position_id_magang_harian').on('change', function() {
+            var position_id = $(this).val();
+
+            if (position_id) {
+                var url = "{{ route('employees.getDepartment') }}";
+
+                $.ajax({
+                    url: url,
+                    type: "GET",
+                    data: {
+                        position_id: position_id
+                    },
+                    dataType: 'json',
+                    success: function(data) {
+                        if (data && data.department_name) {
+                            $('#hire_department_magang_harian').val(data.department_name);
+                        } else {
+                            $('#hire_department_magang_harian').val('');
+                        }
+                    },
+                    error: function(jqXHR, textStatus, errorThrown) {
+                        console.error("Error fetching department: ", textStatus, errorThrown);
+                        $('#hire_department_magang_harian').val('');
+                    }
+                });
+            } else {
+                $('#hire_department_magang_harian').val('');
+            }
+        });
+
         // Initialize department when hire modal is shown
         $('#hireModal').on('shown.bs.modal', function() {
             var selectedPosition = $('#hire_position_id').val();
             if (selectedPosition) {
                 $('#hire_position_id').trigger('change');
+            }
+
+            // Also initialize for Magang & Harian form
+            var selectedPositionMagangHarian = $('#hire_position_id_magang_harian').val();
+            if (selectedPositionMagangHarian) {
+                $('#hire_position_id_magang_harian').trigger('change');
             }
         });
 
@@ -2427,6 +2580,12 @@
         var selectedPosition = $('#hire_position_id').val();
         if (selectedPosition) {
             $('#hire_position_id').trigger('change');
+        }
+
+        // Also initialize for Magang & Harian form
+        var selectedPositionMagangHarian = $('#hire_position_id_magang_harian').val();
+        if (selectedPositionMagangHarian) {
+            $('#hire_position_id_magang_harian').trigger('change');
         }
     </script>
 @endsection

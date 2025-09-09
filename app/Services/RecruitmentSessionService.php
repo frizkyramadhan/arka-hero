@@ -296,7 +296,7 @@ class RecruitmentSessionService
                 'stage_status' => 'pending',
                 'stage_started_at' => now(),
                 'stage_completed_at' => null,
-                'overall_progress' => $session->getAdjustedStageProgress()[$nextStage] ?? 0,
+                'overall_progress' => $session->calculateActualProgress(),
                 'responsible_person_id' => $data['responsible_person_id'] ?? null,
             ]);
 
@@ -1069,12 +1069,16 @@ class RecruitmentSessionService
             ];
         }
 
+        // Get agreement type from FPTK employment type (hardcode mapping)
+        $fptk = $session->fptk;
+        $agreementType = \App\Models\RecruitmentHiring::getAgreementTypeFromEmploymentType($fptk->employment_type);
+
         // Create or update hire assessment
         $hiring = $session->hiring;
         if (!$hiring) {
             $hiring = RecruitmentHiring::create([
                 'session_id' => $session->id,
-                'agreement_type' => $assessmentData['agreement_type'] ?? 'pkwt',
+                'agreement_type' => $agreementType, // Auto-set from FPTK employment_type
                 'letter_number' => $assessmentData['letter_number'] ?? null,
                 'notes' => $assessmentData['notes'] ?? null,
                 'reviewed_by' => auth()->id(),
@@ -1082,7 +1086,7 @@ class RecruitmentSessionService
             ]);
         } else {
             $hiring->update([
-                'agreement_type' => $assessmentData['agreement_type'] ?? 'pkwt',
+                'agreement_type' => $agreementType, // Auto-set from FPTK employment_type
                 'letter_number' => $assessmentData['letter_number'] ?? null,
                 'notes' => $assessmentData['notes'] ?? null,
                 'reviewed_by' => auth()->id(),
@@ -1309,7 +1313,12 @@ class RecruitmentSessionService
         $timeline = [];
         $stageDurations = $session->stage_durations ?? [];
 
-        foreach (RecruitmentSession::STAGES as $stage) {
+        // Get stages based on employment type
+        $stages = $session->shouldSkipStagesForEmploymentType()
+            ? ['mcu', 'hire']
+            : RecruitmentSession::STAGES;
+
+        foreach ($stages as $stage) {
             $stageData = [
                 'stage' => $stage,
                 'name' => $this->getStageDisplayName($stage),

@@ -5,6 +5,7 @@
     'mode' => 'status', // 'status' or 'preview'
     'projectId' => null,
     'departmentId' => null,
+    'requestReason' => null,
     'id' => 'approvalStatusCard',
 ])
 
@@ -19,7 +20,18 @@
         @if ($mode === 'preview')
             {{-- Approval Preview Mode --}}
             <div id="approvalPreview">
-                @if ($projectId && $departmentId)
+                @php
+                    $hasRequiredFields = false;
+                    if ($documentType === 'recruitment_request') {
+                        $hasRequiredFields = $projectId && $departmentId && $requestReason;
+                    } elseif ($documentType === 'officialtravel') {
+                        $hasRequiredFields = $projectId && $departmentId;
+                    } else {
+                        $hasRequiredFields = $projectId && $departmentId;
+                    }
+                @endphp
+
+                @if ($hasRequiredFields)
                     <div class="text-center py-3">
                         <i class="fas fa-spinner fa-spin text-info"></i>
                         <div class="mt-2">Loading approval flow...</div>
@@ -29,36 +41,62 @@
                         <i class="fas fa-info-circle text-info"></i>
                         <div class="mt-2">
                             @if ($documentType === 'recruitment_request')
-                                Select both project and department to see approval flow
+                                Select project, department, and request reason to see approval flow
                             @elseif ($documentType === 'officialtravel')
                                 Select project and main traveler to see approval flow
                             @else
                                 Select required fields to see approval flow
                             @endif
                         </div>
+
+                        @if ($documentType === 'recruitment_request' && (!$projectId || !$departmentId || !$requestReason))
+                            <div class="mt-2">
+                                <small class="text-muted">
+                                    Missing:
+                                    @if (!$projectId)
+                                        Project
+                                    @endif
+                                    @if (!$departmentId)
+                                        Department
+                                    @endif
+                                    @if (!$requestReason)
+                                        Request Reason
+                                    @endif
+                                </small>
+                            </div>
+                        @endif
                     </div>
                 @endif
             </div>
 
-            @if ($projectId && $departmentId)
+            @if ($hasRequiredFields)
                 <script>
                     // Debug: Check if values are being passed correctly
                     console.log('Component props:', {
                         projectId: {{ $projectId ?? 'null' }},
                         departmentId: {{ $departmentId ?? 'null' }},
+                        requestReason: '{{ $requestReason ?? '' }}',
                         documentType: '{{ $documentType }}',
                         mode: '{{ $mode }}'
                     });
 
-                    // Debug: Check if the values are valid
-                    if (!{{ $projectId }} || !{{ $departmentId }}) {
-                        console.error('Invalid component props:', {
+                    @php
+                        $isValidForRecruitment = $documentType === 'recruitment_request' ? $projectId && $departmentId && $requestReason : true;
+                        $isValidForOfficialTravel = $documentType === 'officialtravel' ? $projectId && $departmentId : true;
+                        $isValidOverall = $isValidForRecruitment && $isValidForOfficialTravel;
+                    @endphp
+
+                    // Debug: Check if the values are valid based on document type
+                    @if (!$isValidOverall)
+                        console.error('Invalid component props for {{ $documentType }}:', {
                             projectId: {{ $projectId ?? 'null' }},
-                            departmentId: {{ $departmentId ?? 'null' }}
+                            departmentId: {{ $departmentId ?? 'null' }},
+                            requestReason: '{{ $requestReason ?? '' }}',
+                            documentType: '{{ $documentType }}'
                         });
-                    } else {
-                        console.log('Component props are valid, proceeding with approval preview');
-                    }
+                    @else
+                        console.log('Component props are valid for {{ $documentType }}, proceeding with approval preview');
+                    @endif
 
                     // Wait for jQuery to be available
                     function loadApprovalPreview() {
@@ -68,34 +106,50 @@
                             return;
                         }
 
-                        // Validate that we have valid values
-                        if (!{{ $projectId }} || !{{ $departmentId }}) {
-                            console.error('Invalid project or department ID');
-                            $('#approvalPreview').html(`
-                                <div class="text-center text-danger py-3">
-                                    <i class="fas fa-exclamation-triangle"></i>
-                                    <div class="mt-2">Invalid project or department configuration</div>
-                                    <small class="text-muted">Project ID: {{ $projectId }}, Department ID: {{ $departmentId }}</small>
-                                </div>
-                            `);
-                            return;
-                        }
+                        // Validate that we have valid values based on document type
+                        @if ($documentType === 'recruitment_request')
+                            if (!{{ $projectId }} || !{{ $departmentId }} || !'{{ $requestReason }}') {
+                                console.error('Invalid project, department ID, or request reason for recruitment request');
+                                $('#approvalPreview').html(`
+                                    <div class="text-center text-danger py-3">
+                                        <i class="fas fa-exclamation-triangle"></i>
+                                        <div class="mt-2">Invalid project, department, or request reason configuration</div>
+                                        <small class="text-muted">Project ID: {{ $projectId }}, Department ID: {{ $departmentId }}, Request Reason: {{ $requestReason }}</small>
+                                    </div>
+                                `);
+                                return;
+                            }
+                        @else
+                            if (!{{ $projectId }} || !{{ $departmentId }}) {
+                                console.error('Invalid project or department ID');
+                                $('#approvalPreview').html(`
+                                    <div class="text-center text-danger py-3">
+                                        <i class="fas fa-exclamation-triangle"></i>
+                                        <div class="mt-2">Invalid project or department configuration</div>
+                                        <small class="text-muted">Project ID: {{ $projectId }}, Department ID: {{ $departmentId }}</small>
+                                    </div>
+                                `);
+                                return;
+                            }
+                        @endif
 
-                        console.log('Loading approval preview for:', {
+                        const requestData = {
                             project_id: {{ $projectId }},
                             department_id: {{ $departmentId }},
                             document_type: '{{ $documentType }}'
-                        });
+                        };
+
+                        @if ($documentType === 'recruitment_request' && $requestReason)
+                            requestData.request_reason = '{{ $requestReason }}';
+                        @endif
+
+                        console.log('Loading approval preview for:', requestData);
 
                         // Fetch approval stages
                         $.ajax({
                             url: '{{ route('approval.stages.preview') }}',
                             method: 'GET',
-                            data: {
-                                project_id: {{ $projectId }},
-                                department_id: {{ $departmentId }},
-                                document_type: '{{ $documentType }}'
-                            },
+                            data: requestData,
                             success: function(response) {
                                 console.log('Approval preview response:', response);
                                 console.log('Response structure:', {
@@ -128,8 +182,13 @@
                                     $('#approvalPreview').html(`
                                         <div class="text-center text-muted py-3">
                                             <i class="fas fa-info-circle"></i>
-                                            <div class="mt-2">No approval flow configured for this project and department</div>
-                                            <small class="text-muted">Project ID: {{ $projectId }}, Department ID: {{ $departmentId }}</small>
+                                            <div class="mt-2">No approval flow configured for this combination</div>
+                                            <small class="text-muted">
+                                                Project ID: {{ $projectId }}, Department ID: {{ $departmentId }}
+                                                @if ($documentType === 'recruitment_request' && $requestReason)
+                                                    , Request Reason: {{ $requestReason }}
+                                                @endif
+                                            </small>
                                         </div>
                                     `);
                                 }

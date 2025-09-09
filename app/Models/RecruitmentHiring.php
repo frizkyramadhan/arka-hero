@@ -30,7 +30,9 @@ class RecruitmentHiring extends Model
     // Agreement type options
     public const AGREEMENT_TYPES = [
         'pkwt',
-        'pkwtt'
+        'pkwtt',
+        'magang',
+        'harian'
     ];
 
     /**
@@ -59,6 +61,16 @@ class RecruitmentHiring extends Model
         return $query->where('agreement_type', 'pkwtt');
     }
 
+    public function scopeMagang($query)
+    {
+        return $query->where('agreement_type', 'magang');
+    }
+
+    public function scopeHarian($query)
+    {
+        return $query->where('agreement_type', 'harian');
+    }
+
     /**
      * Accessors & Mutators
      */
@@ -75,5 +87,30 @@ class RecruitmentHiring extends Model
     public function getIsPkwttAttribute()
     {
         return $this->agreement_type === 'pkwtt';
+    }
+
+    public function getIsMagangAttribute()
+    {
+        return $this->agreement_type === 'magang';
+    }
+
+    public function getIsHarianAttribute()
+    {
+        return $this->agreement_type === 'harian';
+    }
+
+    /**
+     * Get agreement type based on FPTK employment type
+     * Hardcode mapping: employment_type -> agreement_type
+     */
+    public static function getAgreementTypeFromEmploymentType(string $employmentType): string
+    {
+        return match ($employmentType) {
+            'pkwt' => 'pkwt',
+            'pkwtt' => 'pkwtt',
+            'magang' => 'magang',
+            'harian' => 'harian',
+            default => 'pkwt' // Default fallback
+        };
     }
 }

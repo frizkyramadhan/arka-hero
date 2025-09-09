@@ -480,7 +480,8 @@
 </div>
 
 <!-- Hire Modal -->
-<div class="modal fade" id="hireModal">
+<div class="modal fade" id="hireModal"
+    data-employment-type="{{ optional($session->fptk)->employment_type ?: 'pkwt' }}">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
@@ -651,206 +652,362 @@
                     <div class="card">
                         <div class="card-header"><strong>Administration Data</strong></div>
                         <div class="card-body">
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <div class="form-group">
-                                        <label>NIK <span class="text-danger">*</span></label>
-                                        <input type="text"
-                                            class="form-control @error('administration.nik') is-invalid @enderror"
-                                            name="administration[nik]" value="{{ old('administration.nik') }}"
-                                            placeholder="Enter employee NIK" required>
-                                        @error('administration.nik')
-                                            <div class="invalid-feedback">{{ $message }}</div>
-                                        @enderror
+                            @if (in_array(optional($session->fptk)->employment_type, ['magang', 'harian']))
+                                {{-- Administration Data for Magang and Harian --}}
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label>{{ optional($session->fptk)->employment_type === 'magang' ? 'NIM' : 'NID' }}
+                                                <span class="text-danger">*</span></label>
+                                            <input type="text"
+                                                class="form-control @error('administration.nik') is-invalid @enderror"
+                                                name="administration[nik]" value="{{ old('administration.nik') }}"
+                                                placeholder="Enter {{ optional($session->fptk)->employment_type === 'magang' ? 'NIM' : 'NID' }}"
+                                                required>
+                                            @error('administration.nik')
+                                                <div class="invalid-feedback">{{ $message }}</div>
+                                            @enderror
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label>Date of Hire <span class="text-danger">*</span></label>
+                                            <input type="date"
+                                                class="form-control @error('administration.doh') is-invalid @enderror"
+                                                name="administration[doh]"
+                                                value="{{ old('administration.doh', now()->format('Y-m-d')) }}"
+                                                required>
+                                            @error('administration.doh')
+                                                <div class="invalid-feedback">{{ $message }}</div>
+                                            @enderror
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label>Place of Hire (POH) <span class="text-danger">*</span></label>
+                                            <input type="text"
+                                                class="form-control @error('administration.poh') is-invalid @enderror"
+                                                name="administration[poh]" value="{{ old('administration.poh') }}"
+                                                placeholder="Enter POH" required>
+                                            @error('administration.poh')
+                                                <div class="invalid-feedback">{{ $message }}</div>
+                                            @enderror
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label>Class <span class="text-danger">*</span></label>
+                                            <select
+                                                class="form-control @error('administration.class') is-invalid @enderror"
+                                                name="administration[class]" required>
+                                                <option value="">Select class</option>
+                                                <option value="Staff"
+                                                    {{ old('administration.class') == 'Staff' ? 'selected' : '' }}>
+                                                    Staff
+                                                </option>
+                                                <option value="Non Staff"
+                                                    {{ old('administration.class') == 'Non Staff' ? 'selected' : '' }}>
+                                                    Non
+                                                    Staff</option>
+                                            </select>
+                                            @error('administration.class')
+                                                <div class="invalid-feedback">{{ $message }}</div>
+                                            @enderror
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label>Position <span class="text-danger">*</span></label>
+                                            <select
+                                                class="form-control @error('administration.position_id') is-invalid @enderror"
+                                                name="administration[position_id]" id="hire_position_id_magang_harian"
+                                                required>
+                                                <option value="">Select position</option>
+                                                @foreach (\App\Models\Position::orderBy('position_name', 'asc')->get() as $position)
+                                                    <option value="{{ $position->id }}"
+                                                        {{ old('administration.position_id', optional($session->fptk)->position_id) == $position->id ? 'selected' : '' }}>
+                                                        {{ $position->position_name }}</option>
+                                                @endforeach
+                                            </select>
+                                            @error('administration.position_id')
+                                                <div class="invalid-feedback">{{ $message }}</div>
+                                            @enderror
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label>Department</label>
+                                            <input type="text" class="form-control"
+                                                id="hire_department_magang_harian" readonly>
+                                            <small class="form-text text-muted">Department will be automatically filled
+                                                based on position selection</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label>Project <span class="text-danger">*</span></label>
+                                            <select
+                                                class="form-control @error('administration.project_id') is-invalid @enderror"
+                                                name="administration[project_id]" required>
+                                                <option value="">Select project</option>
+                                                @foreach (\App\Models\Project::orderBy('project_code', 'asc')->get() as $project)
+                                                    <option value="{{ $project->id }}"
+                                                        {{ old('administration.project_id', optional($session->fptk)->project_id) == $project->id ? 'selected' : '' }}>
+                                                        {{ $project->project_code }}</option>
+                                                @endforeach
+                                            </select>
+                                            @error('administration.project_id')
+                                                <div class="invalid-feedback">{{ $message }}</div>
+                                            @enderror
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label>FPTK No</label>
+                                            <input type="text" class="form-control" name="administration[no_fptk]"
+                                                value="{{ optional($session->fptk)->request_number }}" readonly>
+                                        </div>
                                     </div>
                                 </div>
-                                <div class="col-md-6">
-                                    <div class="form-group">
-                                        <label>Date of Hire <span class="text-danger">*</span></label>
-                                        <input type="date"
-                                            class="form-control @error('administration.doh') is-invalid @enderror"
-                                            name="administration[doh]"
-                                            value="{{ old('administration.doh', now()->format('Y-m-d')) }}" required>
-                                        @error('administration.doh')
-                                            <div class="invalid-feedback">{{ $message }}</div>
-                                        @enderror
+                            @else
+                                {{-- Administration Data for PKWT and PKWTT --}}
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label>NIK <span class="text-danger">*</span></label>
+                                            <input type="text"
+                                                class="form-control @error('administration.nik') is-invalid @enderror"
+                                                name="administration[nik]" value="{{ old('administration.nik') }}"
+                                                placeholder="Enter employee NIK" required>
+                                            @error('administration.nik')
+                                                <div class="invalid-feedback">{{ $message }}</div>
+                                            @enderror
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label>Date of Hire <span class="text-danger">*</span></label>
+                                            <input type="date"
+                                                class="form-control @error('administration.doh') is-invalid @enderror"
+                                                name="administration[doh]"
+                                                value="{{ old('administration.doh', now()->format('Y-m-d')) }}"
+                                                required>
+                                            @error('administration.doh')
+                                                <div class="invalid-feedback">{{ $message }}</div>
+                                            @enderror
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label>Place of Hire (POH) <span class="text-danger">*</span></label>
+                                            <input type="text"
+                                                class="form-control @error('administration.poh') is-invalid @enderror"
+                                                name="administration[poh]" value="{{ old('administration.poh') }}"
+                                                placeholder="Enter POH" required>
+                                            @error('administration.poh')
+                                                <div class="invalid-feedback">{{ $message }}</div>
+                                            @enderror
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label>Class <span class="text-danger">*</span></label>
+                                            <select
+                                                class="form-control @error('administration.class') is-invalid @enderror"
+                                                name="administration[class]" required>
+                                                <option value="">Select class</option>
+                                                <option value="Staff"
+                                                    {{ old('administration.class') == 'Staff' ? 'selected' : '' }}>
+                                                    Staff
+                                                </option>
+                                                <option value="Non Staff"
+                                                    {{ old('administration.class') == 'Non Staff' ? 'selected' : '' }}>
+                                                    Non
+                                                    Staff</option>
+                                            </select>
+                                            @error('administration.class')
+                                                <div class="invalid-feedback">{{ $message }}</div>
+                                            @enderror
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label>Position <span class="text-danger">*</span></label>
+                                            <select
+                                                class="form-control @error('administration.position_id') is-invalid @enderror"
+                                                name="administration[position_id]" id="hire_position_id" required>
+                                                <option value="">Select position</option>
+                                                @foreach (\App\Models\Position::orderBy('position_name', 'asc')->get() as $position)
+                                                    <option value="{{ $position->id }}"
+                                                        {{ old('administration.position_id', optional($session->fptk)->position_id) == $position->id ? 'selected' : '' }}>
+                                                        {{ $position->position_name }}</option>
+                                                @endforeach
+                                            </select>
+                                            @error('administration.position_id')
+                                                <div class="invalid-feedback">{{ $message }}</div>
+                                            @enderror
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label>Department</label>
+                                            <input type="text" class="form-control" id="hire_department" readonly>
+                                            <small class="form-text text-muted">Department will be automatically filled
+                                                based on position selection</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label>Project <span class="text-danger">*</span></label>
+                                            <select
+                                                class="form-control @error('administration.project_id') is-invalid @enderror"
+                                                name="administration[project_id]" required>
+                                                <option value="">Select project</option>
+                                                @foreach (\App\Models\Project::orderBy('project_code', 'asc')->get() as $project)
+                                                    <option value="{{ $project->id }}"
+                                                        {{ old('administration.project_id', optional($session->fptk)->project_id) == $project->id ? 'selected' : '' }}>
+                                                        {{ $project->project_code }}</option>
+                                                @endforeach
+                                            </select>
+                                            @error('administration.project_id')
+                                                <div class="invalid-feedback">{{ $message }}</div>
+                                            @enderror
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label>Grade</label>
+                                            <select
+                                                class="form-control @error('administration.grade_id') is-invalid @enderror"
+                                                name="administration[grade_id]">
+                                                <option value="">Select grade</option>
+                                                @foreach (\App\Models\Grade::where('is_active', 1)->orderBy('name', 'asc')->get() as $grade)
+                                                    <option value="{{ $grade->id }}"
+                                                        {{ old('administration.grade_id') == $grade->id ? 'selected' : '' }}>
+                                                        {{ $grade->name }}</option>
+                                                @endforeach
+                                            </select>
+                                            @error('administration.grade_id')
+                                                <div class="invalid-feedback">{{ $message }}</div>
+                                            @enderror
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label>Level <span class="text-danger">*</span></label>
+                                            <select
+                                                class="form-control @error('administration.level_id') is-invalid @enderror"
+                                                name="administration[level_id]" required>
+                                                <option value="">Select level</option>
+                                                @foreach (\App\Models\Level::where('is_active', 1)->orderBy('name', 'asc')->get() as $level)
+                                                    <option value="{{ $level->id }}"
+                                                        {{ old('administration.level_id') == $level->id ? 'selected' : '' }}>
+                                                        {{ $level->name }}</option>
+                                                @endforeach
+                                            </select>
+                                            @error('administration.level_id')
+                                                <div class="invalid-feedback">{{ $message }}</div>
+                                            @enderror
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label>FPTK No</label>
+                                            <input type="text" class="form-control" name="administration[no_fptk]"
+                                                value="{{ optional($session->fptk)->request_number }}" readonly>
+                                        </div>
                                     </div>
                                 </div>
-                                <div class="col-md-6">
-                                    <div class="form-group">
-                                        <label>Place of Hire (POH) <span class="text-danger">*</span></label>
-                                        <input type="text"
-                                            class="form-control @error('administration.poh') is-invalid @enderror"
-                                            name="administration[poh]" value="{{ old('administration.poh') }}"
-                                            placeholder="Enter POH" required>
-                                        @error('administration.poh')
-                                            <div class="invalid-feedback">{{ $message }}</div>
-                                        @enderror
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="form-group">
-                                        <label>Class <span class="text-danger">*</span></label>
-                                        <select
-                                            class="form-control @error('administration.class') is-invalid @enderror"
-                                            name="administration[class]" required>
-                                            <option value="">Select class</option>
-                                            <option value="Staff"
-                                                {{ old('administration.class') == 'Staff' ? 'selected' : '' }}>Staff
-                                            </option>
-                                            <option value="Non Staff"
-                                                {{ old('administration.class') == 'Non Staff' ? 'selected' : '' }}>Non
-                                                Staff</option>
-                                        </select>
-                                        @error('administration.class')
-                                            <div class="invalid-feedback">{{ $message }}</div>
-                                        @enderror
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="form-group">
-                                        <label>Position <span class="text-danger">*</span></label>
-                                        <select
-                                            class="form-control @error('administration.position_id') is-invalid @enderror"
-                                            name="administration[position_id]" id="hire_position_id" required>
-                                            <option value="">Select position</option>
-                                            @foreach (\App\Models\Position::orderBy('position_name', 'asc')->get() as $position)
-                                                <option value="{{ $position->id }}"
-                                                    {{ old('administration.position_id', optional($session->fptk)->position_id) == $position->id ? 'selected' : '' }}>
-                                                    {{ $position->position_name }}</option>
-                                            @endforeach
-                                        </select>
-                                        @error('administration.position_id')
-                                            <div class="invalid-feedback">{{ $message }}</div>
-                                        @enderror
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="form-group">
-                                        <label>Department</label>
-                                        <input type="text" class="form-control" id="hire_department" readonly>
-                                        <small class="form-text text-muted">Department will be automatically filled
-                                            based on position selection</small>
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="form-group">
-                                        <label>Project <span class="text-danger">*</span></label>
-                                        <select
-                                            class="form-control @error('administration.project_id') is-invalid @enderror"
-                                            name="administration[project_id]" required>
-                                            <option value="">Select project</option>
-                                            @foreach (\App\Models\Project::orderBy('project_code', 'asc')->get() as $project)
-                                                <option value="{{ $project->id }}"
-                                                    {{ old('administration.project_id', optional($session->fptk)->project_id) == $project->id ? 'selected' : '' }}>
-                                                    {{ $project->project_code }}</option>
-                                            @endforeach
-                                        </select>
-                                        @error('administration.project_id')
-                                            <div class="invalid-feedback">{{ $message }}</div>
-                                        @enderror
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="form-group">
-                                        <label>Grade</label>
-                                        <select
-                                            class="form-control @error('administration.grade_id') is-invalid @enderror"
-                                            name="administration[grade_id]">
-                                            <option value="">Select grade</option>
-                                            @foreach (\App\Models\Grade::where('is_active', 1)->orderBy('name', 'asc')->get() as $grade)
-                                                <option value="{{ $grade->id }}"
-                                                    {{ old('administration.grade_id') == $grade->id ? 'selected' : '' }}>
-                                                    {{ $grade->name }}</option>
-                                            @endforeach
-                                        </select>
-                                        @error('administration.grade_id')
-                                            <div class="invalid-feedback">{{ $message }}</div>
-                                        @enderror
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="form-group">
-                                        <label>Level <span class="text-danger">*</span></label>
-                                        <select
-                                            class="form-control @error('administration.level_id') is-invalid @enderror"
-                                            name="administration[level_id]" required>
-                                            <option value="">Select level</option>
-                                            @foreach (\App\Models\Level::where('is_active', 1)->orderBy('name', 'asc')->get() as $level)
-                                                <option value="{{ $level->id }}"
-                                                    {{ old('administration.level_id') == $level->id ? 'selected' : '' }}>
-                                                    {{ $level->name }}</option>
-                                            @endforeach
-                                        </select>
-                                        @error('administration.level_id')
-                                            <div class="invalid-feedback">{{ $message }}</div>
-                                        @enderror
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="form-group">
-                                        <label>FPTK No</label>
-                                        <input type="text" class="form-control" name="administration[no_fptk]"
-                                            value="{{ optional($session->fptk)->request_number }}" readonly>
-                                    </div>
-                                </div>
-
-                            </div>
+                            @endif
                         </div>
                     </div>
 
                     <div class="card mt-3">
                         <div class="card-header"><strong>Agreement</strong></div>
                         <div class="card-body">
-                            <!-- PKWT Letter Number Selection -->
+                            @php
+                                $employmentType = optional($session->fptk)->employment_type;
+                                $agreementType = $employmentType ?: 'pkwt'; // Fallback ke 'pkwt' jika null atau empty
+                                if ($agreementType === 'magang') {
+                                    $agreementType = 'Intern';
+                                } elseif ($agreementType === 'harian') {
+                                    $agreementType = 'Daily';
+                                }
+                            @endphp
+
+                            <!-- Letter Number Selection -->
                             <div class="form-group">
-                                @include('components.smart-letter-number-selector', [
-                                    'categoryCode' => 'PKWT',
-                                    'fieldName' => 'hiring_letter_number_id',
-                                    'required' => true,
-                                    'placeholder' => 'Select PKWT Letter Number',
-                                ])
+                                @if ($employmentType === 'harian')
+                                    @include('components.smart-letter-number-selector', [
+                                        'categoryCode' => 'B',
+                                        'fieldName' => 'hiring_letter_number_id',
+                                        'required' => true,
+                                        'placeholder' => 'Select Daily Letter Number',
+                                    ])
+                                @elseif ($employmentType === 'magang')
+                                    @include('components.smart-letter-number-selector', [
+                                        'categoryCode' => 'SPM',
+                                        'fieldName' => 'hiring_letter_number_id',
+                                        'required' => true,
+                                        'placeholder' => 'Select Intern Letter Number',
+                                    ])
+                                @else
+                                    @include('components.smart-letter-number-selector', [
+                                        'categoryCode' => 'PKWT',
+                                        'fieldName' => 'hiring_letter_number_id',
+                                        'required' => true,
+                                        'placeholder' => 'Select PKWT Letter Number',
+                                    ])
+                                @endif
                             </div>
 
                             <!-- Final Letter Number (readonly display) -->
                             <div class="form-group">
-                                <label for="hiring_letter_number">PKWT Letter Number <span
+                                <label for="hiring_letter_number">Letter Number <span
                                         class="text-danger">*</span></label>
                                 <input type="text" class="form-control alert-warning text-dark font-weight-bold"
                                     id="hiring_letter_number" name="hiring_letter_number_display"
                                     placeholder="Select letter number above" readonly>
-                                <small class="form-text text-muted">This value is auto-filled from the selected letter
-                                    number.</small>
+                                <small class="form-text text-muted">
+                                    This value is auto-filled from the selected letter number.
+                                </small>
                             </div>
 
                             <!-- Agreement Type -->
                             <div class="form-group">
                                 <label class="form-label mb-2"><strong>Agreement Type</strong> <span
                                         class="text-danger">*</span></label>
-                                <div class="decision-buttons">
-                                    <button type="button" class="btn decision-btn btn-outline-success"
-                                        data-agreement="pkwt"><i class="fas fa-file-signature"></i> PKWT</button>
-                                    <button type="button" class="btn decision-btn btn-outline-warning"
-                                        data-agreement="pkwtt"><i class="fas fa-briefcase"></i> PKWTT</button>
+
+                                <div class="d-flex align-items-center">
+                                    <span
+                                        class="badge badge-{{ $employmentType === 'pkwtt' ? 'success' : ($employmentType === 'pkwt' ? 'primary' : ($employmentType === 'magang' ? 'warning' : 'info')) }} badge-lg mr-2">
+                                        <i
+                                            class="fas fa-{{ $employmentType === 'magang' ? 'graduation-cap' : ($employmentType === 'harian' ? 'clock' : ($employmentType === 'pkwt' ? 'file-signature' : 'briefcase')) }} mr-1"></i>
+                                        {{ strtoupper($agreementType) }}
+                                    </span>
+                                    <small class="text-muted">(Auto-selected based on FPTK employment type)</small>
                                 </div>
-                                <input type="hidden" name="agreement_type" id="agreement_type" required>
+
+                                <input type="hidden" name="agreement_type" value="{{ $employmentType }}" required>
                             </div>
 
                             <!-- FOC (only for PKWT) -->
-                            <div class="row">
-                                <div class="col-md-6" id="foc_container" style="display:none;">
-                                    <div class="form-group">
-                                        <label>Finish of Contract (FOC) <span class="text-danger">*</span></label>
-                                        <input type="date"
-                                            class="form-control @error('administration.foc') is-invalid @enderror"
-                                            name="administration[foc]" value="{{ old('administration.foc') }}"
-                                            id="administration_foc">
-                                        @error('administration.foc')
-                                            <div class="invalid-feedback">{{ $message }}</div>
-                                        @enderror
+                            @if ($employmentType === 'pkwt')
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label>Finish of Contract (FOC) <span class="text-danger">*</span></label>
+                                            <input type="date"
+                                                class="form-control @error('administration.foc') is-invalid @enderror"
+                                                name="administration[foc]" value="{{ old('administration.foc') }}"
+                                                id="administration_foc">
+                                            @error('administration.foc')
+                                                <div class="invalid-feedback">{{ $message }}</div>
+                                            @enderror
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
+                            @endif
                         </div>
                     </div>
 
@@ -864,6 +1021,7 @@
                         @enderror
                     </div>
 
+                    <!-- Review Date -->
                     <div class="form-group">
                         <label for="hire_reviewed_at" class="font-weight-bold">Review Date <span
                                 class="text-danger">*</span></label>
@@ -883,4 +1041,5 @@
             </form>
         </div>
     </div>
+</div>
 </div>

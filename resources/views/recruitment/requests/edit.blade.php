@@ -191,7 +191,7 @@
                             </div>
                             <div class="card-body">
                                 <div class="row">
-                                    <div class="col-md-4">
+                                    <div class="col-md-6">
                                         <div class="form-group">
                                             <label for="required_qty">Required Quantity <span
                                                     class="text-danger">*</span></label>
@@ -209,7 +209,7 @@
                                             </div>
                                         </div>
                                     </div>
-                                    <div class="col-md-4">
+                                    <div class="col-md-6">
                                         <div class="form-group">
                                             <label for="required_date">Required Date <span
                                                     class="text-danger">*</span></label>
@@ -228,7 +228,36 @@
                                             </div>
                                         </div>
                                     </div>
-                                    <div class="col-md-4">
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label for="request_reason">Request Reason <span
+                                                    class="text-danger">*</span></label>
+                                            <select name="request_reason" id="request_reason"
+                                                class="form-control select2-success @error('request_reason') is-invalid @enderror"
+                                                style="width: 100%;" required>
+                                                <option value="">Select Request Reason</option>
+                                                <option value="additional_workplan"
+                                                    {{ old('request_reason', $fptk->request_reason) == 'additional_workplan' ? 'selected' : '' }}>
+                                                    Additional - Workplan</option>
+                                                <option value="replacement_promotion"
+                                                    {{ old('request_reason', $fptk->request_reason) == 'replacement_promotion' ? 'selected' : '' }}>
+                                                    Replacement - Promotion, Mutation, Demotion</option>
+                                                <option value="replacement_resign"
+                                                    {{ old('request_reason', $fptk->request_reason) == 'replacement_resign' ? 'selected' : '' }}>
+                                                    Replacement - Resign, Termination, End of Contract</option>
+                                                {{-- <option value="other"
+                                                    {{ old('request_reason', $fptk->request_reason) == 'other' ? 'selected' : '' }}>
+                                                    Other</option> --}}
+                                            </select>
+                                            @error('request_reason')
+                                                <div class="invalid-feedback">{{ $message }}</div>
+                                            @enderror
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
                                         <div class="form-group">
                                             <label for="employment_type">Employment Type <span
                                                     class="text-danger">*</span></label>
@@ -254,36 +283,7 @@
                                             @enderror
                                         </div>
                                     </div>
-                                </div>
-
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label for="request_reason">Request Reason <span
-                                                    class="text-danger">*</span></label>
-                                            <select name="request_reason" id="request_reason"
-                                                class="form-control select2-success @error('request_reason') is-invalid @enderror"
-                                                style="width: 100%;" required>
-                                                <option value="">Select Request Reason</option>
-                                                <option value="replacement_resign"
-                                                    {{ old('request_reason', $fptk->request_reason) == 'replacement_resign' ? 'selected' : '' }}>
-                                                    Replacement - Resignation</option>
-                                                <option value="replacement_promotion"
-                                                    {{ old('request_reason', $fptk->request_reason) == 'replacement_promotion' ? 'selected' : '' }}>
-                                                    Replacement - Promotion</option>
-                                                <option value="additional_workplan"
-                                                    {{ old('request_reason', $fptk->request_reason) == 'additional_workplan' ? 'selected' : '' }}>
-                                                    Additional - Work Plan</option>
-                                                <option value="other"
-                                                    {{ old('request_reason', $fptk->request_reason) == 'other' ? 'selected' : '' }}>
-                                                    Other</option>
-                                            </select>
-                                            @error('request_reason')
-                                                <div class="invalid-feedback">{{ $message }}</div>
-                                            @enderror
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
+                                    {{-- <div class="col-md-6">
                                         <div class="form-group">
                                             <label for="other_reason">Other Reason</label>
                                             <input type="text" name="other_reason" id="other_reason"
@@ -295,7 +295,7 @@
                                                 <div class="invalid-feedback">{{ $message }}</div>
                                             @enderror
                                         </div>
-                                    </div>
+                                    </div> --}}
                                 </div>
                             </div>
                         </div>
@@ -550,7 +550,7 @@
 
                         <!-- Approval Status Card -->
                         <x-approval-status-card :documentType="'recruitment_request'" :documentId="$fptk->id" mode="preview" :projectId="old('project_id', $fptk->project_id)"
-                            :departmentId="old('department_id', $fptk->department_id)" title="Approval Status" id="dynamicApprovalCard" />
+                            :departmentId="old('department_id', $fptk->department_id)" :requestReason="old('request_reason', $fptk->request_reason)" title="Approval Status" id="dynamicApprovalCard" />
 
                         <!-- Action Buttons -->
                         <div class="card elevation-3">
@@ -944,10 +944,12 @@
                 function updateApprovalStatusCard() {
                     const projectId = $('#project_id').val();
                     const departmentId = $('#department_id').val();
+                    const requestReason = $('#request_reason').val();
 
                     console.log('Updating approval status card with:', {
                         projectId,
-                        departmentId
+                        departmentId,
+                        requestReason
                     });
 
                     // Get the approval status card component
@@ -959,31 +961,51 @@
                     }
 
                     // Update the component props by re-rendering it
-                    if (projectId && departmentId) {
-                        // Show loading state
+                    if (!projectId || !departmentId) {
                         $approvalCard.find('.card-body').html(`
-                            <div class="text-center py-3">
-                                <i class="fas fa-spinner fa-spin text-info"></i>
-                                <div class="mt-2">Loading approval flow...</div>
+                            <div class="text-center text-muted py-3">
+                                <i class="fas fa-info-circle"></i>
+                                <div class="mt-2">Select project, department, and request reason to see approval flow</div>
                             </div>
                         `);
+                        return;
+                    }
 
-                        // Fetch new approval stages
-                        $.ajax({
-                            url: '{{ route('approval.stages.preview') }}',
-                            method: 'GET',
-                            data: {
-                                project_id: projectId,
-                                department_id: departmentId,
-                                document_type: 'recruitment_request'
-                            },
-                            success: function(response) {
-                                console.log('Updated approval preview response:', response);
-                                if (response.success && response.approvers.length > 0) {
-                                    let html = '<div class="approval-flow preview-mode">';
+                    if (!requestReason) {
+                        $approvalCard.find('.card-body').html(`
+                            <div class="text-center py-3">
+                                <i class="fas fa-info-circle text-warning"></i>
+                                <div class="mt-2">Select request reason to see specific approval flow</div>
+                            </div>
+                        `);
+                        return;
+                    }
 
-                                    response.approvers.forEach((approver, index) => {
-                                        html += `
+                    // Show loading state
+                    $approvalCard.find('.card-body').html(`
+                        <div class="text-center py-3">
+                            <i class="fas fa-spinner fa-spin text-info"></i>
+                            <div class="mt-2">Loading approval flow...</div>
+                        </div>
+                    `);
+
+                    // Fetch new approval stages
+                    $.ajax({
+                        url: '{{ route('approval.stages.preview') }}',
+                        method: 'GET',
+                        data: {
+                            project_id: projectId,
+                            department_id: departmentId,
+                            document_type: 'recruitment_request',
+                            request_reason: requestReason
+                        },
+                        success: function(response) {
+                            console.log('Updated approval preview response:', response);
+                            if (response.success && response.approvers.length > 0) {
+                                let html = '<div class="approval-flow preview-mode">';
+
+                                response.approvers.forEach((approver, index) => {
+                                    html += `
                                             <div class="approval-step preview-step">
                                                 <div class="step-number">${approver.order || index + 1}</div>
                                                 <div class="step-content">
@@ -993,56 +1015,56 @@
                                                 </div>
                                             </div>
                                         `;
-                                    });
+                                });
 
-                                    html += '</div>';
-                                    $approvalCard.find('.card-body').html(html);
-                                } else {
-                                    $approvalCard.find('.card-body').html(`
+                                html += '</div>';
+                                $approvalCard.find('.card-body').html(html);
+                            } else {
+                                $approvalCard.find('.card-body').html(`
                                         <div class="text-center text-muted py-3">
                                             <i class="fas fa-info-circle"></i>
                                             <div class="mt-2">No approval flow configured for this project and department</div>
                                             <small class="text-muted">Project ID: ${projectId}, Department ID: ${departmentId}</small>
                                         </div>
                                     `);
-                                }
-                            },
-                            error: function(xhr, status, error) {
-                                console.log('Approval preview update error:', {
-                                    xhr,
-                                    status,
-                                    error
-                                });
-                                $approvalCard.find('.card-body').html(`
+                            }
+                        },
+                        error: function(xhr, status, error) {
+                            console.log('Approval preview update error:', {
+                                xhr,
+                                status,
+                                error
+                            });
+                            $approvalCard.find('.card-body').html(`
                                     <div class="text-center text-danger py-3">
                                         <i class="fas fa-exclamation-triangle"></i>
                                         <div class="mt-2">Failed to load approval flow</div>
                                         <small class="text-muted">${error}</small>
                                     </div>
                                 `);
-                            }
-                        });
-                    } else {
-                        // Show message when project or department is not selected
-                        $approvalCard.find('.card-body').html(`
+                        }
+                    });
+                } else {
+                    // Show message when project or department is not selected
+                    $approvalCard.find('.card-body').html(`
                             <div class="text-center text-muted py-3">
                                 <i class="fas fa-info-circle"></i>
                                 <div class="mt-2">Select both project and department to see approval flow</div>
                             </div>
                         `);
-                    }
                 }
-
-                // Listen for project and department changes
-                $('#project_id, #department_id').on('change', function() {
-                    updateApprovalStatusCard();
-                });
-
-                // Initial load of approval status card
-                $(document).ready(function() {
-                    updateApprovalStatusCard();
-                });
             }
+
+            // Listen for project, department, and request reason changes
+            $('#project_id, #department_id, #request_reason').on('change', function() {
+                updateApprovalStatusCard();
+            });
+
+            // Initial load of approval status card
+            $(document).ready(function() {
+                updateApprovalStatusCard();
+            });
+        }
         });
     </script>
 @endsection

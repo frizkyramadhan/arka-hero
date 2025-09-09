@@ -87,12 +87,15 @@ class RecruitmentSessionController extends Controller
 
             // Business rule update: allow adding candidates regardless of required_qty
 
+            // Determine initial stage based on employment type
+            $initialStage = in_array($fptk->employment_type, ['magang', 'harian']) ? 'mcu' : 'cv_review';
+
             // Create new session
             $sessionData = [
                 'candidate_id' => $request->candidate_id,
                 'fptk_id' => $request->fptk_id,
                 'session_number' => $this->generateSessionNumber(),
-                'current_stage' => 'cv_review',
+                'current_stage' => $initialStage,
                 'stage_status' => 'pending',
                 'status' => 'in_process',
                 'applied_date' => now(),
@@ -578,8 +581,14 @@ class RecruitmentSessionController extends Controller
 
             $session->documents()->delete();
 
+            // Store candidate reference before deletion
+            $candidate = $session->candidate;
+
             // Delete the session
             $session->delete();
+
+            // Update candidate global status to available after session removal
+            $candidate->update(['global_status' => 'available']);
 
             return response()->json([
                 'success' => true,
@@ -1289,10 +1298,10 @@ class RecruitmentSessionController extends Controller
             'administration.class' => 'required|in:Staff,Non Staff',
             'administration.position_id' => 'required|exists:positions,id',
             'administration.project_id' => 'required|exists:projects,id',
-            'administration.level_id' => 'required|exists:levels,id',
+            'administration.level_id' => 'required_if:agreement_type,pkwt|required_if:agreement_type,pkwtt|nullable|exists:levels,id',
             'administration.foc' => 'required_if:agreement_type,pkwt|nullable|date',
             'hiring_letter_number_id' => 'required|exists:letter_numbers,id',
-            'agreement_type' => 'required|in:pkwt,pkwtt',
+            'agreement_type' => 'required|in:pkwt,pkwtt,magang,harian',
             'notes' => 'nullable|string',
             'reviewed_at' => 'required|date',
         ], [
@@ -1309,7 +1318,7 @@ class RecruitmentSessionController extends Controller
             'administration.class.required' => 'Class is required',
             'administration.position_id.required' => 'Position is required',
             'administration.project_id.required' => 'Project is required',
-            'administration.level_id.required' => 'Level is required',
+            'administration.level_id.required_if' => 'Level is required for PKWT and PKWTT agreements',
             'administration.foc.required_if' => 'FOC is required for PKWT agreement',
             'hiring_letter_number_id.required' => 'Hiring Letter Number is required',
             'agreement_type.required' => 'Agreement Type is required',
@@ -1338,11 +1347,15 @@ class RecruitmentSessionController extends Controller
             $base = preg_replace('/^[A-Za-z]+/', '', $letterNumber->letter_number);
             $fullLetterNumber = $base . '/ARKA-HO/PKWT-I/' . $romanMonth . '/' . $year;
 
+            // Get agreement type from FPTK employment type (hardcode mapping)
+            $fptk = $session->fptk;
+            $agreementType = \App\Models\RecruitmentHiring::getAgreementTypeFromEmploymentType($fptk->employment_type);
+
             // Create or update Hiring record with full formatted letter number
             $session->hiring()->updateOrCreate(
                 ['session_id' => $sessionId],
                 [
-                    'agreement_type' => $request->agreement_type,
+                    'agreement_type' => $agreementType, // Auto-set from FPTK employment_type
                     'letter_number' => $fullLetterNumber,
                     'notes' => $request->notes,
                     'reviewed_by' => auth()->id(),
@@ -1421,8 +1434,8 @@ class RecruitmentSessionController extends Controller
                 'class' => $adminData['class'],
                 'doh' => $adminData['doh'],
                 'poh' => $adminData['poh'],
-                'foc' => $request->agreement_type === 'pkwt' ? ($adminData['foc'] ?? null) : null,
-                'agreement' => $adminData['agreement'] ?? strtoupper($request->agreement_type),
+                'foc' => $agreementType === 'pkwt' ? ($adminData['foc'] ?? null) : null,
+                'agreement' => $adminData['agreement'] ?? strtoupper($agreementType),
                 'no_fptk' => $adminData['no_fptk'] ?? ($fptk->request_number ?? null),
                 'is_active' => 1,
                 'user_id' => auth()->id(),

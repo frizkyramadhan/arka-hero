@@ -29,6 +29,17 @@
                         <form action="{{ route('approval.stages.store') }}" method="POST">
                             @csrf
                             <div class="card-body">
+                                <!-- Duplicate Error Display -->
+                                @error('duplicate')
+                                    <div class="alert alert-danger">
+                                        <i class="fas fa-exclamation-triangle"></i>
+                                        <strong>Duplicate Combination Error:</strong>
+                                        <div class="mt-2">
+                                            {!! $message !!}
+                                        </div>
+                                    </div>
+                                @enderror
+
                                 <!-- Approver Selection -->
                                 <div class="form-group">
                                     <label for="approver_id">Approver <span class="text-danger">*</span></label>
@@ -70,16 +81,51 @@
                                     @enderror
                                 </div>
 
-                                <!-- Duplicate Error Display -->
-                                @error('duplicate')
-                                    <div class="alert alert-danger">
-                                        <i class="fas fa-exclamation-triangle"></i>
-                                        <strong>Duplicate Combination Error:</strong>
-                                        <div class="mt-2">
-                                            {!! nl2br(e($message)) !!}
+                                <!-- Request Reason Selection (Only for Recruitment Request) -->
+                                <div class="form-group" id="request_reason_section" style="display: none;">
+                                    <div class="card card-info">
+                                        <div class="card-header">
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <h6 class="mb-0">Request Reason <span class="text-danger">*</span></h6>
+                                                <div class="custom-control custom-checkbox">
+                                                    <input type="checkbox" class="custom-control-input"
+                                                        id="select_all_reasons" onchange="toggleAllRequestReasons()">
+                                                    <label class="custom-control-label" for="select_all_reasons"
+                                                        style="font-size: 12px;">
+                                                        Select All
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="card-body" style="max-height: 300px; overflow-y: auto;">
+                                            <div class="custom-control custom-checkbox">
+                                                <input type="checkbox" class="custom-control-input request-reason-checkbox"
+                                                    name="request_reasons[]" value="additional" id="additional"
+                                                    {{ in_array('additional', old('request_reasons', [])) ? 'checked' : '' }}>
+                                                <label class="custom-control-label" for="additional"
+                                                    style="font-size: 13px;">
+                                                    Additional
+                                                </label>
+                                            </div>
+                                            <div class="custom-control custom-checkbox">
+                                                <input type="checkbox" class="custom-control-input request-reason-checkbox"
+                                                    name="request_reasons[]" value="replacement" id="replacement"
+                                                    {{ in_array('replacement', old('request_reasons', [])) ? 'checked' : '' }}>
+                                                <label class="custom-control-label" for="replacement"
+                                                    style="font-size: 13px;">
+                                                    Replacement
+                                                </label>
+                                            </div>
                                         </div>
                                     </div>
-                                @enderror
+                                    <small class="form-text text-muted">
+                                        Select which request reasons this approval stage applies to. Leave empty for
+                                        backward compatibility.
+                                    </small>
+                                    @error('request_reasons')
+                                        <span class="text-danger">{{ $message }}</span>
+                                    @enderror
+                                </div>
 
                                 <!-- Approval Order Input -->
                                 <div class="form-group">
@@ -89,7 +135,8 @@
                                         min="1" required placeholder="Enter approval order (e.g., 1, 2, 3)">
                                     <small class="form-text text-muted">
                                         Sequential order for approval process. Lower numbers are processed first.
-                                        <br><strong>Note:</strong> Steps with the same order number can be processed in parallel after previous orders are completed.
+                                        <br><strong>Note:</strong> Steps with the same order number can be processed in
+                                        parallel after previous orders are completed.
                                     </small>
                                     @error('approval_order')
                                         <span class="invalid-feedback">{{ $message }}</span>
@@ -117,7 +164,8 @@
                                             <div class="card-body" style="max-height: 300px; overflow-y: auto;">
                                                 @foreach ($projects as $project)
                                                     <div class="custom-control custom-checkbox">
-                                                        <input type="checkbox" class="custom-control-input project-checkbox"
+                                                        <input type="checkbox"
+                                                            class="custom-control-input project-checkbox"
                                                             id="project_{{ $project->id }}" name="projects[]"
                                                             value="{{ $project->id }}"
                                                             {{ in_array($project->id, old('projects', [])) ? 'checked' : '' }}>
@@ -235,12 +283,41 @@
             // Initialize select all functionality
             handleSelectAll('#select_all_projects', '.project-checkbox');
             handleSelectAll('#select_all_departments', '.department-checkbox');
+            handleSelectAll('#select_all_reasons', '.request-reason-checkbox');
+
+            // Handle document type change to show/hide request reason section
+            $('#document_type').on('change', function() {
+                const documentType = $(this).val();
+                const requestReasonSection = $('#request_reason_section');
+
+                if (documentType === 'recruitment_request') {
+                    requestReasonSection.show();
+                } else {
+                    requestReasonSection.hide();
+                    // Uncheck all request reason checkboxes when hidden
+                    $('.request-reason-checkbox').prop('checked', false);
+                    $('#select_all_reasons').prop('checked', false).prop('indeterminate', false);
+                }
+            });
 
             // Initialize states after DOM is ready
             setTimeout(function() {
                 updateSelectAllState('#select_all_projects', '.project-checkbox');
                 updateSelectAllState('#select_all_departments', '.department-checkbox');
+                updateSelectAllState('#select_all_reasons', '.request-reason-checkbox');
+
+                // Show request reason section if document type is already recruitment_request
+                if ($('#document_type').val() === 'recruitment_request') {
+                    $('#request_reason_section').show();
+                }
             }, 200);
         });
+
+        // Function to toggle all request reasons (called from HTML)
+        function toggleAllRequestReasons() {
+            const selectAll = $('#select_all_reasons');
+            const isChecked = selectAll.is(':checked');
+            $('.request-reason-checkbox').prop('checked', isChecked);
+        }
     </script>
 @endsection

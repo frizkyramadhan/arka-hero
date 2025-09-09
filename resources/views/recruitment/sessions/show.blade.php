@@ -352,7 +352,12 @@
             <div class="fptk-card sessions-table-card">
                 <div class="card-head">
                     <h2><i class="fas fa-list"></i> Candidate Sessions</h2>
-                    @if (!$fptk->requires_theory_test)
+                    @if (in_array($fptk->employment_type, ['magang', 'harian']))
+                        <small class="text-muted">
+                            <i class="fas fa-info-circle"></i>
+                            Untuk {{ ucfirst($fptk->employment_type) }}: Hanya tahapan MCU dan Hiring & Onboarding
+                        </small>
+                    @elseif (!$fptk->requires_theory_test)
                         <small class="text-muted">
                             <i class="fas fa-info-circle"></i>
                             Tes Teori dan Interview Trainer stage di-skip untuk posisi non-mekanik
@@ -371,17 +376,19 @@
                                 <tr>
                                     <th class="text-center align-middle" style="width: 50px;">No</th>
                                     <th class="align-middle">Candidate Name</th>
-                                    <th class="text-center align-middle">CV Review</th>
-                                    <th class="text-center align-middle">Psikotes</th>
-                                    @if ($fptk->requires_theory_test)
-                                        <th class="text-center align-middle">Tes Teori</th>
+                                    @if (!in_array($fptk->employment_type, ['magang', 'harian']))
+                                        <th class="text-center align-middle">CV Review</th>
+                                        <th class="text-center align-middle">Psikotes</th>
+                                        @if ($fptk->requires_theory_test)
+                                            <th class="text-center align-middle">Tes Teori</th>
+                                        @endif
+                                        <th class="text-center align-middle">Interview HR</th>
+                                        @if ($fptk->requires_theory_test)
+                                            <th class="text-center align-middle">Interview Trainer</th>
+                                        @endif
+                                        <th class="text-center align-middle">Interview User</th>
+                                        <th class="text-center align-middle">Offering</th>
                                     @endif
-                                    <th class="text-center align-middle">Interview HR</th>
-                                    @if ($fptk->requires_theory_test)
-                                        <th class="text-center align-middle">Interview Trainer</th>
-                                    @endif
-                                    <th class="text-center align-middle">Interview User</th>
-                                    <th class="text-center align-middle">Offering</th>
                                     <th class="text-center align-middle">MCU</th>
                                     <th class="text-center align-middle">Hiring & Onboarding</th>
                                     <th class="text-center align-middle">Final Status</th>
@@ -398,8 +405,11 @@
                                             <small class="text-muted">Session: {{ $session->session_number }}</small>
                                         </td>
                                         @php
-                                            // Define stages based on theory test requirement
-                                            if ($fptk->requires_theory_test) {
+                                            // Define stages based on employment type and theory test requirement
+                                            if (in_array($fptk->employment_type, ['magang', 'harian'])) {
+                                                // For magang and harian: only MCU and Hiring stages
+                                                $stages = ['mcu', 'hire'];
+                                            } elseif ($fptk->requires_theory_test) {
                                                 $stages = [
                                                     'cv_review',
                                                     'psikotes',
@@ -615,7 +625,7 @@
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="{{ $fptk->requires_theory_test ? '13' : '11' }}"
+                                        <td colspan="{{ in_array($fptk->employment_type, ['magang', 'harian']) ? '6' : ($fptk->requires_theory_test ? '13' : '11') }}"
                                             class="text-center text-muted">
                                             <i class="fas fa-inbox fa-2x mb-2"></i>
                                             <br>No candidate sessions found for this FPTK
