@@ -553,12 +553,6 @@ class OfficialtravelController extends Controller
                 'transportation_id' => 'required',
                 'accommodation_id' => 'required',
                 'followers' => 'nullable|array',
-                // Recommendation fields
-                'recommendation_by' => 'required|exists:users,id',
-                'recommendation_remark' => 'nullable|string',
-                // Approval fields
-                'approval_by' => 'required|exists:users,id',
-                'approval_remark' => 'nullable|string',
             ]);
 
             DB::beginTransaction();
@@ -580,10 +574,6 @@ class OfficialtravelController extends Controller
                 'departure_from' => $request->departure_from,
                 'transportation_id' => $request->transportation_id,
                 'accommodation_id' => $request->accommodation_id,
-                'recommendation_by' => $request->recommendation_by,
-                'recommendation_remark' => $request->recommendation_remark,
-                'approval_by' => $request->approval_by,
-                'approval_remark' => $request->approval_remark,
                 'arrival_at_destination' => $request->arrival_at_destination,
                 'arrival_remark' => $request->arrival_remark ?? $officialtravel->arrival_remark,
                 'departure_from_destination' => $request->departure_from_destination,

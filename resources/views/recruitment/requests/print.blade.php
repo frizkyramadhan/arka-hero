@@ -413,21 +413,14 @@
                 <span class="colon">:</span>
                 <div class="checkbox-container" style="display: flex; flex-direction: column; gap: 3px;">
                     <div class="checkbox-item-vertical">
-                        <span
-                            class="checkbox {{ $fptk->request_reason == 'replacement_resign' ? 'checked' : '' }}"></span>
-                        <span>Pengganti Karyawan Mengundurkan Diri / PHK</span>
+                        <span class="checkbox {{ $fptk->request_reason == 'replacement' ? 'checked' : '' }}"></span>
+                        <span>Pengganti Karyawan</span>
                     </div>
                     <div class="checkbox-item-vertical">
-                        <span
-                            class="checkbox {{ $fptk->request_reason == 'replacement_promotion' ? 'checked' : '' }}"></span>
-                        <span>Pengganti Karyawan Promosi/Mutasi/Demosi</span>
+                        <span class="checkbox {{ $fptk->request_reason == 'additional' ? 'checked' : '' }}"></span>
+                        <span>Penambahan Karyawan</span>
                     </div>
-                    <div class="checkbox-item-vertical">
-                        <span
-                            class="checkbox {{ $fptk->request_reason == 'additional_workplan' ? 'checked' : '' }}"></span>
-                        <span>Penambahan Karyawan Sesuai Rencana kerja</span>
-                    </div>
-                    <div class="checkbox-item-vertical">
+                    {{-- <div class="checkbox-item-vertical">
                         <span class="checkbox {{ $fptk->request_reason == 'other' ? 'checked' : '' }}"></span>
                         <span>Lain-lain / Sebutkan Alasannya ...</span>
                     </div>
@@ -435,7 +428,7 @@
                         <div style="margin-top: 5px; margin-left: 17px;">
                             <span>{{ $fptk->other_reason }}</span>
                         </div>
-                    @endif
+                    @endif --}}
                 </div>
             </div>
 

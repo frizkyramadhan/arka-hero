@@ -190,7 +190,7 @@
                             </div>
                             <div class="card-body">
                                 <div class="row">
-                                    <div class="col-md-4">
+                                    <div class="col-md-6">
                                         <div class="form-group">
                                             <label for="required_qty">Required Quantity <span
                                                     class="text-danger">*</span></label>
@@ -208,7 +208,7 @@
                                             </div>
                                         </div>
                                     </div>
-                                    <div class="col-md-4">
+                                    <div class="col-md-6">
                                         <div class="form-group">
                                             <label for="required_date">Required Date <span
                                                     class="text-danger">*</span></label>
@@ -226,7 +226,36 @@
                                             </div>
                                         </div>
                                     </div>
-                                    <div class="col-md-4">
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label for="request_reason">Request Reason <span
+                                                    class="text-danger">*</span></label>
+                                            <select name="request_reason" id="request_reason"
+                                                class="form-control select2-success @error('request_reason') is-invalid @enderror"
+                                                style="width: 100%;" required>
+                                                <option value="">Select Request Reason</option>
+                                                <option value="additional_workplan"
+                                                    {{ old('request_reason') == 'additional_workplan' ? 'selected' : '' }}>
+                                                    Additional - Workplan</option>
+                                                <option value="replacement_promotion"
+                                                    {{ old('request_reason') == 'replacement_promotion' ? 'selected' : '' }}>
+                                                    Replacement - Promotion, Mutation, Demotion</option>
+                                                <option value="replacement_resign"
+                                                    {{ old('request_reason') == 'replacement_resign' ? 'selected' : '' }}>
+                                                    Replacement - Resign, Termination, End of Contract</option>
+                                                {{-- <option value="other"
+                                                    {{ old('request_reason') == 'other' ? 'selected' : '' }}>
+                                                    Other</option> --}}
+                                            </select>
+                                            @error('request_reason')
+                                                <div class="invalid-feedback">{{ $message }}</div>
+                                            @enderror
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
                                         <div class="form-group">
                                             <label for="employment_type">Employment Type <span
                                                     class="text-danger">*</span></label>
@@ -252,36 +281,7 @@
                                             @enderror
                                         </div>
                                     </div>
-                                </div>
-
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label for="request_reason">Request Reason <span
-                                                    class="text-danger">*</span></label>
-                                            <select name="request_reason" id="request_reason"
-                                                class="form-control select2-success @error('request_reason') is-invalid @enderror"
-                                                style="width: 100%;" required>
-                                                <option value="">Select Request Reason</option>
-                                                <option value="replacement_resign"
-                                                    {{ old('request_reason') == 'replacement_resign' ? 'selected' : '' }}>
-                                                    Replacement - Resignation</option>
-                                                <option value="replacement_promotion"
-                                                    {{ old('request_reason') == 'replacement_promotion' ? 'selected' : '' }}>
-                                                    Replacement - Promotion</option>
-                                                <option value="additional_workplan"
-                                                    {{ old('request_reason') == 'additional_workplan' ? 'selected' : '' }}>
-                                                    Additional - Work Plan</option>
-                                                <option value="other"
-                                                    {{ old('request_reason') == 'other' ? 'selected' : '' }}>
-                                                    Other</option>
-                                            </select>
-                                            @error('request_reason')
-                                                <div class="invalid-feedback">{{ $message }}</div>
-                                            @enderror
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
+                                    {{-- <div class="col-md-6">
                                         <div class="form-group">
                                             <label for="other_reason">Other Reason</label>
                                             <input type="text" name="other_reason" id="other_reason"
@@ -292,7 +292,7 @@
                                                 <div class="invalid-feedback">{{ $message }}</div>
                                             @enderror
                                         </div>
-                                    </div>
+                                    </div> --}}
                                 </div>
                             </div>
                         </div>
@@ -551,6 +551,7 @@
                             'title' => 'Approval Preview',
                             'projectId' => old('project_id'),
                             'departmentId' => old('department_id'),
+                            'requestReason' => old('request_reason'),
                         ])
 
                         <!-- Action Buttons -->
@@ -828,12 +829,23 @@
             function loadApprovalPreview() {
                 const projectId = $('#project_id').val();
                 const departmentId = $('#department_id').val();
+                const requestReason = $('#request_reason').val();
 
                 if (!projectId || !departmentId) {
                     $('#approvalPreview').html(`
                         <div class="text-center py-3">
                             <i class="fas fa-info-circle text-info"></i>
-                            <div class="mt-2">Select both project and department to see approval flow</div>
+                            <div class="mt-2">Select project, department, and request reason to see approval flow</div>
+                        </div>
+                    `);
+                    return;
+                }
+
+                if (!requestReason) {
+                    $('#approvalPreview').html(`
+                        <div class="text-center py-3">
+                            <i class="fas fa-info-circle text-warning"></i>
+                            <div class="mt-2">Select request reason to see specific approval flow</div>
                         </div>
                     `);
                     return;
@@ -853,7 +865,8 @@
                     data: {
                         project_id: projectId,
                         department_id: departmentId,
-                        document_type: 'recruitment_request'
+                        document_type: 'recruitment_request',
+                        request_reason: requestReason
                     },
                     success: function(response) {
                         if (response.success && response.approvers.length > 0) {
@@ -896,20 +909,23 @@
                 });
             }
 
-            // Listen for project and department changes
-            $('#project_id, #department_id').on('change', function() {
+            // Listen for project, department, and request reason changes
+            $('#project_id, #department_id, #request_reason').on('change', function() {
                 loadApprovalPreview();
             });
 
-            // Load approval preview on page load if project and department are selected
+            // Load approval preview on page load if project, department, and request reason are selected
             $(document).ready(function() {
                 // Check if there's old input from validation errors
                 const hasOldProjectInput = {{ json_encode(old('project_id') ? true : false) }};
                 const hasOldDepartmentInput = {{ json_encode(old('department_id') ? true : false) }};
+                const hasOldRequestReasonInput = {{ json_encode(old('request_reason') ? true : false) }};
                 const projectValue = $('#project_id').val();
                 const departmentValue = $('#department_id').val();
+                const requestReasonValue = $('#request_reason').val();
 
-                if ((hasOldProjectInput && hasOldDepartmentInput) || (projectValue && departmentValue)) {
+                if ((hasOldProjectInput && hasOldDepartmentInput && hasOldRequestReasonInput) ||
+                    (projectValue && departmentValue && requestReasonValue)) {
                     // Small delay to ensure all elements are loaded
                     setTimeout(function() {
                         loadApprovalPreview();
@@ -920,7 +936,7 @@
             // Ensure approval preview is loaded when form has validation errors
             @if ($errors->any())
                 $(document).ready(function() {
-                    if ($('#project_id').val() && $('#department_id').val()) {
+                    if ($('#project_id').val() && $('#department_id').val() && $('#request_reason').val()) {
                         setTimeout(function() {
                             loadApprovalPreview();
                         }, 200);
@@ -930,7 +946,7 @@
 
             // Load approval preview when returning from other pages or after form submission
             $(window).on('load', function() {
-                if ($('#project_id').val() && $('#department_id').val()) {
+                if ($('#project_id').val() && $('#department_id').val() && $('#request_reason').val()) {
                     setTimeout(function() {
                         loadApprovalPreview();
                     }, 300);

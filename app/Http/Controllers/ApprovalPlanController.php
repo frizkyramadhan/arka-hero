@@ -3,13 +3,14 @@
 namespace App\Http\Controllers;
 
 use Carbon\Carbon;
+use App\Models\Project;
 use App\Models\ApprovalPlan;
 use Illuminate\Http\Request;
 use App\Models\ApprovalStage;
 use App\Models\Officialtravel;
 use App\Models\RecruitmentRequest;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Auth;
 
 class ApprovalPlanController extends Controller
 {
@@ -27,6 +28,8 @@ class ApprovalPlanController extends Controller
     public function create_approval_plan($document_type, $document_id)
     {
         // Retrieve the document based on its type
+        $request_reason = null; // Default for official travel
+
         if ($document_type == 'officialtravel') {
             $document = Officialtravel::findOrFail($document_id);
             $project = $document->official_travel_origin;
@@ -37,27 +40,49 @@ class ApprovalPlanController extends Controller
                 return false;
             }
             $department_id = $traveler->position->department_id;
+            // Official travel doesn't use request_reason (stays null)
         } elseif ($document_type == 'recruitment_request') {
             $document = RecruitmentRequest::findOrFail($document_id);
             $project = $document->project_id;
             // For recruitment request, use the department_id from the document
             $department_id = $document->department_id;
+            // Get request_reason for conditional approval
+            $request_reason = $document->request_reason;
         } else {
             return false; // Invalid document type
         }
 
+        // Map request_reason for approval stage filtering
+        $approval_stage_reason = $this->mapRequestReasonForApprovalStage($request_reason);
+
         // Debug logging
-        Log::info("Creating approval plan for document_type: {$document_type}, document_id: {$document_id}, project: {$project}, department_id: {$department_id}");
+        Log::info("Creating approval plan for document_type: {$document_type}, document_id: {$document_id}, project: {$project}, department_id: {$department_id}, request_reason: {$request_reason}");
 
         // Use the new structure with approval_stage_details
         $approvers = ApprovalStage::with(['approver', 'details'])
             ->where('document_type', $document_type)
-            ->whereHas('details', function ($query) use ($project, $department_id) {
+            ->whereHas('details', function ($query) use ($project, $department_id, $approval_stage_reason) {
                 $query->where('project_id', $project)
                     ->where('department_id', $department_id);
+
+                // For recruitment_request, also filter by request_reason (mapped)
+                if ($approval_stage_reason !== null) {
+                    $query->where(function ($q) use ($approval_stage_reason) {
+                        $q->where('request_reason', $approval_stage_reason)
+                            ->orWhereNull('request_reason'); // Include stages without request_reason for backward compatibility
+                    });
+                } else {
+                    // For official travel, only get stages without request_reason
+                    $query->whereNull('request_reason');
+                }
             })
             ->orderBy('approval_order', 'asc')
             ->get();
+
+        // For recruitment_request, apply conditional logic based on request_reason and project type
+        if ($document_type == 'recruitment_request' && $approval_stage_reason) {
+            $approvers = $this->getConditionalApprovers($approval_stage_reason, $project, $department_id, $approvers);
+        }
 
         // Debug logging
         Log::info("Found {$approvers->count()} approvers for this document");
@@ -470,5 +495,130 @@ class ApprovalPlanController extends Controller
 
         // All approvals are completed
         return true;
+    }
+
+    /**
+     * Get conditional approvers based on request_reason and project type
+     *
+     * NOTE: For now, we return all configured approvers since the approval stages
+     * are already filtered correctly by project/department/request_reason.
+     * The conditional logic was causing issues where configured approvers were filtered out.
+     */
+    private function getConditionalApprovers($request_reason, $project_id, $department_id, $approvers)
+    {
+        // Log for debugging
+        Log::info("Conditional approver logic for request_reason: {$request_reason}, project_id: {$project_id}");
+        Log::info("Original approvers count: " . $approvers->count());
+
+        // Return all configured approvers - they are already filtered by the main query
+        // based on project_id, department_id, and request_reason matching
+        return $approvers;
+
+        // Legacy conditional logic (disabled for now):
+        /*
+        // Determine project type
+        $project_type = $this->getProjectType($project_id);
+
+        // Apply conditional logic based on request_reason
+        switch ($request_reason) {
+            case 'replacement':
+                // Only HCS Division Manager for replacement
+                return $approvers->filter(function ($approver) {
+                    return $this->isHCSDivisionManager($approver->approver_id);
+                });
+
+            case 'additional':
+                if ($project_type === 'HO' || $project_type === 'BO' || $project_type === 'APS') {
+                    // HCS Division Manager → HCL Director
+                    return $approvers->filter(function ($approver) {
+                        return $this->isHCSDivisionManager($approver->approver_id) ||
+                            $this->isHCLDirector($approver->approver_id);
+                    });
+                } else {
+                    // Operational General Manager → HCS Division Manager
+                    return $approvers->filter(function ($approver) {
+                        return $this->isOperationalGeneralManager($approver->approver_id) ||
+                            $this->isHCSDivisionManager($approver->approver_id);
+                    });
+                }
+
+            default:
+                // Return all approvers for other cases
+                return $approvers;
+        }
+        */
+    }
+
+    /**
+     * Determine project type based on project
+     */
+    private function getProjectType($project_id)
+    {
+        $project = Project::find($project_id);
+
+        if (!$project) {
+            return 'UNKNOWN';
+        }
+
+        $project_code = strtoupper($project->project_code);
+
+        if (str_contains($project_code, '000H')) {
+            return 'HO';
+        } elseif (str_contains($project_code, '001H')) {
+            return 'BO';
+        } elseif (str_contains($project_code, 'APS')) {
+            return 'APS';
+        } else {
+            return 'ALL_PROJECT';
+        }
+    }
+
+    /**
+     * Check if user is HCS Division Manager
+     */
+    private function isHCSDivisionManager($user_id)
+    {
+        // You'll need to implement this based on your role system
+        // For now, return true for user ID 3 (Eddy Nasri) as example
+        return $user_id == 3;
+    }
+
+    /**
+     * Check if user is HCL Director
+     */
+    private function isHCLDirector($user_id)
+    {
+        // You'll need to implement this based on your role system
+        // For now, return true for user ID 4 (Rachman Yulikiswanto) as example
+        return $user_id == 4;
+    }
+
+    /**
+     * Check if user is Operational General Manager
+     */
+    private function isOperationalGeneralManager($user_id)
+    {
+        // You'll need to implement this based on your role system
+        // For now, return true for user ID 2 (Gusti Permana) as example
+        return $user_id == 2;
+    }
+
+    /**
+     * Map specific request_reason values to approval stage filtering values
+     */
+    private function mapRequestReasonForApprovalStage($request_reason)
+    {
+        if ($request_reason === null) {
+            return null;
+        }
+
+        return match ($request_reason) {
+            'replacement_promotion', 'replacement_resign' => 'replacement',
+            'additional_workplan' => 'additional',
+            'other' => 'other',
+            // Legacy values (for backward compatibility)
+            'replacement', 'additional' => $request_reason,
+            default => $request_reason
+        };
     }
 }

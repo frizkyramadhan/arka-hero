@@ -411,10 +411,28 @@ class RecruitmentWorkflowService
      * Get business rules for stage
      *
      * @param string $stage
+     * @param RecruitmentSession|null $session
      * @return array
      */
-    public function getStageBusinessRules(string $stage): array
+    public function getStageBusinessRules(string $stage, ?RecruitmentSession $session = null): array
     {
+        // For magang and harian: simplified rules (only MCU and Hiring stages)
+        if ($session && $session->shouldSkipStagesForEmploymentType()) {
+            $rules = [
+                'mcu' => [
+                    'required_fields' => ['overall_health'],
+                    'passing_score' => 70, // Lower threshold for magang/harian
+                    'auto_advance' => true,
+                ],
+                'hire' => [
+                    'required_fields' => ['start_date', 'employment_type'],
+                    'auto_advance' => false,
+                ],
+            ];
+            return $rules[$stage] ?? [];
+        }
+
+        // Regular business rules for other employment types
         $rules = [
             'cv_review' => [
                 'required_fields' => ['education_match', 'experience_match', 'skills_match'],

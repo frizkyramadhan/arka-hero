@@ -78,10 +78,19 @@ class RecruitmentSession extends Model
     ];
 
     /**
-     * Get adjusted stage progress based on position requirements
+     * Get adjusted stage progress based on position requirements and employment type
      */
     public function getAdjustedStageProgress(): array
     {
+        // For magang and harian: only MCU and Hiring stages
+        if ($this->shouldSkipStagesForEmploymentType()) {
+            // Total stages: 2 (mcu, hire)
+            return [
+                'mcu' => 50.0,          // 1/2 * 100
+                'hire' => 100,          // 2/2 * 100
+            ];
+        }
+
         if ($this->shouldSkipTheoryTest()) {
             // Adjust progress for non-mechanic positions (skip tes_teori)
             // Total stages: 6 (cv_review, psikotes, interview, offering, mcu, hire)
@@ -273,6 +282,13 @@ class RecruitmentSession extends Model
     // Check if stage is completed
     public function isStageCompleted($stage)
     {
+        // For magang and harian: only check MCU and Hire stages
+        if ($this->shouldSkipStagesForEmploymentType()) {
+            if (!in_array($stage, ['mcu', 'hire'])) {
+                return true; // Consider other stages as completed for magang/harian
+            }
+        }
+
         $assessment = $this->getAssessmentByStage($stage);
         if (!$assessment) {
             return false;
@@ -569,7 +585,17 @@ class RecruitmentSession extends Model
 
     public function getNextStageAttribute()
     {
-        // Define stage order with conditional tes_teori
+        // For magang and harian: simplified stage order (only MCU and Hiring)
+        if ($this->shouldSkipStagesForEmploymentType()) {
+            $stageOrder = [
+                'mcu' => 'hire',
+                'hire' => 'onboarding',
+                'onboarding' => null
+            ];
+            return $stageOrder[$this->current_stage] ?? null;
+        }
+
+        // Define stage order with conditional tes_teori for regular employment types
         $stageOrder = [
             'cv_review' => 'psikotes',
             'psikotes' => $this->shouldSkipTheoryTest() ? 'interview' : 'tes_teori',
@@ -592,6 +618,16 @@ class RecruitmentSession extends Model
     public function shouldSkipTheoryTest(): bool
     {
         return !$this->fptk->requiresTheoryTest();
+    }
+
+    /**
+     * Check if this session should skip stages for employment type (magang/harian)
+     *
+     * @return bool
+     */
+    public function shouldSkipStagesForEmploymentType(): bool
+    {
+        return in_array($this->fptk->employment_type, ['magang', 'harian']);
     }
 
     public function getCurrentStageDurationAttribute()
@@ -857,26 +893,43 @@ class RecruitmentSession extends Model
     public function calculateActualProgress(): float
     {
         $adjustedProgress = $this->getAdjustedStageProgress();
-        $completedStages = [];
 
-        // Check each stage to see if it's completed
-        $stages = $this->shouldSkipTheoryTest()
-            ? ['cv_review', 'psikotes', 'interview', 'offering', 'mcu', 'hire']
-            : ['cv_review', 'psikotes', 'tes_teori', 'interview', 'offering', 'mcu', 'hire'];
+        // For magang and harian: simplified progress calculation
+        if ($this->shouldSkipStagesForEmploymentType()) {
+            // Check Hire first (highest priority)
+            if ($this->isStageCompleted('hire')) {
+                return 100.0; // Hire completed = 100%
+            }
+            // Check MCU
+            if ($this->isStageCompleted('mcu')) {
+                return 50.0; // MCU completed = 50%
+            }
+            // No stages completed
+            return 0.0;
+        }
 
+        // Regular employment types: use adjusted progress
+        // Get stages based on employment type
+        if ($this->shouldSkipTheoryTest()) {
+            $stages = ['cv_review', 'psikotes', 'interview', 'offering', 'mcu', 'hire'];
+        } else {
+            $stages = ['cv_review', 'psikotes', 'tes_teori', 'interview', 'offering', 'mcu', 'hire'];
+        }
+
+        // Find the last completed stage and return its progress
+        $lastCompletedStage = null;
         foreach ($stages as $stage) {
             if ($this->isStageCompleted($stage)) {
-                $completedStages[] = $stage;
+                $lastCompletedStage = $stage;
             }
         }
 
         // If no stages completed, return 0
-        if (empty($completedStages)) {
+        if (!$lastCompletedStage) {
             return 0.0;
         }
 
-        // Get the last completed stage progress
-        $lastCompletedStage = end($completedStages);
+        // Return progress for the last completed stage
         return $adjustedProgress[$lastCompletedStage] ?? 0.0;
     }
 

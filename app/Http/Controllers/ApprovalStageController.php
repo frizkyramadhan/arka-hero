@@ -16,10 +16,24 @@ use Illuminate\Support\Facades\Log;
 
 class ApprovalStageController extends Controller
 {
+    /**
+     * Get display label for request reason
+     */
+    private function getRequestReasonLabel($reason)
+    {
+        return match ($reason) {
+            'replacement_resign' => 'Replacement - Resign, Termination, End of Contract',
+            'replacement_promotion' => 'Replacement - Promotion, Mutation, Demotion',
+            'additional_workplan' => 'Additional - Workplan',
+            'other' => 'Other',
+            default => 'Unknown'
+        };
+    }
+
     public function index()
     {
         $title = 'Approval Stages';
-        $approvers = User::select('id', 'name')->get();
+        $approvers = User::select('id', 'name')->orderBy('name', 'asc')->get();
         $projects = Project::orderBy('project_code', 'asc')->get();
         $departments = Department::orderBy('department_name', 'asc')->get();
 
@@ -29,7 +43,7 @@ class ApprovalStageController extends Controller
     public function create()
     {
         $title = 'Create Approval Stage';
-        $approvers = User::select('id', 'name')->get();
+        $approvers = User::select('id', 'name')->orderBy('name', 'asc')->get();
         $projects = Project::orderBy('project_code', 'asc')->get();
         $departments = Department::orderBy('department_name', 'asc')->get();
 
@@ -43,39 +57,153 @@ class ApprovalStageController extends Controller
             'document_type' => 'required|string|in:officialtravel,recruitment_request',
             'approval_order' => 'required|integer|min:1',
             'projects' => 'required|array|min:1',
-            'departments' => 'required|array|min:1'
+            'departments' => 'required|array|min:1',
+            'request_reasons' => 'nullable|array',
+            'request_reasons.*' => 'string|in:replacement_resign,replacement_promotion,additional_workplan'
         ]);
 
         // Check for existing combinations before creating
-        $existingStage = ApprovalStage::where('approver_id', $request->approver_id)
-            ->where('document_type', $request->document_type)
-            ->where('approval_order', $request->approval_order)
-            ->first();
+        $requestReasons = $request->request_reasons ?? [];
 
-        if ($existingStage) {
-            return redirect()->back()
-                ->withInput()
-                ->withErrors(['duplicate' => 'Approval stage with this approver, document type, and order already exists.']);
+        // Handle request_reason logic based on document type
+        if (empty($requestReasons)) {
+            if ($request->document_type === 'recruitment_request') {
+                $requestReasons = [null]; // For backward compatibility
+            } elseif ($request->document_type === 'officialtravel') {
+                $requestReasons = [null]; // officialtravel doesn't use request_reason, set to null
+            } else {
+                $requestReasons = [null]; // Default fallback
+            }
         }
 
-        // Create approval stage
-        $approvalStage = ApprovalStage::create([
-            'approver_id' => $request->approver_id,
-            'document_type' => $request->document_type,
-            'approval_order' => $request->approval_order,
-        ]);
-
-        // Create details for each project-department combination
-        $createdDetails = 0;
+        // Check for duplicate combinations at the detail level
+        $duplicateDetails = [];
         foreach ($request->projects as $projectId) {
             foreach ($request->departments as $departmentId) {
-                ApprovalStageDetail::create([
-                    'approval_stage_id' => $approvalStage->id,
-                    'project_id' => $projectId,
-                    'department_id' => $departmentId
-                ]);
-                $createdDetails++;
+                foreach ($requestReasons as $requestReason) {
+                    // Check if this exact combination already exists
+                    $existingDetail = ApprovalStageDetail::whereHas('approvalStage', function ($query) use ($request) {
+                        $query->where('approver_id', $request->approver_id)
+                            ->where('document_type', $request->document_type)
+                            ->where('approval_order', $request->approval_order);
+                    })
+                        ->where('project_id', $projectId)
+                        ->where('department_id', $departmentId)
+                        ->where('request_reason', $requestReason)
+                        ->with(['approvalStage.approver', 'project', 'department'])
+                        ->first();
+
+                    if ($existingDetail) {
+                        $duplicateDetails[] = [
+                            'project' => $existingDetail->project,
+                            'department' => $existingDetail->department,
+                            'approver' => $existingDetail->approvalStage->approver,
+                            'request_reason' => $requestReason
+                        ];
+                    }
+                }
             }
+        }
+
+        if (!empty($duplicateDetails)) {
+            $errorMessage = "Duplicate configuration detected! The following combinations already exist:<br><ul>";
+            foreach ($duplicateDetails as $detail) {
+                $errorMessage .= "<li><strong>Project:</strong> {$detail['project']->project_code}, ";
+                $errorMessage .= "<strong>Department:</strong> {$detail['department']->department_name}, ";
+                $errorMessage .= "<strong>Approver:</strong> {$detail['approver']->name}";
+                if ($detail['request_reason']) {
+                    $reasonLabel = $this->getRequestReasonLabel($detail['request_reason']);
+                    $errorMessage .= ", <strong>Request Reason:</strong> {$reasonLabel}";
+                }
+                $errorMessage .= "</li>";
+            }
+            $errorMessage .= "</ul>Please choose different combinations or modify the existing approval stage.";
+
+            return redirect()->back()
+                ->withInput()
+                ->withErrors(['duplicate' => $errorMessage]);
+        }
+
+        try {
+            // Create approval stage
+            $approvalStage = ApprovalStage::create([
+                'approver_id' => $request->approver_id,
+                'document_type' => $request->document_type,
+                'approval_order' => $request->approval_order,
+            ]);
+
+            // Create details for each project-department combination
+            $createdDetails = 0;
+            $requestReasons = $request->request_reasons ?? [];
+
+            // Handle request_reason logic based on document type
+            if (empty($requestReasons)) {
+                if ($request->document_type === 'recruitment_request') {
+                    $requestReasons = [null]; // For backward compatibility
+                } elseif ($request->document_type === 'officialtravel') {
+                    $requestReasons = [null]; // officialtravel doesn't use request_reason, set to null
+                } else {
+                    $requestReasons = [null]; // Default fallback
+                }
+            }
+
+            foreach ($request->projects as $projectId) {
+                foreach ($request->departments as $departmentId) {
+                    foreach ($requestReasons as $requestReason) {
+                        ApprovalStageDetail::create([
+                            'approval_stage_id' => $approvalStage->id,
+                            'project_id' => $projectId,
+                            'department_id' => $departmentId,
+                            'request_reason' => $requestReason
+                        ]);
+                        $createdDetails++;
+                    }
+                }
+            }
+        } catch (\Illuminate\Database\QueryException $e) {
+            // Handle duplicate entry error
+            if ($e->getCode() == 23000 && str_contains($e->getMessage(), 'unique_stage_detail')) {
+                // Extract the duplicate key information
+                preg_match("/Duplicate entry '([^']+)' for key/", $e->getMessage(), $matches);
+                $duplicateKey = $matches[1] ?? 'unknown';
+
+                // Parse the duplicate key to get meaningful information
+                $keyParts = explode('-', $duplicateKey);
+                $duplicateStageId = $keyParts[0] ?? 'unknown';
+                $duplicateProjectId = $keyParts[1] ?? 'unknown';
+                $duplicateDepartmentId = $keyParts[2] ?? 'unknown';
+
+                // Get the existing stage details for better error message
+                $existingDetail = ApprovalStageDetail::with(['approvalStage.approver', 'project', 'department'])
+                    ->where('approval_stage_id', $duplicateStageId)
+                    ->where('project_id', $duplicateProjectId)
+                    ->where('department_id', $duplicateDepartmentId)
+                    ->first();
+
+                if ($existingDetail) {
+                    $errorMessage = "Duplicate configuration detected! ";
+                    $errorMessage .= "The combination of ";
+                    $errorMessage .= "<strong>Project: {$existingDetail->project->project_code}</strong>, ";
+                    $errorMessage .= "<strong>Department: {$existingDetail->department->department_name}</strong> ";
+                    $errorMessage .= "already exists for ";
+                    $errorMessage .= "<strong>{$existingDetail->approvalStage->approver->name}</strong> ";
+                    $errorMessage .= "in the approval stage configuration.";
+
+                    if ($request->document_type === 'recruitment_request' && $existingDetail->request_reason) {
+                        $reasonLabel = $this->getRequestReasonLabel($existingDetail->request_reason);
+                        $errorMessage .= " (Request Reason: <strong>{$reasonLabel}</strong>)";
+                    }
+                } else {
+                    $errorMessage = "Duplicate configuration detected! This combination of project, department, and approver already exists in the approval stage configuration.";
+                }
+
+                return redirect()->back()
+                    ->withInput()
+                    ->withErrors(['duplicate' => $errorMessage]);
+            }
+
+            // Re-throw other database errors
+            throw $e;
         }
 
         return redirect()->route('approval.stages.index')
@@ -87,15 +215,16 @@ class ApprovalStageController extends Controller
         try {
             $title = 'Edit Approval Stage';
             $approvalStage = ApprovalStage::with('details.project', 'details.department')->findOrFail($id);
-            $approvers = User::select('id', 'name')->get();
+            $approvers = User::select('id', 'name')->orderBy('name', 'asc')->get();
             $projects = Project::orderBy('project_code', 'asc')->get();
             $departments = Department::orderBy('department_name', 'asc')->get();
 
             // Extract selected values from details
             $selectedProjects = $approvalStage->details->pluck('project_id')->unique()->toArray();
             $selectedDepartments = $approvalStage->details->pluck('department_id')->unique()->toArray();
+            $selectedRequestReasons = $approvalStage->details->pluck('request_reason')->filter()->unique()->toArray();
 
-            return view('approval-stages.edit', compact('title', 'approvalStage', 'approvers', 'projects', 'departments', 'selectedProjects', 'selectedDepartments'));
+            return view('approval-stages.edit', compact('title', 'approvalStage', 'approvers', 'projects', 'departments', 'selectedProjects', 'selectedDepartments', 'selectedRequestReasons'));
         } catch (\Exception $e) {
             return redirect()->route('approval.stages.index')->with('toast_error', 'Approval stage not found: ' . $e->getMessage());
         }
@@ -108,22 +237,74 @@ class ApprovalStageController extends Controller
             'document_type' => 'required|string|in:officialtravel,recruitment_request',
             'approval_order' => 'required|integer|min:1',
             'projects' => 'required|array|min:1',
-            'departments' => 'required|array|min:1'
+            'departments' => 'required|array|min:1',
+            'request_reasons' => 'nullable|array',
+            'request_reasons.*' => 'string|in:replacement_resign,replacement_promotion,additional_workplan'
         ]);
 
         $approvalStage = ApprovalStage::findOrFail($id);
 
         // Check for existing combinations before updating (excluding current stage)
-        $existingStage = ApprovalStage::where('approver_id', $request->approver_id)
-            ->where('document_type', $request->document_type)
-            ->where('approval_order', $request->approval_order)
-            ->where('id', '!=', $id)
-            ->first();
+        $requestReasons = $request->request_reasons ?? [];
 
-        if ($existingStage) {
+        // Handle request_reason logic based on document type
+        if (empty($requestReasons)) {
+            if ($request->document_type === 'recruitment_request') {
+                $requestReasons = [null]; // For backward compatibility
+            } elseif ($request->document_type === 'officialtravel') {
+                $requestReasons = [null]; // officialtravel doesn't use request_reason, set to null
+            } else {
+                $requestReasons = [null]; // Default fallback
+            }
+        }
+
+        // Check for duplicate combinations at the detail level
+        $duplicateDetails = [];
+        foreach ($request->projects as $projectId) {
+            foreach ($request->departments as $departmentId) {
+                foreach ($requestReasons as $requestReason) {
+                    // Check if this exact combination already exists (excluding current stage)
+                    $existingDetail = ApprovalStageDetail::whereHas('approvalStage', function ($query) use ($request, $id) {
+                        $query->where('approver_id', $request->approver_id)
+                            ->where('document_type', $request->document_type)
+                            ->where('approval_order', $request->approval_order)
+                            ->where('id', '!=', $id);
+                    })
+                        ->where('project_id', $projectId)
+                        ->where('department_id', $departmentId)
+                        ->where('request_reason', $requestReason)
+                        ->with(['approvalStage.approver', 'project', 'department'])
+                        ->first();
+
+                    if ($existingDetail) {
+                        $duplicateDetails[] = [
+                            'project' => $existingDetail->project,
+                            'department' => $existingDetail->department,
+                            'approver' => $existingDetail->approvalStage->approver,
+                            'request_reason' => $requestReason
+                        ];
+                    }
+                }
+            }
+        }
+
+        if (!empty($duplicateDetails)) {
+            $errorMessage = "Duplicate configuration detected! The following combinations already exist:<br><ul>";
+            foreach ($duplicateDetails as $detail) {
+                $errorMessage .= "<li><strong>Project:</strong> {$detail['project']->project_code}, ";
+                $errorMessage .= "<strong>Department:</strong> {$detail['department']->department_name}, ";
+                $errorMessage .= "<strong>Approver:</strong> {$detail['approver']->name}";
+                if ($detail['request_reason']) {
+                    $reasonLabel = $this->getRequestReasonLabel($detail['request_reason']);
+                    $errorMessage .= ", <strong>Request Reason:</strong> {$reasonLabel}";
+                }
+                $errorMessage .= "</li>";
+            }
+            $errorMessage .= "</ul>Please choose different combinations or modify the existing approval stage.";
+
             return redirect()->back()
                 ->withInput()
-                ->withErrors(['duplicate' => 'Approval stage with this approver, document type, and order already exists.']);
+                ->withErrors(['duplicate' => $errorMessage]);
         }
 
         // Check if approval stage fields have changed
@@ -131,13 +312,17 @@ class ApprovalStageController extends Controller
             $approvalStage->document_type != $request->document_type ||
             $approvalStage->approval_order != $request->approval_order;
 
-        // Check if project/department combinations have changed
+        // Check if project/department/request_reason combinations have changed
         $currentProjects = $approvalStage->details->pluck('project_id')->unique()->sort()->toArray();
         $currentDepartments = $approvalStage->details->pluck('department_id')->unique()->sort()->toArray();
+        $currentRequestReasons = $approvalStage->details->pluck('request_reason')->filter()->unique()->sort()->toArray();
         $requestProjects = collect($request->projects)->sort()->toArray();
         $requestDepartments = collect($request->departments)->sort()->toArray();
+        $requestRequestReasons = collect($request->request_reasons ?? [])->sort()->toArray();
 
-        $detailsChanged = $currentProjects != $requestProjects || $currentDepartments != $requestDepartments;
+        $detailsChanged = $currentProjects != $requestProjects ||
+            $currentDepartments != $requestDepartments ||
+            $currentRequestReasons != $requestRequestReasons;
 
         // Update approval stage if changed
         if ($stageChanged) {
@@ -150,19 +335,81 @@ class ApprovalStageController extends Controller
 
         // Update details only if changed
         if ($detailsChanged) {
-            // Remove old details and create new ones
-            $approvalStage->details()->delete();
+            try {
+                // Remove old details and create new ones
+                $approvalStage->details()->delete();
 
-            $updatedDetails = 0;
-            foreach ($request->projects as $projectId) {
-                foreach ($request->departments as $departmentId) {
-                    ApprovalStageDetail::create([
-                        'approval_stage_id' => $approvalStage->id,
-                        'project_id' => $projectId,
-                        'department_id' => $departmentId
-                    ]);
-                    $updatedDetails++;
+                $updatedDetails = 0;
+                $requestReasons = $request->request_reasons ?? [];
+
+                // Handle request_reason logic based on document type
+                if (empty($requestReasons)) {
+                    if ($request->document_type === 'recruitment_request') {
+                        $requestReasons = [null]; // For backward compatibility
+                    } elseif ($request->document_type === 'officialtravel') {
+                        $requestReasons = [null]; // officialtravel doesn't use request_reason, set to null
+                    } else {
+                        $requestReasons = [null]; // Default fallback
+                    }
                 }
+
+                foreach ($request->projects as $projectId) {
+                    foreach ($request->departments as $departmentId) {
+                        foreach ($requestReasons as $requestReason) {
+                            ApprovalStageDetail::create([
+                                'approval_stage_id' => $approvalStage->id,
+                                'project_id' => $projectId,
+                                'department_id' => $departmentId,
+                                'request_reason' => $requestReason
+                            ]);
+                            $updatedDetails++;
+                        }
+                    }
+                }
+            } catch (\Illuminate\Database\QueryException $e) {
+                // Handle duplicate entry error
+                if ($e->getCode() == 23000 && str_contains($e->getMessage(), 'unique_stage_detail')) {
+                    // Extract the duplicate key information
+                    preg_match("/Duplicate entry '([^']+)' for key/", $e->getMessage(), $matches);
+                    $duplicateKey = $matches[1] ?? 'unknown';
+
+                    // Parse the duplicate key to get meaningful information
+                    $keyParts = explode('-', $duplicateKey);
+                    $duplicateStageId = $keyParts[0] ?? 'unknown';
+                    $duplicateProjectId = $keyParts[1] ?? 'unknown';
+                    $duplicateDepartmentId = $keyParts[2] ?? 'unknown';
+
+                    // Get the existing stage details for better error message
+                    $existingDetail = ApprovalStageDetail::with(['approvalStage.approver', 'project', 'department'])
+                        ->where('approval_stage_id', $duplicateStageId)
+                        ->where('project_id', $duplicateProjectId)
+                        ->where('department_id', $duplicateDepartmentId)
+                        ->first();
+
+                    if ($existingDetail) {
+                        $errorMessage = "Duplicate configuration detected! ";
+                        $errorMessage .= "The combination of ";
+                        $errorMessage .= "<strong>Project: {$existingDetail->project->project_code}</strong>, ";
+                        $errorMessage .= "<strong>Department: {$existingDetail->department->department_name}</strong> ";
+                        $errorMessage .= "already exists for ";
+                        $errorMessage .= "<strong>{$existingDetail->approvalStage->approver->name}</strong> ";
+                        $errorMessage .= "in the approval stage configuration.";
+
+                        if ($request->document_type === 'recruitment_request' && $existingDetail->request_reason) {
+                            $reasonLabel = $this->getRequestReasonLabel($existingDetail->request_reason);
+                            $errorMessage .= " (Request Reason: <strong>{$reasonLabel}</strong>)";
+                        }
+                    } else {
+                        $errorMessage = "Duplicate configuration detected! This combination of project, department, and approver already exists in the approval stage configuration.";
+                    }
+
+                    return redirect()->back()
+                        ->withInput()
+                        ->withErrors(['duplicate' => $errorMessage]);
+                }
+
+                // Re-throw other database errors
+                throw $e;
             }
         }
 
@@ -185,86 +432,81 @@ class ApprovalStageController extends Controller
     public function destroy($id)
     {
         try {
-            // Find the approval stage to get the approver_id
+            // Find the specific approval stage to delete
             $approvalStage = ApprovalStage::findOrFail($id);
             $approverId = $approvalStage->approver_id;
+            $approvalOrder = $approvalStage->approval_order;
+            $documentType = $approvalStage->document_type;
 
             // Get approver name for error/success message
             $approverName = User::find($approverId)->name ?? 'Unknown';
 
-            // Check if there are any active approval plans for this approver
+            // Check if there are any active approval plans that use this specific stage
             $activeApprovalPlans = ApprovalPlan::where('approver_id', $approverId)
-                ->where('is_open', true)
+                ->where('document_type', $documentType)
+                ->where('approval_order', $approvalOrder)
+                ->where('is_open', 1) // open status
                 ->count();
 
             if ($activeApprovalPlans > 0) {
                 if (request()->ajax()) {
                     return response()->json([
                         'success' => false,
-                        'message' => "Cannot delete approval stages for {$approverName}. This approver has {$activeApprovalPlans} active approval plan(s) that need to be processed first."
+                        'message' => "Cannot delete this approval stage for {$approverName} (Order {$approvalOrder}). There are {$activeApprovalPlans} active approval plan(s) using this stage that need to be processed first."
                     ], 400);
                 }
-                return redirect()->route('approval.stages.index')->with('toast_error', "Cannot delete approval stages for {$approverName}. This approver has {$activeApprovalPlans} active approval plan(s) that need to be processed first.");
+                return redirect()->route('approval.stages.index')->with('toast_error', "Cannot delete this approval stage for {$approverName} (Order {$approvalOrder}). There are {$activeApprovalPlans} active approval plan(s) using this stage that need to be processed first.");
             }
 
-            // Check if there are any pending approval plans for this approver
-            $pendingApprovalPlans = ApprovalPlan::where('approver_id', $approverId)
-                ->where('status', 0) // pending status
-                ->count();
+            // Check if there are any documents submitted for approval that would use this stage
+            $submittedDocuments = 0;
 
-            if ($pendingApprovalPlans > 0) {
+            if ($documentType === 'officialtravel') {
+                $submittedDocuments = Officialtravel::where('status', 'submitted')
+                    ->whereNotNull('submit_at')
+                    ->whereNull('approved_at')
+                    ->count();
+            } elseif ($documentType === 'recruitment_request') {
+                $submittedDocuments = RecruitmentRequest::where('status', 'submitted')
+                    ->whereNotNull('submit_at')
+                    ->whereNull('approved_at')
+                    ->count();
+            }
+
+            if ($submittedDocuments > 0) {
+                $docTypeName = $documentType === 'officialtravel' ? 'official travel' : 'recruitment request';
                 if (request()->ajax()) {
                     return response()->json([
                         'success' => false,
-                        'message' => "Cannot delete approval stages for {$approverName}. This approver has {$pendingApprovalPlans} pending approval plan(s) that need to be processed first."
+                        'message' => "Cannot delete this approval stage. There are {$submittedDocuments} {$docTypeName} document(s) currently submitted for approval that need to be processed first."
                     ], 400);
                 }
-                return redirect()->route('approval.stages.index')->with('toast_error', "Cannot delete approval stages for {$approverName}. This approver has {$pendingApprovalPlans} pending approval plan(s) that need to be processed first.");
+                return redirect()->route('approval.stages.index')->with('toast_error', "Cannot delete this approval stage. There are {$submittedDocuments} {$docTypeName} document(s) currently submitted for approval that need to be processed first.");
             }
 
-            // Check if there are any documents submitted for approval (officialtravels)
-            $submittedOfficialTravels = Officialtravel::where('status', 'submitted')
-                ->whereNotNull('submit_at')
-                ->whereNull('approved_at')
-                ->count();
+            // Get count of details that will be deleted
+            $detailsCount = $approvalStage->details()->count();
 
-            // Check if there are any documents submitted for approval (recruitment_requests)
-            $submittedRecruitmentRequests = RecruitmentRequest::where('status', 'submitted')
-                ->whereNotNull('submit_at')
-                ->whereNull('approved_at')
-                ->count();
-
-            if ($submittedOfficialTravels > 0 || $submittedRecruitmentRequests > 0) {
-                $totalSubmitted = $submittedOfficialTravels + $submittedRecruitmentRequests;
-                if (request()->ajax()) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => "Cannot delete approval stages for {$approverName}. There are {$totalSubmitted} document(s) currently submitted for approval that need to be processed first."
-                    ], 400);
-                }
-                return redirect()->route('approval.stages.index')->with('toast_error', "Cannot delete approval stages for {$approverName}. There are {$totalSubmitted} document(s) currently submitted for approval that need to be processed first.");
-            }
-
-            // Delete all approval stages for this approver (details will be deleted via cascade)
-            $deletedCount = ApprovalStage::where('approver_id', $approverId)->delete();
+            // Delete the specific approval stage (details will be deleted via cascade)
+            $approvalStage->delete();
 
             if (request()->ajax()) {
                 return response()->json([
                     'success' => true,
-                    'message' => "All approval stages for {$approverName} have been deleted successfully. ({$deletedCount} records deleted)",
-                    'deleted_count' => $deletedCount
+                    'message' => "Approval stage for {$approverName} (Order {$approvalOrder}, {$documentType}) has been deleted successfully. ({$detailsCount} detail records removed)",
+                    'deleted_count' => 1
                 ]);
             }
 
-            return redirect()->route('approval.stages.index')->with('toast_success', "All approval stages for {$approverName} have been deleted successfully. ({$deletedCount} records deleted)");
+            return redirect()->route('approval.stages.index')->with('toast_success', "Approval stage for {$approverName} (Order {$approvalOrder}, {$documentType}) has been deleted successfully. ({$detailsCount} detail records removed)");
         } catch (\Exception $e) {
             if (request()->ajax()) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Failed to delete approval stages: ' . $e->getMessage()
+                    'message' => 'Failed to delete approval stage: ' . $e->getMessage()
                 ], 500);
             }
-            return redirect()->route('approval.stages.index')->with('toast_error', 'Failed to delete approval stages: ' . $e->getMessage());
+            return redirect()->route('approval.stages.index')->with('toast_error', 'Failed to delete approval stage: ' . $e->getMessage());
         }
     }
 
@@ -303,14 +545,16 @@ class ApprovalStageController extends Controller
                 ->toJson();
         }
 
-        // Group stages by approver and document type, then sort properly
-        $groupedData = $stages->groupBy(['approver_id', 'document_type'])->map(function ($approverGroups) {
+        // Group stages by approver, document type, AND approval order to show all stages separately
+        $groupedData = $stages->groupBy(['approver_id', 'document_type', 'approval_order'])->map(function ($approverGroups) {
             return $approverGroups->map(function ($documentGroups) {
-                return $documentGroups->first(); // Take first stage from each group
+                return $documentGroups->map(function ($orderGroups) {
+                    return $orderGroups->first(); // Take first stage from each approval order group
+                });
             });
-        })->flatten(1)->sortBy(function ($item) {
-            // Sort by document_type ASC first, then by approval_order ASC
-            return $item->document_type . '_' . str_pad($item->approval_order, 3, '0', STR_PAD_LEFT);
+        })->flatten(2)->sortBy(function ($item) {
+            // Sort by approver name, then document_type, then approval_order
+            return $item->approver->name . '_' . $item->document_type . '_' . str_pad($item->approval_order, 3, '0', STR_PAD_LEFT);
         });
 
         return DataTables::of($groupedData)
@@ -319,7 +563,24 @@ class ApprovalStageController extends Controller
             })
             ->addColumn('document_type', function ($stage) {
                 $documentName = $stage->document_type === 'officialtravel' ? 'Official Travel' : ucfirst(str_replace('_', ' ', $stage->document_type));
-                return '<span class="badge badge-warning">' . $documentName . '</span>';
+                $html = '<span class="badge badge-warning">' . $documentName . '</span>';
+
+                // Add request reason information for recruitment_request
+                if ($stage->document_type === 'recruitment_request') {
+                    $requestReasons = $stage->details->pluck('request_reason')->filter()->unique()->sort();
+                    if ($requestReasons->isNotEmpty()) {
+                        $html .= '<br><small class="text-muted">';
+                        $reasonLabels = $requestReasons->map(function ($reason) {
+                            return $this->getRequestReasonLabel($reason);
+                        })->implode(', ');
+                        $html .= '<i class="fas fa-tag"></i> ' . $reasonLabels;
+                        $html .= '</small>';
+                    } else {
+                        $html .= '<br><small class="text-danger"><i class="fas fa-exclamation-circle"></i> Reason cannot be empty</small>';
+                    }
+                }
+
+                return $html;
             })
             ->addColumn('projects', function ($stage) {
                 // Get all projects from details
@@ -363,12 +624,14 @@ class ApprovalStageController extends Controller
             $request->validate([
                 'project_id' => 'required|integer',
                 'document_type' => 'required|string|in:officialtravel,recruitment_request',
-                'department_id' => 'nullable|integer|exists:departments,id'
+                'department_id' => 'nullable|integer|exists:departments,id',
+                'request_reason' => 'nullable|string'
             ]);
 
             // For recruitment_request, use department_id from request
             // For officialtravel, use department_id from request (main traveler's department)
             $departmentId = null;
+            $requestReason = $request->request_reason;
 
             if ($request->document_type === 'recruitment_request') {
                 if ($request->has('department_id')) {
@@ -390,22 +653,59 @@ class ApprovalStageController extends Controller
                 }
             }
 
+            // Map request_reason for approval stage filtering (same logic as ApprovalPlanController)
+            $approvalStageReason = null;
+            if ($requestReason) {
+                $approvalStageReason = match ($requestReason) {
+                    'replacement_promotion', 'replacement_resign' => 'replacement',
+                    'additional_workplan' => 'additional',
+                    'other' => 'other',
+                    // Legacy values (for backward compatibility)
+                    'replacement', 'additional' => $requestReason,
+                    default => $requestReason
+                };
+            }
+
             // Debug logging
             Log::info("Searching for approval stages with criteria:", [
                 'project_id' => $request->project_id,
                 'department_id' => $departmentId,
-                'document_type' => $request->document_type
+                'document_type' => $request->document_type,
+                'request_reason' => $requestReason,
+                'approval_stage_reason' => $approvalStageReason
             ]);
 
             // Get approval stages for the specified criteria with order
-            $approvalStages = ApprovalStage::with(['approver.departments', 'details' => function ($query) use ($request, $departmentId) {
+            $approvalStages = ApprovalStage::with(['approver.departments', 'details' => function ($query) use ($request, $departmentId, $approvalStageReason) {
                 $query->where('project_id', $request->project_id)
                     ->where('department_id', $departmentId);
+
+                // For recruitment_request with request_reason, filter by mapped reason
+                if ($approvalStageReason !== null) {
+                    $query->where(function ($q) use ($approvalStageReason) {
+                        $q->where('request_reason', $approvalStageReason)
+                            ->orWhereNull('request_reason'); // Include stages without request_reason for backward compatibility
+                    });
+                } else {
+                    // For official travel or recruitment without request_reason, only get stages without request_reason
+                    $query->whereNull('request_reason');
+                }
             }])
                 ->where('document_type', $request->document_type)
-                ->whereHas('details', function ($query) use ($request, $departmentId) {
+                ->whereHas('details', function ($query) use ($request, $departmentId, $approvalStageReason) {
                     $query->where('project_id', $request->project_id)
                         ->where('department_id', $departmentId);
+
+                    // For recruitment_request with request_reason, filter by mapped reason
+                    if ($approvalStageReason !== null) {
+                        $query->where(function ($q) use ($approvalStageReason) {
+                            $q->where('request_reason', $approvalStageReason)
+                                ->orWhereNull('request_reason'); // Include stages without request_reason for backward compatibility
+                        });
+                    } else {
+                        // For official travel or recruitment without request_reason, only get stages without request_reason
+                        $query->whereNull('request_reason');
+                    }
                 })
                 ->orderBy('approval_order', 'asc')
                 ->get();

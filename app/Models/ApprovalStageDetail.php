@@ -12,7 +12,8 @@ class ApprovalStageDetail extends Model
     protected $fillable = [
         'approval_stage_id',
         'project_id',
-        'department_id'
+        'department_id',
+        'request_reason'
     ];
 
     // Relationships
