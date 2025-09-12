@@ -132,6 +132,15 @@ class RecruitmentReportController extends Controller
 
         $sessions = $sessionsQuery->get();
 
+        // Separate sessions by employment type
+        $sessionsRegular = $sessions->filter(function ($session) {
+            return $session->fptk && !in_array($session->fptk->employment_type, ['magang', 'harian']);
+        });
+
+        $sessionsMagangHarian = $sessions->filter(function ($session) {
+            return $session->fptk && in_array($session->fptk->employment_type, ['magang', 'harian']);
+        });
+
         // Separate sessions by theory test requirement
         $sessionsWithTheory = $sessions->filter(function ($session) {
             return $session->fptk && $session->fptk->requires_theory_test;
@@ -155,12 +164,12 @@ class RecruitmentReportController extends Controller
 
         $rows = [];
 
-        // Build standard stages (CV Review, Psikotes)
+        // Build standard stages (CV Review, Psikotes) - REGULAR ONLY
         $previousStageCount = 0;
 
         foreach (['CV Review', 'Psikotes'] as $stageName) {
             $modelClass = $stageModels[$stageName];
-            $stageQuery = $modelClass::whereIn('session_id', $sessions->pluck('id'));
+            $stageQuery = $modelClass::whereIn('session_id', $sessionsRegular->pluck('id'));
 
             if (!empty($date1) && !empty($date2)) {
                 $stageQuery->whereBetween('created_at', [$date1, $date2]);
@@ -194,16 +203,20 @@ class RecruitmentReportController extends Controller
             $previousStageCount = $totalCandidates;
         }
 
-        // Handle Tes Teori stage (conditional)
-        $tesTeoriQuery = $stageModels['Tes Teori']::whereIn('session_id', $sessionsWithTheory->pluck('id'));
+        // Handle Tes Teori stage (conditional) - REGULAR ONLY
+        $sessionsRegularWithTheory = $sessionsRegular->filter(function ($session) {
+            return $session->fptk && $session->fptk->requires_theory_test;
+        });
+
+        $tesTeoriQuery = $stageModels['Tes Teori']::whereIn('session_id', $sessionsRegularWithTheory->pluck('id'));
         if (!empty($date1) && !empty($date2)) {
             $tesTeoriQuery->whereBetween('created_at', [$date1, $date2]);
         }
         $tesTeoriRecords = $tesTeoriQuery->get();
         $tesTeoriCandidates = $tesTeoriRecords->count();
 
-        // Calculate Psikotes candidates for positions requiring theory test
-        $psikotesWithTheoryQuery = $stageModels['Psikotes']::whereIn('session_id', $sessionsWithTheory->pluck('id'));
+        // Calculate Psikotes candidates for positions requiring theory test - REGULAR ONLY
+        $psikotesWithTheoryQuery = $stageModels['Psikotes']::whereIn('session_id', $sessionsRegularWithTheory->pluck('id'));
         if (!empty($date1) && !empty($date2)) {
             $psikotesWithTheoryQuery->whereBetween('created_at', [$date1, $date2]);
         }
@@ -225,17 +238,20 @@ class RecruitmentReportController extends Controller
             'date2' => $date2,
         ];
 
-        // Handle Interview stage (combined from both flows)
-        $interviewQuery = $stageModels['Interview']::whereIn('session_id', $sessions->pluck('id'));
+        // Handle Interview stage - REGULAR ONLY
+        $interviewQuery = $stageModels['Interview']::whereIn('session_id', $sessionsRegular->pluck('id'));
         if (!empty($date1) && !empty($date2)) {
             $interviewQuery->whereBetween('created_at', [$date1, $date2]);
         }
         $interviewRecords = $interviewQuery->get();
         $interviewCandidates = $interviewRecords->pluck('session_id')->unique()->count();
 
-        // Calculate previous stage count for interview (from both flows)
+        // Calculate previous stage count for interview - REGULAR ONLY
         $interviewPreviousCount = $tesTeoriCandidates; // From technical positions
-        $psikotesWithoutTheoryQuery = $stageModels['Psikotes']::whereIn('session_id', $sessionsWithoutTheory->pluck('id'));
+        $sessionsRegularWithoutTheory = $sessionsRegular->filter(function ($session) {
+            return $session->fptk && !$session->fptk->requires_theory_test;
+        });
+        $psikotesWithoutTheoryQuery = $stageModels['Psikotes']::whereIn('session_id', $sessionsRegularWithoutTheory->pluck('id'));
         if (!empty($date1) && !empty($date2)) {
             $psikotesWithoutTheoryQuery->whereBetween('created_at', [$date1, $date2]);
         }
@@ -259,12 +275,12 @@ class RecruitmentReportController extends Controller
             'date2' => $date2,
         ];
 
-        // Continue with remaining stages (Offering, MCU, Hiring, Onboarding)
+        // Continue with remaining stages (Offering, MCU, Hiring) - REGULAR ONLY
         $previousStageCount = $interviewCandidates;
 
-        foreach (['Offering', 'MCU', 'Hiring', 'Onboarding'] as $stageName) {
+        foreach (['Offering', 'MCU', 'Hiring'] as $stageName) {
             $modelClass = $stageModels[$stageName];
-            $stageQuery = $modelClass::whereIn('session_id', $sessions->pluck('id'));
+            $stageQuery = $modelClass::whereIn('session_id', $sessionsRegular->pluck('id'));
 
             if (!empty($date1) && !empty($date2)) {
                 $stageQuery->whereBetween('created_at', [$date1, $date2]);
@@ -288,6 +304,59 @@ class RecruitmentReportController extends Controller
             ];
 
             $previousStageCount = $totalCandidates;
+        }
+
+        // Add Magang/Harian specific flow data
+        if ($sessionsMagangHarian->count() > 0) {
+            $rows[] = [
+                'stage' => 'Employment Type Breakdown',
+                'stage_display' => '--- Magang/Harian Flow (MCU → Hiring) ---',
+                'total_candidates' => 0,
+                'previous_stage_count' => 0,
+                'conversion_rate' => 0,
+                'avg_days_in_stage' => 0,
+                'flow_type' => 'separator',
+                'date1' => $date1,
+                'date2' => $date2,
+            ];
+
+            // Magang/Harian MCU (first stage - no CV Review)
+            $magangMcuQuery = $stageModels['MCU']::whereIn('session_id', $sessionsMagangHarian->pluck('id'));
+            if (!empty($date1) && !empty($date2)) {
+                $magangMcuQuery->whereBetween('created_at', [$date1, $date2]);
+            }
+            $magangMcuRecords = $magangMcuQuery->get();
+            $magangMcuCount = $magangMcuRecords->count();
+
+            $rows[] = [
+                'stage' => 'MCU (Magang/Harian)',
+                'total_candidates' => $magangMcuCount,
+                'previous_stage_count' => 0,
+                'conversion_rate' => $magangMcuCount > 0 ? 100 : 0,
+                'avg_days_in_stage' => $this->calculateAvgDays($magangMcuRecords, $magangMcuCount),
+                'flow_type' => 'magang_harian',
+                'date1' => $date1,
+                'date2' => $date2,
+            ];
+
+            // Magang/Harian Hiring (final stage)
+            $magangHiringQuery = $stageModels['Hiring']::whereIn('session_id', $sessionsMagangHarian->pluck('id'));
+            if (!empty($date1) && !empty($date2)) {
+                $magangHiringQuery->whereBetween('created_at', [$date1, $date2]);
+            }
+            $magangHiringRecords = $magangHiringQuery->get();
+            $magangHiringCount = $magangHiringRecords->count();
+
+            $rows[] = [
+                'stage' => 'Hiring (Magang/Harian)',
+                'total_candidates' => $magangHiringCount,
+                'previous_stage_count' => $magangMcuCount,
+                'conversion_rate' => $magangMcuCount > 0 ? round(($magangHiringCount / $magangMcuCount) * 100, 2) : 0,
+                'avg_days_in_stage' => $this->calculateAvgDays($magangHiringRecords, $magangHiringCount),
+                'flow_type' => 'magang_harian',
+                'date1' => $date1,
+                'date2' => $date2,
+            ];
         }
 
         return $rows;
@@ -342,9 +411,15 @@ class RecruitmentReportController extends Controller
             'interview' => RecruitmentInterview::class,
             'offering' => RecruitmentOffering::class,
             'mcu' => RecruitmentMcu::class,
+            'mcu_magang_harian' => RecruitmentMcu::class, // Special case for magang/harian MCU
             'hiring' => RecruitmentHiring::class,
+            'hiring_magang_harian' => RecruitmentHiring::class, // Special case for magang/harian Hiring
             'onboarding' => RecruitmentOnboarding::class,
         ];
+
+        // Handle special stage naming
+        $actualStage = in_array($stage, ['mcu_magang_harian', 'hiring_magang_harian']) ?
+            str_replace('_magang_harian', '', $stage) : $stage;
 
         if (!isset($stageModels[$stage])) {
             return [];
@@ -382,9 +457,48 @@ class RecruitmentReportController extends Controller
 
         $sessions = $sessionsQuery->get();
 
-        // Get stage records
+        // Filter sessions based on employment type and stage compatibility
+        $filteredSessions = $sessions->filter(function ($session) use ($stage) {
+            if (!$session->fptk) return false;
+
+            $employmentType = $session->fptk->employment_type ?? 'regular';
+
+            // Handle special magang/harian stage naming
+            if (in_array($stage, ['mcu_magang_harian', 'hiring_magang_harian'])) {
+                // Only magang and harian employment types
+                return in_array($employmentType, ['magang', 'harian']);
+            }
+
+            $expectedStages = $this->getExpectedStagesForEmploymentType($employmentType);
+
+            // Convert stage name to match expected stages format
+            $stageMapping = [
+                'cv_review' => 'CV Review',
+                'psikotes' => 'Psikotes',
+                'tes_teori' => 'Tes Teori',
+                'interview' => 'Interview',
+                'offering' => 'Offering',
+                'mcu' => 'MCU',
+                'hiring' => 'Hiring',
+                'onboarding' => 'Onboarding'
+            ];
+
+            $stageName = $stageMapping[$stage] ?? ucfirst(str_replace('_', ' ', $stage));
+
+            // For regular MCU and Hiring, exclude magang/harian
+            if (in_array($stage, ['mcu', 'hiring'])) {
+                $isRegularEmployment = !in_array($employmentType, ['magang', 'harian']);
+                $stageAllowed = in_array($stageName, $expectedStages);
+                return $isRegularEmployment && $stageAllowed;
+            }
+
+            // Only include sessions where this stage is expected for the employment type
+            return in_array($stageName, $expectedStages);
+        });
+
+        // Get stage records only for filtered sessions
         $stageQuery = $modelClass::with(['session.fptk.department', 'session.fptk.position', 'session.fptk.project', 'session.candidate'])
-            ->whereIn('session_id', $sessions->pluck('id'));
+            ->whereIn('session_id', $filteredSessions->pluck('id'));
 
         if (!empty($date1) && !empty($date2)) {
             $stageQuery->whereBetween('created_at', [$date1, $date2]);
@@ -440,6 +554,10 @@ class RecruitmentReportController extends Controller
             // Build detailed remarks based on stage type
             $detailedRemarks = $this->buildStageRemarks($stage, $record);
 
+            // Get employment type information
+            $employmentType = $fptk->employment_type ?? 'regular';
+            $expectedStages = $this->getExpectedStagesForEmploymentType($employmentType);
+
             $rows[] = [
                 'session_id' => $session->id,
                 'fptk_number' => $fptk->request_number,
@@ -454,6 +572,9 @@ class RecruitmentReportController extends Controller
                 'result' => $result,
                 'interview_type' => $interviewType,
                 'remarks' => $detailedRemarks,
+                'employment_type' => ucfirst($employmentType),
+                'expected_stages' => implode(' → ', $expectedStages),
+                'is_magang_harian' => in_array($employmentType, ['magang', 'harian']),
             ];
         }
 
@@ -632,6 +753,13 @@ class RecruitmentReportController extends Controller
                     'SLA Status',
                     'SLA Days Remaining',
                     'Approval Remarks',
+                    'Request Reason',
+                    'Approval Flow Type',
+                    'Expected Approvers',
+                    'Approval SLA Target',
+                    'Actual Approvers Count',
+                    'Expected Approvers Count',
+                    'Approval Efficiency',
                 ];
             }
 
@@ -656,6 +784,13 @@ class RecruitmentReportController extends Controller
                     $row['sla_status'],
                     $row['sla_days_remaining'] !== null ? $row['sla_days_remaining'] : '-',
                     $row['remarks'],
+                    $row['request_reason'],
+                    $row['approval_flow_type'],
+                    $row['expected_approvers'],
+                    $row['approval_sla_target'],
+                    $row['actual_approvers_count'],
+                    $row['expected_approvers_count'],
+                    $row['approval_efficiency'],
                 ];
             }
         }, 'recruitment_aging_' . date('YmdHis') . '.xlsx');
@@ -689,6 +824,82 @@ class RecruitmentReportController extends Controller
             ]);
 
             return '-';
+        }
+    }
+
+    /**
+     * Get project type based on project name
+     */
+    private function getProjectType($projectId)
+    {
+        if (!$projectId) return 'unknown';
+
+        $project = \App\Models\Project::find($projectId);
+        if (!$project) return 'unknown';
+
+        $projectName = strtoupper($project->project_name ?? $project->project_code ?? '');
+
+        if (str_contains($projectName, 'HO')) {
+            return 'HO';
+        } elseif (str_contains($projectName, 'BO')) {
+            return 'BO';
+        } elseif (str_contains($projectName, 'APS')) {
+            return 'APS';
+        } else {
+            return 'ALL_PROJECT';
+        }
+    }
+
+    /**
+     * Get expected stages based on employment type
+     */
+    private function getExpectedStagesForEmploymentType($employmentType)
+    {
+        if (in_array($employmentType, ['magang', 'harian'])) {
+            return ['MCU', 'Hiring'];
+        }
+        return ['CV Review', 'Psikotes', 'Tes Teori', 'Interview', 'Offering', 'MCU', 'Hiring'];
+    }
+
+    /**
+     * Calculate conditional approval metrics based on request reason
+     */
+    private function calculateConditionalApprovalMetrics($recruitmentRequest)
+    {
+        $requestReason = $recruitmentRequest->request_reason ?? 'legacy';
+        $projectType = $this->getProjectType($recruitmentRequest->project_id);
+
+        switch ($requestReason) {
+            case 'replacement':
+                return [
+                    'flow_type' => 'Single Approval',
+                    'expected_approvers' => 'HCS Division Manager',
+                    'sla_target' => 30, // days
+                    'approval_stages' => 1
+                ];
+            case 'additional':
+                if (in_array($projectType, ['HO', 'BO', 'APS'])) {
+                    return [
+                        'flow_type' => 'Two Stage - HO/BO/APS',
+                        'expected_approvers' => 'HCS DM → HCL Director',
+                        'sla_target' => 60, // days
+                        'approval_stages' => 2
+                    ];
+                } else {
+                    return [
+                        'flow_type' => 'Two Stage - All Project',
+                        'expected_approvers' => 'Operational GM → HCS DM',
+                        'sla_target' => 45, // days
+                        'approval_stages' => 2
+                    ];
+                }
+            default:
+                return [
+                    'flow_type' => 'Legacy Flow',
+                    'expected_approvers' => 'Multiple Approvers',
+                    'sla_target' => 90, // days
+                    'approval_stages' => 3
+                ];
         }
     }
 
@@ -815,6 +1026,14 @@ class RecruitmentReportController extends Controller
                 $slaClass = 'badge-warning';
             }
 
+            // Get conditional approval metrics
+            $approvalMetrics = $this->calculateConditionalApprovalMetrics($recruitmentRequest);
+
+            // Calculate approval efficiency
+            $actualApprovers = $recruitmentRequest->approval_plans ? $recruitmentRequest->approval_plans->where('status', 1)->count() : 0;
+            $approvalEfficiency = $approvalMetrics['approval_stages'] > 0 ?
+                round(($actualApprovers / $approvalMetrics['approval_stages']) * 100, 1) : 0;
+
             $rows[] = [
                 'request_id' => $recruitmentRequest->id,
                 'request_no' => $recruitmentRequest->request_number,
@@ -833,6 +1052,14 @@ class RecruitmentReportController extends Controller
                 'sla_class' => $slaClass,
                 'sla_days_remaining' => $slaDaysRemaining,
                 'remarks' => $approvalRemarks,
+                // New fields for conditional approval
+                'request_reason' => ucfirst($recruitmentRequest->request_reason ?? 'Legacy'),
+                'approval_flow_type' => $approvalMetrics['flow_type'],
+                'expected_approvers' => $approvalMetrics['expected_approvers'],
+                'approval_sla_target' => $approvalMetrics['sla_target'],
+                'actual_approvers_count' => $actualApprovers,
+                'expected_approvers_count' => $approvalMetrics['approval_stages'],
+                'approval_efficiency' => $approvalEfficiency . '%',
             ];
         }
 
@@ -1107,6 +1334,24 @@ class RecruitmentReportController extends Controller
                 $recruitmentDays = $session->hiring->created_at->diffInDays($latestApproval->updated_at);
             }
 
+            // Get employment type and expected stages
+            $employmentType = $session->fptk->employment_type ?? 'regular';
+            $expectedStages = $this->getExpectedStagesForEmploymentType($employmentType);
+
+            // Get conditional approval metrics
+            $approvalMetrics = $session->fptk ? $this->calculateConditionalApprovalMetrics($session->fptk) : [
+                'flow_type' => 'Unknown',
+                'expected_approvers' => 'Unknown',
+                'sla_target' => 0,
+                'approval_stages' => 0
+            ];
+
+            // Calculate efficiency metrics
+            $actualApprovers = $session->fptk && $session->fptk->approval_plans ?
+                $session->fptk->approval_plans->where('status', 1)->count() : 0;
+            $approvalEfficiency = $approvalMetrics['approval_stages'] > 0 ?
+                round(($actualApprovers / $approvalMetrics['approval_stages']) * 100, 1) : 0;
+
             $rows[] = [
                 'session_id' => $session->id,
                 'request_id' => $session->fptk ? $session->fptk->id : 0,
@@ -1122,6 +1367,17 @@ class RecruitmentReportController extends Controller
                 'status' => $session->fptk ? ucfirst($session->fptk->status) : '-',
                 'latest_approval' => $latestApproval && $latestApproval->approver ? $latestApproval->approver->name : '-',
                 'remarks' => $latestApproval ? ($latestApproval->remarks ?: '-') : '-',
+                // New fields for employment type and conditional approval
+                'employment_type' => ucfirst($employmentType),
+                'expected_stages' => implode(' → ', $expectedStages),
+                'request_reason' => ucfirst($session->fptk->request_reason ?? 'Legacy'),
+                'approval_flow_type' => $approvalMetrics['flow_type'],
+                'expected_approvers' => $approvalMetrics['expected_approvers'],
+                'approval_sla_target' => $approvalMetrics['sla_target'],
+                'actual_approvers_count' => $actualApprovers,
+                'expected_approvers_count' => $approvalMetrics['approval_stages'],
+                'approval_efficiency' => $approvalEfficiency . '%',
+                'approval_vs_sla' => $approvalDays <= $approvalMetrics['sla_target'] ? 'On Time' : 'Delayed',
             ];
         }
         return $rows;
@@ -1337,19 +1593,38 @@ class RecruitmentReportController extends Controller
                 $tesTeoriScore = isset($session->tesTeori->score) ? number_format($session->tesTeori->score, 1) : '-';
             }
 
-            // Interview data - combine type and result
-            $interviewResult = '-';
+            // Interview data - separate by type (HR, User, Trainer)
+            $interviewHr = '-';
+            $interviewUser = '-';
+            $interviewTrainer = '-';
+            $interviewResult = '-'; // Combined for backward compatibility
+
             if ($session->interviews && is_object($session->interviews) && method_exists($session->interviews, 'count') && $session->interviews->count() > 0) {
                 $interviewTypes = [];
                 $interviewResults = [];
+
                 foreach ($session->interviews as $interview) {
-                    if (isset($interview->type)) {
-                        $interviewTypes[] = $interview->type === 'hr' ? 'HR' : 'User';
-                    }
-                    if (isset($interview->result)) {
-                        $interviewResults[] = ucfirst($interview->result);
+                    if (isset($interview->type) && isset($interview->result)) {
+                        $result = ucfirst($interview->result);
+
+                        switch ($interview->type) {
+                            case 'hr':
+                                $interviewHr = $result;
+                                break;
+                            case 'user':
+                                $interviewUser = $result;
+                                break;
+                            case 'trainer':
+                                $interviewTrainer = $result;
+                                break;
+                        }
+
+                        $interviewTypes[] = ucfirst($interview->type);
+                        $interviewResults[] = $result;
                     }
                 }
+
+                // Build combined result for backward compatibility
                 $type = !empty($interviewTypes) ? implode(', ', array_unique($interviewTypes)) : '';
                 $result = !empty($interviewResults) ? implode(', ', array_unique($interviewResults)) : '';
 
@@ -1378,8 +1653,11 @@ class RecruitmentReportController extends Controller
                 'psikotes_score' => $psikotesScore,
                 'tes_teori_result' => $tesTeoriResult,
                 'tes_teori_score' => $tesTeoriScore,
-                'interview_type' => $interviewResult,
-                'interview_result' => $interviewResult,
+                'interview_hr' => $interviewHr,
+                'interview_user' => $interviewUser,
+                'interview_trainer' => $interviewTrainer,
+                'interview_type' => $interviewResult, // Backward compatibility
+                'interview_result' => $interviewResult, // Backward compatibility
                 'overall_assessment' => $overallAssessment,
                 'notes' => $this->buildAssessmentNotes($session)
             ];
@@ -1399,7 +1677,7 @@ class RecruitmentReportController extends Controller
 
         if (strpos($interviewResult, ' - ') !== false) {
             list($interviewType, $interviewResultOnly) = explode(' - ', $interviewResult, 2);
-        } elseif (strpos($interviewResult, 'HR') !== false || strpos($interviewResult, 'User') !== false) {
+        } elseif (strpos($interviewResult, 'HR') !== false || strpos($interviewResult, 'User') !== false || strpos($interviewResult, 'Trainer') !== false) {
             $interviewType = $interviewResult;
             $interviewResultOnly = '';
         } else {
@@ -1410,17 +1688,29 @@ class RecruitmentReportController extends Controller
         $psikotesScore = $this->convertResultToScore($psikotesResult);
         $teoriScore = $this->convertResultToScore($tesTeoriResult);
 
-        // Parse interview results for HR and User
+        // Parse interview results for HR, User, and Trainer
         $hrScore = 0;
         $userScore = 0;
+        $trainerScore = 0;
 
         if ($interviewType && $interviewResultOnly) {
-            // Parse HR and User scores based on type and result
-            if (strpos($interviewType, 'HR') !== false || strpos($interviewType, 'hr') !== false) {
-                $hrScore = $this->convertResultToScore($interviewResultOnly);
-            }
-            if (strpos($interviewType, 'User') !== false || strpos($interviewType, 'user') !== false) {
-                $userScore = $this->convertResultToScore($interviewResultOnly);
+            // Handle format: "HR, User, Trainer - Pass, Pass, Pass"
+            $types = array_map('trim', explode(',', $interviewType));
+            $results = array_map('trim', explode(',', $interviewResultOnly));
+
+            for ($i = 0; $i < count($types) && $i < count($results); $i++) {
+                $type = $types[$i];
+                $result = $results[$i];
+
+                if (strpos($type, 'HR') !== false || strpos($type, 'hr') !== false || strpos($type, 'Hr') !== false) {
+                    $hrScore = $this->convertResultToScore($result);
+                }
+                if (strpos($type, 'User') !== false || strpos($type, 'user') !== false) {
+                    $userScore = $this->convertResultToScore($result);
+                }
+                if (strpos($type, 'Trainer') !== false || strpos($type, 'trainer') !== false) {
+                    $trainerScore = $this->convertResultToScore($result);
+                }
             }
         } elseif ($interviewResultOnly && !$interviewType) {
             // If no type specified, assume it's a general interview result
@@ -1428,23 +1718,71 @@ class RecruitmentReportController extends Controller
         }
 
         // Calculate total score
-        $totalScore = $psikotesScore + $teoriScore + $hrScore + $userScore;
+        $totalScore = $psikotesScore + $teoriScore + $hrScore + $userScore + $trainerScore;
 
-        // Apply scoring rules
+        // Apply scoring rules based on the correct assessment logic
         if ($psikotesScore === 0) {
-            return 'Poor'; // Psikotes fail = Poor
-        } elseif ($psikotesScore === 1 && $totalScore === 4) {
-            return 'Average'; // Psikotes pending + total 4 = Average
+            return 'Poor'; // Psikotes fail = Poor (process stops)
+        } elseif ($psikotesScore === 1) {
+            return 'Average'; // Psikotes pending = all pending = Average
         } elseif ($psikotesScore === 2) {
-            // Psikotes pass - apply scoring rules
-            if ($totalScore >= 7) {
-                return 'Excellent';
-            } elseif ($totalScore >= 5) {
-                return 'Good';
-            } elseif ($totalScore === 4) {
-                return 'Average';
+            // Psikotes pass - check Tes Teori status
+            if ($teoriScore === 0) {
+                return 'Poor'; // Tes Teori fail = process stops = Poor
+            } elseif ($teoriScore === 1) {
+                return 'Average'; // Tes Teori pending = all interviews pending = Average
+            } elseif ($teoriScore === 2) {
+                // Tes Teori pass - all interviews can be 2/1/0 independently
+                // But ensure no more than 1 interview can fail (0) for Tes Teori = 2
+                $failCount = 0;
+                if ($hrScore === 0) $failCount++;
+                if ($userScore === 0) $failCount++;
+                if ($trainerScore === 0) $failCount++;
+
+                if ($failCount > 1) {
+                    // If more than 1 interview fails, adjust to pending (1) to follow the rule
+                    if ($hrScore === 0 && $failCount > 1) $hrScore = 1;
+                    if ($userScore === 0 && $failCount > 1) $userScore = 1;
+                    if ($trainerScore === 0 && $failCount > 1) $trainerScore = 1;
+
+                    // Recalculate total score
+                    $totalScore = $psikotesScore + $teoriScore + $hrScore + $userScore + $trainerScore;
+                }
+
+                if ($totalScore >= 9) {
+                    return 'Excellent';
+                } elseif ($totalScore >= 7) {
+                    return 'Very Good';
+                } elseif ($totalScore >= 5) {
+                    return 'Good';
+                } elseif ($totalScore >= 4) {
+                    return 'Average';
+                } else {
+                    return 'Poor';
+                }
             } else {
-                return 'Poor'; // total <= 3
+                // Tes Teori NA (-) - only HR & User required, Trainer = NA
+                // Ensure no more than 1 interview can fail (0) for Tes Teori = NA
+                $failCount = 0;
+                if ($hrScore === 0) $failCount++;
+                if ($userScore === 0) $failCount++;
+
+                if ($failCount > 1) {
+                    // If more than 1 interview fails, adjust to pending (1) to follow the rule
+                    if ($hrScore === 0 && $failCount > 1) $hrScore = 1;
+                    if ($userScore === 0 && $failCount > 1) $userScore = 1;
+                }
+
+                $hrUserScore = $hrScore + $userScore;
+                if ($hrUserScore >= 6) {
+                    return 'Good';
+                } elseif ($hrUserScore >= 4) {
+                    return 'Good';
+                } elseif ($hrUserScore >= 2) {
+                    return 'Average';
+                } else {
+                    return 'Poor';
+                }
             }
         } else {
             return 'Poor'; // Default fallback
@@ -1453,8 +1791,12 @@ class RecruitmentReportController extends Controller
 
     private function convertResultToScore($result)
     {
-        if ($result === '-' || $result === 'Pending') {
-            return 0; // No data or pending
+        if ($result === '-' || $result === 'NA' || $result === 'Not Applicable') {
+            return -1; // Not applicable (special case)
+        }
+
+        if ($result === 'Pending') {
+            return 1; // Pending
         }
 
         $resultLower = strtolower($result);
@@ -1762,14 +2104,15 @@ class RecruitmentReportController extends Controller
                 }
             }
 
-            // Calculate SLA metrics - 6 months from approval completion
-            $slaTarget = 180; // Target: 6 months (180 days) from approval completion
+            // Get conditional approval metrics
+            $approvalMetrics = $this->calculateConditionalApprovalMetrics($recruitmentRequest);
+            $slaTarget = $approvalMetrics['sla_target'];
             $slaStatus = '-';
             $slaClass = '';
             $slaDaysRemaining = null;
 
             if ($daysToApprove !== null) {
-                // Calculate days from approval completion to 6 months target
+                // Calculate days from approval completion to SLA target
                 $approvalCompletionDate = $latestApproval->updated_at;
                 $slaDeadline = $approvalCompletionDate->addDays($slaTarget);
                 $currentDate = now();
@@ -1781,12 +2124,27 @@ class RecruitmentReportController extends Controller
                 } else {
                     $slaStatus = 'Overdue';
                     $slaClass = 'badge-danger';
-                    $slaDaysRemaining = $currentDate->diffInDays($slaDeadline);
+                    $slaDaysRemaining = -$slaDeadline->diffInDays($currentDate); // Negative value for overdue
                 }
             } elseif ($recruitmentRequest->status === 'submitted') {
                 $slaStatus = 'Pending Approval';
                 $slaClass = 'badge-warning';
+            } elseif (in_array($recruitmentRequest->status, ['approved', 'rejected'])) {
+                // For legacy FPTK without approval plans, use request creation date
+                $slaDeadline = $recruitmentRequest->created_at->addDays($slaTarget);
+                $currentDate = now();
+
+                if ($currentDate <= $slaDeadline) {
+                    $slaStatus = 'Active';
+                    $slaClass = 'badge-success';
+                    $slaDaysRemaining = $currentDate->diffInDays($slaDeadline);
+                } else {
+                    $slaStatus = 'Overdue';
+                    $slaClass = 'badge-danger';
+                    $slaDaysRemaining = -$slaDeadline->diffInDays($currentDate); // Negative value for overdue
+                }
             }
+
 
             $data[] = [
                 'request_id' => $recruitmentRequest->id,
@@ -2232,28 +2590,56 @@ class RecruitmentReportController extends Controller
                 }
             }
 
-            // Interview data - combine type and result
+            // Interview data - combined with color coding
             $interviewResult = '-';
+            $interviewDisplay = '-';
+
             if ($session->interviews && is_object($session->interviews) && method_exists($session->interviews, 'count') && $session->interviews->count() > 0) {
-                $interviewTypes = [];
-                $interviewResults = [];
+                // Group interviews by type
+                $interviewData = [];
                 foreach ($session->interviews as $interview) {
-                    if (isset($interview->type)) {
-                        $interviewTypes[] = $interview->type === 'hr' ? 'HR' : 'User';
-                    }
-                    if (isset($interview->result)) {
-                        $interviewResults[] = ucfirst($interview->result);
+                    if (isset($interview->type) && isset($interview->result)) {
+                        $type = ucfirst($interview->type);
+                        $result = ucfirst($interview->result);
+
+                        // Handle different type formats
+                        if (strtolower($type) === 'hr') {
+                            $interviewData['HR'] = $result;
+                        } elseif (strtolower($type) === 'user') {
+                            $interviewData['User'] = $result;
+                        } elseif (strtolower($type) === 'trainer') {
+                            $interviewData['Trainer'] = $result;
+                        }
                     }
                 }
-                $type = !empty($interviewTypes) ? implode(', ', array_unique($interviewTypes)) : '';
-                $result = !empty($interviewResults) ? implode(', ', array_unique($interviewResults)) : '';
 
-                if ($type && $result) {
-                    $interviewResult = $type . ' - ' . $result;
-                } elseif ($type) {
-                    $interviewResult = $type;
-                } elseif ($result) {
-                    $interviewResult = $result;
+                // Build the combined interview result string for calculation
+                if (!empty($interviewData)) {
+                    $types = [];
+                    $results = [];
+                    $displayItems = [];
+
+                    // Always include HR and User if they exist
+                    if (isset($interviewData['HR'])) {
+                        $types[] = 'HR';
+                        $results[] = $interviewData['HR'];
+                        $displayItems[] = 'HR: ' . $interviewData['HR'];
+                    }
+                    if (isset($interviewData['User'])) {
+                        $types[] = 'User';
+                        $results[] = $interviewData['User'];
+                        $displayItems[] = 'User: ' . $interviewData['User'];
+                    }
+                    if (isset($interviewData['Trainer'])) {
+                        $types[] = 'Trainer';
+                        $results[] = $interviewData['Trainer'];
+                        $displayItems[] = 'Trainer: ' . $interviewData['Trainer'];
+                    }
+
+                    if (!empty($types) && !empty($results)) {
+                        $interviewResult = implode(', ', $types) . ' - ' . implode(', ', $results);
+                        $interviewDisplay = implode(' | ', $displayItems);
+                    }
                 }
             }
 
@@ -2270,7 +2656,7 @@ class RecruitmentReportController extends Controller
                 'candidate_name' => $candidate->fullname,
                 'psikotes_result' => $psikotesResult,
                 'tes_teori_result' => $tesTeoriResult,
-                'interview_result' => $interviewResult,
+                'interview_result' => $interviewDisplay,
                 'overall_assessment' => $overallAssessment,
                 'notes' => $this->buildAssessmentNotes($session)
             ];
@@ -2294,7 +2680,9 @@ class RecruitmentReportController extends Controller
             'interview' => RecruitmentInterview::class,
             'offering' => RecruitmentOffering::class,
             'mcu' => RecruitmentMcu::class,
+            'mcu_magang_harian' => RecruitmentMcu::class, // Special case for magang/harian MCU
             'hiring' => RecruitmentHiring::class,
+            'hiring_magang_harian' => RecruitmentHiring::class, // Special case for magang/harian Hiring
             'onboarding' => RecruitmentOnboarding::class,
         ];
 
@@ -2334,9 +2722,48 @@ class RecruitmentReportController extends Controller
 
         $sessions = $sessionsQuery->get();
 
-        // Get stage records
+        // Filter sessions based on employment type and stage compatibility
+        $filteredSessions = $sessions->filter(function ($session) use ($stage) {
+            if (!$session->fptk) return false;
+
+            $employmentType = $session->fptk->employment_type ?? 'regular';
+
+            // Handle special magang/harian stage naming
+            if (in_array($stage, ['mcu_magang_harian', 'hiring_magang_harian'])) {
+                // Only magang and harian employment types
+                return in_array($employmentType, ['magang', 'harian']);
+            }
+
+            $expectedStages = $this->getExpectedStagesForEmploymentType($employmentType);
+
+            // Convert stage name to match expected stages format
+            $stageMapping = [
+                'cv_review' => 'CV Review',
+                'psikotes' => 'Psikotes',
+                'tes_teori' => 'Tes Teori',
+                'interview' => 'Interview',
+                'offering' => 'Offering',
+                'mcu' => 'MCU',
+                'hiring' => 'Hiring',
+                'onboarding' => 'Onboarding'
+            ];
+
+            $stageName = $stageMapping[$stage] ?? ucfirst(str_replace('_', ' ', $stage));
+
+            // For regular MCU and Hiring, exclude magang/harian
+            if (in_array($stage, ['mcu', 'hiring'])) {
+                $isRegularEmployment = !in_array($employmentType, ['magang', 'harian']);
+                $stageAllowed = in_array($stageName, $expectedStages);
+                return $isRegularEmployment && $stageAllowed;
+            }
+
+            // Only include sessions where this stage is expected for the employment type
+            return in_array($stageName, $expectedStages);
+        });
+
+        // Get stage records only for filtered sessions
         $stageQuery = $modelClass::with(['session.fptk.department', 'session.fptk.position', 'session.fptk.project', 'session.candidate'])
-            ->whereIn('session_id', $sessions->pluck('id'));
+            ->whereIn('session_id', $filteredSessions->pluck('id'));
 
         if ($request->filled('date1') && $request->filled('date2')) {
             $stageQuery->whereBetween('created_at', [$request->date1, $request->date2]);
@@ -2465,6 +2892,10 @@ class RecruitmentReportController extends Controller
             // Build detailed remarks based on stage type
             $detailedRemarks = $this->buildStageRemarks($stage, $record);
 
+            // Get employment type information
+            $employmentType = $fptk->employment_type ?? 'regular';
+            $expectedStages = $this->getExpectedStagesForEmploymentType($employmentType);
+
             $data[] = [
                 'session_id' => $session->id,
                 'fptk_id' => $fptk->id,
@@ -2480,6 +2911,9 @@ class RecruitmentReportController extends Controller
                 'result' => $result,
                 'interview_type' => $interviewType,
                 'remarks' => $detailedRemarks,
+                'employment_type' => ucfirst($employmentType),
+                'expected_stages' => implode(' → ', $expectedStages),
+                'is_magang_harian' => in_array($employmentType, ['magang', 'harian']),
             ];
         }
 
@@ -2687,11 +3121,6 @@ class RecruitmentReportController extends Controller
             case 'Hiring':
                 if ($session->hiring) {
                     $notes[] = "Hiring: " . ($session->hiring->result ?? 'No result');
-                }
-                break;
-            case 'Onboarding':
-                if ($session->onboarding) {
-                    $notes[] = "Onboarding: " . ($session->onboarding->result ?? 'No result');
                 }
                 break;
         }

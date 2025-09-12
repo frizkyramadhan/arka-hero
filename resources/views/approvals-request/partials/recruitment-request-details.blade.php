@@ -88,7 +88,8 @@
             </tr>
             <tr>
                 <td><strong>Request Reason:</strong></td>
-                <td>{{ ucfirst(str_replace('_', ' ', $document_data->request_reason ?? 'N/A')) }}</td>
+                <td>{{ formatRequestReason($document_data->request_reason ?? null, $document_data->other_reason ?? null) }}
+                </td>
             </tr>
         </table>
     </div>

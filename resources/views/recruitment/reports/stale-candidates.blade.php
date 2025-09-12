@@ -122,7 +122,6 @@
                                     <th class="align-middle">Current Stage</th>
                                     <th class="align-middle">Last Activity Date</th>
                                     <th class="align-middle">Days Since Last Activity</th>
-                                    <th class="align-middle">Days in Current Stage</th>
                                     <th class="align-middle">Status</th>
                                 </tr>
                             </thead>
@@ -199,9 +198,6 @@
                             return '<span class="badge ' + colorClass + '">' + data +
                                 ' days</span>';
                         }
-                    },
-                    {
-                        data: 'days_in_current_stage'
                     },
                     {
                         data: 'status',

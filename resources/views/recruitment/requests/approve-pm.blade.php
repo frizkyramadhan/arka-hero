@@ -101,7 +101,7 @@
                                     <div class="info-content">
                                         <div class="info-label">Request Reason</div>
                                         <div class="info-value">
-                                            {{ $fptk->request_reason == 'other' ? $fptk->other_reason : ucfirst(str_replace('_', ' ', $fptk->request_reason)) }}
+                                            {{ formatRequestReason($fptk->request_reason, $fptk->other_reason) }}
                                         </div>
                                     </div>
                                 </div>

@@ -16,6 +16,14 @@ class ApprovalStageDetail extends Model
         'request_reason'
     ];
 
+    // Request reasons to match recruitment_requests table
+    public const REQUEST_REASONS = [
+        'replacement_resign',
+        'replacement_promotion',
+        'additional_workplan',
+        'other'
+    ];
+
     // Relationships
     public function approvalStage()
     {

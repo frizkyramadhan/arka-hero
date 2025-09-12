@@ -196,12 +196,6 @@ class RecruitmentRequestController extends Controller
             'other_requirements' => 'nullable|string|max:1000',
             'requires_theory_test' => 'nullable|boolean',
 
-            // Approval hierarchy fields
-            // 'known_by' => 'required|exists:users,id',
-            // 'approved_by_pm' => 'required|exists:users,id',
-            // 'approved_by_director' => 'required|exists:users,id',
-
-            // Submit action
             'submit_action' => 'required|in:draft,submit',
         ]);
 
@@ -278,12 +272,6 @@ class RecruitmentRequestController extends Controller
                 'required_mental' => $request->required_mental,
                 'other_requirements' => $request->other_requirements,
                 'requires_theory_test' => $request->boolean('requires_theory_test'),
-
-                // Approval hierarchy fields
-                // 'known_by' => $request->known_by,
-                // 'approved_by_pm' => $request->approved_by_pm,
-                // 'approved_by_director' => $request->approved_by_director,
-
                 'created_by' => Auth::id(),
                 'status' => $status,
                 'submit_at' => $submitAt,

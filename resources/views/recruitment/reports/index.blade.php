@@ -24,7 +24,7 @@
                         </div>
                         <div class="card-body">
                             <p>Track candidate progression through recruitment stages (CV Review, Interview, Psikotes, Tes
-                                Teori, MCU, Offering, Hiring, Onboarding).</p>
+                                Teori, MCU, Offering, Hiring & Onboarding).</p>
                             <p><strong>Features:</strong> Stage counts, date filtering, Excel export</p>
                         </div>
                         <div class="card-footer">

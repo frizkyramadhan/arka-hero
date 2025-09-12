@@ -101,7 +101,12 @@ class RecruitmentRequest extends Model
 
     // Enums for validation
     public const EMPLOYMENT_TYPES = ['pkwtt', 'pkwt', 'harian', 'magang'];
-    public const REQUEST_REASONS = ['replacement', 'additional'];
+    public const REQUEST_REASONS = [
+        'replacement_resign',
+        'replacement_promotion',
+        'additional_workplan',
+        'other'
+    ];
     public const GENDERS = ['male', 'female', 'any'];
     public const MARITAL_STATUSES = ['single', 'married', 'any'];
 

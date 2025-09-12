@@ -480,6 +480,12 @@ Route::group(['middleware' => ['auth']], function () {
         Route::get('/funnel/export', [RecruitmentReportController::class, 'exportFunnel'])->name('funnel.export');
         Route::get('/funnel/stage/{stage}', [RecruitmentReportController::class, 'stageDetail'])->name('funnel.stage');
         Route::get('/funnel/stage/{stage}/data', [RecruitmentReportController::class, 'stageDetailData'])->name('stage-detail.data');
+
+        // Special routes for magang/harian stages
+        Route::get('/funnel/stage/mcu_magang_harian', [RecruitmentReportController::class, 'stageDetail'])->name('funnel.stage.mcu_magang_harian');
+        Route::get('/funnel/stage/mcu_magang_harian/data', [RecruitmentReportController::class, 'stageDetailData'])->name('stage-detail.data.mcu_magang_harian');
+        Route::get('/funnel/stage/hiring_magang_harian', [RecruitmentReportController::class, 'stageDetail'])->name('funnel.stage.hiring_magang_harian');
+        Route::get('/funnel/stage/hiring_magang_harian/data', [RecruitmentReportController::class, 'stageDetailData'])->name('stage-detail.data.hiring_magang_harian');
         Route::get('/aging', [RecruitmentReportController::class, 'aging'])->name('aging');
         Route::get('/aging/export', [RecruitmentReportController::class, 'exportAging'])->name('aging.export');
         Route::get('/aging/data', [RecruitmentReportController::class, 'agingData'])->name('aging.data');

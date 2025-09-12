@@ -134,21 +134,7 @@
                                     <div class="info-content">
                                         <div class="info-label">Request Reason</div>
                                         <div class="info-value">
-                                            @if ($fptk->request_reason == 'replacement_resign')
-                                                Replacement - Resign, Termination, End of Contract
-                                            @elseif($fptk->request_reason == 'replacement_promotion')
-                                                Replacement - Promotion, Mutation, Demotion
-                                            @elseif($fptk->request_reason == 'additional_workplan')
-                                                Additional - Workplan
-                                            @elseif($fptk->request_reason == 'other')
-                                                Other
-                                            @elseif($fptk->request_reason == 'replacement')
-                                                Replacement (Legacy)
-                                            @elseif($fptk->request_reason == 'additional')
-                                                Additional (Legacy)
-                                            @else
-                                                {{ ucfirst(str_replace('_', ' ', $fptk->request_reason)) }}
-                                            @endif
+                                            {{ formatRequestReason($fptk->request_reason, $fptk->other_reason) }}
                                         </div>
                                     </div>
                                 </div>
