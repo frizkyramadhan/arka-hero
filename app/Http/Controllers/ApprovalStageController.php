@@ -22,6 +22,7 @@ class ApprovalStageController extends Controller
     private function getRequestReasonLabel($reason)
     {
         return match ($reason) {
+            // New detailed reasons
             'replacement_resign' => 'Replacement - Resign, Termination, End of Contract',
             'replacement_promotion' => 'Replacement - Promotion, Mutation, Demotion',
             'additional_workplan' => 'Additional - Workplan',
@@ -34,8 +35,8 @@ class ApprovalStageController extends Controller
     {
         $title = 'Approval Stages';
         $approvers = User::select('id', 'name')->orderBy('name', 'asc')->get();
-        $projects = Project::orderBy('project_code', 'asc')->get();
-        $departments = Department::orderBy('department_name', 'asc')->get();
+        $projects = Project::where('project_status', 1)->orderBy('project_code', 'asc')->get();
+        $departments = Department::where('department_status', 1)->orderBy('department_name', 'asc')->get();
 
         return view('approval-stages.index', compact('title', 'approvers', 'projects', 'departments'));
     }
@@ -44,8 +45,8 @@ class ApprovalStageController extends Controller
     {
         $title = 'Create Approval Stage';
         $approvers = User::select('id', 'name')->orderBy('name', 'asc')->get();
-        $projects = Project::orderBy('project_code', 'asc')->get();
-        $departments = Department::orderBy('department_name', 'asc')->get();
+        $projects = Project::where('project_status', 1)->orderBy('project_code', 'asc')->get();
+        $departments = Department::where('department_status', 1)->orderBy('department_name', 'asc')->get();
 
         return view('approval-stages.create', compact('title', 'approvers', 'projects', 'departments'));
     }
@@ -59,7 +60,7 @@ class ApprovalStageController extends Controller
             'projects' => 'required|array|min:1',
             'departments' => 'required|array|min:1',
             'request_reasons' => 'nullable|array',
-            'request_reasons.*' => 'string|in:replacement_resign,replacement_promotion,additional_workplan'
+            'request_reasons.*' => 'string|in:replacement_resign,replacement_promotion,additional_workplan,other'
         ]);
 
         // Check for existing combinations before creating
@@ -216,8 +217,8 @@ class ApprovalStageController extends Controller
             $title = 'Edit Approval Stage';
             $approvalStage = ApprovalStage::with('details.project', 'details.department')->findOrFail($id);
             $approvers = User::select('id', 'name')->orderBy('name', 'asc')->get();
-            $projects = Project::orderBy('project_code', 'asc')->get();
-            $departments = Department::orderBy('department_name', 'asc')->get();
+            $projects = Project::where('project_status', 1)->orderBy('project_code', 'asc')->get();
+            $departments = Department::where('department_status', 1)->orderBy('department_name', 'asc')->get();
 
             // Extract selected values from details
             $selectedProjects = $approvalStage->details->pluck('project_id')->unique()->toArray();
@@ -239,7 +240,7 @@ class ApprovalStageController extends Controller
             'projects' => 'required|array|min:1',
             'departments' => 'required|array|min:1',
             'request_reasons' => 'nullable|array',
-            'request_reasons.*' => 'string|in:replacement_resign,replacement_promotion,additional_workplan'
+            'request_reasons.*' => 'string|in:replacement_resign,replacement_promotion,additional_workplan,other'
         ]);
 
         $approvalStage = ApprovalStage::findOrFail($id);
@@ -570,10 +571,13 @@ class ApprovalStageController extends Controller
                     $requestReasons = $stage->details->pluck('request_reason')->filter()->unique()->sort();
                     if ($requestReasons->isNotEmpty()) {
                         $html .= '<br><small class="text-muted">';
-                        $reasonLabels = $requestReasons->map(function ($reason) {
-                            return $this->getRequestReasonLabel($reason);
-                        })->implode(', ');
-                        $html .= '<i class="fas fa-tag"></i> ' . $reasonLabels;
+                        $html .= '<i class="fas fa-tag"></i> Request Reasons:';
+                        $html .= '<ul class="mb-0 mt-1" style="padding-left: 15px;">';
+                        foreach ($requestReasons as $reason) {
+                            $reasonLabel = $this->getRequestReasonLabel($reason);
+                            $html .= '<li>' . $reasonLabel . '</li>';
+                        }
+                        $html .= '</ul>';
                         $html .= '</small>';
                     } else {
                         $html .= '<br><small class="text-danger"><i class="fas fa-exclamation-circle"></i> Reason cannot be empty</small>';
@@ -653,55 +657,35 @@ class ApprovalStageController extends Controller
                 }
             }
 
-            // Map request_reason for approval stage filtering (same logic as ApprovalPlanController)
-            $approvalStageReason = null;
-            if ($requestReason) {
-                $approvalStageReason = match ($requestReason) {
-                    'replacement_promotion', 'replacement_resign' => 'replacement',
-                    'additional_workplan' => 'additional',
-                    'other' => 'other',
-                    // Legacy values (for backward compatibility)
-                    'replacement', 'additional' => $requestReason,
-                    default => $requestReason
-                };
-            }
-
             // Debug logging
             Log::info("Searching for approval stages with criteria:", [
                 'project_id' => $request->project_id,
                 'department_id' => $departmentId,
                 'document_type' => $request->document_type,
-                'request_reason' => $requestReason,
-                'approval_stage_reason' => $approvalStageReason
+                'request_reason' => $requestReason
             ]);
 
             // Get approval stages for the specified criteria with order
-            $approvalStages = ApprovalStage::with(['approver.departments', 'details' => function ($query) use ($request, $departmentId, $approvalStageReason) {
+            $approvalStages = ApprovalStage::with(['approver.departments', 'details' => function ($query) use ($request, $departmentId, $requestReason) {
                 $query->where('project_id', $request->project_id)
                     ->where('department_id', $departmentId);
 
-                // For recruitment_request with request_reason, filter by mapped reason
-                if ($approvalStageReason !== null) {
-                    $query->where(function ($q) use ($approvalStageReason) {
-                        $q->where('request_reason', $approvalStageReason)
-                            ->orWhereNull('request_reason'); // Include stages without request_reason for backward compatibility
-                    });
+                // Add request_reason filtering if provided
+                if ($requestReason !== null) {
+                    $query->where('request_reason', $requestReason);
                 } else {
                     // For official travel or recruitment without request_reason, only get stages without request_reason
                     $query->whereNull('request_reason');
                 }
             }])
                 ->where('document_type', $request->document_type)
-                ->whereHas('details', function ($query) use ($request, $departmentId, $approvalStageReason) {
+                ->whereHas('details', function ($query) use ($request, $departmentId, $requestReason) {
                     $query->where('project_id', $request->project_id)
                         ->where('department_id', $departmentId);
 
-                    // For recruitment_request with request_reason, filter by mapped reason
-                    if ($approvalStageReason !== null) {
-                        $query->where(function ($q) use ($approvalStageReason) {
-                            $q->where('request_reason', $approvalStageReason)
-                                ->orWhereNull('request_reason'); // Include stages without request_reason for backward compatibility
-                        });
+                    // Add request_reason filtering if provided
+                    if ($requestReason !== null) {
+                        $query->where('request_reason', $requestReason);
                     } else {
                         // For official travel or recruitment without request_reason, only get stages without request_reason
                         $query->whereNull('request_reason');

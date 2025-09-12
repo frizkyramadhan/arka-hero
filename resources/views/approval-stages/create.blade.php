@@ -100,20 +100,40 @@
                                         <div class="card-body" style="max-height: 300px; overflow-y: auto;">
                                             <div class="custom-control custom-checkbox">
                                                 <input type="checkbox" class="custom-control-input request-reason-checkbox"
-                                                    name="request_reasons[]" value="additional" id="additional"
-                                                    {{ in_array('additional', old('request_reasons', [])) ? 'checked' : '' }}>
-                                                <label class="custom-control-label" for="additional"
+                                                    name="request_reasons[]" value="additional_workplan"
+                                                    id="additional_workplan"
+                                                    {{ in_array('additional_workplan', old('request_reasons', [])) ? 'checked' : '' }}>
+                                                <label class="custom-control-label" for="additional_workplan"
                                                     style="font-size: 13px;">
-                                                    Additional
+                                                    Additional - Workplan
                                                 </label>
                                             </div>
                                             <div class="custom-control custom-checkbox">
                                                 <input type="checkbox" class="custom-control-input request-reason-checkbox"
-                                                    name="request_reasons[]" value="replacement" id="replacement"
-                                                    {{ in_array('replacement', old('request_reasons', [])) ? 'checked' : '' }}>
-                                                <label class="custom-control-label" for="replacement"
+                                                    name="request_reasons[]" value="replacement_resign"
+                                                    id="replacement_resign"
+                                                    {{ in_array('replacement_resign', old('request_reasons', [])) ? 'checked' : '' }}>
+                                                <label class="custom-control-label" for="replacement_resign"
                                                     style="font-size: 13px;">
-                                                    Replacement
+                                                    Replacement - Resign, Termination, End of Contract
+                                                </label>
+                                            </div>
+                                            <div class="custom-control custom-checkbox">
+                                                <input type="checkbox" class="custom-control-input request-reason-checkbox"
+                                                    name="request_reasons[]" value="replacement_promotion"
+                                                    id="replacement_promotion"
+                                                    {{ in_array('replacement_promotion', old('request_reasons', [])) ? 'checked' : '' }}>
+                                                <label class="custom-control-label" for="replacement_promotion"
+                                                    style="font-size: 13px;">
+                                                    Replacement - Promotion, Mutation, Demotion
+                                                </label>
+                                            </div>
+                                            <div class="custom-control custom-checkbox">
+                                                <input type="checkbox" class="custom-control-input request-reason-checkbox"
+                                                    name="request_reasons[]" value="other" id="other"
+                                                    {{ in_array('other', old('request_reasons', [])) ? 'checked' : '' }}>
+                                                <label class="custom-control-label" for="other" style="font-size: 13px;">
+                                                    Other
                                                 </label>
                                             </div>
                                         </div>
@@ -130,7 +150,8 @@
                                 <!-- Approval Order Input -->
                                 <div class="form-group">
                                     <label for="approval_order">Approval Order <span class="text-danger">*</span></label>
-                                    <input type="number" class="form-control @error('approval_order') is-invalid @enderror"
+                                    <input type="number"
+                                        class="form-control @error('approval_order') is-invalid @enderror"
                                         name="approval_order" id="approval_order" value="{{ old('approval_order', 1) }}"
                                         min="1" required placeholder="Enter approval order (e.g., 1, 2, 3)">
                                     <small class="form-text text-muted">

@@ -133,6 +133,14 @@
                                                 <br><small class="text-muted">
                                                     <i class="fas fa-merge"></i> Combined from both flows
                                                 </small>
+                                            @elseif (isset($row['flow_type']) && $row['flow_type'] === 'magang_harian')
+                                                <br><small class="text-muted">
+                                                    <i class="fas fa-user-clock"></i> Magang/Harian only
+                                                </small>
+                                            @elseif (isset($row['flow_type']) && $row['flow_type'] === 'separator')
+                                                <br><small class="text-info">
+                                                    <i class="fas fa-info-circle"></i> Simplified recruitment flow
+                                                </small>
                                             @endif
                                         </td>
                                         <td class="text-center">
@@ -156,6 +164,18 @@
                                                         </span>
                                                     @break
 
+                                                    @case('magang_harian')
+                                                        <span class="badge badge-success">
+                                                            <i class="fas fa-user-clock"></i> Magang/Harian
+                                                        </span>
+                                                    @break
+
+                                                    @case('separator')
+                                                        <span class="badge badge-light">
+                                                            <i class="fas fa-info-circle"></i> Info
+                                                        </span>
+                                                    @break
+
                                                     @default
                                                         <span class="badge badge-light">-</span>
                                                 @endswitch
@@ -164,7 +184,9 @@
                                             @endif
                                         </td>
                                         <td class="text-center">
-                                            @if ($row['stage'] === 'CV Review')
+                                            @if ($row['stage'] === 'CV Review' || (isset($row['flow_type']) && $row['flow_type'] === 'separator'))
+                                                <span class="text-muted">-</span>
+                                            @elseif (str_contains($row['stage'], 'MCU (Magang/Harian)') && $row['previous_stage_count'] == 0)
                                                 <span class="text-muted">-</span>
                                             @else
                                                 <span
@@ -178,15 +200,21 @@
                                             @endif
                                         </td>
                                         <td class="text-center">
-                                            <span class="badge badge-primary">{{ $row['total_candidates'] }}</span>
-                                            @if (isset($row['eligible_candidates']) && $row['eligible_candidates'] > 0)
-                                                <br><small class="text-muted">
-                                                    from {{ $row['eligible_candidates'] }} eligible
-                                                </small>
+                                            @if (isset($row['flow_type']) && $row['flow_type'] === 'separator')
+                                                <span class="text-muted">-</span>
+                                            @else
+                                                <span class="badge badge-primary">{{ $row['total_candidates'] }}</span>
+                                                @if (isset($row['eligible_candidates']) && $row['eligible_candidates'] > 0)
+                                                    <br><small class="text-muted">
+                                                        from {{ $row['eligible_candidates'] }} eligible
+                                                    </small>
+                                                @endif
                                             @endif
                                         </td>
                                         <td class="text-right">
-                                            @if ($row['conversion_rate'] > 0)
+                                            @if (isset($row['flow_type']) && $row['flow_type'] === 'separator')
+                                                <span class="text-muted">-</span>
+                                            @elseif ($row['conversion_rate'] > 0)
                                                 @php
                                                     $rateClass =
                                                         $row['conversion_rate'] >= 70
@@ -203,7 +231,9 @@
                                             @endif
                                         </td>
                                         <td class="text-right">
-                                            @if ($row['total_candidates'] > 0)
+                                            @if (isset($row['flow_type']) && $row['flow_type'] === 'separator')
+                                                <span class="text-muted">-</span>
+                                            @elseif ($row['total_candidates'] > 0)
                                                 @php
                                                     $avgDays = $row['avg_days_in_stage'] ?: 1;
                                                     $daysClass =
@@ -243,7 +273,27 @@
                                             @endif
                                         </td>
                                         <td class="text-center">
-                                            <a href="{{ route('recruitment.reports.funnel.stage', ['stage' => strtolower(str_replace(' ', '_', $row['stage'])), 'date1' => $date1, 'date2' => $date2, 'department' => $department, 'position' => $position, 'project' => $project]) }}"
+                                            @php
+                                                $stageName = strtolower(str_replace(' ', '_', $row['stage']));
+
+                                                // Handle special magang/harian stages
+                                                if (str_contains($row['stage'], 'Magang/Harian')) {
+                                                    if (str_contains($row['stage'], 'MCU')) {
+                                                        $stageName = 'mcu_magang_harian';
+                                                    } elseif (str_contains($row['stage'], 'Hiring')) {
+                                                        $stageName = 'hiring_magang_harian';
+                                                    }
+                                                }
+
+                                                $routeName = 'recruitment.reports.funnel.stage';
+                                                if ($stageName === 'mcu_magang_harian') {
+                                                    $routeName = 'recruitment.reports.funnel.stage.mcu_magang_harian';
+                                                } elseif ($stageName === 'hiring_magang_harian') {
+                                                    $routeName =
+                                                        'recruitment.reports.funnel.stage.hiring_magang_harian';
+                                                }
+                                            @endphp
+                                            <a href="{{ route($routeName, array_merge(['date1' => $date1, 'date2' => $date2, 'department' => $department, 'position' => $position, 'project' => $project], $stageName === 'mcu_magang_harian' || $stageName === 'hiring_magang_harian' ? [] : ['stage' => $stageName])) }}"
                                                 class="btn btn-sm btn-outline-primary">
                                                 <i class="fas fa-eye"></i> Details
                                             </a>

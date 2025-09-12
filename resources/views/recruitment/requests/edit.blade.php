@@ -27,21 +27,6 @@
                 <div class="row">
                     <!-- Left Column -->
                     <div class="col-md-8">
-                        <!-- Letter Number Selection Card -->
-                        {{-- <div class="card card-info card-outline elevation-2">
-                            <div class="card-header py-2">
-                                <h3 class="card-title">
-                                    <i class="fas fa-hashtag mr-2"></i>
-                                    <strong>Letter Number</strong>
-                                </h3>
-                            </div>
-                            <div class="card-body py-2">
-                                @include('components.smart-letter-number-selector', [
-                                    'categoryCode' => 'FPTK',
-                                    'selectedId' => $fptk->letter_number_id,
-                                ])
-                            </div>
-                        </div> --}}
 
                         <!-- Main FPTK Info Card -->
                         <div class="card card-primary card-outline elevation-3">
@@ -248,9 +233,6 @@
                                                 <option value="replacement_resign"
                                                     {{ old('request_reason', $fptk->request_reason) == 'replacement_resign' ? 'selected' : '' }}>
                                                     Replacement - Resign, Termination, End of Contract</option>
-                                                {{-- <option value="other"
-                                                    {{ old('request_reason', $fptk->request_reason) == 'other' ? 'selected' : '' }}>
-                                                    Other</option> --}}
                                             </select>
                                             @error('request_reason')
                                                 <div class="invalid-feedback">{{ $message }}</div>
@@ -283,19 +265,6 @@
                                             @enderror
                                         </div>
                                     </div>
-                                    {{-- <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label for="other_reason">Other Reason</label>
-                                            <input type="text" name="other_reason" id="other_reason"
-                                                class="form-control @error('other_reason') is-invalid @enderror"
-                                                value="{{ old('other_reason', $fptk->other_reason) }}"
-                                                placeholder="Please specify if reason is 'Other'"
-                                                {{ $fptk->request_reason != 'other' ? 'disabled' : '' }}>
-                                            @error('other_reason')
-                                                <div class="invalid-feedback">{{ $message }}</div>
-                                            @enderror
-                                        </div>
-                                    </div> --}}
                                 </div>
                             </div>
                         </div>
@@ -481,76 +450,10 @@
                             </div>
                         </div>
 
-                        <!-- Approval Hierarchy Card -->
-                        {{-- <div class="card card-info card-outline elevation-3">
-                            <div class="card-header">
-                                <h3 class="card-title">
-                                    <i class="fas fa-user-check mr-2"></i>
-                                    <strong>Approval Hierarchy</strong>
-                                </h3>
-                            </div>
-                            <div class="card-body">
-                                <div class="form-group">
-                                    <label for="known_by">Acknowledged By <span class="text-danger">*</span></label>
-                                    <select name="known_by" id="known_by"
-                                        class="form-control select2-info @error('known_by') is-invalid @enderror"
-                                        style="width: 100%;" required>
-                                        <option value="">Select HR&GA Section Head</option>
-                                        @foreach ($acknowledgers as $user)
-                                            <option value="{{ $user->id }}"
-                                                {{ old('known_by', $fptk->known_by) == $user->id ? 'selected' : '' }}>
-                                                {{ $user->name }}
-                                            </option>
-                                        @endforeach
-                                    </select>
-                                    @error('known_by')
-                                        <div class="invalid-feedback">{{ $message }}</div>
-                                    @enderror
-                                </div>
-
-                                <div class="form-group">
-                                    <label for="approved_by_pm">Approved By (Project Manager) <span
-                                            class="text-danger">*</span></label>
-                                    <select name="approved_by_pm" id="approved_by_pm"
-                                        class="form-control select2-info @error('approved_by_pm') is-invalid @enderror"
-                                        style="width: 100%;" required>
-                                        <option value="">Select Project Manager</option>
-                                        @foreach ($approvers as $user)
-                                            <option value="{{ $user->id }}"
-                                                {{ old('approved_by_pm', $fptk->approved_by_pm) == $user->id ? 'selected' : '' }}>
-                                                {{ $user->name }}
-                                            </option>
-                                        @endforeach
-                                    </select>
-                                    @error('approved_by_pm')
-                                        <div class="invalid-feedback">{{ $message }}</div>
-                                    @enderror
-                                </div>
-
-                                <div class="form-group">
-                                    <label for="approved_by_director">Approved By (Director/Manager) <span
-                                            class="text-danger">*</span></label>
-                                    <select name="approved_by_director" id="approved_by_director"
-                                        class="form-control select2-info @error('approved_by_director') is-invalid @enderror"
-                                        style="width: 100%;" required>
-                                        <option value="">Select Director/Manager</option>
-                                        @foreach ($approvers as $user)
-                                            <option value="{{ $user->id }}"
-                                                {{ old('approved_by_director', $fptk->approved_by_director) == $user->id ? 'selected' : '' }}>
-                                                {{ $user->name }}
-                                            </option>
-                                        @endforeach
-                                    </select>
-                                    @error('approved_by_director')
-                                        <div class="invalid-feedback">{{ $message }}</div>
-                                    @enderror
-                                </div>
-                            </div>
-                        </div> --}}
 
                         <!-- Approval Status Card -->
                         <x-approval-status-card :documentType="'recruitment_request'" :documentId="$fptk->id" mode="preview" :projectId="old('project_id', $fptk->project_id)"
-                            :departmentId="old('department_id', $fptk->department_id)" :requestReason="old('request_reason', $fptk->request_reason)" title="Approval Status" id="dynamicApprovalCard" />
+                            :departmentId="old('department_id', $fptk->department_id)" :requestReason="old('request_reason', $fptk->request_reason)" title="Approval Preview" id="dynamicApprovalCard" />
 
                         <!-- Action Buttons -->
                         <div class="card elevation-3">
@@ -579,6 +482,43 @@
     <link rel="stylesheet" href="{{ asset('assets/plugins/select2/css/select2.min.css') }}">
     <link rel="stylesheet" href="{{ asset('assets/plugins/select2-bootstrap4-theme/select2-bootstrap4.min.css') }}">
     <style>
+        /* === FPTK Edit Form Styles === */
+
+        /* Content Header */
+        .content-header {
+            margin-bottom: 1rem;
+        }
+
+        /* Card Styling */
+        .card {
+            border-radius: 0.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .card-header {
+            border-radius: calc(0.5rem - 1px) calc(0.5rem - 1px) 0 0;
+        }
+
+        .card.elevation-2 .card-body {
+            padding: 0.75rem;
+        }
+
+        /* Form Controls */
+        .form-control {
+            border-radius: 0.25rem;
+        }
+
+        .form-control:focus {
+            border-color: #80bdff;
+            box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+        }
+
+        .input-group-text,
+        .btn {
+            border-radius: 0.25rem;
+        }
+
+        /* Select2 Enhancements */
         .select2-container--bootstrap4.select2-container--focus .select2-selection {
             border-color: #80bdff;
             box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
@@ -592,24 +532,7 @@
             line-height: 2.25rem !important;
         }
 
-        .card {
-            border-radius: 0.5rem;
-            margin-bottom: 1.5rem;
-        }
-
-        .card-header {
-            border-radius: calc(0.5rem - 1px) calc(0.5rem - 1px) 0 0;
-        }
-
-        .input-group-text {
-            border-radius: 0.25rem;
-        }
-
-        .btn {
-            border-radius: 0.25rem;
-        }
-
-        /* Custom colors for select2 */
+        /* Select2 Theme Colors */
         .select2-container--bootstrap4.select2-container--primary .select2-selection {
             border-color: #007bff;
         }
@@ -630,30 +553,7 @@
             border-color: #17a2b8;
         }
 
-        /* Compact styles for letter number integration */
-        .alert-sm {
-            padding: 0.375rem 0.75rem;
-            margin-bottom: 0.5rem;
-            font-size: 0.875rem;
-        }
-
-        .letter-number-selector .form-label {
-            font-weight: 600;
-            margin-bottom: 0.25rem;
-        }
-
-        .letter-number-selector .btn-group-vertical .btn {
-            margin-bottom: 0.25rem;
-        }
-
-
-
-        /* Reduce card body padding for compact look */
-        .card.elevation-2 .card-body {
-            padding: 0.75rem;
-        }
-
-        /* FPTK Number feedback styles */
+        /* FPTK Number Status */
         #fptk_number.alert-success {
             background-color: #d4edda;
             border-color: #c3e6cb;
@@ -666,22 +566,23 @@
             color: #856404;
         }
 
-        /* Form styling improvements */
-        .form-control {
-            border-radius: 0.25rem;
+        /* Letter Number Selector */
+        .letter-number-selector .form-label {
+            font-weight: 600;
+            margin-bottom: 0.25rem;
         }
 
-        .form-control:focus {
-            border-color: #80bdff;
-            box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+        .letter-number-selector .btn-group-vertical .btn {
+            margin-bottom: 0.25rem;
         }
 
-        /* Content header styling */
-        .content-header {
-            margin-bottom: 1rem;
+        .alert-sm {
+            padding: 0.375rem 0.75rem;
+            margin-bottom: 0.5rem;
+            font-size: 0.875rem;
         }
 
-        /* Button styling */
+        /* Button Theme Colors */
         .btn-primary {
             background-color: #007bff;
             border-color: #007bff;
@@ -719,92 +620,116 @@
     <script src="{{ asset('assets/plugins/select2/js/select2.full.min.js') }}"></script>
 
     <script>
-        $(function() {
-            // Initialize Select2 Elements with custom themes
-            $('.select2-primary').select2({
-                theme: 'bootstrap4',
-                placeholder: 'Select an option'
-            }).on('select2:open', function() {
-                document.querySelector('.select2-search__field').focus();
-            });
+        // FPTK Edit Form Manager
+        const FPTKEditForm = {
 
-            $('.select2-success').select2({
-                theme: 'bootstrap4',
-                placeholder: 'Select an option'
-            }).on('select2:open', function() {
-                document.querySelector('.select2-search__field').focus();
-            });
+            // Initialize all form components
+            init() {
+                this.initSelect2();
+                this.initDateFields();
+                this.initFormValidation();
+                this.initApprovalStatusCard();
+                this.bindEvents();
+                this.focusFirstField();
+            },
 
-            $('.select2-warning').select2({
-                theme: 'bootstrap4',
-                placeholder: 'Select an option'
-            }).on('select2:open', function() {
-                document.querySelector('.select2-search__field').focus();
-            });
+            // Initialize Select2 dropdowns
+            initSelect2() {
+                const select2Config = {
+                    theme: 'bootstrap4',
+                    placeholder: 'Select an option'
+                };
 
-            $('.select2-secondary').select2({
-                theme: 'bootstrap4',
-                placeholder: 'Select an option'
-            }).on('select2:open', function() {
-                document.querySelector('.select2-search__field').focus();
-            });
+                const select2Focus = function() {
+                    document.querySelector('.select2-search__field')?.focus();
+                };
 
-            $('.select2-info').select2({
-                theme: 'bootstrap4',
-                placeholder: 'Select an option'
-            }).on('select2:open', function() {
-                document.querySelector('.select2-search__field').focus();
-            });
+                // Initialize all Select2 elements with unified config
+                ['.select2-primary', '.select2-success', '.select2-warning',
+                    '.select2-secondary', '.select2-info'
+                ].forEach(selector => {
+                    $(selector).select2(select2Config).on('select2:open', select2Focus);
+                });
+            },
 
-            // Set minimum date to tomorrow
-            var tomorrow = new Date();
-            tomorrow.setDate(tomorrow.getDate() + 1);
-            var minDate = tomorrow.toISOString().split('T')[0];
-            // $('#required_date').attr('min', minDate);
+            // Initialize date fields
+            initDateFields() {
+                const tomorrow = new Date();
+                tomorrow.setDate(tomorrow.getDate() + 1);
+                const minDate = tomorrow.toISOString().split('T')[0];
+                // $('#required_date').attr('min', minDate);
+            },
 
-            // Enable/disable other reason field based on existing data
-            var currentReason = $('#request_reason').val();
-            if (currentReason === 'other') {
-                $('#other_reason').prop('disabled', false).prop('required', true);
-            } else {
-                $('#other_reason').prop('disabled', true).prop('required', false);
-            }
+            // Initialize form validation
+            initFormValidation() {
+                const self = this;
 
-            // Show/hide other reason field
-            $('#request_reason').on('change', function() {
-                var selectedValue = $(this).val();
-                if (selectedValue === 'other') {
-                    $('#other_reason').prop('disabled', false).prop('required', true);
-                } else {
-                    $('#other_reason').prop('disabled', true).prop('required', false).val('');
+                // Form submission validation
+                $('#fptkForm').on('submit', function(e) {
+                    if (!self.validateForm()) {
+                        e.preventDefault();
+                    }
+                });
+
+                // Age validation
+                $('#required_age_min, #required_age_max').on('input', this.validateAgeRange);
+            },
+
+            // Initialize approval status card
+            initApprovalStatusCard() {
+                const self = this;
+
+                // Listen for changes that affect approval flow
+                $('#project_id, #department_id, #request_reason').on('change', function() {
+                    self.updateApprovalStatusCard();
+                });
+
+                // Initial load
+                this.updateApprovalStatusCard();
+            },
+
+            // Bind all event handlers
+            bindEvents() {
+                this.bindReasonField();
+                this.bindLetterNumberIntegration();
+            },
+
+            // Focus on first field
+            focusFirstField() {
+                $('#department_id').focus();
+            },
+
+            // Handle request reason field logic
+            bindReasonField() {
+                const currentReason = $('#request_reason').val();
+                this.toggleReasonField(currentReason);
+
+                $('#request_reason').on('change', (e) => {
+                    this.toggleReasonField(e.target.value);
+                });
+            },
+
+            // Toggle other reason field visibility
+            toggleReasonField(selectedValue) {
+                const $otherReason = $('#other_reason');
+                const isOther = selectedValue === 'other';
+
+                $otherReason
+                    .prop('disabled', !isOther)
+                    .prop('required', isOther);
+
+                if (!isOther) {
+                    $otherReason.val('');
                 }
-            });
+            },
 
-            // Age validation
-            $('#required_age_min, #required_age_max').on('input', function() {
-                var minAge = parseInt($('#required_age_min').val());
-                var maxAge = parseInt($('#required_age_max').val());
-
-                if (minAge && maxAge && minAge > maxAge) {
-                    $('#required_age_max').val();
-                }
-            });
-
-            // Auto-focus on first field
-            $('#department_id').focus();
-
-
-
-
-
-
-            // Form validation
-            $('#fptkForm').on('submit', function(e) {
-                var isValid = true;
-                var errorMessage = '';
+            // Validate form fields
+            validateForm() {
+                let isValid = true;
+                let errorMessage = '';
 
                 // Check required fields
-                $(this).find('[required]').each(function() {
+                $('#fptkForm').find('[required]').each(function() {
                     if (!$(this).val()) {
                         isValid = false;
                         $(this).addClass('is-invalid');
@@ -816,27 +741,38 @@
                 });
 
                 // Age validation
-                var minAge = parseInt($('#required_age_min').val());
-                var maxAge = parseInt($('#required_age_max').val());
-
-                if (minAge && maxAge && minAge > maxAge) {
+                if (!this.isAgeRangeValid()) {
                     isValid = false;
                     errorMessage += 'Minimum age cannot be greater than maximum age.\n';
                 }
 
                 if (!isValid) {
-                    e.preventDefault();
                     alert(errorMessage);
                 }
-            });
+
+                return isValid;
+            },
+
+            // Validate age range
+            validateAgeRange() {
+                const minAge = parseInt($('#required_age_min').val());
+                const maxAge = parseInt($('#required_age_max').val());
+
+                if (minAge && maxAge && minAge > maxAge) {
+                    $('#required_age_max').val('');
+                }
+            },
+
+            // Check if age range is valid
+            isAgeRangeValid() {
+                const minAge = parseInt($('#required_age_min').val());
+                const maxAge = parseInt($('#required_age_max').val());
+                return !(minAge && maxAge && minAge > maxAge);
+            },
 
             // Letter Number Integration
-            setupLetterNumberIntegration();
-
-            // Auto-focus on first field
-            $('#department_id').focus();
-
-            function setupLetterNumberIntegration() {
+            bindLetterNumberIntegration() {
+                const self = this;
                 // Monitor letter number selection changes
                 $(document).on('change', 'select[name="letter_number_id"]', function() {
                     const selectedOption = $(this).find('option:selected');
@@ -844,7 +780,7 @@
 
                     if (letterNumberId && selectedOption.data('number')) {
                         const letterData = selectedOption.data('number');
-                        generateFPTKNumber(letterData);
+                        self.generateFPTKNumber(letterData);
                     } else {
                         // Keep current FPTK number if no letter selected
                         $('#fptk_number').val('{{ $fptk->request_number }}');
@@ -853,218 +789,203 @@
 
                 // Monitor project selection changes to update FPTK number
                 $('#project_id').on('change', function() {
-                    const selectedLetterOption = $('select[name="letter_number_id"]').find(
-                        'option:selected');
+                    const selectedLetterOption = $('select[name="letter_number_id"]').find('option:selected');
                     if (selectedLetterOption.data('number')) {
                         const letterData = selectedLetterOption.data('number');
-                        generateFPTKNumber(letterData);
+                        self.generateFPTKNumber(letterData);
                     }
                 });
+            },
 
-                // Generate FPTK number based on selected letter
-                function generateFPTKNumber(letterData) {
-                    if (letterData && letterData.letter_number) {
-                        const currentYear = new Date().getFullYear();
-                        const currentMonth = new Date().getMonth() + 1;
-                        const romanMonth = convertToRoman(currentMonth);
+            // Generate FPTK number based on selected letter
+            generateFPTKNumber(letterData) {
+                if (letterData && letterData.letter_number) {
+                    const currentYear = new Date().getFullYear();
+                    const currentMonth = new Date().getMonth() + 1;
+                    const romanMonth = this.convertToRoman(currentMonth);
 
-                        // Extract only the numeric part from letter number (remove FPTK prefix)
-                        let letterNumber = letterData.letter_number;
-                        if (letterNumber.startsWith('FPTK')) {
-                            letterNumber = letterNumber.replace('FPTK', '');
-                        }
-                        // Format as 4 digits
-                        letterNumber = parseInt(letterNumber).toString().padStart(4, '0');
+                    // Extract numeric part from letter number (remove FPTK prefix)
+                    let letterNumber = letterData.letter_number;
+                    if (letterNumber.startsWith('FPTK')) {
+                        letterNumber = letterNumber.replace('FPTK', '');
+                    }
+                    letterNumber = parseInt(letterNumber).toString().padStart(4, '0');
 
-                        // Get selected project code
-                        const projectSelect = $('#project_id');
-                        const selectedProjectText = projectSelect.find('option:selected').text().trim();
-                        let projectCode = '000H'; // default
+                    // Get selected project code
+                    const projectCode = this.getSelectedProjectCode();
 
-                        if (selectedProjectText && selectedProjectText !== 'Select Project' &&
-                            selectedProjectText !== '') {
-                            // Extract project code from "CODE - Project Name" format
-                            const projectParts = selectedProjectText.split(' - ');
-                            if (projectParts.length > 0 && projectParts[0].trim() !== '') {
-                                projectCode = projectParts[0].trim();
-                            }
-                        }
+                    // Generate FPTK number: [Letter Number]/HCS-[Project Code]/FPTK/[Roman Month]/[Year]
+                    const fptkNumber = `${letterNumber}/HCS-${projectCode}/FPTK/${romanMonth}/${currentYear}`;
 
-                        // Generate FPTK number: [Letter Number]/HCS-[Project Code]/FPTK/[Roman Month]/[Year]
-                        const fptkNumber =
-                            `${letterNumber}/HCS-${projectCode}/FPTK/${romanMonth}/${currentYear}`;
+                    $('#fptk_number').val(fptkNumber).removeClass('alert-warning').addClass('alert-success');
 
-                        $('#fptk_number').val(fptkNumber);
-                        $('#fptk_number').removeClass('alert-warning').addClass('alert-success');
+                    // Show success message
+                    this.showLetterNumberStatus('success', `FPTK Number updated: ${fptkNumber}`);
+                }
+            },
 
-                        // Show success message
-                        showLetterNumberStatus('success', `FPTK Number updated: ${fptkNumber}`);
+            // Get selected project code
+            getSelectedProjectCode() {
+                const selectedProjectText = $('#project_id').find('option:selected').text().trim();
+
+                if (selectedProjectText && selectedProjectText !== 'Select Project' && selectedProjectText !== '') {
+                    const projectParts = selectedProjectText.split(' - ');
+                    if (projectParts.length > 0 && projectParts[0].trim() !== '') {
+                        return projectParts[0].trim();
                     }
                 }
 
-                // Convert number to Roman numeral
-                function convertToRoman(num) {
-                    const values = [1000, 900, 500, 400, 100, 90, 50, 40, 10, 9, 5, 4, 1];
-                    const symbols = ['M', 'CM', 'D', 'CD', 'C', 'XC', 'L', 'XL', 'X', 'IX', 'V', 'IV', 'I'];
-                    let result = '';
+                return '000H'; // default
+            },
 
-                    for (let i = 0; i < values.length; i++) {
-                        while (num >= values[i]) {
-                            result += symbols[i];
-                            num -= values[i];
-                        }
-                    }
-                    return result;
-                }
+            // Convert number to Roman numeral
+            convertToRoman(num) {
+                const values = [1000, 900, 500, 400, 100, 90, 50, 40, 10, 9, 5, 4, 1];
+                const symbols = ['M', 'CM', 'D', 'CD', 'C', 'XC', 'L', 'XL', 'X', 'IX', 'V', 'IV', 'I'];
+                let result = '';
 
-                // Show letter number status message
-                function showLetterNumberStatus(type, message) {
-                    // Find the status alert in the letter number component
-                    const $statusAlert = $('.letter-number-selector .status-alert');
-                    const $statusMessage = $('.letter-number-selector .status-message');
-
-                    if ($statusAlert.length && $statusMessage.length) {
-                        $statusAlert
-                            .removeClass('alert-info alert-success alert-warning alert-danger')
-                            .addClass(`alert-${type}`)
-                            .show();
-
-                        $statusMessage.text(message);
-
-                        // Auto-hide success messages after 5 seconds
-                        if (type === 'success') {
-                            setTimeout(() => {
-                                $statusAlert.fadeOut();
-                            }, 5000);
-                        }
+                for (let i = 0; i < values.length; i++) {
+                    while (num >= values[i]) {
+                        result += symbols[i];
+                        num -= values[i];
                     }
                 }
+                return result;
+            },
 
-                // Dynamic Approval Status Card Update
-                function updateApprovalStatusCard() {
-                    const projectId = $('#project_id').val();
-                    const departmentId = $('#department_id').val();
-                    const requestReason = $('#request_reason').val();
+            // Show letter number status message
+            showLetterNumberStatus(type, message) {
+                const $statusAlert = $('.letter-number-selector .status-alert');
+                const $statusMessage = $('.letter-number-selector .status-message');
 
-                    console.log('Updating approval status card with:', {
-                        projectId,
-                        departmentId,
-                        requestReason
-                    });
+                if ($statusAlert.length && $statusMessage.length) {
+                    $statusAlert
+                        .removeClass('alert-info alert-success alert-warning alert-danger')
+                        .addClass(`alert-${type}`)
+                        .show();
 
-                    // Get the approval status card component
-                    const $approvalCard = $('#dynamicApprovalCard');
+                    $statusMessage.text(message);
 
-                    if (!$approvalCard.length) {
-                        console.error('Approval status card not found');
-                        return;
+                    // Auto-hide success messages after 5 seconds
+                    if (type === 'success') {
+                        setTimeout(() => $statusAlert.fadeOut(), 5000);
                     }
+                }
+            },
 
-                    // Update the component props by re-rendering it
-                    if (!projectId || !departmentId) {
-                        $approvalCard.find('.card-body').html(`
-                            <div class="text-center text-muted py-3">
-                                <i class="fas fa-info-circle"></i>
-                                <div class="mt-2">Select project, department, and request reason to see approval flow</div>
+            // Update Approval Status Card
+            updateApprovalStatusCard() {
+                const projectId = $('#project_id').val();
+                const departmentId = $('#department_id').val();
+                const requestReason = $('#request_reason').val();
+                const $approvalCard = $('#dynamicApprovalCard');
+
+
+                if (!$approvalCard.length) {
+                    return;
+                }
+
+                // Show appropriate message based on form state
+                if (!projectId || !departmentId) {
+                    this.showApprovalMessage($approvalCard, 'info',
+                        'Select project, department, and request reason to see approval flow');
+                    return;
+                }
+
+                if (!requestReason) {
+                    this.showApprovalMessage($approvalCard, 'warning',
+                        'Select request reason to see specific approval flow');
+                    return;
+                }
+
+                // Show loading state
+                this.showApprovalMessage($approvalCard, 'loading', 'Loading approval flow...');
+
+                // Fetch approval stages
+                this.fetchApprovalStages(projectId, departmentId, requestReason, $approvalCard);
+            },
+
+            // Show approval message
+            showApprovalMessage($card, type, message) {
+                const iconClass = {
+                    'info': 'fas fa-info-circle',
+                    'warning': 'fas fa-info-circle text-warning',
+                    'loading': 'fas fa-spinner fa-spin text-info',
+                    'error': 'fas fa-exclamation-triangle'
+                };
+
+                $card.find('.card-body').html(`
+                    <div class="text-center py-3">
+                        <i class="${iconClass[type]}"></i>
+                        <div class="mt-2">${message}</div>
+                    </div>
+                `);
+            },
+
+            // Fetch approval stages from server
+            fetchApprovalStages(projectId, departmentId, requestReason, $approvalCard) {
+                const self = this;
+
+                $.ajax({
+                    url: '{{ route('approval.stages.preview') }}',
+                    method: 'GET',
+                    data: {
+                        project_id: projectId,
+                        department_id: departmentId,
+                        document_type: 'recruitment_request',
+                        request_reason: requestReason
+                    },
+                    success: function(response) {
+                        if (response.success && response.approvers.length > 0) {
+                            self.renderApprovalFlow(response.approvers, $approvalCard);
+                        } else {
+                            self.showNoApprovalFlow($approvalCard, projectId, departmentId);
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        self.showApprovalMessage($approvalCard, 'error',
+                            `Failed to load approval flow<br><small class="text-muted">${error}</small>`
+                        );
+                    }
+                });
+            },
+
+            // Render approval flow HTML
+            renderApprovalFlow(approvers, $approvalCard) {
+                let html = '<div class="approval-flow preview-mode">';
+
+                approvers.forEach((approver, index) => {
+                    html += `
+                        <div class="approval-step preview-step">
+                            <div class="step-number">${approver.order || index + 1}</div>
+                            <div class="step-content">
+                                <div class="approver-name">${approver.name}</div>
+                                <div class="approver-department">${approver.department}</div>
+                                <div class="step-label">Step ${approver.order || index + 1}</div>
                             </div>
-                        `);
-                        return;
-                    }
-
-                    if (!requestReason) {
-                        $approvalCard.find('.card-body').html(`
-                            <div class="text-center py-3">
-                                <i class="fas fa-info-circle text-warning"></i>
-                                <div class="mt-2">Select request reason to see specific approval flow</div>
-                            </div>
-                        `);
-                        return;
-                    }
-
-                    // Show loading state
-                    $approvalCard.find('.card-body').html(`
-                        <div class="text-center py-3">
-                            <i class="fas fa-spinner fa-spin text-info"></i>
-                            <div class="mt-2">Loading approval flow...</div>
                         </div>
-                    `);
+                    `;
+                });
 
-                    // Fetch new approval stages
-                    $.ajax({
-                        url: '{{ route('approval.stages.preview') }}',
-                        method: 'GET',
-                        data: {
-                            project_id: projectId,
-                            department_id: departmentId,
-                            document_type: 'recruitment_request',
-                            request_reason: requestReason
-                        },
-                        success: function(response) {
-                            console.log('Updated approval preview response:', response);
-                            if (response.success && response.approvers.length > 0) {
-                                let html = '<div class="approval-flow preview-mode">';
+                html += '</div>';
+                $approvalCard.find('.card-body').html(html);
+            },
 
-                                response.approvers.forEach((approver, index) => {
-                                    html += `
-                                            <div class="approval-step preview-step">
-                                                <div class="step-number">${approver.order || index + 1}</div>
-                                                <div class="step-content">
-                                                    <div class="approver-name">${approver.name}</div>
-                                                    <div class="approver-department">${approver.department}</div>
-                                                    <div class="step-label">Step ${approver.order || index + 1}</div>
-                                                </div>
-                                            </div>
-                                        `;
-                                });
-
-                                html += '</div>';
-                                $approvalCard.find('.card-body').html(html);
-                            } else {
-                                $approvalCard.find('.card-body').html(`
-                                        <div class="text-center text-muted py-3">
-                                            <i class="fas fa-info-circle"></i>
-                                            <div class="mt-2">No approval flow configured for this project and department</div>
-                                            <small class="text-muted">Project ID: ${projectId}, Department ID: ${departmentId}</small>
-                                        </div>
-                                    `);
-                            }
-                        },
-                        error: function(xhr, status, error) {
-                            console.log('Approval preview update error:', {
-                                xhr,
-                                status,
-                                error
-                            });
-                            $approvalCard.find('.card-body').html(`
-                                    <div class="text-center text-danger py-3">
-                                        <i class="fas fa-exclamation-triangle"></i>
-                                        <div class="mt-2">Failed to load approval flow</div>
-                                        <small class="text-muted">${error}</small>
-                                    </div>
-                                `);
-                        }
-                    });
-                } else {
-                    // Show message when project or department is not selected
-                    $approvalCard.find('.card-body').html(`
-                            <div class="text-center text-muted py-3">
-                                <i class="fas fa-info-circle"></i>
-                                <div class="mt-2">Select both project and department to see approval flow</div>
-                            </div>
-                        `);
-                }
+            // Show no approval flow message
+            showNoApprovalFlow($approvalCard, projectId, departmentId) {
+                $approvalCard.find('.card-body').html(`
+                    <div class="text-center text-muted py-3">
+                        <i class="fas fa-info-circle"></i>
+                        <div class="mt-2">No approval flow configured for this project and department</div>
+                        <small class="text-muted">Project ID: ${projectId}, Department ID: ${departmentId}</small>
+                    </div>
+                `);
             }
+        };
 
-            // Listen for project, department, and request reason changes
-            $('#project_id, #department_id, #request_reason').on('change', function() {
-                updateApprovalStatusCard();
-            });
-
-            // Initial load of approval status card
-            $(document).ready(function() {
-                updateApprovalStatusCard();
-            });
-        }
+        // Initialize the form when document is ready
+        $(function() {
+            FPTKEditForm.init();
         });
     </script>
 @endsection

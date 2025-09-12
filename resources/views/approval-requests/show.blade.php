@@ -272,7 +272,7 @@
                                         <div class="info-content">
                                             <div class="info-label">Request Reason</div>
                                             <div class="info-value">
-                                                {{ $document->request_reason == 'other' ? $document->other_reason : ucfirst(str_replace('_', ' ', $document->request_reason)) }}
+                                                {{ formatRequestReason($document->request_reason, $document->other_reason ?? null) }}
                                             </div>
                                         </div>
                                     </div>

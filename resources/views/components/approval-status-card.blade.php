@@ -186,7 +186,7 @@
                                             <small class="text-muted">
                                                 Project ID: {{ $projectId }}, Department ID: {{ $departmentId }}
                                                 @if ($documentType === 'recruitment_request' && $requestReason)
-                                                    , Request Reason: {{ $requestReason }}
+                                                    , Request Reason: {{ formatRequestReason($requestReason) }}
                                                 @endif
                                             </small>
                                         </div>

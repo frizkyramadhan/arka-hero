@@ -157,6 +157,17 @@
                                         </div>
                                     </div>
                                 </div>
+                                <div class="info-item">
+                                    <div class="info-icon" style="background-color: #8e44ad;">
+                                        <i class="fas fa-question-circle"></i>
+                                    </div>
+                                    <div class="info-content">
+                                        <div class="info-label">Request Reason</div>
+                                        <div class="info-value">
+                                            {{ formatRequestReason($fptk->request_reason, $fptk->other_reason) }}
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>

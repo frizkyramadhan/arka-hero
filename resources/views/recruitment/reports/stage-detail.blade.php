@@ -29,6 +29,19 @@
                     </h3>
                     <div class="card-tools">
                         <span class="badge badge-primary">{{ count($rows) }} Records</span>
+                        @if (in_array($stage, ['cv_review', 'psikotes', 'tes_teori', 'interview', 'offering', 'onboarding']))
+                            <span class="badge badge-info ml-2">
+                                <i class="fas fa-info-circle"></i> Regular Employment Only
+                            </span>
+                        @elseif (in_array($stage, ['mcu', 'hiring']))
+                            <span class="badge badge-success ml-2">
+                                <i class="fas fa-users"></i> All Employment Types
+                            </span>
+                        @elseif (in_array($stage, ['mcu_magang_harian', 'hiring_magang_harian']))
+                            <span class="badge badge-warning ml-2">
+                                <i class="fas fa-user-clock"></i> Magang/Harian Only
+                            </span>
+                        @endif
                     </div>
                 </div>
                 <div class="card-body">
@@ -39,6 +52,7 @@
                                 <th class="align-middle">Department</th>
                                 <th class="align-middle">Position</th>
                                 <th class="align-middle">Project</th>
+                                <th class="align-middle">Employment Type</th>
                                 <th class="align-middle">Candidate</th>
                                 <th class="align-middle">Session</th>
                                 <th class="align-middle">Stage Date</th>
@@ -86,7 +100,11 @@
                 processing: true,
                 serverSide: true,
                 ajax: {
-                    url: '{{ route('recruitment.reports.stage-detail.data', $stage) }}',
+                    url: @if (in_array($stage, ['mcu_magang_harian', 'hiring_magang_harian']))
+                        '{{ route('recruitment.reports.stage-detail.data.' . $stage) }}'
+                    @else
+                        '{{ route('recruitment.reports.stage-detail.data', $stage) }}'
+                    @endif ,
                     type: 'GET',
                     data: function(d) {
                         d.date1 = '{{ $date1 }}';
@@ -107,6 +125,18 @@
                     },
                     {
                         data: 'project'
+                    },
+                    {
+                        data: 'employment_type',
+                        render: function(data, type, row) {
+                            var badgeClass = row.is_magang_harian ? 'badge-success' :
+                                'badge-secondary';
+                            var iconClass = row.is_magang_harian ? 'fas fa-user-clock' :
+                                'fas fa-user-tie';
+                            return '<span class="badge ' + badgeClass + '" title="' + row
+                                .expected_stages + '">' +
+                                '<i class="' + iconClass + '"></i> ' + data + '</span>';
+                        }
                     },
                     {
                         data: 'candidate_name',

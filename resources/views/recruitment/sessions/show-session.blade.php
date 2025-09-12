@@ -2522,7 +2522,6 @@
                         }
                     },
                     error: function(jqXHR, textStatus, errorThrown) {
-                        console.error("Error fetching department: ", textStatus, errorThrown);
                         $('#hire_department').val('');
                     }
                 });
@@ -2553,7 +2552,6 @@
                         }
                     },
                     error: function(jqXHR, textStatus, errorThrown) {
-                        console.error("Error fetching department: ", textStatus, errorThrown);
                         $('#hire_department_magang_harian').val('');
                     }
                 });

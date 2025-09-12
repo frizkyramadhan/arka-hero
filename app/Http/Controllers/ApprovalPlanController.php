@@ -52,25 +52,19 @@ class ApprovalPlanController extends Controller
             return false; // Invalid document type
         }
 
-        // Map request_reason for approval stage filtering
-        $approval_stage_reason = $this->mapRequestReasonForApprovalStage($request_reason);
-
         // Debug logging
         Log::info("Creating approval plan for document_type: {$document_type}, document_id: {$document_id}, project: {$project}, department_id: {$department_id}, request_reason: {$request_reason}");
 
         // Use the new structure with approval_stage_details
         $approvers = ApprovalStage::with(['approver', 'details'])
             ->where('document_type', $document_type)
-            ->whereHas('details', function ($query) use ($project, $department_id, $approval_stage_reason) {
+            ->whereHas('details', function ($query) use ($project, $department_id, $request_reason) {
                 $query->where('project_id', $project)
                     ->where('department_id', $department_id);
 
-                // For recruitment_request, also filter by request_reason (mapped)
-                if ($approval_stage_reason !== null) {
-                    $query->where(function ($q) use ($approval_stage_reason) {
-                        $q->where('request_reason', $approval_stage_reason)
-                            ->orWhereNull('request_reason'); // Include stages without request_reason for backward compatibility
-                    });
+                // Add request_reason filtering if provided - use original value
+                if ($request_reason !== null) {
+                    $query->where('request_reason', $request_reason);
                 } else {
                     // For official travel, only get stages without request_reason
                     $query->whereNull('request_reason');
@@ -80,8 +74,8 @@ class ApprovalPlanController extends Controller
             ->get();
 
         // For recruitment_request, apply conditional logic based on request_reason and project type
-        if ($document_type == 'recruitment_request' && $approval_stage_reason) {
-            $approvers = $this->getConditionalApprovers($approval_stage_reason, $project, $department_id, $approvers);
+        if ($document_type == 'recruitment_request' && $request_reason) {
+            $approvers = $this->getConditionalApprovers($request_reason, $project, $department_id, $approvers);
         }
 
         // Debug logging
@@ -521,13 +515,15 @@ class ApprovalPlanController extends Controller
 
         // Apply conditional logic based on request_reason
         switch ($request_reason) {
-            case 'replacement':
-                // Only HCS Division Manager for replacement
+            case 'replacement_resign':
+            case 'replacement_promotion':
+                // Only HCS Division Manager for replacement reasons
                 return $approvers->filter(function ($approver) {
                     return $this->isHCSDivisionManager($approver->approver_id);
                 });
 
-            case 'additional':
+            case 'additional_workplan':
+                // For additional workplan
                 if ($project_type === 'HO' || $project_type === 'BO' || $project_type === 'APS') {
                     // HCS Division Manager → HCL Director
                     return $approvers->filter(function ($approver) {
@@ -542,8 +538,12 @@ class ApprovalPlanController extends Controller
                     });
                 }
 
-            default:
+            case 'other':
                 // Return all approvers for other cases
+                return $approvers;
+
+            default:
+                // Return all approvers for unknown cases
                 return $approvers;
         }
         */
@@ -571,54 +571,5 @@ class ApprovalPlanController extends Controller
         } else {
             return 'ALL_PROJECT';
         }
-    }
-
-    /**
-     * Check if user is HCS Division Manager
-     */
-    private function isHCSDivisionManager($user_id)
-    {
-        // You'll need to implement this based on your role system
-        // For now, return true for user ID 3 (Eddy Nasri) as example
-        return $user_id == 3;
-    }
-
-    /**
-     * Check if user is HCL Director
-     */
-    private function isHCLDirector($user_id)
-    {
-        // You'll need to implement this based on your role system
-        // For now, return true for user ID 4 (Rachman Yulikiswanto) as example
-        return $user_id == 4;
-    }
-
-    /**
-     * Check if user is Operational General Manager
-     */
-    private function isOperationalGeneralManager($user_id)
-    {
-        // You'll need to implement this based on your role system
-        // For now, return true for user ID 2 (Gusti Permana) as example
-        return $user_id == 2;
-    }
-
-    /**
-     * Map specific request_reason values to approval stage filtering values
-     */
-    private function mapRequestReasonForApprovalStage($request_reason)
-    {
-        if ($request_reason === null) {
-            return null;
-        }
-
-        return match ($request_reason) {
-            'replacement_promotion', 'replacement_resign' => 'replacement',
-            'additional_workplan' => 'additional',
-            'other' => 'other',
-            // Legacy values (for backward compatibility)
-            'replacement', 'additional' => $request_reason,
-            default => $request_reason
-        };
     }
 }

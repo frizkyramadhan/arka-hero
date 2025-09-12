@@ -166,7 +166,7 @@
                                 <div class="col-md-3">
                                     <div class="border rounded p-3 bg-secondary text-white">
                                         <h5>-</h5>
-                                        <p class="mb-0">No Data</p>
+                                        <p class="mb-0">No Data / Not Applicable</p>
                                     </div>
                                 </div>
                             </div>
@@ -181,181 +181,507 @@
                                     <thead class="table-dark">
                                         <tr>
                                             <th class="text-center">Psikotes</th>
-                                            <th class="text-center">Tes Teori (Optional)</th>
+                                            <th class="text-center">Tes Teori</th>
                                             <th class="text-center">Interview HR</th>
                                             <th class="text-center">Interview User</th>
+                                            <th class="text-center">Interview Trainer</th>
                                             <th class="text-center">Total Score</th>
                                             <th class="text-center">Overall Result</th>
-                                            <th class="text-center">Color</th>
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        <!-- Excellent (Green Rows - 4 entries) -->
-                                        <tr class="table-success">
-                                            <td class="text-center">2</td>
-                                            <td class="text-center">2</td>
-                                            <td class="text-center">2</td>
-                                            <td class="text-center">2</td>
+                                        <!-- Excellent -->
+                                        <tr>
+                                            <td class="text-center"><span style="color:#00b050;font-weight:bold;">2</span>
+                                            </td>
+                                            <td class="text-center"><span style="color:#00b050;font-weight:bold;">2</span>
+                                            </td>
+                                            <td class="text-center"><span style="color:#00b050;font-weight:bold;">2</span>
+                                            </td>
+                                            <td class="text-center"><span style="color:#00b050;font-weight:bold;">2</span>
+                                            </td>
+                                            <td class="text-center"><span style="color:#00b050;font-weight:bold;">2</span>
+                                            </td>
+                                            <td class="text-center"><strong>10</strong></td>
+                                            <td class="text-center" style="background-color:#c6efce;font-weight:bold;">
+                                                Excellent</td>
+                                        </tr>
+                                        <tr>
+                                            <td class="text-center"><span style="color:#00b050;font-weight:bold;">2</span>
+                                            </td>
+                                            <td class="text-center"><span style="color:#00b050;font-weight:bold;">2</span>
+                                            </td>
+                                            <td class="text-center"><span style="color:#00b050;font-weight:bold;">2</span>
+                                            </td>
+                                            <td class="text-center"><span style="color:#00b050;font-weight:bold;">2</span>
+                                            </td>
+                                            <td class="text-center"><span style="color:#ffc000;font-weight:bold;">1</span>
+                                            </td>
+                                            <td class="text-center"><strong>9</strong></td>
+                                            <td class="text-center" style="background-color:#c6efce;font-weight:bold;">
+                                                Excellent</td>
+                                        </tr>
+                                        <tr>
+                                            <td class="text-center"><span style="color:#00b050;font-weight:bold;">2</span>
+                                            </td>
+                                            <td class="text-center"><span style="color:#00b050;font-weight:bold;">2</span>
+                                            </td>
+                                            <td class="text-center"><span style="color:#00b050;font-weight:bold;">2</span>
+                                            </td>
+                                            <td class="text-center"><span style="color:#ffc000;font-weight:bold;">1</span>
+                                            </td>
+                                            <td class="text-center"><span style="color:#00b050;font-weight:bold;">2</span>
+                                            </td>
+                                            <td class="text-center"><strong>9</strong></td>
+                                            <td class="text-center" style="background-color:#c6efce;font-weight:bold;">
+                                                Excellent</td>
+                                        </tr>
+                                        <tr>
+                                            <td class="text-center"><span style="color:#00b050;font-weight:bold;">2</span>
+                                            </td>
+                                            <td class="text-center"><span style="color:#00b050;font-weight:bold;">2</span>
+                                            </td>
+                                            <td class="text-center"><span style="color:#ffc000;font-weight:bold;">1</span>
+                                            </td>
+                                            <td class="text-center"><span style="color:#00b050;font-weight:bold;">2</span>
+                                            </td>
+                                            <td class="text-center"><span style="color:#00b050;font-weight:bold;">2</span>
+                                            </td>
+                                            <td class="text-center"><strong>9</strong></td>
+                                            <td class="text-center" style="background-color:#c6efce;font-weight:bold;">
+                                                Excellent</td>
+                                        </tr>
+
+                                        <!-- Very Good -->
+                                        <tr>
+                                            <td class="text-center"><span style="color:#00b050;font-weight:bold;">2</span>
+                                            </td>
+                                            <td class="text-center"><span style="color:#00b050;font-weight:bold;">2</span>
+                                            </td>
+                                            <td class="text-center"><span style="color:#00b050;font-weight:bold;">2</span>
+                                            </td>
+                                            <td class="text-center"><span style="color:#00b050;font-weight:bold;">2</span>
+                                            </td>
+                                            <td class="text-center"><span style="color:#ff0000;font-weight:bold;">0</span>
+                                            </td>
                                             <td class="text-center"><strong>8</strong></td>
-                                            <td class="text-center"><span class="badge badge-success">Excellent</span>
-                                            </td>
-                                            <td class="text-center"><span class="badge badge-success">Green</span></td>
+                                            <td class="text-center" style="background-color:#e2efda;font-weight:bold;">
+                                                Very Good</td>
                                         </tr>
-                                        <tr class="table-success">
-                                            <td class="text-center">2</td>
-                                            <td class="text-center">2</td>
-                                            <td class="text-center">2</td>
-                                            <td class="text-center">1</td>
-                                            <td class="text-center"><strong>7</strong></td>
-                                            <td class="text-center"><span class="badge badge-success">Excellent</span>
+                                        <tr>
+                                            <td class="text-center"><span style="color:#00b050;font-weight:bold;">2</span>
                                             </td>
-                                            <td class="text-center"><span class="badge badge-success">Green</span></td>
+                                            <td class="text-center"><span style="color:#00b050;font-weight:bold;">2</span>
+                                            </td>
+                                            <td class="text-center"><span style="color:#00b050;font-weight:bold;">2</span>
+                                            </td>
+                                            <td class="text-center"><span style="color:#ffc000;font-weight:bold;">1</span>
+                                            </td>
+                                            <td class="text-center"><span style="color:#ffc000;font-weight:bold;">1</span>
+                                            </td>
+                                            <td class="text-center"><strong>8</strong></td>
+                                            <td class="text-center" style="background-color:#e2efda;font-weight:bold;">
+                                                Very Good</td>
                                         </tr>
-                                        <tr class="table-success">
-                                            <td class="text-center">2</td>
-                                            <td class="text-center">2</td>
-                                            <td class="text-center">1</td>
-                                            <td class="text-center">2</td>
-                                            <td class="text-center"><strong>7</strong></td>
-                                            <td class="text-center"><span class="badge badge-success">Excellent</span>
+                                        <tr>
+                                            <td class="text-center"><span style="color:#00b050;font-weight:bold;">2</span>
                                             </td>
-                                            <td class="text-center"><span class="badge badge-success">Green</span></td>
+                                            <td class="text-center"><span style="color:#00b050;font-weight:bold;">2</span>
+                                            </td>
+                                            <td class="text-center"><span style="color:#ffc000;font-weight:bold;">1</span>
+                                            </td>
+                                            <td class="text-center"><span style="color:#00b050;font-weight:bold;">2</span>
+                                            </td>
+                                            <td class="text-center"><span style="color:#ffc000;font-weight:bold;">1</span>
+                                            </td>
+                                            <td class="text-center"><strong>8</strong></td>
+                                            <td class="text-center" style="background-color:#e2efda;font-weight:bold;">
+                                                Very Good</td>
                                         </tr>
-                                        <tr class="table-success">
-                                            <td class="text-center">2</td>
-                                            <td class="text-center">1</td>
-                                            <td class="text-center">2</td>
-                                            <td class="text-center">2</td>
-                                            <td class="text-center"><strong>7</strong></td>
-                                            <td class="text-center"><span class="badge badge-success">Excellent</span>
+                                        <tr>
+                                            <td class="text-center"><span style="color:#00b050;font-weight:bold;">2</span>
                                             </td>
-                                            <td class="text-center"><span class="badge badge-success">Green</span></td>
+                                            <td class="text-center"><span style="color:#00b050;font-weight:bold;">2</span>
+                                            </td>
+                                            <td class="text-center"><span style="color:#00b050;font-weight:bold;">2</span>
+                                            </td>
+                                            <td class="text-center"><span style="color:#ff0000;font-weight:bold;">0</span>
+                                            </td>
+                                            <td class="text-center"><span style="color:#00b050;font-weight:bold;">2</span>
+                                            </td>
+                                            <td class="text-center"><strong>8</strong></td>
+                                            <td class="text-center" style="background-color:#e2efda;font-weight:bold;">
+                                                Very Good</td>
+                                        </tr>
+                                        <tr>
+                                            <td class="text-center"><span style="color:#00b050;font-weight:bold;">2</span>
+                                            </td>
+                                            <td class="text-center"><span style="color:#00b050;font-weight:bold;">2</span>
+                                            </td>
+                                            <td class="text-center"><span style="color:#ffc000;font-weight:bold;">1</span>
+                                            </td>
+                                            <td class="text-center"><span style="color:#ffc000;font-weight:bold;">1</span>
+                                            </td>
+                                            <td class="text-center"><span style="color:#00b050;font-weight:bold;">2</span>
+                                            </td>
+                                            <td class="text-center"><strong>8</strong></td>
+                                            <td class="text-center" style="background-color:#e2efda;font-weight:bold;">
+                                                Very Good</td>
+                                        </tr>
+                                        <tr>
+                                            <td class="text-center"><span style="color:#00b050;font-weight:bold;">2</span>
+                                            </td>
+                                            <td class="text-center"><span style="color:#00b050;font-weight:bold;">2</span>
+                                            </td>
+                                            <td class="text-center"><span style="color:#ff0000;font-weight:bold;">0</span>
+                                            </td>
+                                            <td class="text-center"><span style="color:#00b050;font-weight:bold;">2</span>
+                                            </td>
+                                            <td class="text-center"><span style="color:#00b050;font-weight:bold;">2</span>
+                                            </td>
+                                            <td class="text-center"><strong>8</strong></td>
+                                            <td class="text-center" style="background-color:#e2efda;font-weight:bold;">
+                                                Very Good</td>
+                                        </tr>
+                                        <tr>
+                                            <td class="text-center"><span style="color:#00b050;font-weight:bold;">2</span>
+                                            </td>
+                                            <td class="text-center"><span style="color:#00b050;font-weight:bold;">2</span>
+                                            </td>
+                                            <td class="text-center"><span style="color:#00b050;font-weight:bold;">2</span>
+                                            </td>
+                                            <td class="text-center"><span style="color:#ffc000;font-weight:bold;">1</span>
+                                            </td>
+                                            <td class="text-center"><span style="color:#ff0000;font-weight:bold;">0</span>
+                                            </td>
+                                            <td class="text-center"><strong>7</strong></td>
+                                            <td class="text-center" style="background-color:#e2efda;font-weight:bold;">
+                                                Very Good</td>
+                                        </tr>
+                                        <tr>
+                                            <td class="text-center"><span style="color:#00b050;font-weight:bold;">2</span>
+                                            </td>
+                                            <td class="text-center"><span style="color:#00b050;font-weight:bold;">2</span>
+                                            </td>
+                                            <td class="text-center"><span style="color:#ffc000;font-weight:bold;">1</span>
+                                            </td>
+                                            <td class="text-center"><span style="color:#00b050;font-weight:bold;">2</span>
+                                            </td>
+                                            <td class="text-center"><span style="color:#ff0000;font-weight:bold;">0</span>
+                                            </td>
+                                            <td class="text-center"><strong>7</strong></td>
+                                            <td class="text-center" style="background-color:#e2efda;font-weight:bold;">
+                                                Very Good</td>
+                                        </tr>
+                                        <tr>
+                                            <td class="text-center"><span style="color:#00b050;font-weight:bold;">2</span>
+                                            </td>
+                                            <td class="text-center"><span style="color:#00b050;font-weight:bold;">2</span>
+                                            </td>
+                                            <td class="text-center"><span style="color:#00b050;font-weight:bold;">2</span>
+                                            </td>
+                                            <td class="text-center"><span style="color:#ff0000;font-weight:bold;">0</span>
+                                            </td>
+                                            <td class="text-center"><span style="color:#ffc000;font-weight:bold;">1</span>
+                                            </td>
+                                            <td class="text-center"><strong>7</strong></td>
+                                            <td class="text-center" style="background-color:#e2efda;font-weight:bold;">
+                                                Very Good</td>
+                                        </tr>
+                                        <tr>
+                                            <td class="text-center"><span style="color:#00b050;font-weight:bold;">2</span>
+                                            </td>
+                                            <td class="text-center"><span style="color:#00b050;font-weight:bold;">2</span>
+                                            </td>
+                                            <td class="text-center"><span style="color:#ffc000;font-weight:bold;">1</span>
+                                            </td>
+                                            <td class="text-center"><span style="color:#ffc000;font-weight:bold;">1</span>
+                                            </td>
+                                            <td class="text-center"><span style="color:#ffc000;font-weight:bold;">1</span>
+                                            </td>
+                                            <td class="text-center"><strong>7</strong></td>
+                                            <td class="text-center" style="background-color:#e2efda;font-weight:bold;">
+                                                Very Good</td>
+                                        </tr>
+                                        <tr>
+                                            <td class="text-center"><span style="color:#00b050;font-weight:bold;">2</span>
+                                            </td>
+                                            <td class="text-center"><span style="color:#00b050;font-weight:bold;">2</span>
+                                            </td>
+                                            <td class="text-center"><span style="color:#ff0000;font-weight:bold;">0</span>
+                                            </td>
+                                            <td class="text-center"><span style="color:#00b050;font-weight:bold;">2</span>
+                                            </td>
+                                            <td class="text-center"><span style="color:#ffc000;font-weight:bold;">1</span>
+                                            </td>
+                                            <td class="text-center"><strong>7</strong></td>
+                                            <td class="text-center" style="background-color:#e2efda;font-weight:bold;">
+                                                Very Good</td>
+                                        </tr>
+                                        <tr>
+                                            <td class="text-center"><span style="color:#00b050;font-weight:bold;">2</span>
+                                            </td>
+                                            <td class="text-center"><span style="color:#00b050;font-weight:bold;">2</span>
+                                            </td>
+                                            <td class="text-center"><span style="color:#ffc000;font-weight:bold;">1</span>
+                                            </td>
+                                            <td class="text-center"><span style="color:#ff0000;font-weight:bold;">0</span>
+                                            </td>
+                                            <td class="text-center"><span style="color:#00b050;font-weight:bold;">2</span>
+                                            </td>
+                                            <td class="text-center"><strong>7</strong></td>
+                                            <td class="text-center" style="background-color:#e2efda;font-weight:bold;">
+                                                Very Good</td>
+                                        </tr>
+                                        <tr>
+                                            <td class="text-center"><span style="color:#00b050;font-weight:bold;">2</span>
+                                            </td>
+                                            <td class="text-center"><span style="color:#00b050;font-weight:bold;">2</span>
+                                            </td>
+                                            <td class="text-center"><span style="color:#ff0000;font-weight:bold;">0</span>
+                                            </td>
+                                            <td class="text-center"><span style="color:#ffc000;font-weight:bold;">1</span>
+                                            </td>
+                                            <td class="text-center"><span style="color:#00b050;font-weight:bold;">2</span>
+                                            </td>
+                                            <td class="text-center"><strong>7</strong></td>
+                                            <td class="text-center" style="background-color:#e2efda;font-weight:bold;">
+                                                Very Good</td>
                                         </tr>
 
-                                        <!-- Good (Blue Rows - 8 entries) -->
-                                        <tr class="table-info">
-                                            <td class="text-center">2</td>
-                                            <td class="text-center">2</td>
-                                            <td class="text-center">2</td>
-                                            <td class="text-center">0</td>
+                                        <!-- Good -->
+                                        <tr>
+                                            <td class="text-center"><span style="color:#00b050;font-weight:bold;">2</span>
+                                            </td>
+                                            <td class="text-center"><span style="color:#00b050;font-weight:bold;">2</span>
+                                            </td>
+                                            <td class="text-center"><span style="color:#ffc000;font-weight:bold;">1</span>
+                                            </td>
+                                            <td class="text-center"><span style="color:#ffc000;font-weight:bold;">1</span>
+                                            </td>
+                                            <td class="text-center"><span style="color:#ff0000;font-weight:bold;">0</span>
+                                            </td>
                                             <td class="text-center"><strong>6</strong></td>
-                                            <td class="text-center"><span class="badge badge-info">Good</span></td>
-                                            <td class="text-center"><span class="badge badge-info">Blue</span></td>
+                                            <td class="text-center" style="background-color:#ddebf7;font-weight:bold;">
+                                                Good</td>
                                         </tr>
-                                        <tr class="table-info">
-                                            <td class="text-center">2</td>
-                                            <td class="text-center">2</td>
-                                            <td class="text-center">0</td>
-                                            <td class="text-center">2</td>
+                                        <tr>
+                                            <td class="text-center"><span style="color:#00b050;font-weight:bold;">2</span>
+                                            </td>
+                                            <td class="text-center"><span style="color:#00b050;font-weight:bold;">2</span>
+                                            </td>
+                                            <td class="text-center"><span style="color:#ffc000;font-weight:bold;">1</span>
+                                            </td>
+                                            <td class="text-center"><span style="color:#ff0000;font-weight:bold;">0</span>
+                                            </td>
+                                            <td class="text-center"><span style="color:#ffc000;font-weight:bold;">1</span>
+                                            </td>
                                             <td class="text-center"><strong>6</strong></td>
-                                            <td class="text-center"><span class="badge badge-info">Good</span></td>
-                                            <td class="text-center"><span class="badge badge-info">Blue</span></td>
+                                            <td class="text-center" style="background-color:#ddebf7;font-weight:bold;">
+                                                Good</td>
                                         </tr>
-                                        <tr class="table-info">
-                                            <td class="text-center">2</td>
-                                            <td class="text-center">2</td>
-                                            <td class="text-center">1</td>
-                                            <td class="text-center">1</td>
+                                        <tr>
+                                            <td class="text-center"><span style="color:#00b050;font-weight:bold;">2</span>
+                                            </td>
+                                            <td class="text-center"><span style="color:#ffc000;font-weight:bold;">1</span>
+                                            </td>
+                                            <td class="text-center"><span style="color:#ffc000;font-weight:bold;">1</span>
+                                            </td>
+                                            <td class="text-center"><span style="color:#ffc000;font-weight:bold;">1</span>
+                                            </td>
+                                            <td class="text-center"><span style="color:#ffc000;font-weight:bold;">1</span>
+                                            </td>
                                             <td class="text-center"><strong>6</strong></td>
-                                            <td class="text-center"><span class="badge badge-info">Good</span></td>
-                                            <td class="text-center"><span class="badge badge-info">Blue</span></td>
+                                            <td class="text-center" style="background-color:#ddebf7;font-weight:bold;">
+                                                Good</td>
                                         </tr>
-                                        <tr class="table-info">
-                                            <td class="text-center">2</td>
-                                            <td class="text-center">1</td>
-                                            <td class="text-center">2</td>
-                                            <td class="text-center">1</td>
+                                        <tr>
+                                            <td class="text-center"><span style="color:#00b050;font-weight:bold;">2</span>
+                                            </td>
+                                            <td class="text-center"><span style="color:#00b050;font-weight:bold;">2</span>
+                                            </td>
+                                            <td class="text-center"><span style="color:#ff0000;font-weight:bold;">0</span>
+                                            </td>
+                                            <td class="text-center"><span style="color:#ffc000;font-weight:bold;">1</span>
+                                            </td>
+                                            <td class="text-center"><span style="color:#ffc000;font-weight:bold;">1</span>
+                                            </td>
                                             <td class="text-center"><strong>6</strong></td>
-                                            <td class="text-center"><span class="badge badge-info">Good</span></td>
-                                            <td class="text-center"><span class="badge badge-info">Blue</span></td>
+                                            <td class="text-center" style="background-color:#ddebf7;font-weight:bold;">
+                                                Good</td>
                                         </tr>
-                                        <tr class="table-info">
-                                            <td class="text-center">2</td>
-                                            <td class="text-center">1</td>
-                                            <td class="text-center">1</td>
-                                            <td class="text-center">2</td>
+                                        <tr>
+                                            <td class="text-center"><span style="color:#00b050;font-weight:bold;">2</span>
+                                            </td>
+                                            <td class="text-center"><span style="color:#000000;font-weight:bold;">-</span>
+                                            </td>
+                                            <td class="text-center"><span style="color:#00b050;font-weight:bold;">2</span>
+                                            </td>
+                                            <td class="text-center"><span style="color:#00b050;font-weight:bold;">2</span>
+                                            </td>
+                                            <td class="text-center"><span style="color:#000000;font-weight:bold;">-</span>
+                                            </td>
                                             <td class="text-center"><strong>6</strong></td>
-                                            <td class="text-center"><span class="badge badge-info">Good</span></td>
-                                            <td class="text-center"><span class="badge badge-info">Blue</span></td>
+                                            <td class="text-center" style="background-color:#ddebf7;font-weight:bold;">
+                                                Good</td>
                                         </tr>
-                                        <tr class="table-info">
-                                            <td class="text-center">2</td>
-                                            <td class="text-center">1</td>
-                                            <td class="text-center">2</td>
-                                            <td class="text-center">0</td>
+                                        <tr>
+                                            <td class="text-center"><span style="color:#00b050;font-weight:bold;">2</span>
+                                            </td>
+                                            <td class="text-center"><span style="color:#000000;font-weight:bold;">-</span>
+                                            </td>
+                                            <td class="text-center"><span style="color:#00b050;font-weight:bold;">2</span>
+                                            </td>
+                                            <td class="text-center"><span style="color:#ffc000;font-weight:bold;">1</span>
+                                            </td>
+                                            <td class="text-center"><span style="color:#000000;font-weight:bold;">-</span>
+                                            </td>
                                             <td class="text-center"><strong>5</strong></td>
-                                            <td class="text-center"><span class="badge badge-info">Good</span></td>
-                                            <td class="text-center"><span class="badge badge-info">Blue</span></td>
+                                            <td class="text-center" style="background-color:#ddebf7;font-weight:bold;">
+                                                Good</td>
                                         </tr>
-                                        <tr class="table-info">
-                                            <td class="text-center">2</td>
-                                            <td class="text-center">1</td>
-                                            <td class="text-center">0</td>
-                                            <td class="text-center">2</td>
+                                        <tr>
+                                            <td class="text-center"><span style="color:#00b050;font-weight:bold;">2</span>
+                                            </td>
+                                            <td class="text-center"><span style="color:#000000;font-weight:bold;">-</span>
+                                            </td>
+                                            <td class="text-center"><span style="color:#ffc000;font-weight:bold;">1</span>
+                                            </td>
+                                            <td class="text-center"><span style="color:#00b050;font-weight:bold;">2</span>
+                                            </td>
+                                            <td class="text-center"><span style="color:#000000;font-weight:bold;">-</span>
+                                            </td>
                                             <td class="text-center"><strong>5</strong></td>
-                                            <td class="text-center"><span class="badge badge-info">Good</span></td>
-                                            <td class="text-center"><span class="badge badge-info">Blue</span></td>
+                                            <td class="text-center" style="background-color:#ddebf7;font-weight:bold;">
+                                                Good</td>
                                         </tr>
-                                        <tr class="table-info">
-                                            <td class="text-center">2</td>
-                                            <td class="text-center">1</td>
-                                            <td class="text-center">1</td>
-                                            <td class="text-center">1</td>
+                                        <tr>
+                                            <td class="text-center"><span style="color:#ffc000;font-weight:bold;">1</span>
+                                            </td>
+                                            <td class="text-center"><span style="color:#ffc000;font-weight:bold;">1</span>
+                                            </td>
+                                            <td class="text-center"><span style="color:#ffc000;font-weight:bold;">1</span>
+                                            </td>
+                                            <td class="text-center"><span style="color:#ffc000;font-weight:bold;">1</span>
+                                            </td>
+                                            <td class="text-center"><span style="color:#ffc000;font-weight:bold;">1</span>
+                                            </td>
                                             <td class="text-center"><strong>5</strong></td>
-                                            <td class="text-center"><span class="badge badge-info">Good</span></td>
-                                            <td class="text-center"><span class="badge badge-info">Blue</span></td>
+                                            <td class="text-center" style="background-color:#ddebf7;font-weight:bold;">
+                                                Good</td>
                                         </tr>
 
-                                        <!-- Average (Yellow Rows - 2 entries) -->
-                                        <tr class="table-warning">
-                                            <td class="text-center">2</td>
-                                            <td class="text-center">2</td>
-                                            <td class="text-center">0</td>
-                                            <td class="text-center">0</td>
+                                        <!-- Average -->
+                                        <tr>
+                                            <td class="text-center"><span style="color:#00b050;font-weight:bold;">2</span>
+                                            </td>
+                                            <td class="text-center"><span style="color:#000000;font-weight:bold;">-</span>
+                                            </td>
+                                            <td class="text-center"><span style="color:#00b050;font-weight:bold;">2</span>
+                                            </td>
+                                            <td class="text-center"><span style="color:#ff0000;font-weight:bold;">0</span>
+                                            </td>
+                                            <td class="text-center"><span style="color:#000000;font-weight:bold;">-</span>
+                                            </td>
                                             <td class="text-center"><strong>4</strong></td>
-                                            <td class="text-center"><span class="badge badge-warning">Average</span></td>
-                                            <td class="text-center"><span class="badge badge-warning">Yellow</span></td>
+                                            <td class="text-center" style="background-color:#fff2cc;font-weight:bold;">
+                                                Average</td>
                                         </tr>
-                                        <tr class="table-warning">
-                                            <td class="text-center">1</td>
-                                            <td class="text-center">1</td>
-                                            <td class="text-center">1</td>
-                                            <td class="text-center">1</td>
+                                        <tr>
+                                            <td class="text-center"><span style="color:#00b050;font-weight:bold;">2</span>
+                                            </td>
+                                            <td class="text-center"><span style="color:#000000;font-weight:bold;">-</span>
+                                            </td>
+                                            <td class="text-center"><span style="color:#ffc000;font-weight:bold;">1</span>
+                                            </td>
+                                            <td class="text-center"><span style="color:#ffc000;font-weight:bold;">1</span>
+                                            </td>
+                                            <td class="text-center"><span style="color:#000000;font-weight:bold;">-</span>
+                                            </td>
                                             <td class="text-center"><strong>4</strong></td>
-                                            <td class="text-center"><span class="badge badge-warning">Average</span></td>
-                                            <td class="text-center"><span class="badge badge-warning">Yellow</span></td>
+                                            <td class="text-center" style="background-color:#fff2cc;font-weight:bold;">
+                                                Average</td>
                                         </tr>
-
-                                        <!-- Poor (Orange/Red Rows - 3 entries) -->
-                                        <tr class="table-danger">
-                                            <td class="text-center">2</td>
-                                            <td class="text-center">1</td>
-                                            <td class="text-center">0</td>
-                                            <td class="text-center">0</td>
+                                        <tr>
+                                            <td class="text-center"><span style="color:#00b050;font-weight:bold;">2</span>
+                                            </td>
+                                            <td class="text-center"><span style="color:#000000;font-weight:bold;">-</span>
+                                            </td>
+                                            <td class="text-center"><span style="color:#ff0000;font-weight:bold;">0</span>
+                                            </td>
+                                            <td class="text-center"><span style="color:#00b050;font-weight:bold;">2</span>
+                                            </td>
+                                            <td class="text-center"><span style="color:#000000;font-weight:bold;">-</span>
+                                            </td>
+                                            <td class="text-center"><strong>4</strong></td>
+                                            <td class="text-center" style="background-color:#fff2cc;font-weight:bold;">
+                                                Average</td>
+                                        </tr>
+                                        <tr>
+                                            <td class="text-center"><span style="color:#00b050;font-weight:bold;">2</span>
+                                            </td>
+                                            <td class="text-center"><span style="color:#000000;font-weight:bold;">-</span>
+                                            </td>
+                                            <td class="text-center"><span style="color:#ffc000;font-weight:bold;">1</span>
+                                            </td>
+                                            <td class="text-center"><span style="color:#ff0000;font-weight:bold;">0</span>
+                                            </td>
+                                            <td class="text-center"><span style="color:#000000;font-weight:bold;">-</span>
+                                            </td>
                                             <td class="text-center"><strong>3</strong></td>
-                                            <td class="text-center"><span class="badge badge-danger">Poor</span></td>
-                                            <td class="text-center"><span class="badge badge-danger">Red</span></td>
+                                            <td class="text-center" style="background-color:#fff2cc;font-weight:bold;">
+                                                Average</td>
                                         </tr>
-                                        <tr class="table-danger">
-                                            <td class="text-center">2</td>
-                                            <td class="text-center">0</td>
-                                            <td class="text-center">0</td>
-                                            <td class="text-center">0</td>
+                                        <tr>
+                                            <td class="text-center"><span style="color:#00b050;font-weight:bold;">2</span>
+                                            </td>
+                                            <td class="text-center"><span style="color:#000000;font-weight:bold;">-</span>
+                                            </td>
+                                            <td class="text-center"><span style="color:#ff0000;font-weight:bold;">0</span>
+                                            </td>
+                                            <td class="text-center"><span style="color:#ffc000;font-weight:bold;">1</span>
+                                            </td>
+                                            <td class="text-center"><span style="color:#000000;font-weight:bold;">-</span>
+                                            </td>
+                                            <td class="text-center"><strong>3</strong></td>
+                                            <td class="text-center" style="background-color:#fff2cc;font-weight:bold;">
+                                                Average</td>
+                                        </tr>
+
+                                        <!-- Poor -->
+                                        <tr>
+                                            <td class="text-center"><span style="color:#00b050;font-weight:bold;">2</span>
+                                            </td>
+                                            <td class="text-center"><span style="color:#ff0000;font-weight:bold;">0</span>
+                                            </td>
+                                            <td class="text-center"><span style="color:#ff0000;font-weight:bold;">0</span>
+                                            </td>
+                                            <td class="text-center"><span style="color:#ff0000;font-weight:bold;">0</span>
+                                            </td>
+                                            <td class="text-center"><span style="color:#ff0000;font-weight:bold;">0</span>
+                                            </td>
                                             <td class="text-center"><strong>2</strong></td>
-                                            <td class="text-center"><span class="badge badge-danger">Poor</span></td>
-                                            <td class="text-center"><span class="badge badge-danger">Red</span></td>
+                                            <td class="text-center" style="background-color:#f8cbad;font-weight:bold;">
+                                                Poor</td>
                                         </tr>
-                                        <tr class="table-danger">
-                                            <td class="text-center">0</td>
-                                            <td class="text-center">0</td>
-                                            <td class="text-center">0</td>
-                                            <td class="text-center">0</td>
+                                        <tr>
+                                            <td class="text-center"><span style="color:#ff0000;font-weight:bold;">0</span>
+                                            </td>
+                                            <td class="text-center"><span style="color:#ff0000;font-weight:bold;">0</span>
+                                            </td>
+                                            <td class="text-center"><span style="color:#ff0000;font-weight:bold;">0</span>
+                                            </td>
+                                            <td class="text-center"><span style="color:#ff0000;font-weight:bold;">0</span>
+                                            </td>
+                                            <td class="text-center"><span style="color:#ff0000;font-weight:bold;">0</span>
+                                            </td>
                                             <td class="text-center"><strong>0</strong></td>
-                                            <td class="text-center"><span class="badge badge-danger">Poor</span></td>
-                                            <td class="text-center"><span class="badge badge-danger">Red</span></td>
+                                            <td class="text-center" style="background-color:#f8cbad;font-weight:bold;">
+                                                Poor</td>
                                         </tr>
                                     </tbody>
                                 </table>
+
                             </div>
                         </div>
                     </div>
@@ -365,24 +691,25 @@
                             <h6 class="text-info">Key Rules</h6>
                             <div class="alert alert-info">
                                 <ul class="mb-0">
-                                    <li><strong>Psikotes Fail (0):</strong> Automatically results in <span
-                                            class="badge badge-danger">Poor</span> regardless of other scores</li>
-                                    <li><strong>Excellent (7-8):</strong> Psikotes Pass (2) + High scores in other stages
-                                    </li>
-                                    <li><strong>Good (5-6):</strong> Psikotes Pass (2) + Moderate scores in other stages
-                                    </li>
-                                    <li><strong>Average (4):</strong> Psikotes Pass (2) + Low scores, or Psikotes Pending
-                                        (1) + Balanced scores</li>
-                                    <li><strong>Poor (0-3):</strong> Psikotes Fail (0) or very low combined scores</li>
-                                    <li><strong>Total Combinations:</strong> 17 different scoring combinations</li>
-                                    <li><strong>Distribution:</strong> 4 Excellent, 8 Good, 2 Average, 3 Poor</li>
+                                    <li><strong>Psikotes = 0 (gagal):</strong> Tes Teori = NA, semua interview = 0 &rarr;
+                                        proses berhenti</li>
+                                    <li><strong>Psikotes = 1 (pending):</strong> Tes Teori = 1, semua interview = 1 &rarr;
+                                        semua pending (belum dikerjakan)</li>
+                                    <li><strong>Psikotes = 2 (lulus):</strong></li>
+                                    <ul>
+                                        <li><strong>Tes Teori = NA:</strong> lanjut 2 interview wajib (HR &amp; User),
+                                            trainer = NA &rarr; kombinasi semua kemungkinan (2/1/0)</li>
+                                        <li><strong>Tes Teori = 0 (gagal):</strong> semua interview = 0 &rarr; proses
+                                            berhenti</li>
+                                        <li><strong>Tes Teori = 1 (pending):</strong> semua interview = 1 &rarr; pending
+                                            semua</li>
+                                        <li><strong>Tes Teori = 2 (lulus):</strong> semua interview (HR, User, Trainer) bisa
+                                            2/1/0 (independen, paralel)</li>
+                                    </ul>
                                 </ul>
                             </div>
                         </div>
                     </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
                 </div>
             </div>
         </div>
@@ -401,6 +728,14 @@
     <script src="{{ asset('assets/plugins/datatables-bs4/js/dataTables.bootstrap4.min.js') }}"></script>
     <script src="{{ asset('assets/plugins/datatables-responsive/js/dataTables.responsive.min.js') }}"></script>
     <script src="{{ asset('assets/plugins/datatables-responsive/js/responsive.bootstrap4.min.js') }}"></script>
+    <script src="{{ asset('assets/plugins/datatables-buttons/js/dataTables.buttons.min.js') }}"></script>
+    <script src="{{ asset('assets/plugins/datatables-buttons/js/buttons.bootstrap4.min.js') }}"></script>
+    <script src="{{ asset('assets/plugins/jszip/jszip.min.js') }}"></script>
+    <script src="{{ asset('assets/plugins/pdfmake/pdfmake.min.js') }}"></script>
+    <script src="{{ asset('assets/plugins/pdfmake/vfs_fonts.js') }}"></script>
+    <script src="{{ asset('assets/plugins/datatables-buttons/js/buttons.html5.min.js') }}"></script>
+    <script src="{{ asset('assets/plugins/datatables-buttons/js/buttons.print.min.js') }}"></script>
+    <script src="{{ asset('assets/plugins/datatables-buttons/js/buttons.colVis.min.js') }}"></script>
 
     <script>
         $(document).ready(function() {
@@ -491,42 +826,16 @@
                     {
                         data: 'interview_result',
                         render: function(data, type, row) {
-                            // Extract type and result from combined data
-                            var type = '';
-                            var result = data;
-
-                            if (data.includes(' - ')) {
-                                var parts = data.split(' - ');
-                                type = parts[0];
-                                result = parts[1];
-                            } else if (data.includes('HR') || data.includes('User')) {
-                                type = data;
-                                result = '';
-                            }
-
-                            var html = '';
-                            if (type) {
-                                html += '<small class="text-muted">' + type + '</small><br>';
-                            }
-
-                            if (result) {
-                                var colorClass = result.toLowerCase().includes('pass') || result
-                                    .toLowerCase().includes('recommended') ? 'badge-success' :
-                                    (result.toLowerCase().includes('fail') || result.toLowerCase()
-                                        .includes('not') ? 'badge-danger' : 'badge-warning');
-                                html += '<span class="badge ' + colorClass + '">' + result +
-                                    '</span>';
-                            }
-
-                            return html || '-';
+                            return window.renderInterviewResult(data);
                         }
                     },
                     {
                         data: 'overall_assessment',
                         render: function(data, type, row) {
                             var colorClass = data === 'Excellent' ? 'badge-success' :
-                                (data === 'Good' ? 'badge-info' :
-                                    (data === 'Average' ? 'badge-warning' : 'badge-danger'));
+                                (data === 'Very Good' ? 'badge-success' :
+                                    (data === 'Good' ? 'badge-info' :
+                                        (data === 'Average' ? 'badge-warning' : 'badge-danger')));
                             return '<span class="badge ' + colorClass + '">' + data + '</span>';
                         }
                     },
@@ -544,6 +853,44 @@
                 }
             });
 
+            // Helper function to render interview results
+            window.renderInterviewResult = function(data) {
+                if (!data || data === '-') {
+                    return '-';
+                }
+
+                // Split by | to get individual interview results
+                var interviewItems = data.split(' | ');
+                var html = '';
+
+                for (var i = 0; i < interviewItems.length; i++) {
+                    var item = interviewItems[i].trim();
+                    if (item) {
+                        var parts = item.split(': ');
+                        var type = parts[0];
+                        var result = parts[1];
+
+                        var colorClass = '';
+                        if (result.toLowerCase().includes('not_recommended') || result.toLowerCase().includes(
+                                'fail')) {
+                            colorClass = 'badge-danger'; // Merah untuk not recommend dan fail
+                        } else if (result.toLowerCase().includes('pass') || result.toLowerCase().includes(
+                                'recommended')) {
+                            colorClass = 'badge-success'; // Hijau untuk recommend dan pass
+                        } else {
+                            colorClass = 'badge-warning'; // Kuning untuk pending
+                        }
+
+                        if (html) {
+                            html += '<br>';
+                        }
+                        html += '<span class="badge ' + colorClass + '">' + type + ': ' + result + '</span>';
+                    }
+                }
+
+                return html || '-';
+            };
+
             // Refresh table when form is submitted
             $('#filterForm').on('submit', function(e) {
                 e.preventDefault();
@@ -559,9 +906,8 @@
                     position: $('select[name="position"]').val(),
                     project: $('select[name="project"]').val()
                 });
-                window.location.href =
-                    '{{ route('recruitment.reports.interview-assessment-analytics.export') }}' + '?' +
-                    params;
+                window.open('{{ route('recruitment.reports.interview-assessment-analytics.export') }}?' +
+                    params, '_blank');
             });
         });
     </script>
