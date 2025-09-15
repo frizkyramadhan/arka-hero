@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
 use Maatwebsite\Excel\Facades\Excel;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithHeadings;
@@ -1069,12 +1070,13 @@ class RecruitmentReportController extends Controller
     public function timeToHire()
     {
         $title = 'Recruitment Reports';
-        $subtitle = 'Time to Hire';
+        $subtitle = 'Time to Hire & Time to Fill Analytics';
         $date1 = request('date1', '');
         $date2 = request('date2', '');
         $department = request('department');
         $position = request('position');
         $project = request('project');
+        $metric_type = request('metric_type', 'candidate'); // 'candidate' or 'fptk'
 
         $departments = Department::orderBy('department_name')->get();
         $positions = Position::orderBy('position_name')->get();
@@ -1088,6 +1090,7 @@ class RecruitmentReportController extends Controller
             'department',
             'position',
             'project',
+            'metric_type',
             'departments',
             'positions',
             'projects'
@@ -1101,15 +1104,31 @@ class RecruitmentReportController extends Controller
         $department = request('department');
         $position = request('position');
         $project = request('project');
+        $metricType = request('metric_type', 'candidate');
 
+        if ($metricType === 'fptk') {
+            return $this->exportTimeToFillData($date1, $date2, $department, $position, $project);
+        } else {
+            return $this->exportTimeToHirePerCandidateData($date1, $date2, $department, $position, $project);
+        }
+    }
+
+    /**
+     * Export Time to Hire per Candidate data
+     */
+    private function exportTimeToHirePerCandidateData($date1, $date2, $department, $position, $project)
+    {
         $query = RecruitmentSession::with([
             'fptk.department',
             'fptk.position',
             'fptk.project',
             'fptk.approval_plans.approver',
-            'hiring'
+            'hiring',
+            'candidate'
         ])
-            ->whereHas('hiring');
+            ->whereIn('status', ['in_process', 'hired'])
+            ->whereNotNull('fptk_id')
+            ->whereNotNull('candidate_id');
 
         if ($date1 && $date2) {
             $query->whereBetween('created_at', [$date1 . ' 00:00:00', $date2 . ' 23:59:59']);
@@ -1132,7 +1151,104 @@ class RecruitmentReportController extends Controller
         }
 
         $sessions = $query->get();
-        $rows = $this->buildTimeToHireData($sessions);
+        $rows = $this->buildTimeToHirePerCandidateExportData($sessions);
+
+        return Excel::download(new class($rows) implements FromCollection, WithHeadings, WithMapping {
+            private $rows;
+
+            public function __construct($rows)
+            {
+                $this->rows = $rows;
+            }
+
+            public function collection()
+            {
+                return collect($this->rows);
+            }
+
+            public function headings(): array
+            {
+                return [
+                    'Candidate Name',
+                    'Candidate Number',
+                    'Request No',
+                    'Department',
+                    'Position',
+                    'Project',
+                    'Session Created At',
+                    'Hiring Date',
+                    'Time to Hire (Days)',
+                    'Approval Days',
+                    'Recruitment Days',
+                    'Employment Type',
+                    'Status',
+                    'Latest Approval',
+                    'Approval Remarks'
+                ];
+            }
+
+            public function map($row): array
+            {
+                return [
+                    $row['candidate_name'],
+                    $row['candidate_number'],
+                    $row['request_no'],
+                    $row['department'],
+                    $row['position'],
+                    $row['project'],
+                    $row['session_created_at'],
+                    $row['hiring_date'],
+                    $row['time_to_hire_days'],
+                    $row['approval_days'],
+                    $row['recruitment_days'],
+                    $row['employment_type'],
+                    $row['status'],
+                    $row['latest_approval'],
+                    $row['remarks']
+                ];
+            }
+        }, 'time_to_hire_per_candidate_' . date('Y-m-d') . '.xlsx');
+    }
+
+    /**
+     * Export Time to Fill per FPTK data
+     */
+    private function exportTimeToFillData($date1, $date2, $department, $position, $project)
+    {
+        $query = RecruitmentRequest::with([
+            'department',
+            'position',
+            'project',
+            'createdBy',
+            'approval_plans.approver',
+            'sessions' => function ($q) {
+                $q->whereIn('status', ['in_process', 'hired'])
+                    ->whereNotNull('candidate_id');
+            },
+            'sessions.hiring',
+            'sessions.candidate'
+        ])
+            ->whereHas('sessions', function ($q) {
+                $q->whereIn('status', ['in_process', 'hired'])
+                    ->whereNotNull('candidate_id');
+            });
+
+        if ($date1 && $date2) {
+            $query->whereBetween('created_at', [$date1 . ' 00:00:00', $date2 . ' 23:59:59']);
+        }
+
+        if ($department) {
+            $query->where('department_id', $department);
+        }
+        if ($position) {
+            $query->where('position_id', $position);
+        }
+        if ($project) {
+            $query->where('project_id', $project);
+        }
+
+        $fptks = $query->get();
+        $rows = $this->buildTimeToFillExportData($fptks);
 
         return Excel::download(new class($rows) implements FromCollection, WithHeadings, WithMapping {
             private $rows;
@@ -1154,14 +1270,18 @@ class RecruitmentReportController extends Controller
                     'Department',
                     'Position',
                     'Project',
-                    'Requested At',
-                    'Hiring Date',
-                    'Total Days',
+                    'FPTK Created At',
+                    'First Hiring Date',
+                    'Time to Fill (Days)',
                     'Approval Days',
                     'Recruitment Days',
+                    'Hired Count',
+                    'Required Qty',
+                    'Fill Rate (%)',
+                    'Employment Type',
                     'Status',
                     'Latest Approval',
-                    'Approval Remarks',
+                    'Approval Remarks'
                 ];
             }
 
@@ -1172,17 +1292,171 @@ class RecruitmentReportController extends Controller
                     $row['department'],
                     $row['position'],
                     $row['project'],
-                    $row['requested_at'],
-                    $row['hiring_date'],
-                    $row['total_days'],
+                    $row['fptk_created_at'],
+                    $row['first_hiring_date'],
+                    $row['time_to_fill_days'],
                     $row['approval_days'],
                     $row['recruitment_days'],
+                    $row['hired_count'],
+                    $row['required_qty'],
+                    $row['fill_rate'],
+                    $row['employment_type'],
                     $row['status'],
                     $row['latest_approval'],
-                    $row['remarks'],
+                    $row['remarks']
                 ];
             }
-        }, 'recruitment_time_to_hire_' . date('Y-m-d') . '.xlsx');
+        }, 'time_to_fill_per_fptk_' . date('Y-m-d') . '.xlsx');
+    }
+
+    /**
+     * Build Time to Hire per Candidate export data
+     */
+    private function buildTimeToHirePerCandidateExportData($sessions)
+    {
+        $rows = [];
+        foreach ($sessions as $session) {
+            if (!$session->candidate || !$session->fptk) {
+                continue;
+            }
+
+            // Time to Hire per Candidate: Session created to current status
+            $timeToHireDays = 0;
+            $hiringDate = null;
+
+            if ($session->status === 'hired' && $session->hiring) {
+                // If hired, calculate from session created to hiring date
+                $hiringDate = $session->hiring->created_at;
+                $timeToHireDays = $hiringDate->diffInDays($session->created_at);
+            } else {
+                // If in_process, calculate from session created to now
+                $timeToHireDays = now()->diffInDays($session->created_at);
+            }
+
+            // Approval days: FPTK created to approval completion
+            $approvalDays = 0;
+            $latestApproval = null;
+            if ($session->fptk && $session->fptk->approval_plans && $session->fptk->approval_plans->count() > 0) {
+                $approvedPlans = $session->fptk->approval_plans->where('status', 1);
+                if ($approvedPlans->count() > 0) {
+                    $latestApproval = $approvedPlans->sortByDesc('updated_at')->first();
+                    if ($latestApproval->updated_at) {
+                        $approvalDays = $latestApproval->updated_at->diffInDays($session->fptk->created_at);
+                    }
+                }
+            }
+
+            // Recruitment days: Approval completion to current status
+            $recruitmentDays = 0;
+            if ($latestApproval && $latestApproval->updated_at) {
+                if ($hiringDate) {
+                    $recruitmentDays = $hiringDate->diffInDays($latestApproval->updated_at);
+                } else {
+                    $recruitmentDays = now()->diffInDays($latestApproval->updated_at);
+                }
+            }
+
+            $rows[] = [
+                'candidate_name' => $session->candidate->fullname,
+                'candidate_number' => $session->candidate->candidate_number,
+                'request_no' => $session->fptk ? $session->fptk->request_number : '-',
+                'department' => $session->fptk && $session->fptk->department ? $session->fptk->department->department_name : '-',
+                'position' => $session->fptk && $session->fptk->position ? $session->fptk->position->position_name : '-',
+                'project' => $session->fptk && $session->fptk->project ? $session->fptk->project->project_name : '-',
+                'session_created_at' => $session->created_at->format('Y-m-d H:i:s'),
+                'hiring_date' => $hiringDate ? $hiringDate->format('Y-m-d') : ($session->status === 'in_process' ? 'In Progress' : '-'),
+                'time_to_hire_days' => $timeToHireDays,
+                'approval_days' => $approvalDays,
+                'recruitment_days' => $recruitmentDays,
+                'employment_type' => $session->fptk ? ucfirst($session->fptk->employment_type ?? 'regular') : 'Regular',
+                'status' => ucfirst($session->status),
+                'latest_approval' => $latestApproval && $latestApproval->approver ? $latestApproval->approver->name : '-',
+                'remarks' => $latestApproval ? ($latestApproval->remarks ?: '-') : '-',
+            ];
+        }
+        return $rows;
+    }
+
+    /**
+     * Build Time to Fill per FPTK export data
+     */
+    private function buildTimeToFillExportData($fptks)
+    {
+        $rows = [];
+        foreach ($fptks as $fptk) {
+            // Get sessions with valid status
+            $validSessions = $fptk->sessions->whereIn('status', ['in_process', 'hired'])
+                ->whereNotNull('candidate_id');
+
+            if ($validSessions->isEmpty()) {
+                continue;
+            }
+
+            // Get first hiring date from hired sessions
+            $hiredSessions = $validSessions->where('status', 'hired')->where('hiring', '!=', null);
+            $firstHiringDate = null;
+            $timeToFillDays = 0;
+
+            if ($hiredSessions->isNotEmpty()) {
+                $firstHiringDate = $hiredSessions->min(function ($session) {
+                    return $session->hiring->created_at;
+                });
+                $timeToFillDays = $firstHiringDate->diffInDays($fptk->created_at);
+            } else {
+                // If no hired sessions, calculate from FPTK created to now
+                $timeToFillDays = now()->diffInDays($fptk->created_at);
+            }
+
+            // Approval days: FPTK created to approval completion
+            $approvalDays = 0;
+            $latestApproval = null;
+            if ($fptk->approval_plans && $fptk->approval_plans->count() > 0) {
+                $approvedPlans = $fptk->approval_plans->where('status', 1);
+                if ($approvedPlans->count() > 0) {
+                    $latestApproval = $approvedPlans->sortByDesc('updated_at')->first();
+                    if ($latestApproval->updated_at) {
+                        $approvalDays = $latestApproval->updated_at->diffInDays($fptk->created_at);
+                    }
+                }
+            }
+
+            // Recruitment days: Approval completion to current status
+            $recruitmentDays = 0;
+            if ($latestApproval && $latestApproval->updated_at) {
+                if ($firstHiringDate) {
+                    $recruitmentDays = $firstHiringDate->diffInDays($latestApproval->updated_at);
+                } else {
+                    $recruitmentDays = now()->diffInDays($latestApproval->updated_at);
+                }
+            }
+
+            // Calculate fill rate
+            $hiredCount = $hiredSessions->count();
+            $inProcessCount = $validSessions->where('status', 'in_process')->count();
+            $totalSessions = $validSessions->count();
+            $requiredQty = $fptk->required_qty ?? 1;
+            $fillRate = $requiredQty > 0 ? round(($hiredCount / $requiredQty) * 100, 1) : 0;
+
+            $rows[] = [
+                'request_no' => $fptk->request_number,
+                'department' => $fptk->department ? $fptk->department->department_name : '-',
+                'position' => $fptk->position ? $fptk->position->position_name : '-',
+                'project' => $fptk->project ? $fptk->project->project_name : '-',
+                'fptk_created_at' => $fptk->created_at->format('Y-m-d H:i:s'),
+                'first_hiring_date' => $firstHiringDate ? $firstHiringDate->format('Y-m-d') : 'In Progress',
+                'time_to_fill_days' => $timeToFillDays,
+                'approval_days' => $approvalDays,
+                'recruitment_days' => $recruitmentDays,
+                'hired_count' => $hiredCount,
+                'required_qty' => $requiredQty,
+                'fill_rate' => $fillRate,
+                'employment_type' => ucfirst($fptk->employment_type ?? 'regular'),
+                'status' => ucfirst($fptk->status),
+                'latest_approval' => $latestApproval && $latestApproval->approver ? $latestApproval->approver->name : '-',
+                'remarks' => $latestApproval ? ($latestApproval->remarks ?: '-') : '-',
+            ];
+        }
+        return $rows;
     }
 
     public function offerAcceptanceRate(Request $request)
@@ -2177,15 +2451,33 @@ class RecruitmentReportController extends Controller
 
     public function timeToHireData(Request $request)
     {
+        $metricType = $request->get('metric_type', 'candidate');
+
+        if ($metricType === 'fptk') {
+            return $this->getTimeToFillData($request);
+        } else {
+            return $this->getTimeToHirePerCandidateData($request);
+        }
+    }
+
+    /**
+     * Time to Hire per Candidate - Waktu dari kandidat masuk proses hingga di-hire
+     */
+    private function getTimeToHirePerCandidateData(Request $request)
+    {
         $query = RecruitmentSession::with([
             'fptk.department',
             'fptk.position',
             'fptk.project',
             'fptk.approval_plans.approver',
-            'hiring'
+            'hiring',
+            'candidate'
         ])
-            ->whereHas('hiring');
+            ->whereIn('status', ['in_process', 'hired'])
+            ->whereNotNull('fptk_id')
+            ->whereNotNull('candidate_id');
 
+        // Apply filters
         if ($request->filled('date1') && $request->filled('date2')) {
             $query->whereBetween('created_at', [$request->date1 . ' 00:00:00', $request->date2 . ' 23:59:59']);
         }
@@ -2224,7 +2516,10 @@ class RecruitmentReportController extends Controller
                         ->orWhereHas('project', function ($projQuery) use ($searchValue) {
                             $projQuery->where('project_name', 'like', "%{$searchValue}%");
                         });
-                });
+                })
+                    ->orWhereHas('candidate', function ($candidateQuery) use ($searchValue) {
+                        $candidateQuery->where('fullname', 'like', "%{$searchValue}%");
+                    });
             });
         }
 
@@ -2233,24 +2528,42 @@ class RecruitmentReportController extends Controller
         $orderDir = $request->input('order.0.dir', 'desc');
 
         $columns = [
+            'candidate_name',
             'request_no',
             'department',
             'position',
             'project',
-            'requested_at',
+            'session_created_at',
             'hiring_date',
-            'total_days',
+            'time_to_hire_days',
             'approval_days',
             'recruitment_days',
-            'status',
-            'latest_approval',
-            'remarks'
+            'employment_type',
+            'status'
         ];
 
         if (isset($columns[$orderColumn])) {
             $column = $columns[$orderColumn];
-            if ($column === 'requested_at') {
+            if ($column === 'session_created_at') {
                 $query->orderBy('created_at', $orderDir);
+            } elseif ($column === 'candidate_name') {
+                // Order by candidate name through relationship - use subquery
+                $query->orderBy(DB::raw('(SELECT fullname FROM recruitment_candidates WHERE recruitment_candidates.id = recruitment_sessions.candidate_id)'), $orderDir);
+            } elseif ($column === 'hiring_date') {
+                // Order by hiring date through relationship - use subquery
+                $query->orderBy(DB::raw('(SELECT created_at FROM recruitment_hiring WHERE recruitment_hiring.session_id = recruitment_sessions.id)'), $orderDir);
+            } elseif ($column === 'request_no') {
+                // Order by request number through relationship - use subquery
+                $query->orderBy(DB::raw('(SELECT request_number FROM recruitment_requests WHERE recruitment_requests.id = recruitment_sessions.fptk_id)'), $orderDir);
+            } elseif ($column === 'department') {
+                // Order by department through relationship - use subquery
+                $query->orderBy(DB::raw('(SELECT d.department_name FROM recruitment_requests r JOIN departments d ON r.department_id = d.id WHERE r.id = recruitment_sessions.fptk_id)'), $orderDir);
+            } elseif ($column === 'position') {
+                // Order by position through relationship - use subquery
+                $query->orderBy(DB::raw('(SELECT p.position_name FROM recruitment_requests r JOIN positions p ON r.position_id = p.id WHERE r.id = recruitment_sessions.fptk_id)'), $orderDir);
+            } elseif ($column === 'project') {
+                // Order by project through relationship - use subquery
+                $query->orderBy(DB::raw('(SELECT pr.project_name FROM recruitment_requests r JOIN projects pr ON r.project_id = pr.id WHERE r.id = recruitment_sessions.fptk_id)'), $orderDir);
             } else {
                 $query->orderBy($column, $orderDir);
             }
@@ -2267,13 +2580,24 @@ class RecruitmentReportController extends Controller
         // Build data
         $data = [];
         foreach ($sessions as $session) {
-            if (!$session->hiring) {
+            if (!$session->candidate || !$session->fptk) {
                 continue;
             }
 
-            $hiringDate = $session->hiring->created_at->format('Y-m-d');
-            $totalDays = $session->hiring->created_at->diffInDays($session->created_at);
+            // Time to Hire per Candidate: Session created to current status
+            $timeToHireDays = 0;
+            $hiringDate = null;
 
+            if ($session->status === 'hired' && $session->hiring) {
+                // If hired, calculate from session created to hiring date
+                $hiringDate = $session->hiring->created_at;
+                $timeToHireDays = $hiringDate->diffInDays($session->created_at);
+            } else {
+                // If in_process, calculate from session created to now
+                $timeToHireDays = now()->diffInDays($session->created_at);
+            }
+
+            // Approval days: FPTK created to approval completion
             $approvalDays = 0;
             $latestApproval = null;
             if ($session->fptk && $session->fptk->approval_plans && $session->fptk->approval_plans->count() > 0) {
@@ -2286,31 +2610,233 @@ class RecruitmentReportController extends Controller
                 }
             }
 
+            // Recruitment days: Approval completion to current status
             $recruitmentDays = 0;
             if ($latestApproval && $latestApproval->updated_at) {
-                $recruitmentDays = $session->hiring->created_at->diffInDays($latestApproval->updated_at);
+                if ($hiringDate) {
+                    $recruitmentDays = $hiringDate->diffInDays($latestApproval->updated_at);
+                } else {
+                    $recruitmentDays = now()->diffInDays($latestApproval->updated_at);
+                }
             }
 
             $data[] = [
                 'session_id' => $session->id,
                 'request_id' => $session->fptk ? $session->fptk->id : 0,
+                'candidate_name' => $session->candidate->fullname,
+                'candidate_number' => $session->candidate->candidate_number,
                 'request_no' => $session->fptk ? $session->fptk->request_number : '-',
                 'department' => $session->fptk && $session->fptk->department ? $session->fptk->department->department_name : '-',
                 'position' => $session->fptk && $session->fptk->position ? $session->fptk->position->position_name : '-',
                 'project' => $session->fptk && $session->fptk->project ? $session->fptk->project->project_name : '-',
-                'requested_at' => $session->fptk ? $session->fptk->created_at->format('Y-m-d H:i:s') : '-',
-                'hiring_date' => $hiringDate,
-                'total_days' => $totalDays,
+                'session_created_at' => $session->created_at->format('Y-m-d H:i:s'),
+                'hiring_date' => $hiringDate ? $hiringDate->format('Y-m-d') : ($session->status === 'in_process' ? 'In Progress' : '-'),
+                'time_to_hire_days' => $timeToHireDays,
                 'approval_days' => $approvalDays,
                 'recruitment_days' => $recruitmentDays,
-                'status' => $session->fptk ? ucfirst($session->fptk->status) : '-',
+                'employment_type' => $session->fptk ? ucfirst($session->fptk->employment_type ?? 'regular') : 'Regular',
+                'status' => ucfirst($session->status),
                 'latest_approval' => $latestApproval && $latestApproval->approver ? $latestApproval->approver->name : '-',
                 'remarks' => $latestApproval ? ($latestApproval->remarks ?: '-') : '-',
             ];
         }
 
         return response()->json([
-            'draw' => $request->input('draw'),
+            'draw' => (int) $request->input('draw', 1),
+            'recordsTotal' => $totalRecords,
+            'recordsFiltered' => $filteredRecords,
+            'data' => $data
+        ]);
+    }
+
+    /**
+     * Time to Fill per FPTK - Waktu dari FPTK dibuat hingga posisi terisi
+     */
+    private function getTimeToFillData(Request $request)
+    {
+        $query = RecruitmentRequest::with([
+            'department',
+            'position',
+            'project',
+            'createdBy',
+            'approval_plans.approver',
+            'sessions' => function ($q) {
+                $q->whereIn('status', ['in_process', 'hired'])
+                    ->whereNotNull('candidate_id');
+            },
+            'sessions.hiring',
+            'sessions.candidate'
+        ])
+            ->whereHas('sessions', function ($q) {
+                $q->whereIn('status', ['in_process', 'hired'])
+                    ->whereNotNull('candidate_id');
+            });
+
+        // Apply filters
+        if ($request->filled('date1') && $request->filled('date2')) {
+            $query->whereBetween('created_at', [$request->date1 . ' 00:00:00', $request->date2 . ' 23:59:59']);
+        }
+
+        if ($request->filled('department')) {
+            $query->where('department_id', $request->department);
+        }
+        if ($request->filled('position')) {
+            $query->where('position_id', $request->position);
+        }
+        if ($request->filled('project')) {
+            $query->where('project_id', $request->project);
+        }
+
+        // Get total count before pagination
+        $totalRecords = $query->count();
+
+        // Apply search
+        if ($request->filled('search.value')) {
+            $searchValue = $request->input('search.value');
+            $query->where(function ($q) use ($searchValue) {
+                $q->where('request_number', 'like', "%{$searchValue}%")
+                    ->orWhereHas('department', function ($deptQuery) use ($searchValue) {
+                        $deptQuery->where('department_name', 'like', "%{$searchValue}%");
+                    })
+                    ->orWhereHas('position', function ($posQuery) use ($searchValue) {
+                        $posQuery->where('position_name', 'like', "%{$searchValue}%");
+                    })
+                    ->orWhereHas('project', function ($projQuery) use ($searchValue) {
+                        $projQuery->where('project_name', 'like', "%{$searchValue}%");
+                    });
+            });
+        }
+
+        // Apply ordering
+        $orderColumn = $request->input('order.0.column', 0);
+        $orderDir = $request->input('order.0.dir', 'desc');
+
+        $columns = [
+            'request_number',
+            'department',
+            'position',
+            'project',
+            'fptk_created_at',
+            'first_hiring_date',
+            'time_to_fill_days',
+            'approval_days',
+            'recruitment_days',
+            'hired_count',
+            'required_qty',
+            'fill_rate',
+            'employment_type',
+            'status'
+        ];
+
+        if (isset($columns[$orderColumn])) {
+            $column = $columns[$orderColumn];
+            if ($column === 'fptk_created_at') {
+                $query->orderBy('created_at', $orderDir);
+            } elseif ($column === 'request_number') {
+                $query->orderBy('request_number', $orderDir);
+            } elseif ($column === 'department') {
+                $query->orderBy('department_id', $orderDir);
+            } elseif ($column === 'position') {
+                $query->orderBy('position_id', $orderDir);
+            } elseif ($column === 'project') {
+                $query->orderBy('project_id', $orderDir);
+            } elseif ($column === 'employment_type') {
+                $query->orderBy('employment_type', $orderDir);
+            } elseif ($column === 'status') {
+                $query->orderBy('status', $orderDir);
+            } else {
+                // For calculated fields, order by created_at as fallback
+                $query->orderBy('created_at', $orderDir);
+            }
+        }
+
+        // Get filtered count
+        $filteredRecords = $query->count();
+
+        // Apply pagination
+        $start = $request->input('start', 0);
+        $length = $request->input('length', 10);
+        $fptks = $query->skip($start)->take($length)->get();
+
+        // Build data
+        $data = [];
+        foreach ($fptks as $fptk) {
+            // Get sessions with valid status
+            $validSessions = $fptk->sessions->whereIn('status', ['in_process', 'hired'])
+                ->whereNotNull('candidate_id');
+
+            if ($validSessions->isEmpty()) {
+                continue;
+            }
+
+            // Get first hiring date from hired sessions
+            $hiredSessions = $validSessions->where('status', 'hired')->where('hiring', '!=', null);
+            $firstHiringDate = null;
+            $timeToFillDays = 0;
+
+            if ($hiredSessions->isNotEmpty()) {
+                $firstHiringDate = $hiredSessions->min(function ($session) {
+                    return $session->hiring->created_at;
+                });
+                $timeToFillDays = $firstHiringDate->diffInDays($fptk->created_at);
+            } else {
+                // If no hired sessions, calculate from FPTK created to now
+                $timeToFillDays = now()->diffInDays($fptk->created_at);
+            }
+
+            // Approval days: FPTK created to approval completion
+            $approvalDays = 0;
+            $latestApproval = null;
+            if ($fptk->approval_plans && $fptk->approval_plans->count() > 0) {
+                $approvedPlans = $fptk->approval_plans->where('status', 1);
+                if ($approvedPlans->count() > 0) {
+                    $latestApproval = $approvedPlans->sortByDesc('updated_at')->first();
+                    if ($latestApproval->updated_at) {
+                        $approvalDays = $latestApproval->updated_at->diffInDays($fptk->created_at);
+                    }
+                }
+            }
+
+            // Recruitment days: Approval completion to current status
+            $recruitmentDays = 0;
+            if ($latestApproval && $latestApproval->updated_at) {
+                if ($firstHiringDate) {
+                    $recruitmentDays = $firstHiringDate->diffInDays($latestApproval->updated_at);
+                } else {
+                    $recruitmentDays = now()->diffInDays($latestApproval->updated_at);
+                }
+            }
+
+            // Calculate fill rate
+            $hiredCount = $hiredSessions->count();
+            $inProcessCount = $validSessions->where('status', 'in_process')->count();
+            $totalSessions = $validSessions->count();
+            $requiredQty = $fptk->required_qty ?? 1;
+            $fillRate = $requiredQty > 0 ? round(($hiredCount / $requiredQty) * 100, 1) : 0;
+
+            $data[] = [
+                'fptk_id' => $fptk->id,
+                'request_no' => $fptk->request_number,
+                'department' => $fptk->department ? $fptk->department->department_name : '-',
+                'position' => $fptk->position ? $fptk->position->position_name : '-',
+                'project' => $fptk->project ? $fptk->project->project_name : '-',
+                'fptk_created_at' => $fptk->created_at->format('Y-m-d H:i:s'),
+                'first_hiring_date' => $firstHiringDate ? $firstHiringDate->format('Y-m-d') : 'In Progress',
+                'time_to_fill_days' => $timeToFillDays,
+                'approval_days' => $approvalDays,
+                'recruitment_days' => $recruitmentDays,
+                'hired_count' => $hiredCount,
+                'required_qty' => $requiredQty,
+                'fill_rate' => $fillRate . '%',
+                'employment_type' => ucfirst($fptk->employment_type ?? 'regular'),
+                'status' => ucfirst($fptk->status),
+                'latest_approval' => $latestApproval && $latestApproval->approver ? $latestApproval->approver->name : '-',
+                'remarks' => $latestApproval ? ($latestApproval->remarks ?: '-') : '-',
+            ];
+        }
+
+        return response()->json([
+            'draw' => (int) $request->input('draw', 1),
             'recordsTotal' => $totalRecords,
             'recordsFiltered' => $filteredRecords,
             'data' => $data
@@ -2829,7 +3355,7 @@ class RecruitmentReportController extends Controller
                 $stageQuery->orderBy('session.fptk.project.project_name', $orderDir);
             } elseif ($column === 'candidate_name') {
                 // Order by candidate name through relationship
-                $stageQuery->orderBy('session.candidate.fullname', $orderDir);
+                $stageQuery->orderBy('recruitment_candidates.fullname', $orderDir);
             } else {
                 $stageQuery->orderBy($column, $orderDir);
             }
