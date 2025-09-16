@@ -107,7 +107,7 @@ Arka Hero is a comprehensive HR management system built with Laravel, focusing o
 
 ### Official Travel Tables
 
--   `officialtravels`: Core SPD document. Legacy recommendation/approval columns exist but the active approval workflow is handled via `approval_plans` with `document_type='officialtravel'`. Status field is `ENUM(draft, submitted, approved, rejected, cancelled, closed)`.
+-   `officialtravels`: Core SPD document. Uses new approval system via `approval_plans` with `document_type='officialtravel'`. Status field is `ENUM(draft, submitted, approved, rejected, cancelled, closed)`.
 -   `officialtravel_details`: Followers linked to an official travel.
 -   `approval_plans`: Generic approval workflow table. Used by multiple document types; filtered by `document_type` and `document_id`.
 

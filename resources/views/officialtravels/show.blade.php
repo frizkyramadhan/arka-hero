@@ -174,8 +174,6 @@
                         </div>
                     </div>
 
-
-
                     <!-- Followers List -->
                     @if ($officialtravel->details->isNotEmpty())
                         <div class="travel-card followers-card">
@@ -215,6 +213,175 @@
 
                 <!-- Right Column -->
                 <div class="col-lg-4">
+                    <!-- Stops Timeline -->
+                    <div class="travel-card stops-timeline-card">
+                        <div class="card-head">
+                            <h2><i class="fas fa-route"></i> Travel Stops Timeline</h2>
+                        </div>
+                        <div class="card-body">
+                            @if ($officialtravel->stops->count() > 0)
+                                <div class="timeline">
+                                    @foreach ($officialtravel->stops as $index => $stop)
+                                        @if ($stop->isComplete())
+                                            <!-- Complete Stop - Collapsible Accordion -->
+                                            <div class="timeline-item complete">
+                                                <div class="timeline-marker">
+                                                    <i class="fas fa-check-circle"></i>
+                                                </div>
+                                                <div class="timeline-content">
+                                                    <div class="timeline-header">
+                                                        <h4>Stop #{{ $index + 1 }}</h4>
+                                                        <span class="timeline-status">
+                                                            <span class="badge badge-success">Complete</span>
+                                                        </span>
+                                                    </div>
+
+                                                    <!-- Accordion Toggle -->
+                                                    <div class="accordion" id="stopAccordion{{ $index + 1 }}">
+                                                        <div class="card">
+                                                            <div class="card-header" id="heading{{ $index + 1 }}">
+                                                                <h5 class="mb-0">
+                                                                    <button
+                                                                        class="btn btn-link btn-block text-left collapsed"
+                                                                        type="button" data-toggle="collapse"
+                                                                        data-target="#collapse{{ $index + 1 }}"
+                                                                        aria-expanded="false"
+                                                                        aria-controls="collapse{{ $index + 1 }}">
+                                                                        <i class="fas fa-chevron-down accordion-icon"></i>
+                                                                        <span class="accordion-title">View Details</span>
+                                                                    </button>
+                                                                </h5>
+                                                            </div>
+                                                            <div id="collapse{{ $index + 1 }}" class="collapse"
+                                                                aria-labelledby="heading{{ $index + 1 }}"
+                                                                data-parent="#stopAccordion{{ $index + 1 }}">
+                                                                <div class="card-body">
+                                                                    <div class="timeline-details">
+                                                                        @if ($stop->hasArrival())
+                                                                            <div class="timeline-detail-item">
+                                                                                <i
+                                                                                    class="fas fa-plane-arrival text-success"></i>
+                                                                                <div class="detail-content">
+                                                                                    <div class="detail-label">Arrival</div>
+                                                                                    <div class="detail-value">
+                                                                                        {{ $stop->arrival_at_destination ? date('d F Y H:i', strtotime($stop->arrival_at_destination)) : 'Not recorded' }}
+                                                                                        @if ($stop->arrivalChecker)
+                                                                                            <br><small
+                                                                                                class="text-muted">by
+                                                                                                {{ $stop->arrivalChecker->name }}</small>
+                                                                                        @endif
+                                                                                        @if ($stop->arrival_remark)
+                                                                                            <br><small
+                                                                                                class="text-muted">{{ $stop->arrival_remark }}</small>
+                                                                                        @endif
+                                                                                    </div>
+                                                                                </div>
+                                                                            </div>
+                                                                        @endif
+
+                                                                        @if ($stop->hasDeparture())
+                                                                            <div class="timeline-detail-item">
+                                                                                <i
+                                                                                    class="fas fa-plane-departure text-danger"></i>
+                                                                                <div class="detail-content">
+                                                                                    <div class="detail-label">Departure
+                                                                                    </div>
+                                                                                    <div class="detail-value">
+                                                                                        {{ $stop->departure_from_destination ? date('d F Y H:i', strtotime($stop->departure_from_destination)) : 'Not recorded' }}
+                                                                                        @if ($stop->departureChecker)
+                                                                                            <br><small
+                                                                                                class="text-muted">by
+                                                                                                {{ $stop->departureChecker->name }}</small>
+                                                                                        @endif
+                                                                                        @if ($stop->departure_remark)
+                                                                                            <br><small
+                                                                                                class="text-muted">{{ $stop->departure_remark }}</small>
+                                                                                        @endif
+                                                                                    </div>
+                                                                                </div>
+                                                                            </div>
+                                                                        @endif
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        @else
+                                            <!-- Incomplete Stop - Regular Display -->
+                                            <div
+                                                class="timeline-item {{ $stop->hasArrival() ? 'arrival-only' : 'departure-only' }}">
+                                                <div class="timeline-marker">
+                                                    <i
+                                                        class="fas {{ $stop->hasArrival() ? 'fa-plane-arrival' : 'fa-plane-departure' }}"></i>
+                                                </div>
+                                                <div class="timeline-content">
+                                                    <div class="timeline-header">
+                                                        <h4>Stop #{{ $index + 1 }}</h4>
+                                                        <span class="timeline-status">
+                                                            @if ($stop->hasArrival())
+                                                                <span class="badge badge-warning">Arrival Only</span>
+                                                            @else
+                                                                <span class="badge badge-info">Departure Only</span>
+                                                            @endif
+                                                        </span>
+                                                    </div>
+
+                                                    <div class="timeline-details">
+                                                        @if ($stop->hasArrival())
+                                                            <div class="timeline-detail-item">
+                                                                <i class="fas fa-plane-arrival text-success"></i>
+                                                                <div class="detail-content">
+                                                                    <div class="detail-label">Arrival</div>
+                                                                    <div class="detail-value">
+                                                                        {{ $stop->arrival_at_destination ? date('d F Y H:i', strtotime($stop->arrival_at_destination)) : 'Not recorded' }}
+                                                                        @if ($stop->arrivalChecker)
+                                                                            <br><small class="text-muted">by
+                                                                                {{ $stop->arrivalChecker->name }}</small>
+                                                                        @endif
+                                                                        @if ($stop->arrival_remark)
+                                                                            <br><small
+                                                                                class="text-muted">{{ $stop->arrival_remark }}</small>
+                                                                        @endif
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        @endif
+
+                                                        @if ($stop->hasDeparture())
+                                                            <div class="timeline-detail-item">
+                                                                <i class="fas fa-plane-departure text-danger"></i>
+                                                                <div class="detail-content">
+                                                                    <div class="detail-label">Departure</div>
+                                                                    <div class="detail-value">
+                                                                        {{ $stop->departure_from_destination ? date('d F Y H:i', strtotime($stop->departure_from_destination)) : 'Not recorded' }}
+                                                                        @if ($stop->departureChecker)
+                                                                            <br><small class="text-muted">by
+                                                                                {{ $stop->departureChecker->name }}</small>
+                                                                        @endif
+                                                                        @if ($stop->departure_remark)
+                                                                            <br><small
+                                                                                class="text-muted">{{ $stop->departure_remark }}</small>
+                                                                        @endif
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        @endif
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        @endif
+                                    @endforeach
+                                </div>
+                            @else
+                                <div class="no-stops">
+                                    <i class="fas fa-route text-muted"></i>
+                                    <p class="text-muted">No stops recorded yet</p>
+                                </div>
+                            @endif
+                        </div>
+                    </div>
                     <!-- Approval Status Card -->
                     <x-approval-status-card :documentType="'officialtravel'" :documentId="$officialtravel->id" :mode="$officialtravel->status === 'draft' ? 'preview' : 'status'" :projectId="$officialtravel->official_travel_origin"
                         :departmentId="$officialtravel->traveler->position->department_id ?? null" title="Approval Status" />
@@ -247,47 +414,25 @@
                                         <i class="fas fa-paper-plane"></i> Submit for Approval
                                     </button>
                                 @endif
-
-                                {{-- <!-- Recommend button (Legacy System) -->
-                                @if ($officialtravel->recommendation_status == 'pending')
-                                    @can('official-travels.recommend')
-                                        @if (Auth::id() == $officialtravel->recommendation_by)
-                                            <a href="{{ route('officialtravels.showRecommendForm', $officialtravel->id) }}"
-                                                class="btn-action recommend-btn">
-                                                <i class="fas fa-thumbs-up"></i> Recommend
-                                            </a>
-                                        @endif
-                                    @endcan
-                                @endif
-
-                                <!-- Approve button (Legacy System) -->
-                                @if ($officialtravel->recommendation_status == 'approved' && $officialtravel->approval_status == 'pending')
-                                    @can('official-travels.approve')
-                                        @if (Auth::id() == $officialtravel->approval_by)
-                                            <a href="{{ route('officialtravels.showApprovalForm', $officialtravel->id) }}"
-                                                class="btn-action approve-btn">
-                                                <i class="fas fa-check-circle"></i> Approve
-                                            </a>
-                                        @endif
-                                    @endcan
-                                @endif --}}
                             @endif
 
                             @if ($officialtravel->status == 'approved')
                                 @can('official-travels.stamp')
-                                    @if (!$officialtravel->arrival_check_by)
+                                    @if ($officialtravel->canRecordArrival())
                                         <a href="{{ route('officialtravels.showArrivalForm', $officialtravel->id) }}"
                                             class="btn-action arrival-btn">
-                                            <i class="fas fa-plane-arrival"></i> Arrival Stamp
-                                        </a>
-                                    @elseif(!$officialtravel->departure_check_by)
-                                        <a href="{{ route('officialtravels.showDepartureForm', $officialtravel->id) }}"
-                                            class="btn-action departure-btn">
-                                            <i class="fas fa-plane-departure"></i> Departure Stamp
+                                            <i class="fas fa-plane-arrival"></i> Record Arrival
                                         </a>
                                     @endif
 
-                                    @if ($officialtravel->arrival_check_by && $officialtravel->departure_check_by)
+                                    @if ($officialtravel->canRecordDeparture())
+                                        <a href="{{ route('officialtravels.showDepartureForm', $officialtravel->id) }}"
+                                            class="btn-action departure-btn">
+                                            <i class="fas fa-plane-departure"></i> Record Departure
+                                        </a>
+                                    @endif
+
+                                    @if ($officialtravel->canClose())
                                         <button type="button" class="btn-action close-btn" data-toggle="modal"
                                             data-target="#closeModal">
                                             <i class="fas fa-lock"></i> Close Official Travel
@@ -339,7 +484,7 @@
     @endif
 
     <!-- Close Modal -->
-    @if ($officialtravel->status == 'approved' && $officialtravel->arrival_check_by && $officialtravel->departure_check_by)
+    @if ($officialtravel->status == 'approved' && $officialtravel->canClose())
         <div class="modal fade custom-modal" id="closeModal" tabindex="-1" role="dialog"
             aria-labelledby="closeModalLabel" aria-hidden="true">
             <div class="modal-dialog" role="document">
@@ -834,29 +979,6 @@
             }
         }
 
-        .btn-action.recommend-btn {
-            background: linear-gradient(135deg, #ffc107, #fd7e14);
-            color: white;
-        }
-
-        .btn-action.recommend-btn:hover {
-            background: linear-gradient(135deg, #e0a800, #e8590c);
-        }
-
-        .recommend-btn {
-            background-color: #f39c12;
-        }
-
-        .approve-btn {
-            background-color: #16a085;
-        }
-
-        .recommend-btn:hover,
-        .approve-btn:hover {
-            color: white;
-            opacity: 0.9;
-            transform: translateY(-1px);
-        }
 
         .close-btn {
             background-color: #f1c40f;
@@ -922,6 +1044,257 @@
             font-size: 13px;
             color: #e74c3c;
             text-align: center;
+        }
+
+        /* Stops Timeline Styles */
+        .stops-timeline-card {
+            margin-bottom: 20px;
+        }
+
+        .timeline {
+            position: relative;
+            padding-left: 30px;
+        }
+
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 15px;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: #e9ecef;
+        }
+
+        .timeline-item {
+            position: relative;
+            margin-bottom: 30px;
+            padding-left: 30px;
+        }
+
+        .timeline-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .timeline-marker {
+            position: absolute;
+            left: -27px;
+            top: 5px;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: white;
+            border: 3px solid #e9ecef;
+            z-index: 2;
+        }
+
+        .timeline-item.complete .timeline-marker {
+            background: #28a745;
+            border-color: #28a745;
+            color: white;
+        }
+
+        .timeline-item.arrival-only .timeline-marker {
+            background: #ffc107;
+            border-color: #ffc107;
+            color: white;
+        }
+
+        .timeline-item.departure-only .timeline-marker {
+            background: #17a2b8;
+            border-color: #17a2b8;
+            color: white;
+        }
+
+        .timeline-content {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            border-left: 4px solid #e9ecef;
+        }
+
+        .timeline-item.complete .timeline-content {
+            border-left-color: #28a745;
+        }
+
+        .timeline-item.arrival-only .timeline-content {
+            border-left-color: #ffc107;
+        }
+
+        .timeline-item.departure-only .timeline-content {
+            border-left-color: #17a2b8;
+        }
+
+        .timeline-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .timeline-header h4 {
+            margin: 0;
+            color: #333;
+            font-size: 16px;
+        }
+
+        .timeline-status {
+            font-size: 12px;
+        }
+
+        .timeline-details {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .timeline-detail-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+        }
+
+        .timeline-detail-item i {
+            margin-top: 3px;
+            font-size: 16px;
+        }
+
+        .timeline-detail-item .detail-content {
+            flex: 1;
+        }
+
+        .timeline-detail-item .detail-label {
+            font-weight: 600;
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 5px;
+        }
+
+        .timeline-detail-item .detail-value {
+            color: #333;
+            font-size: 14px;
+            line-height: 1.4;
+        }
+
+        .no-stops {
+            text-align: center;
+            padding: 40px 20px;
+            color: #6c757d;
+        }
+
+        .no-stops i {
+            font-size: 48px;
+            margin-bottom: 15px;
+            display: block;
+        }
+
+        .no-stops p {
+            margin: 0;
+            font-size: 16px;
+        }
+
+        /* Accordion Styles */
+        .accordion .card {
+            border: none;
+            box-shadow: none;
+            background: transparent;
+        }
+
+        .accordion .card-header {
+            background: transparent;
+            border: none;
+            padding: 0;
+        }
+
+        .accordion .btn-link {
+            color: #6c757d;
+            text-decoration: none;
+            font-weight: 500;
+            padding: 10px 15px;
+            border-radius: 6px;
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+        }
+
+        .accordion .btn-link:hover {
+            color: #495057;
+            background: #e9ecef;
+            text-decoration: none;
+        }
+
+        .accordion .btn-link:focus {
+            box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+            outline: none;
+        }
+
+        .accordion .btn-link.collapsed .accordion-icon {
+            transform: rotate(0deg);
+        }
+
+        .accordion .btn-link:not(.collapsed) .accordion-icon {
+            transform: rotate(180deg);
+        }
+
+        .accordion-icon {
+            transition: transform 0.3s ease;
+            font-size: 12px;
+        }
+
+        .accordion-title {
+            font-size: 14px;
+        }
+
+        .accordion .card-body {
+            padding: 15px 0 0 0;
+            background: transparent;
+        }
+
+        .accordion .timeline-details {
+            margin-top: 0;
+        }
+
+        /* Mobile responsive */
+        @media (max-width: 768px) {
+            .timeline {
+                padding-left: 20px;
+            }
+
+            .timeline::before {
+                left: 10px;
+            }
+
+            .timeline-item {
+                padding-left: 20px;
+            }
+
+            .timeline-marker {
+                left: -15px;
+                width: 25px;
+                height: 25px;
+            }
+
+            .timeline-content {
+                padding: 15px;
+            }
+
+            .timeline-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+
+            .accordion .btn-link {
+                padding: 8px 12px;
+                font-size: 13px;
+            }
         }
     </style>
 

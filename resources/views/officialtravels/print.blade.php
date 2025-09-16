@@ -5,7 +5,15 @@
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>LETTER OF OFFICIAL TRAVEL</title>
-        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+        {{-- <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet"> --}}
+        <!-- Google Font: Source Sans Pro -->
+        <link rel="stylesheet" href="{{ asset('assets/dist/css/font.css') }}">
+        <!-- Font Awesome -->
+        <link rel="stylesheet" href="{{ asset('assets/plugins/fontawesome-free/css/all.min.css') }}">
+        <!-- SweetAlert2 -->
+        <link rel="stylesheet" href="{{ asset('assets/plugins/sweetalert2-theme-bootstrap-4/bootstrap-4.min.css') }}">
+        <!-- Theme style -->
+        <link rel="stylesheet" href="{{ asset('assets/dist/css/adminlte.min.css') }}">
         <style>
             body {
                 font-family: Arial, sans-serif;
@@ -192,49 +200,99 @@
 
             <div class="mt-3 mb-2">
                 <div class="mb-1">
-                    <strong>Arrival and Departure : </strong><i>(filled by officer on destination with Stamp and
+                    <strong>Arrivals and Departures : </strong><i>(filled by officer on destination with Stamp and
                         Sign)</i>
                 </div>
-                <table class="table table-sm table-bordered arrival-departure">
-                    <tr>
-                        <td width="50%">
-                            <strong>Arrival at Destination</strong>
-                        </td>
-                        <td width="50%">
-                            <strong>Departure from Destination</strong>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td width="50%" height="120px">
-                            <div>
-                                <strong>Checked by:</strong><br>
-                                {{ $officialtravel->arrivalChecker->name ?? '.........................' }}
-                            </div>
-                            <div>
-                                <strong>Remarks:</strong><br>
-                                {{ $officialtravel->arrival_remark ?? '.........................' }}
-                            </div>
-                            <div>
-                                <strong>Date:</strong><br>
-                                {{ $officialtravel->arrival_at_destination ? date('d/m/Y', strtotime($officialtravel->arrival_at_destination)) : '.........................' }}
-                            </div>
-                        </td>
-                        <td width="50%" height="120px">
-                            <div>
-                                <strong>Checked by:</strong><br>
-                                {{ $officialtravel->departureChecker->name ?? '.........................' }}
-                            </div>
-                            <div>
-                                <strong>Remarks:</strong><br>
-                                {{ $officialtravel->departure_remark ?? '.........................' }}
-                            </div>
-                            <div>
-                                <strong>Date:</strong><br>
-                                {{ $officialtravel->departure_from_destination ? date('d/m/Y', strtotime($officialtravel->departure_from_destination)) : '.........................' }}
-                            </div>
-                        </td>
-                    </tr>
-                </table>
+                @if ($officialtravel->stops->count() > 0)
+                    @foreach ($officialtravel->stops as $index => $stop)
+                        <div class="mb-3">
+                            <h6><strong>Stop #{{ $index + 1 }}</strong></h6>
+                            <table class="table table-sm table-bordered arrival-departure">
+                                <tr>
+                                    <td width="50%">
+                                        <strong>Arrival at Destination</strong>
+                                    </td>
+                                    <td width="50%">
+                                        <strong>Departure from Destination</strong>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td width="50%" height="120px">
+                                        <div>
+                                            <strong>Checked by:</strong><br>
+                                            {{ $stop->arrivalChecker->name ?? '.........................' }}
+                                        </div>
+                                        <div>
+                                            <strong>Remarks:</strong><br>
+                                            {{ $stop->arrival_remark ?? '.........................' }}
+                                        </div>
+                                        <div>
+                                            <strong>Date:</strong><br>
+                                            {{ $stop->arrival_at_destination ? date('d/m/Y', strtotime($stop->arrival_at_destination)) : '.........................' }}
+                                        </div>
+                                    </td>
+                                    <td width="50%" height="120px">
+                                        <div>
+                                            <strong>Checked by:</strong><br>
+                                            {{ $stop->departureChecker->name ?? '.........................' }}
+                                        </div>
+                                        <div>
+                                            <strong>Remarks:</strong><br>
+                                            {{ $stop->departure_remark ?? '.........................' }}
+                                        </div>
+                                        <div>
+                                            <strong>Date:</strong><br>
+                                            {{ $stop->departure_from_destination ? date('d/m/Y', strtotime($stop->departure_from_destination)) : '.........................' }}
+                                        </div>
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+                    @endforeach
+                @else
+                    <div class="mb-3">
+                        <table class="table table-sm table-bordered arrival-departure">
+                            <tr>
+                                <td width="50%">
+                                    <strong>Arrival at Destination</strong>
+                                </td>
+                                <td width="50%">
+                                    <strong>Departure from Destination</strong>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td width="50%" height="120px">
+                                    <div>
+                                        <strong>Checked by:</strong><br>
+                                        .........................
+                                    </div>
+                                    <div>
+                                        <strong>Remarks:</strong><br>
+                                        .........................
+                                    </div>
+                                    <div>
+                                        <strong>Date:</strong><br>
+                                        .........................
+                                    </div>
+                                </td>
+                                <td width="50%" height="120px">
+                                    <div>
+                                        <strong>Checked by:</strong><br>
+                                        .........................
+                                    </div>
+                                    <div>
+                                        <strong>Remarks:</strong><br>
+                                        .........................
+                                    </div>
+                                    <div>
+                                        <strong>Date:</strong><br>
+                                        .........................
+                                    </div>
+                                </td>
+                            </tr>
+                        </table>
+                    </div>
+                @endif
             </div>
 
             <div class="info-row">
@@ -298,11 +356,11 @@
                 <div class="signature-boxes">
                     <div class="signature-box">
                         <div>Approved by,</div>
-                        <div style="margin-top: 70px">( {{ $officialtravel->approver->name ?? 'Position' }} )</div>
+                        <div style="margin-top: 70px">( Position )</div>
                     </div>
                     <div class="signature-box">
                         <div>Recommended by,</div>
-                        <div style="margin-top: 70px">( {{ $officialtravel->recommender->name ?? 'Position' }} )</div>
+                        <div style="margin-top: 70px">( Position )</div>
                     </div>
                 </div>
             </div>

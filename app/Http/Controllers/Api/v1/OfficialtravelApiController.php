@@ -75,8 +75,8 @@ class OfficialtravelApiController extends Controller
                 'details.follower.employee',
                 'details.follower.position.department',
                 'details.follower.project',
-                'arrivalChecker',
-                'departureChecker',
+                'stops.arrivalChecker',
+                'stops.departureChecker',
                 'creator',
                 'approval_plans' => function ($q) {
                     $q->orderBy('id');
@@ -164,15 +164,17 @@ class OfficialtravelApiController extends Controller
                 'details.follower.employee',
                 'details.follower.position.department',
                 'details.follower.project',
-                'arrivalChecker',
-                'departureChecker',
+                'stops.arrivalChecker',
+                'stops.departureChecker',
                 'creator',
                 'approval_plans' => function ($q) {
                     $q->orderBy('id');
                 },
                 'approval_plans.approver'
             ])
-                ->whereNotNull('departure_from_destination')
+                ->whereHas('stops', function ($q) {
+                    $q->whereNotNull('departure_from_destination');
+                })
                 ->where('is_claimed', 'yes')
                 ->orderBy('created_at', 'desc')
                 ->get();
@@ -248,12 +250,14 @@ class OfficialtravelApiController extends Controller
                 'details.follower.employee',
                 'details.follower.position.department',
                 'details.follower.project',
-                'arrivalChecker',
-                'departureChecker',
+                'stops.arrivalChecker',
+                'stops.departureChecker',
                 'creator',
                 'approval_plans.approver'
             ])
-                ->whereNotNull('departure_from_destination')
+                ->whereHas('stops', function ($q) {
+                    $q->whereNotNull('departure_from_destination');
+                })
                 ->where('is_claimed', 'no')
                 ->orderBy('created_at', 'desc')
                 ->get();
@@ -303,8 +307,8 @@ class OfficialtravelApiController extends Controller
                 'details.follower.employee',
                 'details.follower.position.department',
                 'details.follower.project',
-                'arrivalChecker',
-                'departureChecker',
+                'stops.arrivalChecker',
+                'stops.departureChecker',
                 'creator',
                 'approval_plans' => function ($q) {
                     $q->orderBy('id');
@@ -366,10 +370,8 @@ class OfficialtravelApiController extends Controller
                 'details.follower.employee',
                 'details.follower.position.department',
                 'details.follower.project',
-                'arrivalChecker',
-                'departureChecker',
-                'recommender',
-                'approver',
+                'stops.arrivalChecker',
+                'stops.departureChecker',
                 'creator'
             ])->where('official_travel_number', $request->official_travel_number)->first();
 
