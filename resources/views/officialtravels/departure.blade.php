@@ -107,34 +107,43 @@
                                 </div>
                             </div>
 
-                            <!-- Previous Arrival Info -->
+                            <!-- Current Stop Info -->
                             <div class="arrival-info mt-4">
-                                <h3><i class="fas fa-history"></i> Previous Arrival Information</h3>
-                                <div class="info-grid mt-3">
-                                    <div class="info-item">
-                                        <div class="info-icon" style="background-color: #9b59b6;">
-                                            <i class="fas fa-user-check"></i>
+                                <h3><i class="fas fa-history"></i> Current Stop Information</h3>
+                                @if ($officialtravel->latestStop && $officialtravel->latestStop->hasArrival())
+                                    <div class="info-grid mt-3">
+                                        <div class="info-item">
+                                            <div class="info-icon" style="background-color: #9b59b6;">
+                                                <i class="fas fa-user-check"></i>
+                                            </div>
+                                            <div class="info-content">
+                                                <div class="info-label">Arrival Confirmed By</div>
+                                                <div class="info-value">
+                                                    {{ $officialtravel->latestStop->arrivalChecker->name ?? 'Unknown' }}
+                                                </div>
+                                                <div class="info-meta">
+                                                    {{ $officialtravel->latestStop->arrival_timestamps ? date('d M Y H:i', strtotime($officialtravel->latestStop->arrival_timestamps)) : 'N/A' }}
+                                                </div>
+                                            </div>
                                         </div>
-                                        <div class="info-content">
-                                            <div class="info-label">Arrival Confirmed By</div>
-                                            <div class="info-value">
-                                                {{ $officialtravel->arrivalChecker->name ?? 'Unknown' }}</div>
-                                            <div class="info-meta">
-                                                {{ $officialtravel->arrival_timestamps ? date('d M Y H:i', strtotime($officialtravel->arrival_timestamps)) : 'N/A' }}
+
+                                        <div class="info-item">
+                                            <div class="info-icon" style="background-color: #16a085;">
+                                                <i class="fas fa-clipboard-list"></i>
+                                            </div>
+                                            <div class="info-content">
+                                                <div class="info-label">Arrival Notes</div>
+                                                <div class="info-value">{{ $officialtravel->latestStop->arrival_remark }}
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
-
-                                    <div class="info-item">
-                                        <div class="info-icon" style="background-color: #16a085;">
-                                            <i class="fas fa-clipboard-list"></i>
-                                        </div>
-                                        <div class="info-content">
-                                            <div class="info-label">Arrival Notes</div>
-                                            <div class="info-value">{{ $officialtravel->arrival_remark }}</div>
-                                        </div>
+                                @else
+                                    <div class="alert alert-warning">
+                                        <i class="fas fa-exclamation-triangle"></i>
+                                        No arrival recorded for current stop. Please record arrival first.
                                     </div>
-                                </div>
+                                @endif
                             </div>
 
                             @if ($officialtravel->details->count() > 0)

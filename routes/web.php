@@ -228,15 +228,12 @@ Route::group(['middleware' => ['auth']], function () {
     Route::get('officialtravels/test-letter-integration', [OfficialtravelController::class, 'testLetterNumberIntegration'])->name('officialtravels.testLetterIntegration');
     Route::resource('officialtravels', OfficialtravelController::class);
     Route::post('officialtravels/{officialtravel}/submit', [OfficialtravelController::class, 'submitForApproval'])->name('officialtravels.submit');
-    Route::get('officialtravels/{officialtravel}/recommend', [OfficialtravelController::class, 'showRecommendForm'])->name('officialtravels.showRecommendForm');
-    Route::post('officialtravels/{officialtravel}/recommend', [OfficialtravelController::class, 'recommend'])->name('officialtravels.recommend');
 
-    Route::get('officialtravels/{officialtravel}/approve', [OfficialtravelController::class, 'showApprovalForm'])->name('officialtravels.showApprovalForm');
-    Route::post('officialtravels/{officialtravel}/approve', [OfficialtravelController::class, 'approve'])->name('officialtravels.approve');
     Route::get('officialtravels/{officialtravel}/arrival', [OfficialtravelController::class, 'showArrivalForm'])->name('officialtravels.showArrivalForm');
     Route::post('officialtravels/{officialtravel}/arrival', [OfficialtravelController::class, 'arrivalStamp'])->name('officialtravels.arrivalStamp');
     Route::get('officialtravels/{officialtravel}/departure', [OfficialtravelController::class, 'showDepartureForm'])->name('officialtravels.showDepartureForm');
     Route::post('officialtravels/{officialtravel}/departure', [OfficialtravelController::class, 'departureStamp'])->name('officialtravels.departureStamp');
+
     Route::get('officialtravels/{officialtravel}/print', [OfficialtravelController::class, 'print'])->name('officialtravels.print');
     Route::patch('officialtravels/{officialtravel}/close', [OfficialtravelController::class, 'close'])->name('officialtravels.close');
     Route::post('officialtravels/export', [OfficialtravelController::class, 'exportExcel'])->name('officialtravels.export');

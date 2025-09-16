@@ -53,19 +53,19 @@
                     </div>
                 </div>
 
-                <!-- Pending Approvals -->
+                <!-- Pending Arrivals -->
                 <div class="col-lg-3 col-md-6 mb-3">
                     <div class="info-box bg-gradient-warning">
-                        <span class="info-box-icon"><i class="fas fa-clock"></i></span>
+                        <span class="info-box-icon"><i class="fas fa-plane-arrival"></i></span>
                         <div class="info-box-content">
-                            <span class="info-box-text">Pending Approvals</span>
-                            <span class="info-box-number">{{ $pendingApprovals }}</span>
+                            <span class="info-box-text">Pending Arrivals</span>
+                            <span class="info-box-number">{{ $pendingArrivals }}</span>
                             <div class="progress">
                                 <div class="progress-bar"
-                                    style="width: {{ $pendingApprovals > 0 ? ($pendingApprovals / ($totalTravels ?? 1)) * 100 : 0 }}%">
+                                    style="width: {{ $pendingArrivals > 0 ? ($pendingArrivals / ($totalTravels ?? 1)) * 100 : 0 }}%">
                                 </div>
                             </div>
-                            <span class="progress-description">Waiting for approval</span>
+                            <span class="progress-description">Waiting for arrival stamp</span>
                         </div>
                     </div>
                 </div>
@@ -150,19 +150,15 @@
                         </div>
                         <div class="card-body">
                             <div class="quick-actions">
-                                <a href="{{ route('approval.requests.index') }}" class="btn btn-warning btn-block mb-2">
-                                    <i class="fas fa-check-circle mr-2"></i>
-                                    Pending Approvals ({{ $pendingApprovals }})
-                                </a>
                                 <a href="#" class="btn btn-info btn-block mb-2" data-toggle="modal"
                                     data-target="#modal-arrivals">
                                     <i class="fas fa-plane-arrival mr-2"></i>
-                                    Arrival Stamps ({{ $pendingArrivals }})
+                                    Pending Arrivals ({{ $pendingArrivals }})
                                 </a>
                                 <a href="#" class="btn btn-purple btn-block mb-2" data-toggle="modal"
                                     data-target="#modal-departures">
                                     <i class="fas fa-plane-departure mr-2"></i>
-                                    Departure Stamps ({{ $pendingDepartures }})
+                                    Pending Departures ({{ $pendingDepartures }})
                                 </a>
                                 <a href="{{ route('officialtravels.index') }}" class="btn btn-secondary btn-block">
                                     <i class="fas fa-list mr-2"></i>
@@ -182,7 +178,7 @@
                         <div class="card-header">
                             <h3 class="card-title">
                                 <i class="fas fa-list mr-2"></i>
-                                Recent Official Travels
+                                Open Official Travels
                             </h3>
                         </div>
                         <div class="card-body p-0">
@@ -268,30 +264,40 @@
                                                     @endphp
                                                     <span class="{{ $pill['class'] }}">{{ $pill['label'] }}</span>
                                                 </td>
-                                                <td class="text-center">
+                                                <td class="text-left">
                                                     <div class="btn-group">
                                                         <a href="{{ route('officialtravels.show', $travel->id) }}"
                                                             class="btn btn-sm btn-outline-info" title="View Details">
                                                             <i class="fas fa-eye"></i>
                                                         </a>
                                                         @if ($travel->status === 'approved')
-                                                            @if ($travel->arrival_at_destination == null)
+                                                            @php
+                                                                $canRecordArrival = $travel->canRecordArrival();
+                                                                $canRecordDeparture = $travel->canRecordDeparture();
+                                                                $canClose = $travel->canClose();
+                                                            @endphp
+                                                            @if ($canRecordArrival)
                                                                 <a href="{{ route('officialtravels.showArrivalForm', $travel->id) }}"
                                                                     class="btn btn-sm btn-outline-primary"
-                                                                    title="Arrival">
+                                                                    title="Record Arrival">
                                                                     <i class="fas fa-plane-arrival"></i>
                                                                 </a>
-                                                            @elseif ($travel->arrival_at_destination && $travel->departure_from_destination == null)
+                                                            @endif
+                                                            @if ($canRecordDeparture)
                                                                 <a href="{{ route('officialtravels.showDepartureForm', $travel->id) }}"
                                                                     class="btn btn-sm btn-outline-success"
-                                                                    title="Departure">
+                                                                    title="Record Departure">
                                                                     <i class="fas fa-plane-departure"></i>
                                                                 </a>
-                                                            @elseif ($travel->departure_from_destination)
-                                                                <a href="{{ route('officialtravels.close', $travel->id) }}"
-                                                                    class="btn btn-sm btn-outline-warning" title="Close">
+                                                            @endif
+                                                            @if ($canClose)
+                                                                <button type="button"
+                                                                    class="btn btn-sm btn-outline-warning close-travel-btn"
+                                                                    data-travel-id="{{ $travel->id }}"
+                                                                    data-travel-number="{{ $travel->official_travel_number }}"
+                                                                    title="Close Travel">
                                                                     <i class="fas fa-lock"></i>
-                                                                </a>
+                                                                </button>
                                                             @endif
                                                         @endif
                                                     </div>
@@ -439,6 +445,40 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Close Travel Modal -->
+            <div class="modal fade custom-modal" id="closeTravelModal" tabindex="-1" role="dialog"
+                aria-labelledby="closeTravelModalLabel" aria-hidden="true">
+                <div class="modal-dialog" role="document">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="closeTravelModalLabel">Close Travel Request</h5>
+                            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                <span aria-hidden="true">&times;</span>
+                            </button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="close-icon">
+                                <i class="fas fa-lock text-warning"></i>
+                            </div>
+                            <p class="close-message">Are you sure you want to close this official travel?</p>
+                            <p class="close-warning">This action cannot be undone and no further changes will be allowed.
+                            </p>
+                            <div class="travel-info">
+                                <strong>Travel Number:</strong> <span id="modal-travel-number"></span>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn-cancel" data-dismiss="modal">Cancel</button>
+                            <form id="close-travel-form" action="" method="POST" class="d-inline">
+                                @csrf
+                                @method('PATCH')
+                                <button type="submit" class="btn-confirm-close">Yes, Close Travel</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </section>
 @endsection
@@ -577,6 +617,68 @@
         .progress-bar {
             border-radius: 3px;
         }
+
+        /* Close Travel Modal Styles */
+        .custom-modal .modal-content {
+            border-radius: 6px;
+            border: none;
+        }
+
+        .custom-modal .modal-header {
+            background: #f8fafc;
+            padding: 15px 20px;
+        }
+
+        .custom-modal .modal-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .close-icon {
+            text-align: center;
+            font-size: 48px;
+            margin-bottom: 15px;
+        }
+
+        .close-message {
+            font-size: 16px;
+            color: #2c3e50;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .close-warning {
+            font-size: 13px;
+            color: #e74c3c;
+            text-align: center;
+        }
+
+        .travel-info {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            margin-top: 15px;
+            text-align: center;
+        }
+
+        .btn-cancel {
+            padding: 8px 16px;
+            border-radius: 4px;
+            background: #e2e8f0;
+            color: #475569;
+            font-weight: 500;
+            border: none;
+        }
+
+        .btn-confirm-close {
+            padding: 8px 16px;
+            border-radius: 4px;
+            background-color: #f1c40f;
+            color: #2c3e50;
+            font-weight: 500;
+            border: none;
+        }
     </style>
 @endsection
 
@@ -594,6 +696,22 @@
     <script src="{{ asset('assets/plugins/datatables-buttons/js/buttons.colVis.min.js') }}"></script>
     <script>
         $(function() {
+            // Close Travel Modal Handler
+            $('.close-travel-btn').on('click', function() {
+                var travelId = $(this).data('travel-id');
+                var travelNumber = $(this).data('travel-number');
+
+                // Set travel number in modal
+                $('#modal-travel-number').text(travelNumber);
+
+                // Set form action using Laravel route
+                $('#close-travel-form').attr('action', '{{ url('officialtravels') }}/' + travelId +
+                    '/close');
+
+                // Show modal
+                $('#closeTravelModal').modal('show');
+            });
+
             // Arrivals
             if ($('#pending-arrivals-table').length) {
                 $('#pending-arrivals-table').DataTable({

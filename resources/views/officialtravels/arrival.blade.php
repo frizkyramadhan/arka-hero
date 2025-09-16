@@ -87,10 +87,27 @@
                                         <i class="fas fa-calendar-check"></i>
                                     </div>
                                     <div class="info-content">
-                                        <div class="info-label">Expected Arrival</div>
-                                        <div class="info-value">{{ $officialtravel->arrival_at_destination }}</div>
-                                        <div class="info-meta">From:
-                                            {{ date('d M Y', strtotime($officialtravel->departure_from)) }}</div>
+                                        <div class="info-label">Current Status</div>
+                                        <div class="info-value">
+                                            @php
+                                                $currentStatus = $officialtravel->getCurrentStopStatus();
+                                                $statusLabels = [
+                                                    'no_stops' => 'No stops recorded',
+                                                    'complete' => 'Latest stop complete',
+                                                    'arrival_only' => 'Waiting for departure',
+                                                    'departure_only' => 'Departure only recorded',
+                                                    'unknown' => 'Unknown status',
+                                                ];
+                                            @endphp
+                                            {{ $statusLabels[$currentStatus] ?? 'Unknown' }}
+                                        </div>
+                                        <div class="info-meta">
+                                            @if ($officialtravel->stops->count() > 0)
+                                                {{ $officialtravel->stops->count() }} stop(s) recorded
+                                            @else
+                                                First arrival
+                                            @endif
+                                        </div>
                                     </div>
                                 </div>
 

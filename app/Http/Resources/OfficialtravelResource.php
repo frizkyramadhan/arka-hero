@@ -24,11 +24,6 @@ class OfficialtravelResource extends JsonResource
             'destination' => $this->destination,
             'duration' => $this->duration,
             'departure_from' => $this->departure_from,
-            // Recommendation/approval legacy fields removed in favor of approval_plans
-            'arrival_at_destination' => $this->arrival_at_destination,
-            'arrival_remark' => $this->arrival_remark,
-            'departure_from_destination' => $this->departure_from_destination,
-            'departure_remark' => $this->departure_remark,
             'is_claimed' => $this->is_claimed,
             'claimed_at' => $this->claimed_at,
             'traveler' => $this->whenLoaded('traveler', function () {
@@ -177,21 +172,42 @@ class OfficialtravelResource extends JsonResource
                     ];
                 });
             }),
-            'arrival_checker' => $this->whenLoaded('arrivalChecker', function () {
-                return [
-                    'id' => $this->arrivalChecker->id,
-                    'name' => $this->arrivalChecker->name,
-                    'email' => $this->arrivalChecker->email,
-                    'user_status' => $this->arrivalChecker->user_status,
-                ];
-            }),
-            'departure_checker' => $this->whenLoaded('departureChecker', function () {
-                return [
-                    'id' => $this->departureChecker->id,
-                    'name' => $this->departureChecker->name,
-                    'email' => $this->departureChecker->email,
-                    'user_status' => $this->departureChecker->user_status,
-                ];
+            'stops' => $this->whenLoaded('stops', function () {
+                return $this->stops->map(function ($stop) {
+                    $stopData = [
+                        'id' => $stop->id,
+                        'arrival_at_destination' => $stop->arrival_at_destination,
+                        'arrival_remark' => $stop->arrival_remark,
+                        'arrival_timestamps' => $stop->arrival_timestamps,
+                        'departure_from_destination' => $stop->departure_from_destination,
+                        'departure_remark' => $stop->departure_remark,
+                        'departure_timestamps' => $stop->departure_timestamps,
+                        'created_at' => $stop->created_at,
+                        'updated_at' => $stop->updated_at,
+                    ];
+
+                    // Add arrival checker if loaded
+                    if ($stop->relationLoaded('arrivalChecker') && $stop->arrivalChecker) {
+                        $stopData['arrival_checker'] = [
+                            'id' => $stop->arrivalChecker->id,
+                            'name' => $stop->arrivalChecker->name,
+                            'email' => $stop->arrivalChecker->email,
+                            'user_status' => $stop->arrivalChecker->user_status,
+                        ];
+                    }
+
+                    // Add departure checker if loaded
+                    if ($stop->relationLoaded('departureChecker') && $stop->departureChecker) {
+                        $stopData['departure_checker'] = [
+                            'id' => $stop->departureChecker->id,
+                            'name' => $stop->departureChecker->name,
+                            'email' => $stop->departureChecker->email,
+                            'user_status' => $stop->departureChecker->user_status,
+                        ];
+                    }
+
+                    return $stopData;
+                })->values();
             }),
             // Legacy single recommender/approver removed; use approval_plans instead
             'approval_plans' => $this->whenLoaded('approval_plans', function () {

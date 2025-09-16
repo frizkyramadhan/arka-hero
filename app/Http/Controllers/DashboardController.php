@@ -113,26 +113,25 @@ class DashboardController extends Controller
     {
         $user = Auth::user();
 
+        // Remove legacy approval system - no more pending approvals
         $pendingApprovals = 0;
-        if ($user->can('official-travels.approve')) {
-            $pendingApprovals = Officialtravel::where('recommendation_status', 'approved')
-                ->where('approval_status', 'pending')
-                ->where('approval_by', $user->id)
-                ->count();
-        }
 
+        // New logic for pending arrivals based on stops
         $pendingArrivals = 0;
         if ($user->can('official-travels.stamp')) {
             $pendingArrivals = Officialtravel::where('status', 'approved')
-                ->whereNull('arrival_at_destination')
+                ->whereDoesntHave('stops')
                 ->count();
         }
 
+        // New logic for pending departures based on stops
         $pendingDepartures = 0;
         if ($user->can('official-travels.stamp')) {
             $pendingDepartures = Officialtravel::where('status', 'approved')
-                ->whereNotNull('arrival_at_destination')
-                ->whereNull('departure_from_destination')
+                ->whereHas('stops', function ($query) {
+                    $query->whereNotNull('arrival_at_destination')
+                        ->whereNull('departure_from_destination');
+                })
                 ->count();
         }
 
@@ -171,8 +170,8 @@ class DashboardController extends Controller
 
         $openTravel = Officialtravel::where('status', 'approved')->count();
         $openTravels = Officialtravel::with('traveler.employee')
+            ->whereNot('status', 'closed')
             ->orderBy('created_at', 'desc')
-            ->limit(5)
             ->get();
 
         return view('dashboard.official-travel', [
@@ -457,7 +456,7 @@ class DashboardController extends Controller
 
         $query = Officialtravel::with('traveler.employee')
             ->where('status', 'approved')
-            ->whereNull('arrival_at_destination');
+            ->whereDoesntHave('stops');
 
         return DataTables::of($query)
             ->addIndexColumn()
@@ -492,8 +491,10 @@ class DashboardController extends Controller
 
         $query = Officialtravel::with('traveler.employee')
             ->where('status', 'approved')
-            ->whereNotNull('arrival_at_destination')
-            ->whereNull('departure_from_destination');
+            ->whereHas('stops', function ($query) {
+                $query->whereNotNull('arrival_at_destination')
+                    ->whereNull('departure_from_destination');
+            });
 
         return DataTables::of($query)
             ->addIndexColumn()

@@ -27,15 +27,9 @@ class Officialtravel extends Model
         'departure_from' => 'date',
         'arrival_at_destination' => 'datetime',
         'departure_from_destination' => 'datetime',
-        'recommendation_date' => 'datetime',
-        'recommendation_timestamps' => 'datetime',
-        'approval_date' => 'datetime',
-        'approval_timestamps' => 'datetime',
     ];
 
-    // Constants
-    public const RECOMMENDATION_STATUSES = ['pending', 'approved', 'rejected'];
-    public const APPROVAL_STATUSES = ['pending', 'approved', 'rejected'];
+    // Constants (Legacy approval constants removed - using new approval system)
 
     // Status enum values
     public const STATUS_DRAFT = 'draft';
@@ -83,29 +77,19 @@ class Officialtravel extends Model
         return $this->hasMany(Officialtravel_detail::class, 'official_travel_id');
     }
 
-    public function arrivalChecker()
+    public function stops()
     {
-        return $this->belongsTo(User::class, 'arrival_check_by');
+        return $this->hasMany(OfficialtravelStop::class, 'official_travel_id', 'id');
     }
 
-    public function departureChecker()
+    public function latestStop()
     {
-        return $this->belongsTo(User::class, 'departure_check_by');
-    }
-
-    public function recommender()
-    {
-        return $this->belongsTo(User::class, 'recommendation_by');
+        return $this->hasOne(OfficialtravelStop::class, 'official_travel_id', 'id')->latest();
     }
 
     public function creator()
     {
         return $this->belongsTo(User::class, 'created_by');
-    }
-
-    public function approver()
-    {
-        return $this->belongsTo(User::class, 'approval_by');
     }
 
     public function approval_plans()
@@ -151,6 +135,71 @@ class Officialtravel extends Model
         }
 
         return false;
+    }
+
+    // Business logic methods for stops
+    public function canRecordArrival()
+    {
+        if ($this->status !== 'approved') {
+            return false;
+        }
+
+        $latestStop = $this->latestStop;
+        if (!$latestStop) {
+            return true; // No stops yet, can record arrival
+        }
+
+        // Can record arrival if latest stop is complete (has both arrival and departure)
+        // or if latest stop has no arrival yet
+        return $latestStop->isComplete() || !$latestStop->hasArrival();
+    }
+
+    public function canRecordDeparture()
+    {
+        if ($this->status !== 'approved') {
+            return false;
+        }
+
+        $latestStop = $this->latestStop;
+        if (!$latestStop) {
+            return false; // No stops yet, need arrival first
+        }
+
+        // Can record departure if latest stop has arrival but no departure
+        return $latestStop->hasArrival() && !$latestStop->hasDeparture();
+    }
+
+    public function canClose()
+    {
+        if ($this->status !== 'approved') {
+            return false;
+        }
+
+        $latestStop = $this->latestStop;
+        if (!$latestStop) {
+            return false; // No stops yet
+        }
+
+        // Can close if latest stop is complete (has both arrival and departure)
+        return $latestStop->isComplete();
+    }
+
+    public function getCurrentStopStatus()
+    {
+        $latestStop = $this->latestStop;
+        if (!$latestStop) {
+            return 'no_stops';
+        }
+
+        if ($latestStop->isComplete()) {
+            return 'complete';
+        } elseif ($latestStop->isArrivalOnly()) {
+            return 'arrival_only';
+        } elseif ($latestStop->isDepartureOnly()) {
+            return 'departure_only';
+        }
+
+        return 'unknown';
     }
 
     // Auto-assign letter number on creation jika tidak ada
