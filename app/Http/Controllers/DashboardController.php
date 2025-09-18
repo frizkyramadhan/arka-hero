@@ -19,6 +19,8 @@ use App\Models\RecruitmentCandidate;
 use App\Models\LetterNumber;
 use App\Models\LetterCategory;
 use App\Models\LetterSubject;
+use App\Models\EmployeeBond;
+use App\Models\BondViolation;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Yajra\DataTables\DataTables;
@@ -89,6 +91,20 @@ class DashboardController extends Controller
             ->whereMonth('employees.emp_dob', date('m'))
             ->count();
 
+        // Recent active employee bonds
+        $recentActiveEmployeeBonds = EmployeeBond::with(['employee.administrations'])
+            ->where('status', 'active')
+            ->orderBy('created_at', 'desc')
+            ->limit(5)
+            ->get();
+
+        // Pending bond violations
+        $pendingBondViolations = BondViolation::with(['employeeBond.employee.administrations'])
+            ->pending()
+            ->orderBy('created_at', 'desc')
+            ->limit(10)
+            ->get();
+
         return view('dashboard.employee', [
             'title' => 'Employee Dashboard',
             'subtitle' => 'Employee Overview',
@@ -103,6 +119,9 @@ class DashboardController extends Controller
             'nonStaffEmployees' => $nonStaffEmployees,
             'permanentEmployees' => $permanentEmployees,
             'contractEmployees' => $contractEmployees,
+            // Employee Bonds Data
+            'recentActiveEmployeeBonds' => $recentActiveEmployeeBonds,
+            'pendingBondViolations' => $pendingBondViolations,
         ]);
     }
 
