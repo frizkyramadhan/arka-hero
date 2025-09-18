@@ -114,6 +114,47 @@
                         </p>
                     </a>
                 </li>
+                <li
+                    class="nav-item {{ Request::is('employee-bonds*') || Request::is('bond-violations*') ? 'menu-open' : '' }}">
+                    <a href="#"
+                        class="nav-link {{ Request::is('employee-bonds*') || Request::is('bond-violations*') ? 'active' : '' }}">
+                        <i class="nav-icon fas fa-handshake"></i>
+                        <p>
+                            Employee Bonds
+                            <i class="fas fa-angle-left right"></i>
+                        </p>
+                    </a>
+                    <ul class="nav nav-treeview">
+                        <li class="nav-item">
+                            <a href="{{ route('employee-bonds.index') }}"
+                                class="nav-link {{ Request::is('employee-bonds') ? 'active' : '' }}">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>All Bonds</p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="{{ route('employee-bonds.create') }}"
+                                class="nav-link {{ Request::is('employee-bonds/create') ? 'active' : '' }}">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>Create Bond</p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="{{ route('bond-violations.index') }}"
+                                class="nav-link {{ Request::is('bond-violations') ? 'active' : '' }}">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>Bond Violations</p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="{{ route('bond-violations.create') }}"
+                                class="nav-link {{ Request::is('bond-violations/create') ? 'active' : '' }}">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>Record Violation</p>
+                            </a>
+                        </li>
+                    </ul>
+                </li>
                 {{-- SUMMARY EMPLOYEE --}}
                 {{-- <li
                     class="nav-item {{ Request::is('personals*') || Request::is('licenses*') || Request::is('insurances*') || Request::is('families*') || Request::is('educations*') || Request::is('courses*') || Request::is('emrgcalls*') || Request::is('additionaldatas*') || Request::is('employeebanks*') || Request::is('administrations*') || Request::is('jobexperiences*') || Request::is('operableunits*') || Request::is('taxidentifications*') ? 'menu-open' : '' }}">

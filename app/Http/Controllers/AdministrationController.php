@@ -18,7 +18,11 @@ class AdministrationController extends Controller
     {
         $title = ' Employee Administration';
         $subtitle = ' Employee Administration';
-        $employees = Employee::orderBy('fullname', 'asc')->get();
+        $employees = Employee::join('administrations', 'employees.id', '=', 'administrations.employee_id')
+            ->where('administrations.is_active', 1)
+            ->select('employees.*', 'administrations.nik')
+            ->orderBy('employees.fullname', 'asc')
+            ->get();
         return view('administration.index', compact('title', 'subtitle', 'employees'));
     }
 
@@ -127,7 +131,11 @@ class AdministrationController extends Controller
                 }
             })
             ->addColumn('action', function ($administrations) {
-                $employees = Employee::orderBy('fullname', 'asc')->get();
+                $employees = Employee::join('administrations', 'employees.id', '=', 'administrations.employee_id')
+                    ->where('administrations.is_active', 1)
+                    ->select('employees.*')
+                    ->orderBy('employees.fullname', 'asc')
+                    ->get();
                 return view('administration.action', compact('employees', 'administrations'));
             })
             ->rawColumns(['is_active', 'action'])

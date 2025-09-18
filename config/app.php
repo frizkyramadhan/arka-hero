@@ -200,6 +200,11 @@ return [
         App\Providers\EventServiceProvider::class,
         App\Providers\RouteServiceProvider::class,
 
+        /*
+         * Package Service Providers...
+         */
+        Yajra\DataTables\DataTablesServiceProvider::class,
+
     ],
 
     /*
