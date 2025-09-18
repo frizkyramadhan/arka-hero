@@ -319,6 +319,7 @@ Route::group(['middleware' => ['auth']], function () {
     Route::resource('employee-bonds', EmployeeBondController::class);
 
     // Bond Violation Management
+    Route::get('bond-violations/data', [BondViolationController::class, 'getViolations'])->name('bond-violations.data');
     Route::resource('bond-violations', BondViolationController::class);
     Route::post('bond-violations/calculate-penalty', [BondViolationController::class, 'calculatePenalty'])->name('bond-violations.calculate-penalty');
 

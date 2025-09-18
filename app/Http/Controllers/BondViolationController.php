@@ -7,15 +7,17 @@ use App\Models\BondViolation;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
+use Yajra\DataTables\Facades\DataTables;
+use Illuminate\Support\Str;
 
 class BondViolationController extends Controller
 {
     public function __construct()
     {
-        // $this->middleware('permission:bond-violations.show')->only('index', 'show');
-        // $this->middleware('permission:bond-violations.create')->only('create', 'store');
-        // $this->middleware('permission:bond-violations.edit')->only('edit', 'update');
-        // $this->middleware('permission:bond-violations.delete')->only('destroy');
+        $this->middleware('role_or_permission:employees.show')->only('index', 'show', 'getViolations');
+        $this->middleware('role_or_permission:employees.create')->only('create');
+        $this->middleware('role_or_permission:employees.edit')->only('edit');
+        $this->middleware('role_or_permission:employees.delete')->only('destroy');
     }
 
     /**
@@ -26,16 +28,117 @@ class BondViolationController extends Controller
         $title = 'Bond Violations';
         $subtitle = 'Bond Violation Management';
 
-        $violations = BondViolation::with(['employeeBond.employee'])
-            ->when($request->employee_id, function ($query, $employeeId) {
-                return $query->whereHas('employeeBond', function ($q) use ($employeeId) {
-                    $q->where('employee_id', $employeeId);
-                });
-            })
-            ->orderBy('created_at', 'desc')
-            ->paginate(20);
+        return view('employee-bonds.index-violations', compact('title', 'subtitle'));
+    }
 
-        return view('employee-bonds.index-violations', compact('title', 'subtitle', 'violations'));
+    /**
+     * Get violations data for DataTable
+     */
+    public function getViolations(Request $request)
+    {
+        $query = BondViolation::with(['employeeBond.employee.administrations'])
+            ->select('bond_violations.*');
+
+        return DataTables::of($query)
+            ->addIndexColumn()
+            ->addColumn('employee_name', function ($violation) {
+                return $violation->employeeBond->employee->fullname ?? '-';
+            })
+            ->addColumn('employee_nik', function ($violation) {
+                $employee = $violation->employeeBond->employee ?? null;
+                if (!$employee) return '-';
+
+                $administrations = $employee->administrations ?? collect();
+                return $administrations->isNotEmpty()
+                    ? ($administrations->first()->nik ?? '-')
+                    : '-';
+            })
+            ->addColumn('bond_name', function ($violation) {
+                return $violation->employeeBond->bond_name ?? '-';
+            })
+            ->addColumn('violation_date_formatted', function ($violation) {
+                return $violation->violation_date ? $violation->violation_date->format('d/m/Y') : '-';
+            })
+            ->addColumn('reason_short', function ($violation) {
+                return $violation->reason ? Str::limit($violation->reason, 30) : '-';
+            })
+            ->addColumn('days_worked', function ($violation) {
+                return $violation->days_worked . ' days';
+            })
+            ->addColumn('days_remaining', function ($violation) {
+                return $violation->days_remaining . ' days';
+            })
+            ->addColumn('penalty_amount', function ($violation) {
+                return $violation->formatted_calculated_penalty;
+            })
+            ->addColumn('paid_amount', function ($violation) {
+                return $violation->formatted_paid_penalty;
+            })
+            ->addColumn('payment_status', function ($violation) {
+                $status = $violation->payment_status;
+                if ($status == 'paid') {
+                    return '<span class="badge badge-success">Paid</span>';
+                } elseif ($status == 'partial') {
+                    return '<span class="badge badge-warning">Partial</span>';
+                } else {
+                    return '<span class="badge badge-danger">Pending</span>';
+                }
+            })
+            ->addColumn('actions', function ($violation) {
+                $actions = '<div class="btn-group" role="group">';
+                $actions .= '<a href="' . route('bond-violations.show', $violation->id) . '" class="btn btn-sm btn-info mr-1" title="View"><i class="fas fa-eye"></i></a>';
+                $actions .= '<a href="' . route('bond-violations.edit', $violation->id) . '" class="btn btn-sm btn-warning mr-1" title="Edit"><i class="fas fa-edit"></i></a>';
+                $actions .= '<button class="btn btn-sm btn-danger" onclick="deleteViolation(' . $violation->id . ')" title="Delete"><i class="fas fa-trash"></i></button>';
+                $actions .= '</div>';
+                return $actions;
+            })
+            ->filter(function ($query) use ($request) {
+                if ($request->has('employee_id') && $request->employee_id) {
+                    $query->whereHas('employeeBond', function ($q) use ($request) {
+                        $q->where('employee_id', $request->employee_id);
+                    });
+                }
+
+                if ($request->has('status') && $request->status) {
+                    $query->where('payment_status', $request->status);
+                }
+
+                if ($request->has('bond_name') && $request->bond_name) {
+                    $query->whereHas('employeeBond', function ($q) use ($request) {
+                        $q->where('bond_name', 'like', "%{$request->bond_name}%");
+                    });
+                }
+
+                if ($request->has('reason') && $request->reason) {
+                    $query->where('reason', 'like', "%{$request->reason}%");
+                }
+
+                if ($request->has('date_from') && $request->date_from) {
+                    $query->whereDate('violation_date', '>=', $request->date_from);
+                }
+
+                if ($request->has('date_to') && $request->date_to) {
+                    $query->whereDate('violation_date', '<=', $request->date_to);
+                }
+
+                if ($request->has('search') && $request->search['value']) {
+                    $searchValue = $request->search['value'];
+                    $query->where(function ($q) use ($searchValue) {
+                        $q->whereHas('employeeBond.employee', function ($subQ) use ($searchValue) {
+                            $subQ->where('fullname', 'like', "%{$searchValue}%");
+                        })
+                            ->orWhereHas('employeeBond', function ($subQ) use ($searchValue) {
+                                $subQ->where('bond_name', 'like', "%{$searchValue}%");
+                            })
+                            ->orWhere('reason', 'like', "%{$searchValue}%");
+                    });
+                }
+            })
+            ->order(function ($query) {
+                $query->orderBy('created_at', 'desc');
+            })
+            ->rawColumns(['payment_status', 'actions'])
+            ->make(true);
     }
 
     /**

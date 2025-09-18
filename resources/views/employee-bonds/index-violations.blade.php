@@ -45,80 +45,98 @@
                                 </div>
                             </div><!-- /.card-header -->
                             <div class="card-body">
+                                <!-- Filter Form -->
+                                <div class="card card-primary">
+                                    <div class="card-header">
+                                        <h4 class="card-title w-100">
+                                            <a class="d-block w-100" data-toggle="collapse" href="#collapseOne">
+                                                <i class="fas fa-filter"></i> Filter
+                                            </a>
+                                        </h4>
+                                    </div>
+                                    <div id="collapseOne" class="collapse" data-parent="#accordion">
+                                        <div class="card-body">
+                                            <div class="row">
+                                                <div class="col-md-3">
+                                                    <div class="form-group">
+                                                        <label>Status</label>
+                                                        <select class="form-control select2bs4" id="status-filter">
+                                                            <option value="">All Status</option>
+                                                            <option value="paid">Paid</option>
+                                                            <option value="partial">Partial</option>
+                                                            <option value="pending">Pending</option>
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <div class="form-group">
+                                                        <label>Employee</label>
+                                                        <select class="form-control select2bs4" id="employee-filter">
+                                                            <option value="">All Employees</option>
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <div class="form-group">
+                                                        <label>Bond Name</label>
+                                                        <input type="text" class="form-control" id="bond_name"
+                                                            placeholder="Search by bond name">
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <div class="form-group">
+                                                        <label>Reason</label>
+                                                        <input type="text" class="form-control" id="reason"
+                                                            placeholder="Search by reason">
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <div class="form-group">
+                                                        <label>Date From</label>
+                                                        <input type="date" class="form-control" id="date_from">
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <div class="form-group">
+                                                        <label>Date To</label>
+                                                        <input type="date" class="form-control" id="date_to">
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <div class="form-group">
+                                                        <label>&nbsp;</label>
+                                                        <button type="button" id="btn-reset"
+                                                            class="btn btn-danger btn-block">
+                                                            <i class="fas fa-times"></i> Reset Filter
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
                                 <div class="table-responsive">
                                     <table id="violations-table" class="table table-bordered table-striped">
                                         <thead>
                                             <tr>
-                                                <th class="align-middle text-center">No</th>
+                                                <th class="text-center align-middle" width="5%">No</th>
                                                 <th class="align-middle">Employee</th>
                                                 <th class="align-middle">Bond Name</th>
-                                                <th class="align-middle text-center">Violation Date</th>
+                                                <th class="text-center align-middle">Violation Date</th>
                                                 <th class="align-middle">Reason</th>
-                                                <th class="align-middle text-center">Days Worked</th>
-                                                <th class="align-middle text-center">Days Remaining</th>
-                                                <th class="align-middle text-center">Penalty Amount</th>
-                                                <th class="align-middle text-center">Paid Amount</th>
-                                                <th class="align-middle text-center">Status</th>
-                                                <th class="align-middle text-center" width="12%">Actions</th>
+                                                <th class="text-center align-middle">Days Worked</th>
+                                                <th class="text-center align-middle">Days Remaining</th>
+                                                <th class="text-center align-middle">Penalty Amount</th>
+                                                <th class="text-center align-middle">Paid Amount</th>
+                                                <th class="text-center align-middle">Status</th>
+                                                <th class="text-center align-middle" width="11%">Actions</th>
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            @foreach ($violations as $violation)
-                                                <tr>
-                                                    <td class="align-middle text-center">{{ $loop->iteration }}</td>
-                                                    <td class="align-middle">
-                                                        <strong>{{ $violation->employeeBond->employee->fullname }}</strong><br>
-                                                        <small
-                                                            class="text-muted">{{ $violation->employeeBond->employee->identity_card }}</small>
-                                                    </td>
-                                                    <td class="align-middle">
-                                                        <strong>{{ $violation->employeeBond->bond_name }}</strong>
-                                                    </td>
-                                                    <td class="align-middle text-center">
-                                                        {{ $violation->violation_date->format('d/m/Y') }}</td>
-                                                    <td class="align-middle">
-                                                        {{ $violation->reason ? Str::limit($violation->reason, 30) : '-' }}
-                                                    </td>
-                                                    <td class="align-middle text-center">{{ $violation->days_worked }} days
-                                                    </td>
-                                                    <td class="align-middle text-center">{{ $violation->days_remaining }}
-                                                        days</td>
-                                                    <td class="align-middle text-center">
-                                                        {{ $violation->formatted_calculated_penalty }}</td>
-                                                    <td class="align-middle text-center">
-                                                        {{ $violation->formatted_paid_penalty }}</td>
-                                                    <td class="align-middle text-center">
-                                                        @if ($violation->payment_status == 'paid')
-                                                            <span class="badge badge-success">Paid</span>
-                                                        @elseif($violation->payment_status == 'partial')
-                                                            <span class="badge badge-warning">Partial</span>
-                                                        @else
-                                                            <span class="badge badge-danger">Pending</span>
-                                                        @endif
-                                                    </td>
-                                                    <td class="align-middle text-center">
-                                                        <a href="{{ route('bond-violations.show', $violation->id) }}"
-                                                            class="btn btn-sm btn-info" title="View">
-                                                            <i class="fas fa-eye"></i>
-                                                        </a>
-                                                        <a href="{{ route('bond-violations.edit', $violation->id) }}"
-                                                            class="btn btn-sm btn-warning" title="Edit">
-                                                            <i class="fas fa-edit"></i>
-                                                        </a>
-                                                        <button class="btn btn-sm btn-danger"
-                                                            onclick="deleteViolation({{ $violation->id }})" title="Delete">
-                                                            <i class="fas fa-trash"></i>
-                                                        </button>
-                                                    </td>
-                                                </tr>
-                                            @endforeach
+                                            <!-- Data will be loaded via AJAX -->
                                         </tbody>
                                     </table>
-                                </div>
-
-                                <!-- Pagination -->
-                                <div class="d-flex justify-content-center">
-                                    {{ $violations->links() }}
                                 </div>
                             </div><!-- /.card-body -->
                         </div>
@@ -198,26 +216,129 @@
                 document.querySelector('.select2-search__field').focus();
             });
 
+            // Load employees for filter
+            $.ajax({
+                url: '{{ route('employees.data') }}',
+                type: 'GET',
+                success: function(data) {
+                    var options = '<option value="">All Employees</option>';
+                    $.each(data.data, function(index, employee) {
+                        options += '<option value="' + employee.id + '">' + (employee.nik ||
+                            '-') + ' - ' + employee.fullname + '</option>';
+                    });
+                    $('#employee-filter').html(options);
+                }
+            });
+
             // Initialize DataTable
             var table = $("#violations-table").DataTable({
                 responsive: true,
                 autoWidth: true,
-                lengthChange: true,
+                dom: 'rtip',
+                processing: true,
+                serverSide: true,
+                ajax: {
+                    url: "{{ route('bond-violations.data') }}",
+                    data: function(d) {
+                        d.status = $('#status-filter').val(),
+                            d.employee_id = $('#employee-filter').val(),
+                            d.bond_name = $('#bond_name').val(),
+                            d.reason = $('#reason').val(),
+                            d.date_from = $('#date_from').val(),
+                            d.date_to = $('#date_to').val(),
+                            d.search = $("input[type=search][aria-controls=violations-table]").val()
+                    }
+                },
+                columns: [{
+                        data: 'DT_RowIndex',
+                        name: 'DT_RowIndex',
+                        orderable: false,
+                        searchable: false,
+                        className: 'text-center'
+                    },
+                    {
+                        data: 'employee_name',
+                        name: 'employee_name',
+                        render: function(data, type, row) {
+                            return '<strong>' + data + '</strong><br><small class="text-muted">' +
+                                row.employee_nik + '</small>';
+                        }
+                    },
+                    {
+                        data: 'bond_name',
+                        name: 'bond_name'
+                    },
+                    {
+                        data: 'violation_date_formatted',
+                        name: 'violation_date',
+                        className: 'text-center'
+                    },
+                    {
+                        data: 'reason_short',
+                        name: 'reason'
+                    },
+                    {
+                        data: 'days_worked',
+                        name: 'days_worked',
+                        className: 'text-center'
+                    },
+                    {
+                        data: 'days_remaining',
+                        name: 'days_remaining',
+                        className: 'text-center'
+                    },
+                    {
+                        data: 'penalty_amount',
+                        name: 'calculated_penalty_amount',
+                        className: 'text-center'
+                    },
+                    {
+                        data: 'paid_amount',
+                        name: 'penalty_paid_amount',
+                        className: 'text-center'
+                    },
+                    {
+                        data: 'payment_status',
+                        name: 'payment_status',
+                        className: 'text-center'
+                    },
+                    {
+                        data: 'actions',
+                        name: 'actions',
+                        orderable: false,
+                        searchable: false,
+                        className: 'text-center'
+                    }
+                ],
+                order: [
+                    [0, 'desc']
+                ],
+                pageLength: 25,
                 lengthMenu: [
                     [10, 25, 50, 100, -1],
-                    ['10', '25', '50', '100', 'Show all']
+                    [10, 25, 50, 100, "All"]
                 ],
-                dom: 'rtpi',
-                buttons: ["copy", "csv", "excel", "pdf", "print", "colvis"],
-                processing: true,
-                serverSide: false,
-                paging: false,
-                lengthChange: false,
-                searching: false,
-                ordering: true,
-                info: false,
-                autoWidth: false,
-                responsive: true,
+                language: {
+                    processing: "Loading violations...",
+                    emptyTable: "No violations found",
+                    zeroRecords: "No matching violations found"
+                }
+            });
+
+            // Handle filter changes
+            $('#status-filter, #employee-filter').change(function() {
+                table.draw();
+            });
+
+            $('#bond_name, #reason, #date_from, #date_to').keyup(function() {
+                table.draw();
+            });
+
+            // Handle reset button
+            $('#btn-reset').click(function() {
+                $('#status-filter, #employee-filter').val('').trigger('change');
+                $('#bond_name, #reason, #date_from, #date_to').val('');
+                table.draw();
             });
         });
     </script>

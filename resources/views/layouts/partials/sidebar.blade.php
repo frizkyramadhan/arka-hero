@@ -110,7 +110,7 @@
                         class="nav-link {{ Request::is('employees*') || Request::is('terminations*') ? 'active' : '' }}">
                         <i class="nav-icon fas fa-id-badge"></i>
                         <p>
-                            Employees
+                            Employee
                         </p>
                     </a>
                 </li>
@@ -120,37 +120,26 @@
                         class="nav-link {{ Request::is('employee-bonds*') || Request::is('bond-violations*') ? 'active' : '' }}">
                         <i class="nav-icon fas fa-handshake"></i>
                         <p>
-                            Employee Bonds
+                            Employee Bond
+                            <br>
+                            <small style="text-align: left; display: block; margin-left: 0; padding-left: 0;">Ikatan
+                                Dinas Karyawan</small>
                             <i class="fas fa-angle-left right"></i>
                         </p>
                     </a>
                     <ul class="nav nav-treeview">
                         <li class="nav-item">
                             <a href="{{ route('employee-bonds.index') }}"
-                                class="nav-link {{ Request::is('employee-bonds') ? 'active' : '' }}">
+                                class="nav-link {{ Request::is('employee-bonds*') ? 'active' : '' }}">
                                 <i class="far fa-circle nav-icon"></i>
-                                <p>All Bonds</p>
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a href="{{ route('employee-bonds.create') }}"
-                                class="nav-link {{ Request::is('employee-bonds/create') ? 'active' : '' }}">
-                                <i class="far fa-circle nav-icon"></i>
-                                <p>Create Bond</p>
+                                <p>Employee Bonds</p>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="{{ route('bond-violations.index') }}"
-                                class="nav-link {{ Request::is('bond-violations') ? 'active' : '' }}">
+                                class="nav-link {{ Request::is('bond-violations*') ? 'active' : '' }}">
                                 <i class="far fa-circle nav-icon"></i>
                                 <p>Bond Violations</p>
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a href="{{ route('bond-violations.create') }}"
-                                class="nav-link {{ Request::is('bond-violations/create') ? 'active' : '' }}">
-                                <i class="far fa-circle nav-icon"></i>
-                                <p>Record Violation</p>
                             </a>
                         </li>
                     </ul>
@@ -381,7 +370,7 @@
                         class="nav-link {{ Request::is('officialtravels*') ? 'active' : '' }}">
                         <i class="nav-icon fas fa-route"></i>
                         <p>
-                            Official Travels (LOT)
+                            Official Travel (LOT)
                         </p>
                     </a>
                 </li>

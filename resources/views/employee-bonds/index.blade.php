@@ -32,18 +32,14 @@
                                         <strong>{{ $subtitle }}</strong>
                                     </h3>
                                     <div class="d-flex flex-column flex-md-row ms-auto gap-2">
-                                        @can('employee-bonds.create')
-                                            <a href="{{ route('employee-bonds.create') }}"
-                                                class="btn btn-success mb-md-0 ml-1 mb-1">
-                                                <i class="fas fa-plus"></i> Add Bond
-                                            </a>
-                                        @endcan
-                                        @can('bond-violations.create')
-                                            <a href="{{ route('bond-violations.create') }}"
-                                                class="btn btn-warning mb-md-0 ml-1 mb-1">
-                                                <i class="fas fa-exclamation-triangle"></i> Add Violation
-                                            </a>
-                                        @endcan
+                                        <a href="{{ route('employee-bonds.create') }}"
+                                            class="btn btn-success mb-md-0 ml-1 mb-1">
+                                            <i class="fas fa-plus"></i> Add Bond
+                                        </a>
+                                        <a href="{{ route('bond-violations.create') }}"
+                                            class="btn btn-warning mb-md-0 ml-1 mb-1">
+                                            <i class="fas fa-exclamation-triangle"></i> Add Violation
+                                        </a>
                                     </div>
                                 </div>
                             </div><!-- /.card-header -->

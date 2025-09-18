@@ -17,10 +17,10 @@ class EmployeeBondController extends Controller
 {
     public function __construct()
     {
-        // $this->middleware('permission:employee-bonds.show')->only('index', 'show');
-        // $this->middleware('permission:employee-bonds.create')->only('create', 'store');
-        // $this->middleware('permission:employee-bonds.edit')->only('edit', 'update');
-        // $this->middleware('permission:employee-bonds.delete')->only('destroy');
+        $this->middleware('role_or_permission:employees.show')->only('index', 'show', 'getBonds');
+        $this->middleware('role_or_permission:employees.create')->only('create');
+        $this->middleware('role_or_permission:employees.edit')->only('edit');
+        $this->middleware('role_or_permission:employees.delete')->only('destroy');
     }
 
     /**

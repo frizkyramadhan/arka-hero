@@ -449,6 +449,141 @@
                 </div>
             </div>
 
+            <!-- Employee Bonds Section -->
+            <div class="row">
+                <!-- Recent Active Employee Bonds -->
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header bg-info">
+                            <h3 class="card-title">Recent Active Employee Bonds</h3>
+                            <a href="{{ route('employee-bonds.create') }}" class="btn btn-sm btn-secondary float-right">
+                                <i class="fas fa-plus"></i> Create New Bond
+                            </a>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                                <table class="table table-striped m-0">
+                                    <thead>
+                                        <tr>
+                                            <th class="align-middle">Employee</th>
+                                            <th class="align-middle">Bond Name</th>
+                                            <th class="align-middle">Investment</th>
+                                            <th class="align-middle">End Date</th>
+                                            <th class="align-middle text-center">Remaining</th>
+                                            <th class="align-middle text-center">Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @forelse($recentActiveEmployeeBonds as $bond)
+                                            <tr>
+                                                <td>
+                                                    <strong>{{ $bond->employee->fullname }}</strong><br>
+                                                    <small
+                                                        class="text-muted">{{ $bond->employee->administrations->first()->nik ?? 'N/A' }}</small>
+                                                </td>
+                                                <td>{{ $bond->bond_name }}</td>
+                                                <td>Rp {{ number_format($bond->total_investment_value, 0, ',', '.') }}</td>
+                                                <td>{{ $bond->end_date->format('d M Y') }}</td>
+                                                <td class="text-center">
+                                                    @php
+                                                        $remaining = $bond->remaining_days;
+                                                        $badgeClass =
+                                                            $remaining <= 30
+                                                                ? 'badge-danger'
+                                                                : ($remaining <= 90
+                                                                    ? 'badge-warning'
+                                                                    : 'badge-success');
+                                                    @endphp
+                                                    <span class="badge {{ $badgeClass }}">{{ $remaining }}
+                                                        days</span>
+                                                </td>
+                                                <td class="text-center">
+                                                    <a href="{{ route('employee-bonds.show', $bond->id) }}"
+                                                        class="btn btn-sm btn-info">
+                                                        <i class="fas fa-eye"></i>
+                                                    </a>
+                                                </td>
+                                            </tr>
+                                        @empty
+                                            <tr>
+                                                <td colspan="6" class="text-center">No active employee bonds found</td>
+                                            </tr>
+                                        @endforelse
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div class="card-footer clearfix">
+                            <a href="{{ route('employee-bonds.index') }}" class="btn btn-sm btn-info float-right">
+                                View All Employee Bonds
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Pending Bond Violations -->
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header bg-danger">
+                            <h3 class="card-title">Pending Bond Violations</h3>
+                            <a href="{{ route('bond-violations.create') }}" class="btn btn-sm btn-white float-right">
+                                <i class="fas fa-plus"></i> Create New Violation
+                            </a>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                                <table class="table table-striped table-hover m-0">
+                                    <thead>
+                                        <tr>
+                                            <th class="align-middle">Employee</th>
+                                            <th class="align-middle">Bond Name</th>
+                                            <th class="align-middle">Violation Date</th>
+                                            <th class="align-middle">Penalty Amount</th>
+                                            <th class="align-middle text-center">Days Worked</th>
+                                            <th class="align-middle text-center">Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @forelse($pendingBondViolations as $violation)
+                                            <tr>
+                                                <td>
+                                                    <strong>{{ $violation->employeeBond->employee->fullname }}</strong><br>
+                                                    <small
+                                                        class="text-muted">{{ $violation->employeeBond->employee->administrations->first()->nik ?? 'N/A' }}</small>
+                                                </td>
+                                                <td>{{ $violation->employeeBond->bond_name }}</td>
+                                                <td>{{ $violation->violation_date->format('d M Y') }}</td>
+                                                <td>{{ $violation->formatted_calculated_penalty }}</td>
+                                                <td class="text-center">
+                                                    <span class="badge badge-info">{{ $violation->days_worked }}
+                                                        days</span>
+                                                </td>
+                                                <td class="text-center">
+                                                    <a href="{{ route('bond-violations.show', $violation->id) }}"
+                                                        class="btn btn-sm btn-info">
+                                                        <i class="fas fa-eye"></i>
+                                                    </a>
+                                                </td>
+                                            </tr>
+                                        @empty
+                                            <tr>
+                                                <td colspan="6" class="text-center">No pending bond violations found
+                                                </td>
+                                            </tr>
+                                        @endforelse
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div class="card-footer clearfix">
+                            <a href="{{ route('bond-violations.index') }}" class="btn btn-sm btn-danger float-right">
+                                View All Bond Violations
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
 
             <!-- Departments Modal -->
             <div class="modal fade" id="modal-departments">
