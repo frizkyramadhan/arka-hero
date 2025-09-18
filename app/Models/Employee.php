@@ -19,6 +19,7 @@ use App\Models\Jobexperience;
 use App\Models\Additionaldata;
 use App\Models\Administration;
 use App\Models\Taxidentification;
+use App\Models\EmployeeBond;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
@@ -117,5 +118,15 @@ class Employee extends Model
     public function taxidentification()
     {
         return $this->hasMany(Taxidentification::class);
+    }
+
+    public function bonds()
+    {
+        return $this->hasMany(EmployeeBond::class);
+    }
+
+    public function activeBonds()
+    {
+        return $this->hasMany(EmployeeBond::class)->where('status', 'active');
     }
 }

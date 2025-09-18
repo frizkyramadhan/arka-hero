@@ -16,7 +16,10 @@ class Kernel extends ConsoleKernel
     protected function schedule(Schedule $schedule)
     {
         // Auto close FPTKs older than 6 months since approval, run daily at 01:00
-        $schedule->command('recruitment:close-expired-fptk')->dailyAt('08:00');
+        $schedule->command('recruitment:close-expired-fptk')->dailyAt('00:01');
+
+        // Auto update employee bonds status to completed when end date equals today, run daily at 00:01
+        $schedule->command('employee-bonds:update-expired')->dailyAt('00:01');
     }
 
     /**

@@ -12,7 +12,11 @@ class OperableunitController extends Controller
     {
         $title = 'Operable Unit';
         $subtitle = 'Operable Unit';
-        $employees = Employee::orderBy('fullname', 'asc')->get();
+        $employees = Employee::join('administrations', 'employees.id', '=', 'administrations.employee_id')
+            ->where('administrations.is_active', 1)
+            ->select('employees.*', 'administrations.nik')
+            ->orderBy('employees.fullname', 'asc')
+            ->get();
         return view('operableunit.index', compact('title', 'subtitle', 'employees'));
     }
 
@@ -48,7 +52,11 @@ class OperableunitController extends Controller
                 }
             })
             ->addColumn('action', function ($operableunits) {
-                $employees = Employee::orderBy('fullname', 'asc')->get();
+                $employees = Employee::join('administrations', 'employees.id', '=', 'administrations.employee_id')
+                    ->where('administrations.is_active', 1)
+                    ->select('employees.*')
+                    ->orderBy('employees.fullname', 'asc')
+                    ->get();
                 return view('operableunit.action', compact('employees', 'operableunits'));
             })
             ->rawColumns(['unit_name', 'action'])

@@ -14,7 +14,11 @@ class LicenseController extends Controller
     {
         $title = 'Driver Licensee';
         $subtitle = 'Driver Licensee';
-        $employees = Employee::orderBy('fullname', 'asc')->get();
+        $employees = Employee::join('administrations', 'employees.id', '=', 'administrations.employee_id')
+            ->where('administrations.is_active', 1)
+            ->select('employees.*', 'administrations.nik')
+            ->orderBy('employees.fullname', 'asc')
+            ->get();
         return view('license.index', compact('title', 'subtitle', 'employees'));
     }
 
@@ -51,7 +55,11 @@ class LicenseController extends Controller
                 }
             })
             ->addColumn('action', function ($license) {
-                $employees = Employee::orderBy('fullname', 'asc')->get();
+                $employees = Employee::join('administrations', 'employees.id', '=', 'administrations.employee_id')
+                    ->where('administrations.is_active', 1)
+                    ->select('employees.*')
+                    ->orderBy('employees.fullname', 'asc')
+                    ->get();
                 return view('license.action', compact('employees', 'license'));
             })
 

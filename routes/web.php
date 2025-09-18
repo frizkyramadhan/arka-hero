@@ -39,6 +39,8 @@ use App\Http\Controllers\JobexperienceController;
 use App\Http\Controllers\LetterSubjectController;
 use App\Http\Controllers\AdditionaldataController;
 use App\Http\Controllers\AdministrationController;
+use App\Http\Controllers\EmployeeBondController;
+use App\Http\Controllers\BondViolationController;
 
 // Removed import for deleted controller
 use App\Http\Controllers\LetterCategoryController;
@@ -306,6 +308,19 @@ Route::group(['middleware' => ['auth']], function () {
     Route::get('employees/deleteImages/{employee_id}', [EmployeeController::class, 'deleteImages'])->name('employees.deleteImages');
     Route::post('employees/import', [EmployeeController::class, 'import'])->name('employees.import');
     Route::post('employees/import-complete', [EmployeeController::class, 'importComplete'])->name('employees.import-complete');
+
+    // Employee Bond Management
+    Route::get('employee-bonds/data', [EmployeeBondController::class, 'getBonds'])->name('employee-bonds.data');
+    Route::get('employee-bonds/expiring', [EmployeeBondController::class, 'checkExpiringBonds'])->name('employee-bonds.expiring');
+    Route::get('employees/{employee}/bonds', [EmployeeBondController::class, 'getEmployeeBonds'])->name('employees.bonds');
+    Route::get('employee-bonds/{employeeBond}/download', [EmployeeBondController::class, 'downloadDocument'])->name('employee-bonds.download');
+    Route::patch('employee-bonds/{employeeBond}/complete', [EmployeeBondController::class, 'markAsCompleted'])->name('employee-bonds.complete');
+    Route::delete('employee-bonds/{employeeBond}/delete-document', [EmployeeBondController::class, 'deleteDocument'])->name('employee-bonds.delete-document');
+    Route::resource('employee-bonds', EmployeeBondController::class);
+
+    // Bond Violation Management
+    Route::resource('bond-violations', BondViolationController::class);
+    Route::post('bond-violations/calculate-penalty', [BondViolationController::class, 'calculatePenalty'])->name('bond-violations.calculate-penalty');
 
     Route::get('personals', [EmployeeController::class, 'personal'])->name('employees.personal');
 

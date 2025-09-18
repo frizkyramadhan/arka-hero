@@ -17,7 +17,11 @@ class TaxidentificationController extends Controller
     {
         $title = ' Tax Identification';
         $subtitle = ' Tax Identification';
-        $employees = Employee::orderBy('fullname', 'asc')->get();
+        $employees = Employee::join('administrations', 'employees.id', '=', 'administrations.employee_id')
+            ->where('administrations.is_active', 1)
+            ->select('employees.*', 'administrations.nik')
+            ->orderBy('employees.fullname', 'asc')
+            ->get();
         return view('taxidentification.index', compact('title', 'subtitle', 'employees'));
     }
 
@@ -59,7 +63,11 @@ class TaxidentificationController extends Controller
                 }
             })
             ->addColumn('action', function ($taxidentifications) {
-                $employees = Employee::orderBy('fullname', 'asc')->get();
+                $employees = Employee::join('administrations', 'employees.id', '=', 'administrations.employee_id')
+                    ->where('administrations.is_active', 1)
+                    ->select('employees.*')
+                    ->orderBy('employees.fullname', 'asc')
+                    ->get();
                 return view('taxidentification.action', compact('employees', 'taxidentifications'));
             })
             ->rawColumns(['fullname', 'action'])
