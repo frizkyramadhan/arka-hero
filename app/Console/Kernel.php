@@ -19,7 +19,7 @@ class Kernel extends ConsoleKernel
         $schedule->command('recruitment:close-expired-fptk')->dailyAt('00:01');
 
         // Auto update employee bonds status to completed when end date equals today, run daily at 00:01
-        $schedule->command('employee-bonds:update-expired')->dailyAt('00:01');
+        $schedule->command('employee-bonds:update-expired')->dailyAt('13:42');
     }
 
     /**
