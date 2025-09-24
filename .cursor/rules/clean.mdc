@@ -2,5 +2,7 @@
 alwaysApply: true
 ---
 
+# Project Rules
+
 1. buat code seringkas dan se-clean mungkin
-2. don't use tinker, use Model Context Protocol Server MySQL from benborla/mcp-server-mysql reference in context7
+2. jangan gunakan Tinker, gunakan Model Context Protocol Server MySQL from benborla/mcp-server-mysql
