@@ -49,6 +49,9 @@
                                     <option value="Passed Away"
                                         {{ old('termination_reason') == 'Passed Away' ? 'selected' : '' }}>Passed Away
                                     </option>
+                                    <option value="Canceled"
+                                        {{ old('termination_reason') == 'Canceled' ? 'selected' : '' }}>Canceled
+                                    </option>
                                 </select>
                                 @error('termination_reson')
                                     <div class="invalid-feedback">

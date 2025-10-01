@@ -30,7 +30,8 @@
                                             <span class="input-group-text"><i class="fas fa-hashtag"></i></span>
                                         </div>
                                         <input type="text" class="form-control @error('nik') is-invalid @enderror"
-                                            id="nik_add" name="nik" value="{{ old('nik') }}"
+                                            id="nik_add" name="nik"
+                                            value="{{ old('nik', $lastAdministration->nik ?? '') }}"
                                             placeholder="Enter employee ID">
                                     </div>
                                     @error('nik')
@@ -45,13 +46,13 @@
                                         <div class="custom-control custom-radio custom-control-primary mr-4">
                                             <input class="custom-control-input" type="radio" id="class1_add"
                                                 name="class" value="Staff"
-                                                {{ old('class') == 'Staff' ? 'checked' : '' }}>
+                                                {{ old('class', $lastAdministration->class ?? '') == 'Staff' ? 'checked' : '' }}>
                                             <label for="class1_add" class="custom-control-label">Staff</label>
                                         </div>
                                         <div class="custom-control custom-radio custom-control-primary">
                                             <input class="custom-control-input" type="radio" id="class2_add"
                                                 name="class" value="Non Staff"
-                                                {{ old('class') == 'Non Staff' ? 'checked' : '' }}>
+                                                {{ old('class', $lastAdministration->class ?? '') == 'Non Staff' ? 'checked' : '' }}>
                                             <label for="class2_add" class="custom-control-label">Non Staff</label>
                                         </div>
                                     </div>
@@ -73,7 +74,8 @@
                                             <span class="input-group-text"><i class="fas fa-calendar-alt"></i></span>
                                         </div>
                                         <input type="date" class="form-control @error('doh') is-invalid @enderror"
-                                            id="doh_add" name="doh" value="{{ old('doh') }}">
+                                            id="doh_add" name="doh"
+                                            value="{{ old('doh', $lastAdministration && $lastAdministration->doh ? $lastAdministration->doh->format('Y-m-d') : '') }}">
                                     </div>
                                     @error('doh')
                                         <div class="invalid-feedback">{{ $message }}</div>
@@ -88,7 +90,8 @@
                                             <span class="input-group-text"><i class="fas fa-map-marker-alt"></i></span>
                                         </div>
                                         <input type="text" class="form-control @error('poh') is-invalid @enderror"
-                                            id="poh_add" name="poh" value="{{ old('poh') }}"
+                                            id="poh_add" name="poh"
+                                            value="{{ old('poh', $lastAdministration->poh ?? '') }}"
                                             placeholder="Enter place of hire">
                                     </div>
                                     @error('poh')
@@ -108,7 +111,8 @@
                                             <span class="input-group-text"><i class="fas fa-calendar-alt"></i></span>
                                         </div>
                                         <input type="date" class="form-control @error('foc') is-invalid @enderror"
-                                            id="foc_add" name="foc" value="{{ old('foc') }}">
+                                            id="foc_add" name="foc"
+                                            value="{{ old('foc', $lastAdministration && $lastAdministration->foc ? $lastAdministration->foc->format('Y-m-d') : '') }}">
                                     </div>
                                     @error('foc')
                                         <div class="invalid-feedback">{{ $message }}</div>
@@ -121,11 +125,14 @@
                                     <select name="agreement" id="agreement_add"
                                         class="form-control @error('agreement') is-invalid @enderror">
                                         <option value="">-Select Agreement-</option>
-                                        <option value="PKWT" {{ old('agreement') == 'PKWT' ? 'selected' : '' }}>
+                                        <option value="PKWT"
+                                            {{ old('agreement', $lastAdministration->agreement ?? '') == 'PKWT' ? 'selected' : '' }}>
                                             PKWT</option>
-                                        <option value="PKWTT" {{ old('agreement') == 'PKWTT' ? 'selected' : '' }}>
+                                        <option value="PKWTT"
+                                            {{ old('agreement', $lastAdministration->agreement ?? '') == 'PKWTT' ? 'selected' : '' }}>
                                             PKWTT</option>
-                                        <option value="Daily" {{ old('agreement') == 'Daily' ? 'selected' : '' }}>
+                                        <option value="Daily"
+                                            {{ old('agreement', $lastAdministration->agreement ?? '') == 'Daily' ? 'selected' : '' }}>
                                             Daily</option>
                                     </select>
                                     @error('agreement')
@@ -146,7 +153,7 @@
                                         <option value="">-Select Position-</option>
                                         @foreach ($positions as $position)
                                             <option value="{{ $position->id }}"
-                                                {{ old('position_id') == $position->id ? 'selected' : '' }}>
+                                                {{ old('position_id', $lastAdministration->position_id ?? '') == $position->id ? 'selected' : '' }}>
                                                 {{ $position->position_name }}
                                             </option>
                                         @endforeach
@@ -180,7 +187,7 @@
                                         <option value="">-Select Grade-</option>
                                         @foreach ($grades as $grade)
                                             <option value="{{ $grade->id }}"
-                                                {{ old('grade_id') == $grade->id ? 'selected' : '' }}>
+                                                {{ old('grade_id', $lastAdministration->grade_id ?? '') == $grade->id ? 'selected' : '' }}>
                                                 {{ $grade->name }}
                                             </option>
                                         @endforeach
@@ -198,7 +205,7 @@
                                         <option value="">-Select Level-</option>
                                         @foreach ($levels as $level)
                                             <option value="{{ $level->id }}"
-                                                {{ old('level_id') == $level->id ? 'selected' : '' }}>
+                                                {{ old('level_id', $lastAdministration->level_id ?? '') == $level->id ? 'selected' : '' }}>
                                                 {{ $level->name }}
                                             </option>
                                         @endforeach
@@ -220,7 +227,7 @@
                                         <option value="">-Select Project-</option>
                                         @foreach ($projects as $project)
                                             <option value="{{ $project->id }}"
-                                                {{ old('project_id') == $project->id ? 'selected' : '' }}>
+                                                {{ old('project_id', $lastAdministration->project_id ?? '') == $project->id ? 'selected' : '' }}>
                                                 {{ $project->project_code }} - {{ $project->project_name }}
                                             </option>
                                         @endforeach
@@ -236,7 +243,8 @@
                                     <input type="text"
                                         class="form-control @error('company_program') is-invalid @enderror"
                                         id="company_program_add" name="company_program"
-                                        value="{{ old('company_program') }}" placeholder="Enter company program">
+                                        value="{{ old('company_program', $lastAdministration->company_program ?? '') }}"
+                                        placeholder="Enter company program">
                                     @error('company_program')
                                         <div class="invalid-feedback">{{ $message }}</div>
                                     @enderror
@@ -251,7 +259,8 @@
                                 <div class="form-group">
                                     <label for="no_fptk_add" class="form-label">FPTK Number</label>
                                     <input type="text" class="form-control @error('no_fptk') is-invalid @enderror"
-                                        id="no_fptk_add" name="no_fptk" value="{{ old('no_fptk') }}"
+                                        id="no_fptk_add" name="no_fptk"
+                                        value="{{ old('no_fptk', $lastAdministration->no_fptk ?? '') }}"
                                         placeholder="Enter FPTK number">
                                     @error('no_fptk')
                                         <div class="invalid-feedback">{{ $message }}</div>
@@ -263,7 +272,8 @@
                                     <label for="no_sk_active_add" class="form-label">Certificate Number</label>
                                     <input type="text"
                                         class="form-control @error('no_sk_active') is-invalid @enderror"
-                                        id="no_sk_active_add" name="no_sk_active" value="{{ old('no_sk_active') }}"
+                                        id="no_sk_active_add" name="no_sk_active"
+                                        value="{{ old('no_sk_active', $lastAdministration->no_sk_active ?? '') }}"
                                         placeholder="Enter certificate number">
                                     @error('no_sk_active')
                                         <div class="invalid-feedback">{{ $message }}</div>
@@ -272,61 +282,6 @@
                             </div>
                         </div>
 
-                        <!-- Compensation Section -->
-                        <h5 class="mt-2 mb-3">Compensation</h5>
-                        <div class="row">
-                            <div class="col-md-4">
-                                <div class="form-group">
-                                    <label for="basic_salary_add" class="form-label">Basic Salary</label>
-                                    <div class="input-group">
-                                        <div class="input-group-prepend">
-                                            <span class="input-group-text">Rp</span>
-                                        </div>
-                                        <input type="number"
-                                            class="form-control @error('basic_salary') is-invalid @enderror"
-                                            id="basic_salary_add" name="basic_salary"
-                                            value="{{ old('basic_salary') }}" placeholder="0">
-                                    </div>
-                                    @error('basic_salary')
-                                        <div class="invalid-feedback">{{ $message }}</div>
-                                    @enderror
-                                </div>
-                            </div>
-                            <div class="col-md-4">
-                                <div class="form-group">
-                                    <label for="site_allowance_add" class="form-label">Site Allowance</label>
-                                    <div class="input-group">
-                                        <div class="input-group-prepend">
-                                            <span class="input-group-text">Rp</span>
-                                        </div>
-                                        <input type="number"
-                                            class="form-control @error('site_allowance') is-invalid @enderror"
-                                            id="site_allowance_add" name="site_allowance"
-                                            value="{{ old('site_allowance') }}" placeholder="0">
-                                    </div>
-                                    @error('site_allowance')
-                                        <div class="invalid-feedback">{{ $message }}</div>
-                                    @enderror
-                                </div>
-                            </div>
-                            <div class="col-md-4">
-                                <div class="form-group">
-                                    <label for="other_allowance_add" class="form-label">Other Allowance</label>
-                                    <div class="input-group">
-                                        <div class="input-group-prepend">
-                                            <span class="input-group-text">Rp</span>
-                                        </div>
-                                        <input type="number"
-                                            class="form-control @error('other_allowance') is-invalid @enderror"
-                                            id="other_allowance_add" name="other_allowance"
-                                            value="{{ old('other_allowance') }}" placeholder="0">
-                                    </div>
-                                    @error('other_allowance')
-                                        <div class="invalid-feedback">{{ $message }}</div>
-                                    @enderror
-                                </div>
-                            </div>
-                        </div>
 
                         <!-- Termination Section -->
                         <div class="row bg-danger mt-4">
@@ -378,6 +333,9 @@
                                         <option value="Passed Away"
                                             {{ old('termination_reason') == 'Passed Away' ? 'selected' : '' }}>
                                             Passed Away</option>
+                                        <option value="Canceled"
+                                            {{ old('termination_reason') == 'Canceled' ? 'selected' : '' }}>
+                                            Canceled</option>
                                     </select>
                                     @error('termination_reason')
                                         <div class="invalid-feedback">{{ $message }}</div>
@@ -494,7 +452,7 @@
                                             <input type="date"
                                                 class="form-control @error('doh') is-invalid @enderror"
                                                 id="doh_edit_{{ $administration->id }}" name="doh"
-                                                value="{{ old('doh', $administration->doh) }}">
+                                                value="{{ old('doh', $administration->doh ? $administration->doh->format('Y-m-d') : '') }}">
                                         </div>
                                         @error('doh')
                                             <div class="invalid-feedback">{{ $message }}</div>
@@ -537,7 +495,7 @@
                                             <input type="date"
                                                 class="form-control @error('foc') is-invalid @enderror"
                                                 id="foc_edit_{{ $administration->id }}" name="foc"
-                                                value="{{ old('foc', $administration->foc) }}">
+                                                value="{{ old('foc', $administration->foc ? $administration->foc->format('Y-m-d') : '') }}">
                                         </div>
                                         @error('foc')
                                             <div class="invalid-feedback">{{ $message }}</div>
@@ -719,69 +677,6 @@
                                 </div>
                             </div>
 
-                            <!-- Compensation Section -->
-                            <h5 class="mt-2 mb-3">Compensation</h5>
-                            <div class="row">
-                                <div class="col-md-4">
-                                    <div class="form-group">
-                                        <label for="basic_salary_edit_{{ $administration->id }}"
-                                            class="form-label">Basic Salary</label>
-                                        <div class="input-group">
-                                            <div class="input-group-prepend">
-                                                <span class="input-group-text">Rp</span>
-                                            </div>
-                                            <input type="number"
-                                                class="form-control @error('basic_salary') is-invalid @enderror"
-                                                id="basic_salary_edit_{{ $administration->id }}" name="basic_salary"
-                                                value="{{ old('basic_salary', $administration->basic_salary) }}"
-                                                placeholder="0">
-                                        </div>
-                                        @error('basic_salary')
-                                            <div class="invalid-feedback">{{ $message }}</div>
-                                        @enderror
-                                    </div>
-                                </div>
-                                <div class="col-md-4">
-                                    <div class="form-group">
-                                        <label for="site_allowance_edit_{{ $administration->id }}"
-                                            class="form-label">Site Allowance</label>
-                                        <div class="input-group">
-                                            <div class="input-group-prepend">
-                                                <span class="input-group-text">Rp</span>
-                                            </div>
-                                            <input type="number"
-                                                class="form-control @error('site_allowance') is-invalid @enderror"
-                                                id="site_allowance_edit_{{ $administration->id }}"
-                                                name="site_allowance"
-                                                value="{{ old('site_allowance', $administration->site_allowance) }}"
-                                                placeholder="0">
-                                        </div>
-                                        @error('site_allowance')
-                                            <div class="invalid-feedback">{{ $message }}</div>
-                                        @enderror
-                                    </div>
-                                </div>
-                                <div class="col-md-4">
-                                    <div class="form-group">
-                                        <label for="other_allowance_edit_{{ $administration->id }}"
-                                            class="form-label">Other Allowance</label>
-                                        <div class="input-group">
-                                            <div class="input-group-prepend">
-                                                <span class="input-group-text">Rp</span>
-                                            </div>
-                                            <input type="number"
-                                                class="form-control @error('other_allowance') is-invalid @enderror"
-                                                id="other_allowance_edit_{{ $administration->id }}"
-                                                name="other_allowance"
-                                                value="{{ old('other_allowance', $administration->other_allowance) }}"
-                                                placeholder="0">
-                                        </div>
-                                        @error('other_allowance')
-                                            <div class="invalid-feedback">{{ $message }}</div>
-                                        @enderror
-                                    </div>
-                                </div>
-                            </div>
 
                             <!-- Termination Section -->
                             <div class="row bg-danger mt-4">
@@ -838,6 +733,9 @@
                                             <option value="Passed Away"
                                                 {{ old('termination_reason', $administration->termination_reason) == 'Passed Away' ? 'selected' : '' }}>
                                                 Passed Away</option>
+                                            <option value="Canceled"
+                                                {{ old('termination_reason', $administration->termination_reason) == 'Canceled' ? 'selected' : '' }}>
+                                                Canceled</option>
                                         </select>
                                         @error('termination_reason')
                                             <div class="invalid-feedback">{{ $message }}</div>

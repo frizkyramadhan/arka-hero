@@ -129,4 +129,9 @@ class Employee extends Model
     {
         return $this->hasMany(EmployeeBond::class)->where('status', 'active');
     }
+
+    public function leaveEntitlements()
+    {
+        return $this->hasMany(LeaveEntitlement::class);
+    }
 }

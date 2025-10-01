@@ -1,0 +1,33 @@
+---
+alwaysApply: true
+---
+
+# Playwright MCP Testing Rule
+
+Selalu gunakan Playwright MCP untuk mengetes setiap perubahan yang dibuat. Testing harus dilakukan secara straight forward tanpa perlu memperhatikan apakah aplikasi sudah running atau belum.
+
+## Testing Protocol:
+
+1. **Setiap perubahan kode** - Jalankan test menggunakan Playwright MCP
+2. **Setiap fitur baru** - Test functionality secara otomatis
+3. **Setiap bug fix** - Verifikasi fix dengan automated testing
+4. **Setiap UI change** - Ambil screenshot dan test interaksi
+
+## Playwright MCP Commands:
+
+-   Gunakan `mcp_playwright_browser_navigate` untuk membuka halaman
+-   Gunakan `mcp_playwright_browser_snapshot` untuk melihat status halaman
+-   Gunakan `mcp_playwright_browser_click` untuk test interaksi
+-   Gunakan `mcp_playwright_browser_take_screenshot` untuk dokumentasi visual
+-   Gunakan `mcp_playwright_browser_fill_form` untuk test form
+
+## Testing Flow:
+
+1. Navigate ke localhost/arka-hero
+2. Jika belum login, login dengan email: admin@arka.co.id dan password: admin
+3. Test functionality yang baru dibuat/diubah
+4. Ambil screenshot untuk dokumentasi
+5. Verifikasi semua fitur berfungsi dengan baik
+6. Jangan jalankan browser_close setiap melakukan pengetesan
+
+**TIDAK PERLU** mengecek apakah aplikasi sudah running - langsung test saja menggunakan Playwright MCP.

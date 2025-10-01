@@ -12,6 +12,15 @@ class Project extends Model
 
     protected $guarded = [];
 
+    protected $fillable = [
+        'project_code',
+        'project_name',
+        'project_location',
+        'bowheer',
+        'project_status',
+        'leave_type'
+    ];
+
     public function administrations()
     {
         return $this->hasMany(Administration::class);
@@ -23,5 +32,42 @@ class Project extends Model
     public function users()
     {
         return $this->belongsToMany(User::class, 'user_project');
+    }
+
+    /**
+     * Check if this is a roster-based project
+     */
+    public function isRosterProject(): bool
+    {
+        return $this->leave_type === 'roster';
+    }
+
+    /**
+     * Check if this is a non-roster project
+     */
+    public function isNonRosterProject(): bool
+    {
+        return $this->leave_type === 'non_roster';
+    }
+
+    /**
+     * Get eligible leave types based on project type
+     */
+    public function getEligibleLeaveTypes(): array
+    {
+        if ($this->isRosterProject()) {
+            // Skip periodic leave for now
+            return ['paid', 'unpaid', 'lsl'];
+        }
+
+        return ['paid', 'unpaid', 'annual', 'lsl'];
+    }
+
+    /**
+     * Scope for active projects
+     */
+    public function scopeActive($query)
+    {
+        return $query->where('project_status', 1);
     }
 }
