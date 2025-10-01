@@ -1,5 +1,0 @@
----
-alwaysApply: true
----
-
-every changes, use Playwright MCP to test on client side. all processes involving server start or serve are already running. just snapshot the browser first, check the URL and navigate if necessary, and check the result. if error, get the console logs first, and then troubleshoot.

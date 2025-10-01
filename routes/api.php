@@ -10,6 +10,8 @@ use App\Http\Controllers\Api\v1\OfficialtravelApiController;
 use App\Http\Controllers\Api\v1\LetterNumberApiController;
 use App\Http\Controllers\LetterSubjectController;
 use App\Http\Controllers\LetterNumberController;
+use App\Http\Controllers\LeaveTypeController;
+use App\Http\Controllers\LeaveReportController;
 
 /*
 |--------------------------------------------------------------------------
@@ -30,7 +32,8 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
 
 // Employee API Routes
 Route::prefix('employees')->group(function () {
-    Route::get('/', [EmployeeApiController::class, 'index']);
+    Route::get('/', [EmployeeApiController::class, 'index'])->name('api.employees.index');
+    Route::get('/list', [EmployeeApiController::class, 'getEmployees'])->name('api.employees.list');
     Route::get('/active', [EmployeeApiController::class, 'activeEmployees']);
     Route::post('/search', [EmployeeApiController::class, 'search']);
     Route::get('/{id}', [EmployeeApiController::class, 'show']);
@@ -74,6 +77,17 @@ Route::get('letter-numbers/available/{categoryCode}', [LetterNumberController::c
 Route::prefix('approval')->middleware(['auth:sanctum'])->group(function () {
 
     // API routes removed - system simplified
+});
+
+// Leave Management API Routes
+Route::prefix('leave')->group(function () {
+    // Leave Types API
+    Route::get('types', [LeaveTypeController::class, 'apiIndex'])->name('api.leave.types');
+    Route::get('types/{leaveType}', [LeaveTypeController::class, 'show']);
+    Route::get('types/{leaveType}/statistics', [LeaveTypeController::class, 'statistics']);
+
+    // Leave Reports API
+    Route::get('employees/{employee}/balance', [LeaveReportController::class, 'getEmployeeLeaveBalance']);
 });
 
 // Public routes removed - system simplified

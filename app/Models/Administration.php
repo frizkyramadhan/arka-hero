@@ -12,6 +12,13 @@ class Administration extends Model
 
     protected $guarded = [];
 
+    protected $casts = [
+        'doh' => 'date:Y-m-d',
+        'foc' => 'date:Y-m-d',
+        'start_date' => 'date',
+        'end_date' => 'date',
+    ];
+
     public function project()
     {
         return $this->belongsTo(Project::class);

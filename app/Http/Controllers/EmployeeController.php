@@ -78,13 +78,7 @@ class EmployeeController extends Controller
             ->leftJoin('departments', 'positions.department_id', '=', 'departments.id')
             ->leftJoin('grades', 'administrations.grade_id', '=', 'grades.id')
             ->leftJoin('levels', 'administrations.level_id', '=', 'levels.id')
-            ->select('employees.*', 'administrations.nik', 'administrations.poh', 'administrations.doh', 'administrations.class', 'projects.project_code', 'positions.position_name', 'departments.department_name', 'grades.name as grade_name', 'levels.name as level_name')
-            ->where('administrations.is_active', '1')
-            // ->whereNotExists(function ($query) {
-            //     $query->select(DB::raw(1))
-            //         ->from('terminations')
-            //         ->whereRaw('terminations.employee_id = employees.id');
-            // })
+            ->select('employees.*', 'administrations.nik', 'administrations.poh', 'administrations.doh', 'administrations.class', 'administrations.is_active', 'projects.project_code', 'positions.position_name', 'departments.department_name', 'grades.name as grade_name', 'levels.name as level_name')
             ->orderBy('administrations.nik', 'desc');
 
         return datatables()->of($employee)
@@ -121,6 +115,13 @@ class EmployeeController extends Controller
             })
             ->addColumn('class', function ($employee) {
                 return $employee->class;
+            })
+            ->addColumn('status', function ($employee) {
+                if ($employee->is_active == 1) {
+                    return '<span class="badge badge-success">Active</span>';
+                } else {
+                    return '<span class="badge badge-danger">Inactive</span>';
+                }
             })
             ->filter(function ($instance) use ($request) {
                 if (!empty($request->get('date1') && !empty($request->get('date2')))) {
@@ -178,6 +179,15 @@ class EmployeeController extends Controller
                         $w->orWhere('class', 'LIKE', '%' . $class . '%');
                     });
                 }
+
+                // Filter status administration
+                $status = $request->get('status', 'active'); // Default to active
+                if ($status === 'active') {
+                    $instance->where('administrations.is_active', 1);
+                } elseif ($status === 'inactive') {
+                    $instance->where('administrations.is_active', 0);
+                }
+                // If status is 'all', no additional filter is applied
                 if (!empty($request->get('search'))) {
                     $instance->where(function ($w) use ($request) {
                         $search = $request->get('search');
@@ -196,7 +206,7 @@ class EmployeeController extends Controller
                 }
             })
             ->addColumn('action', 'employee.action')
-            ->rawColumns(['action'])
+            ->rawColumns(['action', 'status'])
             ->toJson();
     }
 
@@ -486,6 +496,12 @@ class EmployeeController extends Controller
             ->get();
         $images = Image::where('employee_id', $id)->get();
         $profile = Image::where('employee_id', $id)->where('is_profile', '=', '1')->first();
+
+        // Get the last administration data for pre-filling Add Employment form
+        $lastAdministration = Administration::where('employee_id', $id)
+            ->orderBy('created_at', 'desc')
+            ->first();
+
         // for select option
         $religions = Religion::orderBy('id', 'asc')->get();
         $getBanks = Bank::orderBy('bank_name', 'asc')->get();
@@ -494,7 +510,7 @@ class EmployeeController extends Controller
         $grades = Grade::where('is_active', 1)->orderBy('name', 'asc')->get();
         $levels = Level::where('is_active', 1)->orderBy('name', 'asc')->get();
 
-        return view('employee.detail', compact('title', 'subtitle', 'employee', 'banks', 'bank', 'tax', 'insurances', 'families', 'educations', 'courses', 'jobs', 'units', 'licenses', 'emergencies', 'additional', 'administrations', 'images', 'religions', 'getBanks', 'positions', 'projects', 'grades', 'levels', 'profile'));
+        return view('employee.detail', compact('title', 'subtitle', 'employee', 'banks', 'bank', 'tax', 'insurances', 'families', 'educations', 'courses', 'jobs', 'units', 'licenses', 'emergencies', 'additional', 'administrations', 'images', 'religions', 'getBanks', 'positions', 'projects', 'grades', 'levels', 'profile', 'lastAdministration'));
     }
 
     public function edit($id)

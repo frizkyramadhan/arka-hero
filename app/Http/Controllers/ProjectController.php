@@ -32,6 +32,15 @@ class ProjectController extends Controller
             ->addColumn('bowheer', function ($projects) {
                 return $projects->bowheer;
             })
+            ->addColumn('leave_type', function ($projects) {
+                if ($projects->leave_type == 'roster') {
+                    return '<span class="badge badge-warning">Roster</span>';
+                } elseif ($projects->leave_type == 'non_roster') {
+                    return '<span class="badge badge-info">Non-Roster</span>';
+                } else {
+                    return '<span class="badge badge-secondary">Not Set</span>';
+                }
+            })
             ->addColumn('project_status', function ($projects) {
                 if ($projects->project_status == '1') {
                     return '<span class="badge badge-success">Active</span>';
@@ -47,12 +56,13 @@ class ProjectController extends Controller
                             ->orWhere('project_name', 'LIKE', "%$search%")
                             ->orWhere('project_location', 'LIKE', "%$search%")
                             ->orWhere('bowheer', 'LIKE', "%$search%")
+                            ->orWhere('leave_type', 'LIKE', "%$search%")
                             ->orWhere('project_status', 'LIKE', "%$search%");
                     });
                 }
             })
             ->addColumn('action', 'project.action')
-            ->rawColumns(['project_status', 'action'])
+            ->rawColumns(['leave_type', 'project_status', 'action'])
             ->toJson();
     }
 
@@ -68,12 +78,15 @@ class ProjectController extends Controller
             'project_name' => 'required',
             'project_location' => 'required',
             'bowheer' => 'required',
+            'leave_type' => 'required|in:non_roster,roster',
             'project_status' => 'required',
         ], [
             'project_code.required' => 'Project Code is required',
             'project_name.required' => 'Project Name is required',
             'project_location.required' => 'Project Location is required',
             'bowheer.required' => 'Bowheer is required',
+            'leave_type.required' => 'Leave Type is required',
+            'leave_type.in' => 'Leave Type must be either Non-Roster or Roster',
             'project_status.required' => 'Project Status is required',
         ]);
 
@@ -95,12 +108,15 @@ class ProjectController extends Controller
             'project_name' => 'required',
             'project_location' => 'required',
             'bowheer' => 'required',
+            'leave_type' => 'required|in:non_roster,roster',
             'project_status' => 'required',
         ], [
             'project_code.required' => 'Project Code is required',
             'project_name.required' => 'Project Name is required',
             'project_location.required' => 'Project Location is required',
             'bowheer.required' => 'Bowheer is required',
+            'leave_type.required' => 'Leave Type is required',
+            'leave_type.in' => 'Leave Type must be either Non-Roster or Roster',
             'project_status.required' => 'Project Status is required',
         ]);
 
@@ -109,6 +125,7 @@ class ProjectController extends Controller
         $projects->project_name = $request->project_name;
         $projects->project_location = $request->project_location;
         $projects->bowheer = $request->bowheer;
+        $projects->leave_type = $request->leave_type;
         $projects->project_status = $request->project_status;
         $projects->save();
 

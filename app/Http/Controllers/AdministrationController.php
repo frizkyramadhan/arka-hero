@@ -215,7 +215,14 @@ class AdministrationController extends Controller
         $administration->basic_salary = $request->basic_salary;
         $administration->site_allowance = $request->site_allowance;
         $administration->other_allowance = $request->other_allowance;
-        $administration->is_active = $request->is_active;
+
+        // Set is_active based on termination section
+        if (!empty($request->termination_date) || !empty($request->termination_reason)) {
+            $administration->is_active = 0; // Set to inactive if termination data exists
+        } else {
+            $administration->is_active = $request->is_active;
+        }
+
         $administration->termination_date = $request->termination_date;
         $administration->termination_reason = $request->termination_reason;
         $administration->coe_no = $request->coe_no;

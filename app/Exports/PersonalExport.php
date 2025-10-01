@@ -85,7 +85,7 @@ class PersonalExport extends DefaultValueBinder implements
             $employee->emp_pob,
             $employee->emp_dob ? date('d F Y', strtotime($employee->emp_dob)) : '',
             $employee->blood_type,
-            $employee->religion->religion_name,
+            $employee->religion?->religion_name ?? '',
             $employee->nationality,
             $employee->gender,
             $employee->marital,

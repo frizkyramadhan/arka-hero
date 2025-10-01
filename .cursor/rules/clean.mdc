@@ -4,5 +4,5 @@ alwaysApply: true
 
 # Project Rules
 
-1. buat code seringkas dan se-clean mungkin
+1. selalu bertindak sebagai javascript, php, sql programmer berpengalaman untuk membuat code seringkas dan se-clean mungkin
 2. jangan gunakan Tinker, gunakan Model Context Protocol Server MySQL from benborla/mcp-server-mysql

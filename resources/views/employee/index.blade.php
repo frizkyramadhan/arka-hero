@@ -151,9 +151,17 @@
                                                 </div>
                                                 <div class="col-3">
                                                     <div class="form-group">
-                                                        <label class="form-control-label">POH</label>
-                                                        <input type="text" class="form-control" name="poh"
-                                                            id="poh" value="{{ request('poh') }}">
+                                                        <label class="form-control-label">Project</label>
+                                                        <select name="project_code" class="form-control select2bs4"
+                                                            id="project_code" style="width: 100%;">
+                                                            <option value="">- All -</option>
+                                                            @foreach ($projects as $project => $data)
+                                                                <option value="{{ $data->project_code }}"
+                                                                    {{ request('project_code') == $data->project_code ? 'selected' : '' }}>
+                                                                    {{ $data->project_code }}
+                                                                </option>
+                                                            @endforeach
+                                                        </select>
                                                     </div>
                                                 </div>
                                                 <div class="col-3">
@@ -181,21 +189,6 @@
                                                                 <option value="{{ $data->position_name }}"
                                                                     {{ request('position_name') == $data->position_name ? 'selected' : '' }}>
                                                                     {{ $data->position_name }}
-                                                                </option>
-                                                            @endforeach
-                                                        </select>
-                                                    </div>
-                                                </div>
-                                                <div class="col-3">
-                                                    <div class="form-group">
-                                                        <label class="form-control-label">Project</label>
-                                                        <select name="project_code" class="form-control select2bs4"
-                                                            id="project_code" style="width: 100%;">
-                                                            <option value="">- All -</option>
-                                                            @foreach ($projects as $project => $data)
-                                                                <option value="{{ $data->project_code }}"
-                                                                    {{ request('project_code') == $data->project_code ? 'selected' : '' }}>
-                                                                    {{ $data->project_code }}
                                                                 </option>
                                                             @endforeach
                                                         </select>
@@ -233,6 +226,23 @@
                                                 </div>
                                                 <div class="col-3">
                                                     <div class="form-group">
+                                                        <label class="form-control-label">Status</label>
+                                                        <select name="status" class="form-control select2bs4"
+                                                            id="status" style="width: 100%;">
+                                                            <option value="active"
+                                                                {{ request('status', 'active') == 'active' ? 'selected' : '' }}>
+                                                                Active</option>
+                                                            <option value="inactive"
+                                                                {{ request('status') == 'inactive' ? 'selected' : '' }}>Not
+                                                                Active</option>
+                                                            <option value="all"
+                                                                {{ request('status') == 'all' ? 'selected' : '' }}>All
+                                                            </option>
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                                <div class="col-3">
+                                                    <div class="form-group">
                                                         <label class="form-control-label">Staff</label>
                                                         <select name="class" class="form-control select2bs4"
                                                             id="class" style="width: 100%;">
@@ -260,14 +270,12 @@
                                                 <th class="align-middle text-center">No</th>
                                                 <th class="align-middle text-center">NIK</th>
                                                 <th class="align-middle">Full Name</th>
-                                                <th class="align-middle">POH</th>
-                                                <th class="align-middle">DOH</th>
+                                                <th class="align-middle">Project</th>
                                                 <th class="align-middle">Department</th>
                                                 <th class="align-middle">Position</th>
                                                 <th class="align-middle">Grade</th>
                                                 <th class="align-middle">Level</th>
-                                                <th class="align-middle">Project</th>
-                                                <th class="align-middle">Class</th>
+                                                <th class="align-middle text-center">Status</th>
                                                 <th class="align-middle text-center">Action</th>
                                             </tr>
                                         </thead>
@@ -379,7 +387,7 @@
                             .department_name = $('#department_name').val(), d.position_name = $(
                                 '#position_name').val(), d.project_code = $('#project_code').val(), d
                             .grade_id = $('#grade_id').val(), d.level_id = $('#level_id').val(), d
-                            .class = $('#class').val(), d.search = $(
+                            .class = $('#class').val(), d.status = $('#status').val(), d.search = $(
                                 "input[type=search][aria-controls=example1]").val()
                     }
                 },
@@ -397,12 +405,8 @@
                     name: "fullname",
                     orderable: false,
                 }, {
-                    data: "poh",
-                    name: "poh",
-                    orderable: false,
-                }, {
-                    data: "doh",
-                    name: "doh",
+                    data: "project_code",
+                    name: "project_code",
                     orderable: false,
                 }, {
                     data: "department_name",
@@ -421,13 +425,11 @@
                     name: "level_name",
                     orderable: false,
                 }, {
-                    data: "project_code",
-                    name: "project_code",
+                    data: "status",
+                    name: "status",
                     orderable: false,
-                }, {
-                    data: "class",
-                    name: "class",
-                    orderable: false,
+                    searchable: false,
+                    className: "text-center"
                 }, {
                     data: "action",
                     name: "action",
@@ -441,14 +443,15 @@
                 .keyup(function() {
                     table.draw();
                 });
-            $('#date1, #date2, #department_name, #position_name, #project_code, #class, #grade_id, #level_id')
+            $('#date1, #date2, #department_name, #position_name, #project_code, #class, #grade_id, #level_id, #status')
                 .change(function() {
                     table.draw();
                 });
             $('#btn-reset').click(function() {
                 $('#date1, #date2, #nik, #fullname, #poh, #department_name, #position_name, #project_code, #class, #grade_id, #level_id')
                     .val('');
-                $('#date1, #date2, #department_name, #position_name, #project_code, #class, #grade_id, #level_id')
+                $('#status').val('active'); // Reset to default active
+                $('#date1, #date2, #department_name, #position_name, #project_code, #class, #grade_id, #level_id, #status')
                     .change();
             });
         });

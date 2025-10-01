@@ -345,15 +345,6 @@
                                     </a>
                                 </li>
                             @endcan
-                            {{-- @can('recruitment-sessions.show')
-                                <li class="nav-item">
-                                    <a href="{{ route('recruitment.sessions.dashboard') }}"
-                                        class="nav-link {{ Request::is('recruitment/sessions/dashboard*') ? 'active' : '' }}">
-                                        <i class="far fa-circle nav-icon"></i>
-                                        <p>Dashboard</p>
-                                    </a>
-                                </li>
-                            @endcan --}}
                             <li class="nav-item">
                                 <a href="{{ route('recruitment.reports.index') }}"
                                     class="nav-link {{ Request::is('recruitment/reports*') ? 'active' : '' }}">
@@ -371,9 +362,55 @@
                         <i class="nav-icon fas fa-route"></i>
                         <p>
                             Official Travel (LOT)
+                            <br>
+                            <small
+                                style="text-align: left; display: block; margin-left: 0; padding-left: 0;">Perjalanan
+                                Dinas</small>
                         </p>
                     </a>
                 </li>
+
+                {{-- Leave Management --}}
+                @role('administrator')
+                    <li
+                        class="nav-item {{ Request::is('leave/requests*') || Request::is('leave/entitlements*') || Request::is('leave/reports*') ? 'menu-open' : '' }}">
+                        <a href="#"
+                            class="nav-link {{ Request::is('leave/requests*') || Request::is('leave/entitlements*') || Request::is('leave/reports*') ? 'active' : '' }}">
+                            <i class="nav-icon fas fa-calendar-alt"></i>
+                            <p>
+                                Leave Management
+                                <i class="fas fa-angle-left right"></i>
+                                <br>
+                                <small style="text-align: left; display: block; margin-left: 0; padding-left: 0;">Manajemen
+                                    Cuti</small>
+                            </p>
+                        </a>
+                        <ul class="nav nav-treeview">
+                            <li class="nav-item">
+                                <a href="{{ route('leave.requests.index') }}"
+                                    class="nav-link {{ Request::is('leave/requests*') ? 'active' : '' }}">
+                                    <i class="far fa-circle nav-icon"></i>
+                                    <p>Leave Requests</p>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="{{ route('leave.entitlements.index') }}"
+                                    class="nav-link {{ Request::is('leave/entitlements*') ? 'active' : '' }}">
+                                    <i class="far fa-circle nav-icon"></i>
+                                    <p>Leave Entitlements</p>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="{{ route('leave.reports.index') }}"
+                                    class="nav-link {{ Request::is('leave/reports*') ? 'active' : '' }}">
+                                    <i class="far fa-circle nav-icon"></i>
+                                    <p>Leave Reports</p>
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+                @endrole
+
                 <li class="nav-item">
                     <a href="{{ route('letter-numbers.index') }}"
                         class="nav-link {{ Request::is('letter-numbers*') ? 'active' : '' }}">
@@ -384,9 +421,12 @@
                     </a>
                 </li>
 
+
                 @canany(['master-data.show'])
                     {{-- MASTER DATA --}}
                     <li class="nav-header">MASTER DATA</li>
+
+                    {{-- Employee --}}
                     <li
                         class="nav-item {{ Request::is('banks*') || Request::is('religions*') || Request::is('positions*') || Request::is('departments*') || Request::is('projects*') || Request::is('grades*') || Request::is('levels*') ? 'menu-open' : '' }}">
                         <a href="#"
@@ -450,6 +490,7 @@
                         </ul>
                     </li>
 
+                    {{-- Official Travel --}}
                     <li
                         class="nav-item {{ Request::is('transportations*') || Request::is('accommodations*') ? 'menu-open' : '' }}">
                         <a href="#"
@@ -480,6 +521,7 @@
                         </ul>
                     </li>
 
+                    {{-- Letter Management --}}
                     <li class="nav-item {{ Request::is('letter-categories*') ? 'menu-open' : '' }}">
                         <a href="#" class="nav-link {{ Request::is('letter-categories*') ? 'active' : '' }}">
                             <i class="nav-icon fas fa-database"></i>
@@ -498,6 +540,28 @@
                             </li>
                         </ul>
                     </li>
+
+                    {{-- Leave Management --}}
+                    @role('administrator')
+                        <li class="nav-item {{ Request::is('leave/types*') ? 'menu-open' : '' }}">
+                            <a href="#" class="nav-link {{ Request::is('leave/types*') ? 'active' : '' }}">
+                                <i class="nav-icon fas fa-database"></i>
+                                <p>
+                                    Leave Management
+                                    <i class="fas fa-angle-left right"></i>
+                                </p>
+                            </a>
+                            <ul class="nav nav-treeview">
+                                <li class="nav-item">
+                                    <a href="{{ route('leave.types.index') }}"
+                                        class="nav-link {{ Request::is('leave/types*') ? 'active' : '' }}">
+                                        <i class="nav-icon fas fa-calendar-check"></i>
+                                        <p>Leave Types</p>
+                                    </a>
+                                </li>
+                            </ul>
+                        </li>
+                    @endrole
                 @endcanany
 
 

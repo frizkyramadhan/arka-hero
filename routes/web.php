@@ -22,38 +22,42 @@ use App\Http\Controllers\ReligionController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EducationController;
 use App\Http\Controllers\InsuranceController;
+use App\Http\Controllers\LeaveTypeController;
 use App\Http\Controllers\PHPMailerController;
 use App\Http\Controllers\DepartmentController;
+
 use App\Http\Controllers\PermissionController;
-
-use App\Http\Controllers\TerminationController;
 // Removed import for deleted controller
+use App\Http\Controllers\LeaveReportController;
+use App\Http\Controllers\TerminationController;
 use App\Http\Controllers\ApprovalPlanController;
-use App\Http\Controllers\EmployeebankController;
-use App\Http\Controllers\LetterNumberController;
 
+use App\Http\Controllers\EmployeebankController;
+use App\Http\Controllers\EmployeeBondController;
+use App\Http\Controllers\LeaveRequestController;
+use App\Http\Controllers\LetterNumberController;
 use App\Http\Controllers\OperableunitController;
 use App\Http\Controllers\AccommodationController;
 use App\Http\Controllers\ApprovalStageController;
+use App\Http\Controllers\BondViolationController;
 use App\Http\Controllers\JobexperienceController;
+
+// Removed import for deleted controller
 use App\Http\Controllers\LetterSubjectController;
+
 use App\Http\Controllers\AdditionaldataController;
 use App\Http\Controllers\AdministrationController;
-use App\Http\Controllers\EmployeeBondController;
-use App\Http\Controllers\BondViolationController;
-
-// Removed import for deleted controller
 use App\Http\Controllers\LetterCategoryController;
-
 use App\Http\Controllers\OfficialtravelController;
+// Removed import for deleted controller
 use App\Http\Controllers\TransportationController;
 use App\Http\Controllers\ApprovalRequestController;
-use App\Http\Controllers\RecruitmentReportController;
-// Removed import for deleted controller
-use App\Http\Controllers\TaxidentificationController;
-use App\Http\Controllers\RecruitmentRequestController;
 
 // Approval System Controllers
+use App\Http\Controllers\LeaveEntitlementController;
+use App\Http\Controllers\RecruitmentReportController;
+use App\Http\Controllers\TaxidentificationController;
+use App\Http\Controllers\RecruitmentRequestController;
 use App\Http\Controllers\RecruitmentSessionController;
 use App\Http\Controllers\EmployeeRegistrationController;
 use App\Http\Controllers\RecruitmentCandidateController;
@@ -544,6 +548,70 @@ Route::group(['middleware' => ['auth']], function () {
             Route::post('/{id}/process', [ApprovalRequestController::class, 'processApproval'])->name('process');
             Route::post('/bulk-approve', [ApprovalRequestController::class, 'bulkApprove'])->name('bulk-approve');
             Route::post('/filter-by-type', [ApprovalRequestController::class, 'filterByType'])->name('filter-by-type');
+        });
+    });
+
+    // Leave Management Routes
+    Route::prefix('leave')->name('leave.')->group(function () {
+        // Leave Requests
+        Route::prefix('requests')->name('requests.')->group(function () {
+            Route::get('/', [LeaveRequestController::class, 'index'])->name('index');
+            Route::get('/data', [LeaveRequestController::class, 'data'])->name('data');
+            Route::get('/create', [LeaveRequestController::class, 'create'])->name('create');
+            Route::post('/', [LeaveRequestController::class, 'store'])->name('store');
+            Route::get('/{leaveRequest}', [LeaveRequestController::class, 'show'])->name('show');
+            Route::get('/{leaveRequest}/edit', [LeaveRequestController::class, 'edit'])->name('edit');
+            Route::put('/{leaveRequest}', [LeaveRequestController::class, 'update'])->name('update');
+            Route::delete('/{leaveRequest}', [LeaveRequestController::class, 'destroy'])->name('destroy');
+            Route::post('/{leaveRequest}/approve', [LeaveRequestController::class, 'approve'])->name('approve');
+            Route::post('/{leaveRequest}/reject', [LeaveRequestController::class, 'reject'])->name('reject');
+        });
+
+        // Leave Entitlements
+        Route::prefix('entitlements')->name('entitlements.')->group(function () {
+            Route::get('/', [LeaveEntitlementController::class, 'index'])->name('index');
+            Route::get('/data', [LeaveEntitlementController::class, 'data'])->name('data');
+            Route::get('/create', [LeaveEntitlementController::class, 'create'])->name('create');
+            Route::post('/', [LeaveEntitlementController::class, 'store'])->name('store');
+            Route::get('/{leaveEntitlement}', [LeaveEntitlementController::class, 'show'])->name('show');
+            Route::get('/{leaveEntitlement}/edit', [LeaveEntitlementController::class, 'edit'])->name('edit');
+            Route::put('/{leaveEntitlement}', [LeaveEntitlementController::class, 'update'])->name('update');
+            Route::delete('/{leaveEntitlement}', [LeaveEntitlementController::class, 'destroy'])->name('destroy');
+            Route::get('/available-leave-types', [LeaveEntitlementController::class, 'getAvailableLeaveTypes'])->name('available-leave-types');
+
+            // Management routes
+            Route::post('/generate-project', [LeaveEntitlementController::class, 'generateProjectEntitlements'])->name('generate-project');
+            Route::post('/generate-selected-project', [LeaveEntitlementController::class, 'generateSelectedProjectEntitlements'])->name('generate-selected-project');
+            Route::post('/clear-entitlements', [LeaveEntitlementController::class, 'clearAllEntitlements'])->name('clear-entitlements');
+
+            // Individual employee entitlement management
+            Route::get('/employee/{employee}', [LeaveEntitlementController::class, 'showEmployee'])->name('employee.show');
+            Route::get('/employee/{employee}/edit', [LeaveEntitlementController::class, 'editEmployee'])->name('employee.edit');
+            Route::put('/employee/{employee}', [LeaveEntitlementController::class, 'updateEmployee'])->name('employee.update');
+        });
+
+        // Leave Types (Master Data)
+        Route::prefix('types')->name('types.')->group(function () {
+            Route::get('/', [LeaveTypeController::class, 'index'])->name('index');
+            Route::get('/data', [LeaveTypeController::class, 'data'])->name('data');
+            Route::get('/create', [LeaveTypeController::class, 'create'])->name('create');
+            Route::post('/', [LeaveTypeController::class, 'store'])->name('store');
+            Route::get('/{leaveType}', [LeaveTypeController::class, 'show'])->name('show');
+            Route::get('/{leaveType}/edit', [LeaveTypeController::class, 'edit'])->name('edit');
+            Route::put('/{leaveType}', [LeaveTypeController::class, 'update'])->name('update');
+            Route::delete('/{leaveType}', [LeaveTypeController::class, 'destroy'])->name('destroy');
+            Route::post('/{leaveType}/toggle-status', [LeaveTypeController::class, 'toggleStatus'])->name('toggle-status');
+        });
+
+        // Leave Reports
+        Route::prefix('reports')->name('reports.')->group(function () {
+            Route::get('/', [LeaveReportController::class, 'index'])->name('index');
+            Route::get('/summary', [LeaveReportController::class, 'summary'])->name('summary');
+            Route::get('/by-project', [LeaveReportController::class, 'byProject'])->name('by-project');
+            Route::get('/accumulation', [LeaveReportController::class, 'accumulation'])->name('accumulation');
+            Route::get('/balance', [LeaveReportController::class, 'balance'])->name('balance');
+            Route::get('/export', [LeaveReportController::class, 'export'])->name('export');
+            Route::get('/statistics', [LeaveReportController::class, 'statistics'])->name('statistics');
         });
     });
 });

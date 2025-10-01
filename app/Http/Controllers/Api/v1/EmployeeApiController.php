@@ -86,6 +86,30 @@ class EmployeeApiController extends Controller
     }
 
     /**
+     * Get simple employee list for dropdowns
+     *
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getEmployees()
+    {
+        try {
+            $employees = Employee::select('id', 'fullname')
+                ->whereHas('administrations', function ($query) {
+                    $query->where('is_active', 1);
+                })
+                ->orderBy('fullname')
+                ->get();
+
+            return response()->json($employees);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
      * Display all administrations for an employee.
      *
      * @param int $id

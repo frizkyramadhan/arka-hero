@@ -92,6 +92,7 @@ class TerminationController extends Controller
         $administration->termination_date = $request->termination_date;
         $administration->termination_reason = $request->termination_reason;
         $administration->coe_no = $request->coe_no;
+        $administration->is_active = 0; // Set to inactive when termination data is updated
         $administration->user_id = auth()->user()->id;
         $administration->save();
 
