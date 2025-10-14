@@ -2,6 +2,64 @@
 
 ## Recent Implementations & Learnings
 
+### 2025-10-10: Leave Calculation System Analysis & Cleanup
+
+**Context**: Verifikasi sistem perhitungan cuti setelah implementasi dynamic approval system. Pertanyaan muncul apakah method `approve()` di model LeaveRequest perlu diadaptasi dan mengapa table menggunakan `leave_type_id` instead of `leave_entitlement_id`.
+
+**Key Findings**:
+
+1. **Method Lama Sudah Tidak Relevan**
+
+    - Method `approve()`, `reject()`, dan `updateLeaveEntitlement()` di model LeaveRequest adalah legacy code
+    - Sistem baru menggunakan centralized approval di `ApprovalPlanController`
+    - Method-method ini sudah dihapus dari model
+
+2. **Sistem Perhitungan Cuti Terintegrasi**
+
+    - Perhitungan cuti terjadi otomatis saat ALL sequential approvals completed
+    - Location: `ApprovalPlanController::updateLeaveEntitlements()` (line 1004-1049)
+    - Triggered di `ApprovalPlanController::update()` line 269-272
+    - Flow: Check completion → Update status to 'approved' → Update taken_days → Recalculate remaining_days
+
+3. **Desain Database: leave_type_id vs leave_entitlement_id**
+    - **Decision**: Menggunakan `leave_type_id` (NOT `leave_entitlement_id`)
+    - **Rationale**:
+        - Satu employee bisa punya multiple entitlements untuk same leave_type (different periods)
+        - Auto-matching entitlement berdasarkan `period_start` dan `period_end`
+        - Better UX: User pilih "Cuti Tahunan", sistem handle matching
+        - Support complex cases: Cuti lintas periode (31 Dec - 5 Jan)
+
+**Changes Made**:
+
+1. **Cleaned up LeaveRequest Model**:
+
+    - Removed: `approve()`, `reject()`, `updateLeaveEntitlement()` methods
+    - Kept: `cancel()`, `isPending()`, `isApproved()`, `isRejected()`, auto-conversion methods
+
+2. **Verified Calculation Logic**:
+    - Confirmed `ApprovalPlanController::updateLeaveEntitlements()` working correctly
+    - Matching logic: `where('period_start', '<=', start_date)->where('period_end', '>=', end_date)`
+    - Calculation: `taken_days += total_days` and `remaining_days = withdrawable_days - taken_days`
+
+**Testing**:
+
+-   ✅ Created leave request via browser automation (Herry, Cuti Tahunan, 3 days)
+-   ✅ Verified approval flow assigned correctly
+-   ✅ Verified form and balance display working
+-   ⚠️ Full approval-to-calculation test not completed (approver different user)
+
+**Files Modified**:
+
+-   `app/Models/LeaveRequest.php` - Removed obsolete methods
+-   `docs/LEAVE_CALCULATION_SYSTEM_ANALYSIS.md` - Comprehensive analysis document
+
+**Decision Made**:
+
+-   NO need to adapt old approve() method to new system (already replaced)
+-   KEEP `leave_type_id` design (optimal and flexible)
+
+---
+
 ### 2025-01-28: Parallel Approval Information Enhancement
 
 **Context**: User requested enhancement to the approval information system to properly handle and display parallel approvals (same approval_order) versus sequential approvals.

@@ -9,7 +9,16 @@ class Level extends Model
 {
     use HasFactory;
 
-    protected $guarded = [];
+    protected $fillable = [
+        'name',
+        'level_order',
+        'is_active'
+    ];
+
+    protected $casts = [
+        'is_active' => 'boolean',
+        'level_order' => 'integer'
+    ];
 
     public function administrations()
     {

@@ -5,7 +5,16 @@
         <!-- Document Header -->
         <div class="document-header">
             <div class="document-header-content">
-                <div class="document-type">{{ ucfirst(str_replace('_', ' ', $approvalPlan->document_type)) }}</div>
+                <div class="document-type">
+                    @if ($approvalPlan->document_type === 'leave_request')
+                        @php $document = App\Models\LeaveRequest::with(['employee.administrations.project'])->find($approvalPlan->document_id); @endphp
+                        {{ $document->employee->administrations->where('is_active', 1)->first()->project->project_code ?? 'N/A' }}
+                        -
+                        {{ $document->employee->administrations->where('is_active', 1)->first()->project->project_name ?? 'N/A' }}
+                    @else
+                        {{ ucfirst(str_replace('_', ' ', $approvalPlan->document_type)) }}
+                    @endif
+                </div>
                 <h1 class="document-number">
                     @if ($approvalPlan->document_type === 'officialtravel')
                         @php $document = App\Models\Officialtravel::find($approvalPlan->document_id); @endphp
@@ -13,14 +22,18 @@
                     @elseif($approvalPlan->document_type === 'recruitment_request')
                         @php $document = App\Models\RecruitmentRequest::find($approvalPlan->document_id); @endphp
                         {{ $document->request_number ?? 'N/A' }}
+                    @elseif($approvalPlan->document_type === 'leave_request')
+                        Leave Request
                     @endif
                 </h1>
                 <div class="document-date">
-                    <i class="far fa-calendar-alt"></i>
+                    <i class="far fa-calendar-alt"> </i>
                     @if ($approvalPlan->document_type === 'officialtravel')
                         {{ date('d F Y', strtotime($document->official_travel_date ?? now())) }}
                     @elseif($approvalPlan->document_type === 'recruitment_request')
                         {{ date('d F Y', strtotime($document->created_at ?? now())) }}
+                    @elseif($approvalPlan->document_type === 'leave_request')
+                        {{ date('d F Y', strtotime($document->requested_at ?? now())) }}
                     @endif
                 </div>
                 <div class="document-status-pill status-pending-approval">
@@ -490,6 +503,150 @@
                                 @endif
                             </div>
                         </div>
+                    @elseif($approvalPlan->document_type === 'leave_request')
+                        @php $document = App\Models\LeaveRequest::with(['employee.administrations.position.department', 'employee.administrations.project', 'leaveType', 'requestedBy'])->find($approvalPlan->document_id); @endphp
+
+                        <!-- Leave Request Information Card -->
+                        <div class="document-card document-info-card">
+                            <div class="card-head">
+                                <h2><i class="fas fa-calendar-alt"></i> Leave Request Information</h2>
+                            </div>
+                            <div class="card-body">
+                                <div class="info-grid">
+                                    <div class="info-item">
+                                        <div class="info-icon" style="background-color: #3498db;">
+                                            <i class="fas fa-user"></i>
+                                        </div>
+                                        <div class="info-content">
+                                            <div class="info-label">Employee</div>
+                                            <div class="info-value">{{ $document->employee->fullname ?? 'N/A' }}</div>
+                                        </div>
+                                    </div>
+                                    <div class="info-item">
+                                        <div class="info-icon" style="background-color: #e74c3c;">
+                                            <i class="fas fa-calendar-check"></i>
+                                        </div>
+                                        <div class="info-content">
+                                            <div class="info-label">Leave Type</div>
+                                            <div class="info-value">{{ $document->leaveType->name ?? 'N/A' }} @if ($document->leaveType && $document->leaveType->code)
+                                                    ({{ $document->leaveType->code }})
+                                                @endif
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="info-item">
+                                        <div class="info-icon" style="background-color: #f1c40f;">
+                                            <i class="fas fa-calendar-alt"></i>
+                                        </div>
+                                        <div class="info-content">
+                                            <div class="info-label">Start Date</div>
+                                            <div class="info-value">{{ date('d F Y', strtotime($document->start_date)) }}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="info-item">
+                                        <div class="info-icon" style="background-color: #9b59b6;">
+                                            <i class="fas fa-calendar-plus"></i>
+                                        </div>
+                                        <div class="info-content">
+                                            <div class="info-label">End Date</div>
+                                            <div class="info-value">{{ date('d F Y', strtotime($document->end_date)) }}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="info-item">
+                                        <div class="info-icon" style="background-color: #1abc9c;">
+                                            <i class="fas fa-calculator"></i>
+                                        </div>
+                                        <div class="info-content">
+                                            <div class="info-label">Total Days</div>
+                                            <div class="info-value">{{ $document->total_days }}
+                                                {{ $document->total_days > 1 ? 'days' : 'day' }}</div>
+                                        </div>
+                                    </div>
+                                    <div class="info-item">
+                                        <div class="info-icon" style="background-color: #e67e22;">
+                                            <i class="fas fa-calendar-week"></i>
+                                        </div>
+                                        <div class="info-content">
+                                            <div class="info-label">Back to Work Date</div>
+                                            <div class="info-value">
+                                                {{ $document->back_to_work_date ? date('d F Y', strtotime($document->back_to_work_date)) : 'N/A' }}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="info-item">
+                                        <div class="info-icon" style="background-color: #34495e;">
+                                            <i class="far fa-clock"></i>
+                                        </div>
+                                        <div class="info-content">
+                                            <div class="info-label">Requested At</div>
+                                            <div class="info-value">
+                                                {{ date('d M Y H:i', strtotime($document->created_at)) }}</div>
+                                        </div>
+                                    </div>
+                                    <div class="info-item">
+                                        <div class="info-icon" style="background-color: #2c3e50;">
+                                            <i class="fas fa-calendar-day"></i>
+                                        </div>
+                                        <div class="info-content">
+                                            <div class="info-label">Leave Period</div>
+                                            <div class="info-value">
+                                                {{ $document->leave_period }}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Employee Information -->
+                        <div class="document-card traveler-info-card">
+                            <div class="card-head">
+                                <h2><i class="fas fa-user"></i> Employee Information</h2>
+                            </div>
+                            <div class="card-body">
+                                <div class="traveler-details">
+                                    <div class="traveler-detail-item">
+                                        <i class="fas fa-id-card detail-icon"></i>
+                                        <div class="detail-content">
+                                            <div class="detail-label">NIK - Name</div>
+                                            <div class="detail-value">
+                                                {{ $document->employee->administrations->where('is_active', 1)->first()->nik ?? 'N/A' }}
+                                                - {{ $document->employee->fullname ?? 'Unknown Employee' }}</div>
+                                        </div>
+                                    </div>
+                                    <div class="traveler-detail-item">
+                                        <i class="fas fa-sitemap detail-icon"></i>
+                                        <div class="detail-content">
+                                            <div class="detail-label">Position</div>
+                                            <div class="detail-value">
+                                                {{ $document->employee->administrations->where('is_active', 1)->first()->position->position_name ?? 'No Position' }}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="traveler-detail-item">
+                                        <i class="fas fa-globe detail-icon"></i>
+                                        <div class="detail-content">
+                                            <div class="detail-label">Business Unit</div>
+                                            <div class="detail-value">
+                                                {{ $document->employee->administrations->where('is_active', 1)->first()->project->project_code ?? 'No Code' }}
+                                                :
+                                                {{ $document->employee->administrations->where('is_active', 1)->first()->project->project_name ?? 'No Project' }}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="traveler-detail-item">
+                                        <i class="fas fa-building detail-icon"></i>
+                                        <div class="detail-content">
+                                            <div class="detail-label">Division / Department</div>
+                                            <div class="detail-value">
+                                                {{ $document->employee->administrations->where('is_active', 1)->first()->position->department->department_name ?? 'No Department' }}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     @endif
                 </div>
 
@@ -583,6 +740,8 @@
                                                 {{ $document->creator->name ?? 'N/A' }}
                                             @elseif($approvalPlan->document_type === 'recruitment_request')
                                                 {{ $document->createdBy->name ?? 'N/A' }}
+                                            @elseif($approvalPlan->document_type === 'leave_request')
+                                                {{ $document->requestedBy->name ?? 'N/A' }}
                                             @endif
                                         </div>
                                         <div class="submitter-meta">
@@ -592,6 +751,8 @@
                                                     {{ $document->submit_at ? date('d M Y H:i', strtotime($document->submit_at)) : 'N/A' }}
                                                 @elseif($approvalPlan->document_type === 'recruitment_request')
                                                     {{ $document->submit_at ? date('d M Y H:i', strtotime($document->submit_at)) : 'N/A' }}
+                                                @elseif($approvalPlan->document_type === 'leave_request')
+                                                    {{ $document->requested_at ? date('d M Y H:i', strtotime($document->requested_at)) : 'N/A' }}
                                                 @endif
                                             </span>
                                         </div>

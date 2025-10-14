@@ -39,8 +39,9 @@
                                     <thead>
                                         <tr>
                                             <th class="text-center">No</th>
-                                            <th width="50%">Name</th>
-                                            <th class="text-center">Status</th>
+                                            <th width="30%">Name</th>
+                                            <th class="text-center" width="15%">Order</th>
+                                            <th class="text-center" width="15%">Status</th>
                                             <th class="text-center" width="15%">Action</th>
                                         </tr>
                                     </thead>
@@ -70,6 +71,12 @@
                             <div class="form-group">
                                 <label for="name">Level Name</label>
                                 <input type="text" name="name" class="form-control" id="name" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="level_order">Level Order</label>
+                                <input type="number" name="level_order" class="form-control" id="level_order"
+                                    min="1" required>
+                                <small class="form-text text-muted">1 = Lowest, Higher number = Higher hierarchy</small>
                             </div>
                             <div class="form-check">
                                 <input type="checkbox" name="is_active" class="form-check-input" id="is_active_add" checked>
@@ -102,6 +109,12 @@
                             <div class="form-group">
                                 <label for="name_edit">Level Name</label>
                                 <input type="text" name="name" class="form-control" id="name_edit" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="level_order_edit">Level Order</label>
+                                <input type="number" name="level_order" class="form-control" id="level_order_edit"
+                                    min="1" required>
+                                <small class="form-text text-muted">1 = Lowest, Higher number = Higher hierarchy</small>
                             </div>
                             <div class="form-check">
                                 <input type="checkbox" name="is_active" class="form-check-input" id="is_active_edit">
@@ -171,6 +184,11 @@
                         name: "name"
                     },
                     {
+                        data: "level_order",
+                        name: "level_order",
+                        className: "text-center"
+                    },
+                    {
                         data: "is_active",
                         name: "is_active",
                         className: "text-center"
@@ -184,7 +202,7 @@
                     }
                 ],
                 order: [
-                    [0, 'desc']
+                    [2, 'asc']
                 ]
             });
 
@@ -192,10 +210,12 @@
                 var button = $(event.relatedTarget);
                 var levelId = button.data('id');
                 var levelName = button.data('name');
+                var levelOrder = button.data('order');
                 var levelStatus = button.data('status');
 
                 var modal = $(this);
                 modal.find('#name_edit').val(levelName);
+                modal.find('#level_order_edit').val(levelOrder);
                 if (levelStatus == 1) {
                     modal.find('#is_active_edit').prop('checked', true);
                 } else {
@@ -206,6 +226,24 @@
                 var action = '{{ route('levels.update', ':id') }}';
                 action = action.replace(':id', levelId);
                 form.attr('action', action);
+            });
+
+            // Auto suggest next level order
+            $('#level_order').on('focus', function() {
+                if (!$(this).val()) {
+                    // Get the highest level order and suggest next
+                    $.get('{{ route('levels.data') }}', function(data) {
+                        var maxOrder = 0;
+                        if (data.data && data.data.length > 0) {
+                            data.data.forEach(function(level) {
+                                if (level.level_order > maxOrder) {
+                                    maxOrder = level.level_order;
+                                }
+                            });
+                        }
+                        $('#level_order').val(maxOrder + 1);
+                    });
+                }
             });
         });
     </script>

@@ -213,8 +213,7 @@
                     {
                         data: 'leave_type',
                         name: 'leave_type',
-                        orderable: false,
-                        className: 'text-center'
+                        orderable: false
                     },
                     {
                         data: 'start_date',

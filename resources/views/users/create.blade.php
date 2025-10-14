@@ -54,8 +54,24 @@
                                     @enderror
                                 </div>
                                 <div class="form-group">
+                                    <label for="employee_id">Employee</label>
+                                    <select class="select2bs4 form-control @error('employee_id') is-invalid @enderror"
+                                        name="employee_id" id="employee_id">
+                                        <option value="">Select Employee (Optional)</option>
+                                        @foreach ($employees as $employee)
+                                            <option value="{{ $employee->id }}"
+                                                {{ old('employee_id') == $employee->id ? 'selected' : '' }}>
+                                                {{ $employee->nik }} - {{ $employee->fullname }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                    @error('employee_id')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                    @enderror
+                                </div>
+                                <div class="form-group">
                                     <label for="user_status">Status</label>
-                                    <select class="form-control @error('user_status') is-invalid @enderror"
+                                    <select class="select2bs4 form-control @error('user_status') is-invalid @enderror"
                                         name="user_status" id="user_status" required>
                                         <option value="1" {{ old('user_status') == '1' ? 'selected' : '' }}>Active
                                         </option>
@@ -153,8 +169,23 @@
     </section>
 @endsection
 
+@section('styles')
+    <!-- Select2 -->
+    <link rel="stylesheet" href="{{ asset('assets/plugins/select2/css/select2.min.css') }}">
+@endsection
+
 @section('scripts')
+    <!-- Select2 -->
+    <script src="{{ asset('assets/plugins/select2/js/select2.full.min.js') }}"></script>
     <script>
+        // Initialize Select2
+        $('.select2bs4').select2({
+            theme: 'bootstrap4',
+            width: '100%'
+        }).on('select2:open', function() {
+            document.querySelector('.select2-search__field').focus();
+        });
+
         // Data: role-permission mapping
         const rolePermissions = @json(
             $roles->mapWithKeys(function ($role) {

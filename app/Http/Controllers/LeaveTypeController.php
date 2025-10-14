@@ -8,6 +8,13 @@ use Illuminate\Support\Facades\DB;
 
 class LeaveTypeController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('permission:leave-types.show')->only('index', 'show', 'data');
+        $this->middleware('permission:leave-types.create')->only('create', 'store');
+        $this->middleware('permission:leave-types.edit')->only('edit', 'update', 'toggleStatus');
+        $this->middleware('permission:leave-types.delete')->only('destroy');
+    }
     /**
      * Display a listing of the resource.
      */
@@ -159,7 +166,7 @@ class LeaveTypeController extends Controller
                 ->with('toast_success', 'Leave type created successfully.');
         } catch (\Exception $e) {
             DB::rollback();
-            return back()->withErrors(['toast_error' => 'Failed to create leave type: ' . $e->getMessage()]);
+            return back()->with(['toast_error' => 'Failed to create leave type: ' . $e->getMessage()]);
         }
     }
 
@@ -219,7 +226,7 @@ class LeaveTypeController extends Controller
                 ->with('toast_success', 'Leave type updated successfully.');
         } catch (\Exception $e) {
             DB::rollback();
-            return back()->withErrors(['toast_error' => 'Failed to update leave type: ' . $e->getMessage()]);
+            return back()->with(['toast_error' => 'Failed to update leave type: ' . $e->getMessage()]);
         }
     }
 

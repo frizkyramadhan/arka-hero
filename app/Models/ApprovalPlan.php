@@ -47,36 +47,83 @@ class ApprovalPlan extends Model
         return $this->belongsTo(Officialtravel::class, 'document_id', 'id');
     }
 
-    public function recruitment_request()
+    public function leaveRequest()
+    {
+        return $this->belongsTo(LeaveRequest::class, 'document_id', 'id');
+    }
+
+    public function recruitmentRequest()
     {
         return $this->belongsTo(RecruitmentRequest::class, 'document_id', 'id');
     }
 
-    // Check if this approval can be processed (sequential validation)
+    /**
+     * Check if this approval can be processed (hybrid sequential validation)
+     *
+     * This method uses a hybrid approach that:
+     * - Supports parallel approvals (multiple approvers with same approval_order)
+     * - Requires ALL approvals in previous order groups to be completed
+     * - Works with missing, skipped, or non-sequential approval orders
+     *
+     * Examples:
+     * - Sequential: 1 → 2 → 3
+     * - Parallel: 1,1 → 3 (both order 1 must approve before order 3)
+     * - Missing start: 2 → 3 (order 2 becomes first order)
+     * - Skipped: 1 → 3 → 5 (no order 2 or 4)
+     * - Mixed: 1,1 → 2,2 → 3 (multiple parallel groups)
+     *
+     * @return bool True if this approval can be processed, false otherwise
+     */
     public function canBeProcessed()
     {
-        // If no approval stage found, allow processing
-        if (!$this->approvalStage) {
-            return true;
-        }
-
-        // If approval_order is null or empty, allow processing (fallback)
+        // If approval_order is null or empty, allow processing (fallback for legacy data)
         if (empty($this->approval_order)) {
             return true;
         }
 
-        // Check if previous approvals are completed based on approval_order
-        $previousApprovals = static::where('document_id', $this->document_id)
+        // Get all approval plans for this document, ordered by approval_order
+        $allApprovals = static::where('document_id', $this->document_id)
             ->where('document_type', $this->document_type)
-            ->where('approval_order', '<', $this->approval_order)
-            ->where('status', 1) // Approved
-            ->count();
+            ->orderBy('approval_order')
+            ->get();
 
-        $expectedPrevious = $this->approval_order - 1;
+        // If no approvals found, allow processing (shouldn't happen but safe fallback)
+        if ($allApprovals->isEmpty()) {
+            return true;
+        }
 
-        // If previous orders are completed, this order can be processed
-        // Multiple steps with same approval_order can be processed in parallel
-        return $previousApprovals >= $expectedPrevious;
+        // Group approvals by approval_order
+        $orderGroups = $allApprovals->groupBy('approval_order');
+
+        // Get current approval order
+        $currentOrder = $this->approval_order;
+
+        // If this is the first order group, allow processing
+        $firstOrder = $orderGroups->keys()->first();
+        if ($currentOrder == $firstOrder) {
+            return true;
+        }
+
+        // Check if ALL previous order groups are fully approved
+        foreach ($orderGroups as $order => $approvals) {
+            // Skip current and future orders
+            if ($order >= $currentOrder) {
+                break;
+            }
+
+            // Check if ALL approvals in this order group are approved
+            $allApproved = $approvals->every(function ($approval) {
+                return $approval->status == 1; // Status 1 = Approved
+            });
+
+            // If any previous order group is not fully approved, cannot process
+            if (!$allApproved) {
+                return false;
+            }
+        }
+
+        // All previous order groups are fully approved
+        return true;
     }
 
     // Get next approval in sequence

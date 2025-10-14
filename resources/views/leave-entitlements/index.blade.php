@@ -122,16 +122,18 @@
                                 Employee Remaining Leave Entitlements - {{ $selectedProject->project_code }}
                             @endif
                         </h3>
-                        @if (!$showAllProjects && $selectedProject)
+                        @if ($showAllProjects || $selectedProject)
                             <div class="card-tools">
                                 <button type="button" class="btn btn-danger btn-sm mr-2"
                                     onclick="confirmClearEntitlements()">
                                     <i class="fas fa-trash"></i> Clear Entitlements
                                 </button>
-                                <button type="button" class="btn btn-success btn-sm"
-                                    onclick="confirmGenerateEntitlements()">
-                                    <i class="fas fa-magic"></i> Generate Entitlements
-                                </button>
+                                @if (!$showAllProjects && $selectedProject)
+                                    <button type="button" class="btn btn-success btn-sm"
+                                        onclick="confirmGenerateEntitlements()">
+                                        <i class="fas fa-magic"></i> Generate Entitlements
+                                    </button>
+                                @endif
                             </div>
                         @endif
                     </div>
@@ -235,9 +237,11 @@
 
             // Clear Entitlements Confirmation
             window.confirmClearEntitlements = function() {
-                const projectId = "{{ $selectedProject->id ?? '' }}";
-                const projectCode = "{{ $selectedProject->project_code ?? '' }}";
-                const leaveType = "{{ $selectedProject->leave_type ?? '' }}";
+                const projectId = "{{ $showAllProjects ? 'all' : $selectedProject->id ?? '' }}";
+                const projectCode =
+                    "{{ $showAllProjects ? 'All Projects' : $selectedProject->project_code ?? '' }}";
+                const leaveType =
+                    "{{ $showAllProjects ? 'All Projects' : $selectedProject->leave_type ?? '' }}";
 
                 Swal.fire({
                     title: '<i class="fas fa-trash text-danger"></i> Clear All Entitlements',

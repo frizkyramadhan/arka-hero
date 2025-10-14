@@ -36,6 +36,7 @@
                                     <option value="">All Types</option>
                                     <option value="officialtravel">Official Travel</option>
                                     <option value="recruitment_request">Recruitment Request</option>
+                                    <option value="leave_request">Leave Request</option>
                                 </select>
                             </div>
                         </div>

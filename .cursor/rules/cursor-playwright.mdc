@@ -1,0 +1,47 @@
+---
+alwaysApply: true
+---
+
+# Cursor Browser Automation Testing Rule
+
+Selalu gunakan Cursor Browser Automation untuk mengetes setiap perubahan yang dibuat. Testing harus dilakukan secara straight forward tanpa perlu memperhatikan apakah aplikasi sudah running atau belum.
+
+## Testing Protocol:
+
+1. **Setiap perubahan kode** - Jalankan test menggunakan Cursor Browser Automation
+2. **Setiap fitur baru** - Test functionality secara otomatis
+3. **Setiap bug fix** - Verifikasi fix dengan automated testing
+4. **Setiap UI change** - Ambil screenshot dan test interaksi
+
+## Cursor Browser Automation Commands:
+
+-   Gunakan `mcp_cursor-playwright_browser_navigate` untuk membuka halaman
+-   Gunakan `mcp_cursor-playwright_browser_snapshot` untuk melihat status halaman
+-   Gunakan `mcp_cursor-playwright_browser_click` untuk test interaksi
+-   Gunakan `mcp_cursor-playwright_browser_take_screenshot` untuk dokumentasi visual
+-   Gunakan `mcp_cursor-playwright_browser_fill_form` untuk test form
+-   Gunakan `mcp_cursor-playwright_browser_type` untuk input text
+-   Gunakan `mcp_cursor-playwright_browser_select_option` untuk dropdown
+-   Gunakan `mcp_cursor-playwright_browser_hover` untuk hover effect
+-   Gunakan `mcp_cursor-playwright_browser_drag` untuk drag and drop
+-   Gunakan `mcp_cursor-playwright_browser_evaluate` untuk execute JavaScript
+
+## Testing Flow:
+
+1. Navigate ke localhost/arka-hero
+2. Jika belum login, login dengan email: admin@arka.co.id dan password: admin
+3. Test functionality yang baru dibuat/diubah
+4. Ambil screenshot untuk dokumentasi
+5. Verifikasi semua fitur berfungsi dengan baik
+6. Jangan jalankan browser_close setiap melakukan pengetesan
+
+**TIDAK PERLU** mengecek apakah aplikasi sudah running - langsung test saja menggunakan Cursor Browser Automation.
+
+## Advanced Testing Features:
+
+-   Gunakan `mcp_cursor-playwright_browser_tabs` untuk manage multiple tabs
+-   Gunakan `mcp_cursor-playwright_browser_wait_for` untuk wait conditions
+-   Gunakan `mcp_cursor-playwright_browser_network_requests` untuk monitor network
+-   Gunakan `mcp_cursor-playwright_browser_console_messages` untuk debug console
+-   Gunakan `mcp_cursor-playwright_browser_file_upload` untuk test file upload
+-   Gunakan `mcp_cursor-playwright_browser_handle_dialog` untuk handle alerts/dialogs

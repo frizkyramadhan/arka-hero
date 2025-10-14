@@ -23,42 +23,125 @@
         <div class="container-fluid">
             <div class="row">
                 <div class="col-12">
-                    <div class="card">
-                        <div class="card-header">
-                            <h3 class="card-title">Approval Stages Configuration</h3>
-                            <div class="card-tools">
-                                <a href="{{ route('approval.stages.create') }}" class="btn btn-primary btn-sm">
-                                    <i class="fas fa-plus"></i> Create New
-                                </a>
+                    <div id="accordion">
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title">Approval Stages Configuration</h3>
+                                <div class="card-tools">
+                                    <a href="{{ route('approval.stages.create') }}" class="btn btn-primary btn-sm">
+                                        <i class="fas fa-plus"></i> Create New
+                                    </a>
 
+                                </div>
                             </div>
-                        </div>
-                        <div class="card-body">
-                            <table id="approval-stages-table" class="table table-bordered table-striped"
-                                style="width: 100%;">
-                                <thead>
-                                    <tr>
-                                        <th class="align-middle">No</th>
-                                        <th class="align-middle">Approver</th>
-                                        <th class="align-middle">Document Type</th>
-                                        <th class="align-middle">Approval Order</th>
-                                        <th class="align-middle">Projects</th>
-                                        <th class="align-middle">Departments</th>
-                                        <th class="text-center align-middle" style="width: 12%;">Action</th>
-                                    </tr>
-                                </thead>
-                            </table>
+                            <div class="card-body">
+                                <div class="card card-primary">
+                                    <div class="card-header">
+                                        <h4 class="card-title w-100">
+                                            <a class="d-block w-100" data-toggle="collapse" href="#collapseOne">
+                                                <i class="fas fa-filter"></i> Filter
+                                            </a>
+                                        </h4>
+                                    </div>
+                                    <div id="collapseOne" class="collapse" data-parent="#accordion">
+                                        <div class="card-body">
+                                            <div class="row">
+                                                <div class="col-md-3">
+                                                    <div class="form-group">
+                                                        <label>Approver</label>
+                                                        <select class="form-control select2bs4" id="approver_id"
+                                                            name="approver_id">
+                                                            <option value="">- All -</option>
+                                                            @foreach ($approvers as $approver)
+                                                                <option value="{{ $approver->id }}">
+                                                                    {{ $approver->name }}</option>
+                                                            @endforeach
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <div class="form-group">
+                                                        <label>Document Type</label>
+                                                        <select class="form-control select2bs4" id="document_type"
+                                                            name="document_type">
+                                                            <option value="">- All -</option>
+                                                            <option value="officialtravel">Official Travel</option>
+                                                            <option value="recruitment_request">Recruitment Request</option>
+                                                            <option value="leave_request">Leave Request</option>
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <div class="form-group">
+                                                        <label>Project</label>
+                                                        <select class="form-control select2bs4" id="project_id"
+                                                            name="project_id">
+                                                            <option value="">- All -</option>
+                                                            @foreach ($projects as $project)
+                                                                <option value="{{ $project->id }}">
+                                                                    {{ $project->project_code }} -
+                                                                    {{ $project->project_name }}</option>
+                                                            @endforeach
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <div class="form-group">
+                                                        <label>Department</label>
+                                                        <select class="form-control select2bs4" id="department_id"
+                                                            name="department_id">
+                                                            <option value="">- All -</option>
+                                                            @foreach ($departments as $department)
+                                                                <option value="{{ $department->id }}">
+                                                                    {{ $department->department_name }}</option>
+                                                            @endforeach
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="row">
+                                                <div class="col-md-3">
+                                                    <div class="form-group">
+                                                        <label>&nbsp;</label>
+                                                        <button type="button" class="btn btn-secondary w-100"
+                                                            id="btn-reset" style="margin-bottom: 6px;">
+                                                            <i class="fas fa-times"></i> Reset
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="table-responsive">
+                                    <table id="approval-stages-table" class="table table-bordered table-striped"
+                                        style="width: 100%;">
+                                        <thead>
+                                            <tr>
+                                                <th class="align-middle">No</th>
+                                                <th class="align-middle">Approver</th>
+                                                <th class="align-middle">Document Type</th>
+                                                <th class="align-middle">Approval Order</th>
+                                                <th class="align-middle">Projects</th>
+                                                <th class="align-middle">Departments</th>
+                                                <th class="text-center align-middle" style="width: 12%;">Action</th>
+                                            </tr>
+                                        </thead>
+                                    </table>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
-        </div>
     </section>
 @endsection
 
 @section('styles')
     <link rel="stylesheet" href="{{ asset('assets/plugins/datatables-bs4/css/dataTables.bootstrap4.min.css') }}">
     <link rel="stylesheet" href="{{ asset('assets/plugins/datatables-responsive/css/responsive.bootstrap4.min.css') }}">
+    <link rel="stylesheet" href="{{ asset('assets/plugins/select2/css/select2.min.css') }}">
+    <link rel="stylesheet" href="{{ asset('assets/plugins/select2-bootstrap4-theme/select2-bootstrap4.min.css') }}">
     <link rel="stylesheet" href="{{ asset('assets/plugins/toastr/toastr.min.css') }}">
 @endsection
 
@@ -90,11 +173,26 @@
                 "hideMethod": "fadeOut"
             };
 
+            // Initialize Select2
+            $('.select2bs4').select2({
+                theme: 'bootstrap4',
+                width: '100%'
+            });
+
             // Initialize DataTable
-            $('#approval-stages-table').DataTable({
+            var table = $('#approval-stages-table').DataTable({
                 processing: true,
-                serverSide: false,
-                ajax: "{{ route('approval.stages.data') }}",
+                serverSide: true,
+                ajax: {
+                    url: "{{ route('approval.stages.data') }}",
+                    data: function(d) {
+                        d.approver_id = $('#approver_id').val();
+                        d.document_type = $('#document_type').val();
+                        d.project_id = $('#project_id').val();
+                        d.department_id = $('#department_id').val();
+                        d.search = $("input[type=search][aria-controls=approval-stages-table]").val();
+                    }
+                },
                 columns: [{
                         data: 'DT_RowIndex',
                         name: 'DT_RowIndex',
@@ -132,9 +230,15 @@
                 ]
             });
 
-            // Initialize Select2
-            $('.select2').select2({
-                theme: 'bootstrap4'
+            // Handle filter changes
+            $('#approver_id, #document_type, #project_id, #department_id').change(function() {
+                table.draw();
+            });
+
+            // Handle reset button
+            $('#btn-reset').click(function() {
+                $('#approver_id, #document_type, #project_id, #department_id').val('').trigger('change');
+                table.draw();
             });
 
             // Delete approval stage function
