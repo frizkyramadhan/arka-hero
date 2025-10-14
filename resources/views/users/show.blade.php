@@ -34,6 +34,32 @@
                                 <dt class="col-sm-3">Email</dt>
                                 <dd class="col-sm-9">{{ $user->email }}</dd>
 
+                                <dt class="col-sm-3">Employee</dt>
+                                <dd class="col-sm-9">
+                                    @if ($user->employee)
+                                        <div class="employee-info">
+                                            <strong>{{ $user->employee->fullname }}</strong>
+                                            @if ($user->employee->administrations->isNotEmpty())
+                                                @php
+                                                    $activeAdmin = $user->employee->administrations
+                                                        ->where('is_active', 1)
+                                                        ->first();
+                                                @endphp
+                                                @if ($activeAdmin)
+                                                    <br>
+                                                    <small class="text-muted">
+                                                        NIK: {{ $activeAdmin->nik }} |
+                                                        Position: {{ $activeAdmin->position->position_name ?? 'N/A' }} |
+                                                        Level: {{ $activeAdmin->level->name ?? 'N/A' }}
+                                                    </small>
+                                                @endif
+                                            @endif
+                                        </div>
+                                    @else
+                                        <span class="text-muted">No employee linked</span>
+                                    @endif
+                                </dd>
+
                                 <dt class="col-sm-3">Status</dt>
                                 <dd class="col-sm-9">
                                     @if ($user->user_status == '1')
@@ -86,7 +112,8 @@
                                                 class="text-muted text-capitalize">{{ str_replace('-', ' ', $category) }}</small><br>
                                             <div class="ml-3">
                                                 @foreach ($permissionList->sortBy('name') as $perm)
-                                                    <span class="badge badge-secondary mr-1 mb-1">{{ $perm->name }}</span>
+                                                    <span
+                                                        class="badge badge-secondary mr-1 mb-1">{{ $perm->name }}</span>
                                                 @endforeach
                                             </div>
                                         </div>

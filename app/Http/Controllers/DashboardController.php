@@ -21,8 +21,13 @@ use App\Models\LetterCategory;
 use App\Models\LetterSubject;
 use App\Models\EmployeeBond;
 use App\Models\BondViolation;
+use App\Models\LeaveRequest;
+use App\Models\LeaveEntitlement;
+use App\Models\LeaveType;
+use App\Models\LeaveRequestCancellation;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Yajra\DataTables\DataTables;
 
 class DashboardController extends Controller
@@ -713,6 +718,133 @@ class DashboardController extends Controller
     }
 
     /**
+     * Dedicated Leave Management Dashboard view
+     */
+    public function leaveManagement()
+    {
+        $title = 'Leave Management Dashboard';
+        $subtitle = 'Leave Analytics and Management Overview';
+
+        // Basic Statistics
+        $totalLeaveRequests = LeaveRequest::count();
+        $pendingRequests = LeaveRequest::where('status', 'pending')->count();
+        $approvedRequests = LeaveRequest::where('status', 'approved')->count();
+        $closedRequests = LeaveRequest::where('status', 'closed')->count();
+        $cancelledRequests = LeaveRequest::where('status', 'cancelled')->count();
+
+        // Monthly Statistics
+        $thisMonthRequests = LeaveRequest::whereMonth('created_at', now()->month)
+            ->whereYear('created_at', now()->year)
+            ->count();
+
+        $lastMonthRequests = LeaveRequest::whereMonth('created_at', now()->subMonth()->month)
+            ->whereYear('created_at', now()->subMonth()->year)
+            ->count();
+
+        $monthlyGrowth = $lastMonthRequests > 0 ? round((($thisMonthRequests - $lastMonthRequests) / $lastMonthRequests) * 100, 1) : 0;
+
+        // Open Leave Requests (Approved but not closed)
+        $openLeaveRequests = LeaveRequest::with(['employee', 'leaveType', 'administration'])
+            ->where('status', 'approved')
+            ->where('end_date', '<=', now()->addDay()) // Can be closed
+            ->orderBy('end_date', 'asc')
+            ->limit(10)
+            ->get();
+
+        // Cancellation Requests
+        $pendingCancellations = LeaveRequestCancellation::with([
+            'leaveRequest.employee',
+            'leaveRequest.leaveType',
+            'requestedBy'
+        ])
+            ->where('status', 'pending')
+            ->orderBy('requested_at', 'desc')
+            ->limit(10)
+            ->get();
+
+        // Paid Leave Without Supporting Documents
+        $paidLeaveWithoutDocs = LeaveRequest::with(['employee', 'leaveType', 'administration'])
+            ->whereHas('leaveType', function ($query) {
+                $query->where('category', 'paid');
+            })
+            ->whereNull('supporting_document')
+            ->whereIn('status', ['pending', 'approved'])
+            ->orderBy('auto_conversion_at', 'asc')
+            ->limit(10)
+            ->get();
+
+        // Calculate days remaining for auto-conversion
+        foreach ($paidLeaveWithoutDocs as $request) {
+            if ($request->auto_conversion_at) {
+                $request->days_remaining = now()->diffInDays($request->auto_conversion_at, false);
+            } else {
+                $request->days_remaining = null;
+            }
+        }
+
+        // Leave Type Statistics
+        $leaveTypeStats = LeaveType::withCount(['leaveRequests'])
+            ->where('is_active', 1)
+            ->orderBy('leave_requests_count', 'desc')
+            ->get();
+
+        // Department Leave Statistics
+        $departmentLeaveStats = DB::table('leave_requests')
+            ->join('employees', 'leave_requests.employee_id', '=', 'employees.id')
+            ->join('administrations', 'employees.id', '=', 'administrations.employee_id')
+            ->join('positions', 'administrations.position_id', '=', 'positions.id')
+            ->join('departments', 'positions.department_id', '=', 'departments.id')
+            ->select('departments.department_name', DB::raw('COUNT(*) as count'))
+            ->where('administrations.is_active', '1')
+            ->where('departments.department_status', '1')
+            ->groupBy('departments.id', 'departments.department_name')
+            ->orderBy('count', 'desc')
+            ->limit(5)
+            ->get();
+
+        // Entitlement Overview
+        $totalEntitlements = LeaveEntitlement::sum('entitled_days');
+        $usedEntitlements = LeaveEntitlement::sum('taken_days');
+        $remainingEntitlements = LeaveEntitlement::sum('remaining_days');
+
+        // Upcoming Expiring Entitlements
+        $expiringEntitlements = LeaveEntitlement::with(['employee', 'leaveType'])
+            ->where('period_end', '<=', now()->addDays(30))
+            ->where('remaining_days', '>', 0)
+            ->orderBy('period_end', 'asc')
+            ->limit(10)
+            ->get();
+
+        // Recent Activity
+        $recentLeaveRequests = LeaveRequest::with(['employee', 'leaveType', 'requestedBy'])
+            ->orderBy('created_at', 'desc')
+            ->limit(10)
+            ->get();
+
+        return view('dashboard.leave-management', compact(
+            'title',
+            'subtitle',
+            'totalLeaveRequests',
+            'pendingRequests',
+            'approvedRequests',
+            'closedRequests',
+            'cancelledRequests',
+            'thisMonthRequests',
+            'monthlyGrowth',
+            'openLeaveRequests',
+            'pendingCancellations',
+            'paidLeaveWithoutDocs',
+            'leaveTypeStats',
+            'departmentLeaveStats',
+            'totalEntitlements',
+            'usedEntitlements',
+            'remainingEntitlements',
+            'expiringEntitlements',
+            'recentLeaveRequests'
+        ));
+    }
+
+    /**
      * Get letter administration statistics API.
      *
      * @return \Illuminate\Http\Response
@@ -768,6 +900,299 @@ class DashboardController extends Controller
             'statusStats' => $statusStats,
             'categoryStats' => $categoryStats,
             'integrationStats' => $integrationStats
+        ]);
+    }
+
+    /**
+     * Get open leave requests data for DataTable.
+     *
+     * @return \Illuminate\Http\Response
+     */
+    public function openLeaveRequests()
+    {
+        $query = LeaveRequest::with(['employee', 'leaveType', 'administration'])
+            ->where('status', 'approved')
+            ->where('end_date', '<=', now()->addDay());
+
+        return DataTables::of($query)
+            ->addIndexColumn()
+            ->addColumn('employee_name', function ($row) {
+                return $row->employee->fullname ?? 'N/A';
+            })
+            ->addColumn('employee_nik', function ($row) {
+                return $row->administration->nik ?? 'N/A';
+            })
+            ->addColumn('leave_type', function ($row) {
+                return $row->leaveType->name ?? 'N/A';
+            })
+            ->addColumn('leave_period', function ($row) {
+                return date('d M Y', strtotime($row->start_date)) . ' - ' . date('d M Y', strtotime($row->end_date));
+            })
+            ->addColumn('total_days', function ($row) {
+                return $row->total_days . ' days';
+            })
+            ->addColumn('action', function ($row) {
+                $btn = '<a href="' . route('leave.requests.show', $row->id) . '" class="btn btn-xs btn-info mr-1">
+                            <i class="fas fa-eye"></i>
+                        </a>';
+                $btn .= '<button class="btn btn-xs btn-success" onclick="closeLeaveRequest(\'' . $row->id . '\')">
+                            <i class="fas fa-check"></i>
+                        </button>';
+                return $btn;
+            })
+            ->rawColumns(['action'])
+            ->make(true);
+    }
+
+    /**
+     * Get pending cancellation requests data for DataTable.
+     *
+     * @return \Illuminate\Http\Response
+     */
+    public function pendingCancellations()
+    {
+        $query = LeaveRequestCancellation::with([
+            'leaveRequest.employee',
+            'leaveRequest.leaveType',
+            'requestedBy'
+        ])
+            ->where('status', 'pending');
+
+        return DataTables::of($query)
+            ->addIndexColumn()
+            ->addColumn('employee_name', function ($row) {
+                return $row->leaveRequest->employee->fullname ?? 'N/A';
+            })
+            ->addColumn('employee_nik', function ($row) {
+                return $row->leaveRequest->administration->nik ?? 'N/A';
+            })
+            ->addColumn('leave_type', function ($row) {
+                return $row->leaveRequest->leaveType->name ?? 'N/A';
+            })
+            ->addColumn('original_period', function ($row) {
+                $request = $row->leaveRequest;
+                return date('d M Y', strtotime($request->start_date)) . ' - ' . date('d M Y', strtotime($request->end_date));
+            })
+            ->addColumn('days_to_cancel', function ($row) {
+                return $row->days_to_cancel . ' days';
+            })
+            ->addColumn('reason', function ($row) {
+                return Str::limit($row->reason, 50);
+            })
+            ->addColumn('requested_by', function ($row) {
+                return $row->requestedBy->name ?? 'N/A';
+            })
+            ->addColumn('requested_at', function ($row) {
+                return $row->requested_at->format('d M Y H:i');
+            })
+            ->addColumn('action', function ($row) {
+                $btn = '<button class="btn btn-xs btn-success mr-1" onclick="approveCancellation(\'' . $row->id . '\')">
+                            <i class="fas fa-check"></i>
+                        </button>';
+                $btn .= '<button class="btn btn-xs btn-danger" onclick="rejectCancellation(\'' . $row->id . '\')">
+                            <i class="fas fa-times"></i>
+                        </button>';
+                return $btn;
+            })
+            ->rawColumns(['action'])
+            ->make(true);
+    }
+
+    /**
+     * Get paid leave without supporting documents data for DataTable.
+     *
+     * @return \Illuminate\Http\Response
+     */
+    public function paidLeaveWithoutDocs()
+    {
+        $query = LeaveRequest::with(['employee', 'leaveType', 'administration'])
+            ->whereHas('leaveType', function ($query) {
+                $query->where('category', 'paid');
+            })
+            ->whereNull('supporting_document')
+            ->whereIn('status', ['pending', 'approved']);
+
+        return DataTables::of($query)
+            ->addIndexColumn()
+            ->addColumn('employee_name', function ($row) {
+                return $row->employee->fullname ?? 'N/A';
+            })
+            ->addColumn('employee_nik', function ($row) {
+                return $row->administration->nik ?? 'N/A';
+            })
+            ->addColumn('leave_type', function ($row) {
+                return $row->leaveType->name ?? 'N/A';
+            })
+            ->addColumn('leave_period', function ($row) {
+                return date('d M Y', strtotime($row->start_date)) . ' - ' . date('d M Y', strtotime($row->end_date));
+            })
+            ->addColumn('total_days', function ($row) {
+                return $row->total_days . ' days';
+            })
+            ->addColumn('days_remaining', function ($row) {
+                if ($row->auto_conversion_at) {
+                    $days = now()->diffInDays($row->auto_conversion_at, false);
+                    $badgeClass = $days <= 3 ? 'badge-danger' : ($days <= 7 ? 'badge-warning' : 'badge-info');
+                    return '<span class="badge ' . $badgeClass . '">' . $days . ' days</span>';
+                }
+                return '<span class="badge badge-secondary">N/A</span>';
+            })
+            ->addColumn('status_badge', function ($row) {
+                $badges = [
+                    'pending' => '<span class="badge badge-warning">Pending</span>',
+                    'approved' => '<span class="badge badge-success">Approved</span>',
+                ];
+                return $badges[$row->status] ?? '<span class="badge badge-secondary">Unknown</span>';
+            })
+            ->addColumn('action', function ($row) {
+                $btn = '<a href="' . route('leave.requests.show', $row->id) . '" class="btn btn-xs btn-info mr-1">
+                            <i class="fas fa-eye"></i>
+                        </a>';
+                $btn .= '<button class="btn btn-xs btn-warning" onclick="sendReminder(\'' . $row->id . '\')">
+                            <i class="fas fa-bell"></i>
+                        </button>';
+                return $btn;
+            })
+            ->rawColumns(['days_remaining', 'status_badge', 'action'])
+            ->make(true);
+    }
+
+    /**
+     * Search employee entitlements for quick search.
+     *
+     * @return \Illuminate\Http\Response
+     */
+    public function searchEmployeeEntitlements(Request $request)
+    {
+        $search = $request->get('q');
+        $employeeId = $request->get('employee_id');
+
+        // If employee_id is provided, return specific employee entitlements
+        if ($employeeId) {
+            $employee = Employee::with([
+                'administrations' => function ($query) {
+                    $query->where('is_active', '1')
+                        ->with(['position.department']);
+                },
+                'leaveEntitlements.leaveType'
+            ])->find($employeeId);
+
+            if (!$employee) {
+                return response()->json([]);
+            }
+
+            $administration = $employee->administrations->where('is_active', '1')->first();
+
+            return response()->json([[
+                'id' => $employee->id,
+                'name' => $employee->fullname,
+                'nik' => $administration->nik ?? 'N/A',
+                'position' => $administration->position->position_name ?? 'N/A',
+                'department' => $administration->position->department->department_name ?? 'N/A',
+                'entitlements' => $employee->leaveEntitlements->map(function ($entitlement) {
+                    return [
+                        'leave_type' => $entitlement->leaveType->name,
+                        'entitled_days' => $entitlement->entitled_days,
+                        'remaining_days' => $entitlement->remaining_days,
+                        'used_days' => $entitlement->entitled_days - $entitlement->remaining_days,
+                        'period' => $entitlement->period_start->format('M Y') . ' - ' . $entitlement->period_end->format('M Y'),
+                        'period_start' => $entitlement->period_start->format('Y-m-d'),
+                        'period_end' => $entitlement->period_end->format('Y-m-d')
+                    ];
+                })
+            ]]);
+        }
+
+        // If search query is provided, return search results
+        if (empty($search)) {
+            return response()->json([]);
+        }
+
+        $employees = Employee::with([
+            'administrations' => function ($query) {
+                $query->where('is_active', '1')
+                    ->with(['position.department']);
+            },
+            'leaveEntitlements.leaveType'
+        ])
+            ->whereHas('administrations', function ($query) {
+                $query->where('is_active', '1');
+            })
+            ->where(function ($query) use ($search) {
+                $query->where('fullname', 'like', "%{$search}%")
+                    ->orWhereHas('administrations', function ($q) use ($search) {
+                        $q->where('nik', 'like', "%{$search}%");
+                    });
+            })
+            ->limit(10)
+            ->get();
+
+        $results = [];
+        foreach ($employees as $employee) {
+            $administration = $employee->administrations->where('is_active', '1')->first();
+            $results[] = [
+                'id' => $employee->id,
+                'text' => $employee->fullname . ' (' . ($administration->nik ?? 'N/A') . ')',
+                'nik' => $administration->nik ?? 'N/A',
+                'name' => $employee->fullname,
+                'position' => $administration->position->position_name ?? 'N/A',
+                'department' => $administration->position->department->department_name ?? 'N/A'
+            ];
+        }
+
+        return response()->json($results);
+    }
+
+    /**
+     * Get leave management statistics API.
+     *
+     * @return \Illuminate\Http\Response
+     */
+    public function leaveManagementStats()
+    {
+        // Monthly trend for the last 12 months
+        $monthlyTrend = [];
+        for ($i = 11; $i >= 0; $i--) {
+            $date = now()->subMonths($i);
+            $count = LeaveRequest::whereYear('created_at', $date->year)
+                ->whereMonth('created_at', $date->month)
+                ->count();
+            $monthlyTrend[] = [
+                'month' => $date->format('M Y'),
+                'count' => $count
+            ];
+        }
+
+        // Status distribution
+        $statusStats = LeaveRequest::select('status', DB::raw('COUNT(*) as count'))
+            ->groupBy('status')
+            ->get();
+
+        // Leave type distribution
+        $leaveTypeStats = LeaveRequest::select('leave_types.name as type', DB::raw('COUNT(*) as count'))
+            ->join('leave_types', 'leave_requests.leave_type_id', '=', 'leave_types.id')
+            ->groupBy('leave_types.name')
+            ->orderBy('count', 'desc')
+            ->get();
+
+        // Department distribution
+        $departmentStats = LeaveRequest::select('departments.department_name as department', DB::raw('COUNT(*) as count'))
+            ->join('employees', 'leave_requests.employee_id', '=', 'employees.id')
+            ->join('administrations', 'employees.id', '=', 'administrations.employee_id')
+            ->join('positions', 'administrations.position_id', '=', 'positions.id')
+            ->join('departments', 'positions.department_id', '=', 'departments.id')
+            ->where('administrations.is_active', '1')
+            ->where('departments.department_status', '1')
+            ->groupBy('departments.department_name')
+            ->orderBy('count', 'desc')
+            ->limit(10)
+            ->get();
+
+        return response()->json([
+            'monthlyTrend' => $monthlyTrend,
+            'statusStats' => $statusStats,
+            'leaveTypeStats' => $leaveTypeStats,
+            'departmentStats' => $departmentStats
         ]);
     }
 }

@@ -208,6 +208,7 @@
                                                         <th width="15%" class="text-center">Entitled</th>
                                                         <th width="15%" class="text-center">Taken</th>
                                                         <th width="10%" class="text-center">Remaining</th>
+                                                        <th width="15%" class="text-center">Actions</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody>
@@ -234,6 +235,13 @@
                                                                     class="badge badge-{{ $entitlement->remaining_days > 0 ? 'success' : 'secondary' }}">
                                                                     {{ $entitlement->remaining_days }}
                                                                 </span>
+                                                            </td>
+                                                            <td class="text-center">
+                                                                <a href="{{ route('leave.entitlements.employee.calculation-details', $employee) }}?leave_type_id={{ $entitlement->leave_type_id }}&period_start={{ $entitlement->period_start->format('Y-m-d') }}&period_end={{ $entitlement->period_end->format('Y-m-d') }}"
+                                                                    class="btn btn-sm btn-info"
+                                                                    title="Lihat Rincian Perhitungan">
+                                                                    <i class="fas fa-calculator"></i>
+                                                                </a>
                                                             </td>
                                                         </tr>
                                                     @endforeach

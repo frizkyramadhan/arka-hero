@@ -1,0 +1,861 @@
+@extends('layouts.main')
+
+@section('content')
+    <style>
+        /* Compact table styling */
+        .table-sm th,
+        .table-sm td {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.875rem;
+            line-height: 1.25;
+        }
+
+        .table-sm .btn {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.75rem;
+            line-height: 1.2;
+        }
+
+        .table-sm .badge {
+            font-size: 0.7rem;
+            padding: 0.25rem 0.4rem;
+        }
+
+        /* Compact card styling */
+        .card-body {
+            padding: 0.75rem;
+        }
+
+        .card-header {
+            padding: 0.5rem 0.75rem;
+        }
+
+        /* Compact info box styling */
+        .info-box {
+            margin-bottom: 0.5rem;
+        }
+
+        .info-box .info-box-content {
+            padding: 0.5rem;
+        }
+
+        .info-box .info-box-text {
+            font-size: 0.875rem;
+            font-weight: 600;
+        }
+
+        .info-box .info-box-number {
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+
+        /* Compact form styling */
+        .form-group {
+            margin-bottom: 0.75rem;
+        }
+
+        .form-control-sm {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.875rem;
+        }
+
+        .btn-sm {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.75rem;
+        }
+
+        /* Extra small button styling */
+        .btn-xs {
+            padding: 0.125rem 0.25rem;
+            font-size: 0.65rem;
+            line-height: 1.2;
+            border-radius: 0.2rem;
+        }
+
+        .btn-xs i {
+            font-size: 0.7rem;
+        }
+    </style>
+    <div class="content-header">
+        <div class="container-fluid">
+            <div class="row mb-2">
+                <div class="col-sm-6">
+                    <h1 class="m-0">{{ $title }}</h1>
+                </div>
+                <div class="col-sm-6">
+                    <ol class="breadcrumb float-sm-right">
+                        <li class="breadcrumb-item"><a href="{{ route('dashboard') }}">Home</a></li>
+                        <li class="breadcrumb-item active">{{ $subtitle }}</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <section class="content">
+        <div class="container-fluid">
+
+            <!-- Statistics Cards -->
+            <div class="row mb-4">
+                <!-- Total Leave Requests -->
+                <div class="col-lg-3 col-md-6 mb-3">
+                    <div class="info-box bg-gradient-primary">
+                        <span class="info-box-icon"><i class="fas fa-calendar-alt"></i></span>
+                        <div class="info-box-content">
+                            <span class="info-box-text">Total Leave Requests</span>
+                            <span class="info-box-number">{{ number_format($totalLeaveRequests) }}</span>
+                            <div class="progress">
+                                <div class="progress-bar" style="width: 100%"></div>
+                            </div>
+                            <span class="progress-description">All time leave requests</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Approved Requests -->
+                <div class="col-lg-3 col-md-6 mb-3">
+                    <div class="info-box bg-gradient-success">
+                        <span class="info-box-icon"><i class="fas fa-check-circle"></i></span>
+                        <div class="info-box-content">
+                            <span class="info-box-text">Approved Requests</span>
+                            <span class="info-box-number">{{ number_format($approvedRequests) }}</span>
+                            <div class="progress">
+                                <div class="progress-bar"
+                                    style="width: {{ $totalLeaveRequests > 0 ? ($approvedRequests / $totalLeaveRequests) * 100 : 0 }}%">
+                                </div>
+                            </div>
+                            <span
+                                class="progress-description">{{ $totalLeaveRequests > 0 ? round(($approvedRequests / $totalLeaveRequests) * 100, 1) : 0 }}%
+                                approval rate</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Pending Requests -->
+                <div class="col-lg-3 col-md-6 mb-3">
+                    <div class="info-box bg-gradient-warning">
+                        <span class="info-box-icon"><i class="fas fa-clock"></i></span>
+                        <div class="info-box-content">
+                            <span class="info-box-text">Pending Requests</span>
+                            <span class="info-box-number">{{ number_format($pendingRequests) }}</span>
+                            <div class="progress">
+                                <div class="progress-bar"
+                                    style="width: {{ $totalLeaveRequests > 0 ? ($pendingRequests / $totalLeaveRequests) * 100 : 0 }}%">
+                                </div>
+                            </div>
+                            <span class="progress-description">Awaiting approval</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- This Month -->
+                <div class="col-lg-3 col-md-6 mb-3">
+                    <div class="info-box bg-gradient-info">
+                        <span class="info-box-icon"><i class="fas fa-chart-line"></i></span>
+                        <div class="info-box-content">
+                            <span class="info-box-text">This Month</span>
+                            <span class="info-box-number">{{ number_format($thisMonthRequests) }}</span>
+                            <div class="progress">
+                                <div class="progress-bar" style="width: 100%"></div>
+                            </div>
+                            <span class="progress-description">
+                                @if ($monthlyGrowth != 0)
+                                    {{ $monthlyGrowth > 0 ? '+' : '' }}{{ $monthlyGrowth }}% from last month
+                                @else
+                                    Current month requests
+                                @endif
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Search Entitlement -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="card card-outline card-info">
+                        <div class="card-header">
+                            <h3 class="card-title">
+                                <i class="fas fa-search mr-2"></i>Quick Search Employee Entitlement
+                            </h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <select id="employeeSearch" class="form-control select2bs4" style="width: 100%;">
+                                        <option></option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <button type="button" class="btn btn-primary" onclick="searchEmployee()">
+                                        <i class="fas fa-search"></i> Search
+                                    </button>
+                                </div>
+                            </div>
+                            <div id="employeeEntitlementResult" class="mt-3" style="display: none;">
+                                <!-- Results will be populated here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main Dashboard Content -->
+            <div class="row">
+                <!-- Open Leave Requests -->
+                <div class="col-lg-6 mb-4">
+                    <div class="card card-outline card-primary">
+                        <div class="card-header">
+                            <h3 class="card-title">
+                                <i class="fas fa-calendar-check mr-2"></i>Open Leave Requests (Ready to Close)
+                            </h3>
+                            <div class="card-tools">
+                                <button type="button" class="btn btn-tool" data-card-widget="collapse">
+                                    <i class="fas fa-minus"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-bordered table-striped table-sm" id="openLeaveRequestsTable"
+                                    width="100%" cellspacing="0">
+                                    <thead class="thead-light">
+                                        <tr>
+                                            <th class="py-1 px-2">Employee</th>
+                                            <th class="py-1 px-2">Leave Type</th>
+                                            <th class="py-1 px-2">Period</th>
+                                            <th class="py-1 px-2">Days</th>
+                                            <th class="py-1 px-2">Action</th>
+                                        </tr>
+                                    </thead>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Cancellation Requests -->
+                <div class="col-lg-6 mb-4">
+                    <div class="card card-outline card-warning">
+                        <div class="card-header">
+                            <h3 class="card-title">
+                                <i class="fas fa-times-circle mr-2"></i>Pending Cancellation Requests
+                            </h3>
+                            <div class="card-tools">
+                                <button type="button" class="btn btn-tool" data-card-widget="collapse">
+                                    <i class="fas fa-minus"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-bordered table-striped table-sm" id="pendingCancellationsTable"
+                                    width="100%" cellspacing="0">
+                                    <thead class="thead-light">
+                                        <tr>
+                                            <th class="py-1 px-2">Employee</th>
+                                            <th class="py-1 px-2">Leave Type</th>
+                                            <th class="py-1 px-2">Days to Cancel</th>
+                                            <th class="py-1 px-2">Reason</th>
+                                            <th class="py-1 px-2">Action</th>
+                                        </tr>
+                                    </thead>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <!-- Paid Leave Without Documents -->
+                <div class="col-lg-8 mb-4">
+                    <div class="card card-outline card-danger">
+                        <div class="card-header">
+                            <h3 class="card-title">
+                                <i class="fas fa-file-upload mr-2"></i>Paid Leave Without Supporting Documents
+                            </h3>
+                            <div class="card-tools">
+                                <button type="button" class="btn btn-tool" data-card-widget="collapse">
+                                    <i class="fas fa-minus"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-bordered table-striped table-sm" id="paidLeaveWithoutDocsTable"
+                                    width="100%" cellspacing="0">
+                                    <thead class="thead-light">
+                                        <tr>
+                                            <th class="py-1 px-2">Employee</th>
+                                            <th class="py-1 px-2">Leave Type</th>
+                                            <th class="py-1 px-2">Period</th>
+                                            <th class="py-1 px-2">Days</th>
+                                            <th class="py-1 px-2">Days Remaining</th>
+                                            <th class="py-1 px-2">Status</th>
+                                            <th class="py-1 px-2">Action</th>
+                                        </tr>
+                                    </thead>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Entitlement Overview -->
+                <div class="col-lg-4 mb-4">
+                    <div class="card card-outline card-info">
+                        <div class="card-header">
+                            <h3 class="card-title">
+                                <i class="fas fa-chart-pie mr-2"></i>Entitlement Overview
+                            </h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <div class="d-flex justify-content-between">
+                                    <span>Total Entitled Days:</span>
+                                    <strong>{{ number_format($totalEntitlements) }}</strong>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <div class="d-flex justify-content-between">
+                                    <span>Used Days:</span>
+                                    <strong class="text-warning">{{ number_format($usedEntitlements) }}</strong>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <div class="d-flex justify-content-between">
+                                    <span>Remaining Days:</span>
+                                    <strong class="text-success">{{ number_format($remainingEntitlements) }}</strong>
+                                </div>
+                            </div>
+                            <div class="progress mb-3">
+                                <div class="progress-bar" role="progressbar"
+                                    style="width: {{ $totalEntitlements > 0 ? ($usedEntitlements / $totalEntitlements) * 100 : 0 }}%">
+                                </div>
+                            </div>
+                            <small class="text-muted">
+                                Usage:
+                                {{ $totalEntitlements > 0 ? round(($usedEntitlements / $totalEntitlements) * 100, 1) : 0 }}%
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Additional Statistics -->
+            <div class="row">
+                <!-- Leave Type Statistics -->
+                <div class="col-lg-6 mb-4">
+                    <div class="card card-outline card-primary">
+                        <div class="card-header">
+                            <h3 class="card-title">
+                                <i class="fas fa-chart-bar mr-2"></i>Leave Type Distribution
+                            </h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-sm">
+                                    <thead>
+                                        <tr>
+                                            <th>Leave Type</th>
+                                            <th>Count</th>
+                                            <th>Percentage</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach ($leaveTypeStats as $stat)
+                                            <tr>
+                                                <td>{{ $stat->name }}</td>
+                                                <td>{{ $stat->leave_requests_count }}</td>
+                                                <td>
+                                                    <div class="progress" style="height: 20px;">
+                                                        <div class="progress-bar" role="progressbar"
+                                                            style="width: {{ $totalLeaveRequests > 0 ? ($stat->leave_requests_count / $totalLeaveRequests) * 100 : 0 }}%">
+                                                            {{ $totalLeaveRequests > 0 ? round(($stat->leave_requests_count / $totalLeaveRequests) * 100, 1) : 0 }}%
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Department Statistics -->
+                <div class="col-lg-6 mb-4">
+                    <div class="card card-outline card-success">
+                        <div class="card-header">
+                            <h3 class="card-title">
+                                <i class="fas fa-building mr-2"></i>Department Leave Statistics
+                            </h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-sm">
+                                    <thead>
+                                        <tr>
+                                            <th>Department</th>
+                                            <th>Leave Requests</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach ($departmentLeaveStats as $stat)
+                                            <tr>
+                                                <td>{{ $stat->department_name }}</td>
+                                                <td>
+                                                    <span class="badge badge-primary">{{ $stat->count }}</span>
+                                                </td>
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </section>
+
+    <!-- Modals -->
+    <!-- Close Leave Request Modal -->
+    <div class="modal fade" id="closeLeaveRequestModal" tabindex="-1" role="dialog">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Close Leave Request</h5>
+                    <button type="button" class="close" data-dismiss="modal">
+                        <span>&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <p>Are you sure you want to close this leave request?</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-success" id="confirmCloseLeaveRequest">Close Request</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cancellation Action Modal -->
+    <div class="modal fade" id="cancellationActionModal" tabindex="-1" role="dialog">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="cancellationModalTitle">Action on Cancellation Request</h5>
+                    <button type="button" class="close" data-dismiss="modal">
+                        <span>&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="cancellationNotes">Notes:</label>
+                        <textarea class="form-control" id="cancellationNotes" rows="3" placeholder="Enter your notes here..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-success" id="confirmCancellationAction">Confirm</button>
+                </div>
+            </div>
+        </div>
+    </div>
+@endsection
+
+@push('styles')
+    <!-- Select2 -->
+    <link rel="stylesheet" href="{{ asset('assets/plugins/select2/css/select2.min.css') }}">
+@endpush
+
+@push('scripts')
+    <script src="{{ asset('assets/plugins/select2/js/select2.full.min.js') }}"></script>
+    <script>
+        $(document).ready(function() {
+            // Initialize Select2 Elements with custom themes
+            $('.select2bs4').select2({
+                theme: 'bootstrap4',
+                placeholder: 'Select an option'
+            }).on('select2:open', function() {
+                document.querySelector('.select2-search__field').focus();
+            });
+
+            // Initialize Select2 for employee search with Bootstrap 4 theme
+            $('#employeeSearch').select2({
+                theme: 'bootstrap4',
+                placeholder: 'Search by employee name or NIK...',
+                allowClear: true,
+                ajax: {
+                    url: '{{ route('dashboard.leave-management.search-employees') }}',
+                    dataType: 'json',
+                    delay: 250,
+                    data: function(params) {
+                        return {
+                            q: params.term,
+                            page: params.page
+                        };
+                    },
+                    processResults: function(data, params) {
+                        return {
+                            results: data.map(function(item) {
+                                return {
+                                    id: item.id,
+                                    text: item.text
+                                };
+                            })
+                        };
+                    },
+                    cache: true
+                }
+            }).on('select2:open', function() {
+                document.querySelector('.select2-search__field').focus();
+            });
+
+            // Initialize DataTables
+            $('#openLeaveRequestsTable').DataTable({
+                processing: true,
+                serverSide: true,
+                ajax: '{{ route('dashboard.leave-management.open-requests') }}',
+                columns: [{
+                        data: 'employee_name',
+                        name: 'employee_name'
+                    },
+                    {
+                        data: 'leave_type',
+                        name: 'leave_type'
+                    },
+                    {
+                        data: 'leave_period',
+                        name: 'leave_period'
+                    },
+                    {
+                        data: 'total_days',
+                        name: 'total_days'
+                    },
+                    {
+                        data: 'action',
+                        name: 'action',
+                        orderable: false,
+                        searchable: false
+                    }
+                ],
+                pageLength: 5,
+                lengthMenu: [
+                    [5, 10, 25],
+                    [5, 10, 25]
+                ]
+            });
+
+            $('#pendingCancellationsTable').DataTable({
+                processing: true,
+                serverSide: true,
+                ajax: '{{ route('dashboard.leave-management.pending-cancellations') }}',
+                columns: [{
+                        data: 'employee_name',
+                        name: 'employee_name'
+                    },
+                    {
+                        data: 'leave_type',
+                        name: 'leave_type'
+                    },
+                    {
+                        data: 'days_to_cancel',
+                        name: 'days_to_cancel'
+                    },
+                    {
+                        data: 'reason',
+                        name: 'reason'
+                    },
+                    {
+                        data: 'action',
+                        name: 'action',
+                        orderable: false,
+                        searchable: false
+                    }
+                ],
+                pageLength: 5,
+                lengthMenu: [
+                    [5, 10, 25],
+                    [5, 10, 25]
+                ]
+            });
+
+            $('#paidLeaveWithoutDocsTable').DataTable({
+                processing: true,
+                serverSide: true,
+                ajax: '{{ route('dashboard.leave-management.paid-leave-without-docs') }}',
+                columns: [{
+                        data: 'employee_name',
+                        name: 'employee_name'
+                    },
+                    {
+                        data: 'leave_type',
+                        name: 'leave_type'
+                    },
+                    {
+                        data: 'leave_period',
+                        name: 'leave_period'
+                    },
+                    {
+                        data: 'total_days',
+                        name: 'total_days'
+                    },
+                    {
+                        data: 'days_remaining',
+                        name: 'days_remaining'
+                    },
+                    {
+                        data: 'status_badge',
+                        name: 'status_badge'
+                    },
+                    {
+                        data: 'action',
+                        name: 'action',
+                        orderable: false,
+                        searchable: false
+                    }
+                ],
+                pageLength: 5,
+                lengthMenu: [
+                    [5, 10, 25],
+                    [5, 10, 25]
+                ]
+            });
+        });
+
+        // Global variables for modal actions
+        let currentLeaveRequestId = null;
+        let currentCancellationId = null;
+        let currentCancellationAction = null;
+
+        // Employee search function
+        function searchEmployee() {
+            const employeeId = $('#employeeSearch').val();
+            if (!employeeId) {
+                alert('Please select an employee first.');
+                return;
+            }
+
+            // Show loading
+            $('#employeeEntitlementResult').html(
+                '<div class="text-center"><i class="fas fa-spinner fa-spin"></i> Loading...</div>').show();
+
+            // Get employee entitlements from API
+            $.ajax({
+                url: '{{ route('dashboard.leave-management.search-employees') }}',
+                method: 'GET',
+                data: {
+                    employee_id: employeeId
+                },
+                success: function(response) {
+                    if (response.length > 0) {
+                        const employee = response[0];
+                        let html = `
+                     <div class="card card-outline card-info">
+                         <div class="card-header">
+                             <h6 class="mb-0">
+                                 <i class="fas fa-user mr-2"></i>${employee.name} (${employee.nik})
+                             </h6>
+                             <small class="text-muted">
+                                 <i class="fas fa-briefcase mr-1"></i>${employee.position} |
+                                 <i class="fas fa-building mr-1"></i>${employee.department}
+                             </small>
+                         </div>
+                         <div class="card-body">
+                             <div class="table-responsive">
+                                 <table class="table table-bordered table-striped">
+                                     <thead class="thead-light">
+                                         <tr>
+                                             <th><i class="fas fa-calendar-alt mr-1"></i>Leave Type</th>
+                                             <th><i class="fas fa-gift mr-1"></i>Entitled Days</th>
+                                             <th><i class="fas fa-check-circle mr-1"></i>Used Days</th>
+                                             <th><i class="fas fa-clock mr-1"></i>Remaining Days</th>
+                                             <th><i class="fas fa-calendar mr-1"></i>Period</th>
+                                         </tr>
+                                     </thead>
+                                     <tbody>
+                 `;
+
+                        if (employee.entitlements && employee.entitlements.length > 0) {
+                            employee.entitlements.forEach(function(entitlement) {
+                                const remainingDays = entitlement.remaining_days || 0;
+                                const usedDays = entitlement.used_days || 0;
+                                const entitledDays = entitlement.entitled_days || 0;
+
+                                html += `
+                             <tr>
+                                 <td><strong>${entitlement.leave_type}</strong></td>
+                                 <td><span class="badge badge-primary">${entitledDays}</span></td>
+                                 <td><span class="badge badge-warning">${usedDays}</span></td>
+                                 <td><span class="badge badge-${remainingDays > 0 ? 'success' : 'danger'}">${remainingDays}</span></td>
+                                 <td><small class="text-muted">${entitlement.period}</small></td>
+                             </tr>
+                         `;
+                            });
+                        } else {
+                            html += `
+                             <tr>
+                                 <td colspan="5" class="text-center text-muted">
+                                     <i class="fas fa-info-circle mr-2"></i>No leave entitlements found for this employee.
+                                 </td>
+                             </tr>
+                         `;
+                        }
+
+                        html += `
+                                     </tbody>
+                                 </table>
+                             </div>
+                         </div>
+                     </div>
+                 `;
+
+                        $('#employeeEntitlementResult').html(html);
+                    } else {
+                        $('#employeeEntitlementResult').html(
+                            '<div class="alert alert-warning"><i class="fas fa-exclamation-triangle mr-2"></i>No employee found with the selected ID.</div>'
+                        );
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error('Error loading employee entitlements:', error);
+                    $('#employeeEntitlementResult').html(
+                        '<div class="alert alert-danger"><i class="fas fa-exclamation-circle mr-2"></i>Error loading employee entitlements. Please try again.</div>'
+                    );
+                }
+            });
+        }
+
+        // Close leave request function
+        function closeLeaveRequest(leaveRequestId) {
+            currentLeaveRequestId = leaveRequestId;
+            $('#closeLeaveRequestModal').modal('show');
+        }
+
+        $('#confirmCloseLeaveRequest').click(function() {
+            if (currentLeaveRequestId) {
+                // Implement close leave request logic
+                $.ajax({
+                    url: `{{ route('leave.requests.close', 'PLACEHOLDER') }}`.replace('PLACEHOLDER',
+                        currentLeaveRequestId),
+                    method: 'POST',
+                    data: {
+                        _token: '{{ csrf_token() }}'
+                    },
+                    success: function(response) {
+                        $('#closeLeaveRequestModal').modal('hide');
+                        $('#openLeaveRequestsTable').DataTable().ajax.reload();
+                        // Use SweetAlert instead of toastr
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Success!',
+                            text: 'Leave request closed successfully.',
+                            timer: 2000,
+                            showConfirmButton: false
+                        });
+                    },
+                    error: function(xhr, status, error) {
+                        console.error('Error:', error);
+                        // Use SweetAlert instead of toastr
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error!',
+                            text: 'Error closing leave request.',
+                            timer: 2000,
+                            showConfirmButton: false
+                        });
+                    }
+                });
+            }
+        });
+
+        // Cancellation functions
+        function approveCancellation(cancellationId) {
+            currentCancellationId = cancellationId;
+            currentCancellationAction = 'approve';
+            $('#cancellationModalTitle').text('Approve Cancellation Request');
+            $('#confirmCancellationAction').removeClass('btn-danger').addClass('btn-success').text('Approve');
+            $('#cancellationActionModal').modal('show');
+        }
+
+        function rejectCancellation(cancellationId) {
+            currentCancellationId = cancellationId;
+            currentCancellationAction = 'reject';
+            $('#cancellationModalTitle').text('Reject Cancellation Request');
+            $('#confirmCancellationAction').removeClass('btn-success').addClass('btn-danger').text('Reject');
+            $('#cancellationActionModal').modal('show');
+        }
+
+        $('#confirmCancellationAction').click(function() {
+            if (currentCancellationId && currentCancellationAction) {
+                const notes = $('#cancellationNotes').val();
+
+                $.ajax({
+                    url: `/leave/requests/cancellations/${currentCancellationId}/${currentCancellationAction}`,
+                    method: 'POST',
+                    data: {
+                        _token: '{{ csrf_token() }}',
+                        notes: notes
+                    },
+                    success: function(response) {
+                        $('#cancellationActionModal').modal('hide');
+                        $('#pendingCancellationsTable').DataTable().ajax.reload();
+                        toastr.success(
+                            `Cancellation request ${currentCancellationAction}d successfully.`);
+                        $('#cancellationNotes').val('');
+                    },
+                    error: function() {
+                        toastr.error(`Error ${currentCancellationAction}ing cancellation request.`);
+                    }
+                });
+            }
+        });
+
+        // Send reminder function
+        function sendReminder(leaveRequestId) {
+            $.ajax({
+                url: `/leave/requests/${leaveRequestId}/send-reminder`,
+                method: 'POST',
+                data: {
+                    _token: '{{ csrf_token() }}'
+                },
+                success: function(response) {
+                    toastr.success('Reminder sent successfully.');
+                },
+                error: function() {
+                    toastr.error('Error sending reminder.');
+                }
+            });
+        }
+
+        // Bulk reminder function
+        function sendBulkReminder() {
+            if (confirm('Send reminder to all employees with paid leave without supporting documents?')) {
+                $.ajax({
+                    url: '#', // Route not implemented yet
+                    method: 'POST',
+                    data: {
+                        _token: '{{ csrf_token() }}'
+                    },
+                    success: function(response) {
+                        toastr.success('Bulk reminders sent successfully.');
+                    },
+                    error: function() {
+                        toastr.error('Error sending bulk reminders.');
+                    }
+                });
+            }
+        }
+
+        // View all cancellations
+        function viewAllCancellations() {
+            window.location.href = '#'; // Route not implemented yet
+        }
+    </script>
+@endpush

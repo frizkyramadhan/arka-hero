@@ -14,6 +14,13 @@ use Illuminate\Support\Facades\Log;
 
 class LeaveEntitlementController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('permission:leave-entitlements.show')->only('index', 'show', 'data', 'showEmployee', 'showLeaveCalculationDetails', 'getAvailableLeaveTypes', 'getLeaveCalculationDetailsAjax');
+        $this->middleware('permission:leave-entitlements.create')->only('create', 'store', 'generateProjectEntitlements', 'generateSelectedProjectEntitlements');
+        $this->middleware('permission:leave-entitlements.edit')->only('edit', 'update', 'editEmployee', 'updateEmployee');
+        $this->middleware('permission:leave-entitlements.delete')->only('destroy', 'clearAllEntitlements');
+    }
     /**
      * Display a listing of the resource.
      */
@@ -346,7 +353,7 @@ class LeaveEntitlementController extends Controller
             // Validate business rules
             $validationErrors = $this->validateEntitlementAssignment($employee, $leaveType, $request->entitled_days);
             if (!empty($validationErrors)) {
-                return back()->withErrors(['toast_error' => implode('. ', $validationErrors)]);
+                return back()->with(['toast_error' => implode('. ', $validationErrors)]);
             }
 
             // Check for duplicate entitlement
@@ -357,7 +364,7 @@ class LeaveEntitlementController extends Controller
                 ->first();
 
             if ($existing) {
-                return back()->withErrors(['toast_error' => 'Leave entitlement already exists for this employee and period.']);
+                return back()->with(['toast_error' => 'Leave entitlement already exists for this employee and period.']);
             }
 
             // Calculate remaining days
@@ -382,7 +389,7 @@ class LeaveEntitlementController extends Controller
                 ->with('toast_success', 'Leave entitlement created successfully.');
         } catch (\Exception $e) {
             DB::rollback();
-            return back()->withErrors(['toast_error' => 'Failed to create leave entitlement: ' . $e->getMessage()]);
+            return back()->with(['toast_error' => 'Failed to create leave entitlement: ' . $e->getMessage()]);
         }
     }
 
@@ -438,7 +445,7 @@ class LeaveEntitlementController extends Controller
                 ->with('toast_success', 'Leave entitlement updated successfully.');
         } catch (\Exception $e) {
             DB::rollback();
-            return back()->withErrors(['toast_error' => 'Failed to update leave entitlement: ' . $e->getMessage()]);
+            return back()->with(['toast_error' => 'Failed to update leave entitlement: ' . $e->getMessage()]);
         }
     }
 
@@ -449,7 +456,7 @@ class LeaveEntitlementController extends Controller
     {
         // Check if there are any leave requests for this entitlement
         if ($leaveEntitlement->leaveRequests()->count() > 0) {
-            return back()->withErrors(['toast_error' => 'Cannot delete leave entitlement with existing leave requests.']);
+            return back()->with(['toast_error' => 'Cannot delete leave entitlement with existing leave requests.']);
         }
 
         $leaveEntitlement->delete();
@@ -471,17 +478,15 @@ class LeaveEntitlementController extends Controller
             'confirm' => 'required|in:yes'
         ]);
 
-        DB::beginTransaction();
         try {
             if ($request->project_id === 'all') {
                 // Clear all entitlements for all projects
                 $deletedCount = LeaveEntitlement::count();
                 LeaveEntitlement::truncate();
 
-                DB::commit();
+                // Reset auto increment
+                DB::statement('ALTER TABLE leave_entitlements AUTO_INCREMENT = 1');
 
-                // Reset auto increment (outside transaction)
-                DB::raw('ALTER TABLE leave_entitlements AUTO_INCREMENT = 1');
                 return redirect()
                     ->route('leave.entitlements.index', ['project_id' => 'all'])
                     ->with('toast_success', "All entitlements cleared successfully. Deleted {$deletedCount} entitlements.");
@@ -494,17 +499,15 @@ class LeaveEntitlementController extends Controller
                 $deletedCount = LeaveEntitlement::whereIn('employee_id', $employeeIds)->count();
                 LeaveEntitlement::whereIn('employee_id', $employeeIds)->delete();
 
-                DB::commit();
+                // Reset auto increment to 1
+                DB::statement('ALTER TABLE leave_entitlements AUTO_INCREMENT = 1');
 
-                // Reset auto increment to 1 (outside transaction)
-                DB::raw('ALTER TABLE leave_entitlements AUTO_INCREMENT = 1');
                 return redirect()
                     ->route('leave.entitlements.index', ['project_id' => $project->id])
                     ->with('toast_success', "Entitlements cleared successfully for {$project->project_code} project. Deleted {$deletedCount} entitlements.");
             }
         } catch (\Exception $e) {
-            DB::rollback();
-            return back()->withErrors(['toast_error' => 'Failed to clear entitlements: ' . $e->getMessage()]);
+            return back()->with(['toast_error' => 'Failed to clear entitlements: ' . $e->getMessage()]);
         }
     }
 
@@ -649,7 +652,7 @@ class LeaveEntitlementController extends Controller
                 ->with('toast_success', "Entitlements generated successfully for {$project->project_code} project. Generated {$generatedCount} entitlements for " . $employees->count() . " employees.");
         } catch (\Exception $e) {
             DB::rollback();
-            return back()->withErrors(['toast_error' => 'Failed to generate entitlements: ' . $e->getMessage()]);
+            return back()->with(['toast_error' => 'Failed to generate entitlements: ' . $e->getMessage()]);
         }
     }
 
@@ -667,6 +670,83 @@ class LeaveEntitlementController extends Controller
 
         return view('leave-entitlements.employee.show', compact('employee'))
             ->with('title', 'Employee Leave Entitlements - ' . $employee->fullname);
+    }
+
+    /**
+     * Show detailed leave calculation breakdown for specific employee and leave type
+     */
+    public function showLeaveCalculationDetails(Request $request, Employee $employee)
+    {
+        $request->validate([
+            'leave_type_id' => 'required|exists:leave_types,id',
+            'period_start' => 'nullable|date',
+            'period_end' => 'nullable|date|after:period_start'
+        ]);
+
+        $leaveTypeId = $request->leave_type_id;
+        $periodStart = $request->period_start;
+        $periodEnd = $request->period_end;
+
+        // Get leave calculation details using the model method
+        $calculationDetails = LeaveEntitlement::getEmployeeLeaveDetails(
+            $employee->id,
+            $leaveTypeId,
+            $periodStart,
+            $periodEnd
+        );
+
+        if (!$calculationDetails) {
+            return back()->with(['toast_error' => 'No leave entitlement found for this employee and leave type.']);
+        }
+
+        // Load additional data for the view
+        $employee->load(['administrations.project', 'administrations.level']);
+        $leaveType = \App\Models\LeaveType::findOrFail($leaveTypeId);
+
+        return view('leave-entitlements.employee.calculation-details', compact(
+            'employee',
+            'leaveType',
+            'calculationDetails'
+        ))->with('title', 'Leave Calculation Details - ' . $employee->fullname);
+    }
+
+    /**
+     * Get leave calculation details via AJAX
+     */
+    public function getLeaveCalculationDetailsAjax(Request $request)
+    {
+        $request->validate([
+            'employee_id' => 'required|exists:employees,id',
+            'leave_type_id' => 'required|exists:leave_types,id',
+            'period_start' => 'nullable|date',
+            'period_end' => 'nullable|date|after:period_start'
+        ]);
+
+        try {
+            $calculationDetails = LeaveEntitlement::getEmployeeLeaveDetails(
+                $request->employee_id,
+                $request->leave_type_id,
+                $request->period_start,
+                $request->period_end
+            );
+
+            if (!$calculationDetails) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No leave entitlement found for this employee and leave type.'
+                ], 404);
+            }
+
+            return response()->json([
+                'success' => true,
+                'data' => $calculationDetails
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to get leave calculation details: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
     /**
@@ -769,7 +849,7 @@ class LeaveEntitlementController extends Controller
                 ->with('toast_success', 'Employee entitlements updated successfully.');
         } catch (\Exception $e) {
             DB::rollback();
-            return back()->withErrors(['toast_error' => 'Failed to update employee entitlements: ' . $e->getMessage()]);
+            return back()->with(['toast_error' => 'Failed to update employee entitlements: ' . $e->getMessage()]);
         }
     }
 

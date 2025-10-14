@@ -5,7 +5,10 @@
     'mode' => 'status', // 'status' or 'preview'
     'projectId' => null,
     'departmentId' => null,
+    'projectName' => null,
+    'departmentName' => null,
     'requestReason' => null,
+    'levelId' => null,
     'id' => 'approvalStatusCard',
 ])
 
@@ -26,6 +29,8 @@
                         $hasRequiredFields = $projectId && $departmentId && $requestReason;
                     } elseif ($documentType === 'officialtravel') {
                         $hasRequiredFields = $projectId && $departmentId;
+                    } elseif ($documentType === 'leave_request') {
+                        $hasRequiredFields = $projectId && $departmentId;
                     } else {
                         $hasRequiredFields = $projectId && $departmentId;
                     }
@@ -44,6 +49,8 @@
                                 Select project, department, and request reason to see approval flow
                             @elseif ($documentType === 'officialtravel')
                                 Select project and main traveler to see approval flow
+                            @elseif ($documentType === 'leave_request')
+                                Select employee to see approval flow
                             @else
                                 Select required fields to see approval flow
                             @endif
@@ -83,7 +90,8 @@
                     @php
                         $isValidForRecruitment = $documentType === 'recruitment_request' ? $projectId && $departmentId && $requestReason : true;
                         $isValidForOfficialTravel = $documentType === 'officialtravel' ? $projectId && $departmentId : true;
-                        $isValidOverall = $isValidForRecruitment && $isValidForOfficialTravel;
+                        $isValidForLeaveRequest = $documentType === 'leave_request' ? $projectId && $departmentId : true;
+                        $isValidOverall = $isValidForRecruitment && $isValidForOfficialTravel && $isValidForLeaveRequest;
                     @endphp
 
                     // Debug: Check if the values are valid based on document type
@@ -114,7 +122,31 @@
                                     <div class="text-center text-danger py-3">
                                         <i class="fas fa-exclamation-triangle"></i>
                                         <div class="mt-2">Invalid project, department, or request reason configuration</div>
-                                        <small class="text-muted">Project ID: {{ $projectId }}, Department ID: {{ $departmentId }}, Request Reason: {{ $requestReason }}</small>
+                                        <small class="text-muted">
+                                            @if ($projectName && $departmentName)
+                                                Project: {{ $projectName }}, Department: {{ $departmentName }}, Request Reason: {{ $requestReason }}
+                                            @else
+                                                Project ID: {{ $projectId }}, Department ID: {{ $departmentId }}, Request Reason: {{ $requestReason }}
+                                            @endif
+                                        </small>
+                                    </div>
+                                `);
+                                return;
+                            }
+                        @elseif ($documentType === 'leave_request')
+                            if (!{{ $projectId }} || !{{ $departmentId }}) {
+                                console.error('Invalid project or department ID for leave request');
+                                $('#approvalPreview').html(`
+                                    <div class="text-center text-danger py-3">
+                                        <i class="fas fa-exclamation-triangle"></i>
+                                        <div class="mt-2">Invalid project or department configuration</div>
+                                        <small class="text-muted">
+                                            @if ($projectName && $departmentName)
+                                                Project: {{ $projectName }}, Department: {{ $departmentName }}
+                                            @else
+                                                Project ID: {{ $projectId }}, Department ID: {{ $departmentId }}
+                                            @endif
+                                        </small>
                                     </div>
                                 `);
                                 return;
@@ -126,7 +158,13 @@
                                     <div class="text-center text-danger py-3">
                                         <i class="fas fa-exclamation-triangle"></i>
                                         <div class="mt-2">Invalid project or department configuration</div>
-                                        <small class="text-muted">Project ID: {{ $projectId }}, Department ID: {{ $departmentId }}</small>
+                                        <small class="text-muted">
+                                            @if ($projectName && $departmentName)
+                                                Project: {{ $projectName }}, Department: {{ $departmentName }}
+                                            @else
+                                                Project ID: {{ $projectId }}, Department ID: {{ $departmentId }}
+                                            @endif
+                                        </small>
                                     </div>
                                 `);
                                 return;
@@ -141,6 +179,10 @@
 
                         @if ($documentType === 'recruitment_request' && $requestReason)
                             requestData.request_reason = '{{ $requestReason }}';
+                        @endif
+
+                        @if ($documentType === 'leave_request' && $levelId)
+                            requestData.level_id = {{ $levelId }};
                         @endif
 
                         console.log('Loading approval preview for:', requestData);
@@ -184,7 +226,11 @@
                                             <i class="fas fa-info-circle"></i>
                                             <div class="mt-2">No approval flow configured for this combination</div>
                                             <small class="text-muted">
-                                                Project ID: {{ $projectId }}, Department ID: {{ $departmentId }}
+                                                @if ($projectName && $departmentName)
+                                                    Project: {{ $projectName }}, Department: {{ $departmentName }}
+                                                @else
+                                                    Project ID: {{ $projectId }}, Department ID: {{ $departmentId }}
+                                                @endif
                                                 @if ($documentType === 'recruitment_request' && $requestReason)
                                                     , Request Reason: {{ formatRequestReason($requestReason) }}
                                                 @endif
@@ -204,6 +250,9 @@
                                         <i class="fas fa-exclamation-triangle"></i>
                                         <div class="mt-2">Failed to load approval flow</div>
                                         <small class="text-muted">${error}</small>
+                                        @if ($projectName && $departmentName)
+                                            <br><small class="text-muted">Project: {{ $projectName }}, Department: {{ $departmentName }}</small>
+                                        @endif
                                     </div>
                                 `);
                             }

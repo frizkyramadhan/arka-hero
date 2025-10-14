@@ -21,12 +21,15 @@ class LevelController extends Controller
 
     public function getLevels(Request $request)
     {
-        $levels = Level::orderBy('name', 'asc');
+        $levels = Level::orderBy('level_order', 'asc')->orderBy('name', 'asc');
 
         return datatables()->of($levels)
             ->addIndexColumn()
             ->addColumn('name', function ($level) {
                 return $level->name;
+            })
+            ->addColumn('level_order', function ($level) {
+                return '<span class="badge badge-info">' . $level->level_order . '</span>';
             })
             ->addColumn('is_active', function ($level) {
                 if ($level->is_active) {
@@ -44,7 +47,7 @@ class LevelController extends Controller
                 }
             })
             ->addColumn('action', 'levels.action')
-            ->rawColumns(['is_active', 'action'])
+            ->rawColumns(['is_active', 'level_order', 'action'])
             ->toJson();
     }
 
@@ -70,10 +73,12 @@ class LevelController extends Controller
     {
         $request->validate([
             'name' => 'required|unique:levels,name',
+            'level_order' => 'required|integer|min:1|unique:levels,level_order',
         ]);
 
         Level::create([
             'name' => $request->name,
+            'level_order' => $request->level_order,
             'is_active' => $request->has('is_active'),
         ]);
 
@@ -115,10 +120,12 @@ class LevelController extends Controller
     {
         $request->validate([
             'name' => 'required|unique:levels,name,' . $level->id,
+            'level_order' => 'required|integer|min:1|unique:levels,level_order,' . $level->id,
         ]);
 
         $level->update([
             'name' => $request->name,
+            'level_order' => $request->level_order,
             'is_active' => $request->has('is_active'),
         ]);
 

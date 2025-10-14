@@ -131,6 +131,7 @@ Route::group(['middleware' => ['auth']], function () {
         Route::get('/official-travel', [DashboardController::class, 'officialTravel'])->name('officialtravel');
         Route::get('/recruitment', [DashboardController::class, 'recruitment'])->name('recruitment');
         Route::get('/letter-administration', [DashboardController::class, 'letterAdministration'])->name('letter-administration');
+        Route::get('/leave-management', [DashboardController::class, 'leaveManagement'])->name('leave-management');
     });
 
     // Dashboard Employee routes
@@ -142,6 +143,13 @@ Route::group(['middleware' => ['auth']], function () {
     Route::get('/dashboard/letters-by-category', [DashboardController::class, 'lettersByCategory'])->name('dashboard.lettersByCategory');
     Route::get('/dashboard/recent-letters', [DashboardController::class, 'recentLetters'])->name('dashboard.recentLetters');
     Route::get('/dashboard/letter-administration-stats', [DashboardController::class, 'letterAdministrationStats'])->name('dashboard.letterAdministrationStats');
+
+    // Dashboard Leave Management routes
+    Route::get('/dashboard/leave-management/open-requests', [DashboardController::class, 'openLeaveRequests'])->name('dashboard.leave-management.open-requests');
+    Route::get('/dashboard/leave-management/pending-cancellations', [DashboardController::class, 'pendingCancellations'])->name('dashboard.leave-management.pending-cancellations');
+    Route::get('/dashboard/leave-management/paid-leave-without-docs', [DashboardController::class, 'paidLeaveWithoutDocs'])->name('dashboard.leave-management.paid-leave-without-docs');
+    Route::get('/dashboard/leave-management/search-employees', [DashboardController::class, 'searchEmployeeEntitlements'])->name('dashboard.leave-management.search-employees');
+    Route::get('/dashboard/leave-management/stats', [DashboardController::class, 'leaveManagementStats'])->name('dashboard.leave-management.stats');
 
     Route::post('logout', [AuthController::class, 'logout']);
 
@@ -563,8 +571,28 @@ Route::group(['middleware' => ['auth']], function () {
             Route::get('/{leaveRequest}/edit', [LeaveRequestController::class, 'edit'])->name('edit');
             Route::put('/{leaveRequest}', [LeaveRequestController::class, 'update'])->name('update');
             Route::delete('/{leaveRequest}', [LeaveRequestController::class, 'destroy'])->name('destroy');
+            Route::get('/{leaveRequest}/download', [LeaveRequestController::class, 'download'])->name('download');
+            Route::post('/{leaveRequest}/upload', [LeaveRequestController::class, 'upload'])->name('upload');
+            Route::delete('/{leaveRequest}/delete-document', [LeaveRequestController::class, 'deleteDocument'])->name('delete-document');
             Route::post('/{leaveRequest}/approve', [LeaveRequestController::class, 'approve'])->name('approve');
             Route::post('/{leaveRequest}/reject', [LeaveRequestController::class, 'reject'])->name('reject');
+
+            // Close and cancellation routes
+            Route::post('/{leaveRequest}/close', [LeaveRequestController::class, 'close'])->name('close');
+            Route::get('/{leaveRequest}/cancellation-form', [LeaveRequestController::class, 'showCancellationForm'])->name('cancellation-form');
+            Route::post('/{leaveRequest}/cancellation', [LeaveRequestController::class, 'storeCancellation'])->name('cancellation');
+            Route::post('/cancellations/{cancellation}/approve', [LeaveRequestController::class, 'approveCancellation'])->name('cancellation.approve');
+            Route::post('/cancellations/{cancellation}/reject', [LeaveRequestController::class, 'rejectCancellation'])->name('cancellation.reject');
+
+            // AJAX Routes untuk dynamic loading
+            Route::get('/project-info/{projectId}', [LeaveRequestController::class, 'getProjectInfo'])->name('project-info');
+            Route::get('/leave-period/{employeeId}/{leaveTypeId}', [LeaveRequestController::class, 'getLeavePeriod'])->name('leave-period');
+
+            // AJAX routes for internal calls
+            Route::get('/employees/{employeeId}/leave-balance', [LeaveRequestController::class, 'getEmployeeLeaveBalance'])->name('employee.leave-balance');
+            Route::get('/leave-types/{leaveTypeId}', [LeaveRequestController::class, 'getLeaveTypeInfo'])->name('leave-type.info');
+            Route::get('/employees-by-project/{projectId}', [LeaveRequestController::class, 'getEmployeesByProject'])->name('employees-by-project');
+            Route::get('/leave-types-by-employee/{employeeId}', [LeaveRequestController::class, 'getLeaveTypesByEmployee'])->name('leave-types-by-employee');
         });
 
         // Leave Entitlements
@@ -588,6 +616,10 @@ Route::group(['middleware' => ['auth']], function () {
             Route::get('/employee/{employee}', [LeaveEntitlementController::class, 'showEmployee'])->name('employee.show');
             Route::get('/employee/{employee}/edit', [LeaveEntitlementController::class, 'editEmployee'])->name('employee.edit');
             Route::put('/employee/{employee}', [LeaveEntitlementController::class, 'updateEmployee'])->name('employee.update');
+
+            // Leave calculation details
+            Route::get('/employee/{employee}/calculation-details', [LeaveEntitlementController::class, 'showLeaveCalculationDetails'])->name('employee.calculation-details');
+            Route::post('/calculation-details-ajax', [LeaveEntitlementController::class, 'getLeaveCalculationDetailsAjax'])->name('calculation-details-ajax');
         });
 
         // Leave Types (Master Data)
@@ -606,10 +638,20 @@ Route::group(['middleware' => ['auth']], function () {
         // Leave Reports
         Route::prefix('reports')->name('reports.')->group(function () {
             Route::get('/', [LeaveReportController::class, 'index'])->name('index');
-            Route::get('/summary', [LeaveReportController::class, 'summary'])->name('summary');
+
+            // New comprehensive reports
+            Route::get('/monitoring', [LeaveReportController::class, 'monitoring'])->name('monitoring');
+            Route::get('/monitoring/export', [LeaveReportController::class, 'exportMonitoring'])->name('monitoring.export');
+
+            Route::get('/cancellation', [LeaveReportController::class, 'cancellation'])->name('cancellation');
+            Route::get('/cancellation/export', [LeaveReportController::class, 'exportCancellation'])->name('cancellation.export');
+
+            Route::get('/entitlement-detailed', [LeaveReportController::class, 'entitlementDetailed'])->name('entitlement-detailed');
+
+            Route::get('/auto-conversion', [LeaveReportController::class, 'autoConversion'])->name('auto-conversion');
+
+            // Legacy reports
             Route::get('/by-project', [LeaveReportController::class, 'byProject'])->name('by-project');
-            Route::get('/accumulation', [LeaveReportController::class, 'accumulation'])->name('accumulation');
-            Route::get('/balance', [LeaveReportController::class, 'balance'])->name('balance');
             Route::get('/export', [LeaveReportController::class, 'export'])->name('export');
             Route::get('/statistics', [LeaveReportController::class, 'statistics'])->name('statistics');
         });

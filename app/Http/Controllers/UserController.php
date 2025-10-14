@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Models\Employee;
 use App\Models\Project;
 use App\Models\Department;
 use Illuminate\Support\Arr;
@@ -64,6 +65,12 @@ class UserController extends Controller
         $roles = Role::orderBy('name', 'asc')->get();
         $projects = Project::where('project_status', 1)->orderBy('project_code', 'asc')->get();
         $departments = Department::where('department_status', 1)->orderBy('department_name', 'asc')->get();
+        $employees = Employee::whereDoesntHave('user')
+            ->join('administrations', 'employees.id', '=', 'administrations.employee_id')
+            ->where('administrations.is_active', 1)
+            ->select('employees.*', 'administrations.nik')
+            ->orderBy('administrations.nik', 'asc')
+            ->get();
         $stats = [
             'users' => User::count(),
             'roles' => Role::count(),
@@ -71,7 +78,7 @@ class UserController extends Controller
         ];
         $rolesSummary = Role::withCount('users', 'permissions')->orderBy('name', 'asc')->get();
         $permissionsSummary = Permission::withCount('roles')->orderBy('name', 'asc')->get();
-        return view('users.index', compact('title', 'subtitle', 'roles', 'projects', 'departments', 'stats', 'rolesSummary', 'permissionsSummary'));
+        return view('users.index', compact('title', 'subtitle', 'roles', 'projects', 'departments', 'employees', 'stats', 'rolesSummary', 'permissionsSummary'));
     }
 
     public function getUserDetails($id)
@@ -89,7 +96,7 @@ class UserController extends Controller
 
     public function getUsers(Request $request)
     {
-        $users = User::with(['roles', 'projects', 'departments'])->orderBy('name', 'asc');
+        $users = User::with(['roles', 'projects', 'departments', 'employee'])->orderBy('name', 'asc');
         $roles = Role::orderBy('name', 'asc')->get();
 
         return datatables()->of($users)
@@ -125,6 +132,12 @@ class UserController extends Controller
                 }
                 return $html;
             })
+            ->addColumn('employee', function ($model) {
+                if ($model->employee) {
+                    return '<span class="badge badge-success">' . $model->employee->fullname . '</span>';
+                }
+                return '<span class="badge badge-secondary">No Employee</span>';
+            })
             ->addColumn('user_status', function ($model) {
                 $statusClass = $model->user_status == '1' ? 'badge-success' : 'badge-danger';
                 $statusText = $model->user_status == '1' ? 'Active' : 'Inactive';
@@ -153,7 +166,7 @@ class UserController extends Controller
             ->addColumn('action', function ($model) use ($roles) {
                 return view('users.action', compact('model', 'roles'))->render();
             })
-            ->rawColumns(['roles', 'projects', 'departments', 'user_status', 'action'])
+            ->rawColumns(['roles', 'projects', 'departments', 'employee', 'user_status', 'action'])
             ->toJson();
     }
 
@@ -167,8 +180,14 @@ class UserController extends Controller
         $roles = Role::with('permissions')->orderBy('name', 'asc')->get();
         $projects = Project::where('project_status', 1)->orderBy('project_code', 'asc')->get();
         $departments = Department::where('department_status', 1)->orderBy('department_name', 'asc')->get();
+        $employees = Employee::whereDoesntHave('user')
+            ->join('administrations', 'employees.id', '=', 'administrations.employee_id')
+            ->where('administrations.is_active', 1)
+            ->select('employees.*', 'administrations.nik')
+            ->orderBy('administrations.nik', 'asc')
+            ->get();
         $title = 'Create User';
-        return view('users.create', compact('roles', 'projects', 'departments', 'title'));
+        return view('users.create', compact('roles', 'projects', 'departments', 'employees', 'title'));
     }
 
     /**
@@ -185,6 +204,7 @@ class UserController extends Controller
                 'email' => 'required|email:dns|unique:users|ends_with:@arka.co.id',
                 'password' => 'required|min:5',
                 'user_status' => 'required',
+                'employee_id' => 'nullable|exists:employees,id|unique:users,employee_id',
                 'roles' => 'required|array|min:1',
                 'projects' => 'nullable|array',
                 'departments' => 'nullable|array',
@@ -195,6 +215,8 @@ class UserController extends Controller
                 'email.ends_with' => 'Email must end with @arka.co.id',
                 'password.required' => 'Password is required',
                 'password.min' => 'Password must be at least 5 characters',
+                'employee_id.exists' => 'Selected employee does not exist',
+                'employee_id.unique' => 'This employee already has a user account',
                 'roles.required' => 'Please select at least one role',
                 'roles.min' => 'Please select at least one role'
             ]);
@@ -214,6 +236,7 @@ class UserController extends Controller
                 'name' => $request->name,
                 'email' => $request->email,
                 'password' => Hash::make($request->password),
+                'employee_id' => $request->employee_id,
                 'user_status' => $request->user_status
             ]);
 
@@ -251,7 +274,7 @@ class UserController extends Controller
      */
     public function show($id)
     {
-        $user = User::with(['roles', 'projects', 'departments'])->findOrFail($id);
+        $user = User::with(['roles', 'projects', 'departments', 'employee.administrations.position', 'employee.administrations.level'])->findOrFail($id);
         $roles = Role::with('permissions')->orderBy('name', 'asc')->get();
         $projects = Project::where('project_status', 1)->orderBy('project_code', 'asc')->get();
         $departments = Department::where('department_status', 1)->orderBy('department_name', 'asc')->get();
@@ -269,15 +292,22 @@ class UserController extends Controller
      */
     public function edit($id)
     {
-        $user = User::with(['roles', 'projects', 'departments'])->findOrFail($id);
+        $user = User::with(['roles', 'projects', 'departments', 'employee'])->findOrFail($id);
         $roles = Role::with('permissions')->orderBy('name', 'asc')->get();
         $projects = Project::where('project_status', 1)->orderBy('project_code', 'asc')->get();
         $departments = Department::where('department_status', 1)->orderBy('department_name', 'asc')->get();
+        $employees = Employee::whereDoesntHave('user')
+            ->join('administrations', 'employees.id', '=', 'administrations.employee_id')
+            ->where('administrations.is_active', 1)
+            ->orWhere('employees.id', $user->employee_id)
+            ->select('employees.*', 'administrations.nik')
+            ->orderBy('administrations.nik', 'asc')
+            ->get();
         $userRoleNames = $user->roles->pluck('name')->toArray();
         $userProjectIds = $user->projects->pluck('id')->toArray();
         $userDepartmentIds = $user->departments->pluck('id')->toArray();
         $title = 'Edit User';
-        return view('users.edit', compact('user', 'roles', 'projects', 'departments', 'userRoleNames', 'userProjectIds', 'userDepartmentIds', 'title'));
+        return view('users.edit', compact('user', 'roles', 'projects', 'departments', 'employees', 'userRoleNames', 'userProjectIds', 'userDepartmentIds', 'title'));
     }
 
     /**
@@ -293,6 +323,8 @@ class UserController extends Controller
             $this->validate($request, [
                 'name' => 'required',
                 'email' => 'required|email:dns|ends_with:@arka.co.id|unique:users,email,' . $id,
+                'employee_id' => 'nullable|exists:employees,id|unique:users,employee_id,' . $id,
+                'user_status' => 'required',
                 'roles' => 'required|array|min:1',
                 'user_status' => 'required',
                 'projects' => 'nullable|array',
@@ -302,6 +334,8 @@ class UserController extends Controller
                 'email.required' => 'Email is required',
                 'email.unique' => 'Email already exists',
                 'email.ends_with' => 'Email must end with @arka.co.id',
+                'employee_id.exists' => 'Selected employee does not exist',
+                'employee_id.unique' => 'This employee already has a user account',
                 'roles.required' => 'Please select at least one role',
                 'roles.min' => 'Please select at least one role'
             ]);

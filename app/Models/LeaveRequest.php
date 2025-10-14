@@ -4,10 +4,11 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Traits\Uuids;
 
 class LeaveRequest extends Model
 {
-    use HasFactory;
+    use HasFactory, Uuids;
 
     protected $fillable = [
         'employee_id',
@@ -20,14 +21,23 @@ class LeaveRequest extends Model
         'total_days',
         'status',
         'leave_period',
-        'requested_at'
+        'requested_at',
+        'requested_by',
+        'supporting_document',
+        'auto_conversion_at',
+        'approved_at',
+        'closed_at',
+        'closed_by'
     ];
 
     protected $casts = [
         'start_date' => 'date',
         'end_date' => 'date',
         'back_to_work_date' => 'date',
-        'requested_at' => 'datetime'
+        'requested_at' => 'datetime',
+        'auto_conversion_at' => 'datetime',
+        'approved_at' => 'datetime',
+        'closed_at' => 'datetime'
     ];
 
     // Relationships
@@ -62,6 +72,21 @@ class LeaveRequest extends Model
             ->where('document_type', 'leave_request');
     }
 
+    public function requestedBy()
+    {
+        return $this->belongsTo(User::class, 'requested_by');
+    }
+
+    public function closedBy()
+    {
+        return $this->belongsTo(User::class, 'closed_by');
+    }
+
+    public function cancellations()
+    {
+        return $this->hasMany(LeaveRequestCancellation::class);
+    }
+
     // Business Logic Methods
     public function calculateTotalDays()
     {
@@ -87,43 +112,153 @@ class LeaveRequest extends Model
         return $this->status === 'rejected';
     }
 
-    public function canBeCancelled()
+    public function isCancelled()
     {
-        return in_array($this->status, ['pending', 'approved']) &&
-            $this->start_date > now();
+        return $this->status === 'cancelled';
     }
 
-    public function approve()
+    public function isClosed()
     {
-        $this->status = 'approved';
-        $this->save();
-
-        // Update leave entitlement
-        $this->updateLeaveEntitlement();
+        return $this->status === 'closed';
     }
 
-    public function reject()
+    /**
+     * Close this leave request
+     * Can be used by HR to mark leave request as closed/completed
+     */
+    public function close($closedBy)
     {
-        $this->status = 'rejected';
-        $this->save();
-    }
-
-    public function cancel()
-    {
-        $this->status = 'cancelled';
+        $this->status = 'closed';
+        $this->closed_at = now();
+        $this->closed_by = $closedBy;
         $this->save();
     }
 
-    private function updateLeaveEntitlement()
+    /**
+     * Request cancellation for this leave request
+     * Employee can request to cancel part or all of their approved leave
+     */
+    public function requestCancellation($daysToCancel, $reason, $requestedBy)
     {
-        $entitlement = LeaveEntitlement::where('employee_id', $this->employee_id)
-            ->where('leave_type_id', $this->leave_type_id)
-            ->where('period_start', '<=', $this->start_date)
-            ->where('period_end', '>=', $this->end_date)
+        // Validate that cancellation request is valid
+        if ($daysToCancel > $this->total_days) {
+            throw new \InvalidArgumentException('Days to cancel cannot exceed total leave days');
+        }
+
+        if ($this->status !== 'approved') {
+            throw new \InvalidArgumentException('Only approved leave requests can be cancelled');
+        }
+
+        // Check if there's already a pending cancellation request
+        $existingCancellation = $this->cancellations()
+            ->where('status', 'pending')
             ->first();
 
-        if ($entitlement) {
-            $entitlement->updateTakenDays();
+        if ($existingCancellation) {
+            throw new \InvalidArgumentException('There is already a pending cancellation request for this leave');
         }
+
+        // Create cancellation request
+        return LeaveRequestCancellation::create([
+            'leave_request_id' => $this->id,
+            'days_to_cancel' => $daysToCancel,
+            'reason' => $reason,
+            'status' => 'pending',
+            'requested_by' => $requestedBy,
+            'requested_at' => now()
+        ]);
+    }
+
+    /**
+     * Check if this leave request can be closed
+     */
+    public function canBeClosed()
+    {
+        return $this->status === 'approved' && $this->end_date <= now()->addDay();
+    }
+
+    /**
+     * Check if this leave request can be cancelled
+     * Can be cancelled if:
+     * 1. Status is approved
+     * 2. Not already closed
+     * 3. No pending cancellation request exists
+     * 4. Can cancel partial days (even if leave has started)
+     */
+    public function canBeCancelled()
+    {
+        return $this->status === 'approved' &&
+            $this->status !== 'closed' &&
+            !$this->cancellations()->where('status', 'pending')->exists();
+    }
+
+    /**
+     * Set auto conversion date for paid leave requests without supporting document
+     */
+    public function setAutoConversionDate()
+    {
+        if ($this->leaveType && $this->leaveType->category === 'paid' && !$this->supporting_document) {
+            $this->auto_conversion_at = $this->created_at->addDays(12);
+            $this->save();
+        }
+    }
+
+    /**
+     * Clear auto conversion date when supporting document is uploaded
+     */
+    public function clearAutoConversionDate()
+    {
+        if ($this->supporting_document && $this->auto_conversion_at) {
+            $this->auto_conversion_at = null;
+            $this->save();
+        }
+    }
+
+    /**
+     * Get total cancelled days from approved cancellations
+     */
+    public function getTotalCancelledDays()
+    {
+        return $this->cancellations()
+            ->where('status', 'approved')
+            ->sum('days_to_cancel');
+    }
+
+    /**
+     * Get effective days (total_days - cancelled_days)
+     */
+    public function getEffectiveDays()
+    {
+        return $this->total_days - $this->getTotalCancelledDays();
+    }
+
+    /**
+     * Check if this leave request is eligible for auto conversion
+     */
+    public function isEligibleForAutoConversion()
+    {
+        return $this->auto_conversion_at &&
+            $this->auto_conversion_at <= now() &&
+            !$this->supporting_document &&
+            $this->leaveType &&
+            $this->leaveType->category === 'paid';
+    }
+
+    /**
+     * Update auto conversion date when leave type changes
+     */
+    public function updateAutoConversionDate($newLeaveTypeId)
+    {
+        $newLeaveType = LeaveType::find($newLeaveTypeId);
+
+        if ($newLeaveType && $newLeaveType->category === 'paid' && !$this->supporting_document) {
+            // Set new auto conversion date
+            $this->auto_conversion_at = $this->created_at->addDays(12);
+        } else {
+            // Clear auto conversion date for unpaid leave or if document exists
+            $this->auto_conversion_at = null;
+        }
+
+        $this->save();
     }
 }

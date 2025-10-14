@@ -93,11 +93,12 @@
                                                 <th style="width: 5%" class="text-center">No</th>
                                                 <th>Name</th>
                                                 <th>Email</th>
+                                                <th>Employee</th>
                                                 <th>Projects</th>
                                                 <th>Departments</th>
                                                 <th>Roles</th>
                                                 <th style="width: 10%" class="text-center">Status</th>
-                                                <th style="width: 15%" class="text-center">Action</th>
+                                                <th style="width: 20%" class="text-center">Action</th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -241,6 +242,11 @@
                     {
                         data: "email",
                         name: "email",
+                        orderable: false,
+                    },
+                    {
+                        data: "employee",
+                        name: "employee",
                         orderable: false,
                     },
                     {

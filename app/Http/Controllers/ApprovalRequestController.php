@@ -2,15 +2,17 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\User;
 use App\Models\ApprovalPlan;
+use App\Models\LeaveRequest;
+use App\Models\LeaveEntitlement;
+use Illuminate\Http\Request;
 use App\Models\ApprovalStage;
 use App\Models\Officialtravel;
 use App\Models\RecruitmentRequest;
-use App\Models\User;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Auth;
 
 class ApprovalRequestController extends Controller
 {
@@ -34,7 +36,12 @@ class ApprovalRequestController extends Controller
             $approvalPlans = ApprovalPlan::with([
                 'approver',
                 'officialtravel.creator',
-                'recruitment_request.createdBy'
+                'recruitmentRequest.createdBy',
+                'recruitmentRequest.position',
+                'recruitmentRequest.project',
+                'leaveRequest.administration.employee',
+                'leaveRequest.leaveType',
+                'leaveRequest.requestedBy'
             ])
                 ->where('approver_id', Auth::id())
                 ->where('is_open', true)
@@ -70,6 +77,13 @@ class ApprovalRequestController extends Controller
                         $q->where('request_number', 'LIKE', "%$search%")
                             ->orWhere('position_title', 'LIKE', "%$search%");
                     });
+
+                    $query->orWhereHas('leave_request', function ($q) use ($search) {
+                        $q->where('reason', 'LIKE', "%$search%")
+                            ->orWhereHas('administration.employee', function ($emp) use ($search) {
+                                $emp->where('fullname', 'LIKE', "%$search%");
+                            });
+                    });
                 });
             }
 
@@ -84,7 +98,12 @@ class ApprovalRequestController extends Controller
                     if ($approvalPlan->document_type === 'officialtravel') {
                         return $approvalPlan->officialtravel ? $approvalPlan->officialtravel->official_travel_number : '-';
                     } elseif ($approvalPlan->document_type === 'recruitment_request') {
-                        return $approvalPlan->recruitment_request ? $approvalPlan->recruitment_request->request_number : '-';
+                        return $approvalPlan->recruitmentRequest && $approvalPlan->recruitmentRequest->request_number ? $approvalPlan->recruitmentRequest->request_number : '-';
+                    } elseif ($approvalPlan->document_type === 'leave_request') {
+                        if ($approvalPlan->leaveRequest && $approvalPlan->leaveRequest->leaveType) {
+                            return $approvalPlan->leaveRequest->leaveType->name . ' (' . date('d M Y', strtotime($approvalPlan->leaveRequest->start_date)) . ' - ' . date('d M Y', strtotime($approvalPlan->leaveRequest->end_date)) . ')';
+                        }
+                        return '-';
                     }
                     return '-';
                 })
@@ -122,7 +141,19 @@ class ApprovalRequestController extends Controller
                             ? ($approvalPlan->officialtravel->traveler->nik . ' - ' . ($approvalPlan->officialtravel->traveler->employee->fullname ?? '-'))
                             : '-';
                     } elseif ($approvalPlan->document_type === 'recruitment_request') {
-                        return $approvalPlan->recruitment_request ? $approvalPlan->recruitment_request->position->position_name : '-';
+                        if ($approvalPlan->recruitmentRequest && $approvalPlan->recruitmentRequest->position) {
+                            $positionName = $approvalPlan->recruitmentRequest->position->position_name ?? '-';
+                            $projectName = $approvalPlan->recruitmentRequest->project->project_name ?? '-';
+                            return $positionName . ' - ' . $projectName;
+                        }
+                        return '-';
+                    } elseif ($approvalPlan->document_type === 'leave_request') {
+                        if ($approvalPlan->leaveRequest && $approvalPlan->leaveRequest->administration) {
+                            $nik = $approvalPlan->leaveRequest->administration->nik ?? '-';
+                            $fullname = $approvalPlan->leaveRequest->administration->employee->fullname ?? '-';
+                            return $nik . ' - ' . $fullname;
+                        }
+                        return '-';
                     }
                     return '-';
                 })
@@ -131,8 +162,11 @@ class ApprovalRequestController extends Controller
                         return $approvalPlan->officialtravel && $approvalPlan->officialtravel->creator ?
                             $approvalPlan->officialtravel->creator->name : '-';
                     } elseif ($approvalPlan->document_type === 'recruitment_request') {
-                        return $approvalPlan->recruitment_request && $approvalPlan->recruitment_request->createdBy ?
-                            $approvalPlan->recruitment_request->createdBy->name : '-';
+                        return $approvalPlan->recruitmentRequest && $approvalPlan->recruitmentRequest->createdBy ?
+                            $approvalPlan->recruitmentRequest->createdBy->name : '-';
+                    } elseif ($approvalPlan->document_type === 'leave_request') {
+                        return $approvalPlan->leaveRequest && $approvalPlan->leaveRequest->requestedBy ?
+                            $approvalPlan->leaveRequest->requestedBy->name : '-';
                     }
                     return '-';
                 })
@@ -141,8 +175,11 @@ class ApprovalRequestController extends Controller
                         return $approvalPlan->officialtravel && $approvalPlan->officialtravel->submit_at ?
                             date('d/m/Y H:i', strtotime($approvalPlan->officialtravel->submit_at)) : '-';
                     } elseif ($approvalPlan->document_type === 'recruitment_request') {
-                        return $approvalPlan->recruitment_request && $approvalPlan->recruitment_request->submit_at ?
-                            date('d/m/Y H:i', strtotime($approvalPlan->recruitment_request->submit_at)) : '-';
+                        return $approvalPlan->recruitmentRequest && $approvalPlan->recruitmentRequest->submit_at ?
+                            date('d/m/Y H:i', strtotime($approvalPlan->recruitmentRequest->submit_at)) : '-';
+                    } elseif ($approvalPlan->document_type === 'leave_request') {
+                        return $approvalPlan->leaveRequest && $approvalPlan->leaveRequest->requested_at ?
+                            date('d/m/Y H:i', strtotime($approvalPlan->leaveRequest->requested_at)) : '-';
                     }
                     return '-';
                 })
@@ -255,36 +292,70 @@ class ApprovalRequestController extends Controller
     }
 
     /**
-     * Check if current approval can be processed based on sequential order
+     * Check if current approval can be processed based on sequential order (hybrid approach).
+     *
+     * This method uses a hybrid approach that:
+     * - Supports parallel approvals (multiple approvers with same approval_order)
+     * - Requires ALL approvals in previous order groups to be completed
+     * - Works with missing, skipped, or non-sequential approval orders
+     *
+     * Examples:
+     * - Sequential: 1 → 2 → 3
+     * - Parallel: 1,1 → 3 (both order 1 must approve before order 3)
+     * - Missing start: 2 → 3 (order 2 becomes first order)
+     * - Skipped: 1 → 3 → 5 (no order 2 or 4)
+     * - Mixed: 1,1 → 2,2 → 3 (multiple parallel groups)
      */
     private function canProcessApproval($approvalPlan)
     {
-        // Get approval stage to check approval order
-        $approvalStage = ApprovalStage::where('document_type', $approvalPlan->document_type)
-            ->where('approver_id', $approvalPlan->approver_id)
-            ->whereHas('details', function ($query) use ($approvalPlan) {
-                $query->where('project_id', $this->getDocumentProjectId($approvalPlan))
-                    ->where('department_id', $this->getDocumentDepartmentId($approvalPlan));
-            })
-            ->first();
-
-        // If no approval stage found, allow processing
-        if (!$approvalStage) {
+        // If approval_order is null or empty, allow processing (fallback for legacy data)
+        if (empty($approvalPlan->approval_order)) {
             return true;
         }
 
-        // Check if previous approvals are completed based on approval_order
-        $previousApprovals = ApprovalPlan::where('document_id', $approvalPlan->document_id)
+        // Get all approval plans for this document, ordered by approval_order
+        $allApprovals = ApprovalPlan::where('document_id', $approvalPlan->document_id)
             ->where('document_type', $approvalPlan->document_type)
-            ->where('approval_order', '<', $approvalPlan->approval_order)
-            ->where('status', 1) // Approved
-            ->count();
+            ->orderBy('approval_order')
+            ->get();
 
-        $expectedPrevious = $approvalPlan->approval_order - 1;
+        // If no approvals found, allow processing (shouldn't happen but safe fallback)
+        if ($allApprovals->isEmpty()) {
+            return true;
+        }
 
-        // If previous orders are completed, this order can be processed
-        // Multiple steps with same approval_order can be processed in parallel
-        return $previousApprovals >= $expectedPrevious;
+        // Group approvals by approval_order
+        $orderGroups = $allApprovals->groupBy('approval_order');
+
+        // Get current approval order
+        $currentOrder = $approvalPlan->approval_order;
+
+        // If this is the first order group, allow processing
+        $firstOrder = $orderGroups->keys()->first();
+        if ($currentOrder == $firstOrder) {
+            return true;
+        }
+
+        // Check if ALL previous order groups are fully approved
+        foreach ($orderGroups as $order => $approvals) {
+            // Skip current and future orders
+            if ($order >= $currentOrder) {
+                break;
+            }
+
+            // Check if ALL approvals in this order group are approved
+            $allApproved = $approvals->every(function ($approval) {
+                return $approval->status == 1; // Status 1 = Approved
+            });
+
+            // If any previous order group is not fully approved, cannot process
+            if (!$allApproved) {
+                return false;
+            }
+        }
+
+        // All previous order groups are fully approved
+        return true;
     }
 
     /**
@@ -298,6 +369,9 @@ class ApprovalRequestController extends Controller
         } elseif ($approvalPlan->document_type === 'recruitment_request') {
             $document = RecruitmentRequest::find($approvalPlan->document_id);
             return $document ? $document->project_id : null;
+        } elseif ($approvalPlan->document_type === 'leave_request') {
+            $document = LeaveRequest::find($approvalPlan->document_id);
+            return $document ? $document->administration->project_id : null;
         }
         return null;
     }
@@ -313,6 +387,9 @@ class ApprovalRequestController extends Controller
         } elseif ($approvalPlan->document_type === 'recruitment_request') {
             $document = RecruitmentRequest::find($approvalPlan->document_id);
             return $document ? $document->department_id : null;
+        } elseif ($approvalPlan->document_type === 'leave_request') {
+            $document = LeaveRequest::find($approvalPlan->document_id);
+            return $document ? $document->administration->position->department_id : null;
         }
         return null;
     }
@@ -487,6 +564,8 @@ class ApprovalRequestController extends Controller
             $document = Officialtravel::find($approvalPlan->document_id);
         } elseif ($documentType === 'recruitment_request') {
             $document = RecruitmentRequest::find($approvalPlan->document_id);
+        } elseif ($documentType === 'leave_request') {
+            $document = LeaveRequest::find($approvalPlan->document_id);
         } else {
             return; // Invalid document type
         }
@@ -535,6 +614,11 @@ class ApprovalRequestController extends Controller
                 'approved_at' => now(),
             ]);
             $this->closeAllApprovalPlans($document->id, $documentType);
+
+            // Update leave entitlements ONLY for leave_request documents
+            if ($documentType === 'leave_request') {
+                $this->updateLeaveEntitlements($document);
+            }
 
             Log::info("Document {$documentType} ID: {$document->id} approved. All sequential approvals completed.");
         }
@@ -716,6 +800,73 @@ class ApprovalRequestController extends Controller
                 'message' => 'Failed to process bulk approval. Please try again.',
                 'error' => $e->getMessage()
             ], 500);
+        }
+    }
+
+    /**
+     * Update leave entitlements when leave request is approved
+     *
+     * This method reduces the remaining leave days when a leave request is approved.
+     * It only affects leave_request documents and updates the taken_days and remaining_days
+     * in the leave_entitlements table.
+     *
+     * @param LeaveRequest $leaveRequest The approved leave request
+     * @return void
+     */
+    private function updateLeaveEntitlements($leaveRequest)
+    {
+        try {
+            Log::info("Updating leave entitlements for approved leave request", [
+                'leave_request_id' => $leaveRequest->id,
+                'employee_id' => $leaveRequest->employee_id,
+                'leave_type_id' => $leaveRequest->leave_type_id,
+                'total_days' => $leaveRequest->total_days
+            ]);
+
+            // Find the matching entitlement for this employee and leave type
+            $entitlement = LeaveEntitlement::where('employee_id', $leaveRequest->employee_id)
+                ->where('leave_type_id', $leaveRequest->leave_type_id)
+                ->where('period_start', '<=', $leaveRequest->start_date)
+                ->where('period_end', '>=', $leaveRequest->end_date)
+                ->first();
+
+            if ($entitlement) {
+                // Update taken days
+                $oldTakenDays = $entitlement->taken_days;
+                $entitlement->taken_days += $leaveRequest->total_days;
+
+                // Recalculate remaining days
+                $entitlement->remaining_days = $entitlement->withdrawable_days - $entitlement->taken_days;
+
+                $entitlement->save();
+
+                Log::info("Successfully updated leave entitlements", [
+                    'leave_request_id' => $leaveRequest->id,
+                    'employee_id' => $leaveRequest->employee_id,
+                    'leave_type_id' => $leaveRequest->leave_type_id,
+                    'total_days_requested' => $leaveRequest->total_days,
+                    'old_taken_days' => $oldTakenDays,
+                    'new_taken_days' => $entitlement->taken_days,
+                    'remaining_days' => $entitlement->remaining_days,
+                    'withdrawable_days' => $entitlement->withdrawable_days
+                ]);
+            } else {
+                Log::warning("No entitlement found for approved leave request", [
+                    'leave_request_id' => $leaveRequest->id,
+                    'employee_id' => $leaveRequest->employee_id,
+                    'leave_type_id' => $leaveRequest->leave_type_id,
+                    'start_date' => $leaveRequest->start_date,
+                    'end_date' => $leaveRequest->end_date
+                ]);
+            }
+        } catch (\Exception $e) {
+            Log::error("Error updating leave entitlements: " . $e->getMessage(), [
+                'leave_request_id' => $leaveRequest->id,
+                'employee_id' => $leaveRequest->employee_id,
+                'leave_type_id' => $leaveRequest->leave_type_id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
         }
     }
 }

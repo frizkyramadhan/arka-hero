@@ -72,6 +72,10 @@
                                             {{ old('document_type') == 'recruitment_request' ? 'selected' : '' }}>
                                             Recruitment Request
                                         </option>
+                                        <option value="leave_request"
+                                            {{ old('document_type') == 'leave_request' ? 'selected' : '' }}>
+                                            Leave Request
+                                        </option>
                                     </select>
                                     <small class="form-text text-muted">
                                         Select the document type for this approval stage

@@ -55,7 +55,7 @@ class ApprovalStageController extends Controller
     {
         $request->validate([
             'approver_id' => 'required',
-            'document_type' => 'required|string|in:officialtravel,recruitment_request',
+            'document_type' => 'required|string|in:officialtravel,recruitment_request,leave_request',
             'approval_order' => 'required|integer|min:1',
             'projects' => 'required|array|min:1',
             'departments' => 'required|array|min:1',
@@ -72,6 +72,8 @@ class ApprovalStageController extends Controller
                 $requestReasons = [null]; // For backward compatibility
             } elseif ($request->document_type === 'officialtravel') {
                 $requestReasons = [null]; // officialtravel doesn't use request_reason, set to null
+            } elseif ($request->document_type === 'leave_request') {
+                $requestReasons = [null]; // leave_request doesn't use request_reason, set to null
             } else {
                 $requestReasons = [null]; // Default fallback
             }
@@ -143,6 +145,8 @@ class ApprovalStageController extends Controller
                     $requestReasons = [null]; // For backward compatibility
                 } elseif ($request->document_type === 'officialtravel') {
                     $requestReasons = [null]; // officialtravel doesn't use request_reason, set to null
+                } elseif ($request->document_type === 'leave_request') {
+                    $requestReasons = [null]; // leave_request doesn't use request_reason, set to null
                 } else {
                     $requestReasons = [null]; // Default fallback
                 }
@@ -235,7 +239,7 @@ class ApprovalStageController extends Controller
     {
         $request->validate([
             'approver_id' => 'required',
-            'document_type' => 'required|string|in:officialtravel,recruitment_request',
+            'document_type' => 'required|string|in:officialtravel,recruitment_request,leave_request',
             'approval_order' => 'required|integer|min:1',
             'projects' => 'required|array|min:1',
             'departments' => 'required|array|min:1',
@@ -254,6 +258,8 @@ class ApprovalStageController extends Controller
                 $requestReasons = [null]; // For backward compatibility
             } elseif ($request->document_type === 'officialtravel') {
                 $requestReasons = [null]; // officialtravel doesn't use request_reason, set to null
+            } elseif ($request->document_type === 'leave_request') {
+                $requestReasons = [null]; // leave_request doesn't use request_reason, set to null
             } else {
                 $requestReasons = [null]; // Default fallback
             }
@@ -349,6 +355,8 @@ class ApprovalStageController extends Controller
                         $requestReasons = [null]; // For backward compatibility
                     } elseif ($request->document_type === 'officialtravel') {
                         $requestReasons = [null]; // officialtravel doesn't use request_reason, set to null
+                    } elseif ($request->document_type === 'leave_request') {
+                        $requestReasons = [null]; // leave_request doesn't use request_reason, set to null
                     } else {
                         $requestReasons = [null]; // Default fallback
                     }
@@ -472,10 +480,19 @@ class ApprovalStageController extends Controller
                     ->whereNotNull('submit_at')
                     ->whereNull('approved_at')
                     ->count();
+            } elseif ($documentType === 'leave_request') {
+                $submittedDocuments = \App\Models\LeaveRequest::where('status', 'pending')
+                    ->whereNull('approved_at')
+                    ->count();
             }
 
             if ($submittedDocuments > 0) {
-                $docTypeName = $documentType === 'officialtravel' ? 'official travel' : 'recruitment request';
+                $docTypeName = match ($documentType) {
+                    'officialtravel' => 'official travel',
+                    'recruitment_request' => 'recruitment request',
+                    'leave_request' => 'leave request',
+                    default => $documentType
+                };
                 if (request()->ajax()) {
                     return response()->json([
                         'success' => false,
@@ -511,11 +528,35 @@ class ApprovalStageController extends Controller
         }
     }
 
-    public function data()
+    public function data(Request $request)
     {
-        // Get all approval stages with relationships
-        $stages = ApprovalStage::with(['approver', 'details.project', 'details.department'])
-            ->orderBy('approver_id', 'asc')
+        // Build query with relationships
+        $query = ApprovalStage::with(['approver', 'details.project', 'details.department']);
+
+        // Apply filters
+        if ($request->filled('document_type')) {
+            $query->where('document_type', $request->document_type);
+        }
+
+        if ($request->filled('approver_id')) {
+            $query->where('approver_id', $request->approver_id);
+        }
+
+        if ($request->filled('project_id')) {
+            $query->whereHas('details', function ($q) use ($request) {
+                $q->where('project_id', $request->project_id);
+            });
+        }
+
+        if ($request->filled('department_id')) {
+            $query->whereHas('details', function ($q) use ($request) {
+                $q->where('department_id', $request->department_id);
+            });
+        }
+
+
+        // Get filtered stages
+        $stages = $query->orderBy('approver_id', 'asc')
             ->orderBy('document_type', 'asc')
             ->orderBy('approval_order', 'asc')
             ->get();
@@ -563,8 +604,21 @@ class ApprovalStageController extends Controller
                 return $stage->approver->name;
             })
             ->addColumn('document_type', function ($stage) {
-                $documentName = $stage->document_type === 'officialtravel' ? 'Official Travel' : ucfirst(str_replace('_', ' ', $stage->document_type));
-                $html = '<span class="badge badge-warning">' . $documentName . '</span>';
+                $documentName = match ($stage->document_type) {
+                    'officialtravel' => 'Official Travel',
+                    'recruitment_request' => 'Recruitment Request',
+                    'leave_request' => 'Leave Request',
+                    default => ucfirst(str_replace('_', ' ', $stage->document_type))
+                };
+
+                $badgeClass = match ($stage->document_type) {
+                    'officialtravel' => 'badge-warning',
+                    'recruitment_request' => 'badge-info',
+                    'leave_request' => 'badge-success',
+                    default => 'badge-secondary'
+                };
+
+                $html = '<span class="badge ' . $badgeClass . '">' . $documentName . '</span>';
 
                 // Add request reason information for recruitment_request
                 if ($stage->document_type === 'recruitment_request') {
@@ -627,9 +681,10 @@ class ApprovalStageController extends Controller
         try {
             $request->validate([
                 'project_id' => 'required|integer',
-                'document_type' => 'required|string|in:officialtravel,recruitment_request',
+                'document_type' => 'required|string|in:officialtravel,recruitment_request,leave_request',
                 'department_id' => 'nullable|integer|exists:departments,id',
-                'request_reason' => 'nullable|string'
+                'request_reason' => 'nullable|string',
+                'level_id' => 'nullable|integer|exists:levels,id'
             ]);
 
             // For recruitment_request, use department_id from request
@@ -653,6 +708,15 @@ class ApprovalStageController extends Controller
                     return response()->json([
                         'success' => false,
                         'message' => 'Department ID is required for official travel (main traveler department)'
+                    ], 400);
+                }
+            } elseif ($request->document_type === 'leave_request') {
+                if ($request->has('department_id')) {
+                    $departmentId = $request->department_id;
+                } else {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Department ID is required for leave request (employee department)'
                     ], 400);
                 }
             }
@@ -700,6 +764,133 @@ class ApprovalStageController extends Controller
                 'stages' => $approvalStages->toArray()
             ]);
 
+            // For leave_request, filter approvers based on level hierarchy with hierarchical rules
+            if ($request->document_type === 'leave_request' && $request->has('level_id')) {
+                $levelId = $request->level_id;
+
+                // Get the applicant's level order
+                $applicantLevel = \App\Models\Level::find($levelId);
+
+                if ($applicantLevel) {
+                    $applicantLevelOrder = $applicantLevel->level_order;
+
+                    Log::info("Filtering approvers for leave_request based on hierarchical level rules:", [
+                        'applicant_level_id' => $levelId,
+                        'applicant_level' => $applicantLevel->name,
+                        'applicant_level_order' => $applicantLevelOrder
+                    ]);
+
+                    // Get dynamic level orders
+                    $managerLevel = \App\Models\Level::where('name', 'Manager')->where('is_active', 1)->first();
+                    $directorLevel = \App\Models\Level::where('name', 'Director')->where('is_active', 1)->first();
+                    $managerLevelOrder = $managerLevel ? $managerLevel->level_order : 5;
+                    $directorLevelOrder = $directorLevel ? $directorLevel->level_order : 6;
+
+                    // CASE 1: Director level - follow approval_stages setup
+                    if ($applicantLevelOrder == $directorLevelOrder) {
+                        Log::info("Director level detected - following approval_stages setup");
+                        // For Director level, still follow the approval_stages configuration
+                        // If no approval stages are configured, return empty collection
+                        $filteredStages = $approvalStages->filter(function ($stage) use ($request) {
+                            // Include all approvers configured in approval_stages for this project/department
+                            return true; // All configured approvers are valid for Director level
+                        });
+                    }
+                    // CASE 2: Manager -> Director only
+                    elseif ($applicantLevelOrder == $managerLevelOrder) {
+                        Log::info("Manager level detected - only director can approve");
+
+                        $filteredStages = $approvalStages->filter(function ($stage) use ($directorLevelOrder, $request) {
+                            $approver = $stage->approver;
+                            $employee = $approver->employee;
+
+                            if (!$employee) {
+                                return false;
+                            }
+
+                            $administration = $employee->administrations()
+                                ->where('is_active', 1)
+                                ->where('project_id', $request->project_id)
+                                ->with('level')
+                                ->first();
+
+                            if (!$administration || !$administration->level) {
+                                return false;
+                            }
+
+                            // Only include directors
+                            $isDirector = $administration->level->level_order == $directorLevelOrder;
+
+                            Log::info("Manager approver check:", [
+                                'approver_name' => $approver->name,
+                                'approver_level_order' => $administration->level->level_order,
+                                'is_director' => $isDirector
+                            ]);
+
+                            return $isDirector;
+                        });
+                    }
+                    // CASE 3: Other levels (1-4) -> max 2 levels above, but not exceeding Manager level
+                    else {
+                        $maxLevelDifference = 2;
+                        $minApproverLevel = $applicantLevelOrder + 1;
+                        $maxApproverLevel = $applicantLevelOrder + $maxLevelDifference;
+
+                        // Ensure we don't exceed manager level for non-manager applicants
+                        if ($applicantLevelOrder < $managerLevelOrder) {
+                            $maxApproverLevel = $managerLevelOrder;
+                        }
+
+                        Log::info("Non-manager level detected - max 2 levels above, capped at manager:", [
+                            'applicant_level_order' => $applicantLevelOrder,
+                            'min_approver_level' => $minApproverLevel,
+                            'max_approver_level' => $maxApproverLevel,
+                            'manager_level_order' => $managerLevelOrder
+                        ]);
+
+                        $filteredStages = $approvalStages->filter(function ($stage) use ($minApproverLevel, $maxApproverLevel, $request) {
+                            $approver = $stage->approver;
+                            $employee = $approver->employee;
+
+                            if (!$employee) {
+                                return false;
+                            }
+
+                            $administration = $employee->administrations()
+                                ->where('is_active', 1)
+                                ->where('project_id', $request->project_id)
+                                ->with('level')
+                                ->first();
+
+                            if (!$administration || !$administration->level) {
+                                return false;
+                            }
+
+                            $approverLevelOrder = $administration->level->level_order;
+
+                            // Check if approver is within allowed range
+                            $isWithinRange = ($approverLevelOrder >= $minApproverLevel && $approverLevelOrder <= $maxApproverLevel);
+
+                            Log::info("Non-manager approver check:", [
+                                'approver_name' => $approver->name,
+                                'approver_level' => $administration->level->name,
+                                'approver_level_order' => $approverLevelOrder,
+                                'allowed_range' => "{$minApproverLevel}-{$maxApproverLevel}",
+                                'is_within_range' => $isWithinRange
+                            ]);
+
+                            return $isWithinRange;
+                        });
+                    }
+
+                    $approvalStages = $filteredStages;
+
+                    Log::info("Filtered approval stages count:", [
+                        'count' => $approvalStages->count()
+                    ]);
+                }
+            }
+
             $approvers = $approvalStages->map(function ($stage) {
                 return [
                     'id' => $stage->approver->id,
@@ -707,7 +898,7 @@ class ApprovalStageController extends Controller
                     'department' => $stage->approver->departments->first()->department_name ?? 'No Department',
                     'order' => $stage->approval_order,
                 ];
-            });
+            })->values(); // Re-index array to ensure it's sequential
 
             return response()->json([
                 'success' => true,
