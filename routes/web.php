@@ -149,6 +149,8 @@ Route::group(['middleware' => ['auth']], function () {
     Route::get('/dashboard/leave-management/pending-cancellations', [DashboardController::class, 'pendingCancellations'])->name('dashboard.leave-management.pending-cancellations');
     Route::get('/dashboard/leave-management/paid-leave-without-docs', [DashboardController::class, 'paidLeaveWithoutDocs'])->name('dashboard.leave-management.paid-leave-without-docs');
     Route::get('/dashboard/leave-management/search-employees', [DashboardController::class, 'searchEmployeeEntitlements'])->name('dashboard.leave-management.search-employees');
+    Route::get('/dashboard/leave-management/employees-without-entitlements', [DashboardController::class, 'employeesWithoutEntitlements'])->name('dashboard.leave-management.employees-without-entitlements');
+    Route::get('/dashboard/leave-management/employees-with-expiring-entitlements', [DashboardController::class, 'employeesWithExpiringEntitlements'])->name('dashboard.leave-management.employees-with-expiring-entitlements');
     Route::get('/dashboard/leave-management/stats', [DashboardController::class, 'leaveManagementStats'])->name('dashboard.leave-management.stats');
 
     Route::post('logout', [AuthController::class, 'logout']);

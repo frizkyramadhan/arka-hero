@@ -1,6 +1,368 @@
 @extends('layouts.main')
 
 @section('content')
+    <div class="content-header">
+        <div class="container-fluid">
+            <div class="row mb-2">
+                <div class="col-sm-6">
+                    <h1 class="m-0">{{ $title }}</h1>
+                </div>
+                <div class="col-sm-6">
+                    <ol class="breadcrumb float-sm-right">
+                        <li class="breadcrumb-item"><a href="{{ route('dashboard') }}">Home</a></li>
+                        <li class="breadcrumb-item active">{{ $subtitle }}</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <section class="content">
+        <div class="container-fluid">
+            <!-- Statistics Cards -->
+            <div class="row mb-3">
+                <!-- Total Leave Requests -->
+                <div class="col-lg-3 col-md-6 mb-2">
+                    <div class="info-box bg-gradient-primary" style="padding: 8px;">
+                        <span class="info-box-icon" style="width: 50px; height: 50px; line-height: 50px;"><i
+                                class="fas fa-calendar-alt"></i></span>
+                        <div class="info-box-content" style="padding-left: 8px;">
+                            <span class="info-box-text" style="font-size: 0.9rem;">Total Requests</span>
+                            <span class="info-box-number"
+                                style="font-size: 1.4rem;">{{ number_format($totalLeaveRequests) }}</span>
+                            <div class="progress" style="height: 3px; margin: 4px 0;">
+                                <div class="progress-bar" style="width: 100%"></div>
+                            </div>
+                            <span class="progress-description" style="font-size: 0.75rem;">
+                                All time requests
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Approved Requests -->
+                <div class="col-lg-3 col-md-6 mb-2">
+                    <div class="info-box bg-gradient-success" style="padding: 8px;">
+                        <span class="info-box-icon" style="width: 50px; height: 50px; line-height: 50px;"><i
+                                class="fas fa-check-circle"></i></span>
+                        <div class="info-box-content" style="padding-left: 8px;">
+                            <span class="info-box-text" style="font-size: 0.9rem;">Approved</span>
+                            <span class="info-box-number"
+                                style="font-size: 1.4rem;">{{ number_format($approvedRequests) }}</span>
+                            <div class="progress" style="height: 3px; margin: 4px 0;">
+                                <div class="progress-bar"
+                                    style="width: {{ $totalLeaveRequests > 0 ? ($approvedRequests / $totalLeaveRequests) * 100 : 0 }}%">
+                                </div>
+                            </div>
+                            <span class="progress-description" style="font-size: 0.75rem;">
+                                {{ $totalLeaveRequests > 0 ? round(($approvedRequests / $totalLeaveRequests) * 100, 1) : 0 }}%
+                                rate
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Pending Requests -->
+                <div class="col-lg-3 col-md-6 mb-2">
+                    <div class="info-box bg-gradient-warning" style="padding: 8px;">
+                        <span class="info-box-icon" style="width: 50px; height: 50px; line-height: 50px;"><i
+                                class="fas fa-clock"></i></span>
+                        <div class="info-box-content" style="padding-left: 8px;">
+                            <span class="info-box-text" style="font-size: 0.9rem;">Pending</span>
+                            <span class="info-box-number"
+                                style="font-size: 1.4rem;">{{ number_format($pendingRequests) }}</span>
+                            <div class="progress" style="height: 3px; margin: 4px 0;">
+                                <div class="progress-bar"
+                                    style="width: {{ $totalLeaveRequests > 0 ? ($pendingRequests / $totalLeaveRequests) * 100 : 0 }}%">
+                                </div>
+                            </div>
+                            <span class="progress-description" style="font-size: 0.75rem;">
+                                Awaiting approval
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- This Month -->
+                <div class="col-lg-3 col-md-6 mb-2">
+                    <div class="info-box bg-gradient-info" style="padding: 8px;">
+                        <span class="info-box-icon" style="width: 50px; height: 50px; line-height: 50px;"><i
+                                class="fas fa-chart-line"></i></span>
+                        <div class="info-box-content" style="padding-left: 8px;">
+                            <span class="info-box-text" style="font-size: 0.9rem;">This Month</span>
+                            <span class="info-box-number"
+                                style="font-size: 1.4rem;">{{ number_format($thisMonthRequests) }}</span>
+                            <div class="progress" style="height: 3px; margin: 4px 0;">
+                                <div class="progress-bar"
+                                    style="width: {{ $thisMonthRequests > 0 ? ($thisMonthRequests / $totalLeaveRequests) * 100 : 0 }}%">
+                                </div>
+                            </div>
+                            <span class="progress-description" style="font-size: 0.75rem;">
+                                @if ($monthlyGrowth != 0)
+                                    {{ $monthlyGrowth > 0 ? '+' : '' }}{{ $monthlyGrowth }}% vs last month
+                                @else
+                                    {{ date('M Y') }}
+                                @endif
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Search Entitlement -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="card card-outline card-info">
+                        <div class="card-header">
+                            <h3 class="card-title">
+                                <i class="fas fa-search mr-2"></i>Quick Search Employee Entitlement
+                            </h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <select id="employeeSearch" class="form-control select2bs4" style="width: 100%;">
+                                        <option></option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <button type="button" class="btn btn-primary" onclick="searchEmployee()">
+                                        <i class="fas fa-search"></i> Search
+                                    </button>
+                                </div>
+                            </div>
+                            <div id="employeeEntitlementResult" class="mt-3" style="display: none;">
+                                <!-- Results will be populated here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main Dashboard Content -->
+            <div class="row">
+                <!-- Open Leave Requests -->
+                <div class="col-lg-6 mb-4">
+                    <div class="card card-outline card-primary">
+                        <div class="card-header">
+                            <h3 class="card-title">
+                                <i class="fas fa-calendar-check mr-2"></i>Open Leave Requests (Ready to Close)
+                            </h3>
+                            <div class="card-tools">
+                                <button type="button" class="btn btn-tool" data-card-widget="collapse">
+                                    <i class="fas fa-minus"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-bordered table-striped table-sm" id="openLeaveRequestsTable"
+                                    width="100%" cellspacing="0">
+                                    <thead class="thead-light">
+                                        <tr>
+                                            <th class="py-1 px-2">Employee</th>
+                                            <th class="py-1 px-2">Leave Type</th>
+                                            <th class="py-1 px-2">Period</th>
+                                            <th class="py-1 px-2">Days</th>
+                                            <th class="py-1 px-2" style="width: 15%; text-align: center;">Action</th>
+                                        </tr>
+                                    </thead>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Cancellation Requests -->
+                <div class="col-lg-6 mb-4">
+                    <div class="card card-outline card-warning">
+                        <div class="card-header">
+                            <h3 class="card-title">
+                                <i class="fas fa-times-circle mr-2"></i>Pending Cancellation Requests
+                            </h3>
+                            <div class="card-tools">
+                                <button type="button" class="btn btn-tool" data-card-widget="collapse">
+                                    <i class="fas fa-minus"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-bordered table-striped table-sm" id="pendingCancellationsTable"
+                                    width="100%" cellspacing="0">
+                                    <thead class="thead-light">
+                                        <tr>
+                                            <th class="py-1 px-2">Employee</th>
+                                            <th class="py-1 px-2">Leave Type</th>
+                                            <th class="py-1 px-2">Days to Cancel</th>
+                                            <th class="py-1 px-2">Reason</th>
+                                            <th class="py-1 px-2" style="text-align: center">Action</th>
+                                        </tr>
+                                    </thead>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Employee Entitlement Management -->
+            <div class="row">
+                <!-- Employees Without Entitlements -->
+                <div class="col-lg-6 mb-4">
+                    <div class="card card-outline card-warning">
+                        <div class="card-header">
+                            <h3 class="card-title">
+                                <i class="fas fa-exclamation-triangle mr-2"></i>Employees Without Entitlements
+                            </h3>
+                            <div class="card-tools">
+                                <button type="button" class="btn btn-tool" data-card-widget="collapse">
+                                    <i class="fas fa-minus"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-bordered table-striped table-sm"
+                                    id="employeesWithoutEntitlementsTable" width="100%" cellspacing="0">
+                                    <thead class="thead-light">
+                                        <tr>
+                                            <th class="py-1 px-2">Employee</th>
+                                            <th class="py-1 px-2">NIK</th>
+                                            <th class="py-1 px-2">DOH</th>
+                                            <th class="py-1 px-2">Position</th>
+                                            <th class="py-1 px-2">Department</th>
+                                            <th class="py-1 px-2" style="text-align: center">Action</th>
+                                        </tr>
+                                    </thead>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Employees with Expiring Entitlements -->
+                <div class="col-lg-6 mb-4">
+                    <div class="card card-outline card-danger">
+                        <div class="card-header">
+                            <h3 class="card-title">
+                                <i class="fas fa-clock mr-2"></i>Employees with Expiring Entitlements
+                            </h3>
+                            <div class="card-tools">
+                                <button type="button" class="btn btn-tool" data-card-widget="collapse">
+                                    <i class="fas fa-minus"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-bordered table-striped table-sm"
+                                    id="employeesWithExpiringEntitlementsTable" width="100%" cellspacing="0">
+                                    <thead class="thead-light">
+                                        <tr>
+                                            <th class="py-1 px-2">Employee</th>
+                                            <th class="py-1 px-2">NIK</th>
+                                            <th class="py-1 px-2">Expires</th>
+                                            <th class="py-1 px-2" style="text-align: center">Action</th>
+                                        </tr>
+                                    </thead>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <!-- Paid Leave Without Documents -->
+                <div class="col-lg-12 mb-4">
+                    <div class="card card-outline card-danger">
+                        <div class="card-header">
+                            <h3 class="card-title">
+                                <i class="fas fa-file-upload mr-2"></i>Paid Leave Without Supporting Documents
+                            </h3>
+                            <div class="card-tools">
+                                <button type="button" class="btn btn-tool" data-card-widget="collapse">
+                                    <i class="fas fa-minus"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-bordered table-striped table-sm" id="paidLeaveWithoutDocsTable"
+                                    width="100%" cellspacing="0">
+                                    <thead class="thead-light">
+                                        <tr>
+                                            <th class="py-1 px-2">Employee</th>
+                                            <th class="py-1 px-2">Leave Type</th>
+                                            <th class="py-1 px-2">Period</th>
+                                            <th class="py-1 px-2">Days</th>
+                                            <th class="py-1 px-2">Days Remaining</th>
+                                            <th class="py-1 px-2">Status</th>
+                                            <th class="py-1 px-2" style="text-align: center">Action</th>
+                                        </tr>
+                                    </thead>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Modals -->
+    <!-- Close Leave Request Modal -->
+    <div class="modal fade" id="closeLeaveRequestModal" tabindex="-1" role="dialog">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Close Leave Request</h5>
+                    <button type="button" class="close" data-dismiss="modal">
+                        <span>&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <p>Are you sure you want to close this leave request?</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-success" id="confirmCloseLeaveRequest">Close Request</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cancellation Action Modal -->
+    <div class="modal fade" id="cancellationActionModal" tabindex="-1" role="dialog">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="cancellationModalTitle">Action on Cancellation Request</h5>
+                    <button type="button" class="close" data-dismiss="modal">
+                        <span>&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="cancellationNotes">Notes:</label>
+                        <textarea class="form-control" id="cancellationNotes" rows="3" placeholder="Enter your notes here..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-success" id="confirmCancellationAction">Confirm</button>
+                </div>
+            </div>
+        </div>
+    </div>
+@endsection
+
+@push('styles')
+    <link rel="stylesheet" href="{{ asset('assets/plugins/datatables-bs4/css/dataTables.bootstrap4.min.css') }}">
+    <link rel="stylesheet" href="{{ asset('assets/plugins/datatables-responsive/css/responsive.bootstrap4.min.css') }}">
+    <link rel="stylesheet" href="{{ asset('assets/plugins/datatables-buttons/css/buttons.bootstrap4.min.css') }}">
+    <link rel="stylesheet" href="{{ asset('assets/plugins/select2/css/select2.min.css') }}">
     <style>
         /* Compact table styling */
         .table-sm th,
@@ -76,405 +438,21 @@
             font-size: 0.7rem;
         }
     </style>
-    <div class="content-header">
-        <div class="container-fluid">
-            <div class="row mb-2">
-                <div class="col-sm-6">
-                    <h1 class="m-0">{{ $title }}</h1>
-                </div>
-                <div class="col-sm-6">
-                    <ol class="breadcrumb float-sm-right">
-                        <li class="breadcrumb-item"><a href="{{ route('dashboard') }}">Home</a></li>
-                        <li class="breadcrumb-item active">{{ $subtitle }}</li>
-                    </ol>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <section class="content">
-        <div class="container-fluid">
-
-            <!-- Statistics Cards -->
-            <div class="row mb-4">
-                <!-- Total Leave Requests -->
-                <div class="col-lg-3 col-md-6 mb-3">
-                    <div class="info-box bg-gradient-primary">
-                        <span class="info-box-icon"><i class="fas fa-calendar-alt"></i></span>
-                        <div class="info-box-content">
-                            <span class="info-box-text">Total Leave Requests</span>
-                            <span class="info-box-number">{{ number_format($totalLeaveRequests) }}</span>
-                            <div class="progress">
-                                <div class="progress-bar" style="width: 100%"></div>
-                            </div>
-                            <span class="progress-description">All time leave requests</span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Approved Requests -->
-                <div class="col-lg-3 col-md-6 mb-3">
-                    <div class="info-box bg-gradient-success">
-                        <span class="info-box-icon"><i class="fas fa-check-circle"></i></span>
-                        <div class="info-box-content">
-                            <span class="info-box-text">Approved Requests</span>
-                            <span class="info-box-number">{{ number_format($approvedRequests) }}</span>
-                            <div class="progress">
-                                <div class="progress-bar"
-                                    style="width: {{ $totalLeaveRequests > 0 ? ($approvedRequests / $totalLeaveRequests) * 100 : 0 }}%">
-                                </div>
-                            </div>
-                            <span
-                                class="progress-description">{{ $totalLeaveRequests > 0 ? round(($approvedRequests / $totalLeaveRequests) * 100, 1) : 0 }}%
-                                approval rate</span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Pending Requests -->
-                <div class="col-lg-3 col-md-6 mb-3">
-                    <div class="info-box bg-gradient-warning">
-                        <span class="info-box-icon"><i class="fas fa-clock"></i></span>
-                        <div class="info-box-content">
-                            <span class="info-box-text">Pending Requests</span>
-                            <span class="info-box-number">{{ number_format($pendingRequests) }}</span>
-                            <div class="progress">
-                                <div class="progress-bar"
-                                    style="width: {{ $totalLeaveRequests > 0 ? ($pendingRequests / $totalLeaveRequests) * 100 : 0 }}%">
-                                </div>
-                            </div>
-                            <span class="progress-description">Awaiting approval</span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- This Month -->
-                <div class="col-lg-3 col-md-6 mb-3">
-                    <div class="info-box bg-gradient-info">
-                        <span class="info-box-icon"><i class="fas fa-chart-line"></i></span>
-                        <div class="info-box-content">
-                            <span class="info-box-text">This Month</span>
-                            <span class="info-box-number">{{ number_format($thisMonthRequests) }}</span>
-                            <div class="progress">
-                                <div class="progress-bar" style="width: 100%"></div>
-                            </div>
-                            <span class="progress-description">
-                                @if ($monthlyGrowth != 0)
-                                    {{ $monthlyGrowth > 0 ? '+' : '' }}{{ $monthlyGrowth }}% from last month
-                                @else
-                                    Current month requests
-                                @endif
-                            </span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Quick Search Entitlement -->
-            <div class="row mb-4">
-                <div class="col-12">
-                    <div class="card card-outline card-info">
-                        <div class="card-header">
-                            <h3 class="card-title">
-                                <i class="fas fa-search mr-2"></i>Quick Search Employee Entitlement
-                            </h3>
-                        </div>
-                        <div class="card-body">
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <select id="employeeSearch" class="form-control select2bs4" style="width: 100%;">
-                                        <option></option>
-                                    </select>
-                                </div>
-                                <div class="col-md-6">
-                                    <button type="button" class="btn btn-primary" onclick="searchEmployee()">
-                                        <i class="fas fa-search"></i> Search
-                                    </button>
-                                </div>
-                            </div>
-                            <div id="employeeEntitlementResult" class="mt-3" style="display: none;">
-                                <!-- Results will be populated here -->
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Main Dashboard Content -->
-            <div class="row">
-                <!-- Open Leave Requests -->
-                <div class="col-lg-6 mb-4">
-                    <div class="card card-outline card-primary">
-                        <div class="card-header">
-                            <h3 class="card-title">
-                                <i class="fas fa-calendar-check mr-2"></i>Open Leave Requests (Ready to Close)
-                            </h3>
-                            <div class="card-tools">
-                                <button type="button" class="btn btn-tool" data-card-widget="collapse">
-                                    <i class="fas fa-minus"></i>
-                                </button>
-                            </div>
-                        </div>
-                        <div class="card-body">
-                            <div class="table-responsive">
-                                <table class="table table-bordered table-striped table-sm" id="openLeaveRequestsTable"
-                                    width="100%" cellspacing="0">
-                                    <thead class="thead-light">
-                                        <tr>
-                                            <th class="py-1 px-2">Employee</th>
-                                            <th class="py-1 px-2">Leave Type</th>
-                                            <th class="py-1 px-2">Period</th>
-                                            <th class="py-1 px-2">Days</th>
-                                            <th class="py-1 px-2">Action</th>
-                                        </tr>
-                                    </thead>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Cancellation Requests -->
-                <div class="col-lg-6 mb-4">
-                    <div class="card card-outline card-warning">
-                        <div class="card-header">
-                            <h3 class="card-title">
-                                <i class="fas fa-times-circle mr-2"></i>Pending Cancellation Requests
-                            </h3>
-                            <div class="card-tools">
-                                <button type="button" class="btn btn-tool" data-card-widget="collapse">
-                                    <i class="fas fa-minus"></i>
-                                </button>
-                            </div>
-                        </div>
-                        <div class="card-body">
-                            <div class="table-responsive">
-                                <table class="table table-bordered table-striped table-sm" id="pendingCancellationsTable"
-                                    width="100%" cellspacing="0">
-                                    <thead class="thead-light">
-                                        <tr>
-                                            <th class="py-1 px-2">Employee</th>
-                                            <th class="py-1 px-2">Leave Type</th>
-                                            <th class="py-1 px-2">Days to Cancel</th>
-                                            <th class="py-1 px-2">Reason</th>
-                                            <th class="py-1 px-2">Action</th>
-                                        </tr>
-                                    </thead>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="row">
-                <!-- Paid Leave Without Documents -->
-                <div class="col-lg-8 mb-4">
-                    <div class="card card-outline card-danger">
-                        <div class="card-header">
-                            <h3 class="card-title">
-                                <i class="fas fa-file-upload mr-2"></i>Paid Leave Without Supporting Documents
-                            </h3>
-                            <div class="card-tools">
-                                <button type="button" class="btn btn-tool" data-card-widget="collapse">
-                                    <i class="fas fa-minus"></i>
-                                </button>
-                            </div>
-                        </div>
-                        <div class="card-body">
-                            <div class="table-responsive">
-                                <table class="table table-bordered table-striped table-sm" id="paidLeaveWithoutDocsTable"
-                                    width="100%" cellspacing="0">
-                                    <thead class="thead-light">
-                                        <tr>
-                                            <th class="py-1 px-2">Employee</th>
-                                            <th class="py-1 px-2">Leave Type</th>
-                                            <th class="py-1 px-2">Period</th>
-                                            <th class="py-1 px-2">Days</th>
-                                            <th class="py-1 px-2">Days Remaining</th>
-                                            <th class="py-1 px-2">Status</th>
-                                            <th class="py-1 px-2">Action</th>
-                                        </tr>
-                                    </thead>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Entitlement Overview -->
-                <div class="col-lg-4 mb-4">
-                    <div class="card card-outline card-info">
-                        <div class="card-header">
-                            <h3 class="card-title">
-                                <i class="fas fa-chart-pie mr-2"></i>Entitlement Overview
-                            </h3>
-                        </div>
-                        <div class="card-body">
-                            <div class="mb-3">
-                                <div class="d-flex justify-content-between">
-                                    <span>Total Entitled Days:</span>
-                                    <strong>{{ number_format($totalEntitlements) }}</strong>
-                                </div>
-                            </div>
-                            <div class="mb-3">
-                                <div class="d-flex justify-content-between">
-                                    <span>Used Days:</span>
-                                    <strong class="text-warning">{{ number_format($usedEntitlements) }}</strong>
-                                </div>
-                            </div>
-                            <div class="mb-3">
-                                <div class="d-flex justify-content-between">
-                                    <span>Remaining Days:</span>
-                                    <strong class="text-success">{{ number_format($remainingEntitlements) }}</strong>
-                                </div>
-                            </div>
-                            <div class="progress mb-3">
-                                <div class="progress-bar" role="progressbar"
-                                    style="width: {{ $totalEntitlements > 0 ? ($usedEntitlements / $totalEntitlements) * 100 : 0 }}%">
-                                </div>
-                            </div>
-                            <small class="text-muted">
-                                Usage:
-                                {{ $totalEntitlements > 0 ? round(($usedEntitlements / $totalEntitlements) * 100, 1) : 0 }}%
-                            </small>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Additional Statistics -->
-            <div class="row">
-                <!-- Leave Type Statistics -->
-                <div class="col-lg-6 mb-4">
-                    <div class="card card-outline card-primary">
-                        <div class="card-header">
-                            <h3 class="card-title">
-                                <i class="fas fa-chart-bar mr-2"></i>Leave Type Distribution
-                            </h3>
-                        </div>
-                        <div class="card-body">
-                            <div class="table-responsive">
-                                <table class="table table-sm">
-                                    <thead>
-                                        <tr>
-                                            <th>Leave Type</th>
-                                            <th>Count</th>
-                                            <th>Percentage</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        @foreach ($leaveTypeStats as $stat)
-                                            <tr>
-                                                <td>{{ $stat->name }}</td>
-                                                <td>{{ $stat->leave_requests_count }}</td>
-                                                <td>
-                                                    <div class="progress" style="height: 20px;">
-                                                        <div class="progress-bar" role="progressbar"
-                                                            style="width: {{ $totalLeaveRequests > 0 ? ($stat->leave_requests_count / $totalLeaveRequests) * 100 : 0 }}%">
-                                                            {{ $totalLeaveRequests > 0 ? round(($stat->leave_requests_count / $totalLeaveRequests) * 100, 1) : 0 }}%
-                                                        </div>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        @endforeach
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Department Statistics -->
-                <div class="col-lg-6 mb-4">
-                    <div class="card card-outline card-success">
-                        <div class="card-header">
-                            <h3 class="card-title">
-                                <i class="fas fa-building mr-2"></i>Department Leave Statistics
-                            </h3>
-                        </div>
-                        <div class="card-body">
-                            <div class="table-responsive">
-                                <table class="table table-sm">
-                                    <thead>
-                                        <tr>
-                                            <th>Department</th>
-                                            <th>Leave Requests</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        @foreach ($departmentLeaveStats as $stat)
-                                            <tr>
-                                                <td>{{ $stat->department_name }}</td>
-                                                <td>
-                                                    <span class="badge badge-primary">{{ $stat->count }}</span>
-                                                </td>
-                                            </tr>
-                                        @endforeach
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-        </div>
-    </section>
-
-    <!-- Modals -->
-    <!-- Close Leave Request Modal -->
-    <div class="modal fade" id="closeLeaveRequestModal" tabindex="-1" role="dialog">
-        <div class="modal-dialog" role="document">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Close Leave Request</h5>
-                    <button type="button" class="close" data-dismiss="modal">
-                        <span>&times;</span>
-                    </button>
-                </div>
-                <div class="modal-body">
-                    <p>Are you sure you want to close this leave request?</p>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-success" id="confirmCloseLeaveRequest">Close Request</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Cancellation Action Modal -->
-    <div class="modal fade" id="cancellationActionModal" tabindex="-1" role="dialog">
-        <div class="modal-dialog" role="document">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="cancellationModalTitle">Action on Cancellation Request</h5>
-                    <button type="button" class="close" data-dismiss="modal">
-                        <span>&times;</span>
-                    </button>
-                </div>
-                <div class="modal-body">
-                    <div class="form-group">
-                        <label for="cancellationNotes">Notes:</label>
-                        <textarea class="form-control" id="cancellationNotes" rows="3" placeholder="Enter your notes here..."></textarea>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-success" id="confirmCancellationAction">Confirm</button>
-                </div>
-            </div>
-        </div>
-    </div>
-@endsection
-
-@push('styles')
-    <!-- Select2 -->
-    <link rel="stylesheet" href="{{ asset('assets/plugins/select2/css/select2.min.css') }}">
 @endpush
 
 @push('scripts')
+    <script src="{{ asset('assets/plugins/datatables/jquery.dataTables.min.js') }}"></script>
+    <script src="{{ asset('assets/plugins/datatables-bs4/js/dataTables.bootstrap4.min.js') }}"></script>
+    <script src="{{ asset('assets/plugins/datatables-responsive/js/dataTables.responsive.min.js') }}"></script>
+    <script src="{{ asset('assets/plugins/datatables-responsive/js/responsive.bootstrap4.min.js') }}"></script>
+    <script src="{{ asset('assets/plugins/datatables-buttons/js/dataTables.buttons.min.js') }}"></script>
+    <script src="{{ asset('assets/plugins/datatables-buttons/js/buttons.bootstrap4.min.js') }}"></script>
+    <script src="{{ asset('assets/plugins/jszip/jszip.min.js') }}"></script>
+    <script src="{{ asset('assets/plugins/pdfmake/pdfmake.min.js') }}"></script>
+    <script src="{{ asset('assets/plugins/pdfmake/vfs_fonts.js') }}"></script>
+    <script src="{{ asset('assets/plugins/datatables-buttons/js/buttons.html5.min.js') }}"></script>
+    <script src="{{ asset('assets/plugins/datatables-buttons/js/buttons.print.min.js') }}"></script>
+    <script src="{{ asset('assets/plugins/datatables-buttons/js/buttons.colVis.min.js') }}"></script>
     <script src="{{ asset('assets/plugins/select2/js/select2.full.min.js') }}"></script>
     <script>
         $(document).ready(function() {
@@ -542,7 +520,8 @@
                         data: 'action',
                         name: 'action',
                         orderable: false,
-                        searchable: false
+                        searchable: false,
+                        className: 'text-center'
                     }
                 ],
                 pageLength: 5,
@@ -576,7 +555,8 @@
                         data: 'action',
                         name: 'action',
                         orderable: false,
-                        searchable: false
+                        searchable: false,
+                        className: 'text-center'
                     }
                 ],
                 pageLength: 5,
@@ -618,7 +598,79 @@
                         data: 'action',
                         name: 'action',
                         orderable: false,
-                        searchable: false
+                        searchable: false,
+                        className: 'text-center'
+                    }
+                ],
+                pageLength: 5,
+                lengthMenu: [
+                    [5, 10, 25],
+                    [5, 10, 25]
+                ]
+            });
+
+            $('#employeesWithoutEntitlementsTable').DataTable({
+                processing: true,
+                serverSide: true,
+                ajax: '{{ route('dashboard.leave-management.employees-without-entitlements') }}',
+                columns: [{
+                        data: 'employee_name',
+                        name: 'employee_name'
+                    },
+                    {
+                        data: 'employee_nik',
+                        name: 'employee_nik'
+                    },
+                    {
+                        data: 'doh',
+                        name: 'doh'
+                    },
+                    {
+                        data: 'position',
+                        name: 'position'
+                    },
+                    {
+                        data: 'department',
+                        name: 'department'
+                    },
+                    {
+                        data: 'action',
+                        name: 'action',
+                        orderable: false,
+                        searchable: false,
+                        className: 'text-center'
+                    }
+                ],
+                pageLength: 5,
+                lengthMenu: [
+                    [5, 10, 25],
+                    [5, 10, 25]
+                ]
+            });
+
+            $('#employeesWithExpiringEntitlementsTable').DataTable({
+                processing: true,
+                serverSide: true,
+                ajax: '{{ route('dashboard.leave-management.employees-with-expiring-entitlements') }}',
+                columns: [{
+                        data: 'employee_name',
+                        name: 'employee_name'
+                    },
+                    {
+                        data: 'employee_nik',
+                        name: 'employee_nik'
+                    },
+                    {
+                        data: 'expires',
+                        name: 'expires',
+                        className: 'text-center'
+                    },
+                    {
+                        data: 'action',
+                        name: 'action',
+                        orderable: false,
+                        searchable: false,
+                        className: 'text-center'
                     }
                 ],
                 pageLength: 5,

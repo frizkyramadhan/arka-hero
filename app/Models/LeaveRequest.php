@@ -18,6 +18,8 @@ class LeaveRequest extends Model
         'end_date',
         'back_to_work_date',
         'reason',
+        'lsl_taken_days',
+        'lsl_cashout_days',
         'total_days',
         'status',
         'leave_period',
@@ -260,5 +262,48 @@ class LeaveRequest extends Model
         }
 
         $this->save();
+    }
+
+    /**
+     * Check if this leave request is LSL flexible
+     */
+    public function isLSLFlexible()
+    {
+        return $this->leaveType &&
+            ($this->leaveType->category === 'lsl' ||
+                str_contains(strtolower($this->leaveType->name), 'lsl'));
+    }
+
+    /**
+     * Get LSL leave days (for LSL flexible requests)
+     */
+    public function getLSLLeaveDays()
+    {
+        if ($this->isLSLFlexible()) {
+            return $this->lsl_taken_days ?? 0;
+        }
+        return $this->total_days;
+    }
+
+    /**
+     * Get LSL cashout days (for LSL flexible requests)
+     */
+    public function getLSLCashoutDays()
+    {
+        if ($this->isLSLFlexible()) {
+            return $this->lsl_cashout_days ?? 0;
+        }
+        return 0;
+    }
+
+    /**
+     * Get total LSL days (leave + cashout)
+     */
+    public function getLSLTotalDays()
+    {
+        if ($this->isLSLFlexible()) {
+            return ($this->lsl_taken_days ?? 0) + ($this->lsl_cashout_days ?? 0);
+        }
+        return $this->total_days;
     }
 }

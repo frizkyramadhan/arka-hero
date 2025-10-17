@@ -116,6 +116,7 @@
                                         @endif
                                     </div>
                                 </div>
+
                                 <div class="info-item">
                                     <div class="info-icon" style="background-color: #e67e22;">
                                         <i class="fas fa-calendar-plus"></i>
@@ -155,7 +156,8 @@
                     @if (
                         $leaveRequest->reason ||
                             $leaveRequest->supporting_document ||
-                            strtolower($leaveRequest->leaveType->category ?? '') === 'paid')
+                            strtolower($leaveRequest->leaveType->category ?? '') === 'paid' ||
+                            $leaveRequest->isLSLFlexible())
                         <div class="leave-request-card requirements-card">
                             <div class="card-head">
                                 <h2><i class="fas fa-clipboard-list"></i> Additional Information</h2>
@@ -171,6 +173,88 @@
                                         </div>
                                         <div class="section-content">
                                             {{ $leaveRequest->reason }}
+                                        </div>
+                                    </div>
+                                @endif
+
+                                @if ($leaveRequest->isLSLFlexible())
+                                    <div class="requirement-section">
+                                        <div class="section-header">
+                                            <div class="section-icon" style="background-color: #f39c12;">
+                                                <i class="fas fa-coins"></i>
+                                            </div>
+                                            <div class="section-title">Long Service Leave Details</div>
+                                        </div>
+                                        <div class="section-content">
+                                            <!-- LSL Breakdown Table -->
+                                            <div class="lsl-breakdown-table">
+                                                <div class="lsl-table-header">
+                                                    <h4><i class="fas fa-list-alt"></i> LSL Breakdown</h4>
+                                                </div>
+                                                <div class="lsl-table-content">
+                                                    <div class="lsl-table-row">
+                                                        <div class="lsl-table-cell">
+                                                            <div class="lsl-cell-icon">
+                                                                <i class="fas fa-calendar-check"></i>
+                                                            </div>
+                                                            <div class="lsl-cell-content">
+                                                                <div class="lsl-cell-label">Leave Taken</div>
+                                                                <div class="lsl-cell-description">Days used as actual
+                                                                    leave</div>
+                                                            </div>
+                                                        </div>
+                                                        <div class="lsl-table-value">
+                                                            <span
+                                                                class="lsl-value-number">{{ $leaveRequest->lsl_taken_days ?? 0 }}</span>
+                                                            <span class="lsl-value-unit">days</span>
+                                                        </div>
+                                                    </div>
+
+                                                    <div class="lsl-table-row">
+                                                        <div class="lsl-table-cell">
+                                                            <div class="lsl-cell-icon">
+                                                                <i class="fas fa-money-bill-wave"></i>
+                                                            </div>
+                                                            <div class="lsl-cell-content">
+                                                                <div class="lsl-cell-label">Cash Out</div>
+                                                                <div class="lsl-cell-description">Days converted to
+                                                                    cash payment</div>
+                                                            </div>
+                                                        </div>
+                                                        <div class="lsl-table-value">
+                                                            <span
+                                                                class="lsl-value-number">{{ $leaveRequest->lsl_cashout_days ?? 0 }}</span>
+                                                            <span class="lsl-value-unit">days</span>
+                                                        </div>
+                                                    </div>
+
+                                                    <div class="lsl-table-row total-row">
+                                                        <div class="lsl-table-cell">
+                                                            <div class="lsl-cell-icon">
+                                                                <i class="fas fa-calculator"></i>
+                                                            </div>
+                                                            <div class="lsl-cell-content">
+                                                                <div class="lsl-cell-label">Total LSL Used</div>
+                                                                <div class="lsl-cell-description">Combined leave and
+                                                                    cash out</div>
+                                                            </div>
+                                                        </div>
+                                                        <div class="lsl-table-value">
+                                                            <span
+                                                                class="lsl-value-number">{{ $leaveRequest->getLSLTotalDays() }}</span>
+                                                            <span class="lsl-value-unit">days</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            @if (($leaveRequest->lsl_cashout_days ?? 0) > 0)
+                                                <div class="lsl-cashout-note">
+                                                    <i class="fas fa-info-circle"></i>
+                                                    This request includes {{ $leaveRequest->lsl_cashout_days }} day(s)
+                                                    of Long Service Leave cash out.
+                                                </div>
+                                            @endif
                                         </div>
                                     </div>
                                 @endif
@@ -227,6 +311,8 @@
                                         </div>
                                     </div>
                                 @endif
+
+
                             </div>
                         </div>
                     @endif
@@ -527,6 +613,182 @@
             font-size: 0.8rem;
             margin-top: 2px;
             font-weight: 500;
+        }
+
+        /* Simplified LSL Flexible Details Styles */
+        .lsl-flexible-details {
+            background-color: #ffffff;
+            border-radius: 8px;
+            padding: 20px;
+            border: 1px solid #e9ecef;
+            margin-top: 0;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+
+        /* LSL Breakdown Table */
+        .lsl-breakdown-table {
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            overflow: hidden;
+            border: 1px solid #e9ecef;
+        }
+
+        .lsl-table-header {
+            background: linear-gradient(135deg, #2c3e50, #34495e);
+            color: white;
+            padding: 15px 20px;
+        }
+
+        .lsl-table-header h4 {
+            margin: 0;
+            font-size: 16px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .lsl-table-content {
+            padding: 0;
+        }
+
+        .lsl-table-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 15px 20px;
+            border-bottom: 1px solid #e9ecef;
+            transition: background-color 0.2s ease;
+        }
+
+        .lsl-table-row:last-child {
+            border-bottom: none;
+        }
+
+        .lsl-table-row:hover {
+            background-color: #f1f3f4;
+        }
+
+        .lsl-table-row.total-row {
+            background: linear-gradient(135deg, #e8f5e8, #f0f8f0);
+            border-top: 2px solid #28a745;
+            font-weight: 600;
+        }
+
+        .lsl-table-cell {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex: 1;
+        }
+
+        .lsl-cell-icon {
+            width: 35px;
+            height: 35px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            color: white;
+            flex-shrink: 0;
+        }
+
+        .lsl-table-row:nth-child(1) .lsl-cell-icon {
+            background: linear-gradient(135deg, #3498db, #2980b9);
+        }
+
+        .lsl-table-row:nth-child(2) .lsl-cell-icon {
+            background: linear-gradient(135deg, #f39c12, #e67e22);
+        }
+
+        .lsl-table-row.total-row .lsl-cell-icon {
+            background: linear-gradient(135deg, #27ae60, #2ecc71);
+        }
+
+        .lsl-cell-content {
+            flex: 1;
+        }
+
+        .lsl-cell-label {
+            font-size: 14px;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 2px;
+        }
+
+        .lsl-cell-description {
+            font-size: 12px;
+            color: #6c757d;
+        }
+
+        .lsl-table-value {
+            display: flex;
+            align-items: baseline;
+            gap: 4px;
+        }
+
+        .lsl-value-number {
+            font-size: 18px;
+            font-weight: 700;
+            color: #2c3e50;
+        }
+
+        .lsl-table-row.total-row .lsl-value-number {
+            color: #28a745;
+        }
+
+        .lsl-value-unit {
+            font-size: 12px;
+            color: #6c757d;
+            font-weight: 500;
+        }
+
+        /* Simple Cash Out Note */
+        .lsl-cashout-note {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 4px;
+            padding: 8px 12px;
+            font-size: 12px;
+            color: #856404;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 8px;
+        }
+
+        .lsl-cashout-note i {
+            color: #f39c12;
+        }
+
+        /* Responsive adjustments for simplified LSL details */
+        @media (max-width: 768px) {
+            .lsl-table-row {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+                padding: 12px 15px;
+            }
+
+            .lsl-table-cell {
+                width: 100%;
+            }
+
+            .lsl-table-value {
+                align-self: flex-end;
+            }
+
+            .lsl-cashout-note {
+                padding: 12px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .lsl-flexible-details {
+                padding: 15px;
+            }
         }
 
         /* Section Headers */

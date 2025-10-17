@@ -31,7 +31,7 @@
                         <div class="col-md-3">
                             <div class="form-group">
                                 <label for="status">Cancellation Status</label>
-                                <select name="status" id="status" class="form-control">
+                                <select name="status" id="status" class="form-control select2">
                                     <option value="">All Status</option>
                                     <option value="pending" {{ request('status') == 'pending' ? 'selected' : '' }}>Pending
                                     </option>
@@ -59,11 +59,12 @@
                         <div class="col-md-3">
                             <div class="form-group">
                                 <label for="employee_id">Employee</label>
-                                <select name="employee_id" id="employee_id" class="form-control">
+                                <select name="employee_id" id="employee_id" class="form-control select2">
                                     <option value="">All Employees</option>
                                     @foreach ($employees as $employee)
                                         <option value="{{ $employee->id }}"
                                             {{ request('employee_id') == $employee->id ? 'selected' : '' }}>
+                                            {{ $employee->administrations->first()->nik ?? 'N/A' }} -
                                             {{ $employee->fullname }}
                                         </option>
                                     @endforeach
@@ -76,6 +77,10 @@
                             <button type="submit" form="filterForm" class="btn btn-primary mr-2">
                                 <i class="fas fa-search"></i> Filter
                             </button>
+                            <a href="{{ route('leave.reports.cancellation', ['show_all' => 1]) }}"
+                                class="btn btn-info mr-2">
+                                <i class="fas fa-list"></i> Show All
+                            </a>
                             <a href="{{ route('leave.reports.cancellation') }}" class="btn btn-warning mr-2">
                                 <i class="fas fa-undo"></i> Reset
                             </a>
@@ -94,6 +99,7 @@
                                     <th>Employee</th>
                                     <th>Leave Type</th>
                                     <th>Original Leave</th>
+                                    <th class="text-center">LSL Details</th>
                                     <th class="text-center">Days to Cancel</th>
                                     <th class="text-center">Status</th>
                                     <th>Reason</th>
@@ -120,6 +126,31 @@
                                                 {{ $cancellation->leaveRequest->end_date->format('d M Y') }}</small>
                                             <br><small class="text-muted">Total:
                                                 {{ $cancellation->leaveRequest->total_days }} days</small>
+                                        </td>
+                                        <td class="text-center">
+                                            @if ($cancellation->leaveRequest->isLSLFlexible())
+                                                @php
+                                                    $lslTakenDays = $cancellation->leaveRequest->lsl_taken_days ?? 0;
+                                                    $lslCashoutDays =
+                                                        $cancellation->leaveRequest->lsl_cashout_days ?? 0;
+                                                    $lslTotalDays = $cancellation->leaveRequest->getLSLTotalDays();
+                                                @endphp
+                                                <div class="lsl-info">
+                                                    <small class="text-primary">
+                                                        <i class="fas fa-calendar-check"></i> {{ $lslTakenDays }}d
+                                                    </small>
+                                                    @if ($lslCashoutDays > 0)
+                                                        <br><small class="text-warning">
+                                                            <i class="fas fa-money-bill-wave"></i> {{ $lslCashoutDays }}d
+                                                        </small>
+                                                    @endif
+                                                    <br><small class="text-success">
+                                                        <strong>Total: {{ $lslTotalDays }}d</strong>
+                                                    </small>
+                                                </div>
+                                            @else
+                                                <span class="text-muted">-</span>
+                                            @endif
                                         </td>
                                         <td class="text-center">
                                             <strong>{{ $cancellation->days_to_cancel }}</strong>
@@ -186,4 +217,23 @@
                 </div>
             </div>
         </section>
+    @endsection
+
+    @section('styles')
+        <!-- Select2 -->
+        <link rel="stylesheet" href="{{ asset('assets/plugins/select2/css/select2.min.css') }}">
+    @endsection
+
+    @section('scripts')
+        <!-- Select2 -->
+        <script src="{{ asset('assets/plugins/select2/js/select2.full.min.js') }}"></script>
+        <script>
+            $(document).ready(function() {
+                // Initialize Select2
+                $('.select2').select2({
+                    theme: 'bootstrap4',
+                    width: '100%'
+                });
+            });
+        </script>
     @endsection
