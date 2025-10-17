@@ -10,6 +10,248 @@
 **Purpose**: AI's persistent knowledge base for project context and learnings
 **Last Updated**: 2025-01-15
 
+### Reports Empty State and Filter Enhancement (2025-01-15)
+
+**Feature**: Implemented empty state display for all leave management reports and enhanced filter functionality.
+
+**Implementation**:
+
+-   All reports now display empty state by default
+-   Data only loads when filters are applied or "Show All" button is clicked
+-   Added "Show All" button to all reports for easy data access
+-   Updated Employee filter to show only active employees (is_active = 1)
+
+**Technical Details**:
+
+-   Controller methods return empty collections by default
+-   Data loading triggered by filter parameters or show_all parameter
+-   Employee queries use whereHas('administrations', function ($q) { $q->where('is_active', 1); })
+-   Consistent implementation across all report types
+
+**Benefits**:
+
+-   Faster initial page load performance
+-   Reduced unnecessary database queries
+-   Better user experience with clear call-to-action
+-   Improved data accuracy with active employee filter
+-   Consistent interface across all reports
+
+**Files Modified**:
+
+-   app/Http/Controllers/LeaveReportController.php (all report methods)
+-   resources/views/leave-reports/leave-monitoring.blade.php
+-   resources/views/leave-reports/leave-by-project.blade.php
+-   resources/views/leave-reports/leave-cancellation.blade.php
+-   resources/views/leave-reports/leave-entitlement-detailed.blade.php
+-   resources/views/leave-reports/leave-auto-conversion.blade.php
+
+**Documentation**: docs/REPORTS_EMPTY_STATE_AND_FILTERS.md
+
+## LSL Information Integration in Leave Management Reports (2025-01-15) ✅ COMPLETE
+
+**Feature**: Added Long Service Leave (LSL) information to all leave management reports for comprehensive tracking and analysis
+
+**Implementation Details**:
+
+-   **Leave Monitoring Report**: Added LSL Details column showing leave days, cash out days, and total LSL usage
+-   **Leave by Project Report**: Added LSL Stats column with aggregated LSL statistics per project
+-   **Leave Cancellation Report**: Added LSL Details column for cancelled LSL requests
+-   **Auto Conversion Report**: Added LSL Details column for auto-converting LSL requests
+-   **Excel Exports**: Updated all export functions to include LSL information columns
+
+**Technical Implementation**:
+
+**Controller Updates (LeaveReportController.php)**:
+
+```php
+// Added LSL information to monitoring export
+$lslInfo = '';
+if ($request->isLSLFlexible()) {
+    $lslTakenDays = $request->lsl_taken_days ?? 0;
+    $lslCashoutDays = $request->lsl_cashout_days ?? 0;
+    $lslTotalDays = $request->getLSLTotalDays();
+
+    $lslInfo = "Leave: {$lslTakenDays} days";
+    if ($lslCashoutDays > 0) {
+        $lslInfo .= ", Cash Out: {$lslCashoutDays} days";
+    }
+    $lslInfo .= " (Total: {$lslTotalDays} days)";
+}
+
+// Added LSL statistics to project reports
+$lslStats = [
+    'total_lsl_requests' => $lslRequests->count(),
+    'total_lsl_leave_days' => $lslRequests->sum('lsl_taken_days'),
+    'total_lsl_cashout_days' => $lslRequests->sum('lsl_cashout_days'),
+    'total_lsl_days' => $lslRequests->sum(function ($request) {
+        return $request->getLSLTotalDays();
+    })
+];
+```
+
+**View Updates**:
+
+```html
+<!-- LSL Details column in reports -->
+<td class="text-center">
+    @if ($request->isLSLFlexible())
+    <div class="lsl-info">
+        <small class="text-primary">
+            <i class="fas fa-calendar-check"></i> {{ $lslTakenDays }}d
+        </small>
+        @if ($lslCashoutDays > 0)
+        <br /><small class="text-warning">
+            <i class="fas fa-money-bill-wave"></i> {{ $lslCashoutDays }}d
+        </small>
+        @endif
+        <br /><small class="text-success">
+            <strong>Total: {{ $lslTotalDays }}d</strong>
+        </small>
+    </div>
+    @else
+    <span class="text-muted">-</span>
+    @endif
+</td>
+```
+
+**Excel Export Headings**:
+
+```php
+// Updated headings to include LSL information
+return [
+    'Employee Name',
+    'Leave Type',
+    'Start Date',
+    'End Date',
+    'Total Days',
+    'Effective Days',
+    'LSL Details',  // New column
+    'Status',
+    'Project',
+    'Requested At',
+    'Auto Conversion',
+    'Has Document'
+];
+```
+
+**Files Modified**:
+
+-   app/Http/Controllers/LeaveReportController.php (All report methods and exports)
+-   resources/views/reports/leave-monitoring.blade.php (Added LSL Details column)
+-   resources/views/reports/leave-by-project.blade.php (Added LSL Stats column)
+-   resources/views/reports/leave-cancellation.blade.php (Added LSL Details column)
+-   resources/views/reports/leave-auto-conversion.blade.php (Added LSL Details column)
+
+**Benefits**:
+
+-   **Comprehensive Tracking**: All LSL requests now visible in reports
+-   **Better Analytics**: LSL usage patterns can be analyzed across projects
+-   **Export Capability**: LSL data available in Excel exports for further analysis
+-   **Visual Clarity**: Color-coded icons distinguish between leave days and cash out
+-   **Consistent Display**: Uniform LSL information across all report types
+
+### Simplified LSL Details Display (2025-01-15) ✅ COMPLETE
+
+**Feature**: Streamlined Long Service Leave (LSL) Details display using only LSL Breakdown table as main information source
+
+**Implementation Details**:
+
+-   **LSL Breakdown Table**: Clean, focused table with icons, descriptions, and values for each LSL component
+-   **Simple Cash Out Note**: Minimal note when cash out is involved
+-   **Simplified Visual Design**: Removed complex cards and notes, focusing on essential information
+-   **Mobile Responsive**: Optimized layout for mobile devices with proper spacing
+
+**Technical Implementation**:
+
+```html
+<!-- LSL Breakdown Table -->
+<div class="lsl-breakdown-table">
+    <div class="lsl-table-header">
+        <h4><i class="fas fa-list-alt"></i> LSL Breakdown</h4>
+    </div>
+    <div class="lsl-table-content">
+        <div class="lsl-table-row">
+            <div class="lsl-table-cell">
+                <div class="lsl-cell-icon">
+                    <i class="fas fa-calendar-check"></i>
+                </div>
+                <div class="lsl-cell-content">
+                    <div class="lsl-cell-label">Leave Taken</div>
+                    <div class="lsl-cell-description">
+                        Days used as actual leave
+                    </div>
+                </div>
+            </div>
+            <div class="lsl-table-value">
+                <span class="lsl-value-number"
+                    >{{ $leaveRequest->lsl_taken_days ?? 0 }}</span
+                >
+                <span class="lsl-value-unit">days</span>
+            </div>
+        </div>
+        <!-- Similar structure for cashout and total rows -->
+    </div>
+</div>
+
+@if (($leaveRequest->lsl_cashout_days ?? 0) > 0)
+<div class="lsl-cashout-note">
+    <i class="fas fa-info-circle"></i>
+    This request includes {{ $leaveRequest->lsl_cashout_days }} day(s) of Long
+    Service Leave cash out.
+</div>
+@endif
+```
+
+**CSS Features**:
+
+-   Clean table design with gradient header
+-   Color-coded icons for different LSL types
+-   Hover effects for better interactivity
+-   Responsive design for mobile devices
+-   Simple cash out note styling
+
+**Files Modified**:
+
+-   resources/views/leave-requests/show.blade.php (HTML structure and CSS styles)
+
+**Benefits**:
+
+-   Cleaner, more focused information display
+-   Reduced visual clutter
+-   Faster loading and rendering
+-   Easier to scan and understand
+-   Maintains essential information while simplifying presentation
+
+### Years of Service Column Implementation (2025-01-15) ✅ COMPLETE
+
+**Feature**: Added "Years of Service" column to administration-pane.blade.php table
+
+**Implementation Details**:
+
+-   Added new column header "Years of Service" in English between DOH and Department columns
+-   Implemented calculation using Carbon::diffInYears() from DOH to current date
+-   Added proper singular/plural handling ("1 year" vs "5 years")
+-   Updated empty state colspan from 12 to 13 columns
+-   Column displays "-" when DOH is null/empty
+
+**Technical Implementation**:
+
+```php
+@if ($administration->doh)
+    @php
+        $doh = \Carbon\Carbon::parse($administration->doh);
+        $yearsOfService = $doh->diffInYears(\Carbon\Carbon::now());
+    @endphp
+    {{ $yearsOfService }} year{{ $yearsOfService != 1 ? 's' : '' }}
+@else
+    -
+@endif
+```
+
+**Files Modified**:
+
+-   resources/views/employee/components/administration-pane.blade.php
+
 ### Default Show View Template - OfficialTravel Style (2025-01-15) ✅ COMPLETE
 
 **Template**: Default show view template menggunakan style officialtravel yang konsisten untuk semua modul show.
@@ -2154,3 +2396,331 @@ Step 3: Order = 2 (Finance Manager) ← Can approve after Step 1 (parallel with 
 -   `app/Models/RecruitmentSession.php`
 -   `resources/views/recruitment/sessions/partials/modals.blade.php`
 -   `routes/web.php`
+
+---
+
+## 2025-01-15: Filter by Project untuk Leave by Project Report
+
+**Feature**: Menambahkan filter by Project pada Leave by Project Report
+
+**Implementation**:
+
+1. **Controller Updates**:
+
+    - Modified `byProject()` method to include project filter logic
+    - Added `project_id` parameter to conditional data loading
+    - Updated `exportByProject()` method to support project filtering
+    - Added projects data to view with `Project::where('project_status', 1)->get()`
+
+2. **View Updates**:
+
+    - Added Project dropdown filter to form layout
+    - Changed layout from 2 columns (col-md-4) to 3 columns (col-md-3)
+    - Updated Export Excel link to include project_id parameter
+    - Maintained existing filter functionality (Start Date, End Date)
+
+3. **Filter Logic**:
+    - Filter applied using `whereHas('administration', function ($q) use ($request) { $q->where('project_id', $request->project_id); })`
+    - Only loads data when filters are applied or show_all is requested
+    - Maintains empty state when no filters are applied
+
+**Technical Details**:
+
+-   **Filter Condition**: `$request->filled('project_id')` added to data loading condition
+-   **Query Filter**: Uses `whereHas('administration')` to filter by project through employee administration
+-   **Export Support**: Excel export includes project_id parameter for consistent filtering
+-   **UI Layout**: Responsive 3-column layout (Start Date, End Date, Project)
+
+**Testing Results**:
+
+✅ **Filter Functionality**:
+
+-   Project dropdown displays all active projects
+-   Filter by specific project works correctly
+-   URL parameters properly set (`?project_id=1`)
+-   Data filtered to show only selected project
+
+✅ **Data Display**:
+
+-   HO - Balikpapan project shows: 16 requests, 37 total days, 35 effective days, 2 cancelled days
+-   Utilization rate: 94.59%
+-   LSL Stats: - (no LSL data for this project)
+
+✅ **Export Integration**:
+
+-   Export Excel link includes project_id parameter
+-   Maintains filter consistency between view and export
+
+**Files Modified**:
+
+-   `app/Http/Controllers/LeaveReportController.php` - Added project filter logic
+-   `resources/views/leave-reports/leave-by-project.blade.php` - Added Project dropdown filter
+
+**Benefits**:
+
+-   Enhanced filtering capabilities for project-specific analysis
+-   Improved user experience with targeted project data
+-   Consistent filtering between view and export functionality
+-   Better performance by filtering data at database level
+
+---
+
+## 2025-01-15: Implementasi Select2 di Semua Report Views
+
+**Feature**: Menambahkan Select2 CSS dan JavaScript ke semua report views untuk meningkatkan UX dropdown
+
+**Implementation**:
+
+1. **CSS Integration**:
+
+    - Added Select2 CSS link to all report views in `@section('styles')`
+    - Link: `{{ asset('assets/plugins/select2/css/select2.min.css') }}`
+
+2. **JavaScript Integration**:
+
+    - Added Select2 JavaScript library to all report views in `@section('scripts')`
+    - Script: `{{ asset('assets/plugins/select2/js/select2.full.min.js') }}`
+    - Added initialization code with Bootstrap4 theme
+
+3. **Class Updates**:
+    - Added `select2` class to all `<select>` elements in report views
+    - Updated from `class="form-control"` to `class="form-control select2"`
+
+**Technical Details**:
+
+-   **Initialization Code**:
+
+    ```javascript
+    $(".select2").select2({
+        theme: "bootstrap4",
+        width: "100%",
+    });
+    ```
+
+-   **Report Views Updated**:
+
+    -   `leave-monitoring.blade.php` - 4 select elements (Status, Employee, Leave Type, Project)
+    -   `leave-by-project.blade.php` - 1 select element (Project)
+    -   `leave-cancellation.blade.php` - 2 select elements (Status, Employee)
+    -   `leave-entitlement-detailed.blade.php` - 3 select elements (Year, Employee, Leave Type)
+    -   `leave-auto-conversion.blade.php` - 2 select elements (Conversion Status, Employee)
+
+-   **Section Structure**:
+    -   Converted `@push('scripts')` to `@section('scripts')` in leave-by-project.blade.php
+    -   Added `@section('styles')` and `@section('scripts')` to all other report views
+
+**Testing Results**:
+
+✅ **Select2 Functionality**:
+
+-   Dropdown styling changed to Select2 combobox format
+-   Search functionality available in dropdowns
+-   Bootstrap4 theme applied consistently
+-   Responsive width (100%) maintained
+
+✅ **User Experience**:
+
+-   Enhanced dropdown appearance with Select2 styling
+-   Better search and filtering capabilities
+-   Consistent UI across all report views
+-   Improved accessibility with ARIA attributes
+
+✅ **Browser Testing**:
+
+-   Project dropdown in Leave by Project Report tested successfully
+-   Selection of "HO - Balikpapan" works perfectly
+-   Dropdown expands and collapses properly
+-   All options visible and selectable
+
+**Files Modified**:
+
+-   `resources/views/leave-reports/leave-monitoring.blade.php` - Added Select2 CSS/JS and classes
+-   `resources/views/leave-reports/leave-by-project.blade.php` - Added Select2 CSS/JS and classes
+-   `resources/views/leave-reports/leave-cancellation.blade.php` - Added Select2 CSS/JS and classes
+-   `resources/views/leave-reports/leave-entitlement-detailed.blade.php` - Added Select2 CSS/JS and classes
+-   `resources/views/leave-reports/leave-auto-conversion.blade.php` - Added Select2 CSS/JS and classes
+
+**Benefits**:
+
+-   Enhanced user experience with modern dropdown styling
+-   Improved search and filtering capabilities in dropdowns
+-   Consistent UI/UX across all report views
+-   Better accessibility and mobile responsiveness
+-   Professional appearance matching create.blade.php implementation
+
+---
+
+## 2025-01-15: Implementasi NIK di Semua Filter Employee
+
+**Feature**: Menambahkan NIK di semua filter employee dan mengurutkan berdasarkan NIK secara ascending
+
+**Implementation**:
+
+1. **Controller Updates**:
+
+    - Modified employee queries to sort by NIK from administrations table
+    - Updated query structure to handle NIK from related administrations table
+    - Added proper sorting using Laravel collections
+
+2. **View Updates**:
+    - Updated all employee dropdown options to display "NIK - Fullname" format
+    - Applied changes to all report views with employee filters
+    - Added fallback "N/A" for employees without NIK
+
+**Technical Details**:
+
+-   **Database Structure**:
+
+    -   NIK field is stored in `administrations` table, not `employees` table
+    -   Employee has one-to-many relationship with administrations
+    -   Query uses `with(['administrations'])` to load related data
+
+-   **Controller Query**:
+
+    ```php
+    $employees = Employee::whereHas('administrations', function ($q) {
+        $q->where('is_active', 1);
+    })->with(['administrations' => function ($query) {
+        $query->orderBy('nik', 'asc');
+    }])->get()->sortBy(function ($employee) {
+        return $employee->administrations->first()->nik ?? '';
+    });
+    ```
+
+-   **View Format**:
+    ```blade
+    {{ $employee->administrations->first()->nik ?? 'N/A' }} - {{ $employee->fullname }}
+    ```
+
+**Report Views Updated**:
+
+-   `leave-monitoring.blade.php` - Employee filter with NIK display
+-   `leave-cancellation.blade.php` - Employee filter with NIK display
+-   `leave-entitlement-detailed.blade.php` - Employee filter with NIK display
+-   `leave-auto-conversion.blade.php` - Employee filter with NIK display
+
+**Testing Results**:
+
+✅ **NIK Display**:
+
+-   All employee options show "NIK - Fullname" format
+-   Examples: "10001 - Yuwana", "10002 - A. Tutut Ratnawati", "13100 - Frizky Ramadhan"
+-   Fallback "N/A" works for employees without NIK
+
+✅ **Sorting**:
+
+-   Employees sorted by NIK in ascending order
+-   Order: 10001, 10002, 10004, 10022, 10139, 10177, 10186, etc.
+-   Consistent sorting across all report views
+
+✅ **User Experience**:
+
+-   Easy identification of employees by NIK
+-   Consistent format across all reports
+-   Better search and filtering capabilities with Select2
+
+**Files Modified**:
+
+-   `app/Http/Controllers/LeaveReportController.php` - Updated employee queries with NIK sorting
+-   `resources/views/leave-reports/leave-monitoring.blade.php` - Added NIK display
+-   `resources/views/leave-reports/leave-cancellation.blade.php` - Added NIK display
+-   `resources/views/leave-reports/leave-entitlement-detailed.blade.php` - Added NIK display
+-   `resources/views/leave-reports/leave-auto-conversion.blade.php` - Added NIK display
+
+**Benefits**:
+
+-   Improved employee identification with NIK display
+-   Better sorting and organization of employee lists
+-   Consistent user experience across all report views
+-   Enhanced search capabilities with Select2 integration
+-   Professional appearance matching HR system standards
+
+## Pagination Fix for Leave Reports
+
+### Feature Overview
+
+-   **Date**: 2025-10-16
+-   **Status**: Completed
+-   **Description**: Fixed pagination issues in leave management reports where pagination was not displaying properly when data exceeded 50 records.
+
+### Problem Identified
+
+-   **Issue**: Pagination was not appearing in reports even when data exceeded the 50-record limit
+-   **Root Cause**:
+    -   `entitlementDetailed` method was using `getCollection()->transform()` which caused pagination to break
+    -   `leave-auto-conversion.blade.php` was missing pagination links in the view
+    -   Some methods were not properly handling pagination with data transformation
+
+### Implementation Details
+
+-   **Controller Fixes**:
+    -   Fixed `entitlementDetailed` method to use `paginate(50)->through()` instead of `getCollection()->transform()`
+    -   Ensured all report methods properly use `paginate(50)` for consistent pagination
+-   **View Fixes**:
+    -   Added pagination links to `leave-entitlement-detailed.blade.php`
+    -   Added pagination links to `leave-auto-conversion.blade.php`
+    -   Verified existing pagination in `leave-monitoring.blade.php` and `leave-cancellation.blade.php`
+
+### Technical Details
+
+-   **Pagination Pattern**:
+
+    ```php
+    // Controller
+    $entitlements = $query->paginate(50)->through(function ($entitlement) {
+        // Data transformation logic
+    });
+
+    // View
+    @if($entitlements->hasPages())
+        <div class="card-footer">
+            {{ $entitlements->appends(request()->query())->links() }}
+        </div>
+    @endif
+    ```
+
+### Benefits
+
+-   **Proper Data Navigation**: Users can now navigate through large datasets efficiently
+-   **Performance Improvement**: Only loads 50 records per page instead of all data
+-   **Consistent User Experience**: All reports now have consistent pagination behavior
+-   **Better Resource Management**: Reduces server load and improves page load times
+
+## Method Refactoring for LeaveReportController
+
+### Feature Overview
+
+-   **Date**: 2025-10-16
+-   **Status**: Completed
+-   **Description**: Refactored the `entitlementDetailed` method in `LeaveReportController.php` to improve code quality, readability, and maintainability.
+
+### Problems Identified
+
+-   **Duplicate Code**: The method had duplicate transformation logic
+-   **Syntax Errors**: Missing closing brackets and malformed code structure
+-   **Inefficient Logic**: Complex manual collection manipulation instead of using Laravel's built-in methods
+-   **Poor Readability**: Inconsistent formatting and unclear code flow
+
+### Refactoring Changes
+
+-   **Simplified Data Transformation**: Used `paginate(50)->through()` instead of manual collection manipulation
+-   **Removed Duplicate Code**: Eliminated redundant transformation logic
+-   **Fixed Syntax Issues**: Corrected missing brackets and malformed code structure
+-   **Improved Code Organization**: Better separation of concerns with clear comments
+-   **Consistent Formatting**: Applied consistent code style and indentation
+
+### Technical Improvements
+
+-   **Before**: Complex manual collection manipulation with `setCollection()`
+-   **After**: Clean Laravel pagination with `through()` method
+-   **Performance**: More efficient data processing
+-   **Maintainability**: Easier to read and modify
+-   **Reliability**: Eliminated syntax errors and potential bugs
+
+### Code Quality Benefits
+
+-   **Cleaner Code**: Removed redundant and duplicate code
+-   **Better Performance**: More efficient data processing
+-   **Easier Maintenance**: Clearer code structure and flow
+-   **Reduced Bugs**: Fixed syntax errors and potential issues
+-   **Consistent Style**: Applied Laravel best practices

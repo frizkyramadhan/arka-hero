@@ -28,18 +28,32 @@
                 </div>
                 <div class="card-body">
                     <form method="GET" action="{{ route('leave.reports.by-project') }}" class="row" id="filterForm">
-                        <div class="col-md-4">
+                        <div class="col-md-3">
                             <div class="form-group">
                                 <label for="start_date">Start Date</label>
                                 <input type="date" name="start_date" id="start_date" class="form-control"
                                     value="{{ request('start_date') }}">
                             </div>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-3">
                             <div class="form-group">
                                 <label for="end_date">End Date</label>
                                 <input type="date" name="end_date" id="end_date" class="form-control"
                                     value="{{ request('end_date') }}">
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                <label for="project_id">Project</label>
+                                <select name="project_id" id="project_id" class="form-control select2">
+                                    <option value="">All Projects</option>
+                                    @foreach ($projects as $project)
+                                        <option value="{{ $project->id }}"
+                                            {{ request('project_id') == $project->id ? 'selected' : '' }}>
+                                            {{ $project->project_name }}
+                                        </option>
+                                    @endforeach
+                                </select>
                             </div>
                         </div>
                     </form>
@@ -48,10 +62,13 @@
                             <button type="submit" form="filterForm" class="btn btn-primary mr-2">
                                 <i class="fas fa-search"></i> Filter
                             </button>
+                            <a href="{{ route('leave.reports.by-project', ['show_all' => 1]) }}" class="btn btn-info mr-2">
+                                <i class="fas fa-list"></i> Show All
+                            </a>
                             <a href="{{ route('leave.reports.by-project') }}" class="btn btn-warning mr-2">
                                 <i class="fas fa-undo"></i> Reset
                             </a>
-                            <a href="{{ route('leave.reports.export', ['type' => 'by_project', 'start_date' => request('start_date'), 'end_date' => request('end_date')]) }}"
+                            <a href="{{ route('leave.reports.export', ['type' => 'by_project', 'start_date' => request('start_date'), 'end_date' => request('end_date'), 'project_id' => request('project_id')]) }}"
                                 class="btn btn-success">
                                 <i class="fas fa-file-excel"></i> Export Excel
                             </a>
@@ -68,6 +85,7 @@
                                     <th class="text-center">Total Days</th>
                                     <th class="text-center">Effective Days</th>
                                     <th class="text-center">Cancelled Days</th>
+                                    <th class="text-center">LSL Stats</th>
                                     <th class="text-center">Utilization Rate</th>
                                     <th class="text-center">Actions</th>
                                 </tr>
@@ -90,6 +108,29 @@
                                         <td class="text-center">
                                             @if ($project['cancelled_days'] > 0)
                                                 <span class="badge badge-warning">{{ $project['cancelled_days'] }}</span>
+                                            @else
+                                                <span class="text-muted">-</span>
+                                            @endif
+                                        </td>
+                                        <td class="text-center">
+                                            @if (isset($project['lsl_stats']) && $project['lsl_stats']['total_lsl_requests'] > 0)
+                                                <div class="lsl-stats">
+                                                    <small class="text-primary">
+                                                        <i class="fas fa-calendar-check"></i>
+                                                        {{ $project['lsl_stats']['total_lsl_leave_days'] }}d
+                                                    </small>
+                                                    @if ($project['lsl_stats']['total_lsl_cashout_days'] > 0)
+                                                        <br><small class="text-warning">
+                                                            <i class="fas fa-money-bill-wave"></i>
+                                                            {{ $project['lsl_stats']['total_lsl_cashout_days'] }}d
+                                                        </small>
+                                                    @endif
+                                                    <br><small class="text-success">
+                                                        <strong>{{ $project['lsl_stats']['total_lsl_requests'] }} req
+                                                            ({{ $project['lsl_stats']['total_lsl_days'] }}d)
+                                                        </strong>
+                                                    </small>
+                                                </div>
                                             @else
                                                 <span class="text-muted">-</span>
                                             @endif
@@ -142,7 +183,8 @@
                                                                 @foreach ($project['by_type'] as $typeName => $typeData)
                                                                     <tr>
                                                                         <td>
-                                                                            <i class="fas fa-level-up-alt fa-rotate-90"></i>
+                                                                            <i
+                                                                                class="fas fa-level-up-alt fa-rotate-90"></i>
                                                                             {{ $typeName }}
                                                                         </td>
                                                                         <td class="text-center">{{ $typeData['count'] }}
@@ -238,9 +280,22 @@
     </section>
 @endsection
 
-@push('scripts')
+@section('styles')
+    <!-- Select2 -->
+    <link rel="stylesheet" href="{{ asset('assets/plugins/select2/css/select2.min.css') }}">
+@endsection
+
+@section('scripts')
+    <!-- Select2 -->
+    <script src="{{ asset('assets/plugins/select2/js/select2.full.min.js') }}"></script>
     <script>
         $(document).ready(function() {
+            // Initialize Select2
+            $('.select2').select2({
+                theme: 'bootstrap4',
+                width: '100%'
+            });
+
             // Auto-submit form on date change
             $('input[name="start_date"], input[name="end_date"]').change(function() {
                 $(this).closest('form').submit();
@@ -252,4 +307,4 @@
             };
         });
     </script>
-@endpush
+@endsection

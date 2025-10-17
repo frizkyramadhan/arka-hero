@@ -137,10 +137,16 @@ class LeaveRequestController extends Controller
                 }
             }
 
+            // Add money icon for LSL flexible with cash out
+            $moneyIcon = '';
+            if ($request->isLSLFlexible() && ($request->lsl_cashout_days ?? 0) > 0) {
+                $moneyIcon = ' <span class="text-warning" title="Long Service Leave with cash out">💵</span>';
+            }
+
             return [
                 'DT_RowIndex' => $start + $index + 1,
                 'employee' => $request->employee->fullname ?? 'N/A',
-                'leave_type' => '<span class="badge badge-info">' . $leaveTypeName . '</span>' . $documentIcon,
+                'leave_type' => '<span class="badge badge-info">' . $leaveTypeName . '</span>' . $documentIcon . $moneyIcon,
                 'start_date' => $request->start_date->format('d/m/Y'),
                 'end_date' => $request->end_date->format('d/m/Y'),
                 'total_days' => $request->total_days . ' days',
@@ -213,10 +219,48 @@ class LeaveRequestController extends Controller
         // Add total_days validation
         $validationRules['total_days'] = 'required|integer|min:1|max:365';
 
+        // Add LSL flexible validation (only for LSL)
+        $isLSL = $leaveType && (
+            str_contains(strtolower($leaveType->name), 'long service') ||
+            str_contains(strtolower($leaveType->name), 'cuti panjang') ||
+            str_contains(strtolower($leaveType->category), 'lsl')
+        );
+
+        if ($isLSL) {
+            $validationRules['lsl_cashout_days'] = 'nullable|integer|min:0';
+            $validationRules['lsl_taken_days'] = 'nullable|integer|min:0';
+        }
+
         $request->validate($validationRules);
 
         // Get total days from request (either calculated or manually entered)
         $totalDays = $request->total_days;
+
+        // Handle LSL flexible calculation
+        $takenDays = $totalDays; // Default value
+        if ($isLSL) {
+            // Get taken days from manual input or use total_days as fallback
+            $takenDays = $request->lsl_taken_days ?? $totalDays;
+            $cashoutEnabled = $request->has('lsl_cashout_enabled'); // Check if checkbox is checked
+            $cashoutDays = $cashoutEnabled ? ($request->lsl_cashout_days ?? 0) : 0;
+            $totalDays = $takenDays + $cashoutDays;
+
+            // Validate LSL flexible business rules
+            if ($totalDays <= 0) {
+                return back()->with([
+                    'lsl_cashout_days' => 'Total days must be greater than 0.'
+                ])->withInput();
+            }
+
+            if ($cashoutDays > $totalDays) {
+                return back()->with([
+                    'lsl_cashout_days' => 'Cash out days cannot exceed total days.'
+                ])->withInput();
+            }
+
+            // Merge calculated total_days into request
+            $request->merge(['total_days' => $totalDays]);
+        }
 
         // Validate total days against remaining days
         $entitlement = LeaveEntitlement::where('employee_id', $request->employee_id)
@@ -276,8 +320,8 @@ class LeaveRequestController extends Controller
                 $reason = null;
             }
 
-            // Create leave request
-            $leaveRequest = LeaveRequest::create([
+            // Prepare data for leave request creation
+            $leaveRequestData = [
                 'employee_id' => $request->employee_id,
                 'administration_id' => $administration->id,
                 'leave_type_id' => $request->leave_type_id,
@@ -293,7 +337,16 @@ class LeaveRequestController extends Controller
                 'is_batch_request' => $isBatchRequest,
                 'batch_id' => $batchId,
                 'supporting_document' => $supportingDocumentPath
-            ]);
+            ];
+
+            // Add LSL flexible fields if this is LSL
+            if ($isLSL) {
+                $leaveRequestData['lsl_taken_days'] = $takenDays; // From manual input or calculated
+                $leaveRequestData['lsl_cashout_days'] = $cashoutEnabled ? ($request->lsl_cashout_days ?? 0) : 0;
+            }
+
+            // Create leave request
+            $leaveRequest = LeaveRequest::create($leaveRequestData);
 
             // Set auto conversion date for paid leave without supporting document
             $leaveRequest->setAutoConversionDate();
@@ -420,12 +473,47 @@ class LeaveRequestController extends Controller
             $validationRules['supporting_document'] = 'nullable|file|mimes:pdf,doc,docx,jpg,jpeg,png,rar,zip|max:2048';
         }
 
+        // Add LSL flexible validation (only for LSL)
+        $isLSL = $leaveType && (
+            str_contains(strtolower($leaveType->name), 'long service') ||
+            str_contains(strtolower($leaveType->name), 'cuti panjang') ||
+            str_contains(strtolower($leaveType->category), 'lsl')
+        );
+
+        if ($isLSL) {
+            $validationRules['lsl_cashout_days'] = 'nullable|integer|min:0';
+            $validationRules['lsl_taken_days'] = 'nullable|integer|min:0';
+        }
+
         $request->validate($validationRules);
 
-        // Validate total days against remaining days
+        // Handle LSL flexible calculation
         $employeeId = $request->employee_id;
         $leaveTypeId = $request->leave_type_id;
         $totalDays = $request->total_days;
+        $takenDays = $totalDays; // Default value
+        $cashoutDays = 0; // Default value
+
+        if ($isLSL) {
+            // Get taken days from manual input or use total_days as fallback
+            $takenDays = $request->lsl_taken_days ?? $totalDays;
+            $cashoutEnabled = $request->has('lsl_cashout_enabled'); // Check if checkbox is checked
+            $cashoutDays = $cashoutEnabled ? ($request->lsl_cashout_days ?? 0) : 0;
+            $totalDays = $takenDays + $cashoutDays;
+
+            // Validate LSL flexible business rules
+            if ($totalDays <= 0) {
+                return back()->with([
+                    'total_days' => 'Total days must be greater than 0.'
+                ])->withInput();
+            }
+
+            if ($cashoutDays > $totalDays) {
+                return back()->with([
+                    'lsl_cashout_days' => 'Cash out days cannot exceed total days.'
+                ])->withInput();
+            }
+        }
 
         $leaveEntitlement = LeaveEntitlement::where('employee_id', $employeeId)
             ->where('leave_type_id', $leaveTypeId)
@@ -460,7 +548,8 @@ class LeaveRequestController extends Controller
                 $reason = null;
             }
 
-            $leaveRequest->update([
+            // Prepare update data
+            $updateData = [
                 'employee_id' => $request->employee_id,
                 'leave_type_id' => $request->leave_type_id,
                 'start_date' => $request->start_date,
@@ -470,7 +559,19 @@ class LeaveRequestController extends Controller
                 'total_days' => $totalDays,
                 'leave_period' => $request->leave_period,
                 'supporting_document' => $supportingDocumentPath,
-            ]);
+            ];
+
+            // Add LSL flexible fields if it's LSL
+            if ($isLSL) {
+                $updateData['lsl_taken_days'] = $takenDays;
+                $updateData['lsl_cashout_days'] = $cashoutDays;
+            } else {
+                // Reset LSL fields for non-LSL leave types
+                $updateData['lsl_taken_days'] = 0;
+                $updateData['lsl_cashout_days'] = 0;
+            }
+
+            $leaveRequest->update($updateData);
 
             // Update auto conversion date based on leave type and document status
             $leaveRequest->updateAutoConversionDate($request->leave_type_id, (bool)$supportingDocumentPath);

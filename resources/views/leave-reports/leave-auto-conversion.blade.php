@@ -32,7 +32,7 @@
                         <div class="col-md-4">
                             <div class="form-group">
                                 <label for="conversion_status">Conversion Status</label>
-                                <select name="conversion_status" id="conversion_status" class="form-control">
+                                <select name="conversion_status" id="conversion_status" class="form-control select2">
                                     <option value="">All Status</option>
                                     <option value="overdue"
                                         {{ request('conversion_status') == 'overdue' ? 'selected' : '' }}>Overdue</option>
@@ -48,11 +48,12 @@
                         <div class="col-md-4">
                             <div class="form-group">
                                 <label for="employee_id">Employee</label>
-                                <select name="employee_id" id="employee_id" class="form-control">
+                                <select name="employee_id" id="employee_id" class="form-control select2">
                                     <option value="">All Employees</option>
                                     @foreach ($employees as $employee)
                                         <option value="{{ $employee->id }}"
                                             {{ request('employee_id') == $employee->id ? 'selected' : '' }}>
+                                            {{ $employee->administrations->first()->nik ?? 'N/A' }} -
                                             {{ $employee->fullname }}
                                         </option>
                                     @endforeach
@@ -65,6 +66,10 @@
                             <button type="submit" form="filterForm" class="btn btn-primary mr-2">
                                 <i class="fas fa-search"></i> Filter
                             </button>
+                            <a href="{{ route('leave.reports.auto-conversion', ['show_all' => 1]) }}"
+                                class="btn btn-info mr-2">
+                                <i class="fas fa-list"></i> Show All
+                            </a>
                             <a href="{{ route('leave.reports.auto-conversion') }}" class="btn btn-warning mr-2">
                                 <i class="fas fa-undo"></i> Reset
                             </a>
@@ -80,6 +85,7 @@
                                     <th>Leave Type</th>
                                     <th>Leave Period</th>
                                     <th class="text-center">Days</th>
+                                    <th class="text-center">LSL Details</th>
                                     <th>Project</th>
                                     <th>Auto Conversion Date</th>
                                     <th class="text-center">Status</th>
@@ -103,6 +109,18 @@
                                         </td>
                                         <td class="text-center">
                                             <strong>{{ $conversion['total_days'] }}</strong>
+                                        </td>
+                                        <td class="text-center">
+                                            @if (!empty($conversion['lsl_details']) && $conversion['lsl_details'] !== '-')
+                                                <div class="lsl-info">
+                                                    <small class="text-primary">
+                                                        <i class="fas fa-calendar-check"></i>
+                                                        {{ $conversion['lsl_details'] }}
+                                                    </small>
+                                                </div>
+                                            @else
+                                                <span class="text-muted">-</span>
+                                            @endif
                                         </td>
                                         <td>
                                             {{ $conversion['project_name'] }}
@@ -156,13 +174,18 @@
                                     </tr>
                                     @empty
                                         <tr>
-                                            <td colspan="9" class="text-center">No auto conversion requests found</td>
+                                            <td colspan="10" class="text-center">No auto conversion requests found</td>
                                         </tr>
                                     @endforelse
                                 </tbody>
                             </table>
                         </div>
                     </div>
+                    @if ($autoConversions->hasPages())
+                        <div class="card-footer">
+                            {{ $autoConversions->appends(request()->query())->links() }}
+                        </div>
+                    @endif
                 </div>
 
                 @if (count($autoConversions) > 0)
@@ -199,7 +222,8 @@
                                     </ul>
                                     <h6><strong>Action Required:</strong></h6>
                                     <ul class="list-unstyled">
-                                        <li><i class="fas fa-exclamation-triangle text-danger"></i> Follow up with employees for
+                                        <li><i class="fas fa-exclamation-triangle text-danger"></i> Follow up with employees
+                                            for
                                             overdue conversions</li>
                                         <li><i class="fas fa-clock text-warning"></i> Send reminders for due soon conversions
                                         </li>
@@ -213,4 +237,23 @@
                 @endif
             </div>
         </section>
+    @endsection
+
+    @section('styles')
+        <!-- Select2 -->
+        <link rel="stylesheet" href="{{ asset('assets/plugins/select2/css/select2.min.css') }}">
+    @endsection
+
+    @section('scripts')
+        <!-- Select2 -->
+        <script src="{{ asset('assets/plugins/select2/js/select2.full.min.js') }}"></script>
+        <script>
+            $(document).ready(function() {
+                // Initialize Select2
+                $('.select2').select2({
+                    theme: 'bootstrap4',
+                    width: '100%'
+                });
+            });
+        </script>
     @endsection

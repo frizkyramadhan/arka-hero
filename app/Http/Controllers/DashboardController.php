@@ -815,6 +815,42 @@ class DashboardController extends Controller
             ->limit(10)
             ->get();
 
+        // Employees without entitlements
+        $employeesWithoutEntitlements = Employee::with(['administrations' => function ($query) {
+            $query->where('is_active', '1')
+                ->with(['position.department']);
+        }])
+            ->whereHas('administrations', function ($query) {
+                $query->where('is_active', '1');
+            })
+            ->whereDoesntHave('leaveEntitlements')
+            ->orderBy('fullname', 'asc')
+            ->limit(10)
+            ->get();
+
+        // Employees with entitlements expiring soon (within 30 days)
+        $employeesWithExpiringEntitlements = Employee::with([
+            'administrations' => function ($query) {
+                $query->where('is_active', '1')
+                    ->with(['position.department']);
+            },
+            'leaveEntitlements' => function ($query) {
+                $query->with('leaveType')
+                    ->where('period_end', '<=', now()->addDays(30))
+                    ->where('remaining_days', '>', 0);
+            }
+        ])
+            ->whereHas('administrations', function ($query) {
+                $query->where('is_active', '1');
+            })
+            ->whereHas('leaveEntitlements', function ($query) {
+                $query->where('period_end', '<=', now()->addDays(30))
+                    ->where('remaining_days', '>', 0);
+            })
+            ->orderBy('fullname', 'asc')
+            ->limit(10)
+            ->get();
+
         // Recent Activity
         $recentLeaveRequests = LeaveRequest::with(['employee', 'leaveType', 'requestedBy'])
             ->orderBy('created_at', 'desc')
@@ -840,6 +876,8 @@ class DashboardController extends Controller
             'usedEntitlements',
             'remainingEntitlements',
             'expiringEntitlements',
+            'employeesWithoutEntitlements',
+            'employeesWithExpiringEntitlements',
             'recentLeaveRequests'
         ));
     }
@@ -1032,6 +1070,10 @@ class DashboardController extends Controller
             ->addColumn('days_remaining', function ($row) {
                 if ($row->auto_conversion_at) {
                     $days = now()->diffInDays($row->auto_conversion_at, false);
+                    // If auto_conversion_at is in the past, show 0 days remaining
+                    if ($days < 0) {
+                        $days = 0;
+                    }
                     $badgeClass = $days <= 3 ? 'badge-danger' : ($days <= 7 ? 'badge-warning' : 'badge-info');
                     return '<span class="badge ' . $badgeClass . '">' . $days . ' days</span>';
                 }
@@ -1048,9 +1090,6 @@ class DashboardController extends Controller
                 $btn = '<a href="' . route('leave.requests.show', $row->id) . '" class="btn btn-xs btn-info mr-1">
                             <i class="fas fa-eye"></i>
                         </a>';
-                $btn .= '<button class="btn btn-xs btn-warning" onclick="sendReminder(\'' . $row->id . '\')">
-                            <i class="fas fa-bell"></i>
-                        </button>';
                 return $btn;
             })
             ->rawColumns(['days_remaining', 'status_badge', 'action'])
@@ -1141,6 +1180,141 @@ class DashboardController extends Controller
         }
 
         return response()->json($results);
+    }
+
+    /**
+     * Get employees without entitlements data for DataTable.
+     *
+     * @return \Illuminate\Http\Response
+     */
+    public function employeesWithoutEntitlements()
+    {
+        $query = Employee::with(['administrations' => function ($query) {
+            $query->where('is_active', '1')
+                ->with(['position.department']);
+        }])
+            ->whereHas('administrations', function ($query) {
+                $query->where('is_active', '1');
+            })
+            ->whereDoesntHave('leaveEntitlements')
+            ->orderBy('fullname', 'asc');
+
+        return DataTables::of($query)
+            ->addIndexColumn()
+            ->addColumn('employee_name', function ($row) {
+                return $row->fullname ?? 'N/A';
+            })
+            ->addColumn('employee_nik', function ($row) {
+                $administration = $row->administrations->where('is_active', '1')->first();
+                return $administration->nik ?? 'N/A';
+            })
+            ->addColumn('doh', function ($row) {
+                $administration = $row->administrations->where('is_active', '1')->first();
+                return $administration->doh ? $administration->doh->format('d M Y') : 'N/A';
+            })
+            ->addColumn('position', function ($row) {
+                $administration = $row->administrations->where('is_active', '1')->first();
+                return $administration->position->position_name ?? 'N/A';
+            })
+            ->addColumn('department', function ($row) {
+                $administration = $row->administrations->where('is_active', '1')->first();
+                return $administration->position->department->department_name ?? 'N/A';
+            })
+            ->addColumn('action', function ($row) {
+                $btn = '<a href="' . route('leave.entitlements.employee.show', $row->id) . '" class="btn btn-xs btn-info">
+                            <i class="fas fa-eye"></i></a>';
+                return $btn;
+            })
+            ->rawColumns(['action'])
+            ->make(true);
+    }
+
+    /**
+     * Get employees with expiring entitlements data for DataTable.
+     *
+     * @return \Illuminate\Http\Response
+     */
+    public function employeesWithExpiringEntitlements()
+    {
+        $query = Employee::with([
+            'administrations' => function ($query) {
+                $query->where('is_active', '1')
+                    ->with(['position.department']);
+            },
+            'leaveEntitlements' => function ($query) {
+                $query->with('leaveType')
+                    ->where('period_end', '<=', now()->addDays(30))
+                    ->where('remaining_days', '>', 0);
+            }
+        ])
+            ->whereHas('administrations', function ($query) {
+                $query->where('is_active', '1');
+            })
+            ->whereHas('leaveEntitlements', function ($query) {
+                // Include both expiring and expired entitlements
+                $query->where('period_end', '<=', now()->addDays(30));
+            })
+            ->orderBy('fullname', 'asc');
+
+        return DataTables::of($query)
+            ->addIndexColumn()
+            ->addColumn('employee_name', function ($row) {
+                return $row->fullname ?? 'N/A';
+            })
+            ->addColumn('employee_nik', function ($row) {
+                $administration = $row->administrations->where('is_active', '1')->first();
+                return $administration->nik ?? 'N/A';
+            })
+            ->addColumn('expires', function ($row) {
+                $entitlements = $row->leaveEntitlements;
+                if ($entitlements->isEmpty()) {
+                    return 'N/A';
+                }
+
+                // Ambil entitlement yang paling cepat habis (period_end terdekat)
+                $nearestExpiry = $entitlements->sortBy('period_end')->first();
+                $daysUntilExpiry = now()->diffInDays($nearestExpiry->period_end, false);
+
+                // Tentukan badge class berdasarkan status
+                if ($daysUntilExpiry < 0) {
+                    // Sudah lewat
+                    $badgeClass = 'badge-dark';
+                    $statusText = 'EXPIRED';
+                    $daysText = abs($daysUntilExpiry) . ' days ago';
+                } elseif ($daysUntilExpiry == 0) {
+                    // Hari ini habis
+                    $badgeClass = 'badge-danger';
+                    $statusText = 'EXPIRES TODAY';
+                    $daysText = '0 days';
+                } elseif ($daysUntilExpiry <= 7) {
+                    // Akan habis dalam 7 hari
+                    $badgeClass = 'badge-danger';
+                    $statusText = 'EXPIRES SOON';
+                    $daysText = $daysUntilExpiry . ' days';
+                } elseif ($daysUntilExpiry <= 15) {
+                    // Akan habis dalam 15 hari
+                    $badgeClass = 'badge-warning';
+                    $statusText = 'EXPIRES SOON';
+                    $daysText = $daysUntilExpiry . ' days';
+                } else {
+                    // Masih lama
+                    $badgeClass = 'badge-info';
+                    $statusText = 'EXPIRES';
+                    $daysText = $daysUntilExpiry . ' days';
+                }
+
+                return '<span class="badge ' . $badgeClass . '">' .
+                    $nearestExpiry->period_end->format('d M Y') .
+                    '<br><small>' . $statusText . '</small>' .
+                    '<br><small>(' . $daysText . ')</small></span>';
+            })
+            ->addColumn('action', function ($row) {
+                $btn = '<a href="' . route('leave.entitlements.employee.show', $row->id) . '" class="btn btn-xs btn-info">
+                            <i class="fas fa-eye"></i></a>';
+                return $btn;
+            })
+            ->rawColumns(['expires', 'action'])
+            ->make(true);
     }
 
     /**

@@ -36,6 +36,7 @@
                     <th class="text-center">NIK</th>
                     <th>POH</th>
                     <th>DOH</th>
+                    <th class="text-center">Years of Service</th>
                     <th>Department</th>
                     <th>Position</th>
                     <th>Grade</th>
@@ -65,6 +66,17 @@
                         <td>{{ $administration->poh }}</td>
                         <td>{{ $administration->doh ? date('d M Y', strtotime($administration->doh)) : '-' }}
                         </td>
+                        <td class="text-center">
+                            @if ($administration->doh)
+                                @php
+                                    $doh = \Carbon\Carbon::parse($administration->doh);
+                                    $yearsOfService = $doh->diffInYears(\Carbon\Carbon::now());
+                                @endphp
+                                {{ $yearsOfService }} year{{ $yearsOfService != 1 ? 's' : '' }}
+                            @else
+                                -
+                            @endif
+                        </td>
                         <td>{{ $administration->department_name }}</td>
                         <td>{{ $administration->position_name }}</td>
                         <td>{{ $administration->grade_name }}</td>
@@ -89,7 +101,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="12">
+                        <td colspan="13">
                             <div class="empty-state">
                                 <i class="fas fa-exclamation-circle"></i>
                                 <h6>No Data Available</h6>
