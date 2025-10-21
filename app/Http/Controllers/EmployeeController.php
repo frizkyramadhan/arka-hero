@@ -964,7 +964,7 @@ class EmployeeController extends Controller
                 session()->forget('skipped_sheets');
             }
 
-            return redirect('employees')->with('toast_success', $message);
+            return redirect('/employees')->with('toast_success', $message);
         } catch (ValidationException $e) {
             $failures = collect();
             $sheetName = 'Unknown';

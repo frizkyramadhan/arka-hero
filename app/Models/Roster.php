@@ -12,7 +12,6 @@ class Roster extends Model
     protected $fillable = [
         'employee_id',
         'administration_id',
-        'roster_template_id',
         'start_date',
         'end_date',
         'cycle_no',
@@ -37,10 +36,7 @@ class Roster extends Model
         return $this->belongsTo(Administration::class);
     }
 
-    public function rosterTemplate()
-    {
-        return $this->belongsTo(RosterTemplate::class);
-    }
+    // Removed rosterTemplate relationship - now using level directly
 
     public function rosterAdjustments()
     {
@@ -52,11 +48,35 @@ class Roster extends Model
         return $this->hasMany(RosterHistory::class);
     }
 
-    // Business Logic Methods
+    public function dailyStatuses()
+    {
+        return $this->hasMany(RosterDailyStatus::class);
+    }
+
+    // Business Logic Methods - Updated to use level directly
+    public function getWorkDays()
+    {
+        return $this->administration->level->getWorkDays() ?? 0;
+    }
+
+    public function getOffDays()
+    {
+        return $this->administration->level->getOffDays() ?? 14;
+    }
+
+    public function getCycleLength()
+    {
+        return $this->administration->level->getCycleLength() ?? 0;
+    }
+
+    public function getRosterPattern()
+    {
+        return $this->administration->level->getRosterPattern();
+    }
+
     public function calculateActualWorkDays()
     {
-        $template = $this->rosterTemplate;
-        $baseWorkDays = $template->work_days;
+        $baseWorkDays = $this->getWorkDays();
 
         // Apply adjustments from leave requests
         $adjustments = $this->rosterAdjustments()
@@ -68,15 +88,7 @@ class Roster extends Model
 
     public function calculateActualOffDays()
     {
-        $template = $this->rosterTemplate;
-        $baseOffDays = $template->off_days_local; // Assuming local for now
-
-        // Apply adjustments from leave requests
-        $adjustments = $this->rosterAdjustments()
-            ->where('adjustment_type', '+days')
-            ->sum('adjusted_value');
-
-        return $baseOffDays + $adjustments;
+        return $this->getOffDays();
     }
 
     public function getTotalCycleDays()
@@ -127,5 +139,41 @@ class Roster extends Model
             'off_days_actual' => $this->calculateActualOffDays(),
             'remarks' => 'Cycle completed'
         ]);
+    }
+
+    // New methods for daily status management
+    public function getStatusForDate($date)
+    {
+        return $this->dailyStatuses()
+            ->where('date', $date)
+            ->first();
+    }
+
+    public function setStatusForDate($date, $statusCode, $notes = null)
+    {
+        return RosterDailyStatus::updateOrCreate(
+            [
+                'roster_id' => $this->id,
+                'date' => $date
+            ],
+            [
+                'status_code' => $statusCode,
+                'notes' => $notes
+            ]
+        );
+    }
+
+    public function getStatusForMonth($year, $month)
+    {
+        $startDate = \Carbon\Carbon::create($year, $month, 1);
+        $endDate = $startDate->copy()->endOfMonth();
+
+        return $this->dailyStatuses()
+            ->whereBetween('date', [$startDate, $endDate])
+            ->orderBy('date')
+            ->get()
+            ->keyBy(function ($status) {
+                return $status->date->day;
+            });
     }
 }

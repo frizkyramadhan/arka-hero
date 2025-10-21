@@ -282,11 +282,11 @@ class PersonalImport implements ToModel, WithHeadingRow, WithMultipleSheets, Wit
 
     public function chunkSize(): int
     {
-        return 500;
+        return 50;
     }
 
     public function batchSize(): int
     {
-        return 500;
+        return 50;
     }
 }

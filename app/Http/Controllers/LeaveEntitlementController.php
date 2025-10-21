@@ -1117,20 +1117,10 @@ class LeaveEntitlementController extends Controller
      */
     private function calculatePeriodicDays($levelName)
     {
-        $rosterPatterns = [
-            'Project Manager' => 14, // 6/2 pattern = 2 weeks = 14 days
-            'PM' => 14,
-            'Superintendent' => 14, // 6/2 pattern
-            'SPT' => 14,
-            'Supervisor' => 14, // 8/2 pattern = 2 weeks = 14 days
-            'SPV' => 14,
-            'Foreman/Officer' => 14, // 9/2 pattern = 2 weeks = 14 days
-            'FM' => 14,
-            'Non Staff-Non Skill' => 14, // 10/2 pattern = 2 weeks = 14 days
-            'NS' => 14
-        ];
+        $level = \App\Models\Level::where('name', $levelName)->first();
 
-        return $rosterPatterns[$levelName] ?? 14;
+        // Jika level punya work_days, berarti bisa pakai roster
+        return $level && $level->hasRosterConfig() ? $level->getOffDays() : 0;
     }
 
     /**

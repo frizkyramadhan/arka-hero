@@ -217,11 +217,11 @@ class BankImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnFail
 
     public function chunkSize(): int
     {
-        return 500;
+        return 50;
     }
 
     public function batchSize(): int
     {
-        return 500;
+        return 50;
     }
 }

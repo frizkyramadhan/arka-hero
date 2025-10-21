@@ -270,11 +270,11 @@ class TaxImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnFailu
 
     public function chunkSize(): int
     {
-        return 500;
+        return 50;
     }
 
     public function batchSize(): int
     {
-        return 500;
+        return 50;
     }
 }
