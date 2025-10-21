@@ -1,6 +1,7 @@
 <button class="btn btn-icon btn-primary me-1" data-toggle="modal" data-target="#edit-level-modal"
     data-id="{{ $id }}" data-name="{{ $model->name }}" data-order="{{ $model->level_order }}"
-    data-status="{{ $model->is_active }}">
+    data-status="{{ $model->is_active }}" data-off-days="{{ $model->off_days }}" data-work-days="{{ $model->work_days }}"
+    data-cycle-length="{{ $model->cycle_length }}">
     <i class="fas fa-pen-square"></i>
 </button>
 

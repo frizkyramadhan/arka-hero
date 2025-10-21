@@ -212,11 +212,11 @@ class EducationImport implements ToModel, WithHeadingRow, WithValidation, SkipsO
 
     public function chunkSize(): int
     {
-        return 500;
+        return 50;
     }
 
     public function batchSize(): int
     {
-        return 500;
+        return 50;
     }
 }

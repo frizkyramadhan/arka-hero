@@ -205,14 +205,15 @@
                                 <span>&times;</span>
                             </button>
                         </div>
-                        <form action="{{ route('employees.import') }}" method="POST" enctype="multipart/form-data">
+                        <form class="form-horizontal" action="{{ url('employees/import') }}" method="POST"
+                            enctype="multipart/form-data">
                             @csrf
                             <div class="modal-body">
                                 <div class="form-group">
                                     <label>Choose Excel File</label>
                                     <div class="custom-file">
-                                        <input type="file" class="custom-file-input" id="import_file"
-                                            name="import_file" accept=".xlsx,.xls">
+                                        <input type="file" class="custom-file-input" id="import_file" name="employee"
+                                            accept=".xlsx,.xls">
                                         <label class="custom-file-label" for="import_file">Choose file...</label>
                                     </div>
                                     <small class="text-muted">Only Excel files (.xlsx, .xls) are allowed</small>

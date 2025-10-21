@@ -212,11 +212,11 @@ class EmergencycallImport implements ToModel, WithHeadingRow, WithValidation, Sk
 
     public function chunkSize(): int
     {
-        return 500;
+        return 50;
     }
 
     public function batchSize(): int
     {
-        return 500;
+        return 50;
     }
 }

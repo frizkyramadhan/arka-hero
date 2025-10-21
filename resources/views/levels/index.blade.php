@@ -39,9 +39,10 @@
                                     <thead>
                                         <tr>
                                             <th class="text-center">No</th>
-                                            <th width="30%">Name</th>
-                                            <th class="text-center" width="15%">Order</th>
-                                            <th class="text-center" width="15%">Status</th>
+                                            <th width="25%">Name</th>
+                                            <th class="text-center" width="12%">Order</th>
+                                            <th class="text-center" width="15%">Roster Config</th>
+                                            <th class="text-center" width="12%">Status</th>
                                             <th class="text-center" width="15%">Action</th>
                                         </tr>
                                     </thead>
@@ -78,8 +79,36 @@
                                     min="1" required>
                                 <small class="form-text text-muted">1 = Lowest, Higher number = Higher hierarchy</small>
                             </div>
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label for="off_days">Off Days</label>
+                                        <input type="number" name="off_days" class="form-control" id="off_days"
+                                            min="0" max="30">
+                                        <small class="form-text text-muted">Days off per cycle (default: 14)</small>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label for="work_days">Work Days</label>
+                                        <input type="number" name="work_days" class="form-control" id="work_days"
+                                            min="0" max="100">
+                                        <small class="form-text text-muted">Days work per cycle (leave empty for
+                                            non-roster)</small>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label for="cycle_length">Cycle Length</label>
+                                        <input type="number" name="cycle_length" class="form-control" id="cycle_length"
+                                            min="0" max="150">
+                                        <small class="form-text text-muted">Total cycle days (auto-calculated)</small>
+                                    </div>
+                                </div>
+                            </div>
                             <div class="form-check">
-                                <input type="checkbox" name="is_active" class="form-check-input" id="is_active_add" checked>
+                                <input type="checkbox" name="is_active" class="form-check-input" id="is_active_add"
+                                    checked>
                                 <label class="form-check-label" for="is_active_add">Active</label>
                             </div>
                         </div>
@@ -115,6 +144,33 @@
                                 <input type="number" name="level_order" class="form-control" id="level_order_edit"
                                     min="1" required>
                                 <small class="form-text text-muted">1 = Lowest, Higher number = Higher hierarchy</small>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label for="off_days_edit">Off Days</label>
+                                        <input type="number" name="off_days" class="form-control" id="off_days_edit"
+                                            min="0" max="30">
+                                        <small class="form-text text-muted">Days off per cycle (default: 14)</small>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label for="work_days_edit">Work Days</label>
+                                        <input type="number" name="work_days" class="form-control" id="work_days_edit"
+                                            min="0" max="100">
+                                        <small class="form-text text-muted">Days work per cycle (leave empty for
+                                            non-roster)</small>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label for="cycle_length_edit">Cycle Length</label>
+                                        <input type="number" name="cycle_length" class="form-control"
+                                            id="cycle_length_edit" min="0" max="150">
+                                        <small class="form-text text-muted">Total cycle days (auto-calculated)</small>
+                                    </div>
+                                </div>
                             </div>
                             <div class="form-check">
                                 <input type="checkbox" name="is_active" class="form-check-input" id="is_active_edit">
@@ -189,6 +245,11 @@
                         className: "text-center"
                     },
                     {
+                        data: "roster_config",
+                        name: "roster_config",
+                        className: "text-center"
+                    },
+                    {
                         data: "is_active",
                         name: "is_active",
                         className: "text-center"
@@ -212,10 +273,16 @@
                 var levelName = button.data('name');
                 var levelOrder = button.data('order');
                 var levelStatus = button.data('status');
+                var offDays = button.data('off-days') || '';
+                var workDays = button.data('work-days') || '';
+                var cycleLength = button.data('cycle-length') || '';
 
                 var modal = $(this);
                 modal.find('#name_edit').val(levelName);
                 modal.find('#level_order_edit').val(levelOrder);
+                modal.find('#off_days_edit').val(offDays);
+                modal.find('#work_days_edit').val(workDays);
+                modal.find('#cycle_length_edit').val(cycleLength);
                 if (levelStatus == 1) {
                     modal.find('#is_active_edit').prop('checked', true);
                 } else {
@@ -245,6 +312,24 @@
                     });
                 }
             });
+
+            // Auto calculate cycle length
+            function calculateCycleLength() {
+                var offDays = parseInt($('#off_days').val()) || 0;
+                var workDays = parseInt($('#work_days').val()) || 0;
+                var cycleLength = offDays + workDays;
+                $('#cycle_length').val(cycleLength > 0 ? cycleLength : '');
+            }
+
+            function calculateCycleLengthEdit() {
+                var offDays = parseInt($('#off_days_edit').val()) || 0;
+                var workDays = parseInt($('#work_days_edit').val()) || 0;
+                var cycleLength = offDays + workDays;
+                $('#cycle_length_edit').val(cycleLength > 0 ? cycleLength : '');
+            }
+
+            $('#off_days, #work_days').on('input', calculateCycleLength);
+            $('#off_days_edit, #work_days_edit').on('input', calculateCycleLengthEdit);
         });
     </script>
 @endsection

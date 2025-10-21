@@ -31,6 +31,13 @@ class LevelController extends Controller
             ->addColumn('level_order', function ($level) {
                 return '<span class="badge badge-info">' . $level->level_order . '</span>';
             })
+            ->addColumn('roster_config', function ($level) {
+                if ($level->hasRosterConfig()) {
+                    return '<span class="badge badge-info">' . $level->getRosterPattern() . '</span>';
+                } else {
+                    return '<span class="badge badge-secondary">No Roster</span>';
+                }
+            })
             ->addColumn('is_active', function ($level) {
                 if ($level->is_active) {
                     return '<span class="badge badge-success">Active</span>';
@@ -47,7 +54,7 @@ class LevelController extends Controller
                 }
             })
             ->addColumn('action', 'levels.action')
-            ->rawColumns(['is_active', 'level_order', 'action'])
+            ->rawColumns(['is_active', 'level_order', 'roster_config', 'action'])
             ->toJson();
     }
 
@@ -74,12 +81,18 @@ class LevelController extends Controller
         $request->validate([
             'name' => 'required|unique:levels,name',
             'level_order' => 'required|integer|min:1|unique:levels,level_order',
+            'off_days' => 'nullable|integer|min:0|max:30',
+            'work_days' => 'nullable|integer|min:0|max:100',
+            'cycle_length' => 'nullable|integer|min:0|max:150',
         ]);
 
         Level::create([
             'name' => $request->name,
             'level_order' => $request->level_order,
             'is_active' => $request->has('is_active'),
+            'off_days' => $request->off_days,
+            'work_days' => $request->work_days,
+            'cycle_length' => $request->cycle_length,
         ]);
 
         return redirect()->route('levels.index')->with('toast_success', 'Level added successfully!');
@@ -121,12 +134,18 @@ class LevelController extends Controller
         $request->validate([
             'name' => 'required|unique:levels,name,' . $level->id,
             'level_order' => 'required|integer|min:1|unique:levels,level_order,' . $level->id,
+            'off_days' => 'nullable|integer|min:0|max:30',
+            'work_days' => 'nullable|integer|min:0|max:100',
+            'cycle_length' => 'nullable|integer|min:0|max:150',
         ]);
 
         $level->update([
             'name' => $request->name,
             'level_order' => $request->level_order,
             'is_active' => $request->has('is_active'),
+            'off_days' => $request->off_days,
+            'work_days' => $request->work_days,
+            'cycle_length' => $request->cycle_length,
         ]);
 
         return redirect()->route('levels.index')->with('toast_success', 'Level updated successfully');

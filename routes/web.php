@@ -10,6 +10,7 @@ use App\Http\Controllers\EmailController;
 use App\Http\Controllers\GradeController;
 use App\Http\Controllers\LevelController;
 use App\Http\Controllers\CourseController;
+use App\Http\Controllers\RosterController;
 use App\Http\Controllers\FamilieController;
 use App\Http\Controllers\LicenseController;
 use App\Http\Controllers\ProfileController;
@@ -24,14 +25,14 @@ use App\Http\Controllers\EducationController;
 use App\Http\Controllers\InsuranceController;
 use App\Http\Controllers\LeaveTypeController;
 use App\Http\Controllers\PHPMailerController;
-use App\Http\Controllers\DepartmentController;
 
-use App\Http\Controllers\PermissionController;
+use App\Http\Controllers\DepartmentController;
 // Removed import for deleted controller
+use App\Http\Controllers\PermissionController;
 use App\Http\Controllers\LeaveReportController;
 use App\Http\Controllers\TerminationController;
-use App\Http\Controllers\ApprovalPlanController;
 
+use App\Http\Controllers\ApprovalPlanController;
 use App\Http\Controllers\EmployeebankController;
 use App\Http\Controllers\EmployeeBondController;
 use App\Http\Controllers\LeaveRequestController;
@@ -40,20 +41,20 @@ use App\Http\Controllers\OperableunitController;
 use App\Http\Controllers\AccommodationController;
 use App\Http\Controllers\ApprovalStageController;
 use App\Http\Controllers\BondViolationController;
+
+// Removed import for deleted controller
 use App\Http\Controllers\JobexperienceController;
 
-// Removed import for deleted controller
 use App\Http\Controllers\LetterSubjectController;
-
 use App\Http\Controllers\AdditionaldataController;
+// Removed import for deleted controller
 use App\Http\Controllers\AdministrationController;
 use App\Http\Controllers\LetterCategoryController;
-use App\Http\Controllers\OfficialtravelController;
-// Removed import for deleted controller
-use App\Http\Controllers\TransportationController;
-use App\Http\Controllers\ApprovalRequestController;
 
 // Approval System Controllers
+use App\Http\Controllers\OfficialtravelController;
+use App\Http\Controllers\TransportationController;
+use App\Http\Controllers\ApprovalRequestController;
 use App\Http\Controllers\LeaveEntitlementController;
 use App\Http\Controllers\RecruitmentReportController;
 use App\Http\Controllers\TaxidentificationController;
@@ -657,5 +658,15 @@ Route::group(['middleware' => ['auth']], function () {
             Route::get('/export', [LeaveReportController::class, 'export'])->name('export');
             Route::get('/statistics', [LeaveReportController::class, 'statistics'])->name('statistics');
         });
+    });
+
+    // Roster Management Routes
+    Route::prefix('rosters')->name('rosters.')->group(function () {
+        Route::get('/', [RosterController::class, 'index'])->name('index');
+        Route::post('/update-status', [RosterController::class, 'updateStatus'])->name('update-status');
+        Route::post('/bulk-update', [RosterController::class, 'bulkUpdate'])->name('bulk-update');
+        Route::get('/export', [RosterController::class, 'export'])->name('export');
+        Route::post('/import', [RosterController::class, 'import'])->name('import');
+        Route::post('/clear', [RosterController::class, 'clearRoster'])->name('clear');
     });
 });

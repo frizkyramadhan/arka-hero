@@ -31,58 +31,79 @@ class MultipleSheetImport implements WithMultipleSheets, WithValidation, SkipsOn
     use Importable, SkipsFailures, SkipsErrors;
 
     private $sheetName;
-    private $personalImport;
-    private $administrationImport;
-    private $bankImport;
-    private $taxImport;
-    private $insuranceImport;
-    private $licenseImport;
-    private $familyImport;
-    private $educationImport;
-    private $courseImport;
-    private $jobExperienceImport;
-    private $operableunitImport;
-    private $emergencycallImport;
-    private $additionaldataImport;
-    private $terminationImport;
+
+    // ✅ OPTIMASI: Hanya simpan instance yang sudah dibuat
+    private $importInstances = [];
 
     // Store rows from personal sheet for other imports to access
     private $pendingPersonalRows = [];
 
     public function __construct()
     {
-        $this->personalImport = new PersonalImport();
-        $this->administrationImport = new AdministrationImport();
-        $this->bankImport = new BankImport();
-        $this->taxImport = new TaxImport();
-        $this->insuranceImport = new InsuranceImport();
-        $this->licenseImport = new LicenseImport();
-        $this->familyImport = new FamilyImport();
-        $this->educationImport = new EducationImport();
-        $this->courseImport = new CourseImport();
-        $this->jobExperienceImport = new JobExperienceImport();
-        $this->operableunitImport = new OperableunitImport();
-        $this->emergencycallImport = new EmergencycallImport();
-        $this->additionaldataImport = new AdditionaldataImport();
-        $this->terminationImport = new TerminationImport();
+        // ✅ OPTIMASI: Tidak memuat semua class sekaligus
+        // Class akan dibuat hanya saat dibutuhkan (lazy loading)
+    }
 
-        // Set reference to this parent in each import
-        $this->bankImport->setParent($this);
-        $this->taxImport->setParent($this);
-        $this->insuranceImport->setParent($this);
-        $this->licenseImport->setParent($this);
-        $this->familyImport->setParent($this);
-        $this->educationImport->setParent($this);
-        $this->courseImport->setParent($this);
-        $this->jobExperienceImport->setParent($this);
-        $this->operableunitImport->setParent($this);
-        $this->emergencycallImport->setParent($this);
-        $this->additionaldataImport->setParent($this);
-        $this->administrationImport->setParent($this);
-        $this->terminationImport->setParent($this);
+    /**
+     * ✅ OPTIMASI: Lazy loading untuk import instances
+     */
+    private function getImportInstance($sheetName)
+    {
+        if (!isset($this->importInstances[$sheetName])) {
+            switch ($sheetName) {
+                case 'personal':
+                    $this->importInstances[$sheetName] = new PersonalImport();
+                    break;
+                case 'administration':
+                    $this->importInstances[$sheetName] = new AdministrationImport();
+                    break;
+                case 'bank accounts':
+                    $this->importInstances[$sheetName] = new BankImport();
+                    break;
+                case 'tax identification no':
+                    $this->importInstances[$sheetName] = new TaxImport();
+                    break;
+                case 'health insurance':
+                    $this->importInstances[$sheetName] = new InsuranceImport();
+                    break;
+                case 'license':
+                    $this->importInstances[$sheetName] = new LicenseImport();
+                    break;
+                case 'family':
+                    $this->importInstances[$sheetName] = new FamilyImport();
+                    break;
+                case 'education':
+                    $this->importInstances[$sheetName] = new EducationImport();
+                    break;
+                case 'course':
+                    $this->importInstances[$sheetName] = new CourseImport();
+                    break;
+                case 'job experience':
+                    $this->importInstances[$sheetName] = new JobExperienceImport();
+                    break;
+                case 'operable unit':
+                    $this->importInstances[$sheetName] = new OperableunitImport();
+                    break;
+                case 'emergency call':
+                    $this->importInstances[$sheetName] = new EmergencycallImport();
+                    break;
+                case 'additional data':
+                    $this->importInstances[$sheetName] = new AdditionaldataImport();
+                    break;
+                case 'termination':
+                    $this->importInstances[$sheetName] = new TerminationImport();
+                    break;
+                default:
+                    return null;
+            }
 
-        // Have personal import collect rows during validation
-        $this->personalImport->setParent($this);
+            // Set parent reference hanya untuk instance yang dibuat
+            if (method_exists($this->importInstances[$sheetName], 'setParent')) {
+                $this->importInstances[$sheetName]->setParent($this);
+            }
+        }
+
+        return $this->importInstances[$sheetName];
     }
 
     /**
@@ -135,21 +156,23 @@ class MultipleSheetImport implements WithMultipleSheets, WithValidation, SkipsOn
 
     public function sheets(): array
     {
+        // ✅ OPTIMASI: Menggunakan lazy loading
+        // Sheet hanya dibuat saat Laravel Excel membutuhkannya
         return [
-            'personal' => $this->personalImport,
-            'administration' => $this->administrationImport,
-            'bank accounts' => $this->bankImport,
-            'tax identification no' => $this->taxImport,
-            'health insurance' => $this->insuranceImport,
-            'license' => $this->licenseImport,
-            'family' => $this->familyImport,
-            'education' => $this->educationImport,
-            'course' => $this->courseImport,
-            'job experience' => $this->jobExperienceImport,
-            'operable unit' => $this->operableunitImport,
-            'emergency call' => $this->emergencycallImport,
-            'additional data' => $this->additionaldataImport,
-            'termination' => $this->terminationImport,
+            'personal' => $this->getImportInstance('personal'),
+            'administration' => $this->getImportInstance('administration'),
+            'bank accounts' => $this->getImportInstance('bank accounts'),
+            'tax identification no' => $this->getImportInstance('tax identification no'),
+            'health insurance' => $this->getImportInstance('health insurance'),
+            'license' => $this->getImportInstance('license'),
+            'family' => $this->getImportInstance('family'),
+            'education' => $this->getImportInstance('education'),
+            'course' => $this->getImportInstance('course'),
+            'job experience' => $this->getImportInstance('job experience'),
+            'operable unit' => $this->getImportInstance('operable unit'),
+            'emergency call' => $this->getImportInstance('emergency call'),
+            'additional data' => $this->getImportInstance('additional data'),
+            'termination' => $this->getImportInstance('termination'),
         ];
     }
 
@@ -160,20 +183,11 @@ class MultipleSheetImport implements WithMultipleSheets, WithValidation, SkipsOn
 
     public function onFailure(\Maatwebsite\Excel\Validators\Failure ...$failures)
     {
-        // Forward failures to the PersonalImport instance
-        $this->personalImport->onFailure(...$failures);
-        $this->administrationImport->onFailure(...$failures);
-        $this->bankImport->onFailure(...$failures);
-        $this->taxImport->onFailure(...$failures);
-        $this->insuranceImport->onFailure(...$failures);
-        $this->licenseImport->onFailure(...$failures);
-        $this->familyImport->onFailure(...$failures);
-        $this->educationImport->onFailure(...$failures);
-        $this->courseImport->onFailure(...$failures);
-        $this->jobExperienceImport->onFailure(...$failures);
-        $this->operableunitImport->onFailure(...$failures);
-        $this->emergencycallImport->onFailure(...$failures);
-        $this->additionaldataImport->onFailure(...$failures);
-        $this->terminationImport->onFailure(...$failures);
+        // ✅ OPTIMASI: Forward failures hanya ke instance yang sudah dibuat
+        foreach ($this->importInstances as $instance) {
+            if (method_exists($instance, 'onFailure')) {
+                $instance->onFailure(...$failures);
+            }
+        }
     }
 }

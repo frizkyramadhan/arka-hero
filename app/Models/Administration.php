@@ -49,6 +49,11 @@ class Administration extends Model
         return $this->belongsTo(Level::class);
     }
 
+    public function roster()
+    {
+        return $this->hasOne(Roster::class);
+    }
+
     // Integration dengan Letter Number System
     public function letterNumbers()
     {

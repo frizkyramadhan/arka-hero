@@ -426,6 +426,20 @@
                     </li>
                 @endcanany
 
+                {{-- Roster Management --}}
+                <li class="nav-item">
+                    <a href="{{ route('rosters.index') }}"
+                        class="nav-link {{ Request::is('rosters*') ? 'active' : '' }}">
+                        <i class="nav-icon fas fa-calendar-week"></i>
+                        <p>
+                            Roster Management
+                            <br>
+                            <small style="text-align: left; display: block; margin-left: 0; padding-left: 0;">Manajemen
+                                Jadwal Kerja</small>
+                        </p>
+                    </a>
+                </li>
+
                 <li class="nav-item">
                     <a href="{{ route('letter-numbers.index') }}"
                         class="nav-link {{ Request::is('letter-numbers*') ? 'active' : '' }}">

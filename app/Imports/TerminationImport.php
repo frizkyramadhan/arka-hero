@@ -92,7 +92,7 @@ class TerminationImport implements
             'position' => ['nullable', 'string', 'exists:positions,position_name'],
             'project_code' => ['nullable', 'string', 'exists:projects,project_code'],
             'termination_date' => ['nullable'],
-            'termination_reason' => ['required', 'in:End of Contract,End of Project,Resign,Termination,Retired,Efficiency,Passed Away'],
+            'termination_reason' => ['required', 'in:End of Contract,End of Project,Resign,Termination,Retired,Efficiency,Passed Away,Canceled'],
             'coe_no' => ['nullable', 'string'],
         ];
     }
@@ -250,11 +250,11 @@ class TerminationImport implements
 
     public function chunkSize(): int
     {
-        return 500;
+        return 50;
     }
 
     public function batchSize(): int
     {
-        return 500;
+        return 50;
     }
 }
