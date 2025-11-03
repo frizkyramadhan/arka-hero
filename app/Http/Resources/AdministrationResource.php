@@ -28,6 +28,9 @@ class AdministrationResource extends JsonResource
             'no_sk_active' => $this->no_sk_active,
             'is_active' => $this->is_active,
             'employee' => $this->whenLoaded('employee', function () {
+                if (!$this->employee) {
+                    return null;
+                }
                 return [
                     'id' => $this->employee->id,
                     'fullname' => $this->employee->fullname,
@@ -44,19 +47,22 @@ class AdministrationResource extends JsonResource
                     'city' => $this->employee->city,
                     'phone' => $this->employee->phone,
                     'email' => $this->employee->email,
-                    'religion' => $this->employee->relationLoaded('religion') ? [
+                    'religion' => $this->employee->relationLoaded('religion') && $this->employee->religion ? [
                         'id' => $this->employee->religion->id,
                         'religion_name' => $this->employee->religion->religion_name
                     ] : null,
                 ];
             }),
             'position' => $this->whenLoaded('position', function () {
+                if (!$this->position) {
+                    return null;
+                }
                 $position = [
                     'id' => $this->position->id,
                     'position_name' => $this->position->position_name,
                 ];
 
-                if ($this->position->relationLoaded('department')) {
+                if ($this->position->relationLoaded('department') && $this->position->department) {
                     $position['department'] = [
                         'id' => $this->position->department->id,
                         'department_name' => $this->position->department->department_name
@@ -66,6 +72,9 @@ class AdministrationResource extends JsonResource
                 return $position;
             }),
             'project' => $this->whenLoaded('project', function () {
+                if (!$this->project) {
+                    return null;
+                }
                 return [
                     'id' => $this->project->id,
                     'project_code' => $this->project->project_code,
