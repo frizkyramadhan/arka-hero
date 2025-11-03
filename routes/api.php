@@ -24,11 +24,11 @@ use App\Http\Controllers\LeaveReportController;
 |
 */
 
-Route::group(['middleware' => ['auth:sanctum']], function () {
-    Route::apiResource('positions', PositionController::class);
-    Route::apiResource('departments', DepartmentController::class);
-    Route::apiResource('projects', ProjectController::class);
-});
+// Route::group(['middleware' => ['auth:sanctum']], function () {
+Route::apiResource('positions', PositionController::class);
+Route::apiResource('departments', DepartmentController::class);
+Route::apiResource('projects', ProjectController::class);
+// });
 
 // Employee API Routes
 Route::prefix('employees')->group(function () {
