@@ -1,0 +1,187 @@
+---
+alwaysApply: true
+---
+
+# Postman API MCP Usage Rules
+
+Selalu gunakan Postman API MCP untuk mengelola collections, sync API routes, dan maintain API documentation. Operasi harus dilakukan secara otomatis untuk menjaga konsistensi antara codebase Laravel dengan Postman collections.
+
+## Usage Protocol:
+
+1. **Setiap perubahan routes/api.php** - Sync semua endpoint ke Postman collection "ARKA HERO - API"
+2. **Setiap endpoint baru** - Tambahkan request ke collection sesuai dengan struktur route
+3. **Setiap perubahan API structure** - Update collection menggunakan PUT method untuk efisiensi
+4. **Sebelum release** - Verifikasi semua endpoint dalam collection sudah sesuai dengan routes
+
+## Postman API MCP Commands:
+
+-   Gunakan `mcp_postman-api-mcp_getAuthenticatedUser` untuk mendapatkan user info dan workspace context
+-   Gunakan `mcp_postman-api-mcp_getWorkspaces` untuk mendapatkan workspace ID
+-   Gunakan `mcp_postman-api-mcp_getCollections` untuk cek collection yang sudah ada
+-   Gunakan `mcp_postman-api-mcp_getCollection` untuk mendapatkan detail collection lengkap
+-   Gunakan `mcp_postman-api-mcp_putCollection` untuk update seluruh collection structure
+-   Gunakan `mcp_postman-api-mcp_createCollectionRequest` untuk menambahkan request baru
+-   Gunakan `mcp_postman-api-mcp_createMock` untuk membuat mock server dari collection
+-   Gunakan `mcp_postman-api-mcp_generateSpecFromCollection` untuk generate OpenAPI spec
+-   Gunakan `mcp_postman-api-mcp_createEnvironment` untuk manage environment variables
+-   Gunakan `mcp_postman-api-mcp_syncCollectionWithSpec` untuk sync collection dengan OpenAPI spec
+
+## Standard Workflow:
+
+1. Get authenticated user dan workspace ID terlebih dahulu
+2. Check apakah collection "ARKA HERO - API" sudah ada
+3. Jika belum ada, create collection baru dengan struktur dasar
+4. Baca semua routes dari `routes/api.php`
+5. Map routes ke Postman request structure dengan folder organization
+6. Update collection menggunakan `putCollection` dengan complete structure
+7. Preserve existing folder/request IDs untuk menghindari duplikasi
+
+**SELALU** gunakan workspace context dan check existing collections sebelum create baru.
+
+## Collection Organization Pattern:
+
+Organisasi collection mengikuti struktur Laravel routes:
+
+```
+ARKA HERO - API
+├── Authentication (v1/auth routes)
+├── Departments (api/departments)
+├── Employees (api/employees)
+├── Official Travels (api/official-travels)
+├── Leave Management (v1/leave routes)
+├── Recruitment (v1/recruitment routes)
+├── Master Data (v1/master routes)
+├── Dashboard (v1/dashboard routes)
+└── Letter Numbers (v1/letter-numbers routes)
+```
+
+## Request Structure Standards:
+
+### GET Requests
+
+```javascript
+{
+  name: "Get All Departments",
+  request: {
+    method: "GET",
+    header: [{
+      key: "Accept",
+      value: "application/json",
+      type: "text"
+    }],
+    url: {
+      raw: "{{BASE_URL}}/api/departments",
+      host: ["{{BASE_URL}}"],
+      path: ["api", "departments"]
+    }
+  }
+}
+```
+
+### POST/PUT Requests with Body
+
+```javascript
+{
+  name: "Create Employee",
+  request: {
+    method: "POST",
+    header: [
+      {
+        key: "Accept",
+        value: "application/json"
+      },
+      {
+        key: "Content-Type",
+        value: "application/json"
+      },
+      {
+        key: "Authorization",
+        value: "Bearer {{TOKEN}}",
+        type: "text"
+      }
+    ],
+    body: {
+      mode: "raw",
+      raw: "{\n  \"name\": \"\",\n  \"email\": \"\"\n}",
+      options: {
+        raw: {
+          language: "json"
+        }
+      }
+    },
+    url: {
+      raw: "{{BASE_URL}}/api/v1/employees",
+      host: ["{{BASE_URL}}"],
+      path: ["api", "v1", "employees"]
+    }
+  }
+}
+```
+
+## Collection Variables:
+
+Selalu include variables berikut di setiap collection:
+
+```javascript
+variable: [
+    {
+        key: "BASE_URL",
+        value: "http://localhost/arka-hero",
+        type: "string",
+    },
+    {
+        key: "TOKEN",
+        value: "",
+        type: "string",
+        description: "Sanctum authentication token",
+    },
+];
+```
+
+## ARKA HERO Specific Rules:
+
+### Route Prefixes:
+
+-   Legacy: `/api/{resource}` (tanpa prefix version)
+-   Versioned: `/api/v1/{resource}` (dengan prefix v1)
+-   Selalu check kedua pattern saat sync routes
+
+### Endpoint Patterns:
+
+1. **CRUD Standard**: `GET`, `POST`, `GET/{id}`, `PUT/{id}`, `DELETE/{id}`
+2. **Search**: `POST /api/{resource}/search` dengan body parameters
+3. **Actions**: `POST /api/v1/{resource}/{id}/action-name`
+4. **Nested Resources**: `GET /api/v1/{resource}/{id}/sub-resource`
+
+### Naming Conventions:
+
+-   Folder: PascalCase (e.g., "Official Travels", "Leave Management")
+-   Request: "Action + Resource" (e.g., "Get All Departments", "Create Employee")
+-   Nama harus sesuai dengan Laravel controller method names
+
+## Advanced Features:
+
+-   Gunakan `mcp_postman-api-mcp_getCollection` dengan model=minimal untuk cek structure tanpa load full content
+-   Gunakan `mcp_postman-api-mcp_generateCollection` dari OpenAPI spec untuk auto-generate collection
+-   Gunakan `mcp_postman-api-mcp_syncCollectionWithSpec` untuk maintain bi-directional sync
+-   Gunakan `mcp_postman-api-mcp_createMock` dengan environment untuk testing setup
+-   Gunakan `mcp_postman-api-mcp_getTaggedEntities` untuk organize collections dengan tags (Enterprise feature)
+
+## Error Handling:
+
+Ketika menemukan error:
+
+1. **Invalid UID** - Pastikan format: `{ownerId}-{uuid}`
+2. **Workspace Required** - Selalu include workspace parameter
+3. **Unauthorized** - Check API key permissions
+4. **Collection Not Found** - Create collection terlebih dahulu
+
+## Integration Checklist:
+
+-   [ ] Collection "ARKA HERO - API" sudah ada di workspace
+-   [ ] BASE_URL variable sudah set ke `http://localhost/arka-hero`
+-   [ ] Semua routes dari `routes/api.php` sudah ada di collection
+-   [ ] Folder structure sesuai dengan route groups
+-   [ ] Authentication headers sudah include untuk protected routes
+-   [ ] Request names mengikuti naming convention
+-   [ ] Collection variables sudah configured
