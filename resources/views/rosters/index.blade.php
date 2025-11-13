@@ -92,7 +92,53 @@
             </div>
 
             @if ($selectedProject)
-
+                <!-- Search Box -->
+                <div class="row">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-body">
+                                <form method="GET" action="{{ route('rosters.index') }}" class="row">
+                                    <input type="hidden" name="project_id" value="{{ $selectedProject->id }}">
+                                    <input type="hidden" name="year" value="{{ $year }}">
+                                    <input type="hidden" name="month" value="{{ $month }}">
+                                    <div class="col-md-10">
+                                        <div class="form-group mb-0">
+                                            <label for="search">Search Employee</label>
+                                            <div class="input-group">
+                                                <div class="input-group-prepend">
+                                                    <span class="input-group-text">
+                                                        <i class="fas fa-search"></i>
+                                                    </span>
+                                                </div>
+                                                <input type="text" class="form-control" id="search" name="search"
+                                                    placeholder="Search by Name, NIK, Department, or Position..."
+                                                    value="{{ $search }}">
+                                            </div>
+                                            <small class="form-text text-muted">Search by employee name, NIK, department, or
+                                                position</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <div class="form-group mb-0">
+                                            <label>&nbsp;</label>
+                                            <div class="btn-group w-100" role="group">
+                                                <button type="submit" class="btn btn-primary">
+                                                    <i class="fas fa-search mr-1"></i> Search
+                                                </button>
+                                                @if ($search)
+                                                    <a href="{{ route('rosters.index', ['project_id' => $selectedProject->id, 'year' => $year, 'month' => $month]) }}"
+                                                        class="btn btn-secondary" title="Clear search">
+                                                        <i class="fas fa-times"></i>
+                                                    </a>
+                                                @endif
+                                            </div>
+                                        </div>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
                 <!-- Roster Table -->
                 <div class="row">
@@ -104,6 +150,13 @@
                                         <i class="fas fa-table mr-1"></i>
                                         Roster - {{ $selectedProject->project_code }}
                                         ({{ \Carbon\Carbon::create($year, $month)->format('F Y') }})
+                                        @if ($employeeStats)
+                                            <span class="badge badge-primary ml-2">
+                                                Showing
+                                                {{ $employees->firstItem() ?? 0 }}-{{ $employees->lastItem() ?? 0 }} of
+                                                {{ $employees->total() }}
+                                            </span>
+                                        @endif
                                     </h5>
                                     <div class="card-tools">
                                         <button class="btn btn-danger btn-sm mr-2" onclick="clearRoster()">
@@ -122,14 +175,16 @@
                                 </div>
                             </div>
                             <div class="card-body p-0">
-                                @if ($employees->count() > 0)
+                                @if (isset($employees) && $employees->count() > 0)
                                     <div class="table-responsive">
                                         <table class="table table-bordered table-hover mb-0 roster-table" width="100%">
                                             <thead class="thead-light">
                                                 <tr>
                                                     <th class="text-center align-middle" style="width: 20px;">#</th>
-                                                    <th class="align-middle" style="width: 200px;">Name</th>
-                                                    <th class="text-center align-middle" style="width: 100px;">NIK</th>
+                                                    <th class="align-middle" style="width: 150px;">Name</th>
+                                                    <th class="text-center align-middle" style="width: 80px;">NIK</th>
+                                                    <th class="text-center align-middle" style="width: 120px;">Department
+                                                    </th>
                                                     <th class="text-center align-middle" style="width: 150px;">Position
                                                     </th>
                                                     @for ($day = 1; $day <= \Carbon\Carbon::create($year, $month)->daysInMonth; $day++)
@@ -146,9 +201,11 @@
                                             <tbody>
                                                 @foreach ($employees as $index => $admin)
                                                     <tr>
-                                                        <td class="text-center">{{ $index + 1 }}</td>
+                                                        <td class="text-center">{{ $loop->iteration }}</td>
                                                         <td class="font-weight-bold">{{ $admin->employee->fullname }}</td>
                                                         <td class="text-center">{{ $admin->nik }}</td>
+                                                        <td>{{ $admin->position->department->department_name ?? 'N/A' }}
+                                                        </td>
                                                         <td>{{ $admin->position->position_name }}</td>
                                                         @for ($day = 1; $day <= \Carbon\Carbon::create($year, $month)->daysInMonth; $day++)
                                                             @php
@@ -182,6 +239,7 @@
                                                             <td class="text-center roster-cell {{ $isWeekend ? 'weekend' : '' }} {{ $isToday ? 'today' : '' }}"
                                                                 style="background-color: {{ $statusColor }}; cursor: pointer;"
                                                                 data-roster-id="{{ $admin->roster ? $admin->roster->id : '' }}"
+                                                                data-administration-id="{{ $admin->id }}"
                                                                 data-date="{{ $currentDate->format('Y-m-d') }}"
                                                                 data-date-formatted="{{ $currentDate->format('d M Y') }}"
                                                                 data-date-day="{{ $currentDate->format('d') }}"
@@ -190,6 +248,7 @@
                                                                 data-notes="{{ $notes }}"
                                                                 data-employee="{{ $admin->employee->fullname }}"
                                                                 data-employee-nik="{{ $admin->nik }}"
+                                                                data-employee-department="{{ $admin->position->department->department_name ?? 'N/A' }}"
                                                                 data-employee-position="{{ $admin->position->position_name }}"
                                                                 onclick="openStatusModal(this)"
                                                                 title="Click to update status for {{ $admin->employee->fullname }} on {{ $currentDate->format('d M Y') }}">
@@ -205,12 +264,47 @@
                                             </tbody>
                                         </table>
                                     </div>
+                                    <!-- Pagination -->
+                                    @if (method_exists($employees, 'hasPages') && $employees->hasPages())
+                                        <div class="card-footer clearfix">
+                                            <div class="float-left">
+                                                <p class="text-muted mb-0">
+                                                    Showing {{ $employees->firstItem() ?? 0 }} to
+                                                    {{ $employees->lastItem() ?? 0 }}
+                                                    of {{ $employees->total() }} entries
+                                                    @if ($search)
+                                                        <span class="badge badge-info ml-2">Filtered</span>
+                                                    @endif
+                                                </p>
+                                            </div>
+                                            <div class="float-right">
+                                                {{ $employees->links('pagination::bootstrap-4') }}
+                                            </div>
+                                        </div>
+                                    @endif
                                 @else
                                     <div class="text-center py-5">
                                         <i class="fas fa-users fa-3x text-muted mb-3"></i>
-                                        <h5 class="text-muted">No employees found for this project</h5>
-                                        <p class="text-muted">Please ensure employees are assigned to this roster project.
+                                        <h5 class="text-muted">
+                                            @if ($search)
+                                                No employees found matching "{{ $search }}"
+                                            @else
+                                                No employees found for this project
+                                            @endif
+                                        </h5>
+                                        <p class="text-muted">
+                                            @if ($search)
+                                                Try adjusting your search criteria.
+                                            @else
+                                                Please ensure employees are assigned to this roster project.
+                                            @endif
                                         </p>
+                                        @if ($search)
+                                            <a href="{{ route('rosters.index', ['project_id' => $selectedProject->id, 'year' => $year, 'month' => $month]) }}"
+                                                class="btn btn-secondary mt-2">
+                                                <i class="fas fa-times mr-1"></i> Clear Search
+                                            </a>
+                                        @endif
                                     </div>
                                 @endif
                             </div>
@@ -352,6 +446,7 @@
 
                     <form id="statusForm">
                         <input type="hidden" id="roster_id" name="roster_id">
+                        <input type="hidden" id="administration_id" name="administration_id">
                         <input type="hidden" id="date" name="date">
 
                         <div class="form-group">
@@ -441,7 +536,8 @@
             border: 1px solid #dee2e6;
         }
 
-        /* Sticky Columns - #, Name, NIK, Position */
+        /* Sticky Columns - #, Name, NIK, Department, Position */
+        /* Column 1: # (NO) - left: 0 */
         .roster-table thead th:nth-child(1),
         .roster-table tbody td:nth-child(1) {
             position: sticky;
@@ -453,6 +549,7 @@
             max-width: 50px;
         }
 
+        /* Column 2: Name - left: 50px */
         .roster-table thead th:nth-child(2),
         .roster-table tbody td:nth-child(2) {
             position: sticky;
@@ -464,26 +561,40 @@
             max-width: 150px;
         }
 
+        /* Column 3: NIK - left: 200px (50 + 150) */
         .roster-table thead th:nth-child(3),
         .roster-table tbody td:nth-child(3) {
             position: sticky;
             left: 200px;
             z-index: 9;
             background-color: #f8f9fa;
-            width: 100px;
-            min-width: 100px;
-            max-width: 100px;
+            width: 80px;
+            min-width: 80px;
+            max-width: 80px;
         }
 
+        /* Column 4: Department - left: 280px (50 + 150 + 80) */
         .roster-table thead th:nth-child(4),
         .roster-table tbody td:nth-child(4) {
             position: sticky;
-            left: 300px;
+            left: 280px;
             z-index: 9;
             background-color: #f8f9fa;
-            width: 200px;
-            min-width: 200px;
-            max-width: 200px;
+            width: 120px;
+            min-width: 120px;
+            max-width: 120px;
+        }
+
+        /* Column 5: Position - left: 400px (50 + 150 + 80 + 120) */
+        .roster-table thead th:nth-child(5),
+        .roster-table tbody td:nth-child(5) {
+            position: sticky;
+            left: 400px;
+            z-index: 9;
+            background-color: #f8f9fa;
+            width: 150px;
+            min-width: 150px;
+            max-width: 150px;
         }
 
         /* Responsive: Remove sticky columns on smaller screens */
@@ -496,7 +607,9 @@
             .roster-table thead th:nth-child(3),
             .roster-table tbody td:nth-child(3),
             .roster-table thead th:nth-child(4),
-            .roster-table tbody td:nth-child(4) {
+            .roster-table tbody td:nth-child(4),
+            .roster-table thead th:nth-child(5),
+            .roster-table tbody td:nth-child(5) {
                 position: static;
                 left: auto;
                 z-index: auto;
@@ -511,7 +624,8 @@
         .roster-table tbody tr:hover td:nth-child(1),
         .roster-table tbody tr:hover td:nth-child(2),
         .roster-table tbody tr:hover td:nth-child(3),
-        .roster-table tbody tr:hover td:nth-child(4) {
+        .roster-table tbody tr:hover td:nth-child(4),
+        .roster-table tbody tr:hover td:nth-child(5) {
             background-color: #e9ecef !important;
         }
 
@@ -519,12 +633,13 @@
         .roster-table thead th:nth-child(1),
         .roster-table thead th:nth-child(2),
         .roster-table thead th:nth-child(3),
-        .roster-table thead th:nth-child(4) {
+        .roster-table thead th:nth-child(4),
+        .roster-table thead th:nth-child(5) {
             z-index: 11;
         }
 
         /* Shadow effect for sticky columns */
-        .roster-table tbody td:nth-child(4)::after {
+        .roster-table tbody td:nth-child(5)::after {
             content: '';
             position: absolute;
             top: 0;
@@ -671,6 +786,7 @@
 
         function openStatusModal(cell) {
             const rosterId = cell.dataset.rosterId;
+            const administrationId = cell.dataset.administrationId;
             const date = cell.dataset.date;
             const dateFormatted = cell.dataset.dateFormatted;
             const dateDay = cell.dataset.dateDay;
@@ -682,7 +798,8 @@
             const employeePosition = cell.dataset.employeePosition;
 
             // Set form values
-            document.getElementById('roster_id').value = rosterId;
+            document.getElementById('roster_id').value = rosterId || '';
+            document.getElementById('administration_id').value = administrationId || '';
             document.getElementById('date').value = date;
             document.getElementById('status_code').value = status;
             document.getElementById('notes').value = notes;
@@ -715,16 +832,51 @@
                         'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
                     }
                 })
-                .then(response => response.json())
+                .then(response => {
+                    if (!response.ok) {
+                        return response.json().then(err => {
+                            throw new Error(err.message || 'Failed to update status');
+                        });
+                    }
+                    return response.json();
+                })
                 .then(data => {
                     if (data.success) {
-                        // Update the cell
-                        const cell = document.querySelector(
-                            `[data-roster-id="${formData.get('roster_id')}"][data-date="${formData.get('date')}"]`);
-                        if (cell) {
+                        // Update roster_id in cell if it was created
+                        if (data.data && data.data.roster_id) {
+                            const administrationId = formData.get('administration_id');
+                            if (administrationId) {
+                                const cells = document.querySelectorAll(
+                                    `[data-administration-id="${administrationId}"]`);
+                                cells.forEach(cell => {
+                                    cell.dataset.rosterId = data.data.roster_id;
+                                });
+                            }
+                        }
+
+                        // Update the cell - try both roster_id and administration_id
+                        const rosterId = formData.get('roster_id') || (data.data && data.data.roster_id);
+                        const administrationId = formData.get('administration_id');
+                        const date = formData.get('date');
+
+                        let cell = null;
+                        if (rosterId) {
+                            cell = document.querySelector(`[data-roster-id="${rosterId}"][data-date="${date}"]`);
+                        }
+                        if (!cell && administrationId) {
+                            cell = document.querySelector(
+                                `[data-administration-id="${administrationId}"][data-date="${date}"]`);
+                        }
+
+                        if (cell && data.data) {
                             cell.querySelector('.status-text').textContent = data.data.status;
                             cell.style.backgroundColor = data.data.color;
                             cell.dataset.status = data.data.status;
+
+                            // Update roster_id in cell if it was created
+                            if (data.data.roster_id) {
+                                cell.dataset.rosterId = data.data.roster_id;
+                            }
 
                             // Update notes indicator
                             const notesIcon = cell.querySelector('.fas.fa-sticky-note');
@@ -763,7 +915,7 @@
                     Swal.fire({
                         icon: 'error',
                         title: 'Error!',
-                        text: 'An error occurred while updating status'
+                        text: error.message || 'An error occurred while updating status'
                     });
                 })
                 .finally(() => {
@@ -777,6 +929,7 @@
             const projectId = document.getElementById('project_id').value;
             const year = document.getElementById('year').value;
             const month = document.getElementById('month').value;
+            const search = document.getElementById('search') ? document.getElementById('search').value : '';
 
             if (!projectId) {
                 Swal.fire({
@@ -789,7 +942,10 @@
                 return;
             }
 
-            const url = `{{ route('rosters.export') }}?project_id=${projectId}&year=${year}&month=${month}`;
+            let url = `{{ route('rosters.export') }}?project_id=${projectId}&year=${year}&month=${month}`;
+            if (search) {
+                url += `&search=${encodeURIComponent(search)}`;
+            }
             window.open(url, '_blank');
         }
 
@@ -912,12 +1068,12 @@
                 console.log({
                     name: '{{ $employeeName ?? 'Unknown' }}',
                     nik: '{{ $admin->nik ?? 'Unknown' }}',
-                    level: '{{ $admin->level->name ?? 'Unknown' }}',
-                    roster_pattern: '{{ $admin->level->getRosterPattern() ?? 'No Roster' }}',
-                    work_days: {{ $admin->level->work_days ?? 0 }},
-                    off_days: {{ $admin->level->off_days ?? 0 }},
+                    level: '{{ $admin->level ? $admin->level->name : 'Unknown' }}',
+                    roster_pattern: '{{ $admin->level ? $admin->level->getRosterPattern() ?? 'No Roster' : 'No Level' }}',
+                    work_days: {{ $admin->level ? $admin->level->work_days ?? 0 : 0 }},
+                    off_days: {{ $admin->level ? $admin->level->off_days ?? 0 : 0 }},
                     has_roster: {{ $admin->roster ? 'true' : 'false' }},
-                    roster_id: {{ $admin->roster->id ?? 'null' }},
+                    roster_id: {{ $admin->roster ? $admin->roster->id : 'null' }},
                     employee_id: '{{ $admin->employee_id }}',
                     employee_relation: '{{ $admin->employee ? 'Loaded' : 'Not Loaded' }}'
                 });
@@ -1070,15 +1226,35 @@
                             'content')
                     }
                 })
-                .then(response => response.json())
+                .then(response => {
+                    if (!response.ok) {
+                        return response.json().then(err => {
+                            throw new Error(err.message || 'Import failed');
+                        });
+                    }
+                    return response.json();
+                })
                 .then(data => {
                     if (data.success) {
+                        let message = data.message ||
+                            `Successfully imported ${data.data.imported_count} roster entries.`;
+
+                        // Show errors if any
+                        if (data.data.has_errors && data.data.errors && data.data.errors.length > 0) {
+                            const errorList = data.data.errors.slice(0, 5).join('\n');
+                            const moreErrors = data.data.errors.length > 5 ?
+                                `\n... and ${data.data.errors.length - 5} more errors` : '';
+                            message += `\n\nErrors:\n${errorList}${moreErrors}`;
+                        }
+
                         Swal.fire({
-                            icon: 'success',
-                            title: 'Import Successful',
-                            text: `Successfully imported ${data.data.imported_count} roster entries.`,
-                            showConfirmButton: false,
-                            timer: 3000
+                            icon: data.data.has_errors ? 'warning' : 'success',
+                            title: data.data.has_errors ? 'Import Completed with Errors' :
+                                'Import Successful',
+                            text: message,
+                            showConfirmButton: true,
+                            confirmButtonText: 'OK',
+                            width: '600px'
                         }).then(() => {
                             location.reload();
                         });
@@ -1097,7 +1273,7 @@
                     Swal.fire({
                         icon: 'error',
                         title: 'Import Error',
-                        text: 'An error occurred while importing the file.',
+                        text: error.message || 'An error occurred while importing the file.',
                         toast: true,
                         position: 'top-end'
                     });

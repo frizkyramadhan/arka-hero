@@ -270,14 +270,14 @@ class LeaveReportController extends Controller
 
             return [
                 'Employee Name' => $entitlement->employee->fullname,
-                'Withdrawable Days' => $entitlement->withdrawable_days,
+                'Entitled Days' => $entitlement->entitled_days,
                 'Deposit Days' => $entitlement->deposit_days,
                 'Taken Days' => $entitlement->taken_days,
                 'Effective Days' => $effectiveDays,
                 'Cancelled Days' => $cancelledDays,
                 'Remaining Days' => $entitlement->remaining_days,
-                'Utilization %' => $entitlement->withdrawable_days > 0
-                    ? round(($effectiveDays / $entitlement->withdrawable_days) * 100, 2)
+                'Utilization %' => $entitlement->entitled_days > 0
+                    ? round(($effectiveDays / $entitlement->entitled_days) * 100, 2)
                     : 0,
                 'Cancellation Rate %' => $entitlement->taken_days > 0
                     ? round(($cancelledDays / $entitlement->taken_days) * 100, 2)
@@ -299,7 +299,7 @@ class LeaveReportController extends Controller
             {
                 return [
                     'Employee Name',
-                    'Withdrawable Days',
+                    'Entitled Days', // Changed from 'Withdrawable Days' - withdrawable_days column removed
                     'Deposit Days',
                     'Taken Days',
                     'Effective Days',
@@ -318,7 +318,7 @@ class LeaveReportController extends Controller
     private function exportBalance(Request $request)
     {
         $query = LeaveEntitlement::with(['employee', 'leaveType'])
-            ->where('remaining_days', '>', 0);
+            ->whereRaw('(entitled_days - taken_days) > 0'); // remaining_days is now accessor
 
         // Apply same filters as balance method
         if ($request->filled('employee_id')) {
@@ -347,22 +347,22 @@ class LeaveReportController extends Controller
                     return $request->getTotalCancelledDays();
                 });
 
-            $actualRemaining = $entitlement->withdrawable_days - $effectiveDays;
+            $actualRemaining = $entitlement->entitled_days - $effectiveDays;
 
             return [
                 'Employee Name' => $entitlement->employee->fullname,
                 'Leave Type' => $entitlement->leaveType->name,
                 'Period Start' => $entitlement->period_start->format('d M Y'),
                 'Period End' => $entitlement->period_end->format('d M Y'),
-                'Withdrawable Days' => $entitlement->withdrawable_days,
+                'Entitled Days' => $entitlement->entitled_days,
                 'Deposit Days' => $entitlement->deposit_days,
                 'Taken Days' => $entitlement->taken_days,
                 'Effective Days' => $effectiveDays,
                 'Cancelled Days' => $cancelledDays,
                 'Remaining Days' => $entitlement->remaining_days,
                 'Actual Remaining' => $actualRemaining,
-                'Utilization %' => $entitlement->withdrawable_days > 0
-                    ? round(($effectiveDays / $entitlement->withdrawable_days) * 100, 2)
+                'Utilization %' => $entitlement->entitled_days > 0
+                    ? round(($effectiveDays / $entitlement->entitled_days) * 100, 2)
                     : 0,
                 'Is Accurate' => $entitlement->remaining_days == $actualRemaining ? 'Yes' : 'No'
             ];
@@ -385,7 +385,7 @@ class LeaveReportController extends Controller
                     'Leave Type',
                     'Period Start',
                     'Period End',
-                    'Withdrawable Days',
+                    'Entitled Days', // Changed from 'Withdrawable Days' - withdrawable_days column removed
                     'Deposit Days',
                     'Taken Days',
                     'Effective Days',
@@ -436,7 +436,7 @@ class LeaveReportController extends Controller
     public function getEmployeeLeaveBalance($employeeId)
     {
         $balances = LeaveEntitlement::where('employee_id', $employeeId)
-            ->where('remaining_days', '>', 0)
+            ->whereRaw('(entitled_days - taken_days) > 0') // remaining_days is now accessor
             ->with('leaveType')
             ->get()
             ->map(function ($balance) {

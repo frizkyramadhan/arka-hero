@@ -152,6 +152,46 @@
                         </div>
                     </div>
 
+                    <!-- Batch Information -->
+                    @if ($leaveRequest->is_batch_request && $leaveRequest->batch_id)
+                        <div class="leave-request-card batch-info-card">
+                            <div class="card-head">
+                                <h2><i class="fas fa-layer-group"></i> Batch Information</h2>
+                            </div>
+                            <div class="card-body">
+                                <div class="info-grid">
+                                    <div class="info-item">
+                                        <div class="info-icon" style="background-color: #9b59b6;">
+                                            <i class="fas fa-tag"></i>
+                                        </div>
+                                        <div class="info-content">
+                                            <div class="info-label">Batch ID</div>
+                                            <div class="info-value">
+                                                <a href="{{ route('leave.bulk-requests.show', ['batch_id' => $leaveRequest->batch_id]) }}"
+                                                    class="batch-link" title="View all requests in this batch">
+                                                    {{ $leaveRequest->batch_id }}
+                                                    <i class="fas fa-external-link-alt"
+                                                        style="font-size: 10px; margin-left: 4px;"></i>
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    @if ($leaveRequest->bulk_notes)
+                                        <div class="info-item" style="grid-column: 1 / -1;">
+                                            <div class="info-icon" style="background-color: #3498db;">
+                                                <i class="fas fa-sticky-note"></i>
+                                            </div>
+                                            <div class="info-content">
+                                                <div class="info-label">Batch Notes</div>
+                                                <div class="info-value">{{ $leaveRequest->bulk_notes }}</div>
+                                            </div>
+                                        </div>
+                                    @endif
+                                </div>
+                            </div>
+                        </div>
+                    @endif
+
                     <!-- Reason & Supporting Document -->
                     @if (
                         $leaveRequest->reason ||
@@ -833,6 +873,23 @@
 
         .requirement-section:last-child {
             margin-bottom: 0;
+        }
+
+        /* Batch Information */
+        .batch-info-card {
+            border-left: 4px solid #9b59b6;
+        }
+
+        .batch-link {
+            color: #9b59b6;
+            text-decoration: none;
+            font-weight: 600;
+            transition: color 0.2s ease;
+        }
+
+        .batch-link:hover {
+            color: #7d3c98;
+            text-decoration: underline;
         }
 
         /* Document Actions */

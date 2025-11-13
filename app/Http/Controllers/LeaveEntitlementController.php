@@ -11,14 +11,18 @@ use App\Models\Administration;
 use App\Models\LeaveEntitlement;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Maatwebsite\Excel\Facades\Excel;
+use Maatwebsite\Excel\Validators\ValidationException;
+use App\Exports\LeaveEntitlementExport;
+use App\Imports\LeaveEntitlementImport;
 
 class LeaveEntitlementController extends Controller
 {
     public function __construct()
     {
-        $this->middleware('permission:leave-entitlements.show')->only('index', 'show', 'data', 'showEmployee', 'showLeaveCalculationDetails', 'getAvailableLeaveTypes', 'getLeaveCalculationDetailsAjax');
-        $this->middleware('permission:leave-entitlements.create')->only('create', 'store', 'generateProjectEntitlements', 'generateSelectedProjectEntitlements');
-        $this->middleware('permission:leave-entitlements.edit')->only('edit', 'update', 'editEmployee', 'updateEmployee');
+        $this->middleware('permission:leave-entitlements.show')->only('index', 'show', 'data', 'showEmployee', 'showLeaveCalculationDetails', 'getAvailableLeaveTypes', 'getLeaveCalculationDetailsAjax', 'exportTemplate');
+        $this->middleware('permission:leave-entitlements.create')->only('create', 'store', 'generateProjectEntitlements', 'generateSelectedProjectEntitlements', 'importTemplate');
+        $this->middleware('permission:leave-entitlements.edit')->only('edit', 'update', 'editEmployee', 'updateEmployee', 'importTemplate');
         $this->middleware('permission:leave-entitlements.delete')->only('destroy', 'clearAllEntitlements');
     }
     /**
@@ -87,6 +91,7 @@ class LeaveEntitlementController extends Controller
                 $query->where(function ($q) use ($searchValue) {
                     $q->where('administrations.nik', 'LIKE', "%{$searchValue}%")
                         ->orWhere('employees.fullname', 'LIKE', "%{$searchValue}%")
+                        ->orWhere('positions.position_name', 'LIKE', "%{$searchValue}%")
                         ->orWhere('levels.name', 'LIKE', "%{$searchValue}%");
                 });
             }
@@ -103,13 +108,14 @@ class LeaveEntitlementController extends Controller
                 0 => 'DT_RowIndex', // No
                 1 => 'administrations.nik', // NIK
                 2 => 'employees.fullname', // Nama
-                3 => 'projects.project_code', // Project (only for all projects)
-                4 => 'administrations.doh', // DOH
-                5 => 'annual', // Annual
-                6 => 'lsl', // LSL
-                7 => 'levels.name', // Level
-                8 => 'periodic', // Periodic
-                9 => 'actions' // Actions
+                3 => 'positions.position_name', // Position
+                4 => 'projects.project_code', // Project (only for all projects)
+                5 => 'administrations.doh', // DOH
+                6 => 'annual', // Annual
+                7 => 'lsl', // LSL
+                8 => 'levels.name', // Level
+                9 => 'periodic', // Periodic
+                10 => 'actions' // Actions
             ];
 
             $orderColumnName = $columns[$orderColumn] ?? 'administrations.nik';
@@ -165,6 +171,7 @@ class LeaveEntitlementController extends Controller
                     'DT_RowIndex' => $start + $index + 1,
                     'nik' => $administration->nik ?? 'N/A',
                     'name' => $employee->fullname ?? 'N/A',
+                    'position' => $administration->position ? $administration->position->position_name : 'N/A',
                     'doh' => $administration->doh ? $administration->doh->format('d/m/Y') : 'N/A',
                 ];
 
@@ -193,9 +200,22 @@ class LeaveEntitlementController extends Controller
                     $row['periodic_remaining'] = 0;
                 }
 
+                // Get latest period from leave entitlements for edit URL
+                $latestEntitlement = LeaveEntitlement::where('employee_id', $administration->employee_id)
+                    ->orderBy('period_start', 'desc')
+                    ->first();
+
+                $editUrl = route('leave.entitlements.employee.edit', $administration->employee_id);
+                if ($latestEntitlement) {
+                    // Add period parameters as query string to edit URL for latest period
+                    $editUrl = route('leave.entitlements.employee.edit', $administration->employee_id) .
+                        '?period_start=' . $latestEntitlement->period_start->format('Y-m-d') .
+                        '&period_end=' . $latestEntitlement->period_end->format('Y-m-d');
+                }
+
                 $row['actions'] = [
                     'view_url' => route('leave.entitlements.employee.show', $administration->employee_id),
-                    'edit_url' => route('leave.entitlements.employee.edit', $administration->employee_id),
+                    'edit_url' => $editUrl,
                 ];
 
                 $data[] = $row;
@@ -228,22 +248,26 @@ class LeaveEntitlementController extends Controller
             ->with([
                 'employee',
                 'level',
+                'position',
                 'employee.leaveEntitlements.leaveType' => function ($q) {
                     $q->where('is_active', true);
                 }
             ])
             ->join('employees', 'administrations.employee_id', '=', 'employees.id')
-            ->join('levels', 'administrations.level_id', '=', 'levels.id')
+            ->leftJoin('levels', 'administrations.level_id', '=', 'levels.id')
+            ->leftJoin('positions', 'administrations.position_id', '=', 'positions.id')
             ->select(
                 'administrations.id as administration_id',
                 'administrations.employee_id',
                 'administrations.nik',
                 'administrations.doh',
                 'administrations.level_id',
+                'administrations.position_id',
                 'administrations.project_id',
                 'employees.id as employee_id',
                 'employees.fullname',
-                'levels.name as level_name'
+                'levels.name as level_name',
+                'positions.position_name'
             );
 
         return $query;
@@ -259,34 +283,38 @@ class LeaveEntitlementController extends Controller
             ->with([
                 'employee',
                 'level',
+                'position',
                 'employee.leaveEntitlements.leaveType' => function ($q) {
                     $q->where('is_active', true);
                 }
             ])
             ->join('employees', 'administrations.employee_id', '=', 'employees.id')
-            ->join('levels', 'administrations.level_id', '=', 'levels.id')
+            ->leftJoin('levels', 'administrations.level_id', '=', 'levels.id')
+            ->leftJoin('positions', 'administrations.position_id', '=', 'positions.id')
             ->select(
                 'administrations.id as administration_id',
                 'administrations.employee_id',
                 'administrations.nik',
                 'administrations.doh',
                 'administrations.level_id',
+                'administrations.position_id',
                 'administrations.project_id',
                 'employees.id as employee_id',
                 'employees.fullname',
-                'levels.name as level_name'
+                'levels.name as level_name',
+                'positions.position_name'
             );
     }
 
     /**
      * Show the form for creating a new resource.
+     * DEPRECATED: Redirect to index page - use employee.edit instead
      */
     public function create()
     {
-        $leaveTypes = LeaveType::where('is_active', true)->get();
-        $employees = Employee::with(['administrations.project', 'administrations.level'])->get();
-
-        return view('leave-entitlements.create', compact('leaveTypes', 'employees'))->with('title', 'Create Leave Entitlement');
+        // Redirect to index page - users should use employee.edit instead
+        return redirect()->route('leave.entitlements.index')
+            ->with('toast_info', 'Please select an employee from the list to add entitlements.');
     }
 
     /**
@@ -340,9 +368,7 @@ class LeaveEntitlementController extends Controller
             'period_start' => 'required|date',
             'period_end' => 'required|date|after:period_start',
             'entitled_days' => 'required|integer|min:0',
-            'withdrawable_days' => 'required|integer|min:0',
-            'deposit_days' => 'nullable|integer|min:0',
-            'carried_over' => 'nullable|integer|min:0'
+            'deposit_days' => 'nullable|integer|min:0'
         ]);
 
         DB::beginTransaction();
@@ -367,25 +393,20 @@ class LeaveEntitlementController extends Controller
                 return back()->with(['toast_error' => 'Leave entitlement already exists for this employee and period.']);
             }
 
-            // Calculate remaining days
-            $remainingDays = $request->withdrawable_days - ($request->taken_days ?? 0);
-
             $entitlement = LeaveEntitlement::create([
                 'employee_id' => $request->employee_id,
                 'leave_type_id' => $request->leave_type_id,
                 'period_start' => $request->period_start,
                 'period_end' => $request->period_end,
                 'entitled_days' => $request->entitled_days,
-                'withdrawable_days' => $request->withdrawable_days,
                 'deposit_days' => $request->deposit_days ?? 0,
-                'carried_over' => $request->carried_over ?? 0,
-                'taken_days' => $request->taken_days ?? 0,
-                'remaining_days' => $remainingDays
+                'taken_days' => $request->taken_days ?? 0
             ]);
 
             DB::commit();
 
-            return redirect()->route('leave-entitlements.show', $entitlement)
+            // Redirect to employee entitlements page instead of root level show
+            return redirect()->route('leave.entitlements.employee.show', $employee)
                 ->with('toast_success', 'Leave entitlement created successfully.');
         } catch (\Exception $e) {
             DB::rollback();
@@ -395,53 +416,54 @@ class LeaveEntitlementController extends Controller
 
     /**
      * Display the specified resource.
+     * DEPRECATED: Redirect to employee entitlements page
      */
     public function show(LeaveEntitlement $leaveEntitlement)
     {
-        $leaveEntitlement->load(['employee', 'leaveType', 'leaveRequests']);
-
-        return view('leave-entitlements.show', compact('leaveEntitlement'))->with('title', 'Leave Entitlement Details');
+        // Redirect to employee entitlements page instead of root level show
+        $employee = $leaveEntitlement->employee;
+        return redirect()->route('leave.entitlements.employee.show', $employee)
+            ->with('toast_info', 'Redirected to employee entitlements page.');
     }
 
     /**
      * Show the form for editing the specified resource.
+     * DEPRECATED: Redirect to employee entitlements edit page
      */
     public function edit(LeaveEntitlement $leaveEntitlement)
     {
-        $leaveTypes = LeaveType::where('is_active', true)->get();
-        $employees = Employee::with('administrations')->get();
-
-        return view('leave-entitlements.edit', compact('leaveEntitlement', 'leaveTypes', 'employees'))->with('title', 'Edit Leave Entitlement');
+        // Redirect to employee entitlements edit page instead of root level edit
+        $employee = $leaveEntitlement->employee;
+        return redirect()->route('leave.entitlements.employee.edit', $employee)
+            ->with('toast_info', 'Redirected to employee entitlements edit page.');
     }
 
     /**
      * Update the specified resource in storage.
+     * DEPRECATED: Use updateEmployee instead
      */
     public function update(Request $request, LeaveEntitlement $leaveEntitlement)
     {
         $request->validate([
             'entitled_days' => 'required|integer|min:0',
-            'withdrawable_days' => 'required|integer|min:0',
-            'deposit_days' => 'nullable|integer|min:0',
-            'carried_over' => 'nullable|integer|min:0'
+            'deposit_days' => 'nullable|integer|min:0'
         ]);
 
         DB::beginTransaction();
         try {
             $leaveEntitlement->update([
                 'entitled_days' => $request->entitled_days,
-                'withdrawable_days' => $request->withdrawable_days,
-                'deposit_days' => $request->deposit_days ?? 0,
-                'carried_over' => $request->carried_over ?? 0
+                'deposit_days' => $request->deposit_days ?? 0
             ]);
 
-            // Recalculate remaining days
-            $leaveEntitlement->calculateRemainingDays();
+            // remaining_days is now calculated via accessor, no need to recalculate
             $leaveEntitlement->save();
 
             DB::commit();
 
-            return redirect()->route('leave-entitlements.show', $leaveEntitlement)
+            // Redirect to employee entitlements page instead of root level show
+            $employee = $leaveEntitlement->employee;
+            return redirect()->route('leave.entitlements.employee.show', $employee)
                 ->with('toast_success', 'Leave entitlement updated successfully.');
         } catch (\Exception $e) {
             DB::rollback();
@@ -632,10 +654,7 @@ class LeaveEntitlementController extends Controller
                                 'period_end' => $periodDates['end']
                             ], [
                                 'entitled_days' => $entitlementDays,
-                                'withdrawable_days' => $entitlementDays,
-                                'remaining_days' => $entitlementDays,
                                 'deposit_days' => $leaveType->getDepositDays(),
-                                'carried_over' => 0,
                                 'taken_days' => 0
                             ]);
 
@@ -665,10 +684,11 @@ class LeaveEntitlementController extends Controller
         $employee->load([
             'administrations.project',
             'administrations.level',
+            'administrations.position',
             'leaveEntitlements.leaveType'
         ]);
 
-        return view('leave-entitlements.employee.show', compact('employee'))
+        return view('leave-entitlements.show', compact('employee'))
             ->with('title', 'Employee Leave Entitlements - ' . $employee->fullname);
     }
 
@@ -703,7 +723,7 @@ class LeaveEntitlementController extends Controller
         $employee->load(['administrations.project', 'administrations.level']);
         $leaveType = \App\Models\LeaveType::findOrFail($leaveTypeId);
 
-        return view('leave-entitlements.employee.calculation-details', compact(
+        return view('leave-entitlements.calculation-details', compact(
             'employee',
             'leaveType',
             'calculationDetails'
@@ -752,12 +772,18 @@ class LeaveEntitlementController extends Controller
     /**
      * Edit individual employee entitlements
      */
-    public function editEmployee(Employee $employee)
+    public function editEmployee(Employee $employee, Request $request)
     {
+        // Reload employee with fresh relationships
+        $employee->refresh();
+
         $employee->load([
             'administrations.project',
             'administrations.level',
-            'leaveEntitlements.leaveType'
+            'administrations.position',
+            'leaveEntitlements' => function ($query) {
+                $query->with('leaveType');
+            }
         ]);
 
         $leaveTypes = LeaveType::where('is_active', true)->get();
@@ -765,19 +791,36 @@ class LeaveEntitlementController extends Controller
         // Get employee business rules info
         $businessRules = $this->getEmployeeBusinessRules($employee);
 
-        // Fixed current year - always edit current year entitlements
+        // Check if specific period is provided in query parameter
+        $periodDates = null;
         $currentYear = now()->year;
+        $isEditMode = false; // Flag to distinguish edit vs add mode
 
-        // Get current period dates
-        $periodDates = $this->calculatePeriodDates($employee, $currentYear);
+        if ($request->has('period_start') && $request->has('period_end')) {
+            // Edit mode: Use provided period dates - parse and ensure they are start/end of day
+            $periodDates = [
+                'start' => Carbon::parse($request->period_start)->startOfDay(),
+                'end' => Carbon::parse($request->period_end)->endOfDay()
+            ];
+            $currentYear = $periodDates['start']->year;
+            $isEditMode = true; // This is edit mode - use existing entitlement values
+        } else {
+            // Add mode: Default to current year period (for "Add Entitlements" button)
+            $periodDates = $this->calculatePeriodDates($employee, $currentYear);
+            // Ensure dates are start/end of day
+            $periodDates['start'] = $periodDates['start']->startOfDay();
+            $periodDates['end'] = $periodDates['end']->endOfDay();
+            $isEditMode = false; // This is add mode - use default calculated values
+        }
 
-        return view('leave-entitlements.employee.edit', compact(
+        return view('leave-entitlements.edit', compact(
             'employee',
             'leaveTypes',
             'businessRules',
             'periodDates',
-            'currentYear'
-        ))->with('title', 'Edit Employee Leave Entitlements - ' . $employee->fullname);
+            'currentYear',
+            'isEditMode'
+        ))->with('title', ($isEditMode ? 'Edit' : 'Add') . ' Employee Leave Entitlements - ' . $employee->fullname);
     }
 
 
@@ -792,34 +835,52 @@ class LeaveEntitlementController extends Controller
             'entitlements.*.leave_type_id' => 'required|exists:leave_types,id',
             'entitlements.*.entitled_days' => 'required|integer|min:0',
             'entitlements.*.period_start' => 'nullable|date',
-            'entitlements.*.period_end' => 'nullable|date|after:entitlements.*.period_start'
+            'entitlements.*.period_end' => 'nullable|date|after:entitlements.*.period_start',
+            'period_start' => 'nullable|date',
+            'period_end' => 'nullable|date|after:period_start'
         ]);
 
         DB::beginTransaction();
         try {
-            $currentYear = now()->year;
+            // Get period dates from request (form level) or from first entitlement, or calculate default
+            $periodStart = null;
+            $periodEnd = null;
+
+            if ($request->has('period_start') && $request->has('period_end')) {
+                // Use form-level period dates (from hidden fields)
+                $periodStart = Carbon::parse($request->period_start);
+                $periodEnd = Carbon::parse($request->period_end);
+            } elseif (!empty($request->entitlements[0]['period_start']) && !empty($request->entitlements[0]['period_end'])) {
+                // Use period dates from first entitlement (backward compatibility)
+                $periodStart = Carbon::parse($request->entitlements[0]['period_start']);
+                $periodEnd = Carbon::parse($request->entitlements[0]['period_end']);
+            } else {
+                // Calculate default period dates based on project group and DOH
+                $currentYear = now()->year;
+                $periodDates = $this->calculatePeriodDates($employee, $currentYear);
+                $periodStart = $periodDates['start'];
+                $periodEnd = $periodDates['end'];
+            }
 
             foreach ($request->entitlements as $entitlementData) {
                 $leaveType = LeaveType::findOrFail($entitlementData['leave_type_id']);
                 $entitledDays = (int) $entitlementData['entitled_days'];
 
-                // Determine period dates - use provided dates or calculate default
+                // Use the determined period dates (from form level or default)
+                // Override only if specific period is provided in entitlement data
+                $entitlementPeriodStart = $periodStart;
+                $entitlementPeriodEnd = $periodEnd;
+
                 if (!empty($entitlementData['period_start']) && !empty($entitlementData['period_end'])) {
-                    // Use provided period dates
-                    $periodStart = Carbon::parse($entitlementData['period_start']);
-                    $periodEnd = Carbon::parse($entitlementData['period_end']);
-                } else {
-                    // Calculate default period dates based on project group and DOH
-                    $periodDates = $this->calculatePeriodDates($employee, $currentYear);
-                    $periodStart = $periodDates['start'];
-                    $periodEnd = $periodDates['end'];
+                    $entitlementPeriodStart = Carbon::parse($entitlementData['period_start']);
+                    $entitlementPeriodEnd = Carbon::parse($entitlementData['period_end']);
                 }
 
                 // Find existing entitlement with exact same combination
                 $existingEntitlement = LeaveEntitlement::where('employee_id', $employee->id)
                     ->where('leave_type_id', $entitlementData['leave_type_id'])
-                    ->where('period_start', $periodStart->format('Y-m-d'))
-                    ->where('period_end', $periodEnd->format('Y-m-d'))
+                    ->where('period_start', $entitlementPeriodStart->format('Y-m-d'))
+                    ->where('period_end', $entitlementPeriodEnd->format('Y-m-d'))
                     ->first();
 
                 $takenDays = $existingEntitlement ? $existingEntitlement->taken_days : 0;
@@ -830,22 +891,25 @@ class LeaveEntitlementController extends Controller
                 LeaveEntitlement::updateOrCreate([
                     'employee_id' => $employee->id,
                     'leave_type_id' => $entitlementData['leave_type_id'],
-                    'period_start' => $periodStart->format('Y-m-d'),
-                    'period_end' => $periodEnd->format('Y-m-d')
+                    'period_start' => $entitlementPeriodStart->format('Y-m-d'),
+                    'period_end' => $entitlementPeriodEnd->format('Y-m-d')
                 ], [
                     'entitled_days' => $entitledDays,
-                    'withdrawable_days' => $entitledDays,
-                    'remaining_days' => $remainingDays,
                     'deposit_days' => $leaveType->getDepositDays(),
-                    'carried_over' => 0,
                     'taken_days' => $takenDays
                 ]);
             }
 
             DB::commit();
 
-            return redirect()
-                ->route('leave.entitlements.employee.show', $employee)
+            // Redirect back to show page with period parameter if available
+            $redirectUrl = route('leave.entitlements.employee.show', $employee);
+            if ($periodStart && $periodEnd) {
+                $periodKey = $periodStart->format('Y-m-d') . '-' . $periodEnd->format('Y-m-d');
+                $redirectUrl .= '?period=' . urlencode($periodKey);
+            }
+
+            return redirect($redirectUrl)
                 ->with('toast_success', 'Employee entitlements updated successfully.');
         } catch (\Exception $e) {
             DB::rollback();
@@ -922,10 +986,7 @@ class LeaveEntitlementController extends Controller
                     'period_end' => $periodDates['end']
                 ], [
                     'entitled_days' => $entitlementDays,
-                    'withdrawable_days' => $entitlementDays,
-                    'remaining_days' => $entitlementDays,
                     'deposit_days' => $leaveType->getDepositDays(),
-                    'carried_over' => 0,
                     'taken_days' => 0
                 ]);
             }
@@ -1190,9 +1251,9 @@ class LeaveEntitlementController extends Controller
 
         if ($periodicEntitlement) {
             $periodicEntitlement->update([
-                'taken_days' => $periodicEntitlement->taken_days + 10,
-                'remaining_days' => max(0, $periodicEntitlement->remaining_days - 10)
+                'taken_days' => $periodicEntitlement->taken_days + 10
             ]);
+            // remaining_days is now calculated via accessor, no need to update manually
         }
     }
 
@@ -1370,5 +1431,91 @@ class LeaveEntitlementController extends Controller
         ];
 
         return $patterns[$levelName] ?? '10 weeks on / 2 weeks off';
+    }
+
+    /**
+     * Export leave entitlements template
+     */
+    public function exportTemplate(Request $request)
+    {
+        $includeData = $request->get('include_data', true);
+        $filename = 'leave_entitlement_' . ($includeData ? 'data_' : 'template_') . date('Y-m-d_His') . '.xlsx';
+
+        return Excel::download(
+            new LeaveEntitlementExport($includeData),
+            $filename
+        );
+    }
+
+    /**
+     * Import leave entitlements from Excel
+     */
+    public function importTemplate(Request $request)
+    {
+        $request->validate([
+            'file' => 'required|mimes:xlsx,xls|max:10240', // 10MB max
+        ], [
+            'file.required' => 'Please select a file to import.',
+            'file.mimes'    => 'The file must be a file of type: xlsx, xls.',
+            'file.max'      => 'The file may not be greater than 10MB.'
+        ]);
+
+        try {
+            $import = new LeaveEntitlementImport();
+            Excel::import($import, $request->file('file'));
+
+            $successCount = $import->getSuccessCount();
+            $skippedCount = $import->getSkippedCount();
+            $errors = $import->getErrors();
+
+            if (empty($errors)) {
+                return redirect()->route('leave.entitlements.index')
+                    ->with('toast_success', "Successfully imported {$successCount} entitlement records.");
+            } else {
+                // Format errors for display
+                $formattedFailures = collect();
+                foreach ($errors as $error) {
+                    $formattedFailures->push([
+                        'sheet'     => 'Leave Entitlements',
+                        'row'       => $error['row'],
+                        'attribute' => 'NIK: ' . ($error['nik'] ?: 'N/A'),
+                        'value'     => '',
+                        'errors'    => implode(', ', $error['errors']),
+                    ]);
+                }
+
+                $message = "Imported {$successCount} records successfully. Skipped {$skippedCount} records due to validation errors.";
+                return back()
+                    ->with('failures', $formattedFailures)
+                    ->with('toast_warning', $message);
+            }
+        } catch (ValidationException $e) {
+            $failures = collect();
+            foreach ($e->failures() as $failure) {
+                $failures->push([
+                    'sheet'     => 'Leave Entitlements',
+                    'row'       => $failure->row(),
+                    'attribute' => $failure->attribute(),
+                    'value'     => $failure->values()[$failure->attribute()] ?? null,
+                    'errors'    => implode(', ', $failure->errors()),
+                ]);
+            }
+            return back()->with('failures', $failures);
+        } catch (\Throwable $e) {
+            Log::error('Leave Entitlement Import Error: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            $failures = collect([
+                [
+                    'sheet'     => 'System Error',
+                    'row'       => '-',
+                    'attribute' => 'Import Failed',
+                    'value'     => null,
+                    'errors'    => 'An error occurred during import: ' . $e->getMessage()
+                ]
+            ]);
+            return back()->with('failures', $failures);
+        }
     }
 }

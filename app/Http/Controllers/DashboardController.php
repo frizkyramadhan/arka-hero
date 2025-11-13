@@ -805,12 +805,17 @@ class DashboardController extends Controller
         // Entitlement Overview
         $totalEntitlements = LeaveEntitlement::sum('entitled_days');
         $usedEntitlements = LeaveEntitlement::sum('taken_days');
-        $remainingEntitlements = LeaveEntitlement::sum('remaining_days');
+        // remaining_days is now accessor, calculate from collection
+        $remainingEntitlements = LeaveEntitlement::get()->sum('remaining_days');
 
-        // Upcoming Expiring Entitlements
+        // Upcoming Expiring Entitlements (only not expired yet)
+        $today = now()->startOfDay();
+        $thirtyDaysLater = now()->addDays(30)->endOfDay();
+
         $expiringEntitlements = LeaveEntitlement::with(['employee', 'leaveType'])
-            ->where('period_end', '<=', now()->addDays(30))
-            ->where('remaining_days', '>', 0)
+            ->where('period_end', '>=', $today)
+            ->where('period_end', '<=', $thirtyDaysLater)
+            ->whereRaw('(entitled_days - taken_days) > 0') // remaining_days is now accessor
             ->orderBy('period_end', 'asc')
             ->limit(10)
             ->get();
@@ -828,24 +833,26 @@ class DashboardController extends Controller
             ->limit(10)
             ->get();
 
-        // Employees with entitlements expiring soon (within 30 days)
+        // Employees with entitlements expiring soon (within 30 days, not expired yet)
         $employeesWithExpiringEntitlements = Employee::with([
             'administrations' => function ($query) {
                 $query->where('is_active', '1')
                     ->with(['position.department']);
             },
-            'leaveEntitlements' => function ($query) {
+            'leaveEntitlements' => function ($query) use ($today, $thirtyDaysLater) {
                 $query->with('leaveType')
-                    ->where('period_end', '<=', now()->addDays(30))
-                    ->where('remaining_days', '>', 0);
+                    ->where('period_end', '>=', $today)
+                    ->where('period_end', '<=', $thirtyDaysLater)
+                    ->whereRaw('(entitled_days - taken_days) > 0'); // remaining_days is now accessor
             }
         ])
             ->whereHas('administrations', function ($query) {
                 $query->where('is_active', '1');
             })
-            ->whereHas('leaveEntitlements', function ($query) {
-                $query->where('period_end', '<=', now()->addDays(30))
-                    ->where('remaining_days', '>', 0);
+            ->whereHas('leaveEntitlements', function ($query) use ($today, $thirtyDaysLater) {
+                $query->where('period_end', '>=', $today)
+                    ->where('period_end', '<=', $thirtyDaysLater)
+                    ->whereRaw('(entitled_days - taken_days) > 0'); // remaining_days is now accessor
             })
             ->orderBy('fullname', 'asc')
             ->limit(10)
@@ -1231,28 +1238,62 @@ class DashboardController extends Controller
 
     /**
      * Get employees with expiring entitlements data for DataTable.
+     * Shows entitlements that:
+     * 1. Will expire within 30 days (not expired yet), OR
+     * 2. Already expired but no new period entitlement exists yet
      *
      * @return \Illuminate\Http\Response
      */
     public function employeesWithExpiringEntitlements()
     {
+        $today = now()->startOfDay();
+        $thirtyDaysLater = now()->addDays(30)->endOfDay();
+        $thirtyDaysAgo = now()->subDays(30)->startOfDay();
+
         $query = Employee::with([
             'administrations' => function ($query) {
                 $query->where('is_active', '1')
                     ->with(['position.department']);
             },
-            'leaveEntitlements' => function ($query) {
+            'leaveEntitlements' => function ($query) use ($today, $thirtyDaysLater, $thirtyDaysAgo) {
                 $query->with('leaveType')
-                    ->where('period_end', '<=', now()->addDays(30))
-                    ->where('remaining_days', '>', 0);
+                    ->where(function ($q) use ($today, $thirtyDaysLater) {
+                        // Will expire within 30 days (not expired yet)
+                        $q->where('period_end', '>=', $today)
+                            ->where('period_end', '<=', $thirtyDaysLater)
+                            ->whereRaw('(entitled_days - taken_days) > 0'); // remaining_days is now accessor
+                    })
+                    ->orWhere(function ($q) use ($today, $thirtyDaysAgo) {
+                        // Already expired within last 30 days
+                        // (Filtering for new period will be done in collection level)
+                        $q->where('period_end', '>=', $thirtyDaysAgo)
+                            ->where('period_end', '<', $today);
+                    });
             }
         ])
             ->whereHas('administrations', function ($query) {
                 $query->where('is_active', '1');
             })
-            ->whereHas('leaveEntitlements', function ($query) {
-                // Include both expiring and expired entitlements
-                $query->where('period_end', '<=', now()->addDays(30));
+            ->whereHas('leaveEntitlements', function ($query) use ($today, $thirtyDaysLater, $thirtyDaysAgo) {
+                $query->where(function ($q) use ($today, $thirtyDaysLater) {
+                    // Will expire within 30 days (not expired yet)
+                    $q->where('period_end', '>=', $today)
+                        ->where('period_end', '<=', $thirtyDaysLater)
+                        ->whereRaw('(entitled_days - taken_days) > 0'); // remaining_days is now accessor
+                })
+                    ->orWhere(function ($q) use ($today, $thirtyDaysAgo) {
+                        // Already expired within last 30 days, but check if no new period exists
+                        $q->where('period_end', '>=', $thirtyDaysAgo)
+                            ->where('period_end', '<', $today)
+                            ->whereNotExists(function ($subQuery) {
+                                // Check if there's a newer entitlement with same leave_type_id
+                                $subQuery->select(DB::raw(1))
+                                    ->from('leave_entitlements as le2')
+                                    ->whereColumn('le2.employee_id', 'leave_entitlements.employee_id')
+                                    ->whereColumn('le2.leave_type_id', 'leave_entitlements.leave_type_id')
+                                    ->whereColumn('le2.period_start', '>', 'leave_entitlements.period_end');
+                            });
+                    });
             })
             ->orderBy('fullname', 'asc');
 
@@ -1265,14 +1306,36 @@ class DashboardController extends Controller
                 $administration = $row->administrations->where('is_active', '1')->first();
                 return $administration->nik ?? 'N/A';
             })
-            ->addColumn('expires', function ($row) {
+            ->addColumn('expires', function ($row) use ($today) {
                 $entitlements = $row->leaveEntitlements;
                 if ($entitlements->isEmpty()) {
                     return 'N/A';
                 }
 
+                // Filter entitlements: remove expired ones that already have new period
+                $filteredEntitlements = $entitlements->filter(function ($entitlement) use ($row, $today) {
+                    // If not expired yet, keep it
+                    if ($entitlement->period_end >= $today) {
+                        return true;
+                    }
+
+                    // If expired, check if there's a newer entitlement with same leave_type_id
+                    // Query directly to ensure we check all entitlements, not just eager-loaded ones
+                    $hasNewPeriod = LeaveEntitlement::where('employee_id', $row->id)
+                        ->where('leave_type_id', $entitlement->leave_type_id)
+                        ->where('period_start', '>', $entitlement->period_end)
+                        ->exists();
+
+                    // Only keep if no new period exists
+                    return !$hasNewPeriod;
+                });
+
+                if ($filteredEntitlements->isEmpty()) {
+                    return 'N/A';
+                }
+
                 // Ambil entitlement yang paling cepat habis (period_end terdekat)
-                $nearestExpiry = $entitlements->sortBy('period_end')->first();
+                $nearestExpiry = $filteredEntitlements->sortBy('period_end')->first();
                 $daysUntilExpiry = now()->diffInDays($nearestExpiry->period_end, false);
 
                 // Tentukan badge class berdasarkan status

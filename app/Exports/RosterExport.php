@@ -24,60 +24,83 @@ class RosterExport implements FromCollection, WithHeadings, WithMapping, WithSty
     protected $project;
     protected $year;
     protected $month;
+    protected $search;
     protected $employees;
     protected $rosterData;
 
-    public function __construct(Project $project, int $year, int $month)
+    public function __construct(Project $project, int $year, int $month, string $search = '')
     {
         $this->project = $project;
         $this->year = $year;
         $this->month = $month;
-        $this->employees = $this->getProjectEmployees($project);
+        $this->search = $search;
+        $this->employees = $this->getProjectEmployees($project, $search);
         $this->rosterData = $this->getRosterData($this->employees, $year, $month);
     }
 
     /**
      * Get employees for roster project
+     * Returns all active employees from the selected project (matching controller logic)
      */
-    private function getProjectEmployees($project)
+    private function getProjectEmployees($project, $search = '')
     {
-        return Administration::with(['employee', 'position', 'level', 'roster'])
+        $query = Administration::with(['employee', 'position.department', 'level', 'roster'])
             ->where('project_id', $project->id)
-            ->where('is_active', 1)
-            ->whereHas('level', function ($query) {
-                $query->whereNotNull('work_days');
-            })
-            ->orderBy('nik')
-            ->get();
+            ->where('is_active', 1);
+
+        // Apply search filter if provided
+        if (!empty($search)) {
+            $query->where(function ($q) use ($search) {
+                $q->where('nik', 'like', "%{$search}%")
+                    ->orWhereHas('employee', function ($employeeQuery) use ($search) {
+                        $employeeQuery->where('fullname', 'like', "%{$search}%");
+                    })
+                    ->orWhereHas('position', function ($positionQuery) use ($search) {
+                        $positionQuery->where('position_name', 'like', "%{$search}%")
+                            ->orWhereHas('department', function ($departmentQuery) use ($search) {
+                                $departmentQuery->where('department_name', 'like', "%{$search}%");
+                            });
+                    });
+            });
+        }
+
+        return $query->orderBy('nik')->get();
     }
 
     /**
      * Get roster data for employees for specific month/year
+     * Handles employees with or without roster
      */
     private function getRosterData($employees, $year, $month)
     {
         $rosterData = [];
 
         foreach ($employees as $admin) {
-            if (!$admin->roster) {
-                continue;
-            }
-
             $rosterData[$admin->employee_id] = [];
             $daysInMonth = Carbon::create($year, $month)->daysInMonth;
 
             for ($day = 1; $day <= $daysInMonth; $day++) {
                 $currentDate = Carbon::create($year, $month, $day);
 
-                $dayStatus = RosterDailyStatus::where('roster_id', $admin->roster->id)
-                    ->where('date', $currentDate->format('Y-m-d'))
-                    ->first();
+                // If employee has roster, get status from database
+                if ($admin->roster) {
+                    $dayStatus = RosterDailyStatus::where('roster_id', $admin->roster->id)
+                        ->where('date', $currentDate->format('Y-m-d'))
+                        ->first();
 
-                $rosterData[$admin->employee_id][$day] = [
-                    'status' => $dayStatus ? $dayStatus->status_code : 'D',
-                    'notes' => $dayStatus ? $dayStatus->notes : null,
-                    'date' => $currentDate->format('Y-m-d')
-                ];
+                    $rosterData[$admin->employee_id][$day] = [
+                        'status' => $dayStatus ? $dayStatus->status_code : 'D',
+                        'notes' => $dayStatus ? $dayStatus->notes : null,
+                        'date' => $currentDate->format('Y-m-d')
+                    ];
+                } else {
+                    // If no roster, default to 'D' (Day Shift)
+                    $rosterData[$admin->employee_id][$day] = [
+                        'status' => 'D',
+                        'notes' => null,
+                        'date' => $currentDate->format('Y-m-d')
+                    ];
+                }
             }
         }
 
@@ -98,7 +121,7 @@ class RosterExport implements FromCollection, WithHeadings, WithMapping, WithSty
     public function headings(): array
     {
         $daysInMonth = Carbon::create($this->year, $this->month)->daysInMonth;
-        $headers = ['NO', 'Name', 'NIK', 'Position'];
+        $headers = ['NO', 'Name', 'NIK', 'Department', 'Position'];
 
         // Add day columns
         for ($day = 1; $day <= $daysInMonth; $day++) {
@@ -122,6 +145,7 @@ class RosterExport implements FromCollection, WithHeadings, WithMapping, WithSty
             $index,
             $row->employee->fullname ?? 'Unknown',
             $row->nik ?? 'Unknown',
+            $row->position->department->department_name ?? 'N/A',
             $row->position->position_name ?? 'Unknown'
         ];
 
@@ -141,7 +165,7 @@ class RosterExport implements FromCollection, WithHeadings, WithMapping, WithSty
     public function styles(Worksheet $sheet)
     {
         $daysInMonth = Carbon::create($this->year, $this->month)->daysInMonth;
-        $lastColumn = 4 + $daysInMonth; // NO, Name, NIK, Position + days
+        $lastColumn = 5 + $daysInMonth; // NO, Name, NIK, Department, Position + days
 
         return [
             // Header row styling
@@ -189,14 +213,15 @@ class RosterExport implements FromCollection, WithHeadings, WithMapping, WithSty
         $daysInMonth = Carbon::create($this->year, $this->month)->daysInMonth;
         $widths = [
             'A' => 8,  // NO
-            'B' => 25, // Name
-            'C' => 15, // NIK
-            'D' => 20  // Position
+            'B' => 20, // Name (reduced)
+            'C' => 10, // NIK (reduced)
+            'D' => 15, // Department (reduced)
+            'E' => 20  // Position
         ];
 
         // Set width for day columns
         for ($i = 1; $i <= $daysInMonth; $i++) {
-            $column = $this->getColumnLetter(4 + $i);
+            $column = $this->getColumnLetter(5 + $i);
             $widths[$column] = 8;
         }
 
@@ -211,7 +236,7 @@ class RosterExport implements FromCollection, WithHeadings, WithMapping, WithSty
         return [
             AfterSheet::class => function (AfterSheet $event) {
                 $daysInMonth = Carbon::create($this->year, $this->month)->daysInMonth;
-                $lastColumn = 4 + $daysInMonth;
+                $lastColumn = 5 + $daysInMonth;
                 $lastRow = $this->employees->count() + 1;
 
                 // Apply conditional formatting for roster statuses
@@ -223,8 +248,8 @@ class RosterExport implements FromCollection, WithHeadings, WithMapping, WithSty
                 // Set sheet name to Month Year format
                 $this->setSheetName($event);
 
-                // Freeze first row
-                $event->sheet->freezePane('A2');
+                // Freeze first row and columns A-E (NO, Name, NIK, Department, Position)
+                $event->sheet->freezePane('F2');
 
                 // Add project info as comment
                 $event->sheet->getComment('A1')
@@ -253,7 +278,7 @@ class RosterExport implements FromCollection, WithHeadings, WithMapping, WithSty
 
         // Apply direct cell formatting instead of conditional formatting
         for ($day = 1; $day <= $daysInMonth; $day++) {
-            $column = $this->getColumnLetter(4 + $day);
+            $column = $this->getColumnLetter(5 + $day);
 
             // Apply formatting to each cell based on its value
             for ($row = 2; $row <= $lastRow; $row++) {
@@ -278,17 +303,23 @@ class RosterExport implements FromCollection, WithHeadings, WithMapping, WithSty
     {
         // Set column widths
         $event->sheet->getColumnDimension('A')->setWidth(5);  // NO column
-        $event->sheet->getColumnDimension('B')->setWidth(25);  // Name column
-        $event->sheet->getColumnDimension('C')->setWidth(10);  // NIK column
-        $event->sheet->getColumnDimension('D')->setWidth(35);  // Position column (wider)
+        $event->sheet->getColumnDimension('B')->setWidth(20);  // Name column (reduced)
+        $event->sheet->getColumnDimension('C')->setWidth(10);  // NIK column (reduced)
+        $event->sheet->getColumnDimension('D')->setWidth(15);  // Department column (reduced)
+        $event->sheet->getColumnDimension('E')->setWidth(35);  // Position column (wider)
 
         // Set alignment for Name column (left aligned)
         $event->sheet->getStyle('B2:B' . $lastRow)
             ->getAlignment()
             ->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_LEFT);
 
-        // Set alignment for Position column (left aligned)
+        // Set alignment for Department column (left aligned)
         $event->sheet->getStyle('D2:D' . $lastRow)
+            ->getAlignment()
+            ->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_LEFT);
+
+        // Set alignment for Position column (left aligned)
+        $event->sheet->getStyle('E2:E' . $lastRow)
             ->getAlignment()
             ->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_LEFT);
 
@@ -302,12 +333,12 @@ class RosterExport implements FromCollection, WithHeadings, WithMapping, WithSty
             ->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
 
         // Set header alignment (center)
-        $event->sheet->getStyle('A1:D1')
+        $event->sheet->getStyle('A1:E1')
             ->getAlignment()
             ->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
 
         // Apply borders to all cells
-        $event->sheet->getStyle('A1:' . $this->getColumnLetter(4 + Carbon::create($this->year, $this->month)->daysInMonth) . $lastRow)
+        $event->sheet->getStyle('A1:' . $this->getColumnLetter(5 + Carbon::create($this->year, $this->month)->daysInMonth) . $lastRow)
             ->getBorders()
             ->getAllBorders()
             ->setBorderStyle(\PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN);

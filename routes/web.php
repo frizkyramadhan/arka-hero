@@ -36,6 +36,7 @@ use App\Http\Controllers\ApprovalPlanController;
 use App\Http\Controllers\EmployeebankController;
 use App\Http\Controllers\EmployeeBondController;
 use App\Http\Controllers\LeaveRequestController;
+use App\Http\Controllers\BulkLeaveRequestController;
 use App\Http\Controllers\LetterNumberController;
 use App\Http\Controllers\OperableunitController;
 use App\Http\Controllers\AccommodationController;
@@ -598,10 +599,28 @@ Route::group(['middleware' => ['auth']], function () {
             Route::get('/leave-types-by-employee/{employeeId}', [LeaveRequestController::class, 'getLeaveTypesByEmployee'])->name('leave-types-by-employee');
         });
 
+        // Bulk Leave Requests
+        Route::prefix('bulk-requests')->name('bulk-requests.')->group(function () {
+            Route::get('/', [BulkLeaveRequestController::class, 'index'])->name('index');
+            Route::get('/create', [BulkLeaveRequestController::class, 'create'])->name('create');
+            Route::post('/', [BulkLeaveRequestController::class, 'store'])->name('store');
+            Route::get('/{batch_id}', [BulkLeaveRequestController::class, 'show'])->name('show');
+            Route::post('/{batch_id}/cancel', [BulkLeaveRequestController::class, 'cancelBatch'])->name('cancel');
+
+            // AJAX endpoints
+            Route::get('/ajax/employees-due', [BulkLeaveRequestController::class, 'getEmployeesDue'])->name('ajax.employees-due');
+            Route::get('/ajax/departments', [BulkLeaveRequestController::class, 'getDepartmentsByProject'])->name('ajax.departments');
+            Route::get('/ajax/approval-preview', [BulkLeaveRequestController::class, 'getBulkApprovalPreview'])->name('ajax.approval-preview');
+        });
+
         // Leave Entitlements
         Route::prefix('entitlements')->name('entitlements.')->group(function () {
             Route::get('/', [LeaveEntitlementController::class, 'index'])->name('index');
             Route::get('/data', [LeaveEntitlementController::class, 'data'])->name('data');
+            // Export/Import
+            Route::get('/export-template', [LeaveEntitlementController::class, 'exportTemplate'])->name('export-template');
+            Route::post('/import-template', [LeaveEntitlementController::class, 'importTemplate'])->name('import-template');
+
             Route::get('/create', [LeaveEntitlementController::class, 'create'])->name('create');
             Route::post('/', [LeaveEntitlementController::class, 'store'])->name('store');
             Route::get('/{leaveEntitlement}', [LeaveEntitlementController::class, 'show'])->name('show');

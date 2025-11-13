@@ -169,7 +169,7 @@ class LeaveRequestController extends Controller
      */
     public function create(Request $request)
     {
-        $leaveTypes = LeaveType::where('is_active', true)->get();
+        $leaveTypes = LeaveType::where('is_active', true)->orderBy('code', 'asc')->get();
 
         // Get all active projects for project selection
         $projects = Project::where('project_status', 1)->get();
@@ -430,13 +430,16 @@ class LeaveRequestController extends Controller
         //     return back()->with(['toast_error' => 'This leave request cannot be edited.']);
         // }
 
+        // Load leave types for leave type selection
+        $leaveTypes = LeaveType::where('is_active', true)->orderBy('code', 'asc')->get();
+
         // Load projects for project selection
         $projects = Project::where('project_status', 1)->get();
 
         // Get all active departments for department selection
         $departments = Department::where('department_status', 1)->get();
 
-        return view('leave-requests.edit', compact('leaveRequest', 'projects', 'departments'))->with('title', 'Edit Leave Request');
+        return view('leave-requests.edit', compact('leaveRequest', 'leaveTypes', 'projects', 'departments'))->with('title', 'Edit Leave Request');
     }
 
     /**
@@ -738,9 +741,18 @@ class LeaveRequestController extends Controller
      */
     public function getLeaveTypesByEmployee($employeeId)
     {
-        $entitlements = LeaveEntitlement::with('leaveType')
-            ->where('employee_id', $employeeId)
-            ->where('remaining_days', '>', 0)
+        $today = now()->toDateString();
+
+        $entitlements = LeaveEntitlement::where('employee_id', $employeeId)
+            ->whereRaw('(entitled_days - taken_days) > 0') // remaining_days is now accessor
+            ->where('period_start', '<=', $today)
+            ->where('period_end', '>=', $today)
+            ->with(['leaveType' => function($query) {
+                $query->orderBy('code', 'asc');
+            }])
+            ->join('leave_types', 'leave_entitlements.leave_type_id', '=', 'leave_types.id')
+            ->orderBy('leave_types.code', 'asc')
+            ->select('leave_entitlements.*')
             ->get()
             ->map(function ($entitlement) {
                 return [
@@ -749,11 +761,13 @@ class LeaveRequestController extends Controller
                         'name' => $entitlement->leaveType->name,
                         'code' => $entitlement->leaveType->code
                     ],
-                    'remaining_days' => $entitlement->remaining_days,
+                    'remaining_days' => $entitlement->remaining_days, // Accessor will calculate automatically
                     'entitled_days' => $entitlement->entitled_days,
                     'taken_days' => $entitlement->taken_days
                 ];
-            });
+            })
+            ->sortBy('leave_type.code')
+            ->values();
 
         return response()->json(['leaveTypes' => $entitlements]);
     }
@@ -777,8 +791,12 @@ class LeaveRequestController extends Controller
 
     public function getLeavePeriod($employeeId, $leaveTypeId)
     {
+        $today = now()->toDateString();
+
         $leaveEntitlement = LeaveEntitlement::where('employee_id', $employeeId)
             ->where('leave_type_id', $leaveTypeId)
+            ->where('period_start', '<=', $today)
+            ->where('period_end', '>=', $today)
             ->first();
 
         if ($leaveEntitlement) {
@@ -799,7 +817,7 @@ class LeaveRequestController extends Controller
 
         return response()->json([
             'success' => false,
-            'message' => 'No leave entitlement found for this employee and leave type'
+            'message' => 'No active leave entitlement found for this employee and leave type'
         ]);
     }
 
@@ -832,8 +850,17 @@ class LeaveRequestController extends Controller
     {
         try {
             $employee = Employee::findOrFail($employeeId);
+            $today = now()->toDateString();
+
             $leaveEntitlements = LeaveEntitlement::where('employee_id', $employeeId)
-                ->with('leaveType')
+                ->where('period_start', '<=', $today)
+                ->where('period_end', '>=', $today)
+                ->with(['leaveType' => function($query) {
+                    $query->orderBy('code', 'asc');
+                }])
+                ->join('leave_types', 'leave_entitlements.leave_type_id', '=', 'leave_types.id')
+                ->orderBy('leave_types.code', 'asc')
+                ->select('leave_entitlements.*')
                 ->get();
 
             $balanceData = $leaveEntitlements->map(function ($entitlement) {
@@ -846,7 +873,9 @@ class LeaveRequestController extends Controller
                     'period_start' => $entitlement->period_start,
                     'period_end' => $entitlement->period_end
                 ];
-            });
+            })
+            ->sortBy('leave_type_code')
+            ->values();
 
             // Get employee administration data for approval flow
             $administration = $employee->administrations->where('is_active', 1)->first();
@@ -929,9 +958,7 @@ class LeaveRequestController extends Controller
                 $oldTakenDays = $entitlement->taken_days;
                 $entitlement->taken_days += $leaveRequest->total_days;
 
-                // Recalculate remaining days
-                $entitlement->remaining_days = $entitlement->withdrawable_days - $entitlement->taken_days;
-
+                // remaining_days is now calculated via accessor, no need to update manually
                 $entitlement->save();
 
                 Log::info("Successfully updated leave entitlements (immediate calculation)", [
@@ -942,7 +969,7 @@ class LeaveRequestController extends Controller
                     'old_taken_days' => $oldTakenDays,
                     'new_taken_days' => $entitlement->taken_days,
                     'remaining_days' => $entitlement->remaining_days,
-                    'withdrawable_days' => $entitlement->withdrawable_days
+                    'entitled_days' => $entitlement->entitled_days
                 ]);
             } else {
                 Log::warning("No entitlement found for leave request (immediate calculation)", [

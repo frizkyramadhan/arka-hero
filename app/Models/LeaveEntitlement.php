@@ -15,17 +15,23 @@ class LeaveEntitlement extends Model
         'period_start',
         'period_end',
         'entitled_days',
-        'withdrawable_days',
         'deposit_days',
-        'carried_over',
-        'taken_days',
-        'remaining_days'
+        'taken_days'
     ];
 
     protected $casts = [
         'period_start' => 'date',
         'period_end' => 'date'
     ];
+
+    /**
+     * Get remaining days (calculated attribute)
+     * remaining_days = entitled_days - taken_days
+     */
+    public function getRemainingDaysAttribute()
+    {
+        return max(0, $this->entitled_days - $this->taken_days);
+    }
 
     // Relationships
     public function employee()
@@ -48,13 +54,14 @@ class LeaveEntitlement extends Model
     // Business Logic Methods
     public function calculateRemainingDays()
     {
-        $this->remaining_days = $this->withdrawable_days - $this->taken_days;
+        // No longer needed - remaining_days is now an accessor
+        // Kept for backward compatibility if called elsewhere
         return $this->remaining_days;
     }
 
     public function isEligible()
     {
-        return $this->withdrawable_days > 0;
+        return $this->entitled_days > 0;
     }
 
     public function canTakeLeave($days)
@@ -68,7 +75,7 @@ class LeaveEntitlement extends Model
             ->where('status', 'approved')
             ->sum('total_days');
 
-        $this->calculateRemainingDays();
+        // remaining_days is now calculated via accessor, no need to save
         $this->save();
     }
 
@@ -114,19 +121,19 @@ class LeaveEntitlement extends Model
                 'end' => $this->period_end->format('d M Y'),
             ],
             'leave_type' => $this->leaveType->name ?? 'Unknown',
-            'total_entitlement' => $this->withdrawable_days,
+            'total_entitlement' => $this->entitled_days,
             'taken_days' => $totalTakenDays,
             'total_cancelled_days' => $totalCancelledDays,
             'total_effective_days' => $totalEffectiveDays,
             'remaining_days' => $this->remaining_days,
             'leave_requests' => $leaveRequestsData,
             'calculation_summary' => [
-                'total_entitlement' => $this->withdrawable_days,
+                'total_entitlement' => $this->entitled_days,
                 'total_taken' => $totalTakenDays,
                 'total_cancelled' => $totalCancelledDays,
                 'total_effective' => $totalEffectiveDays,
                 'remaining' => $this->remaining_days,
-                'utilization_percentage' => $this->withdrawable_days > 0 ? round(($totalEffectiveDays / $this->withdrawable_days) * 100, 2) : 0,
+                'utilization_percentage' => $this->entitled_days > 0 ? round(($totalEffectiveDays / $this->entitled_days) * 100, 2) : 0,
             ]
         ];
     }

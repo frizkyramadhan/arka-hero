@@ -29,7 +29,10 @@ class LeaveRequest extends Model
         'auto_conversion_at',
         'approved_at',
         'closed_at',
-        'closed_by'
+        'closed_by',
+        'batch_id',
+        'is_batch_request',
+        'bulk_notes'
     ];
 
     protected $casts = [
@@ -39,7 +42,8 @@ class LeaveRequest extends Model
         'requested_at' => 'datetime',
         'auto_conversion_at' => 'datetime',
         'approved_at' => 'datetime',
-        'closed_at' => 'datetime'
+        'closed_at' => 'datetime',
+        'is_batch_request' => 'boolean'
     ];
 
     // Relationships

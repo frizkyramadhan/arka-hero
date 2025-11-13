@@ -29,12 +29,16 @@ class RosterController extends Controller
 
         $selectedProject = null;
         $employees = collect();
+        $employeeStats = null;
         $year = $request->get('year', now()->year);
         $month = $request->get('month', now()->month);
+        $search = $request->get('search', '');
 
         if ($request->filled('project_id')) {
             $selectedProject = Project::find($request->project_id);
-            $employees = $this->getProjectEmployees($selectedProject);
+            $result = $this->getProjectEmployees($selectedProject, $search);
+            $employees = $result['employees'];
+            $employeeStats = $result['stats'];
         }
 
         return view('rosters.index', compact(
@@ -42,69 +46,105 @@ class RosterController extends Controller
             'projects',
             'selectedProject',
             'employees',
+            'employeeStats',
             'year',
-            'month'
+            'month',
+            'search'
         ));
     }
 
     /**
      * Get employees for roster project
+     * Returns all active employees from the selected project with search and pagination
      */
-    private function getProjectEmployees($project)
+    private function getProjectEmployees($project, $search = '', $perPage = 20)
     {
-        $employees = Administration::with(['employee', 'position', 'level', 'roster'])
+        // Build query for active employees from the project
+        $query = Administration::with(['employee', 'position.department', 'level', 'roster'])
             ->where('project_id', $project->id)
-            ->where('is_active', 1)
-            ->whereHas('level', function ($query) {
-                $query->whereNotNull('work_days');
-            })
-            ->orderBy('nik')
-            ->get();
+            ->where('is_active', 1);
 
-        // Auto-create roster for employees who don't have one
+        // Apply search filter
+        if (!empty($search)) {
+            $query->where(function ($q) use ($search) {
+                $q->where('nik', 'like', "%{$search}%")
+                    ->orWhereHas('employee', function ($employeeQuery) use ($search) {
+                        $employeeQuery->where('fullname', 'like', "%{$search}%");
+                    })
+                    ->orWhereHas('position', function ($positionQuery) use ($search) {
+                        $positionQuery->where('position_name', 'like', "%{$search}%")
+                            ->orWhereHas('department', function ($departmentQuery) use ($search) {
+                                $departmentQuery->where('department_name', 'like', "%{$search}%");
+                            });
+                    });
+            });
+        }
+
+        // Get total count before pagination for statistics
+        $totalCount = (clone $query)->count();
+
+        // Get all employees for statistics (before pagination)
+        $allEmployees = (clone $query)->get();
+
+        // Apply pagination
+        $employees = $query->orderBy('nik')->paginate($perPage)->withQueryString();
+
+        // Auto-create roster for employees who have level with work_days configured
         foreach ($employees as $admin) {
-            if (!$admin->roster) {
+            // Only create roster if employee has level with work_days
+            if ($admin->level && $admin->level->work_days !== null && !$admin->roster) {
                 $admin->roster = $this->createRosterForEmployee($admin);
             }
         }
 
-        // Debug: Log roster information for each employee
-        $debugInfo = [];
-        foreach ($employees as $admin) {
-            // Try to get employee name directly from database
-            $employeeName = DB::table('employees')
-                ->where('id', $admin->employee_id)
-                ->value('fullname');
+        // Log total count for debugging
+        Log::info('Roster Employee Count Debug', [
+            'project_code' => $project->project_code,
+            'total_active' => $totalCount,
+            'with_level' => $allEmployees->where('level_id', '!=', null)->count(),
+            'without_level' => $allEmployees->where('level_id', null)->count(),
+            'with_level_and_work_days' => $allEmployees->filter(function ($admin) {
+                return $admin->level && $admin->level->work_days !== null;
+            })->count(),
+            'with_roster' => $allEmployees->where('roster', '!=', null)->count(),
+            'search' => $search,
+            'per_page' => $perPage
+        ]);
 
-            $debugInfo[] = [
-                'name' => $employeeName ?? 'Unknown',
-                'nik' => $admin->nik ?? 'Unknown',
-                'level' => $admin->level->name ?? 'Unknown',
-                'roster_pattern' => $admin->level->getRosterPattern() ?? 'No Roster',
-                'work_days' => $admin->level->work_days ?? 0,
-                'off_days' => $admin->level->off_days ?? 0,
-                'has_roster' => $admin->roster ? 'Yes' : 'No',
-                'roster_id' => $admin->roster->id ?? null,
-                'employee_id' => $admin->employee_id,
-                'employee_relation' => $admin->employee ? 'Loaded' : 'Not Loaded'
-            ];
-        }
+        // Prepare statistics for view (based on all employees, not just paginated)
+        $stats = [
+            'total_active' => $totalCount,
+            'with_level' => $allEmployees->where('level_id', '!=', null)->count(),
+            'without_level' => $allEmployees->where('level_id', null)->count(),
+            'with_level_and_work_days' => $allEmployees->filter(function ($admin) {
+                return $admin->level && $admin->level->work_days !== null;
+            })->count(),
+            'with_roster' => $allEmployees->where('roster', '!=', null)->count()
+        ];
 
-        Log::info('Roster Debug Info:', $debugInfo);
-
-        return $employees;
+        return [
+            'employees' => $employees,
+            'stats' => $stats
+        ];
     }
 
     /**
      * Auto-create roster for employee
+     * Creates roster for all employees, even if they don't have level with work_days
      */
     private function createRosterForEmployee($administration)
     {
-        // Check if level has roster configuration
-        if (!$administration->level || !$administration->level->hasRosterConfig()) {
-            return null;
+        // Check if roster already exists
+        $existingRoster = Roster::where('administration_id', $administration->id)
+            ->where('is_active', true)
+            ->first();
+
+        if ($existingRoster) {
+            return $existingRoster;
         }
 
+        // Create roster for employee (even without level with work_days)
+        // This allows manual status updates for all employees
         return Roster::create([
             'employee_id' => $administration->employee_id,
             'administration_id' => $administration->id,
@@ -121,35 +161,94 @@ class RosterController extends Controller
      */
     public function updateStatus(Request $request)
     {
-        $request->validate([
-            'roster_id' => 'required|exists:rosters,id',
-            'date' => 'required|date',
-            'status_code' => 'required|in:D,N,OFF,S,I,A,C',
-            'notes' => 'nullable|string|max:500'
-        ]);
+        try {
+            $request->validate([
+                'roster_id' => 'nullable|exists:rosters,id',
+                'administration_id' => 'nullable|exists:administrations,id',
+                'date' => 'required|date',
+                'status_code' => 'required|in:D,N,OFF,S,I,A,C',
+                'notes' => 'nullable|string|max:500'
+            ]);
 
-        $roster = Roster::findOrFail($request->roster_id);
+            $roster = null;
 
-        $status = RosterDailyStatus::updateOrCreate(
-            [
-                'roster_id' => $roster->id,
-                'date' => $request->date
-            ],
-            [
-                'status_code' => $request->status_code,
-                'notes' => $request->notes
-            ]
-        );
+            // If roster_id is provided, use it
+            if ($request->filled('roster_id')) {
+                $roster = Roster::findOrFail($request->roster_id);
+            }
+            // If administration_id is provided, find or create roster
+            elseif ($request->filled('administration_id')) {
+                $administration = Administration::with(['level', 'roster'])->findOrFail($request->administration_id);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Status updated successfully',
-            'data' => [
-                'status' => $status->status_code,
-                'color' => $status->getStatusColor(),
-                'name' => $status->getStatusName()
-            ]
-        ]);
+                // If roster exists, use it
+                if ($administration->roster) {
+                    $roster = $administration->roster;
+                }
+                // Try to create roster for employee
+                else {
+                    try {
+                        $roster = $this->createRosterForEmployee($administration);
+
+                        if (!$roster) {
+                            return response()->json([
+                                'success' => false,
+                                'message' => 'Failed to create roster for this employee.'
+                            ], 422);
+                        }
+                    } catch (\Exception $e) {
+                        Log::error('Failed to create roster for employee', [
+                            'administration_id' => $administration->id,
+                            'error' => $e->getMessage()
+                        ]);
+
+                        return response()->json([
+                            'success' => false,
+                            'message' => 'Failed to create roster: ' . $e->getMessage()
+                        ], 422);
+                    }
+                }
+            }
+            // Neither roster_id nor administration_id provided
+            else {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Either roster_id or administration_id must be provided.'
+                ], 422);
+            }
+
+            // Update or create roster daily status
+            $status = RosterDailyStatus::updateOrCreate(
+                [
+                    'roster_id' => $roster->id,
+                    'date' => $request->date
+                ],
+                [
+                    'status_code' => $request->status_code,
+                    'notes' => $request->notes
+                ]
+            );
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Status updated successfully',
+                'data' => [
+                    'status' => $status->status_code,
+                    'color' => $status->getStatusColor(),
+                    'name' => $status->getStatusName(),
+                    'roster_id' => $roster->id
+                ]
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Roster Update Status Error: ' . $e->getMessage(), [
+                'request' => $request->all(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'An error occurred while updating status: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
     /**
@@ -187,27 +286,31 @@ class RosterController extends Controller
 
     /**
      * Export roster to Excel
+     * Supports optional search parameter to export filtered results
      */
     public function export(Request $request)
     {
         $request->validate([
             'project_id' => 'required|exists:projects,id',
             'year' => 'required|integer|min:2020|max:2030',
-            'month' => 'required|integer|min:1|max:12'
+            'month' => 'required|integer|min:1|max:12',
+            'search' => 'nullable|string|max:255'
         ]);
 
         $project = Project::findOrFail($request->project_id);
         $year = $request->get('year');
         $month = $request->get('month');
+        $search = $request->get('search', '');
 
         $filename = sprintf(
-            'Roster_%s_%s_%s.xlsx',
+            'Roster_%s_%s_%s%s.xlsx',
             $project->project_code,
             Carbon::create($year, $month)->format('Y_m'),
+            $search ? '_filtered_' : '',
             now()->format('YmdHis')
         );
 
-        return Excel::download(new RosterExport($project, $year, $month), $filename);
+        return Excel::download(new RosterExport($project, $year, $month, $search), $filename);
     }
 
     /**
@@ -242,9 +345,25 @@ class RosterController extends Controller
 
             $results = $import->getImportResults();
 
+            // Log import results
+            Log::info('Roster Import Completed', [
+                'project_code' => $project->project_code,
+                'year' => $year,
+                'month' => $month,
+                'imported_count' => $results['imported_count'],
+                'has_errors' => $results['has_errors'],
+                'error_count' => count($results['errors']),
+                'errors' => $results['errors']
+            ]);
+
+            $message = "Successfully imported {$results['imported_count']} roster entries.";
+            if ($results['has_errors']) {
+                $message .= " " . count($results['errors']) . " error(s) occurred.";
+            }
+
             return response()->json([
                 'success' => true,
-                'message' => 'Roster imported successfully',
+                'message' => $message,
                 'data' => $results
             ]);
         } catch (\Exception $e) {

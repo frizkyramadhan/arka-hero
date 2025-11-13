@@ -37,6 +37,10 @@ class LeavePermissionSeeder extends Seeder
             'leave-requests.edit',
             'leave-requests.delete',
 
+            // Bulk Leave Requests Management
+            'bulk-leave-requests.show',
+            'bulk-leave-requests.create',
+
             // Leave Reports Management
             'leave-reports.show',
         ];
@@ -67,6 +71,8 @@ class LeavePermissionSeeder extends Seeder
                 'leave-requests.show',
                 'leave-requests.create',
                 'leave-requests.edit',
+                'bulk-leave-requests.show',
+                'bulk-leave-requests.create',
                 'leave-reports.show',
             ]);
         }
@@ -87,6 +93,8 @@ class LeavePermissionSeeder extends Seeder
                 'leave-requests.create',
                 'leave-requests.edit',
                 'leave-requests.delete',
+                'bulk-leave-requests.show',
+                'bulk-leave-requests.create',
                 'leave-reports.show',
             ]);
         }
@@ -107,6 +115,8 @@ class LeavePermissionSeeder extends Seeder
                 'leave-requests.create',
                 'leave-requests.edit',
                 'leave-requests.delete',
+                'bulk-leave-requests.show',
+                'bulk-leave-requests.create',
                 'leave-reports.show',
             ]);
         }
