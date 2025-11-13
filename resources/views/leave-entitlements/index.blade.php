@@ -21,11 +21,72 @@
 
     <section class="content">
         <div class="container-fluid">
+            <!-- Display Import Errors -->
+            @if (session()->has('failures'))
+                <div class="card card-danger">
+                    <div class="card-header">
+                        <h3 class="card-title"><i class="icon fas fa-exclamation-triangle"></i> Import Validation Errors</h3>
+                        <div class="card-tools">
+                            <button type="button" class="btn btn-tool" data-card-widget="collapse">
+                                <i class="fas fa-minus"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body" style="display: block;">
+                        <div class="table-responsive">
+                            <table class="table table-sm table-striped">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 5%">Sheet</th>
+                                        <th class="text-center" style="width: 5%">Row</th>
+                                        <th style="width: 20%">Column</th>
+                                        <th style="width: 20%">Value</th>
+                                        <th>Error Message</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (session()->get('failures') as $failure)
+                                        <tr>
+                                            <td>{{ $failure['sheet'] }}</td>
+                                            <td class="text-center">{{ $failure['row'] }}</td>
+                                            <td>
+                                                <strong>{{ ucwords(str_replace('_', ' ', $failure['attribute'])) }}</strong>
+                                            </td>
+                                            <td>
+                                                @if (isset($failure['value']))
+                                                    {{ $failure['value'] }}
+                                                @endif
+                                            </td>
+                                            <td>
+                                                {!! nl2br(e($failure['errors'])) !!}
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="mt-1">
+                            <small class="text-muted">
+                                <i class="fas fa-info-circle"></i>
+                                Please correct these errors in your Excel file and try importing again.
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            @endif
+
             <!-- Project Filter and Generate Entitlements Card -->
             <div class="card">
                 <div class="card-header">
                     <h3 class="card-title">Project Filter & Generate Entitlements</h3>
                     <div class="card-tools">
+                        <a href="{{ route('leave.entitlements.export-template') }}" class="btn btn-info btn-sm mr-2">
+                            <i class="fas fa-file-excel"></i> Export Template
+                        </a>
+                        <button type="button" class="btn btn-success btn-sm mr-2" data-toggle="modal"
+                            data-target="#importModal">
+                            <i class="fas fa-file-upload"></i> Import Data
+                        </button>
                         <button type="button" class="btn btn-tool" data-card-widget="collapse">
                             <i class="fas fa-minus"></i>
                         </button>
@@ -145,6 +206,7 @@
                                         <th class="text-center">No</th>
                                         <th>NIK</th>
                                         <th>Nama</th>
+                                        <th>Position</th>
                                         @if ($showAllProjects)
                                             <th>Project</th>
                                         @endif
@@ -185,6 +247,38 @@
             @endif
         </div>
     </section>
+
+    <!-- Import Modal -->
+    <div class="modal fade" id="importModal" tabindex="-1" role="dialog">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Import Leave Entitlements</h5>
+                    <button type="button" class="close" data-dismiss="modal">
+                        <span>&times;</span>
+                    </button>
+                </div>
+                <form action="{{ route('leave.entitlements.import-template') }}" method="POST"
+                    enctype="multipart/form-data">
+                    @csrf
+                    <div class="modal-body">
+                        <div class="form-group">
+                            <label for="file">Select Excel File</label>
+                            <input type="file" name="file" id="file" class="form-control-file" accept=".xlsx,.xls"
+                                required>
+                            <small class="form-text text-muted">File format: .xlsx or .xls (max 10MB)</small>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-upload"></i> Import
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 @endsection
 
 @section('styles')
@@ -346,6 +440,10 @@
                     {
                         data: 'name',
                         name: 'name'
+                    },
+                    {
+                        data: 'position',
+                        name: 'position'
                     },
                     @if ($showAllProjects)
                         {

@@ -52,15 +52,13 @@ class RosterImport implements ToModel, WithHeadingRow, WithValidation, WithBatch
 
     /**
      * Get employees for roster project
+     * Returns all active employees from the selected project (matching controller logic)
      */
     private function getProjectEmployees($project)
     {
-        return Administration::with(['employee', 'position', 'level', 'roster'])
+        return Administration::with(['employee', 'position.department', 'level', 'roster'])
             ->where('project_id', $project->id)
             ->where('is_active', 1)
-            ->whereHas('level', function ($query) {
-                $query->whereNotNull('work_days');
-            })
             ->orderBy('nik')
             ->get()
             ->keyBy('nik'); // Key by NIK for easy lookup
@@ -84,20 +82,44 @@ class RosterImport implements ToModel, WithHeadingRow, WithValidation, WithBatch
                 'available_employees' => $this->employees->keys()->toArray()
             ]);
 
-            // Validate required fields
-            if (empty($row['nik']) || empty($row['name'])) {
-                $this->errors[] = "Row missing NIK or Name: " . json_encode($row);
+            // Normalize row keys to lowercase for case-insensitive matching
+            $normalizedRow = [];
+            foreach ($row as $key => $value) {
+                $normalizedRow[strtolower(trim($key))] = $value;
+            }
+
+            // Validate required fields (case-insensitive)
+            if (empty($normalizedRow['nik']) || empty($normalizedRow['name'])) {
+                $this->errors[] = "Row missing NIK or Name. Available keys: " . implode(', ', array_keys($row));
+                Log::warning("Row missing required fields", [
+                    'row_keys' => array_keys($row),
+                    'normalized_keys' => array_keys($normalizedRow),
+                    'row_data' => $row
+                ]);
                 return null;
             }
 
-            $nik = trim((string) $row['nik']); // Convert to string to ensure compatibility
-            $employeeName = trim($row['name']);
+            $nik = trim((string) $normalizedRow['nik']); // Convert to string to ensure compatibility
+            $employeeName = trim($normalizedRow['name']);
 
-            // Find employee by NIK
+            // Find employee by NIK - reload fresh data
             $administration = $this->employees->get($nik);
             if (!$administration) {
-                $this->errors[] = "Employee with NIK {$nik} not found in project {$this->project->project_code}";
-                return null;
+                // Try to reload employees if not found in cache
+                $administration = Administration::with(['employee', 'position.department', 'level', 'roster'])
+                    ->where('project_id', $this->project->id)
+                    ->where('is_active', 1)
+                    ->where('nik', $nik)
+                    ->first();
+
+                if (!$administration) {
+                    $this->errors[] = "Employee with NIK {$nik} not found in project {$this->project->project_code}";
+                    return null;
+                }
+            } else {
+                // Reload to get fresh roster data
+                $administration = Administration::with(['employee', 'position.department', 'level', 'roster'])
+                    ->find($administration->id);
             }
 
             // Verify employee name matches
@@ -106,12 +128,47 @@ class RosterImport implements ToModel, WithHeadingRow, WithValidation, WithBatch
                 return null;
             }
 
-            // Ensure employee has roster
-            if (!$administration->roster) {
-                $administration->roster = $this->createRosterForEmployee($administration);
+            // Verify department if provided in import file (optional validation)
+            if (isset($normalizedRow['department']) && !empty(trim($normalizedRow['department']))) {
+                $importDepartment = trim($normalizedRow['department']);
+                $actualDepartment = $administration->position->department->department_name ?? null;
+
+                if ($actualDepartment && $actualDepartment !== $importDepartment) {
+                    $this->errors[] = "Department mismatch for NIK {$nik}: Expected '{$actualDepartment}', Found '{$importDepartment}'";
+                    // Don't return null, just log the warning - continue processing
+                }
             }
 
-            // Process roster data for each day
+            // Ensure employee has roster - reload to get fresh data
+            $administration->load('roster');
+            if (!$administration->roster) {
+                try {
+                    $roster = $this->createRosterForEmployee($administration);
+                    if ($roster) {
+                        // Reload administration to get the new roster
+                        $administration = Administration::with(['employee', 'position.department', 'level', 'roster'])
+                            ->find($administration->id);
+                    } else {
+                        $this->errors[] = "Failed to create roster for NIK {$nik}";
+                        return null;
+                    }
+                } catch (\Exception $e) {
+                    Log::error("Cannot create roster for NIK {$nik}", [
+                        'error' => $e->getMessage(),
+                        'trace' => $e->getTraceAsString()
+                    ]);
+                    $this->errors[] = "Cannot create roster for NIK {$nik}: {$e->getMessage()}";
+                    return null;
+                }
+            }
+
+            // Verify roster exists before processing
+            if (!$administration->roster || !$administration->roster->id) {
+                $this->errors[] = "Roster not available for NIK {$nik}";
+                return null;
+            }
+
+            // Process roster data for each day (use original row for day columns)
             $this->processRosterData($administration, $row);
 
             $this->importedCount++;
@@ -146,7 +203,7 @@ class RosterImport implements ToModel, WithHeadingRow, WithValidation, WithBatch
         ]);
 
         for ($day = 1; $day <= $daysInMonth; $day++) {
-            // Try different possible column names for the day
+            // Try different possible column names for the day (case-insensitive)
             $possibleKeys = [
                 (string) $day,           // "1", "2", "3", etc.
                 "day_{$day}",           // "day_1", "day_2", etc.
@@ -154,18 +211,42 @@ class RosterImport implements ToModel, WithHeadingRow, WithValidation, WithBatch
             ];
 
             $statusCode = 'D'; // Default status
+            $found = false;
 
-            // Find the status code for this day
+            // Find the status code for this day (try both exact and case-insensitive match)
             foreach ($possibleKeys as $key) {
+                // Try exact match first
                 if (isset($row[$key]) && !empty(trim($row[$key]))) {
                     $statusCode = trim($row[$key]);
-                    Log::debug("Found status code for day {$day}", [
+                    $found = true;
+                    Log::debug("Found status code for day {$day} (exact match)", [
                         'day' => $day,
                         'key' => $key,
                         'status_code' => $statusCode,
                         'employee_nik' => $administration->nik
                     ]);
                     break;
+                }
+            }
+
+            // If not found, try case-insensitive match
+            if (!$found) {
+                foreach ($row as $rowKey => $rowValue) {
+                    $normalizedKey = strtolower(trim($rowKey));
+                    foreach ($possibleKeys as $key) {
+                        if ($normalizedKey === strtolower(trim($key)) && !empty(trim($rowValue))) {
+                            $statusCode = trim($rowValue);
+                            $found = true;
+                            Log::debug("Found status code for day {$day} (case-insensitive)", [
+                                'day' => $day,
+                                'original_key' => $rowKey,
+                                'matched_key' => $key,
+                                'status_code' => $statusCode,
+                                'employee_nik' => $administration->nik
+                            ]);
+                            break 2; // Break both loops
+                        }
+                    }
                 }
             }
 
@@ -184,39 +265,68 @@ class RosterImport implements ToModel, WithHeadingRow, WithValidation, WithBatch
 
             $currentDate = Carbon::create($this->year, $this->month, $day);
 
-            // Update or create roster daily status
-            $rosterDailyStatus = RosterDailyStatus::updateOrCreate(
-                [
-                    'roster_id' => $administration->roster->id,
-                    'date' => $currentDate->format('Y-m-d')
-                ],
-                [
-                    'status_code' => $statusCode,
-                    'notes' => null // Notes can be added separately if needed
-                ]
-            );
+            // Verify roster_id is available
+            if (!$administration->roster || !$administration->roster->id) {
+                Log::error("Roster ID not available for employee", [
+                    'employee_nik' => $administration->nik,
+                    'day' => $day
+                ]);
+                $this->errors[] = "Roster ID not available for NIK {$administration->nik} on day {$day}";
+                continue;
+            }
 
-            Log::debug("Roster daily status saved", [
-                'day' => $day,
-                'date' => $currentDate->format('Y-m-d'),
-                'status_code' => $statusCode,
-                'employee_nik' => $administration->nik,
-                'roster_daily_status_id' => $rosterDailyStatus->id,
-                'was_recently_created' => $rosterDailyStatus->wasRecentlyCreated
-            ]);
+            // Update or create roster daily status
+            try {
+                $rosterDailyStatus = RosterDailyStatus::updateOrCreate(
+                    [
+                        'roster_id' => $administration->roster->id,
+                        'date' => $currentDate->format('Y-m-d')
+                    ],
+                    [
+                        'status_code' => $statusCode,
+                        'notes' => null // Notes can be added separately if needed
+                    ]
+                );
+
+                Log::debug("Roster daily status saved", [
+                    'day' => $day,
+                    'date' => $currentDate->format('Y-m-d'),
+                    'status_code' => $statusCode,
+                    'employee_nik' => $administration->nik,
+                    'roster_id' => $administration->roster->id,
+                    'roster_daily_status_id' => $rosterDailyStatus->id,
+                    'was_recently_created' => $rosterDailyStatus->wasRecentlyCreated
+                ]);
+            } catch (\Exception $e) {
+                Log::error("Failed to save roster daily status", [
+                    'employee_nik' => $administration->nik,
+                    'day' => $day,
+                    'roster_id' => $administration->roster->id ?? 'null',
+                    'error' => $e->getMessage(),
+                    'trace' => $e->getTraceAsString()
+                ]);
+                $this->errors[] = "Failed to save status for NIK {$administration->nik} on day {$day}: {$e->getMessage()}";
+            }
         }
     }
 
     /**
      * Auto-create roster for employee if not exists
+     * Creates roster for all employees, even if they don't have level with work_days
      */
     private function createRosterForEmployee($administration)
     {
-        // Check if level has roster configuration
-        if (!$administration->level || !$administration->level->hasRosterConfig()) {
-            throw new \Exception("Employee {$administration->nik} level does not have roster configuration");
+        // Check if roster already exists
+        $existingRoster = Roster::where('administration_id', $administration->id)
+            ->where('is_active', true)
+            ->first();
+
+        if ($existingRoster) {
+            return $existingRoster;
         }
 
+        // Create roster for employee (even without level with work_days)
+        // This allows import for all employees
         return Roster::create([
             'employee_id' => $administration->employee_id,
             'administration_id' => $administration->id,
@@ -246,6 +356,7 @@ class RosterImport implements ToModel, WithHeadingRow, WithValidation, WithBatch
             'no' => 'nullable|integer',
             'name' => 'required|string|max:255',
             'nik' => 'required|max:20', // Accept both string and integer
+            'department' => 'nullable|string|max:255',
             'position' => 'nullable|string|max:255'
         ];
 

@@ -836,7 +836,7 @@ class ApprovalRequestController extends Controller
                 $entitlement->taken_days += $leaveRequest->total_days;
 
                 // Recalculate remaining days
-                $entitlement->remaining_days = $entitlement->withdrawable_days - $entitlement->taken_days;
+                // remaining_days is now calculated via accessor, no need to update manually
 
                 $entitlement->save();
 
@@ -848,7 +848,7 @@ class ApprovalRequestController extends Controller
                     'old_taken_days' => $oldTakenDays,
                     'new_taken_days' => $entitlement->taken_days,
                     'remaining_days' => $entitlement->remaining_days,
-                    'withdrawable_days' => $entitlement->withdrawable_days
+                    'entitled_days' => $entitlement->entitled_days
                 ]);
             } else {
                 Log::warning("No entitlement found for approved leave request", [

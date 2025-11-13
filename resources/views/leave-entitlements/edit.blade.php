@@ -1,322 +1,420 @@
 @extends('layouts.main')
 
-@section('title', 'Edit Leave Entitlement')
+@section('title', ($isEditMode ?? false ? 'Edit' : 'Add') . ' Employee Leave Entitlements - ' . $employee->fullname)
 
 @section('content')
-    <div class="content-header">
-        <div class="container-fluid">
-            <div class="row mb-2">
-                <div class="col-sm-6">
-                    <h1 class="m-0">Edit Leave Entitlement</h1>
+    @if ($businessRules)
+        <!-- Info Banner - Full Width -->
+        <div class="info-banner">
+            <div class="info-banner-content">
+                <div class="employee-info">
+                    <div class="employee-name">{{ $employee->fullname }}</div>
+                    <div class="employee-details">
+                        {{ $employee->administrations->first()->project->project_code ?? 'N/A' }} -
+                        {{ $employee->administrations->first()->nik ?? 'N/A' }}
+                    </div>
+                    @if ($periodDates)
+                        <div class="period-info">
+                            <i class="far fa-calendar-alt"></i> {{ $periodDates['start']->format('d F Y') }}
+                            - {{ $periodDates['end']->format('d F Y') }}
+                        </div>
+                    @endif
                 </div>
-                <div class="col-sm-6">
-                    <ol class="breadcrumb float-sm-right">
-                        <li class="breadcrumb-item"><a href="{{ route('dashboard') }}">Home</a></li>
-                        <li class="breadcrumb-item"><a href="{{ route('leave.entitlements.index') }}">Leave Entitlements</a>
-                        </li>
-                        <li class="breadcrumb-item"><a
-                                href="{{ route('leave.entitlements.show', $entitlement) }}">Entitlement
-                                #{{ $entitlement->id }}</a></li>
-                        <li class="breadcrumb-item active">Edit</li>
-                    </ol>
-                </div>
+                @if ($periodDates)
+                    <div class="period-year">
+                        {{ $currentYear }}
+                    </div>
+                @endif
             </div>
         </div>
-    </div>
+    @endif
 
     <section class="content">
         <div class="container-fluid">
-            <div class="row">
-                <div class="col-md-8">
-                    <div class="card">
-                        <div class="card-header">
-                            <h3 class="card-title">Edit Leave Entitlement</h3>
-                            <div class="card-tools">
-                                <a href="{{ route('leave.entitlements.show', $entitlement) }}"
-                                    class="btn btn-secondary btn-sm">
-                                    <i class="fas fa-eye"></i> View
-                                </a>
-                                <a href="{{ route('leave.entitlements.index') }}" class="btn btn-secondary btn-sm">
-                                    <i class="fas fa-arrow-left"></i> Back
-                                </a>
+            @if ($businessRules)
+
+                <div class="row">
+                    <!-- Sidebar: Employee Info -->
+                    <div class="col-md-3">
+                        <div class="card card-info card-outline">
+                            <div class="card-header">
+                                <h3 class="card-title"><i class="fas fa-info-circle"></i> Employee Info</h3>
+                            </div>
+                            <div class="card-body p-0">
+                                <div class="info-sidebar">
+                                    <div class="info-section">
+                                        <div class="info-label"><i class="fas fa-briefcase text-primary"></i> Level</div>
+                                        <div class="info-value">
+                                            {{ $employee->administrations->first()->level->name ?? 'N/A' }}</div>
+                                    </div>
+                                    <div class="info-section">
+                                        <div class="info-label"><i class="fas fa-user-tag text-secondary"></i> Position</div>
+                                        <div class="info-value">
+                                            {{ $employee->administrations->first()->position->position_name ?? 'N/A' }}</div>
+                                    </div>
+                                    <div class="info-section">
+                                        <div class="info-label"><i class="fas fa-calendar-check text-success"></i> DOH</div>
+                                        <div class="info-value">
+                                            {{ $employee->administrations->first()->doh ? $employee->administrations->first()->doh->format('d M Y') : 'N/A' }}
+                                        </div>
+                                    </div>
+                                    <div class="info-section">
+                                        <div class="info-label"><i class="fas fa-clock text-warning"></i> Service</div>
+                                        <div class="info-value">
+                                            <strong>{{ $businessRules['years_of_service'] }} years</strong>
+                                            <small class="text-muted d-block">({{ $businessRules['months_of_service'] }}
+                                                months)</small>
+                                        </div>
+                                    </div>
+                                    <div class="info-section">
+                                        <div class="info-label"><i class="fas fa-user-tag text-info"></i> Staff Type</div>
+                                        <div class="info-value">
+                                            <span
+                                                class="badge badge-{{ $businessRules['staff_type'] === 'Staff' ? 'info' : 'secondary' }}">{{ $businessRules['staff_type'] }}</span>
+                                        </div>
+                                    </div>
+                                    @if (!empty($businessRules['special_notes']))
+                                        <div class="info-section border-top pt-3 mt-2">
+                                            <div class="info-label"><i class="fas fa-exclamation-triangle text-warning"></i>
+                                                Special Rules</div>
+                                            <div class="info-value">
+                                                <ul class="mb-0 pl-3" style="font-size: 0.85rem;">
+                                                    @foreach ($businessRules['special_notes'] as $note)
+                                                        <li>{{ $note }}</li>
+                                                    @endforeach
+                                                </ul>
+                                            </div>
+                                        </div>
+                                    @endif
+                                </div>
                             </div>
                         </div>
-                        <form action="{{ route('leave.entitlements.update', $entitlement) }}" method="POST">
+                    </div>
+
+                    <!-- Main Content: Form -->
+                    <div class="col-md-9">
+                        <!-- Leave Entitlements Form Card -->
+                        <form method="POST" action="{{ route('leave.entitlements.employee.update', $employee->id) }}">
                             @csrf
                             @method('PUT')
-                            <div class="card-body">
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label for="employee_id">Employee <span class="text-danger">*</span></label>
-                                            <select class="form-control @error('employee_id') is-invalid @enderror"
-                                                id="employee_id" name="employee_id" required>
-                                                <option value="">Select Employee</option>
-                                                @foreach ($employees as $employee)
-                                                    <option value="{{ $employee->id }}"
-                                                        {{ old('employee_id', $entitlement->employee_id) == $employee->id ? 'selected' : '' }}>
-                                                        {{ $employee->name }}
-                                                    </option>
-                                                @endforeach
-                                            </select>
-                                            @error('employee_id')
-                                                <div class="invalid-feedback">{{ $message }}</div>
-                                            @enderror
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label for="leave_type_id">Leave Type <span class="text-danger">*</span></label>
-                                            <select class="form-control @error('leave_type_id') is-invalid @enderror"
-                                                id="leave_type_id" name="leave_type_id" required>
-                                                <option value="">Select Leave Type</option>
-                                                @foreach ($leaveTypes as $leaveType)
-                                                    <option value="{{ $leaveType->id }}"
-                                                        {{ old('leave_type_id', $entitlement->leave_type_id) == $leaveType->id ? 'selected' : '' }}>
-                                                        {{ $leaveType->name }}
-                                                    </option>
-                                                @endforeach
-                                            </select>
-                                            @error('leave_type_id')
-                                                <div class="invalid-feedback">{{ $message }}</div>
-                                            @enderror
-                                        </div>
-                                    </div>
-                                </div>
 
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label for="period_start">Period Start <span
-                                                    class="text-danger">*</span></label>
-                                            <input type="date"
-                                                class="form-control @error('period_start') is-invalid @enderror"
-                                                id="period_start" name="period_start"
-                                                value="{{ old('period_start', $entitlement->period_start->format('Y-m-d')) }}"
-                                                required>
-                                            @error('period_start')
-                                                <div class="invalid-feedback">{{ $message }}</div>
-                                            @enderror
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label for="period_end">Period End <span class="text-danger">*</span></label>
-                                            <input type="date"
-                                                class="form-control @error('period_end') is-invalid @enderror"
-                                                id="period_end" name="period_end"
-                                                value="{{ old('period_end', $entitlement->period_end->format('Y-m-d')) }}"
-                                                required>
-                                            @error('period_end')
-                                                <div class="invalid-feedback">{{ $message }}</div>
-                                            @enderror
-                                        </div>
-                                    </div>
-                                </div>
+                            <!-- Hidden fields for period dates -->
+                            @if ($periodDates)
+                                <input type="hidden" name="period_start"
+                                    value="{{ $periodDates['start']->format('Y-m-d') }}">
+                                <input type="hidden" name="period_end" value="{{ $periodDates['end']->format('Y-m-d') }}">
+                            @endif
 
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label for="entitled_days">Entitled Days</label>
-                                            <input type="number"
-                                                class="form-control @error('entitled_days') is-invalid @enderror"
-                                                id="entitled_days" name="entitled_days"
-                                                value="{{ old('entitled_days', $entitlement->entitled_days) }}"
-                                                min="0">
-                                            @error('entitled_days')
-                                                <div class="invalid-feedback">{{ $message }}</div>
-                                            @enderror
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label for="withdrawable_days">Withdrawable Days</label>
-                                            <input type="number"
-                                                class="form-control @error('withdrawable_days') is-invalid @enderror"
-                                                id="withdrawable_days" name="withdrawable_days"
-                                                value="{{ old('withdrawable_days', $entitlement->withdrawable_days) }}"
-                                                min="0">
-                                            @error('withdrawable_days')
-                                                <div class="invalid-feedback">{{ $message }}</div>
-                                            @enderror
-                                        </div>
-                                    </div>
-                                </div>
+                            @php
+                                $groupedLeavesForDisplay = collect($businessRules['eligible_leaves'])->groupBy(
+                                    'category',
+                                );
+                                $globalIndex = 0;
+                            @endphp
 
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label for="deposit_days">Deposit Days</label>
-                                            <input type="number"
-                                                class="form-control @error('deposit_days') is-invalid @enderror"
-                                                id="deposit_days" name="deposit_days"
-                                                value="{{ old('deposit_days', $entitlement->deposit_days) }}"
-                                                min="0">
-                                            @error('deposit_days')
-                                                <div class="invalid-feedback">{{ $message }}</div>
-                                            @enderror
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label for="carried_over">Carried Over</label>
-                                            <input type="number"
-                                                class="form-control @error('carried_over') is-invalid @enderror"
-                                                id="carried_over" name="carried_over"
-                                                value="{{ old('carried_over', $entitlement->carried_over) }}"
-                                                min="0">
-                                            @error('carried_over')
-                                                <div class="invalid-feedback">{{ $message }}</div>
-                                            @enderror
-                                        </div>
-                                    </div>
+                            <!-- Tab Navigation -->
+                            <div class="card card-primary card-outline">
+                                <div class="card-header p-0 border-bottom-0">
+                                    <ul class="nav nav-tabs" role="tablist">
+                                        @foreach ($groupedLeavesForDisplay as $cat => $catLeaves)
+                                            @php
+                                                $catId = str_replace(' ', '', strtolower($cat));
+                                                $catColor =
+                                                    [
+                                                        'paid' => 'success',
+                                                        'periodic' => 'info',
+                                                        'lsl' => 'warning',
+                                                        'unpaid' => 'secondary',
+                                                    ][strtolower($cat)] ?? 'primary';
+                                                $isActive = $loop->first;
+                                            @endphp
+                                            <li class="nav-item">
+                                                <a class="nav-link {{ $isActive ? 'active' : '' }}"
+                                                    id="{{ $catId }}-tab" data-toggle="tab"
+                                                    href="#{{ $catId }}" role="tab">
+                                                    <i class="fas fa-circle text-{{ $catColor }} mr-2"></i>
+                                                    {{ ucfirst($cat) }} Leave
+                                                    <span
+                                                        class="badge badge-{{ $catColor }} ml-2">{{ $catLeaves->count() }}</span>
+                                                </a>
+                                            </li>
+                                        @endforeach
+                                    </ul>
                                 </div>
+                                <div class="card-body">
+                                    <div class="tab-content" id="leaveTabsContent">
+                                        @foreach ($groupedLeavesForDisplay as $cat => $catLeaves)
+                                            @php
+                                                $catId = str_replace(' ', '', strtolower($cat));
+                                                $catColor =
+                                                    [
+                                                        'paid' => 'success',
+                                                        'periodic' => 'info',
+                                                        'lsl' => 'warning',
+                                                        'unpaid' => 'secondary',
+                                                    ][strtolower($cat)] ?? 'primary';
+                                                $isActive = $loop->first;
+                                            @endphp
+                                            <div class="tab-pane fade {{ $isActive ? 'show active' : '' }}"
+                                                id="{{ $catId }}" role="tabpanel">
+                                                <div class="table-responsive">
+                                                    <table class="table table-hover table-bordered table-sm">
+                                                        <thead>
+                                                            <tr>
+                                                                <th width="40%">Leave Type</th>
+                                                                <th width="25%" class="text-center">Default</th>
+                                                                <th width="25%" class="text-center">Entitlement (Days)
+                                                                </th>
+                                                                <th width="10%" class="text-center">Used</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            @foreach ($catLeaves as $leave)
+                                                                @php
+                                                                    $existingEntitlement = null;
+                                                                    if ($periodDates) {
+                                                                        $existingEntitlement = \App\Models\LeaveEntitlement::where(
+                                                                            'employee_id',
+                                                                            $employee->id,
+                                                                        )
+                                                                            ->where('leave_type_id', $leave['id'])
+                                                                            ->whereDate(
+                                                                                'period_start',
+                                                                                $periodDates['start']->format('Y-m-d'),
+                                                                            )
+                                                                            ->whereDate(
+                                                                                'period_end',
+                                                                                $periodDates['end']->format('Y-m-d'),
+                                                                            )
+                                                                            ->first();
+                                                                    }
 
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label for="taken_days">Taken Days</label>
-                                            <input type="number"
-                                                class="form-control @error('taken_days') is-invalid @enderror"
-                                                id="taken_days" name="taken_days"
-                                                value="{{ old('taken_days', $entitlement->taken_days) }}" min="0">
-                                            @error('taken_days')
-                                                <div class="invalid-feedback">{{ $message }}</div>
-                                            @enderror
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label for="remaining_days">Remaining Days</label>
-                                            <input type="number"
-                                                class="form-control @error('remaining_days') is-invalid @enderror"
-                                                id="remaining_days" name="remaining_days"
-                                                value="{{ old('remaining_days', $entitlement->remaining_days) }}"
-                                                min="0" readonly>
-                                            @error('remaining_days')
-                                                <div class="invalid-feedback">{{ $message }}</div>
-                                            @enderror
-                                        </div>
+                                                                    // Edit mode: Use existing entitlement value if exists
+                                                                    // Add mode: Use default calculated value from leave type
+                                                                    if ($isEditMode ?? false) {
+                                                                        // Edit mode - use existing entitlement value for the selected period
+                                                                        $defaultValue = $existingEntitlement
+                                                                            ? $existingEntitlement->entitled_days
+                                                                            : $leave['calculated_days'];
+                                                                    } else {
+                                                                        // Add mode - use default calculated value from leave type
+                                                                        $defaultValue = $leave['calculated_days'];
+                                                                    }
+                                                                @endphp
+                                                                <tr>
+                                                                    <td>
+                                                                        <strong>{{ $leave['name'] }}</strong>
+                                                                        @if ($leave['code'] ?? null)
+                                                                            <br><small
+                                                                                class="text-muted">{{ $leave['code'] }}</small>
+                                                                        @endif
+                                                                    </td>
+                                                                    <td class="text-center">
+                                                                        <span
+                                                                            class="badge badge-secondary">{{ $leave['default_days'] }}
+                                                                            days</span>
+                                                                    </td>
+                                                                    <td class="text-center">
+                                                                        <div class="input-group input-group-sm"
+                                                                            style="max-width: 150px; margin: 0 auto;">
+                                                                            <input type="number"
+                                                                                name="entitlements[{{ $globalIndex }}][entitled_days]"
+                                                                                class="form-control text-center"
+                                                                                value="{{ old('entitlements.' . $globalIndex . '.entitled_days', $defaultValue) }}"
+                                                                                min="0" max="365">
+                                                                            <div class="input-group-append">
+                                                                                <span
+                                                                                    class="input-group-text"><small>days</small></span>
+                                                                            </div>
+                                                                        </div>
+                                                                        <input type="hidden"
+                                                                            name="entitlements[{{ $globalIndex }}][leave_type_id]"
+                                                                            value="{{ $leave['id'] }}">
+                                                                        @if ($periodDates)
+                                                                            <input type="hidden"
+                                                                                name="entitlements[{{ $globalIndex }}][period_start]"
+                                                                                value="{{ $periodDates['start']->format('Y-m-d') }}">
+                                                                            <input type="hidden"
+                                                                                name="entitlements[{{ $globalIndex }}][period_end]"
+                                                                                value="{{ $periodDates['end']->format('Y-m-d') }}">
+                                                                        @endif
+                                                                    </td>
+                                                                    <td class="text-center">
+                                                                        @if ($existingEntitlement && $existingEntitlement->taken_days > 0)
+                                                                            <span class="badge badge-warning">
+                                                                                {{ $existingEntitlement->taken_days }}/{{ $existingEntitlement->entitled_days }}
+                                                                            </span>
+                                                                        @elseif ($existingEntitlement)
+                                                                            <span class="badge badge-secondary">
+                                                                                {{ $existingEntitlement->taken_days }}/{{ $existingEntitlement->entitled_days }}
+                                                                            </span>
+                                                                        @else
+                                                                            <span class="badge badge-light">-</span>
+                                                                        @endif
+                                                                    </td>
+                                                                </tr>
+                                                                @php $globalIndex++; @endphp
+                                                            @endforeach
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            </div>
+                                        @endforeach
                                     </div>
                                 </div>
-                            </div>
-                            <div class="card-footer">
-                                <button type="submit" class="btn btn-primary">
-                                    <i class="fas fa-save"></i> Update Entitlement
-                                </button>
-                                <a href="{{ route('leave.entitlements.show', $entitlement) }}" class="btn btn-secondary">
-                                    <i class="fas fa-times"></i> Cancel
-                                </a>
+                                <div class="card-footer bg-light">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <a href="{{ route('leave.entitlements.employee.show', $employee->id) }}"
+                                            class="btn btn-secondary">
+                                            <i class="fas fa-arrow-left mr-2"></i> Back to Summary
+                                        </a>
+                                        <button type="submit" class="btn btn-success">
+                                            <i class="fas fa-{{ $isEditMode ?? false ? 'save' : 'plus' }} mr-2"></i>
+                                            {{ $isEditMode ?? false ? 'Save Changes' : 'Create Entitlements' }}
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
                         </form>
                     </div>
                 </div>
+            @endif
 
-                <div class="col-md-4">
-                    <div class="card">
-                        <div class="card-header">
-                            <h3 class="card-title">Current Values</h3>
-                        </div>
-                        <div class="card-body">
-                            <table class="table table-sm">
-                                <tr>
-                                    <th>Entitled:</th>
-                                    <td>{{ $entitlement->entitled_days }} days</td>
-                                </tr>
-                                <tr>
-                                    <th>Withdrawable:</th>
-                                    <td>{{ $entitlement->withdrawable_days }} days</td>
-                                </tr>
-                                <tr>
-                                    <th>Deposit:</th>
-                                    <td>{{ $entitlement->deposit_days }} days</td>
-                                </tr>
-                                <tr>
-                                    <th>Carried Over:</th>
-                                    <td>{{ $entitlement->carried_over }} days</td>
-                                </tr>
-                                <tr>
-                                    <th>Taken:</th>
-                                    <td>{{ $entitlement->taken_days }} days</td>
-                                </tr>
-                                <tr>
-                                    <th>Remaining:</th>
-                                    <td>
-                                        <span
-                                            class="badge badge-{{ $entitlement->remaining_days > 0 ? 'success' : 'danger' }}">
-                                            {{ $entitlement->remaining_days }} days
-                                        </span>
-                                    </td>
-                                </tr>
-                            </table>
-                        </div>
-                    </div>
-
-                    <div class="card">
-                        <div class="card-header">
-                            <h3 class="card-title">Information</h3>
-                        </div>
-                        <div class="card-body">
-                            <div class="alert alert-info">
-                                <h5><i class="icon fas fa-info"></i> Note!</h5>
-                                <ul class="mb-0">
-                                    <li>Remaining days are calculated automatically</li>
-                                    <li>Deposit days apply to first period of long service leave</li>
-                                    <li>Withdrawable days are the amount that can be taken or cashed out</li>
-                                    <li>Carried over days come from previous periods</li>
-                                </ul>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
         </div>
     </section>
 @endsection
 
+@push('styles')
+    <style>
+        /* Info Banner - Same style as travel-header, Full Width */
+        .info-banner {
+            position: relative;
+            width: 100%;
+            height: 120px;
+            color: white;
+            padding: 20px 30px;
+            margin-bottom: 30px;
+            background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .info-banner-content {
+            position: relative;
+            z-index: 2;
+            height: 100%;
+            max-width: 100%;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .employee-info {
+            flex: 1;
+        }
+
+        .employee-name {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .employee-details {
+            font-size: 13px;
+            margin-bottom: 4px;
+            opacity: 0.9;
+            letter-spacing: 1px;
+        }
+
+        .period-info {
+            font-size: 14px;
+            opacity: 0.9;
+            margin-top: 4px;
+        }
+
+        .period-year {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            font-size: 20px;
+            font-weight: 600;
+            opacity: 0.9;
+        }
+
+        /* Sidebar Info - AdminLTE compatible */
+        .info-sidebar .info-section {
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        .info-sidebar .info-section:last-child {
+            border-bottom: none;
+        }
+
+        .info-sidebar .info-label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            color: #6c757d;
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+
+        .info-sidebar .info-label i {
+            width: 20px;
+            text-align: center;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .info-banner {
+                height: auto;
+                min-height: 120px;
+            }
+
+            .period-year {
+                position: relative;
+                top: 0;
+                right: 0;
+                margin-top: 10px;
+            }
+        }
+    </style>
+@endpush
+
 @push('scripts')
     <script>
         $(document).ready(function() {
-            // Calculate remaining days
-            function calculateRemainingDays() {
-                const entitled = parseInt($('#entitled_days').val()) || 0;
-                const withdrawable = parseInt($('#withdrawable_days').val()) || 0;
-                const deposit = parseInt($('#deposit_days').val()) || 0;
-                const carriedOver = parseInt($('#carried_over').val()) || 0;
-                const taken = parseInt($('#taken_days').val()) || 0;
+            // Tab functionality
+            $('a[data-toggle="tab"]').on('shown.bs.tab', function(e) {
+                // Focus first input in active tab
+                var targetTab = $(e.target).attr('href');
+                $(targetTab).find('input[type="number"]').first().focus();
+            });
 
-                const remaining = entitled - taken;
-                $('#remaining_days').val(remaining);
-            }
-
-            $('#entitled_days, #taken_days').on('input', calculateRemainingDays);
-
-            // Form validation
-            $('form').on('submit', function(e) {
-                let isValid = true;
-
-                // Check required fields
-                $('input[required], select[required]').each(function() {
-                    if ($(this).val() === '') {
-                        $(this).addClass('is-invalid');
-                        isValid = false;
-                    } else {
-                        $(this).removeClass('is-invalid');
-                    }
-                });
-
-                // Check date validation
-                const startDate = new Date($('#period_start').val());
-                const endDate = new Date($('#period_end').val());
-
-                if (startDate && endDate && startDate > endDate) {
-                    $('#period_end').addClass('is-invalid');
-                    isValid = false;
+            // Input validation and formatting
+            $('input[type="number"]').on('input', function() {
+                var value = parseInt($(this).val()) || 0;
+                if (value < 0) {
+                    $(this).val(0);
+                } else if (value > 365) {
+                    $(this).val(365);
                 }
+            });
 
-                if (!isValid) {
+            // Auto-select input value on focus
+            $('input[type="number"]').on('focus', function() {
+                $(this).select();
+            });
+
+            // Enter key to move to next input
+            $('input[type="number"]').on('keypress', function(e) {
+                if (e.which === 13) {
                     e.preventDefault();
-                    toastr.error('Please fill in all required fields correctly.');
+                    var inputs = $(this).closest('tbody').find('input[type="number"]');
+                    var currentIndex = inputs.index(this);
+                    if (currentIndex < inputs.length - 1) {
+                        inputs.eq(currentIndex + 1).focus().select();
+                    }
                 }
             });
         });

@@ -121,7 +121,7 @@
                                                 class="select2bs4 form-control @error('leave_type_id') is-invalid @enderror"
                                                 required>
                                                 <option value="">Select Leave Type</option>
-                                                @foreach (\App\Models\LeaveType::all() as $leaveType)
+                                                @foreach ($leaveTypes as $leaveType)
                                                     <option value="{{ $leaveType->id }}"
                                                         {{ old('leave_type_id', $leaveRequest->leave_type_id) == $leaveType->id ? 'selected' : '' }}>
                                                         {{ $leaveType->name }}

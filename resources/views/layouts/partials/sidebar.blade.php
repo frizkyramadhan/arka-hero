@@ -380,11 +380,12 @@
                 @endcan
 
                 {{-- Leave Management --}}
-                @canany(['leave-requests.show', 'leave-entitlements.show', 'leave-reports.show'])
+                @canany(['leave-requests.show', 'bulk-leave-requests.show', 'leave-entitlements.show',
+                    'leave-reports.show'])
                     <li
-                        class="nav-item {{ Request::is('leave/requests*') || Request::is('leave/entitlements*') || Request::is('leave/reports*') ? 'menu-open' : '' }}">
+                        class="nav-item {{ Request::is('leave/requests*') || Request::is('leave/bulk-requests*') || Request::is('leave/entitlements*') || Request::is('leave/reports*') ? 'menu-open' : '' }}">
                         <a href="#"
-                            class="nav-link {{ Request::is('leave/requests*') || Request::is('leave/entitlements*') || Request::is('leave/reports*') ? 'active' : '' }}">
+                            class="nav-link {{ Request::is('leave/requests*') || Request::is('leave/bulk-requests*') || Request::is('leave/entitlements*') || Request::is('leave/reports*') ? 'active' : '' }}">
                             <i class="nav-icon fas fa-calendar-alt"></i>
                             <p>
                                 Leave Management
@@ -398,9 +399,18 @@
                             @can('leave-requests.show')
                                 <li class="nav-item">
                                     <a href="{{ route('leave.requests.index') }}"
-                                        class="nav-link {{ Request::is('leave/requests*') ? 'active' : '' }}">
+                                        class="nav-link {{ Request::is('leave/requests*') && !Request::is('leave/bulk-requests*') ? 'active' : '' }}">
                                         <i class="far fa-circle nav-icon"></i>
                                         <p>Requests</p>
+                                    </a>
+                                </li>
+                            @endcan
+                            @can('leave-requests.show')
+                                <li class="nav-item">
+                                    <a href="{{ route('leave.bulk-requests.index') }}"
+                                        class="nav-link {{ Request::is('leave/bulk-requests*') ? 'active' : '' }}">
+                                        <i class="far fa-circle nav-icon"></i>
+                                        <p>Periodic Leave Requests</p>
                                     </a>
                                 </li>
                             @endcan

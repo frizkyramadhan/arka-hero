@@ -51,7 +51,7 @@ class ApprovalPlanController extends Controller
             // Get request_reason for conditional approval
             $request_reason = $document->request_reason;
         } elseif ($document_type == 'leave_request') {
-            $document = LeaveRequest::findOrFail($document_id);
+            $document = LeaveRequest::with('leaveType')->findOrFail($document_id);
             $project = $document->administration->project_id;
             $department_id = $document->administration->position->department_id;
             $request_reason = null; // Leave request tidak pakai request_reason
@@ -85,9 +85,19 @@ class ApprovalPlanController extends Controller
             $approvers = $this->getConditionalApprovers($request_reason, $project, $department_id, $approvers);
         }
 
-        // For leave_request, use hierarchical approval based on level
+        // For leave_request, check if it's periodic leave (roster-based)
         if ($document_type == 'leave_request') {
-            $approvers = $this->getHierarchicalApprovers($document, $project, $department_id);
+            $isPeriodicLeave = $document->leaveType && $document->leaveType->category === 'periodic';
+
+            if ($isPeriodicLeave) {
+                // For periodic leave, use specific hierarchical approval for roster-based leave
+                Log::info("Periodic leave detected - using periodic leave hierarchical approval logic");
+                $approvers = $this->getPeriodicLeaveHierarchicalApprovers($document, $project, $department_id);
+            } else {
+                // For regular leave, use hierarchical approval based on level
+                Log::info("Regular leave detected - using hierarchical approval based on level");
+                $approvers = $this->getHierarchicalApprovers($document, $project, $department_id);
+            }
         }
 
         // Debug logging
@@ -740,16 +750,15 @@ class ApprovalPlanController extends Controller
             ]);
 
             // For Director level, still follow the approval_stages configuration
-            // Get approval stages filtered by project and department
+            // Get approval stages filtered by project and department from approval_stage_details
             $approvalStages = ApprovalStage::where('document_type', 'leave_request')
                 ->whereHas('details', function ($query) use ($projectId, $departmentId) {
                     $query->where('project_id', $projectId)
                         ->where('department_id', $departmentId)
                         ->whereNull('request_reason');
                 })
-                ->with(['approver.employee.administrations' => function ($query) use ($projectId) {
+                ->with(['approver.employee.administrations' => function ($query) {
                     $query->where('is_active', 1)
-                        ->where('project_id', $projectId)
                         ->with('level');
                 }])
                 ->orderBy('approval_order', 'asc')
@@ -764,9 +773,9 @@ class ApprovalPlanController extends Controller
                     continue;
                 }
 
+                // Get level from any active administration (not limited to same project)
                 $approverAdministration = $approver->employee->administrations
                     ->where('is_active', 1)
-                    ->where('project_id', $projectId)
                     ->first();
 
                 if (!$approverAdministration || !$approverAdministration->level) {
@@ -822,6 +831,204 @@ class ApprovalPlanController extends Controller
     }
 
     /**
+     * Get hierarchical approvers for periodic leave request (roster-based)
+     *
+     * This method implements specific hierarchical approval for periodic leave:
+     * - Non Staff/Foreman (level 1-2): First available from SPV(3) or SPT(4) + PM(5)
+     * - Supervisor (level 3): SPT(4) + PM(5)
+     * - Superintendent (level 4): SPT(4) + PM(5) (can be self)
+     * - Manager (level 5): Director(6) only
+     * - Director (level 6): Follow approval_stages setup
+     *
+     * Total approvers: 2 (hierarchical + PM) or 1 (PM to Director)
+     */
+    private function getPeriodicLeaveHierarchicalApprovers($leaveRequest, $projectId, $departmentId)
+    {
+        $applicantLevel = $leaveRequest->administration->level;
+        if (!$applicantLevel) {
+            Log::warning("No level found for periodic leave request applicant", [
+                'leave_request_id' => $leaveRequest->id,
+                'administration_id' => $leaveRequest->administration_id
+            ]);
+            return collect();
+        }
+
+        $applicantLevelOrder = $applicantLevel->level_order;
+
+        Log::info("Getting periodic leave hierarchical approvers", [
+            'leave_request_id' => $leaveRequest->id,
+            'applicant_level' => $applicantLevel->name,
+            'applicant_level_order' => $applicantLevelOrder,
+            'project_id' => $projectId,
+            'department_id' => $departmentId
+        ]);
+
+        // CASE 1: Director level (6) - follow approval_stages setup
+        if ($applicantLevelOrder == 6) {
+            Log::info("Director level detected - following approval_stages setup for periodic leave");
+
+            // Get approval stages filtered by project and department from approval_stage_details
+            $approvalStages = ApprovalStage::where('document_type', 'leave_request')
+                ->whereHas('details', function ($query) use ($projectId, $departmentId) {
+                    $query->where('project_id', $projectId)
+                        ->where('department_id', $departmentId)
+                        ->whereNull('request_reason');
+                })
+                ->with(['approver.employee.administrations' => function ($query) {
+                    $query->where('is_active', 1)
+                        ->with('level');
+                }])
+                ->orderBy('approval_order', 'asc')
+                ->get();
+
+            $approvers = collect();
+
+            foreach ($approvalStages as $stage) {
+                $approver = $stage->approver;
+
+                if (!$approver || !$approver->employee) {
+                    continue;
+                }
+
+                // Get level from any active administration (not limited to same project)
+                $approverAdministration = $approver->employee->administrations
+                    ->where('is_active', 1)
+                    ->first();
+
+                if (!$approverAdministration || !$approverAdministration->level) {
+                    continue;
+                }
+
+                $approvers->push((object)[
+                    'approver_id' => $approver->id,
+                    'approval_order' => $stage->approval_order,
+                    'level_id' => $approverAdministration->level->id
+                ]);
+            }
+
+            Log::info("Found {$approvers->count()} approvers for Director level periodic leave");
+            return $approvers;
+        }
+
+        // CASE 2: Manager level (5) - Director only
+        if ($applicantLevelOrder == 5) {
+            Log::info("Manager level detected - getting director approvers only for periodic leave");
+            return $this->getDirectorApprovers($projectId, $departmentId);
+        }
+
+        // CASE 3 & 4 & 5: Level 1-4 - Get best hierarchical approver + PM
+        // Level 1-2: Try SPV(3) first, if not found try SPT(4) + PM(5)
+        // Level 3: SPT(4) + PM(5)
+        // Level 4: SPT(4) + PM(5)
+
+        $hierarchicalApprover = null;
+        $managerApprover = null;
+
+        // Get all approval stages for this project/department from approval_stage_details
+        $approvalStages = ApprovalStage::where('document_type', 'leave_request')
+            ->whereHas('details', function ($query) use ($projectId, $departmentId) {
+                $query->where('project_id', $projectId)
+                    ->where('department_id', $departmentId)
+                    ->whereNull('request_reason');
+            })
+            ->with(['approver.employee.administrations' => function ($query) {
+                $query->where('is_active', 1)
+                    ->with('level');
+            }])
+            ->orderBy('approval_order', 'asc')
+            ->get();
+
+        // Determine required hierarchical level based on applicant level
+        $requiredHierarchicalLevels = [];
+        if ($applicantLevelOrder <= 2) {
+            // Level 1-2: Try level 3 first, then level 4
+            $requiredHierarchicalLevels = [3, 4];
+            Log::info("Non Staff/Foreman level - looking for SPV(3) or SPT(4)");
+        } elseif ($applicantLevelOrder == 3) {
+            // Level 3: Need level 4
+            $requiredHierarchicalLevels = [4];
+            Log::info("Supervisor level - looking for SPT(4)");
+        } elseif ($applicantLevelOrder == 4) {
+            // Level 4: Need level 4 (can be self)
+            $requiredHierarchicalLevels = [4];
+            Log::info("Superintendent level - looking for SPT(4)");
+        }
+
+        // Find best hierarchical approver and manager
+        foreach ($approvalStages as $stage) {
+            $approver = $stage->approver;
+
+            if (!$approver || !$approver->employee) {
+                continue;
+            }
+
+            // Get level from any active administration (not limited to same project)
+            $approverAdministration = $approver->employee->administrations
+                ->where('is_active', 1)
+                ->first();
+
+            if (!$approverAdministration || !$approverAdministration->level) {
+                continue;
+            }
+
+            $approverLevelOrder = $approverAdministration->level->level_order;
+
+            // Look for hierarchical approver (SPV or SPT)
+            if (!$hierarchicalApprover && in_array($approverLevelOrder, $requiredHierarchicalLevels)) {
+                $hierarchicalApprover = (object)[
+                    'approver_id' => $approver->id,
+                    'approval_order' => 1, // First stage
+                    'level_id' => $approverAdministration->level->id,
+                    'level_order' => $approverLevelOrder
+                ];
+                Log::info("Found hierarchical approver", [
+                    'approver_name' => $approver->name,
+                    'level' => $approverAdministration->level->name,
+                    'level_order' => $approverLevelOrder
+                ]);
+            }
+
+            // Look for Manager (level 5)
+            if (!$managerApprover && $approverLevelOrder == 5) {
+                $managerApprover = (object)[
+                    'approver_id' => $approver->id,
+                    'approval_order' => 2, // Second stage (PM always last)
+                    'level_id' => $approverAdministration->level->id,
+                    'level_order' => $approverLevelOrder
+                ];
+                Log::info("Found manager approver", [
+                    'approver_name' => $approver->name,
+                    'level' => $approverAdministration->level->name
+                ]);
+            }
+
+            // Break if both found
+            if ($hierarchicalApprover && $managerApprover) {
+                break;
+            }
+        }
+
+        // Build final approvers list
+        $approvers = collect();
+
+        if ($hierarchicalApprover) {
+            $approvers->push($hierarchicalApprover);
+        }
+
+        if ($managerApprover) {
+            $approvers->push($managerApprover);
+        }
+
+        Log::info("Final periodic leave approvers", [
+            'count' => $approvers->count(),
+            'hierarchical_found' => $hierarchicalApprover ? 'Yes' : 'No',
+            'manager_found' => $managerApprover ? 'Yes' : 'No'
+        ]);
+
+        return $approvers;
+    }
+
+    /**
      * Get director approvers for manager-level leave requests
      * Only returns approvers with Director level
      */
@@ -829,16 +1036,15 @@ class ApprovalPlanController extends Controller
     {
         $directorLevelOrder = $this->getDirectorLevelOrder();
 
-        // Get approval stages filtered by project and department
+        // Get approval stages filtered by project and department from approval_stage_details
         $approvalStages = ApprovalStage::where('document_type', 'leave_request')
             ->whereHas('details', function ($query) use ($projectId, $departmentId) {
                 $query->where('project_id', $projectId)
                     ->where('department_id', $departmentId)
                     ->whereNull('request_reason');
             })
-            ->with(['approver.employee.administrations' => function ($query) use ($projectId) {
+            ->with(['approver.employee.administrations' => function ($query) {
                 $query->where('is_active', 1)
-                    ->where('project_id', $projectId)
                     ->with('level');
             }])
             ->orderBy('approval_order', 'asc')
@@ -853,9 +1059,9 @@ class ApprovalPlanController extends Controller
                 continue;
             }
 
+            // Get level from any active administration (not limited to same project)
             $approverAdministration = $approver->employee->administrations
                 ->where('is_active', 1)
-                ->where('project_id', $projectId)
                 ->first();
 
             if (!$approverAdministration || !$approverAdministration->level) {
@@ -894,16 +1100,15 @@ class ApprovalPlanController extends Controller
      */
     private function getApproversWithinLevelRange($minLevelOrder, $maxLevelOrder, $projectId, $departmentId)
     {
-        // Get approval stages filtered by project and department
+        // Get approval stages filtered by project and department from approval_stage_details
         $approvalStages = ApprovalStage::where('document_type', 'leave_request')
             ->whereHas('details', function ($query) use ($projectId, $departmentId) {
                 $query->where('project_id', $projectId)
                     ->where('department_id', $departmentId)
                     ->whereNull('request_reason');
             })
-            ->with(['approver.employee.administrations' => function ($query) use ($projectId) {
+            ->with(['approver.employee.administrations' => function ($query) {
                 $query->where('is_active', 1)
-                    ->where('project_id', $projectId)
                     ->with('level');
             }])
             ->orderBy('approval_order', 'asc')
@@ -928,17 +1133,15 @@ class ApprovalPlanController extends Controller
                 continue;
             }
 
-            // Get the approver's active administration within the same project
+            // Get level from any active administration (not limited to same project)
             $approverAdministration = $approver->employee->administrations
                 ->where('is_active', 1)
-                ->where('project_id', $projectId)
                 ->first();
 
             if (!$approverAdministration || !$approverAdministration->level) {
-                Log::warning("Approver has no valid administration or level in project", [
+                Log::warning("Approver has no valid administration or level", [
                     'approver_id' => $approver->id,
-                    'approver_name' => $approver->name,
-                    'project_id' => $projectId
+                    'approver_name' => $approver->name
                 ]);
                 continue;
             }
