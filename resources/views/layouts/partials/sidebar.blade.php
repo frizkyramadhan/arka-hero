@@ -15,7 +15,8 @@
                 <img src="{{ asset('assets/dist/img/avatar6.png') }}" class="img-circle elevation-2" alt="User Image">
             </div>
             <div class="info">
-                <a href="#" class="d-block">{{ auth()->user()->name }}</a>
+                <a href="{{ route('profile.change-password') }}" class="d-block">{{ auth()->user()->name }}</a>
+                <small class="text-muted">{{ auth()->user()->email }}</small>
             </div>
         </div>
 
@@ -331,6 +332,15 @@
                                         class="nav-link {{ Request::is('recruitment/requests*') ? 'active' : '' }}">
                                         <i class="far fa-circle nav-icon"></i>
                                         <p>Requests (FPTK)</p>
+                                    </a>
+                                </li>
+                            @endcan
+                            @can('mpp.show')
+                                <li class="nav-item">
+                                    <a href="{{ route('recruitment.mpp.index') }}"
+                                        class="nav-link {{ Request::is('recruitment/mpp*') ? 'active' : '' }}">
+                                        <i class="far fa-circle nav-icon"></i>
+                                        <p>Requests (MPP)</p>
                                     </a>
                                 </li>
                             @endcan

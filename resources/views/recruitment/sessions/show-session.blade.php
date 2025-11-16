@@ -5,7 +5,11 @@
     <div class="content-wrapper-custom">
         <div class="fptk-header">
             <div class="fptk-header-content">
-                <div class="fptk-project">{{ $session->fptk->project->project_name }}</div>
+                @if ($session->fptk_id)
+                    <div class="fptk-project">{{ $session->fptk->project->project_name }}</div>
+                @elseif($session->mpp_detail_id)
+                    <div class="fptk-project">{{ $session->mppDetail->mpp->project->project_name }} (MPP)</div>
+                @endif
                 <h1 class="fptk-number">{{ $session->candidate->fullname ?? 'N/A' }}</h1>
                 <div class="fptk-date">
                     <i class="far fa-calendar-alt"></i> {{ date('d F Y', strtotime($session->created_at)) }}
@@ -56,8 +60,11 @@
         <!-- Main Content -->
         <div class="fptk-content">
             @php
-                // Check if this is magang or harian employment type
-                $isSimplifiedProcess = in_array($session->fptk->employment_type, ['magang', 'harian']);
+                // Check if this is magang or harian employment type (only for FPTK)
+                $isSimplifiedProcess = false;
+                if ($session->fptk_id && $session->fptk) {
+                    $isSimplifiedProcess = in_array($session->fptk->employment_type, ['magang', 'harian']);
+                }
             @endphp
             <div class="row">
                 <!-- Left Column -->
@@ -491,7 +498,15 @@
                                     </div>
                                     <div class="info-content">
                                         <div class="info-label">Position</div>
-                                        <div class="info-value">{{ $session->fptk->position->position_name }}</div>
+                                        <div class="info-value">
+                                            @if ($session->fptk_id)
+                                                {{ $session->fptk->position->position_name ?? 'N/A' }}
+                                            @elseif($session->mpp_detail_id)
+                                                {{ $session->mppDetail->position->position_name ?? 'N/A' }}
+                                            @else
+                                                N/A
+                                            @endif
+                                        </div>
                                     </div>
                                 </div>
                                 <div class="info-item">
@@ -500,7 +515,15 @@
                                     </div>
                                     <div class="info-content">
                                         <div class="info-label">Department</div>
-                                        <div class="info-value">{{ $session->fptk->department->department_name }}</div>
+                                        <div class="info-value">
+                                            @if ($session->fptk_id)
+                                                {{ $session->fptk->department->department_name ?? 'N/A' }}
+                                            @elseif($session->mpp_detail_id)
+                                                {{ $session->mppDetail->position->department->department_name ?? 'N/A' }}
+                                            @else
+                                                N/A
+                                            @endif
+                                        </div>
                                     </div>
                                 </div>
                                 <div class="info-item">
@@ -542,24 +565,42 @@
                                         <i class="fas fa-file-alt"></i>
                                     </div>
                                     <div class="info-content">
-                                        <div class="info-label">FPTK No.</div>
-                                        <div class="info-value">{{ $session->fptk->request_number ?? 'N/A' }}</div>
-                                    </div>
-                                </div>
-                                <div class="info-item">
-                                    <div class="info-icon" style="background-color: #8e44ad;">
-                                        <i class="fas fa-briefcase"></i>
-                                    </div>
-                                    <div class="info-content">
-                                        <div class="info-label">Employment Type</div>
+                                        <div class="info-label">
+                                            @if ($session->fptk_id)
+                                                FPTK No.
+                                            @elseif($session->mpp_detail_id)
+                                                MPP No.
+                                            @else
+                                                Request No.
+                                            @endif
+                                        </div>
                                         <div class="info-value">
-                                            <span
-                                                class="badge badge-{{ $session->fptk->employment_type === 'pkwtt' ? 'success' : ($session->fptk->employment_type === 'pkwt' ? 'primary' : ($session->fptk->employment_type === 'magang' ? 'warning' : 'info')) }}">
-                                                {{ $session->fptk->employment_type === 'magang' ? 'INTERN' : ($session->fptk->employment_type === 'harian' ? 'DAILY' : strtoupper($session->fptk->employment_type)) }}
-                                            </span>
+                                            @if ($session->fptk_id)
+                                                {{ $session->fptk->request_number ?? 'N/A' }}
+                                            @elseif($session->mpp_detail_id)
+                                                {{ $session->mppDetail->mpp->mpp_number ?? 'N/A' }}
+                                            @else
+                                                N/A
+                                            @endif
                                         </div>
                                     </div>
                                 </div>
+                                @if ($session->fptk_id)
+                                    <div class="info-item">
+                                        <div class="info-icon" style="background-color: #8e44ad;">
+                                            <i class="fas fa-briefcase"></i>
+                                        </div>
+                                        <div class="info-content">
+                                            <div class="info-label">Employment Type</div>
+                                            <div class="info-value">
+                                                <span
+                                                    class="badge badge-{{ $session->fptk->employment_type === 'pkwtt' ? 'success' : ($session->fptk->employment_type === 'pkwt' ? 'primary' : ($session->fptk->employment_type === 'magang' ? 'warning' : 'info')) }}">
+                                                    {{ $session->fptk->employment_type === 'magang' ? 'INTERN' : ($session->fptk->employment_type === 'harian' ? 'DAILY' : strtoupper($session->fptk->employment_type)) }}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                @endif
                             </div>
                         </div>
                     </div>
@@ -576,10 +617,17 @@
                         </div>
                         <div class="card-body">
                             <div class="fptk-action-buttons">
-                                <a href="{{ route('recruitment.sessions.show', $session->fptk->id) }}"
-                                    class="btn-action back-btn">
-                                    <i class="fas fa-arrow-left"></i> Back to FPTK
-                                </a>
+                                @if ($session->fptk_id)
+                                    <a href="{{ route('recruitment.sessions.show', $session->fptk->id) }}"
+                                        class="btn-action back-btn">
+                                        <i class="fas fa-arrow-left"></i> Back to Session
+                                    </a>
+                                @elseif($session->mpp_detail_id)
+                                    <a href="{{ route('recruitment.sessions.show', $session->mppDetail->id) }}"
+                                        class="btn-action back-btn">
+                                        <i class="fas fa-arrow-left"></i> Back to Session
+                                    </a>
+                                @endif
                             </div>
                         </div>
                     </div>

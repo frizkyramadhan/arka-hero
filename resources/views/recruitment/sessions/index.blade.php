@@ -53,9 +53,10 @@
                                             <div class="row form-group">
                                                 <div class="col-3">
                                                     <div class="form-group">
-                                                        <label class="form-control-label">FPTK Number</label>
+                                                        <label class="form-control-label">FPTK/MPP Number</label>
                                                         <input type="text" class="form-control" name="fptk_number"
-                                                            id="fptk_number" value="{{ request('fptk_number') }}">
+                                                            id="fptk_number" value="{{ request('fptk_number') }}"
+                                                            placeholder="Search FPTK or MPP number">
                                                     </div>
                                                 </div>
                                                 <div class="col-3">
@@ -120,7 +121,8 @@
                                         <thead>
                                             <tr>
                                                 <th class="align-middle text-center">No</th>
-                                                <th class="align-middle">FPTK No.</th>
+                                                <th class="align-middle text-center">Source</th>
+                                                <th class="align-middle">FPTK/MPP No.</th>
                                                 <th class="align-middle">Position</th>
                                                 <th class="align-middle text-center">Candidate Count</th>
                                                 <th class="align-middle text-center">Overall Progress</th>
@@ -149,7 +151,7 @@
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title" id="addCandidateModalLabel">
-                        <i class="fas fa-plus"></i> Add Candidate to FPTK
+                        <i class="fas fa-plus"></i> Add Candidate
                     </h5>
                     <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                         <span aria-hidden="true">&times;</span>
@@ -252,6 +254,11 @@
                     searchable: false,
                     className: 'text-center'
                 }, {
+                    data: "source_type",
+                    name: "source_type",
+                    orderable: false,
+                    className: 'text-center'
+                }, {
                     data: "fptk_number",
                     name: "fptk_number",
                     orderable: false,
@@ -326,21 +333,64 @@
             function searchCandidates() {
                 var query = $('#candidate_search').val();
                 if (query.length < 3) {
-                    alert('Please enter at least 3 characters to search');
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Warning',
+                        text: 'Please enter at least 3 characters to search',
+                        confirmButtonColor: '#3085d6',
+                        confirmButtonText: 'OK'
+                    });
                     return;
                 }
+
+                // Show loading
+                $('#candidate_results').html(
+                    '<tr><td colspan="5" class="text-center"><i class="fas fa-spinner fa-spin"></i> Searching...</td></tr>'
+                );
+                $('#search_results').show();
 
                 $.ajax({
                     url: '{{ route('recruitment.candidates.search') }}',
                     type: 'GET',
                     data: {
-                        query: query
+                        query: query,
+                        search: query
                     },
                     success: function(response) {
-                        displaySearchResults(response.candidates);
+                        var tbody = $('#candidate_results');
+                        tbody.empty();
+
+                        if (!response.success || !response.data || response.data.length === 0) {
+                            // Try legacy format
+                            if (response.candidates && response.candidates.length > 0) {
+                                displaySearchResults(response.candidates);
+                            } else {
+                                tbody.html(
+                                    '<tr><td colspan="5" class="text-center text-muted">No candidates found</td></tr>'
+                                );
+                            }
+                        } else {
+                            response.data.forEach(function(candidate) {
+                                var row = '<tr>' +
+                                    '<td>' + (candidate.fullname || candidate.name || 'N/A') +
+                                    '</td>' +
+                                    '<td>' + (candidate.email || '-') + '</td>' +
+                                    '<td>' + (candidate.phone || '-') + '</td>' +
+                                    '<td>' + (candidate.position_applied || '-') + '</td>' +
+                                    '<td class="text-center">' +
+                                    '<button class="btn btn-sm btn-primary add-candidate-btn" data-candidate-id="' +
+                                    candidate.id + '">' +
+                                    '<i class="fas fa-plus"></i> Add</button>' +
+                                    '</td>' +
+                                    '</tr>';
+                                tbody.append(row);
+                            });
+                        }
                     },
                     error: function() {
-                        alert('Error searching candidates');
+                        $('#candidate_results').html(
+                            '<tr><td colspan="5" class="text-center text-danger">Error searching candidates</td></tr>'
+                        );
                     }
                 });
             }
@@ -355,9 +405,9 @@
                 } else {
                     candidates.forEach(function(candidate) {
                         var row = '<tr>' +
-                            '<td>' + candidate.name + '</td>' +
-                            '<td>' + candidate.email + '</td>' +
-                            '<td>' + candidate.phone + '</td>' +
+                            '<td>' + (candidate.name || candidate.fullname || 'N/A') + '</td>' +
+                            '<td>' + (candidate.email || '-') + '</td>' +
+                            '<td>' + (candidate.phone || '-') + '</td>' +
                             '<td>' + (candidate.position_applied || '-') + '</td>' +
                             '<td class="text-center">' +
                             '<button class="btn btn-sm btn-primary add-candidate-btn" data-candidate-id="' +
@@ -394,25 +444,40 @@
                 $('#addCandidateModal').modal('show');
             });
 
-            // Add candidate to FPTK from search results
+            // Add candidate to FPTK or MPP from search results
             $(document).on('click', '.add-candidate-btn[data-candidate-id]', function() {
                 var candidateId = $(this).data('candidate-id');
                 var fptkId = $('#addCandidateModal').data('fptk-id');
+                var mppDetailId = $('#addCandidateModal').data('mpp-detail-id');
 
-                if (!fptkId) {
-                    alert('Please select a FPTK first');
+                var requestData = {
+                    candidate_id: candidateId,
+                    _token: '{{ csrf_token() }}'
+                };
+
+                if (fptkId) {
+                    requestData.fptk_id = fptkId;
+                } else if (mppDetailId) {
+                    requestData.mpp_detail_id = mppDetailId;
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: 'Please select a FPTK or MPP Detail first',
+                        confirmButtonColor: '#3085d6',
+                        confirmButtonText: 'OK'
+                    });
                     return;
                 }
 
-                // Add candidate to FPTK
+                // Disable button to prevent double click
+                $(this).prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Adding...');
+
+                // Add candidate
                 $.ajax({
                     url: '{{ route('recruitment.sessions.store') }}',
                     type: 'POST',
-                    data: {
-                        candidate_id: candidateId,
-                        fptk_id: fptkId,
-                        _token: '{{ csrf_token() }}'
-                    },
+                    data: requestData,
                     success: function(response) {
                         if (response.success) {
                             $('#addCandidateModal').modal('hide');
@@ -433,10 +498,14 @@
                                 confirmButtonColor: '#3085d6',
                                 confirmButtonText: 'OK'
                             });
+                            // Re-enable button
+                            $('.add-candidate-btn[data-candidate-id="' + candidateId + '"]')
+                                .prop('disabled', false)
+                                .html('<i class="fas fa-plus"></i> Add');
                         }
                     },
                     error: function(xhr) {
-                        var message = 'Error adding candidate to FPTK';
+                        var message = 'Error adding candidate';
                         if (xhr.responseJSON && xhr.responseJSON.message) {
                             message = xhr.responseJSON.message;
                         }
@@ -447,8 +516,38 @@
                             confirmButtonColor: '#3085d6',
                             confirmButtonText: 'OK'
                         });
+                        // Re-enable button
+                        $('.add-candidate-btn[data-candidate-id="' + candidateId + '"]')
+                            .prop('disabled', false)
+                            .html('<i class="fas fa-plus"></i> Add');
                     }
                 });
+            });
+
+            // Add Candidate Modal Handler for MPP
+            $(document).on('click', '.add-candidate-mpp-btn', function() {
+                var detailId = $(this).data('mpp-detail-id');
+                var mppNumber = $(this).data('mpp-number');
+                var positionName = $(this).data('position-name');
+
+                // Store detail ID in modal
+                $('#addCandidateModal').data('mpp-detail-id', detailId);
+                $('#addCandidateModal').removeData('fptk-id'); // Clear FPTK data if any
+
+                // Update modal title and info
+                $('#addCandidateModal .modal-title').html(
+                    '<i class="fas fa-plus"></i> Add Candidate to MPP Detail');
+                $('#addCandidateModal .modal-body').prepend(
+                    '<div class="alert alert-info"><strong>MPP:</strong> ' + mppNumber +
+                    ' | <strong>Position:</strong> ' + positionName + '</div>');
+
+                // Clear previous search results
+                $('#candidate_search').val('');
+                $('#search_results').hide();
+                $('#candidate_results').empty();
+
+                // Show modal
+                $('#addCandidateModal').modal('show');
             });
 
             // Clear modal when closed
@@ -456,6 +555,7 @@
                 $(this).find('.alert').remove();
                 $(this).find('.modal-title').html('<i class="fas fa-plus"></i> Add Candidate to FPTK');
                 $(this).removeData('fptk-id');
+                $(this).removeData('mpp-detail-id');
             });
         });
     </script>
