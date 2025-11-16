@@ -15,6 +15,7 @@ class RecruitmentSession extends Model
     protected $fillable = [
         'session_number',
         'fptk_id',
+        'mpp_detail_id',
         'candidate_id',
         'applied_date',
         'source',
@@ -136,6 +137,11 @@ class RecruitmentSession extends Model
         return $this->belongsTo(RecruitmentRequest::class, 'fptk_id');
     }
 
+    public function mppDetail()
+    {
+        return $this->belongsTo(ManPowerPlanDetail::class, 'mpp_detail_id');
+    }
+
     public function candidate()
     {
         return $this->belongsTo(RecruitmentCandidate::class, 'candidate_id');
@@ -250,29 +256,63 @@ class RecruitmentSession extends Model
     // Get assessment by stage
     public function getAssessmentByStage($stage)
     {
+        // Ensure relationships are loaded before accessing
         switch ($stage) {
             case 'cv_review':
+                if (!$this->relationLoaded('cvReview')) {
+                    $this->load('cvReview');
+                }
                 return $this->cvReview;
             case 'psikotes':
+                if (!$this->relationLoaded('psikotes')) {
+                    $this->load('psikotes');
+                }
                 return $this->psikotes;
             case 'tes_teori':
+                if (!$this->relationLoaded('tesTeori')) {
+                    $this->load('tesTeori');
+                }
                 return $this->tesTeori;
             case 'interview':
                 // Return interview summary instead of collection
+                if (!$this->relationLoaded('interviews')) {
+                    $this->load('interviews');
+                }
                 return $this->getInterviewSummary();
             case 'interview_hr':
+                if (!$this->relationLoaded('interviews')) {
+                    $this->load('interviews');
+                }
                 return $this->interviewHr;
             case 'interview_user':
+                if (!$this->relationLoaded('interviews')) {
+                    $this->load('interviews');
+                }
                 return $this->interviewUser;
             case 'interview_trainer':
+                if (!$this->relationLoaded('interviews')) {
+                    $this->load('interviews');
+                }
                 return $this->interviewTrainer;
             case 'offering':
+                if (!$this->relationLoaded('offering')) {
+                    $this->load('offering');
+                }
                 return $this->offering;
             case 'mcu':
+                if (!$this->relationLoaded('mcu')) {
+                    $this->load('mcu');
+                }
                 return $this->mcu;
             case 'hire':
+                if (!$this->relationLoaded('hiring')) {
+                    $this->load('hiring');
+                }
                 return $this->hiring;
             case 'onboarding':
+                if (!$this->relationLoaded('onboarding')) {
+                    $this->load('onboarding');
+                }
                 return $this->onboarding;
             default:
                 return null;
@@ -294,6 +334,11 @@ class RecruitmentSession extends Model
             return false;
         }
 
+        // Ensure assessment has required data
+        if (is_object($assessment) && !isset($assessment->decision) && !isset($assessment->result) && !isset($assessment->id)) {
+            return false;
+        }
+
         // Handle tes_teori stage for non-mechanic positions
         if ($stage === 'tes_teori' && $this->shouldSkipTheoryTest()) {
             return true; // Consider as completed for non-mechanic positions
@@ -307,10 +352,16 @@ class RecruitmentSession extends Model
             case 'tes_teori':
                 return $assessment->result === 'pass';
             case 'interview':
+                // Ensure interviews relationship is loaded
+                if (!$this->relationLoaded('interviews')) {
+                    $this->load('interviews');
+                }
+
                 // Interview stage is completed when all required interviews are completed and recommended
-                $hrInterview = $this->interviews()->where('type', 'hr')->first();
-                $userInterview = $this->interviews()->where('type', 'user')->first();
-                $trainerInterview = $this->interviews()->where('type', 'trainer')->first();
+                // Use collection filter instead of query to use loaded relationships
+                $hrInterview = $this->interviews->where('type', 'hr')->first();
+                $userInterview = $this->interviews->where('type', 'user')->first();
+                $trainerInterview = $this->interviews->where('type', 'trainer')->first();
 
                 // Check HR and User interviews (always required)
                 if (
@@ -583,6 +634,47 @@ class RecruitmentSession extends Model
         return in_array($this->status, ['hired', 'rejected', 'withdrawn', 'cancelled']);
     }
 
+    /**
+     * Get recruitment source type (FPTK or MPP)
+     */
+    public function getRecruitmentSourceTypeAttribute()
+    {
+        if ($this->fptk_id) {
+            return 'FPTK';
+        } elseif ($this->mpp_detail_id) {
+            return 'MPP';
+        }
+        return 'Unknown';
+    }
+
+    /**
+     * Get recruitment source object (FPTK or MPP Detail)
+     */
+    public function getRecruitmentSourceAttribute()
+    {
+        if ($this->fptk_id) {
+            return $this->fptk;
+        } elseif ($this->mpp_detail_id) {
+            return $this->mppDetail;
+        }
+        return null;
+    }
+
+    /**
+     * Get recruitment source display name
+     */
+    public function getRecruitmentSourceNameAttribute()
+    {
+        if ($this->fptk_id) {
+            $fptk = $this->fptk;
+            return $fptk->request_number . ' - ' . $fptk->position->position_name;
+        } elseif ($this->mpp_detail_id) {
+            $mppDetail = $this->mppDetail;
+            return $mppDetail->mpp->mpp_number . ' - ' . ($mppDetail->position->position_name ?? 'N/A');
+        }
+        return 'N/A';
+    }
+
     public function getNextStageAttribute()
     {
         // For magang and harian: simplified stage order (only MCU and Hiring)
@@ -617,7 +709,32 @@ class RecruitmentSession extends Model
      */
     public function shouldSkipTheoryTest(): bool
     {
-        return !$this->fptk->requiresTheoryTest();
+        // For MPP sessions, check requires_theory_test from MPP detail
+        if ($this->mpp_detail_id) {
+            // Ensure relationship is loaded
+            if (!$this->relationLoaded('mppDetail')) {
+                $this->load('mppDetail');
+            }
+            if ($this->mppDetail) {
+                return !$this->mppDetail->requires_theory_test;
+            }
+            // Default to skip if MPP detail not found
+            return true;
+        }
+
+        // For FPTK sessions
+        if ($this->fptk_id) {
+            // Ensure relationship is loaded
+            if (!$this->relationLoaded('fptk')) {
+                $this->load('fptk');
+            }
+            if ($this->fptk) {
+                return !$this->fptk->requires_theory_test;
+            }
+        }
+
+        // Default to skip if no source found
+        return true;
     }
 
     /**
@@ -627,6 +744,11 @@ class RecruitmentSession extends Model
      */
     public function shouldSkipStagesForEmploymentType(): bool
     {
+        // For MPP sessions, never skip stages (default to full recruitment flow)
+        if ($this->mpp_detail_id) {
+            return false;
+        }
+
         return in_array($this->fptk->employment_type, ['magang', 'harian']);
     }
 
@@ -784,8 +906,32 @@ class RecruitmentSession extends Model
             'overall_progress' => 100,
         ]);
 
-        // Update FPTK positions filled
-        $this->fptk->incrementPositionsFilled();
+        // Update FPTK positions filled if session is from FPTK
+        if ($this->fptk_id) {
+            $this->fptk->incrementPositionsFilled();
+        }
+
+        // Update MPP Detail existing quantity if session is from MPP
+        if ($this->mpp_detail_id && $this->mppDetail) {
+            // Load hiring relationship if not already loaded
+            if (!$this->relationLoaded('hiring')) {
+                $this->load('hiring');
+            }
+
+            // Get agreement_type from hiring record for tie-breaker
+            $agreementType = null;
+            if ($this->hiring && $this->hiring->agreement_type) {
+                $agreementType = $this->hiring->agreement_type;
+            }
+
+            // Auto-increment based on MPP Detail needs (which one is still needed)
+            // This will check diff_s and diff_ns to determine staff or non-staff
+            // Agreement type is only used as tie-breaker if both have same diff
+            $this->mppDetail->autoIncrementExistingQuantity($agreementType);
+
+            // Check fulfillment
+            $this->mppDetail->checkFulfillment();
+        }
 
         // Update candidate global status
         $this->candidate->update(['global_status' => 'hired']);
@@ -876,12 +1022,15 @@ class RecruitmentSession extends Model
 
     /**
      * Get progress percentage for the session
+     * Always calculate fresh to ensure accuracy, especially for MPP sessions
      *
      * @return float
      */
     public function getProgressPercentage(): float
     {
-        return $this->overall_progress ?? 0.0;
+        // Always calculate fresh progress to ensure accuracy
+        // This is especially important for MPP sessions where theory test requirement may affect progress
+        return $this->calculateActualProgress();
     }
 
     /**

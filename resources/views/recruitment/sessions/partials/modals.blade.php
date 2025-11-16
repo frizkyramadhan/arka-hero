@@ -481,7 +481,7 @@
 
 <!-- Hire Modal -->
 <div class="modal fade" id="hireModal"
-    data-employment-type="{{ optional($session->fptk)->employment_type ?: 'pkwt' }}">
+    data-employment-type="{{ optional($session->fptk)->employment_type ?: (optional($session->mppDetail)->agreement_type ?: 'pkwt') }}">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
@@ -926,12 +926,23 @@
                         <div class="card-header"><strong>Agreement</strong></div>
                         <div class="card-body">
                             @php
-                                $employmentType = optional($session->fptk)->employment_type;
+                                // Get employment type from FPTK or agreement type from MPP Detail
+                                if ($session->fptk_id && $session->fptk) {
+                                    $employmentType = $session->fptk->employment_type;
+                                } elseif ($session->mpp_detail_id && $session->mppDetail) {
+                                    $employmentType = $session->mppDetail->agreement_type ?? 'pkwt';
+                                } else {
+                                    $employmentType = 'pkwt';
+                                }
+                                
                                 $agreementType = $employmentType ?: 'pkwt'; // Fallback ke 'pkwt' jika null atau empty
-                                if ($agreementType === 'magang') {
-                                    $agreementType = 'Intern';
-                                } elseif ($agreementType === 'harian') {
-                                    $agreementType = 'Daily';
+                                
+                                // For display purposes
+                                $displayAgreementType = $agreementType;
+                                if ($displayAgreementType === 'magang') {
+                                    $displayAgreementType = 'Intern';
+                                } elseif ($displayAgreementType === 'harian') {
+                                    $displayAgreementType = 'Daily';
                                 }
                             @endphp
 
@@ -983,12 +994,20 @@
                                         class="badge badge-{{ $employmentType === 'pkwtt' ? 'success' : ($employmentType === 'pkwt' ? 'primary' : ($employmentType === 'magang' ? 'warning' : 'info')) }} badge-lg mr-2">
                                         <i
                                             class="fas fa-{{ $employmentType === 'magang' ? 'graduation-cap' : ($employmentType === 'harian' ? 'clock' : ($employmentType === 'pkwt' ? 'file-signature' : 'briefcase')) }} mr-1"></i>
-                                        {{ strtoupper($agreementType) }}
+                                        {{ strtoupper($displayAgreementType) }}
                                     </span>
-                                    <small class="text-muted">(Auto-selected based on FPTK employment type)</small>
+                                    <small class="text-muted">
+                                        @if($session->fptk_id)
+                                            (Auto-selected based on FPTK employment type)
+                                        @elseif($session->mpp_detail_id)
+                                            (Auto-selected based on MPP Detail agreement type)
+                                        @else
+                                            (Default: PKWT)
+                                        @endif
+                                    </small>
                                 </div>
 
-                                <input type="hidden" name="agreement_type" value="{{ $employmentType }}" required>
+                                <input type="hidden" name="agreement_type" value="{{ $agreementType }}" required>
                             </div>
 
                             <!-- FOC (only for PKWT) -->

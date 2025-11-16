@@ -23,7 +23,7 @@ use PHPMailer\PHPMailer\PHPMailer;
 use App\Mail\NotificationSendEmail;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
-
+use Illuminate\Support\Facades\Hash;
 
 class ProfileController extends Controller
 {
@@ -1059,5 +1059,71 @@ class ProfileController extends Controller
             })
 
             ->toJson();
+    }
+
+    /**
+     * Show the profile page with user information and forms.
+     *
+     * @return \Illuminate\Http\Response
+     */
+    public function showChangePasswordForm()
+    {
+        $title = 'My Profile';
+        $subtitle = 'Manage your profile information';
+        $user = Auth::user()->load(['employee', 'roles']);
+
+        return view('profile.change-password', compact('title', 'subtitle', 'user'));
+    }
+
+    /**
+     * Update the user's profile (name and/or password).
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\Response
+     */
+    public function updatePassword(Request $request)
+    {
+        $user = Auth::user();
+        $rules = [];
+        $messages = [];
+
+        // Always validate name
+        $rules['name'] = ['required', 'string', 'max:255'];
+        $messages['name.required'] = 'Name is required';
+        $messages['name.max'] = 'Name must not exceed 255 characters';
+
+        // Validate password only if provided
+        if ($request->filled('password') || $request->filled('current_password')) {
+            $rules['current_password'] = ['required'];
+            $rules['password'] = ['required', 'min:5', 'confirmed'];
+            $messages['current_password.required'] = 'Current password is required when changing password';
+            $messages['password.required'] = 'New password is required';
+            $messages['password.min'] = 'Password must be at least 5 characters';
+            $messages['password.confirmed'] = 'Password confirmation does not match';
+        }
+
+        $validated = $request->validate($rules, $messages);
+
+        // Update name
+        $user->name = $request->name;
+
+        // Update password if provided
+        if ($request->filled('password')) {
+            if (!Hash::check($request->current_password, $user->password)) {
+                return back()->withErrors(['current_password' => 'Current password is incorrect']);
+            }
+            $user->password = Hash::make($request->password);
+        }
+
+        $user->save();
+
+        $message = 'Profile updated successfully';
+        if ($request->filled('password')) {
+            $message = 'Name and password updated successfully';
+        } else {
+            $message = 'Name updated successfully';
+        }
+
+        return redirect()->route('profile.change-password')->with('toast_success', $message);
     }
 }

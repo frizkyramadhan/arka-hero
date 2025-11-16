@@ -68,11 +68,13 @@ class RecruitmentCandidateController extends Controller
      */
     public function search(Request $request)
     {
-        $query = $request->get('query');
+        // Accept both 'query' and 'search' parameters for compatibility
+        $query = $request->get('query') ?? $request->get('search') ?? '';
 
         if (strlen($query) < 3) {
             return response()->json([
-                'candidates' => [],
+                'success' => false,
+                'data' => [],
                 'message' => 'Please enter at least 3 characters to search'
             ]);
         }
@@ -86,10 +88,11 @@ class RecruitmentCandidateController extends Controller
                     ->orWhere('position_applied', 'LIKE', "%{$query}%");
             })
             ->limit(10)
-            ->get(['id', 'fullname as name', 'email', 'phone', 'position_applied']);
+            ->get(['id', 'fullname', 'fullname as name', 'email', 'phone', 'position_applied']);
 
         return response()->json([
-            'candidates' => $candidates,
+            'success' => true,
+            'data' => $candidates,
             'message' => $candidates->count() . ' candidates found'
         ]);
     }

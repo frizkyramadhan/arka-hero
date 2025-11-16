@@ -121,6 +121,10 @@ Route::group(['middleware' => ['auth']], function () {
     Route::get('summary/birthday', [ProfileController::class, 'birthdaySummary'])->name('employees.birthday');
     Route::get('summary/birthday/employees', [ProfileController::class, 'getBirthdayEmployees'])->name('employees.birthday.list');
 
+    // Profile routes
+    Route::get('profile/change-password', [ProfileController::class, 'showChangePasswordForm'])->name('profile.change-password');
+    Route::put('profile/change-password', [ProfileController::class, 'updatePassword'])->name('profile.change-password');
+
     Route::get('/', [DashboardController::class, 'dashboard'])->name('dashboard');
     Route::get('/dashboard/pending-recommendations', [DashboardController::class, 'pendingRecommendations'])->name('dashboard.pendingRecommendations');
     Route::get('/dashboard/pending-approvals', [DashboardController::class, 'pendingApprovals'])->name('dashboard.pendingApprovals');
@@ -449,6 +453,19 @@ Route::group(['middleware' => ['auth']], function () {
             Route::post('/{id}/assign-letter-number', [RecruitmentRequestController::class, 'assignLetterNumber'])->name('assign-letter-number');
 
             // AJAX Routes
+        });
+
+        // Man Power Plan (MPP) Routes
+        Route::prefix('mpp')->name('mpp.')->group(function () {
+            Route::get('/', [\App\Http\Controllers\ManPowerPlanController::class, 'index'])->name('index');
+            Route::get('/data', [\App\Http\Controllers\ManPowerPlanController::class, 'getData'])->name('data');
+            Route::get('/create', [\App\Http\Controllers\ManPowerPlanController::class, 'create'])->name('create');
+            Route::post('/', [\App\Http\Controllers\ManPowerPlanController::class, 'store'])->name('store');
+            Route::get('/{id}', [\App\Http\Controllers\ManPowerPlanController::class, 'show'])->name('show');
+            Route::get('/{id}/edit', [\App\Http\Controllers\ManPowerPlanController::class, 'edit'])->name('edit');
+            Route::put('/{id}', [\App\Http\Controllers\ManPowerPlanController::class, 'update'])->name('update');
+            Route::delete('/{id}', [\App\Http\Controllers\ManPowerPlanController::class, 'destroy'])->name('destroy');
+            Route::post('/{id}/close', [\App\Http\Controllers\ManPowerPlanController::class, 'close'])->name('close');
         });
 
         // Candidate Routes

@@ -1,46 +1,60 @@
 @extends('layouts.main')
 
 @section('content')
+    @php
+        $isMpp = isset($mpp) && isset($mppDetail);
+        $isFptk = isset($fptk) && !$isMpp;
+
+        // Set source data based on type
+        if ($isMpp) {
+            $source = $mpp;
+            $sourceNumber = $mpp->mpp_number;
+            $sourceProject = $mpp->project;
+            $sourceCreatedAt = $mpp->created_at;
+            $sourceStatus = $mpp->status;
+            $sourcePosition = $mppDetail->position->position_name ?? 'N/A';
+            $sourceLevel = 'N/A';
+            $sourceCreatedBy = $mpp->creator->name ?? 'N/A';
+        } else {
+            $source = $fptk;
+            $sourceNumber = $fptk->request_number;
+            $sourceProject = $fptk->project;
+            $sourceCreatedAt = $fptk->created_at;
+            $sourceStatus = $fptk->status;
+            $sourcePosition = $fptk->position->position_name;
+            $sourceLevel = $fptk->level->name;
+            $sourceCreatedBy = $fptk->createdBy->name ?? 'N/A';
+        }
+
+        $statusMap = [
+            'draft' => ['label' => 'Draft', 'class' => 'badge badge-secondary', 'icon' => 'fa-edit'],
+            'submitted' => ['label' => 'Submitted', 'class' => 'badge badge-info', 'icon' => 'fa-paper-plane'],
+            'approved' => ['label' => 'Approved', 'class' => 'badge badge-success', 'icon' => 'fa-check-circle'],
+            'rejected' => ['label' => 'Rejected', 'class' => 'badge badge-danger', 'icon' => 'fa-times-circle'],
+            'cancelled' => ['label' => 'Cancelled', 'class' => 'badge badge-warning', 'icon' => 'fa-ban'],
+            'closed' => ['label' => 'Closed', 'class' => 'badge badge-primary', 'icon' => 'fa-check-circle'],
+            'active' => ['label' => 'Active', 'class' => 'badge badge-success', 'icon' => 'fa-check-circle'],
+        ];
+        $pill = $statusMap[$sourceStatus] ?? [
+            'label' => ucfirst($sourceStatus),
+            'class' => 'badge badge-secondary',
+            'icon' => 'fa-question-circle',
+        ];
+    @endphp
+
     <div class="content-wrapper-custom">
         <div class="fptk-header">
             <div class="fptk-header-content">
-                <div class="fptk-project">{{ $fptk->project->project_name }}</div>
-                <h1 class="fptk-number">{{ $fptk->request_number }}</h1>
+                <div class="fptk-project">{{ $sourceProject->project_name }}</div>
+                <h1 class="fptk-number">{{ $sourceNumber }}</h1>
+                @if ($isMpp)
+                    <div class="fptk-date">
+                        <i class="fas fa-briefcase"></i> {{ $mppDetail->position->position_name ?? 'N/A' }}
+                    </div>
+                @endif
                 <div class="fptk-date">
-                    <i class="far fa-calendar-alt"></i> {{ date('d F Y', strtotime($fptk->created_at)) }}
+                    <i class="far fa-calendar-alt"></i> {{ date('d F Y', strtotime($sourceCreatedAt)) }}
                 </div>
-                @php
-                    $statusMap = [
-                        'draft' => ['label' => 'Draft', 'class' => 'badge badge-secondary', 'icon' => 'fa-edit'],
-                        'submitted' => [
-                            'label' => 'Submitted',
-                            'class' => 'badge badge-info',
-                            'icon' => 'fa-paper-plane',
-                        ],
-                        'approved' => [
-                            'label' => 'Approved',
-                            'class' => 'badge badge-success',
-                            'icon' => 'fa-check-circle',
-                        ],
-                        'rejected' => [
-                            'label' => 'Rejected',
-                            'class' => 'badge badge-danger',
-                            'icon' => 'fa-times-circle',
-                        ],
-                        'cancelled' => ['label' => 'Cancelled', 'class' => 'badge badge-warning', 'icon' => 'fa-ban'],
-                        'closed' => [
-                            'label' => 'Closed',
-                            'class' => 'badge badge-primary',
-                            'icon' => 'fa-check-circle',
-                        ],
-                    ];
-                    $status = $fptk->status;
-                    $pill = $statusMap[$status] ?? [
-                        'label' => ucfirst($status),
-                        'class' => 'badge badge-secondary',
-                        'icon' => 'fa-question-circle',
-                    ];
-                @endphp
                 <div class="fptk-status-pill">
                     <span class="{{ $pill['class'] }}">
                         <i class="fas {{ $pill['icon'] }}"></i> {{ $pill['label'] }}
@@ -54,30 +68,32 @@
             <div class="row">
                 <!-- Left Column -->
                 <div class="col-lg-8">
-                    <!-- Main FPTK Info -->
+                    <!-- Main Information -->
                     <div class="fptk-card fptk-info-card">
                         <div class="card-head">
-                            <h2><i class="fas fa-user-tie"></i> FPTK Information</h2>
+                            <h2><i class="fas fa-user-tie"></i> {{ $isMpp ? 'MPP Detail' : 'FPTK' }} Information</h2>
                         </div>
                         <div class="card-body">
                             <div class="info-grid">
-                                <div class="info-item">
-                                    <div class="info-icon" style="background-color: #3498db;">
-                                        <i class="fas fa-building"></i>
+                                @if ($isFptk)
+                                    <div class="info-item">
+                                        <div class="info-icon" style="background-color: #3498db;">
+                                            <i class="fas fa-building"></i>
+                                        </div>
+                                        <div class="info-content">
+                                            <div class="info-label">Department</div>
+                                            <div class="info-value">{{ $fptk->department->department_name }}</div>
+                                        </div>
                                     </div>
-                                    <div class="info-content">
-                                        <div class="info-label">Department</div>
-                                        <div class="info-value">{{ $fptk->department->department_name }}</div>
-                                    </div>
-                                </div>
+                                @endif
                                 <div class="info-item">
                                     <div class="info-icon" style="background-color: #e74c3c;">
                                         <i class="fas fa-project-diagram"></i>
                                     </div>
                                     <div class="info-content">
                                         <div class="info-label">Project</div>
-                                        <div class="info-value">{{ $fptk->project->project_code }} -
-                                            {{ $fptk->project->project_name }}</div>
+                                        <div class="info-value">{{ $sourceProject->project_code }} -
+                                            {{ $sourceProject->project_name }}</div>
                                     </div>
                                 </div>
                                 <div class="info-item">
@@ -86,7 +102,7 @@
                                     </div>
                                     <div class="info-content">
                                         <div class="info-label">Position</div>
-                                        <div class="info-value">{{ $fptk->position->position_name }}</div>
+                                        <div class="info-value">{{ $sourcePosition }}</div>
                                     </div>
                                 </div>
                                 <div class="info-item">
@@ -95,79 +111,119 @@
                                     </div>
                                     <div class="info-content">
                                         <div class="info-label">Level</div>
-                                        <div class="info-value">{{ $fptk->level->name }}</div>
+                                        <div class="info-value">{{ $sourceLevel }}</div>
                                     </div>
                                 </div>
-                                <div class="info-item">
-                                    <div class="info-icon" style="background-color: #1abc9c;">
-                                        <i class="fas fa-users"></i>
+                                @if ($isFptk)
+                                    <div class="info-item">
+                                        <div class="info-icon" style="background-color: #1abc9c;">
+                                            <i class="fas fa-users"></i>
+                                        </div>
+                                        <div class="info-content">
+                                            <div class="info-label">Required Quantity</div>
+                                            <div class="info-value">{{ $fptk->required_qty }}
+                                                {{ $fptk->required_qty > 1 ? 'persons' : 'person' }}</div>
+                                        </div>
                                     </div>
-                                    <div class="info-content">
-                                        <div class="info-label">Required Quantity</div>
-                                        <div class="info-value">{{ $fptk->required_qty }}
-                                            {{ $fptk->required_qty > 1 ? 'persons' : 'person' }}</div>
+                                    <div class="info-item">
+                                        <div class="info-icon" style="background-color: #e67e22;">
+                                            <i class="fas fa-calendar-check"></i>
+                                        </div>
+                                        <div class="info-content">
+                                            <div class="info-label">Required Date</div>
+                                            <div class="info-value">{{ date('d F Y', strtotime($fptk->required_date)) }}
+                                            </div>
+                                        </div>
                                     </div>
-                                </div>
-                                <div class="info-item">
-                                    <div class="info-icon" style="background-color: #e67e22;">
-                                        <i class="fas fa-calendar-check"></i>
+                                    <div class="info-item">
+                                        <div class="info-icon" style="background-color: #34495e;">
+                                            <i class="fas fa-briefcase"></i>
+                                        </div>
+                                        <div class="info-content">
+                                            <div class="info-label">Employment Type</div>
+                                            <div class="info-value">
+                                                {{ ucfirst(str_replace('_', ' ', $fptk->employment_type)) }}</div>
+                                        </div>
                                     </div>
-                                    <div class="info-content">
-                                        <div class="info-label">Required Date</div>
-                                        <div class="info-value">{{ date('d F Y', strtotime($fptk->required_date)) }}</div>
+                                @else
+                                    <div class="info-item">
+                                        <div class="info-icon" style="background-color: #1abc9c;">
+                                            <i class="fas fa-users"></i>
+                                        </div>
+                                        <div class="info-content">
+                                            <div class="info-label">Plan Quantity</div>
+                                            <div class="info-value">{{ $mppDetail->total_plan }}
+                                                {{ $mppDetail->total_plan > 1 ? 'persons' : 'person' }}</div>
+                                        </div>
                                     </div>
-                                </div>
-                                <div class="info-item">
-                                    <div class="info-icon" style="background-color: #34495e;">
-                                        <i class="fas fa-briefcase"></i>
+                                    <div class="info-item">
+                                        <div class="info-icon" style="background-color: #e67e22;">
+                                            <i class="fas fa-user-check"></i>
+                                        </div>
+                                        <div class="info-content">
+                                            <div class="info-label">Existing Quantity</div>
+                                            <div class="info-value">{{ $mppDetail->total_existing }}
+                                                {{ $mppDetail->total_existing > 1 ? 'persons' : 'person' }}</div>
+                                        </div>
                                     </div>
-                                    <div class="info-content">
-                                        <div class="info-label">Employment Type</div>
-                                        <div class="info-value">
-                                            {{ ucfirst(str_replace('_', ' ', $fptk->employment_type)) }}</div>
+                                    <div class="info-item">
+                                        <div class="info-icon" style="background-color: #dc3545;">
+                                            <i class="fas fa-user-plus"></i>
+                                        </div>
+                                        <div class="info-content">
+                                            <div class="info-label">Difference</div>
+                                            <div class="info-value">
+                                                <span
+                                                    class="{{ $mppDetail->total_diff > 0 ? 'text-danger' : ($mppDetail->total_diff < 0 ? 'text-success' : '') }}">
+                                                    {{ $mppDetail->total_diff > 0 ? '+' : '' }}{{ $mppDetail->total_diff }}
+                                                </span>
+                                            </div>
+                                        </div>
                                     </div>
-                                </div>
+                                @endif
                                 <div class="info-item">
                                     <div class="info-icon" style="background-color: #2c3e50;">
                                         <i class="fas fa-user"></i>
                                     </div>
                                     <div class="info-content">
                                         <div class="info-label">Created By</div>
-                                        <div class="info-value">{{ $fptk->createdBy->name ?? 'N/A' }}</div>
+                                        <div class="info-value">{{ $sourceCreatedBy }}</div>
                                     </div>
                                 </div>
-                                <div class="info-item">
-                                    <div class="info-icon" style="background-color: #e91e63;">
-                                        <i class="fas fa-book"></i>
-                                    </div>
-                                    <div class="info-content">
-                                        <div class="info-label">Theory Test Requirement</div>
-                                        <div class="info-value">
-                                            @if ($fptk->requires_theory_test)
-                                                <span class="badge badge-warning">
-                                                    <i class="fas fa-check-circle"></i> Required
-                                                </span>
-                                                <br><small class="text-muted">Posisi mekanik/teknis</small>
-                                            @else
-                                                <span class="badge badge-secondary">
-                                                    <i class="fas fa-times-circle"></i> Not Required
-                                                </span>
-                                                <br><small class="text-muted">Posisi non-teknis</small>
-                                            @endif
+                                @if ($isFptk)
+                                    <div class="info-item">
+                                        <div class="info-icon" style="background-color: #e91e63;">
+                                            <i class="fas fa-book"></i>
+                                        </div>
+                                        <div class="info-content">
+                                            <div class="info-label">Theory Test Requirement</div>
+                                            <div class="info-value">
+                                                @if ($fptk->requires_theory_test)
+                                                    <span class="badge badge-warning">
+                                                        <i class="fas fa-check-circle"></i> Required
+                                                    </span>
+                                                    <br><small class="text-muted">Posisi mekanik/teknis</small>
+                                                @else
+                                                    <span class="badge badge-secondary">
+                                                        <i class="fas fa-times-circle"></i> Not Required
+                                                    </span>
+                                                    <br><small class="text-muted">Posisi non-teknis</small>
+                                                @endif
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                                <div class="info-item">
-                                    <div class="info-icon" style="background-color: #8e44ad;">
-                                        <i class="fas fa-question-circle"></i>
-                                    </div>
-                                    <div class="info-content">
-                                        <div class="info-label">Request Reason</div>
-                                        <div class="info-value">
-                                            {{ formatRequestReason($fptk->request_reason, $fptk->other_reason) }}
+                                    <div class="info-item">
+                                        <div class="info-icon" style="background-color: #8e44ad;">
+                                            <i class="fas fa-question-circle"></i>
+                                        </div>
+                                        <div class="info-content">
+                                            <div class="info-label">Request Reason</div>
+                                            <div class="info-value">
+                                                {{ formatRequestReason($fptk->request_reason, $fptk->other_reason) }}
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
+                                @endif
                             </div>
                         </div>
                     </div>
@@ -178,34 +234,69 @@
                             <h2><i class="fas fa-chart-line"></i> Recruitment Progress</h2>
                         </div>
                         <div class="card-body">
-                            <!-- Theory Test Requirement Info -->
-                            <div class="theory-test-info mb-4">
-                                <div class="alert {{ $fptk->requires_theory_test ? 'alert-warning' : 'alert-info' }} mb-0">
-                                    <div class="d-flex align-items-center">
-                                        <i class="fas {{ $fptk->requires_theory_test ? 'fa-exclamation-triangle' : 'fa-info-circle' }} mr-3"
-                                            style="font-size: 1.2em;"></i>
-                                        <div>
-                                            <strong>
-                                                @if ($fptk->requires_theory_test)
-                                                    Posisi ini memerlukan Tes Teori
-                                                @else
-                                                    Posisi ini tidak memerlukan Tes Teori
-                                                @endif
-                                            </strong>
-                                            <br>
-                                            <small class="text-muted">
-                                                @if ($fptk->requires_theory_test)
-                                                    Kandidat harus lulus tes teori sebelum interview. Stage tes teori akan
-                                                    muncul di timeline recruitment.
-                                                @else
-                                                    Kandidat langsung ke interview setelah psikotes. Stage tes teori akan
-                                                    di-skip di timeline recruitment.
-                                                @endif
-                                            </small>
+                            <!-- Theory Test Requirement Info (Only for FPTK) -->
+                            @if ($isFptk)
+                                <div class="theory-test-info mb-4">
+                                    <div
+                                        class="alert {{ $fptk->requires_theory_test ? 'alert-warning' : 'alert-info' }} mb-0">
+                                        <div class="d-flex align-items-center">
+                                            <i class="fas {{ $fptk->requires_theory_test ? 'fa-exclamation-triangle' : 'fa-info-circle' }} mr-3"
+                                                style="font-size: 1.2em;"></i>
+                                            <div>
+                                                <strong>
+                                                    @if ($fptk->requires_theory_test)
+                                                        Posisi ini memerlukan Tes Teori
+                                                    @else
+                                                        Posisi ini tidak memerlukan Tes Teori
+                                                    @endif
+                                                </strong>
+                                                <br>
+                                                <small class="text-muted">
+                                                    @if ($fptk->requires_theory_test)
+                                                        Kandidat harus lulus tes teori sebelum interview. Stage tes teori
+                                                        akan
+                                                        muncul di timeline recruitment.
+                                                    @else
+                                                        Kandidat langsung ke interview setelah psikotes. Stage tes teori
+                                                        akan
+                                                        di-skip di timeline recruitment.
+                                                    @endif
+                                                </small>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
-                            </div>
+                            @else
+                                <!-- MPP Info -->
+                                <div class="theory-test-info mb-4">
+                                    <div
+                                        class="alert {{ $mppDetail && $mppDetail->requires_theory_test ? 'alert-warning' : 'alert-info' }} mb-0">
+                                        <div class="d-flex align-items-center">
+                                            <i class="fas {{ $mppDetail && $mppDetail->requires_theory_test ? 'fa-exclamation-triangle' : 'fa-info-circle' }} mr-3"
+                                                style="font-size: 1.2em;"></i>
+                                            <div>
+                                                <strong>
+                                                    @if ($mppDetail && $mppDetail->requires_theory_test)
+                                                        MPP Detail: Posisi ini memerlukan Tes Teori
+                                                    @else
+                                                        MPP Detail: Posisi ini tidak memerlukan Tes Teori
+                                                    @endif
+                                                </strong>
+                                                <br>
+                                                <small class="text-muted">
+                                                    @if ($mppDetail && $mppDetail->requires_theory_test)
+                                                        Kandidat harus lulus tes teori sebelum interview. Stage tes teori
+                                                        dan Interview Trainer akan muncul di timeline recruitment.
+                                                    @else
+                                                        Kandidat langsung ke interview setelah psikotes. Stage tes teori dan
+                                                        Interview Trainer akan di-skip di timeline recruitment.
+                                                    @endif
+                                                </small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            @endif
 
                             @php
                                 $hiredCount = $sessions->where('status', 'hired')->count();
@@ -285,9 +376,16 @@
                         <div class="card-body">
                             <div class="fptk-action-buttons">
                                 @can('recruitment-sessions.create')
-                                    @if ($fptk->status !== 'closed')
+                                    @if (($isFptk && $fptk->status !== 'closed') || ($isMpp && $mpp->status === 'active' && !$mppDetail->fulfilled_at))
                                         <button type="button" class="btn-action add-candidate-btn" data-toggle="modal"
-                                            data-target="#addCandidateModal">
+                                            data-target="#addCandidateModal"
+                                            @if ($isMpp) data-mpp-detail-id="{{ $mppDetail->id }}"
+                                                data-mpp-number="{{ $mpp->mpp_number }}"
+                                                data-position-name="{{ $mppDetail->position->position_name ?? 'N/A' }}"
+                                            @else
+                                                data-fptk-id="{{ $fptk->id }}"
+                                                data-fptk-number="{{ $fptk->request_number }}"
+                                                data-position="{{ $fptk->position->position_name ?? 'N/A' }}" @endif>
                                             <i class="fas fa-plus"></i> Add Candidate
                                         </button>
                                     @endif
@@ -298,7 +396,7 @@
                                 <a href="{{ route('recruitment.sessions.index') }}" class="btn-action back-btn">
                                     <i class="fas fa-arrow-left"></i> Back to Sessions
                                 </a>
-                                @if ($fptk->status !== 'closed')
+                                @if ($isFptk && $fptk->status !== 'closed')
                                     <form method="POST"
                                         action="{{ route('recruitment.sessions.close-request', $fptk->id) }}"
                                         class="d-block confirm-submit"
@@ -350,7 +448,10 @@
                                     <i class="fas fa-percentage text-white"></i>
                                 </div>
                                 <div class="font-weight-bold">
-                                    {{ $fptk->required_qty > 0 ? round(($hiredCount / $fptk->required_qty) * 100) : 0 }}%
+                                    @php
+                                        $targetQty = $isFptk ? $fptk->required_qty : $mppDetail->total_plan ?? 0;
+                                    @endphp
+                                    {{ $targetQty > 0 ? round(($hiredCount / $targetQty) * 100) : 0 }}%
                                 </div>
                                 <small class="text-muted">Fill Rate</small>
                             </div>
@@ -363,21 +464,35 @@
             <div class="fptk-card sessions-table-card">
                 <div class="card-head">
                     <h2><i class="fas fa-list"></i> Candidate Sessions</h2>
-                    @if (in_array($fptk->employment_type, ['magang', 'harian']))
-                        <small class="text-muted">
-                            <i class="fas fa-info-circle"></i>
-                            Untuk {{ ucfirst($fptk->employment_type) }}: Hanya tahapan MCU dan Hiring & Onboarding
-                        </small>
-                    @elseif (!$fptk->requires_theory_test)
-                        <small class="text-muted">
-                            <i class="fas fa-info-circle"></i>
-                            Tes Teori dan Interview Trainer stage di-skip untuk posisi non-mekanik
-                        </small>
+                    @if ($isFptk)
+                        @if (in_array($fptk->employment_type, ['magang', 'harian']))
+                            <small class="text-muted">
+                                <i class="fas fa-info-circle"></i>
+                                Untuk {{ ucfirst($fptk->employment_type) }}: Hanya tahapan MCU dan Hiring & Onboarding
+                            </small>
+                        @elseif (!$fptk->requires_theory_test)
+                            <small class="text-muted">
+                                <i class="fas fa-info-circle"></i>
+                                Tes Teori dan Interview Trainer stage di-skip untuk posisi non-mekanik
+                            </small>
+                        @else
+                            <small class="text-muted">
+                                <i class="fas fa-info-circle"></i>
+                                Posisi mekanik/teknis memerlukan Tes Teori dan Interview Trainer
+                            </small>
+                        @endif
                     @else
-                        <small class="text-muted">
-                            <i class="fas fa-info-circle"></i>
-                            Posisi mekanik/teknis memerlukan Tes Teori dan Interview Trainer
-                        </small>
+                        @if ($mppDetail && $mppDetail->requires_theory_test)
+                            <small class="text-muted">
+                                <i class="fas fa-info-circle"></i>
+                                MPP Detail: Posisi mekanik/teknis memerlukan Tes Teori dan Interview Trainer
+                            </small>
+                        @else
+                            <small class="text-muted">
+                                <i class="fas fa-info-circle"></i>
+                                MPP Detail: Tes Teori dan Interview Trainer stage di-skip untuk posisi non-mekanik
+                            </small>
+                        @endif
                     @endif
                 </div>
                 <div class="card-body">
@@ -387,14 +502,25 @@
                                 <tr>
                                     <th class="text-center align-middle" style="width: 50px;">No</th>
                                     <th class="align-middle">Candidate Name</th>
-                                    @if (!in_array($fptk->employment_type, ['magang', 'harian']))
+                                    @php
+                                        $skipStages = false;
+                                        $showTheoryTest = false;
+                                        if ($isFptk) {
+                                            $skipStages = in_array($fptk->employment_type, ['magang', 'harian']);
+                                            $showTheoryTest = $fptk->requires_theory_test;
+                                        } elseif ($isMpp) {
+                                            // For MPP: check requires_theory_test from MPP detail
+                                            $showTheoryTest = $mppDetail && $mppDetail->requires_theory_test;
+                                        }
+                                    @endphp
+                                    @if (!$skipStages)
                                         <th class="text-center align-middle">CV Review</th>
                                         <th class="text-center align-middle">Psikotes</th>
-                                        @if ($fptk->requires_theory_test)
+                                        @if ($showTheoryTest)
                                             <th class="text-center align-middle">Tes Teori</th>
                                         @endif
                                         <th class="text-center align-middle">Interview HR</th>
-                                        @if ($fptk->requires_theory_test)
+                                        @if ($showTheoryTest)
                                             <th class="text-center align-middle">Interview Trainer</th>
                                         @endif
                                         <th class="text-center align-middle">Interview User</th>
@@ -417,7 +543,32 @@
                                         </td>
                                         @php
                                             // Define stages based on employment type and theory test requirement
-                                            if (in_array($fptk->employment_type, ['magang', 'harian'])) {
+                                            if ($isMpp) {
+                                                // For MPP: check requires_theory_test from MPP detail (use mppDetail from parent scope)
+                                                if ($mppDetail && $mppDetail->requires_theory_test) {
+                                                    $stages = [
+                                                        'cv_review',
+                                                        'psikotes',
+                                                        'tes_teori',
+                                                        'interview_hr',
+                                                        'interview_trainer',
+                                                        'interview_user',
+                                                        'offering',
+                                                        'mcu',
+                                                        'hire',
+                                                    ];
+                                                } else {
+                                                    $stages = [
+                                                        'cv_review',
+                                                        'psikotes',
+                                                        'interview_hr',
+                                                        'interview_user',
+                                                        'offering',
+                                                        'mcu',
+                                                        'hire',
+                                                    ];
+                                                }
+                                            } elseif (in_array($fptk->employment_type, ['magang', 'harian'])) {
                                                 // For magang and harian: only MCU and Hiring stages
                                                 $stages = ['mcu', 'hire'];
                                             } elseif ($fptk->requires_theory_test) {
@@ -626,6 +777,8 @@
                                                     <button type="button" class="btn btn-sm btn-danger delete-session-btn"
                                                         data-session-id="{{ $session->id }}"
                                                         data-candidate-name="{{ $session->candidate->fullname ?? 'N/A' }}"
+                                                        data-candidate-id="{{ $session->candidate_id ?? '' }}"
+                                                        data-session-number="{{ $session->session_number ?? '' }}"
                                                         data-toggle="modal" data-target="#deleteSessionModal"
                                                         title="Remove Candidate from Session">
                                                         <i class="fas fa-trash"></i>
@@ -636,10 +789,19 @@
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="{{ in_array($fptk->employment_type, ['magang', 'harian']) ? '6' : ($fptk->requires_theory_test ? '13' : '11') }}"
-                                            class="text-center text-muted">
+                                        @php
+                                            $colspan = 4; // No, Candidate Name, Final Status, Action
+                                            if (!$skipStages) {
+                                                $colspan += 5; // CV Review, Psikotes, Interview HR, Interview User, Offering
+                                                if ($showTheoryTest) {
+                                                    $colspan += 2; // Tes Teori, Interview Trainer
+                                                }
+                                            }
+                                            $colspan += 2; // MCU, Hiring & Onboarding
+                                        @endphp
+                                        <td colspan="{{ $colspan }}" class="text-center text-muted">
                                             <i class="fas fa-inbox fa-2x mb-2"></i>
-                                            <br>No candidate sessions found for this FPTK
+                                            <br>No candidate sessions found for this {{ $isMpp ? 'MPP Detail' : 'FPTK' }}
                                         </td>
                                     </tr>
                                 @endforelse
@@ -699,13 +861,24 @@
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title" id="addCandidateModalLabel">
-                        <i class="fas fa-plus"></i> Add Candidate to FPTK
+                        <i class="fas fa-plus"></i> Add Candidate to {{ $isMpp ? 'MPP Detail' : 'FPTK' }}
                     </h5>
                     <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                         <span aria-hidden="true">&times;</span>
                     </button>
                 </div>
                 <div class="modal-body">
+                    @if ($isMpp)
+                        <div class="alert alert-info">
+                            <strong>MPP:</strong> {{ $mpp->mpp_number }} | <strong>Position:</strong>
+                            {{ $mppDetail->position->position_name ?? 'N/A' }}
+                        </div>
+                    @else
+                        <div class="alert alert-info" id="fptkInfo" style="display: none;">
+                            <strong>FPTK:</strong> <span id="fptkNumber"></span> | <strong>Position:</strong> <span
+                                id="fptkPosition"></span>
+                        </div>
+                    @endif
                     <div class="form-group">
                         <label for="candidate_search">Search Candidate/CV</label>
                         <div class="input-group">
@@ -1271,21 +1444,64 @@
             function searchCandidates() {
                 var query = $('#candidate_search').val();
                 if (query.length < 3) {
-                    alert('Please enter at least 3 characters to search');
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Warning',
+                        text: 'Please enter at least 3 characters to search',
+                        confirmButtonColor: '#3085d6',
+                        confirmButtonText: 'OK'
+                    });
                     return;
                 }
+
+                // Show loading
+                $('#candidate_results').html(
+                    '<tr><td colspan="5" class="text-center"><i class="fas fa-spinner fa-spin"></i> Searching...</td></tr>'
+                );
+                $('#search_results').show();
 
                 $.ajax({
                     url: '{{ route('recruitment.candidates.search') }}',
                     type: 'GET',
                     data: {
-                        query: query
+                        query: query,
+                        search: query
                     },
                     success: function(response) {
-                        displaySearchResults(response.candidates);
+                        var tbody = $('#candidate_results');
+                        tbody.empty();
+
+                        if (!response.success || !response.data || response.data.length === 0) {
+                            // Try legacy format
+                            if (response.candidates && response.candidates.length > 0) {
+                                displaySearchResults(response.candidates);
+                            } else {
+                                tbody.html(
+                                    '<tr><td colspan="5" class="text-center text-muted">No candidates found</td></tr>'
+                                );
+                            }
+                        } else {
+                            response.data.forEach(function(candidate) {
+                                var row = '<tr>' +
+                                    '<td>' + (candidate.fullname || candidate.name || 'N/A') +
+                                    '</td>' +
+                                    '<td>' + (candidate.email || '-') + '</td>' +
+                                    '<td>' + (candidate.phone || '-') + '</td>' +
+                                    '<td>' + (candidate.position_applied || '-') + '</td>' +
+                                    '<td>' +
+                                    '<button class="btn btn-sm btn-primary add-candidate-btn" data-candidate-id="' +
+                                    candidate.id + '">' +
+                                    '<i class="fas fa-plus"></i> Add</button>' +
+                                    '</td>' +
+                                    '</tr>';
+                                tbody.append(row);
+                            });
+                        }
                     },
                     error: function() {
-                        alert('Error searching candidates');
+                        $('#candidate_results').html(
+                            '<tr><td colspan="5" class="text-center text-danger">Error searching candidates</td></tr>'
+                        );
                     }
                 });
             }
@@ -1300,9 +1516,9 @@
                 } else {
                     candidates.forEach(function(candidate) {
                         var row = '<tr>' +
-                            '<td>' + candidate.name + '</td>' +
-                            '<td>' + candidate.email + '</td>' +
-                            '<td>' + candidate.phone + '</td>' +
+                            '<td>' + (candidate.name || candidate.fullname || 'N/A') + '</td>' +
+                            '<td>' + (candidate.email || '-') + '</td>' +
+                            '<td>' + (candidate.phone || '-') + '</td>' +
                             '<td>' + (candidate.position_applied || '-') + '</td>' +
                             '<td>' +
                             '<button class="btn btn-sm btn-primary add-candidate-btn" data-candidate-id="' +
@@ -1321,11 +1537,35 @@
             $(document).on('click', '.delete-session-btn', function() {
                 var sessionId = $(this).data('session-id');
                 var candidateName = $(this).data('candidate-name');
+                var candidateId = $(this).data('candidate-id');
+                var sessionNumber = $(this).data('session-number');
+
+                // Debug: log all data attributes
+                console.log('Delete session clicked:');
+                console.log('  - Session ID:', sessionId);
+                console.log('  - Candidate ID:', candidateId);
+                console.log('  - Session Number:', sessionNumber);
+                console.log('  - Candidate Name:', candidateName);
+
+                // Validate session ID exists
+                if (!sessionId || sessionId === '') {
+                    console.error('ERROR: Session ID is empty or undefined!');
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: 'Session ID is missing. Please refresh the page and try again.',
+                        confirmButtonColor: '#3085d6',
+                        confirmButtonText: 'OK'
+                    });
+                    return;
+                }
 
                 // Update modal content
                 $('#candidateNameToDelete').text(candidateName);
-                $('#deleteSessionForm').attr('action', '{{ route('recruitment.sessions.destroy', '') }}/' +
-                    sessionId);
+                // Build URL correctly using route helper with sessionId
+                var deleteUrl = '{{ url('recruitment/sessions') }}/' + sessionId;
+                console.log('Delete URL:', deleteUrl);
+                $('#deleteSessionForm').attr('action', deleteUrl);
             });
 
             // Handle delete session form submission
@@ -1378,20 +1618,47 @@
                 });
             });
 
-            // Add candidate to FPTK from search results
+            // Handle modal open for add candidate button
+            $('.add-candidate-btn[data-toggle="modal"]').on('click', function() {
+                @if ($isMpp)
+                    // MPP: Info already shown in modal body
+                @else
+                    // FPTK: Show info in modal
+                    var fptkNumber = $(this).data('fptk-number');
+                    var position = $(this).data('position');
+                    $('#fptkNumber').text(fptkNumber);
+                    $('#fptkPosition').text(position);
+                    $('#fptkInfo').show();
+                @endif
+            });
+
+            // Add candidate to FPTK or MPP from search results
             $(document).on('click', '.add-candidate-btn[data-candidate-id]', function() {
                 var candidateId = $(this).data('candidate-id');
-                var fptkId = '{{ $fptk->id }}';
-
-                // Add candidate to FPTK
-                $.ajax({
-                    url: '{{ route('recruitment.sessions.store') }}',
-                    type: 'POST',
-                    data: {
+                @if ($isMpp)
+                    var mppDetailId = {{ $mppDetail->id }};
+                    var requestData = {
+                        candidate_id: candidateId,
+                        mpp_detail_id: mppDetailId,
+                        _token: '{{ csrf_token() }}'
+                    };
+                @else
+                    var fptkId = {{ $fptk->id }};
+                    var requestData = {
                         candidate_id: candidateId,
                         fptk_id: fptkId,
                         _token: '{{ csrf_token() }}'
-                    },
+                    };
+                @endif
+
+                // Disable button to prevent double click
+                $(this).prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Adding...');
+
+                // Add candidate
+                $.ajax({
+                    url: '{{ route('recruitment.sessions.store') }}',
+                    type: 'POST',
+                    data: requestData,
                     success: function(response) {
                         if (response.success) {
                             $('#addCandidateModal').modal('hide');
@@ -1401,9 +1668,10 @@
                                 text: response.message,
                                 confirmButtonColor: '#3085d6',
                                 confirmButtonText: 'OK'
+                            }).then(() => {
+                                // Reload the page to show updated data
+                                location.reload();
                             });
-                            // Reload the page to show updated data
-                            location.reload();
                         } else {
                             Swal.fire({
                                 icon: 'error',
@@ -1412,10 +1680,14 @@
                                 confirmButtonColor: '#3085d6',
                                 confirmButtonText: 'OK'
                             });
+                            // Re-enable button
+                            $('.add-candidate-btn[data-candidate-id="' + candidateId + '"]')
+                                .prop('disabled', false)
+                                .html('<i class="fas fa-plus"></i> Add');
                         }
                     },
                     error: function(xhr) {
-                        var message = 'Error adding candidate to FPTK';
+                        var message = 'Error adding candidate';
                         if (xhr.responseJSON && xhr.responseJSON.message) {
                             message = xhr.responseJSON.message;
                         }
@@ -1426,6 +1698,10 @@
                             confirmButtonColor: '#3085d6',
                             confirmButtonText: 'OK'
                         });
+                        // Re-enable button
+                        $('.add-candidate-btn[data-candidate-id="' + candidateId + '"]')
+                            .prop('disabled', false)
+                            .html('<i class="fas fa-plus"></i> Add');
                     }
                 });
             });
