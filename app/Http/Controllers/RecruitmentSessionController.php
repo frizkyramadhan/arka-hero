@@ -989,8 +989,8 @@ class RecruitmentSessionController extends Controller
 
             // Validate request
             $request->validate([
-                'online_score' => 'nullable|numeric|min:0|max:100',
-                'offline_score' => 'nullable|numeric|min:0|max:10',
+                'online_score' => 'nullable|numeric|min:0',
+                'offline_score' => 'nullable|numeric|min:0',
                 'notes' => 'nullable|string',
                 'reviewed_at' => 'required|date',
             ]);
