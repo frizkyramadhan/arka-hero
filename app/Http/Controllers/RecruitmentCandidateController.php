@@ -309,6 +309,8 @@ class RecruitmentCandidateController extends Controller
             'sessions.fptk.department',
             'sessions.fptk.position',
             'sessions.fptk.project',
+            'sessions.mppDetail.position.department',
+            'sessions.mppDetail.mpp',
             'sessions.cvReview',
             'sessions.psikotes',
             'sessions.tesTeori',
