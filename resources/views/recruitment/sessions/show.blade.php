@@ -1636,14 +1636,14 @@
             $(document).on('click', '.add-candidate-btn[data-candidate-id]', function() {
                 var candidateId = $(this).data('candidate-id');
                 @if ($isMpp)
-                    var mppDetailId = {{ $mppDetail->id }};
+                    var mppDetailId = '{{ $mppDetail->id }}';
                     var requestData = {
                         candidate_id: candidateId,
                         mpp_detail_id: mppDetailId,
                         _token: '{{ csrf_token() }}'
                     };
                 @else
-                    var fptkId = {{ $fptk->id }};
+                    var fptkId = '{{ $fptk->id }}';
                     var requestData = {
                         candidate_id: candidateId,
                         fptk_id: fptkId,
