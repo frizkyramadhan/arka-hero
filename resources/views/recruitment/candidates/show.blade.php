@@ -192,22 +192,46 @@
                                     <table class="table table-bordered table-striped">
                                         <thead>
                                             <tr>
-                                                <th>Session Number</th>
-                                                <th>FPTK Number</th>
-                                                <th>Position</th>
-                                                <th>Department</th>
-                                                <th>Status</th>
-                                                <th>Applied Date</th>
-                                                <th>Action</th>
+                                                <th class="align-middle">Session Number</th>
+                                                <th class="align-middle">FPTK/MPP No.</th>
+                                                <th class="align-middle">Position</th>
+                                                <th class="align-middle">Department</th>
+                                                <th class="align-middle">Status</th>
+                                                <th class="align-middle">Applied Date</th>
+                                                <th class="align-middle">Action</th>
                                             </tr>
                                         </thead>
                                         <tbody>
                                             @foreach ($candidate->sessions as $session)
                                                 <tr>
                                                     <td>{{ $session->session_number }}</td>
-                                                    <td>{{ $session->fptk->request_number }}</td>
-                                                    <td>{{ $session->fptk->position->position_name ?? 'N/A' }}</td>
-                                                    <td>{{ $session->fptk->department->department_name ?? 'N/A' }}</td>
+                                                    <td>
+                                                        @if ($session->fptk_id && $session->fptk)
+                                                            {{ $session->fptk->request_number }}
+                                                        @elseif($session->mpp_detail_id && $session->mppDetail && $session->mppDetail->mpp)
+                                                            {{ $session->mppDetail->mpp->mpp_number }}
+                                                        @else
+                                                            N/A
+                                                        @endif
+                                                    </td>
+                                                    <td>
+                                                        @if ($session->fptk_id && $session->fptk)
+                                                            {{ $session->fptk->position->position_name ?? 'N/A' }}
+                                                        @elseif($session->mpp_detail_id && $session->mppDetail)
+                                                            {{ $session->mppDetail->position->position_name ?? 'N/A' }}
+                                                        @else
+                                                            N/A
+                                                        @endif
+                                                    </td>
+                                                    <td>
+                                                        @if ($session->fptk_id && $session->fptk)
+                                                            {{ $session->fptk->department->department_name ?? 'N/A' }}
+                                                        @elseif($session->mpp_detail_id && $session->mppDetail)
+                                                            {{ $session->mppDetail->position->department->department_name ?? 'N/A' }}
+                                                        @else
+                                                            N/A
+                                                        @endif
+                                                    </td>
                                                     <td>
                                                         @php
                                                             $sessionStatusBadges = [
