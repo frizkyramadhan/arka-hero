@@ -88,7 +88,7 @@
                                     <div class="form-group">
                                         <label for="psikotes_online_score">Rata-rata Hasil</label>
                                         <input type="number" class="form-control" id="psikotes_online_score"
-                                            name="online_score" min="0" max="100" step="0.01"
+                                            name="online_score" min="0" step="0.01"
                                             placeholder="Masukkan rata-rata hasil">
                                     </div>
                                     <div class="alert alert-info">
@@ -110,7 +110,7 @@
                                         <div class="form-group">
                                             <label for="psikotes_offline_score">Skor Tes Intelegensi Umum (TIU)</label>
                                             <input type="number" class="form-control" id="psikotes_offline_score"
-                                                name="offline_score" min="0" max="10" step="0.1"
+                                                name="offline_score" min="0" step="0.1"
                                                 placeholder="Masukkan skor TIU">
                                         </div>
                                         <div class="alert alert-info">
@@ -934,9 +934,9 @@
                                 } else {
                                     $employmentType = 'pkwt';
                                 }
-                                
+
                                 $agreementType = $employmentType ?: 'pkwt'; // Fallback ke 'pkwt' jika null atau empty
-                                
+
                                 // For display purposes
                                 $displayAgreementType = $agreementType;
                                 if ($displayAgreementType === 'magang') {
@@ -997,7 +997,7 @@
                                         {{ strtoupper($displayAgreementType) }}
                                     </span>
                                     <small class="text-muted">
-                                        @if($session->fptk_id)
+                                        @if ($session->fptk_id)
                                             (Auto-selected based on FPTK employment type)
                                         @elseif($session->mpp_detail_id)
                                             (Auto-selected based on MPP Detail agreement type)
