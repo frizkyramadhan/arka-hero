@@ -384,18 +384,18 @@
             });
 
             // Phone number formatting
-            $('#phone').on('input', function() {
-                let value = $(this).val().replace(/\D/g, '');
-                if (value.length > 0) {
-                    if (value.startsWith('0')) {
-                        value = value.substring(1);
-                    }
-                    if (value.startsWith('62')) {
-                        value = '0' + value.substring(2);
-                    }
-                }
-                $(this).val(value);
-            });
+            // $('#phone').on('input', function() {
+            //     let value = $(this).val().replace(/\D/g, '');
+            //     if (value.length > 0) {
+            //         if (value.startsWith('0')) {
+            //             value = value.substring(1);
+            //         }
+            //         if (value.startsWith('62')) {
+            //             value = '0' + value.substring(2);
+            //         }
+            //     }
+            //     $(this).val(value);
+            // });
 
             // Date of birth validation
             // $('#date_of_birth').on('change', function() {

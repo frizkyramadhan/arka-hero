@@ -472,30 +472,30 @@
             });
 
             // Phone number formatting
-            $('#phone').on('input', function() {
-                let value = $(this).val().replace(/\D/g, '');
-                if (value.length > 0) {
-                    if (value.startsWith('0')) {
-                        value = value.substring(1);
-                    }
-                    if (value.startsWith('62')) {
-                        value = '0' + value.substring(2);
-                    }
-                }
-                $(this).val(value);
-            });
+            // $('#phone').on('input', function() {
+            //     let value = $(this).val().replace(/\D/g, '');
+            //     if (value.length > 0) {
+            //         if (value.startsWith('0')) {
+            //             value = value.substring(1);
+            //         }
+            //         if (value.startsWith('62')) {
+            //             value = '0' + value.substring(2);
+            //         }
+            //     }
+            //     $(this).val(value);
+            // });
 
             // Date of birth validation
-            $('#date_of_birth').on('change', function() {
-                const selectedDate = new Date($(this).val());
-                const today = new Date();
-                const age = today.getFullYear() - selectedDate.getFullYear();
+            // $('#date_of_birth').on('change', function() {
+            //     const selectedDate = new Date($(this).val());
+            //     const today = new Date();
+            //     const age = today.getFullYear() - selectedDate.getFullYear();
 
-                if (age < 17 || age > 65) {
-                    alert('Age must be between 17 and 65 years old.');
-                    $(this).val('');
-                }
-            });
+            //     if (age < 17 || age > 65) {
+            //         alert('Age must be between 17 and 65 years old.');
+            //         $(this).val('');
+            //     }
+            // });
         });
     </script>
 @endsection
