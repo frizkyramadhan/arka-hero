@@ -1077,16 +1077,61 @@
                                                                 @endphp
                                                                 @if ($completedInterviews->count() > 0)
                                                                     @foreach ($completedInterviews as $type => $interview)
+                                                                        @php
+                                                                            $notes = $interview['notes'] ?? 'N/A';
+                                                                            $limit = 30;
+                                                                            $truncated = Str::limit($notes, $limit);
+                                                                            $needsExpand = strlen($notes) > $limit;
+                                                                            $uniqueId =
+                                                                                'notes-' .
+                                                                                $stage .
+                                                                                '-' .
+                                                                                $type .
+                                                                                '-' .
+                                                                                uniqid();
+                                                                        @endphp
                                                                         <div class="mb-1">
                                                                             <strong>{{ ucfirst($type) }}:</strong>
-                                                                            {{ Str::limit($interview['notes'] ?? 'N/A', 30) }}
+                                                                            <span
+                                                                                class="notes-content {{ $uniqueId }}-truncated">{{ $truncated }}</span>
+                                                                            <span
+                                                                                class="notes-content-full {{ $uniqueId }}-full"
+                                                                                style="display: none;">{{ $notes }}</span>
+                                                                            @if ($needsExpand)
+                                                                                <button
+                                                                                    class="btn btn-sm btn-link p-0 ml-1 toggle-notes-btn"
+                                                                                    data-notes-id="{{ $uniqueId }}"
+                                                                                    data-expanded="false"
+                                                                                    title="Show full notes">
+                                                                                    <i
+                                                                                        class="fas fa-chevron-down text-primary"></i>
+                                                                                </button>
+                                                                            @endif
                                                                         </div>
                                                                     @endforeach
                                                                 @else
                                                                     N/A
                                                                 @endif
                                                             @else
-                                                                {{ Str::limit($assessment->notes, 50) ?? 'N/A' }}
+                                                                @php
+                                                                    $notes = $assessment->notes ?? 'N/A';
+                                                                    $limit = 50;
+                                                                    $truncated = Str::limit($notes, $limit);
+                                                                    $needsExpand = strlen($notes) > $limit;
+                                                                    $uniqueId = 'notes-' . $stage . '-' . uniqid();
+                                                                @endphp
+                                                                <span
+                                                                    class="notes-content {{ $uniqueId }}-truncated">{{ $truncated }}</span>
+                                                                <span class="notes-content-full {{ $uniqueId }}-full"
+                                                                    style="display: none;">{{ $notes }}</span>
+                                                                @if ($needsExpand)
+                                                                    <button
+                                                                        class="btn btn-sm btn-link p-0 ml-1 toggle-notes-btn"
+                                                                        data-notes-id="{{ $uniqueId }}"
+                                                                        data-expanded="false" title="Show full notes">
+                                                                        <i class="fas fa-chevron-down text-primary"></i>
+                                                                    </button>
+                                                                @endif
                                                             @endif
                                                         </td>
                                                     </tr>
@@ -1102,6 +1147,7 @@
             @endif
         </div>
     </div>
+
     @include('recruitment.sessions.partials.modals')
 @endsection
 
@@ -1582,6 +1628,39 @@
             margin-bottom: 0;
         }
 
+        /* Toggle Notes Button Styles */
+        .toggle-notes-btn {
+            font-size: 0.75rem;
+            line-height: 1;
+            vertical-align: baseline;
+            transition: all 0.2s ease;
+        }
+
+        .toggle-notes-btn:hover {
+            transform: scale(1.1);
+        }
+
+        .toggle-notes-btn i {
+            font-size: 0.8rem;
+        }
+
+        .notes-content,
+        .notes-content-full {
+            display: inline;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .notes-content-full {
+            background-color: #f8f9fa;
+            padding: 4px 8px;
+            border-radius: 4px;
+            margin: 2px 0;
+            display: block;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
         .assessments-card .table th {
             background: #f8f9fa;
             border-color: #dee2e6;
@@ -1594,6 +1673,18 @@
         .assessments-card .table td {
             vertical-align: middle;
             border-color: #dee2e6;
+        }
+
+        /* Specific styling for Notes column */
+        .assessments-card .table td:nth-child(5) {
+            min-width: 250px;
+            max-width: 400px;
+            word-wrap: break-word;
+        }
+
+        .assessments-card .table td:nth-child(5) .notes-content-full {
+            min-height: 60px;
+            line-height: 1.4;
         }
 
         /* Modal Styles */
@@ -2633,5 +2724,31 @@
         if (selectedPositionMagangHarian) {
             $('#hire_position_id_magang_harian').trigger('change');
         }
+
+        // Toggle notes expand/collapse functionality
+        $(document).on('click', '.toggle-notes-btn', function() {
+            const notesId = $(this).data('notes-id');
+            const isExpanded = $(this).data('expanded');
+            const $button = $(this);
+            const $truncated = $(`.${notesId}-truncated`);
+            const $full = $(`.${notesId}-full`);
+            const $icon = $button.find('i');
+
+            if (isExpanded) {
+                // Collapse
+                $truncated.show();
+                $full.hide();
+                $icon.removeClass('fa-chevron-up').addClass('fa-chevron-down');
+                $button.attr('title', 'Show full notes');
+                $button.data('expanded', false);
+            } else {
+                // Expand
+                $truncated.hide();
+                $full.show();
+                $icon.removeClass('fa-chevron-down').addClass('fa-chevron-up');
+                $button.attr('title', 'Show truncated notes');
+                $button.data('expanded', true);
+            }
+        });
     </script>
 @endsection
