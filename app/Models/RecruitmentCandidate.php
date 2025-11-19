@@ -23,6 +23,7 @@ class RecruitmentCandidate extends Model
         'cv_file_path',
         'skills',
         'previous_companies',
+        'certifications',
         'current_salary',
         'expected_salary',
         'global_status',

@@ -353,9 +353,26 @@
 
                 <!-- Right Column -->
                 <div class="col-lg-4">
+                    <!-- Manual Approvers Card -->
+                    @if (!empty($fptk->manual_approvers))
+                        <div class="fptk-card mb-4">
+                            <div class="card-head">
+                                <h2><i class="fas fa-users"></i> Approval Status</h2>
+                            </div>
+                            <div class="card-body py-2">
+                                @include('components.manual-approver-selector', [
+                                    'selectedApprovers' => $fptk->manual_approvers ?? [],
+                                    'mode' => 'view',
+                                    'documentType' => 'recruitment_request',
+                                    'documentId' => $fptk->id,
+                                ])
+                            </div>
+                        </div>
+                    @endif
+
                     <!-- Approval Status Card -->
-                    <x-approval-status-card :documentType="'recruitment_request'" :documentId="$fptk->id" :mode="$fptk->status === 'draft' ? 'preview' : 'status'" :projectId="$fptk->project_id"
-                        :departmentId="$fptk->department_id" :requestReason="$fptk->request_reason" title="Approval Status" />
+                    {{-- <x-approval-status-card :documentType="'recruitment_request'" :documentId="$fptk->id" :mode="$fptk->status === 'draft' ? 'preview' : 'status'" :projectId="$fptk->project_id"
+                        :departmentId="$fptk->department_id" :requestReason="$fptk->request_reason" title="Approval Status" /> --}}
 
                     <!-- Requested By -->
                     <div class="fptk-card requester-card">

@@ -1193,4 +1193,82 @@ class ApprovalPlanController extends Controller
 
         return $approvers;
     }
+
+    /**
+     * Create approval plans for a document using manual approvers
+     *
+     * This function creates approval plans for a specific document based on manually selected approvers.
+     * It takes the approver IDs from the document's manual_approvers field and respects approval_orders.
+     *
+     * @param string $document_type Type of document ('officialtravel', 'recruitment_request', 'leave_request')
+     * @param int $document_id ID of the document
+     * @return int|bool Number of approvers created or false if failed
+     */
+    public function create_manual_approval_plan($document_type, $document_id)
+    {
+        // Retrieve the document based on its type
+        if ($document_type == 'officialtravel') {
+            $document = Officialtravel::findOrFail($document_id);
+        } elseif ($document_type == 'recruitment_request') {
+            $document = RecruitmentRequest::findOrFail($document_id);
+        } elseif ($document_type == 'leave_request') {
+            $document = LeaveRequest::findOrFail($document_id);
+        } else {
+            return false; // Invalid document type
+        }
+
+        // Check if manual approvers are set
+        if (empty($document->manual_approvers)) {
+            Log::info("No manual approvers set for document_type: {$document_type}, document_id: {$document_id}");
+            return 0; // No approvers to create
+        }
+
+        // Delete existing approval plans for this document
+        ApprovalPlan::where('document_id', $document_id)
+            ->where('document_type', $document_type)
+            ->delete();
+
+        $createdCount = 0;
+        $approverIds = $document->manual_approvers;
+
+        // Ensure approverIds is an array
+        if (!is_array($approverIds)) {
+            $approverIds = json_decode($approverIds, true) ?? [];
+        }
+
+        // Ensure array is indexed sequentially (0, 1, 2, ...) to preserve order
+        $approverIds = array_values(array_filter($approverIds));
+
+        if (empty($approverIds)) {
+            Log::warning("Empty approver IDs array for document_type: {$document_type}, document_id: {$document_id}");
+            return 0;
+        }
+
+        // Create approval plan for each manual approver
+        // The array index represents the order (0 = first, 1 = second, etc.)
+        foreach ($approverIds as $index => $approverId) {
+            // Approval order is based on array index (1-based: first = 1, second = 2, etc.)
+            $approvalOrder = $index + 1;
+
+            $approvalPlan = new ApprovalPlan([
+                'document_id' => $document_id,
+                'document_type' => $document_type,
+                'approver_id' => $approverId,
+                'status' => 0, // pending
+                'is_open' => true,
+                'is_read' => false,
+                'approval_order' => $approvalOrder, // use the specified approval order
+            ]);
+
+            if ($approvalPlan->save()) {
+                $createdCount++;
+                Log::info("Created manual approval plan for approver {$approverId} on document {$document_type}:{$document_id} with order {$approvalOrder}");
+            } else {
+                Log::error("Failed to create manual approval plan for approver {$approverId} on document {$document_type}:{$document_id}");
+            }
+        }
+
+        Log::info("Created {$createdCount} manual approval plans for document_type: {$document_type}, document_id: {$document_id}");
+        return $createdCount;
+    }
 }

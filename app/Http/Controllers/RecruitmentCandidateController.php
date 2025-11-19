@@ -239,6 +239,7 @@ class RecruitmentCandidateController extends Controller
             'remarks' => 'nullable|string|max:2000',
             'skills' => 'nullable|string|max:1000',
             'previous_companies' => 'nullable|string|max:1000',
+            'certifications' => 'nullable|string',
             'current_salary' => 'nullable|numeric|min:0',
             'expected_salary' => 'nullable|numeric|min:0',
             'cv_file' => 'nullable|file|mimes:pdf,doc,docx,zip,rar|max:10240', // 10MB max
@@ -259,6 +260,7 @@ class RecruitmentCandidateController extends Controller
                 'remarks' => $request->remarks,
                 'skills' => $request->skills,
                 'previous_companies' => $request->previous_companies,
+                'certifications' => $request->certifications,
                 'current_salary' => $request->current_salary,
                 'expected_salary' => $request->expected_salary,
                 'global_status' => 'available',
@@ -366,6 +368,7 @@ class RecruitmentCandidateController extends Controller
             'remarks' => 'nullable|string|max:2000',
             'skills' => 'nullable|string|max:1000',
             'previous_companies' => 'nullable|string|max:1000',
+            'certifications' => 'nullable|string',
             'current_salary' => 'nullable|numeric|min:0',
             'expected_salary' => 'nullable|numeric|min:0',
             'cv_file' => 'nullable|file|mimes:pdf,doc,docx,zip,rar|max:10240', // 10MB max
@@ -386,6 +389,7 @@ class RecruitmentCandidateController extends Controller
                 'remarks' => $request->remarks,
                 'skills' => $request->skills,
                 'previous_companies' => $request->previous_companies,
+                'certifications' => $request->certifications,
                 'current_salary' => $request->current_salary,
                 'expected_salary' => $request->expected_salary,
                 'updated_by' => Auth::id(),

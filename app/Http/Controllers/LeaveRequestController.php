@@ -10,6 +10,7 @@ use App\Models\Employee;
 use App\Models\Administration;
 use App\Models\Project;
 use App\Models\Department;
+use App\Models\ApprovalPlan;
 use App\Http\Controllers\ApprovalPlanController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -231,7 +232,16 @@ class LeaveRequestController extends Controller
             $validationRules['lsl_taken_days'] = 'nullable|integer|min:0';
         }
 
-        $request->validate($validationRules);
+        // Manual approvers - following pattern from OfficialtravelController and RecruitmentRequestController
+        $validationRules['manual_approvers'] = 'required|array|min:1';
+        $validationRules['manual_approvers.*'] = 'exists:users,id';
+
+        $request->validate($validationRules, [
+            'manual_approvers.required' => 'Please select at least one approver.',
+            'manual_approvers.array' => 'Approvers must be an array.',
+            'manual_approvers.min' => 'Please select at least one approver.',
+            'manual_approvers.*.exists' => 'One or more selected approvers are invalid.',
+        ]);
 
         // Get total days from request (either calculated or manually entered)
         $totalDays = $request->total_days;
@@ -297,7 +307,8 @@ class LeaveRequestController extends Controller
                 ->first();
 
             if (!$administration) {
-                return back()->with(['employee_id' => 'Employee has no active administration record.']);
+                DB::rollback();
+                return back()->withErrors(['employee_id' => 'Employee has no active administration record.'])->withInput();
             }
 
             // Determine flow type based on project
@@ -313,6 +324,14 @@ class LeaveRequestController extends Controller
             // Determine if this is a batch request (for roster flow)
             $isBatchRequest = $flowType === 'roster' ? true : false;
             $batchId = $isBatchRequest ? 'BATCH_' . time() . '_' . $request->employee_id : null;
+
+            // Normalize manual_approvers array - following pattern from OfficialtravelController
+            $manualApprovers = $request->manual_approvers ?? [];
+            if (!is_array($manualApprovers)) {
+                $manualApprovers = [];
+            }
+            // Ensure array values are preserved in order (array_values to reset keys)
+            $manualApprovers = array_values(array_filter($manualApprovers));
 
             // Set reason to null if leave type is not unpaid
             $reason = $request->reason;
@@ -336,7 +355,8 @@ class LeaveRequestController extends Controller
                 'requested_by' => Auth::id(),
                 'is_batch_request' => $isBatchRequest,
                 'batch_id' => $batchId,
-                'supporting_document' => $supportingDocumentPath
+                'supporting_document' => $supportingDocumentPath,
+                'manual_approvers' => $manualApprovers
             ];
 
             // Add LSL flexible fields if this is LSL
@@ -347,6 +367,9 @@ class LeaveRequestController extends Controller
 
             // Create leave request
             $leaveRequest = LeaveRequest::create($leaveRequestData);
+
+            // Refresh model to ensure all data including manual_approvers is loaded
+            $leaveRequest->refresh();
 
             // Set auto conversion date for paid leave without supporting document
             $leaveRequest->setAutoConversionDate();
@@ -361,11 +384,26 @@ class LeaveRequestController extends Controller
                 $leaveRequest->clearAutoConversionDate();
             }
 
-            // Create approval plan
-            $response = app(ApprovalPlanController::class)->create_approval_plan('leave_request', $leaveRequest->id);
-            if (!$response) {
+            // Create approval plan using manual approvers - following pattern from OfficialtravelController
+            if (!empty($manualApprovers)) {
+                // Double-check that manual_approvers is set on the model
+                if (empty($leaveRequest->manual_approvers)) {
+                    Log::warning("Manual approvers not found on leave request after creation", [
+                        'leave_request_id' => $leaveRequest->id,
+                        'manual_approvers_input' => $manualApprovers
+                    ]);
+                    DB::rollback();
+                    return back()->with(['toast_error' => 'Failed to save manual approvers. Please try again.'])->withInput();
+                }
+
+                $response = app(ApprovalPlanController::class)->create_manual_approval_plan('leave_request', $leaveRequest->id);
+                if (!$response || $response === 0) {
+                    DB::rollback();
+                    return back()->with(['toast_error' => 'Failed to create approval plans. Please ensure at least one approver is selected.'])->withInput();
+                }
+            } else {
                 DB::rollback();
-                return back()->with(['toast_error' => 'Failed to create approval plans. Please try again.'])->withInput();
+                return back()->with(['toast_error' => 'Please select at least one approver before submitting.'])->withInput();
             }
 
             // Create roster adjustment if needed (for roster flow)
@@ -488,7 +526,15 @@ class LeaveRequestController extends Controller
             $validationRules['lsl_taken_days'] = 'nullable|integer|min:0';
         }
 
-        $request->validate($validationRules);
+        // Manual approvers - following pattern from OfficialtravelController and RecruitmentRequestController
+        $validationRules['manual_approvers'] = 'nullable|array|min:1';
+        $validationRules['manual_approvers.*'] = 'exists:users,id';
+
+        $request->validate($validationRules, [
+            'manual_approvers.array' => 'Approvers must be an array.',
+            'manual_approvers.min' => 'Please select at least one approver.',
+            'manual_approvers.*.exists' => 'One or more selected approvers are invalid.',
+        ]);
 
         // Handle LSL flexible calculation
         $employeeId = $request->employee_id;
@@ -545,6 +591,17 @@ class LeaveRequestController extends Controller
                 $supportingDocumentPath = $file->storeAs("leave_requests/{$leaveRequest->id}", $fileName, 'private');
             }
 
+            // Normalize manual_approvers array - following pattern from OfficialtravelController
+            $manualApprovers = $request->manual_approvers ?? [];
+            if (!is_array($manualApprovers)) {
+                $manualApprovers = [];
+            }
+            // Ensure array values are preserved in order (array_values to reset keys)
+            $manualApprovers = array_values(array_filter($manualApprovers));
+
+            // Check if manual_approvers changed - following pattern from RecruitmentRequestController
+            $approversChanged = json_encode($leaveRequest->manual_approvers ?? []) !== json_encode($manualApprovers);
+
             // Set reason to null if leave type is not unpaid
             $reason = $request->reason;
             if ($leaveType && $leaveType->category !== 'unpaid') {
@@ -562,6 +619,7 @@ class LeaveRequestController extends Controller
                 'total_days' => $totalDays,
                 'leave_period' => $request->leave_period,
                 'supporting_document' => $supportingDocumentPath,
+                'manual_approvers' => $manualApprovers,
             ];
 
             // Add LSL flexible fields if it's LSL
@@ -575,6 +633,15 @@ class LeaveRequestController extends Controller
             }
 
             $leaveRequest->update($updateData);
+
+            // If approvers changed and there are existing approval plans, delete them
+            // (They will be recreated when document is submitted)
+            if ($approversChanged) {
+                ApprovalPlan::where('document_id', $leaveRequest->id)
+                    ->where('document_type', 'leave_request')
+                    ->delete();
+                Log::info("Deleted existing approval plans for leave_request {$leaveRequest->id} due to approver changes");
+            }
 
             // Update auto conversion date based on leave type and document status
             $leaveRequest->updateAutoConversionDate($request->leave_type_id, (bool)$supportingDocumentPath);
@@ -747,7 +814,7 @@ class LeaveRequestController extends Controller
             ->whereRaw('(entitled_days - taken_days) > 0') // remaining_days is now accessor
             ->where('period_start', '<=', $today)
             ->where('period_end', '>=', $today)
-            ->with(['leaveType' => function($query) {
+            ->with(['leaveType' => function ($query) {
                 $query->orderBy('code', 'asc');
             }])
             ->join('leave_types', 'leave_entitlements.leave_type_id', '=', 'leave_types.id')
@@ -855,7 +922,7 @@ class LeaveRequestController extends Controller
             $leaveEntitlements = LeaveEntitlement::where('employee_id', $employeeId)
                 ->where('period_start', '<=', $today)
                 ->where('period_end', '>=', $today)
-                ->with(['leaveType' => function($query) {
+                ->with(['leaveType' => function ($query) {
                     $query->orderBy('code', 'asc');
                 }])
                 ->join('leave_types', 'leave_entitlements.leave_type_id', '=', 'leave_types.id')
@@ -874,24 +941,26 @@ class LeaveRequestController extends Controller
                     'period_end' => $entitlement->period_end
                 ];
             })
-            ->sortBy('leave_type_code')
-            ->values();
+                ->sortBy('leave_type_code')
+                ->values();
 
             // Get employee administration data for approval flow
-            $administration = $employee->administrations->where('is_active', 1)->first();
-            $projectId = $administration->project_id ?? null;
-            $departmentId = $administration->position->department_id ?? null;
-            $levelId = $administration->level_id ?? null;
+            // OLD APPROVAL SYSTEM - COMMENTED OUT (using manual approvers now)
+            // $administration = $employee->administrations->where('is_active', 1)->first();
+            // $projectId = $administration->project_id ?? null;
+            // $departmentId = $administration->position->department_id ?? null;
+            // $levelId = $administration->level_id ?? null;
 
             return response()->json([
                 'success' => true,
                 'employee' => [
                     'id' => $employee->id,
                     'name' => $employee->fullname,
-                    'nik' => $administration->nik ?? 'N/A',
-                    'project_id' => $projectId,
-                    'department_id' => $departmentId,
-                    'level_id' => $levelId
+                    // OLD APPROVAL SYSTEM - COMMENTED OUT (using manual approvers now)
+                    // 'nik' => $administration->nik ?? 'N/A',
+                    // 'project_id' => $projectId,
+                    // 'department_id' => $departmentId,
+                    // 'level_id' => $levelId
                 ],
                 'leave_balance' => $balanceData
             ]);

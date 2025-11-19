@@ -32,7 +32,8 @@ class LeaveRequest extends Model
         'closed_by',
         'batch_id',
         'is_batch_request',
-        'bulk_notes'
+        'bulk_notes',
+        'manual_approvers'
     ];
 
     protected $casts = [
@@ -43,7 +44,8 @@ class LeaveRequest extends Model
         'auto_conversion_at' => 'datetime',
         'approved_at' => 'datetime',
         'closed_at' => 'datetime',
-        'is_batch_request' => 'boolean'
+        'is_batch_request' => 'boolean',
+        'manual_approvers' => 'array'
     ];
 
     // Relationships
@@ -309,5 +311,15 @@ class LeaveRequest extends Model
             return ($this->lsl_taken_days ?? 0) + ($this->lsl_cashout_days ?? 0);
         }
         return $this->total_days;
+    }
+
+    // Get manual approvers as User collection
+    public function getManualApprovers()
+    {
+        if (empty($this->manual_approvers)) {
+            return collect();
+        }
+
+        return User::whereIn('id', $this->manual_approvers)->get();
     }
 }

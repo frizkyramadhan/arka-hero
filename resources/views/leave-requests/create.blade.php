@@ -22,17 +22,18 @@
 
     <section class="content">
         <div class="container-fluid">
-            <div class="row">
-                <div class="col-md-8">
-                    <div class="card card-primary card-outline elevation-3">
-                        <div class="card-header">
-                            <h3 class="card-title">
-                                <i class="fas fa-calendar-plus mr-2"></i>
-                                <strong>Leave Request Form</strong>
-                            </h3>
-                        </div>
-                        <form method="POST" action="{{ route('leave.requests.store') }}" enctype="multipart/form-data">
-                            @csrf
+            <form method="POST" action="{{ route('leave.requests.store') }}" enctype="multipart/form-data">
+                @csrf
+                <div class="row">
+                    <div class="col-md-8">
+                        <div class="card card-primary card-outline elevation-3">
+                            <div class="card-header">
+                                <h3 class="card-title">
+                                    <i class="fas fa-calendar-plus mr-2"></i>
+                                    <strong>Leave Request Form</strong>
+                                </h3>
+                            </div>
+
                             <div class="card-body">
                                 <!-- Project & Employee Selection -->
                                 <div class="row">
@@ -366,44 +367,63 @@
                                     <i class="fas fa-times"></i> Cancel
                                 </a>
                             </div>
-                        </form>
-                    </div>
-                </div>
-
-                <div class="col-md-4">
-                    <!-- Approval Preview Card -->
-                    @include('components.approval-status-card', [
-                        'documentType' => 'leave_request',
-                        'mode' => 'preview',
-                        'title' => 'Approval Preview',
-                        'projectId' => old('project_id'),
-                        'departmentId' => old('department_id'),
-                        'projectName' => $projects->where('id', old('project_id'))->first()->project_name ?? null,
-                        'departmentName' =>
-                            $departments->where('id', old('department_id'))->first()->department_name ?? null,
-                        'requestReason' => null,
-                    ])
-
-                    <!-- Leave Balance Card -->
-                    <div class="card card-success card-outline elevation-3 mt-3">
-                        <div class="card-header">
-                            <h3 class="card-title">
-                                <i class="fas fa-wallet mr-2"></i>
-                                <strong>Leave Balance</strong>
-                            </h3>
                         </div>
-                        <div class="card-body">
-                            <div id="leave_balance_info">
-                                <div class="text-center py-3">
-                                    <i class="fas fa-info-circle text-info"></i>
-                                    <div class="mt-2">Select an employee to view leave balance</div>
+                    </div>
+
+                    <div class="col-md-4">
+                        <!-- Manual Approver Selection Card -->
+                        <div class="card card-info card-outline elevation-2">
+                            <div class="card-header py-2">
+                                <h3 class="card-title">
+                                    <i class="fas fa-users mr-2"></i>
+                                    <strong>Approver Selection</strong>
+                                </h3>
+                            </div>
+                            <div class="card-body py-2">
+                                @include('components.manual-approver-selector', [
+                                    'selectedApprovers' => old('manual_approvers', []),
+                                    'required' => true,
+                                    'multiple' => true,
+                                    'helpText' => 'Pilih minimal 1 approver dengan role approver',
+                                    'documentType' => 'leave_request',
+                                ])
+                            </div>
+                        </div>
+
+                        <!-- Approval Preview Card -->
+                        {{-- @include('components.approval-status-card', [
+                            'documentType' => 'leave_request',
+                            'mode' => 'preview',
+                            'title' => 'Approval Preview',
+                            'projectId' => old('project_id'),
+                            'departmentId' => old('department_id'),
+                            'projectName' =>
+                                $projects->where('id', old('project_id'))->first()->project_name ?? null,
+                            'departmentName' =>
+                                $departments->where('id', old('department_id'))->first()->department_name ?? null,
+                            'requestReason' => null,
+                        ]) --}}
+
+                        <!-- Leave Balance Card -->
+                        <div class="card card-success card-outline elevation-3 mt-3">
+                            <div class="card-header">
+                                <h3 class="card-title">
+                                    <i class="fas fa-wallet mr-2"></i>
+                                    <strong>Leave Balance</strong>
+                                </h3>
+                            </div>
+                            <div class="card-body">
+                                <div id="leave_balance_info">
+                                    <div class="text-center py-3">
+                                        <i class="fas fa-info-circle text-info"></i>
+                                        <div class="mt-2">Select an employee to view leave balance</div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-
                 </div>
-            </div>
+            </form>
         </div>
     </section>
 @endsection

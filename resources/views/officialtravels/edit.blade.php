@@ -133,13 +133,14 @@
                                         <div class="form-group">
                                             <label class="font-weight-bold">Title</label>
                                             <div class="main-traveler-position">
-                                                {{ $officialtravel->traveler->position->position_name }}</div>
+                                                {{ $officialtravel->traveler->position->position_name ?? '-' }}</div>
                                         </div>
                                     </div>
                                     <div class="col-md-4">
                                         <div class="form-group">
                                             <label class="font-weight-bold">Business Unit</label>
-                                            <div class="main-traveler-project">{{ $officialtravel->project->project_name }}
+                                            <div class="main-traveler-project">
+                                                {{ $officialtravel->project->project_name ?? '-' }}
                                             </div>
                                         </div>
                                     </div>
@@ -147,7 +148,7 @@
                                         <div class="form-group">
                                             <label class="font-weight-bold">Department</label>
                                             <div class="main-traveler-department">
-                                                {{ $officialtravel->traveler->position->department->department_name }}
+                                                {{ $officialtravel->traveler->position->department->department_name ?? '-' }}
                                             </div>
                                         </div>
                                     </div>
@@ -256,7 +257,7 @@
                                                 <tr>
                                                     <td>
                                                         <select class="form-control select2-follower" name="followers[]"
-                                                            style="width: 100%;" required>
+                                                            style="width: 100%;">
                                                             <option value="">Select Employee</option>
                                                             @foreach ($employees as $employee)
                                                                 <option value="{{ $employee['id'] }}"
@@ -271,13 +272,13 @@
                                                         </select>
                                                     </td>
                                                     <td><span
-                                                            class="employee-position">{{ $detail->follower->position->position_name }}</span>
+                                                            class="employee-position">{{ $detail->follower->position->position_name ?? '-' }}</span>
                                                     </td>
                                                     <td><span
-                                                            class="employee-project">{{ $detail->follower->project->project_name }}</span>
+                                                            class="employee-project">{{ $detail->follower->project->project_name ?? '-' }}</span>
                                                     </td>
                                                     <td><span
-                                                            class="employee-department">{{ $detail->follower->position->department->department_name }}</span>
+                                                            class="employee-department">{{ $detail->follower->position->department->department_name ?? '-' }}</span>
                                                     </td>
                                                     <td class="text-center">
                                                         <a href="javascript:void(0)" class="remove-follower"
@@ -344,9 +345,31 @@
                             </div>
                         </div>
 
+                        <!-- Manual Approver Selection Card -->
+                        <div class="card card-info card-outline elevation-2">
+                            <div class="card-header py-2">
+                                <h3 class="card-title">
+                                    <i class="fas fa-users mr-2"></i>
+                                    <strong>Approver Selection</strong>
+                                </h3>
+                            </div>
+                            <div class="card-body py-2">
+                                @include('components.manual-approver-selector', [
+                                    'selectedApprovers' => old(
+                                        'manual_approvers',
+                                        $officialtravel->manual_approvers ?? []),
+                                    'required' => false,
+                                    'multiple' => true,
+                                    'helpText' =>
+                                        'Pilih approver untuk approval (opsional, dapat dipilih saat submit)',
+                                    'documentType' => 'officialtravel',
+                                ])
+                            </div>
+                        </div>
+
                         <!-- Approval Status Card -->
-                        <x-approval-status-card :documentType="'officialtravel'" :documentId="$officialtravel->id" mode="preview" :projectId="old('official_travel_origin', $officialtravel->official_travel_origin)"
-                            :departmentId="$officialtravel->traveler->position->department_id ?? null" title="Approval Status" id="dynamicApprovalCard" />
+                        {{-- <x-approval-status-card :documentType="'officialtravel'" :documentId="$officialtravel->id" mode="preview" :projectId="old('official_travel_origin', $officialtravel->official_travel_origin)"
+                            :departmentId="$officialtravel->traveler->position->department_id ?? null" title="Approval Status" id="dynamicApprovalCard" /> --}}
 
                         <!-- Action Buttons -->
                         <div class="card elevation-3">
@@ -552,7 +575,7 @@
                 const rowHtml = `
                     <tr class="follower-row-new">
                         <td>
-                            <select class="form-control select2-follower" name="followers[]" style="width: 100%;" required>
+                            <select class="form-control select2-follower" name="followers[]" style="width: 100%;">
                                 <option value="">Select Employee</option>
                                 @foreach ($employees as $employee)
                                     <option value="{{ $employee['id'] }}"
@@ -593,7 +616,8 @@
             // Dynamic Approval Status Card Update
             function updateApprovalStatusCard() {
                 const projectId = $('#official_travel_origin').val();
-                const departmentId = $('#traveler_id option:selected').data('department-id');
+                const $selectedOption = $('#traveler_id option:selected');
+                const departmentId = $selectedOption.data('department-id') || null;
 
                 console.log('Updating approval status card with:', {
                     projectId,
@@ -696,23 +720,85 @@
             // Form validation
             $('#officialTravelForm').on('submit', function(e) {
                 let isValid = true;
+                let firstInvalidField = null;
+                let invalidFields = [];
 
-                // Check required fields
+                // Check required fields (exclude followers[] as they are optional)
                 $(this).find('[required]').each(function() {
-                    if (!$(this).val()) {
-                        isValid = false;
-                        $(this).addClass('is-invalid');
+                    const $field = $(this);
+                    const fieldName = $field.attr('name');
+                    const fieldId = $field.attr('id');
+
+                    // Skip disabled or readonly fields
+                    if ($field.prop('disabled') || $field.prop('readonly')) {
+                        return;
+                    }
+
+                    // Skip followers[] fields as they are optional
+                    if (fieldName && fieldName.includes('followers[]')) {
+                        return;
+                    }
+
+                    // Skip manual_approvers_required as it's optional in edit mode
+                    if (fieldName && fieldName === 'manual_approvers_required') {
+                        return;
+                    }
+
+                    // For select2 fields, check if value exists
+                    if ($field.hasClass('select2-hidden-accessible')) {
+                        const value = $field.val();
+                        if (!value || value === '' || value === null) {
+                            isValid = false;
+                            $field.addClass('is-invalid');
+                            // Also add invalid class to select2 container for visual feedback
+                            $field.next('.select2-container').addClass('is-invalid');
+                            invalidFields.push(fieldName || fieldId || 'Unknown Select2 field');
+                            if (!firstInvalidField) {
+                                firstInvalidField = $field;
+                            }
+                        } else {
+                            $field.removeClass('is-invalid');
+                            $field.next('.select2-container').removeClass('is-invalid');
+                        }
                     } else {
-                        $(this).removeClass('is-invalid');
+                        // For regular fields (text, textarea, date, etc.)
+                        const fieldValue = $field.val();
+                        const isEmpty = !fieldValue || (typeof fieldValue === 'string' && fieldValue
+                            .trim() === '');
+
+                        if (isEmpty) {
+                            isValid = false;
+                            $field.addClass('is-invalid');
+                            invalidFields.push(fieldName || fieldId || 'Unknown field');
+                            if (!firstInvalidField) {
+                                firstInvalidField = $field;
+                            }
+                        } else {
+                            $field.removeClass('is-invalid');
+                        }
                     }
                 });
 
                 if (!isValid) {
                     e.preventDefault();
+
+                    // Debug: log invalid fields
+                    console.log('Invalid fields:', invalidFields);
+
+                    // Scroll to first invalid field
+                    if (firstInvalidField) {
+                        $('html, body').animate({
+                            scrollTop: firstInvalidField.offset().top - 100
+                        }, 500);
+                        firstInvalidField.focus();
+                    }
+
                     Swal.fire({
                         icon: 'error',
                         title: 'Validation Error',
-                        text: 'Please fill in all required fields marked with *'
+                        text: 'Please fill in all required fields marked with *',
+                        footer: invalidFields.length > 0 ? 'Missing fields: ' + invalidFields.join(
+                            ', ') : ''
                     });
                 }
             });

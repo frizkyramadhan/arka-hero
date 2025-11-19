@@ -25,8 +25,8 @@ class Officialtravel extends Model
     protected $casts = [
         'official_travel_date' => 'date',
         'departure_from' => 'date',
-        'arrival_at_destination' => 'datetime',
-        'departure_from_destination' => 'datetime',
+        // Note: arrival_at_destination and departure_from_destination have been moved to officialtravel_stops table
+        'manual_approvers' => 'array',
     ];
 
     // Constants (Legacy approval constants removed - using new approval system)
@@ -200,6 +200,16 @@ class Officialtravel extends Model
         }
 
         return 'unknown';
+    }
+
+    // Get manual approvers as User collection
+    public function getManualApprovers()
+    {
+        if (empty($this->manual_approvers)) {
+            return collect();
+        }
+
+        return User::whereIn('id', $this->manual_approvers)->get();
     }
 
     // Auto-assign letter number on creation jika tidak ada

@@ -382,9 +382,28 @@
                             @endif
                         </div>
                     </div>
+
+                    <!-- Manual Approvers Card -->
+                    @if (!empty($officialtravel->manual_approvers))
+                        <div class="travel-card">
+                            <div class="card-head">
+                                <h2><i class="fas fa-users"></i> Approval Status</h2>
+                            </div>
+                            <div class="card-body py-2">
+                                @include('components.manual-approver-selector', [
+                                    'selectedApprovers' => $officialtravel->manual_approvers ?? [],
+                                    'mode' => 'view',
+                                    'documentType' => 'officialtravel',
+                                    'documentId' => $officialtravel->id,
+                                ])
+                            </div>
+                        </div>
+                    @endif
+
                     <!-- Approval Status Card -->
-                    <x-approval-status-card :documentType="'officialtravel'" :documentId="$officialtravel->id" :mode="$officialtravel->status === 'draft' ? 'preview' : 'status'" :projectId="$officialtravel->official_travel_origin"
-                        :departmentId="$officialtravel->traveler->position->department_id ?? null" title="Approval Status" />
+                    {{-- <x-approval-status-card :documentType="'officialtravel'" :documentId="$officialtravel->id" :mode="$officialtravel->status === 'draft' ? 'preview' : 'status'" :projectId="$officialtravel->official_travel_origin"
+                        :departmentId="$officialtravel->traveler->position->department_id ?? null" title="Approval Status" /> --}}
+
                     <!-- Action Buttons -->
                     <div class="travel-action-buttons">
                         <a href="{{ route('officialtravels.index') }}" class="btn-action back-btn">

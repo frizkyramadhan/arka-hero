@@ -399,14 +399,33 @@
                             </div>
                         </div>
 
+                        <!-- Manual Approver Selection Card -->
+                        <div class="card card-info card-outline elevation-2">
+                            <div class="card-header py-2">
+                                <h3 class="card-title">
+                                    <i class="fas fa-users mr-2"></i>
+                                    <strong>Approver Selection</strong>
+                                </h3>
+                            </div>
+                            <div class="card-body py-2">
+                                @include('components.manual-approver-selector', [
+                                    'selectedApprovers' => old('manual_approvers', []),
+                                    'required' => true,
+                                    'multiple' => true,
+                                    // 'helpText' => 'Pilih minimal 1 approver dengan role approver',
+                                    'documentType' => 'officialtravel',
+                                ])
+                            </div>
+                        </div>
+
                         <!-- Approval Preview Card -->
-                        @include('components.approval-status-card', [
+                        {{-- @include('components.approval-status-card', [
                             'documentType' => 'officialtravel',
                             'mode' => 'preview',
                             'title' => 'Approval Preview',
                             'projectId' => old('official_travel_origin'),
                             'departmentId' => null,
-                        ])
+                        ]) --}}
 
                         <!-- Action Buttons -->
                         <div class="card elevation-3">
