@@ -156,6 +156,15 @@
                                 </div>
                             @endif
 
+                            @if ($candidate->certifications)
+                                <div class="row mt-3">
+                                    <div class="col-12">
+                                        <h5><i class="fas fa-certificate mr-2"></i>Certifications</h5>
+                                        <p class="text-muted">{{ $candidate->certifications }}</p>
+                                    </div>
+                                </div>
+                            @endif
+
                             @if ($candidate->previous_companies)
                                 <div class="row mt-3">
                                     <div class="col-12">

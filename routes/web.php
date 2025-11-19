@@ -249,6 +249,7 @@ Route::group(['middleware' => ['auth']], function () {
     // Test route for letter number integration (development only)
     Route::get('officialtravels/test-letter-integration', [OfficialtravelController::class, 'testLetterNumberIntegration'])->name('officialtravels.testLetterIntegration');
     Route::resource('officialtravels', OfficialtravelController::class);
+    Route::get('officialtravels-approver-selector', [OfficialtravelController::class, 'getApproverSelector'])->name('officialtravels.approverSelector');
     Route::post('officialtravels/{officialtravel}/submit', [OfficialtravelController::class, 'submitForApproval'])->name('officialtravels.submit');
 
     Route::get('officialtravels/{officialtravel}/arrival', [OfficialtravelController::class, 'showArrivalForm'])->name('officialtravels.showArrivalForm');

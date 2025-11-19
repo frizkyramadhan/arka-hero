@@ -61,6 +61,7 @@ class RecruitmentRequest extends Model
         'director_approved_at',
         'director_approval_remark',
         'director_approval_timestamps',
+        'manual_approvers',
     ];
 
     protected $casts = [
@@ -71,6 +72,7 @@ class RecruitmentRequest extends Model
         'required_age_max' => 'integer',
         'submit_at' => 'datetime',
         'approved_at' => 'datetime',
+        'manual_approvers' => 'array',
         // HR Acknowledgment casts
         'known_at' => 'datetime',
         'known_timestamps' => 'datetime',
@@ -458,6 +460,16 @@ class RecruitmentRequest extends Model
     public function approval_plans()
     {
         return $this->hasMany(ApprovalPlan::class, 'document_id', 'id');
+    }
+
+    // Get manual approvers as User collection
+    public function getManualApprovers()
+    {
+        if (empty($this->manual_approvers)) {
+            return collect();
+        }
+
+        return User::whereIn('id', $this->manual_approvers)->get();
     }
 
     protected static function boot()

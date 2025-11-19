@@ -237,6 +237,27 @@ class OfficialtravelController extends Controller
     }
 
     /**
+     * Get approver selector component with different display modes
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\Response
+     */
+    public function getApproverSelector(Request $request)
+    {
+        $displayMode = $request->get('display_mode', 'modern_selector');
+        $selectedApprovers = old('manual_approvers', []);
+
+        return response()->view('components.manual-approver-selector', [
+            'selectedApprovers' => $selectedApprovers,
+            'required' => true,
+            'multiple' => true,
+            'placeholder' => 'Pilih approver untuk menyetujui perjalanan dinas ini',
+            'helpText' => 'Pilih minimal 1 approver dengan role approver',
+            'displayMode' => $displayMode
+        ])->header('Content-Type', 'text/html');
+    }
+
+    /**
      * Store a newly created resource in storage.
      *
      * @param  \Illuminate\Http\Request  $request
@@ -262,6 +283,11 @@ class OfficialtravelController extends Controller
                 // Letter numbering integration fields
                 'number_option' => 'nullable|in:existing',
                 'letter_number_id' => 'nullable|exists:letter_numbers,id',
+                // Manual approvers
+                'manual_approvers' => 'required_if:submit_action,submit|array|min:1',
+                'manual_approvers.*' => 'exists:users,id',
+                'approval_orders' => 'nullable|array',
+                'approval_orders.*' => 'integer|min:1',
                 // Submit action
                 'submit_action' => 'required|in:draft,submit',
             ], [
@@ -285,6 +311,13 @@ class OfficialtravelController extends Controller
                 'accommodation_id.exists' => 'Selected Accommodation is invalid.',
                 'followers.*.exists' => 'One or more selected followers are invalid.',
                 'letter_number_id.exists' => 'Selected Letter Number is invalid.',
+                'manual_approvers.required_if' => 'Please select at least one approver.',
+                'manual_approvers.array' => 'Approvers must be an array.',
+                'manual_approvers.min' => 'Please select at least one approver.',
+                'manual_approvers.*.exists' => 'One or more selected approvers are invalid.',
+                'approval_orders.array' => 'Approval orders must be an array.',
+                'approval_orders.*.integer' => 'Approval order must be a number.',
+                'approval_orders.*.min' => 'Approval order must be at least 1.',
                 'submit_action.required' => 'Please select an action.',
                 'submit_action.in' => 'Invalid submit action.',
             ]);
@@ -329,6 +362,14 @@ class OfficialtravelController extends Controller
             $status = $request->submit_action === 'submit' ? 'submitted' : 'draft';
             $submitAt = $request->submit_action === 'submit' ? now() : null;
 
+            // Ensure manual_approvers is an array and preserve order
+            $manualApprovers = $request->manual_approvers ?? [];
+            if (!is_array($manualApprovers)) {
+                $manualApprovers = [];
+            }
+            // Ensure array values are preserved in order (array_values to reset keys)
+            $manualApprovers = array_values(array_filter($manualApprovers));
+
             // Create new official travel
             $officialtravel = new Officialtravel([
                 'letter_number_id' => $letterNumberId,
@@ -344,6 +385,7 @@ class OfficialtravelController extends Controller
                 'departure_from' => $request->departure_from,
                 'transportation_id' => $request->transportation_id,
                 'accommodation_id' => $request->accommodation_id,
+                'manual_approvers' => $manualApprovers,
                 'created_by' => auth()->id(),
                 'submit_at' => $submitAt,
             ]);
@@ -372,14 +414,20 @@ class OfficialtravelController extends Controller
                 }
             }
 
-            // If submitted, create approval plans
-            if ($request->submit_action === 'submit') {
-                $response = app(ApprovalPlanController::class)->create_approval_plan('officialtravel', $officialtravel->id);
-                if (!$response) {
+            // If submitted, create approval plans using manual approvers
+            if ($request->submit_action === 'submit' && !empty($manualApprovers)) {
+                $response = app(ApprovalPlanController::class)->create_manual_approval_plan('officialtravel', $officialtravel->id);
+                if (!$response || $response === 0) {
+                    DB::rollback();
                     return redirect()->back()
-                        ->with('toast_error', 'Failed to create approval plans. Please try again.')
+                        ->with('toast_error', 'Failed to create approval plans. Please ensure at least one approver is selected.')
                         ->withInput();
                 }
+            } elseif ($request->submit_action === 'submit' && empty($manualApprovers)) {
+                DB::rollback();
+                return redirect()->back()
+                    ->with('toast_error', 'Please select at least one approver before submitting.')
+                    ->withInput();
             }
 
             DB::commit();
@@ -449,7 +497,15 @@ class OfficialtravelController extends Controller
         $projects = Project::whereIn('id', $user->projects->pluck('id'))->where('project_status', 1)->get();
         $accommodations = Accommodation::where('accommodation_status', 1)->get();
         $transportations = Transportation::where('transportation_status', 1)->get();
-        $officialtravel->load(['details', 'traveler.position.department']);
+
+        // Load relationships with null safety
+        $officialtravel->load([
+            'details.follower.position.department',
+            'details.follower.project',
+            'traveler.position.department',
+            'traveler.project',
+            'project'
+        ]);
 
         // Load employees with their relationships
         $employees = Administration::with([
@@ -457,16 +513,19 @@ class OfficialtravelController extends Controller
             'position.department',
             'project'
         ])->get()->map(function ($employee) {
+            $position = $employee->position;
+            $department = $position ? ($position->department ?? null) : null;
+
             return [
                 'id' => $employee->id,
                 'nik' => $employee->nik,
                 'fullname' => $employee->employee->fullname ?? 'Unknown',
-                'position' => $employee->position->position_name ?? '-',
+                'position' => $position ? ($position->position_name ?? '-') : '-',
                 'project' => $employee->project->project_name ?? '-',
-                'department' => $employee->position->department->department_name ?? '-',
+                'department' => $department ? ($department->department_name ?? '-') : '-',
                 'position_id' => $employee->position_id,
                 'project_id' => $employee->project_id,
-                'department_id' => $employee->position->department_id
+                'department_id' => $position ? ($position->department_id ?? ($department ? $department->id : null)) : null
             ];
         });
 
@@ -507,6 +566,13 @@ class OfficialtravelController extends Controller
                 'transportation_id' => 'required',
                 'accommodation_id' => 'required',
                 'followers' => 'nullable|array',
+                // Manual approvers
+                'manual_approvers' => 'nullable|array|min:1',
+                'manual_approvers.*' => 'exists:users,id',
+            ], [
+                'manual_approvers.array' => 'Approvers must be an array.',
+                'manual_approvers.min' => 'Please select at least one approver.',
+                'manual_approvers.*.exists' => 'One or more selected approvers are invalid.',
             ]);
 
             DB::beginTransaction();
@@ -516,7 +582,20 @@ class OfficialtravelController extends Controller
                 throw new \Exception('Cannot edit Official Travel that is not in draft status.');
             }
 
+            // Ensure manual_approvers is an array and preserve order
+            $manualApprovers = $request->manual_approvers ?? [];
+            if (!is_array($manualApprovers)) {
+                $manualApprovers = [];
+            }
+            // Ensure array values are preserved in order (array_values to reset keys)
+            $manualApprovers = array_values(array_filter($manualApprovers));
+
+            // Check if manual_approvers changed
+            $approversChanged = json_encode($officialtravel->manual_approvers ?? []) !== json_encode($manualApprovers);
+
             // Update the official travel
+            // Note: arrival_at_destination, arrival_remark, departure_from_destination, departure_remark
+            // have been moved to officialtravel_stops table, so they are not updated here
             $officialtravel->update([
                 'official_travel_number' => $request->official_travel_number,
                 'official_travel_date' => $request->official_travel_date,
@@ -528,11 +607,17 @@ class OfficialtravelController extends Controller
                 'departure_from' => $request->departure_from,
                 'transportation_id' => $request->transportation_id,
                 'accommodation_id' => $request->accommodation_id,
-                'arrival_at_destination' => $request->arrival_at_destination,
-                'arrival_remark' => $request->arrival_remark ?? $officialtravel->arrival_remark,
-                'departure_from_destination' => $request->departure_from_destination,
-                'departure_remark' => $request->departure_remark ?? $officialtravel->departure_remark,
+                'manual_approvers' => $manualApprovers,
             ]);
+
+            // If approvers changed and there are existing approval plans, delete them
+            // (They will be recreated when document is submitted)
+            if ($approversChanged) {
+                ApprovalPlan::where('document_id', $officialtravel->id)
+                    ->where('document_type', 'officialtravel')
+                    ->delete();
+                Log::info("Deleted existing approval plans for officialtravel {$officialtravel->id} due to approver changes");
+            }
 
             // Update followers - remove all existing and add new ones
             $officialtravel->details()->delete();
@@ -612,13 +697,13 @@ class OfficialtravelController extends Controller
                 return redirect()->back()->with('toast_error', 'Only draft official travels can be submitted for approval.');
             }
 
-            // Create approval plans using the same logic as in store method
-            $response = app(ApprovalPlanController::class)->create_approval_plan('officialtravel', $officialtravel->id);
-
-            if (!$response) {
+            // Check if manual approvers are set
+            if (empty($officialtravel->manual_approvers)) {
                 return redirect()->back()
-                    ->with('toast_error', 'Failed to create approval plans. Please try again.');
+                    ->with('toast_error', 'Please select at least one approver before submitting for approval.');
             }
+
+            DB::beginTransaction();
 
             // Update status to submitted
             $officialtravel->update([
@@ -626,10 +711,30 @@ class OfficialtravelController extends Controller
                 'submit_at' => now(),
             ]);
 
+            // Create approval plans using manual approvers
+            $response = app(ApprovalPlanController::class)->create_manual_approval_plan('officialtravel', $officialtravel->id);
+
+            if (!$response || $response === 0) {
+                DB::rollback();
+                return redirect()->back()
+                    ->with('toast_error', 'Failed to create approval plans. Please ensure at least one approver is selected.');
+            }
+
+            DB::commit();
+
             return redirect()->route('officialtravels.show', $officialtravel->id)
                 ->with('toast_success', 'Official travel has been submitted for approval. ' . $response . ' approver(s) will review your request.');
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return redirect()->back()
+                ->with('toast_error', 'Official travel not found.');
         } catch (\Exception $e) {
-            return redirect()->back()->with('toast_error', 'Failed to submit for approval. ' . $e->getMessage());
+            DB::rollBack();
+            Log::error('Error submitting official travel for approval: ' . $e->getMessage(), [
+                'officialtravel_id' => $id,
+                'exception' => $e
+            ]);
+            return redirect()->back()
+                ->with('toast_error', 'Failed to submit official travel for approval: ' . $e->getMessage());
         }
     }
 

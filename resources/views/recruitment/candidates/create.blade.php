@@ -145,6 +145,10 @@
                                                 class="form-control select2-primary @error('education_level') is-invalid @enderror"
                                                 style="width: 100%;" required>
                                                 <option value="">Select Education Level</option>
+                                                <option value="SD"
+                                                    {{ old('education_level') == 'SD' ? 'selected' : '' }}>SD</option>
+                                                <option value="SMP"
+                                                    {{ old('education_level') == 'SMP' ? 'selected' : '' }}>SMP</option>
                                                 <option value="SMA/SMK"
                                                     {{ old('education_level') == 'SMA/SMK' ? 'selected' : '' }}>SMA/SMK
                                                 </option>
@@ -222,6 +226,21 @@
                                 </div>
 
                                 <div class="form-group">
+                                    <label for="certifications">Certifications</label>
+                                    <div class="input-group">
+                                        <div class="input-group-prepend">
+                                            <span class="input-group-text"><i class="fas fa-certificate"></i></span>
+                                        </div>
+                                        <textarea class="form-control @error('certifications') is-invalid @enderror" name="certifications"
+                                            id="certifications" rows="3"
+                                            placeholder="Enter certifications, licenses, or professional credentials (optional)">{{ old('certifications') }}</textarea>
+                                    </div>
+                                    @error('certifications')
+                                        <span class="invalid-feedback">{{ $message }}</span>
+                                    @enderror
+                                </div>
+
+                                <div class="form-group">
                                     <label for="previous_companies">Previous Companies</label>
                                     <div class="input-group">
                                         <div class="input-group-prepend">
@@ -234,6 +253,7 @@
                                         <span class="invalid-feedback">{{ $message }}</span>
                                     @enderror
                                 </div>
+
                             </div>
                         </div>
 

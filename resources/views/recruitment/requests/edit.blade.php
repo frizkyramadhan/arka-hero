@@ -450,6 +450,24 @@
                             </div>
                         </div>
 
+                        <!-- Manual Approver Selection Card -->
+                        <div class="card card-info card-outline elevation-2">
+                            <div class="card-header py-2">
+                                <h3 class="card-title">
+                                    <i class="fas fa-users mr-2"></i>
+                                    <strong>Approver Selection</strong>
+                                </h3>
+                            </div>
+                            <div class="card-body py-2">
+                                @include('components.manual-approver-selector', [
+                                    'selectedApprovers' => old('manual_approvers', $fptk->manual_approvers ?? []),
+                                    'required' => true,
+                                    'multiple' => true,
+                                    'helpText' => 'Pilih minimal 1 approver dengan role approver',
+                                    'documentType' => 'recruitment_request',
+                                ])
+                            </div>
+                        </div>
 
                         <!-- Approval Status Card -->
                         <x-approval-status-card :documentType="'recruitment_request'" :documentId="$fptk->id" mode="preview" :projectId="old('project_id', $fptk->project_id)"

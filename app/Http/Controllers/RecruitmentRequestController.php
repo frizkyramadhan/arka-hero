@@ -9,6 +9,7 @@ use App\Models\Position;
 use App\Models\Level;
 use App\Models\LetterNumber;
 use App\Models\User;
+use App\Models\ApprovalPlan;
 use App\Services\RecruitmentLetterNumberService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -195,8 +196,15 @@ class RecruitmentRequestController extends Controller
             'required_mental' => 'nullable|string|max:500',
             'other_requirements' => 'nullable|string|max:1000',
             'requires_theory_test' => 'nullable|boolean',
-
+            // Manual approvers
+            'manual_approvers' => 'required_if:submit_action,submit|array|min:1',
+            'manual_approvers.*' => 'exists:users,id',
             'submit_action' => 'required|in:draft,submit',
+        ], [
+            'manual_approvers.required_if' => 'Please select at least one approver.',
+            'manual_approvers.array' => 'Approvers must be an array.',
+            'manual_approvers.min' => 'Please select at least one approver.',
+            'manual_approvers.*.exists' => 'One or more selected approvers are invalid.',
         ]);
 
         try {
@@ -243,6 +251,13 @@ class RecruitmentRequestController extends Controller
                 );
             }
 
+            // Normalize manual_approvers array
+            $manualApprovers = $request->manual_approvers ?? [];
+            if (!is_array($manualApprovers)) {
+                $manualApprovers = [];
+            }
+            $manualApprovers = array_values(array_filter($manualApprovers));
+
             // Determine status based on submit action
             $status = $request->submit_action === 'submit' ? 'submitted' : 'draft';
             $submitAt = $request->submit_action === 'submit' ? now() : null;
@@ -272,6 +287,7 @@ class RecruitmentRequestController extends Controller
                 'required_mental' => $request->required_mental,
                 'other_requirements' => $request->other_requirements,
                 'requires_theory_test' => $request->boolean('requires_theory_test'),
+                'manual_approvers' => $manualApprovers,
                 'created_by' => Auth::id(),
                 'status' => $status,
                 'submit_at' => $submitAt,
@@ -291,13 +307,19 @@ class RecruitmentRequestController extends Controller
             }
 
             // If submitted, create approval plans
-            if ($request->submit_action === 'submit') {
-                $response = app(ApprovalPlanController::class)->create_approval_plan('recruitment_request', $fptk->id);
-                if (!$response) {
+            if ($request->submit_action === 'submit' && !empty($manualApprovers)) {
+                $response = app(ApprovalPlanController::class)->create_manual_approval_plan('recruitment_request', $fptk->id);
+                if (!$response || $response === 0) {
+                    DB::rollback();
                     return redirect()->back()
-                        ->with('toast_error', 'Failed to create approval plans. Please try again.')
+                        ->with('toast_error', 'Failed to create approval plans. Please ensure at least one approver is selected.')
                         ->withInput();
                 }
+            } elseif ($request->submit_action === 'submit' && empty($manualApprovers)) {
+                DB::rollback();
+                return redirect()->back()
+                    ->with('toast_error', 'Please select at least one approver before submitting.')
+                    ->withInput();
             }
 
             DB::commit();
@@ -450,14 +472,31 @@ class RecruitmentRequestController extends Controller
             'required_physical' => 'nullable|string|max:500',
             'required_mental' => 'nullable|string|max:500',
             'other_requirements' => 'nullable|string|max:1000',
+            // Manual approvers
+            'manual_approvers' => 'nullable|array|min:1',
+            'manual_approvers.*' => 'exists:users,id',
             // Approval hierarchy fields
             // 'known_by' => 'required|exists:users,id',
             // 'approved_by_pm' => 'required|exists:users,id',
             // 'approved_by_director' => 'required|exists:users,id',
+        ], [
+            'manual_approvers.array' => 'Approvers must be an array.',
+            'manual_approvers.min' => 'Please select at least one approver.',
+            'manual_approvers.*.exists' => 'One or more selected approvers are invalid.',
         ]);
 
         try {
             DB::beginTransaction();
+
+            // Normalize manual_approvers array
+            $manualApprovers = $request->manual_approvers ?? [];
+            if (!is_array($manualApprovers)) {
+                $manualApprovers = [];
+            }
+            $manualApprovers = array_values(array_filter($manualApprovers));
+
+            // Check if manual_approvers changed
+            $approversChanged = json_encode($fptk->manual_approvers ?? []) !== json_encode($manualApprovers);
 
             $fptk->update([
                 'department_id' => $request->department_id,
@@ -481,11 +520,21 @@ class RecruitmentRequestController extends Controller
                 'required_mental' => $request->required_mental,
                 'other_requirements' => $request->other_requirements,
                 'requires_theory_test' => $request->boolean('requires_theory_test'),
+                'manual_approvers' => $manualApprovers,
                 // Approval hierarchy fields
                 // 'known_by' => $request->known_by,
                 // 'approved_by_pm' => $request->approved_by_pm,
                 // 'approved_by_director' => $request->approved_by_director,
             ]);
+
+            // If approvers changed and there are existing approval plans, delete them
+            // (They will be recreated when document is submitted)
+            if ($approversChanged) {
+                ApprovalPlan::where('document_id', $fptk->id)
+                    ->where('document_type', 'recruitment_request')
+                    ->delete();
+                Log::info("Deleted existing approval plans for recruitment_request {$fptk->id} due to approver changes");
+            }
 
             DB::commit();
 
@@ -519,13 +568,13 @@ class RecruitmentRequestController extends Controller
                 return redirect()->back()->with('toast_error', 'Only draft recruitment requests can be submitted for approval.');
             }
 
-            // Create approval plans using the same logic as in store method
-            $response = app(ApprovalPlanController::class)->create_approval_plan('recruitment_request', $fptk->id);
-
-            if (!$response) {
+            // Check if manual_approvers is set
+            if (empty($fptk->manual_approvers)) {
                 return redirect()->back()
-                    ->with('toast_error', 'Failed to create approval plans. Please try again.');
+                    ->with('toast_error', 'Please select at least one approver before submitting for approval.');
             }
+
+            DB::beginTransaction();
 
             // Update status to submitted
             $fptk->update([
@@ -533,10 +582,30 @@ class RecruitmentRequestController extends Controller
                 'submit_at' => now(),
             ]);
 
+            // Create approval plans using manual approvers
+            $response = app(ApprovalPlanController::class)->create_manual_approval_plan('recruitment_request', $fptk->id);
+
+            if (!$response || $response === 0) {
+                DB::rollback();
+                return redirect()->back()
+                    ->with('toast_error', 'Failed to create approval plans. Please ensure at least one approver is selected.');
+            }
+
+            DB::commit();
+
             return redirect()->route('recruitment.requests.show', $fptk->id)
                 ->with('toast_success', 'Recruitment request has been submitted for approval. ' . $response . ' approver(s) will review your request.');
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return redirect()->back()
+                ->with('toast_error', 'Recruitment request not found.');
         } catch (\Exception $e) {
-            return redirect()->back()->with('toast_error', 'Failed to submit for approval. ' . $e->getMessage());
+            DB::rollBack();
+            Log::error('Error submitting recruitment request for approval: ' . $e->getMessage(), [
+                'recruitment_request_id' => $id,
+                'exception' => $e
+            ]);
+            return redirect()->back()
+                ->with('toast_error', 'Failed to submit recruitment request for approval: ' . $e->getMessage());
         }
     }
 
