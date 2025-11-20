@@ -205,13 +205,13 @@
                                     <thead>
                                         <tr>
                                             <th class="align-middle" width="5%">No</th>
+                                            <th class="align-middle">Project</th>
                                             <th class="align-middle">Letter Number</th>
                                             <th class="align-middle">Category</th>
                                             <th class="align-middle">Subject</th>
                                             <th class="align-middle">Date</th>
                                             <th class="align-middle">Destination</th>
-                                            {{-- <th class="align-middle">Employee</th>
-                                            <th class="align-middle">Project</th> --}}
+                                            {{-- <th class="align-middle">Employee</th> --}}
                                             <th class="align-middle">Remarks</th>
                                             <th class="align-middle">Status</th>
                                             <th class="align-middle" width="10%">Action</th>
@@ -528,6 +528,12 @@
                         orderable: false,
                         searchable: false,
                         className: 'text-center'
+                    },
+                    {
+                        data: 'project_display',
+                        name: 'project_display',
+                        orderable: true,
+                        searchable: true
                     },
                     {
                         data: 'letter_number',

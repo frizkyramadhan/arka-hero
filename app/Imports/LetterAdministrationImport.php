@@ -49,8 +49,15 @@ class LetterAdministrationImport implements ToModel, WithHeadingRow, WithValidat
             if (!empty($row['nik'])) {
                 $administration = Administration::where('nik', $row['nik'])->first();
             }
-            // No longer need to lookup project from database - use project_code directly as string
-            $projectCode = $row['project_code'] ?? null;
+            // Lookup project_id from project_code or use project_id directly
+            $project = null;
+            if (!empty($row['project_code'])) {
+                $project = Project::where('project_code', $row['project_code'])->first();
+            } elseif (!empty($row['project_id'])) {
+                $project = Project::find($row['project_id']);
+            }
+            $projectId = $project?->id;
+            $projectCode = $row['project_code'] ?? $project?->project_code;
             $subject = null;
             if ($category && !empty($row['subject_master'])) {
                 $subject = $this->letterSubjects->where('subject_name', $row['subject_master'])
@@ -66,6 +73,7 @@ class LetterAdministrationImport implements ToModel, WithHeadingRow, WithValidat
                 'remarks' => $row['remarks'],
                 'custom_subject' => $row['subject_custom'],
                 'administration_id' => $administration?->id,
+                'project_id' => $projectId,
                 'project_code' => $projectCode,
                 'duration' => $row['duration'],
                 'start_date' => $row['start_date'] ? Carbon::parse($row['start_date'])->format('Y-m-d') : null,
@@ -85,7 +93,7 @@ class LetterAdministrationImport implements ToModel, WithHeadingRow, WithValidat
             if (!empty($row['sequence_number'])) {
                 $letterData['sequence_number'] = (int) $row['sequence_number'];
             } else {
-                $letterData['sequence_number'] = LetterNumber::getNextSequenceNumberSafe($category->id, $year);
+                $letterData['sequence_number'] = LetterNumber::getNextSequenceNumberSafe($category->id, $year, $projectId);
             }
 
             // Use status from import if provided, otherwise default to 'used'
@@ -255,6 +263,7 @@ class LetterAdministrationImport implements ToModel, WithHeadingRow, WithValidat
 
             // Project-related categories - project_code as free text string
             'project_code' => 'nullable|string|max:50',
+            'project_id' => 'nullable|exists:projects,id',
 
             // External letters (A) require classification
             'classification' => [

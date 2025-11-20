@@ -26,6 +26,9 @@ class Kernel extends ConsoleKernel
 
         // Auto approve leave requests pending more than 3 days, run daily at 03:00
         $schedule->command('leave:auto-approve')->dailyAt('03:00');
+
+        // Auto mark reserved letter numbers as used after 3 days, run daily at 04:00
+        $schedule->command('letter-numbers:auto-mark-used')->dailyAt('04:00');
     }
 
     /**

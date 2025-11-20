@@ -51,6 +51,31 @@
                                 </div>
 
                                 <div class="row">
+                                    <div class="col-md-12">
+                                        <div class="form-group">
+                                            <label>Project <span class="text-danger">*</span></label>
+                                            <select class="form-control select2bs4" name="project_id" id="project_id"
+                                                required>
+                                                <option value="">- Select Project -</option>
+                                                @foreach ($projects as $project)
+                                                    <option value="{{ $project->id }}"
+                                                        {{ old('project_id') == $project->id ? 'selected' : '' }}>
+                                                        {{ $project->project_code }} - {{ $project->project_name }}
+                                                    </option>
+                                                @endforeach
+                                            </select>
+                                            <small class="form-text text-muted">
+                                                <i class="fas fa-info-circle"></i> Each project has its own sequence number.
+                                                Required for generating letter numbers.
+                                            </small>
+                                            @error('project_id')
+                                                <span class="text-danger">{{ $message }}</span>
+                                            @enderror
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="row">
                                     <div class="col-md-6">
                                         <div class="form-group">
                                             <label>Letter Category <span class="text-danger">*</span></label>
@@ -198,6 +223,7 @@
                                 <option value="{{ $admin->id }}"
                                         data-nik="{{ $admin->nik }}"
                                         data-employee-name="{{ $admin->employee->fullname ?? '' }}"
+                                        data-project-id="{{ $admin->project_id ?? '' }}"
                                         data-project-name="{{ $admin->project->project_name ?? '' }}">
                                     {{ $admin->nik }} - {{ $admin->employee->fullname ?? 'N/A' }}
                                     ({{ $admin->project->project_name ?? 'No Project' }})
@@ -497,7 +523,6 @@
             $('[data-toggle="tooltip"]').tooltip();
 
             var categories = @json($categories->keyBy('id'));
-            var estimatedNextNumbers = @json($estimatedNextNumbers);
 
             function updateDynamicFields(categoryId) {
                 var categoryCode = categories[categoryId] ? categories[categoryId].category_code : null;
@@ -534,22 +559,47 @@
                 }
             }
 
-            function updateNextNumberInfo(categoryId) {
-                var estimate = estimatedNextNumbers[categoryId];
-                if (estimate) {
-                    // Update sidebar info
-                    $('#next-letter-number').text(estimate.next_letter_number);
-                    $('#next-sequence').text(estimate.next_sequence);
-                    $('#next-number-info').show();
+            function updateNextNumberInfo(categoryId, projectId) {
+                // Clear previous preview
+                $('#next-number-info').hide();
+                $('#form-next-number-preview').hide();
 
-                    // Update form preview
-                    $('#form-next-letter-number').text(estimate.next_letter_number);
-                    $('#form-next-sequence').text(estimate.next_sequence);
-                    $('#form-next-number-preview').show();
-                } else {
-                    $('#next-number-info').hide();
-                    $('#form-next-number-preview').hide();
+                // Only show preview if both category and project are selected
+                if (!categoryId || !projectId) {
+                    return;
                 }
+
+                // Make AJAX request to preview next number
+                $.ajax({
+                    url: "{{ url('api/v1/letter-numbers/preview-next-number') }}",
+                    method: 'POST',
+                    data: {
+                        letter_category_id: categoryId,
+                        project_id: projectId,
+                        letter_date: $('#letter_date').val(),
+                        _token: "{{ csrf_token() }}"
+                    },
+                    success: function(response) {
+                        if (response.success && response.data) {
+                            var data = response.data;
+
+                            // Update sidebar info
+                            $('#next-letter-number').text(data.letter_number);
+                            $('#next-sequence').text(data.sequence_number);
+                            $('#next-number-info').show();
+
+                            // Update form preview
+                            $('#form-next-letter-number').text(data.letter_number);
+                            $('#form-next-sequence').text(data.sequence_number);
+                            $('#form-next-number-preview').show();
+                        }
+                    },
+                    error: function(xhr) {
+                        console.error('Failed to preview next number:', xhr.responseJSON);
+                        $('#next-number-info').hide();
+                        $('#form-next-number-preview').hide();
+                    }
+                });
             }
 
             function updateSubjects(categoryId) {
@@ -578,7 +628,14 @@
                 updateDynamicFields(categoryId);
                 updateCategoryInfo(categoryId);
                 updateSubjects(categoryId);
-                updateNextNumberInfo(categoryId); // Call this function here
+                updateNextNumberInfo(categoryId, $('#project_id').val());
+            });
+
+            // Update preview when project changes
+            $('#project_id').change(function() {
+                var categoryId = $('#letter_category_id').val();
+                var projectId = $(this).val();
+                updateNextNumberInfo(categoryId, projectId);
             });
 
             // Initial call if a category is pre-selected
@@ -590,6 +647,10 @@
                 var selectedOption = $(this).find('option:selected');
                 $('#display_nik').val(selectedOption.data('nik'));
                 $('#display_project').val(selectedOption.data('project-name'));
+                // Auto-set project_id from employee's project
+                if (selectedOption.data('project-id')) {
+                    $('#project_id').val(selectedOption.data('project-id')).trigger('change');
+                }
             });
         });
     </script>

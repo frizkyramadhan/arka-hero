@@ -40,6 +40,7 @@ class LetterNumberController extends Controller
             'subject',
             'administration.employee',
             'administration.project',
+            'project',
             'user',
             'reservedBy',
             'usedBy'
@@ -91,13 +92,13 @@ class LetterNumberController extends Controller
             //     }
             //     return '-';
             // })
-            // ->addColumn('project_display', function ($row) {
-            //     // Prioritas: project dari administration, lalu project langsung
-            //     $project = $row->administration && $row->administration->project
-            //         ? $row->administration->project
-            //         : $row->project;
-            //     return $project ? $project->project_name : '-';
-            // })
+            ->addColumn('project_display', function ($row) {
+                // Ambil project_code langsung dari letter_numbers.project_id
+                if ($row->project) {
+                    return $row->project->project_code;
+                }
+                return $row->project_code ?? '-';
+            })
             ->addColumn('status_badge', function ($row) {
                 $badges = [
                     'reserved' => '<span class="badge badge-warning">Reserved</span>',
@@ -128,7 +129,7 @@ class LetterNumberController extends Controller
             ->active()
             ->orderBy('nik')
             ->get();
-        $projects = Project::orderBy('project_name')->get();
+        $projects = auth()->user()->projects()->where('project_status', 1)->orderBy('project_code', 'asc')->get();
 
         $selectedCategory = null;
         $subjects = collect();
@@ -174,6 +175,7 @@ class LetterNumberController extends Controller
             'destination' => 'nullable|string|max:200',
             'remarks' => 'nullable|string',
             'project_code' => 'nullable|string|max:50',
+            'project_id' => 'required|exists:projects,id',
         ];
 
         // Dynamic validation based on category
@@ -215,6 +217,19 @@ class LetterNumberController extends Controller
 
         $letterNumber = new LetterNumber();
         $letterNumber->fill($request->all());
+
+        // Set project_id: priority from administration, then from request
+        if ($request->administration_id) {
+            $administration = Administration::find($request->administration_id);
+            if ($administration && $administration->project_id) {
+                $letterNumber->project_id = $administration->project_id;
+            }
+        }
+        // If project_id not set from administration, use from request (or null)
+        if (!$letterNumber->project_id && $request->project_id) {
+            $letterNumber->project_id = $request->project_id;
+        }
+
         $letterNumber->user_id = auth()->id();
         $letterNumber->save();
 
@@ -229,6 +244,7 @@ class LetterNumberController extends Controller
             'subject',
             'administration.employee',
             'administration.project',
+            'project',
             'reservedBy',
             'usedBy'
         ])
@@ -256,7 +272,7 @@ class LetterNumberController extends Controller
             ->active()
             ->orderBy('nik')
             ->get();
-        $projects = Project::orderBy('project_name')->get();
+        $projects = auth()->user()->projects()->where('project_status', 1)->orderBy('project_code', 'asc')->get();
         $subjects = LetterSubject::where('letter_category_id', $letterNumber->letter_category_id)
             ->where('is_active', 1)
             ->get();
@@ -286,6 +302,7 @@ class LetterNumberController extends Controller
             'destination' => 'nullable|string|max:200',
             'remarks' => 'nullable|string',
             'project_code' => 'nullable|string|max:50',
+            'project_id' => 'required|exists:projects,id',
         ];
 
         // Dynamic validation based on category
@@ -322,6 +339,19 @@ class LetterNumberController extends Controller
         $request->validate($rules);
 
         $letterNumber->fill($request->all());
+
+        // Set project_id: priority from administration, then from request
+        if ($request->administration_id) {
+            $administration = Administration::find($request->administration_id);
+            if ($administration && $administration->project_id) {
+                $letterNumber->project_id = $administration->project_id;
+            }
+        }
+        // If project_id not set from administration, use from request (or keep existing)
+        if (!$letterNumber->project_id && $request->project_id) {
+            $letterNumber->project_id = $request->project_id;
+        }
+
         $letterNumber->save();
 
         return redirect()->route('letter-numbers.index')

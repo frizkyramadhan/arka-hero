@@ -32,6 +32,31 @@
                             </div>
                             <div class="card-body">
                                 <div class="row">
+                                    <div class="col-md-12">
+                                        <div class="form-group">
+                                            <label>Project <span class="text-danger">*</span></label>
+                                            <select class="form-control select2bs4" name="project_id" id="project_id"
+                                                required>
+                                                <option value="">- Select Project -</option>
+                                                @foreach ($projects as $project)
+                                                    <option value="{{ $project->id }}"
+                                                        {{ old('project_id', $letterNumber->project_id) == $project->id ? 'selected' : '' }}>
+                                                        {{ $project->project_code }} - {{ $project->project_name }}
+                                                    </option>
+                                                @endforeach
+                                            </select>
+                                            <small class="form-text text-muted">
+                                                <i class="fas fa-info-circle"></i> Each project has its own sequence number.
+                                                Required for generating letter numbers.
+                                            </small>
+                                            @error('project_id')
+                                                <span class="text-danger">{{ $message }}</span>
+                                            @enderror
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="row">
                                     <div class="col-md-6">
                                         <div class="form-group">
                                             <label>Letter Number</label>
@@ -189,6 +214,7 @@
                                 <option value="{{ $admin->id }}"
                                         data-nik="{{ $admin->nik }}"
                                         data-employee-name="{{ $admin->employee->fullname ?? '' }}"
+                                        data-project-id="{{ $admin->project_id ?? '' }}"
                                         data-project-name="{{ $admin->project->project_name ?? '' }}"
                                         {{ old('administration_id', $letterNumber->administration_id) == $admin->id ? 'selected' : '' }}>
                                     {{ $admin->nik }} - {{ $admin->employee->fullname ?? 'N/A' }}
@@ -349,6 +375,10 @@
                 var selectedOption = $(this).find('option:selected');
                 $('#display_nik').val(selectedOption.data('nik'));
                 $('#display_project').val(selectedOption.data('project-name'));
+                // Auto-set project_id from employee's project
+                if (selectedOption.data('project-id')) {
+                    $('#project_id').val(selectedOption.data('project-id')).trigger('change');
+                }
             });
             // Trigger change on load if an employee is selected
             if ($('#administration_id').val()) {
