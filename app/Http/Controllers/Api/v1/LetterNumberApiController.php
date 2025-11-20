@@ -25,7 +25,7 @@ class LetterNumberApiController extends Controller
                 'letter_date' => 'required|date',
                 'custom_subject' => 'nullable|string|max:200',
                 'administration_id' => 'nullable|exists:administrations,id',
-                'project_id' => 'nullable|exists:projects,id',
+                'project_code' => 'nullable|string|max:50',
                 'destination' => 'nullable|string|max:200',
                 'remarks' => 'nullable|string',
             ]);
@@ -35,7 +35,7 @@ class LetterNumberApiController extends Controller
                 'letter_date' => $request->letter_date,
                 'custom_subject' => $request->custom_subject,
                 'administration_id' => $request->administration_id,
-                'project_id' => $request->project_id,
+                'project_code' => $request->project_code,
                 'destination' => $request->destination,
                 'remarks' => $request->remarks,
                 'user_id' => auth()->id(),
@@ -299,9 +299,9 @@ class LetterNumberApiController extends Controller
                     'status' => $letterNumber->status,
                     'employee_name' => $letterNumber->employee_name,
                     'nik' => $letterNumber->nik,
-                    'project_name' => $letterNumber->administration && $letterNumber->administration->project
-                        ? $letterNumber->administration->project->project_name
-                        : ($letterNumber->project->project_name ?? null),
+                    'project_code' => $letterNumber->administration && $letterNumber->administration->project
+                        ? $letterNumber->administration->project->project_code
+                        : $letterNumber->project_code,
                     'related_document_type' => $letterNumber->related_document_type,
                     'related_document_id' => $letterNumber->related_document_id,
                     'reserved_by' => $letterNumber->reservedBy->name ?? null,

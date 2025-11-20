@@ -49,7 +49,8 @@ class LetterAdministrationImport implements ToModel, WithHeadingRow, WithValidat
             if (!empty($row['nik'])) {
                 $administration = Administration::where('nik', $row['nik'])->first();
             }
-            $project = isset($row['project_code']) ? Project::where('project_code', $row['project_code'])->first() : null;
+            // No longer need to lookup project from database - use project_code directly as string
+            $projectCode = $row['project_code'] ?? null;
             $subject = null;
             if ($category && !empty($row['subject_master'])) {
                 $subject = $this->letterSubjects->where('subject_name', $row['subject_master'])
@@ -65,7 +66,7 @@ class LetterAdministrationImport implements ToModel, WithHeadingRow, WithValidat
                 'remarks' => $row['remarks'],
                 'custom_subject' => $row['subject_custom'],
                 'administration_id' => $administration?->id,
-                'project_id' => $project?->id,
+                'project_code' => $projectCode,
                 'duration' => $row['duration'],
                 'start_date' => $row['start_date'] ? Carbon::parse($row['start_date'])->format('Y-m-d') : null,
                 'end_date' => $row['end_date'] ? Carbon::parse($row['end_date'])->format('Y-m-d') : null,
@@ -252,8 +253,8 @@ class LetterAdministrationImport implements ToModel, WithHeadingRow, WithValidat
             // Status field - can be imported or default to 'used'
             'status' => 'nullable|in:reserved,used,cancelled',
 
-            // Project-related categories (FPTK) require project
-            'project_code' => 'nullable|exists:projects,project_code',
+            // Project-related categories - project_code as free text string
+            'project_code' => 'nullable|string|max:50',
 
             // External letters (A) require classification
             'classification' => [
@@ -311,7 +312,8 @@ class LetterAdministrationImport implements ToModel, WithHeadingRow, WithValidat
             'status.in' => 'The Status must be one of: reserved, used, cancelled.',
 
             // Project-related validation
-            'project_code.exists' => 'The selected Project Code does not exist.',
+            'project_code.string' => 'The Project Code must be a string.',
+            'project_code.max' => 'The Project Code may not be greater than 50 characters.',
 
             // Classification validation
             'classification.in' => 'The selected Classification is invalid. Valid options: Umum, Lembaga Pendidikan, Pemerintah.',

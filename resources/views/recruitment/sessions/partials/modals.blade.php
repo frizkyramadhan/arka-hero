@@ -1061,4 +1061,123 @@
         </div>
     </div>
 </div>
+
+<!-- Stage Transition Modal -->
+<div class="modal fade" id="transitionStageModal">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title">
+                    <i class="fas fa-exchange-alt"></i> Transition Stage
+                </h4>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <form method="POST" action="{{ route('recruitment.sessions.transition-stage', $session->id) }}"
+                class="confirm-submit"
+                data-confirm-message="Transition to selected stage? This will update the recruitment progress.">
+                @csrf
+                <div class="modal-body">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i>
+                        <strong>Current Stage:</strong> {{ ucfirst(str_replace('_', ' ', $session->current_stage)) }}
+                    </div>
+
+                    <div class="form-group">
+                        <label for="target_stage" class="font-weight-bold">Target Stage <span
+                                class="text-danger">*</span></label>
+                        <select class="form-control @error('target_stage') is-invalid @enderror" id="target_stage"
+                            name="target_stage" required>
+                            <option value="">Select target stage...</option>
+                            @php
+                                // Get valid stages for this session
+                                $isSimplifiedProcess = false;
+                                if (
+                                    $session->fptk_id &&
+                                    $session->fptk &&
+                                    in_array($session->fptk->employment_type, ['magang', 'harian'])
+                                ) {
+                                    $isSimplifiedProcess = true;
+                                    $validStages = ['mcu', 'hire'];
+                                } else {
+                                    $validStages = [
+                                        'cv_review',
+                                        'psikotes',
+                                        'tes_teori',
+                                        'interview',
+                                        'offering',
+                                        'mcu',
+                                        'hire',
+                                    ];
+                                    // Remove tes_teori if should be skipped
+                                    if ($session->shouldSkipTheoryTest()) {
+                                        $validStages = array_diff($validStages, ['tes_teori']);
+                                    }
+                                }
+
+                                $stageLabels = [
+                                    'cv_review' => 'CV Review',
+                                    'psikotes' => 'Psikotes',
+                                    'tes_teori' => 'Tes Teori',
+                                    'interview' => 'Interview',
+                                    'offering' => 'Offering',
+                                    'mcu' => 'MCU',
+                                    'hire' => 'Hiring & Onboarding',
+                                ];
+                            @endphp
+                            @foreach ($validStages as $stage)
+                                @if ($stage !== $session->current_stage)
+                                    <option value="{{ $stage }}"
+                                        {{ old('target_stage') === $stage ? 'selected' : '' }}>
+                                        {{ $stageLabels[$stage] }}
+                                    </option>
+                                @endif
+                            @endforeach
+                        </select>
+                        @error('target_stage')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                    </div>
+
+                    <div class="form-group">
+                        <label for="transition_reason" class="font-weight-bold">Reason for Transition <span
+                                class="text-danger">*</span></label>
+                        <textarea class="form-control @error('reason') is-invalid @enderror" id="transition_reason" name="reason"
+                            rows="4" placeholder="Please provide a detailed reason for this stage transition..." required>{{ old('reason') }}</textarea>
+                        @error('reason')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                        <small class="form-text text-muted">This reason will be logged for audit purposes.</small>
+                    </div>
+
+                    <div class="form-group">
+                        <div class="custom-control custom-checkbox">
+                            <input type="checkbox" class="custom-control-input" id="force_transition"
+                                name="force_transition" value="1"
+                                {{ old('force_transition') ? 'checked' : '' }}>
+                            <label class="custom-control-label" for="force_transition">
+                                <strong>Force Transition</strong> (bypass validation rules)
+                            </label>
+                        </div>
+                        <small class="form-text text-muted">
+                            Check this only if you need to bypass normal validation rules (e.g., skipping failed
+                            stages).
+                        </small>
+                    </div>
+
+                    <div id="transition_warnings" class="alert alert-warning" style="display: none;">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <strong>Warning:</strong> <span id="warning_text"></span>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary submit-btn" id="transition_submit_btn">
+                        <i class="fas fa-exchange-alt"></i> Transition Stage
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
 </div>

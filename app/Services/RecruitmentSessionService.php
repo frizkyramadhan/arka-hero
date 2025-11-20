@@ -1355,14 +1355,61 @@ class RecruitmentSessionService
     }
 
     /**
-     * Get progress percentage for session
+     * Get progress percentage for session - Dynamic calculation
+     * Formula: (completed_stages / total_valid_stages) * 100
      *
      * @param RecruitmentSession $session
      * @return float
      */
     public function getProgressPercentage(RecruitmentSession $session): float
     {
-        return $session->overall_progress;
+        // Get valid stages for this session type
+        $validStages = $this->getValidStagesForSession($session);
+
+        if (empty($validStages)) {
+            return 0;
+        }
+
+        $totalStages = count($validStages);
+        $completedStages = 0;
+
+        // Count how many stages are actually completed (have valid assessments)
+        foreach ($validStages as $stage) {
+            if ($session->isStageCompleted($stage)) {
+                $completedStages++;
+            }
+        }
+
+        // Calculate progress as percentage of completed stages vs total stages
+        if ($totalStages === 0) {
+            return 0;
+        }
+
+        $progress = ($completedStages / $totalStages) * 100;
+
+        return round($progress, 1); // Return with 1 decimal place for better precision
+    }
+
+    /**
+     * Get valid stages for a session based on its type (FPTK/MMP and employment type)
+     */
+    private function getValidStagesForSession($session): array
+    {
+        // For magang and harian: only MCU and Hire stages
+        if ($session->fptk_id && $session->fptk &&
+            in_array($session->fptk->employment_type, ['magang', 'harian'])) {
+            return ['mcu', 'hire'];
+        }
+
+        // Standard stages for regular employment types
+        $stages = ['cv_review', 'psikotes', 'tes_teori', 'interview', 'offering', 'mcu', 'hire'];
+
+        // Remove tes_teori if should be skipped
+        if ($session->shouldSkipTheoryTest()) {
+            $stages = array_diff($stages, ['tes_teori']);
+        }
+
+        return array_values($stages);
     }
 
     /**

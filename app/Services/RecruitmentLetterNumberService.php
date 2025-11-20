@@ -60,7 +60,7 @@ class RecruitmentLetterNumberService
             'letter_date' => now(),
             'subject_id' => null, // FPTK tidak memerlukan subject
             'administration_id' => null, // FPTK tidak terkait dengan employee
-            'project_id' => $fptk->project_id,
+            'project_code' => $fptk->project?->project_code, // Use project_code from relationship
             'user_id' => $fptk->requested_by,
             'is_active' => 1,
         ]);

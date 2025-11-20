@@ -19,7 +19,6 @@ class LetterAdministrationExport implements FromQuery, WithHeadings, WithMapping
             'subject',
             'administration.employee',
             'administration.project',
-            'project',
             'reservedBy',
             'usedBy'
         ])->orderBy('created_at', 'desc');
@@ -57,8 +56,8 @@ class LetterAdministrationExport implements FromQuery, WithHeadings, WithMapping
 
     public function map($letterNumber): array
     {
-        // Determine project code - prioritize direct project, then administration project
-        $projectCode = $letterNumber->project?->project_code ?? $letterNumber->administration?->project?->project_code;
+        // Determine project code - prioritize direct project_code, then administration project
+        $projectCode = $letterNumber->project_code ?? $letterNumber->administration?->project?->project_code;
 
         return [
             $letterNumber->id,

@@ -124,7 +124,9 @@
                                             </tr>
                                             <tr>
                                                 <td><strong>Project</strong></td>
-                                                <td>: {{ $letterNumber->administration->project->project_name ?? '-' }}
+                                                <td>: {{ $letterNumber->administration && $letterNumber->administration->project 
+                                                    ? $letterNumber->administration->project->project_name 
+                                                    : ($letterNumber->project_code ?? '-') }}
                                                 </td>
                                             </tr>
                                             <tr>
