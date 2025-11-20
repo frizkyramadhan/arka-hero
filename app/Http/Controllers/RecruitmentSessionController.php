@@ -77,6 +77,9 @@ class RecruitmentSessionController extends Controller
                 ], 404);
             }
 
+            // Initialize FPTK variable for later use
+            $fptk = null;
+
             // Handle FPTK source
             if ($request->fptk_id) {
                 $fptk = RecruitmentRequest::find($request->fptk_id);
@@ -100,11 +103,12 @@ class RecruitmentSessionController extends Controller
                     ], 400);
                 }
 
-                // Check if FPTK is approved
-                if ($fptk->status !== 'approved') {
+                // Check if FPTK status allows adding candidates
+                // Allow both 'approved' and 'draft' status
+                if (!in_array($fptk->status, ['approved', 'draft'])) {
                     return response()->json([
                         'success' => false,
-                        'message' => 'FPTK must be approved to add candidates'
+                        'message' => 'FPTK must be approved or draft to add candidates'
                     ], 400);
                 }
 
@@ -182,6 +186,11 @@ class RecruitmentSessionController extends Controller
             $message = $request->fptk_id
                 ? 'Candidate added to FPTK successfully'
                 : 'Candidate added to MPP Detail successfully';
+
+            // Add note if FPTK is still draft
+            if ($request->fptk_id && $fptk && $fptk->status === 'draft') {
+                $message .= ' (Note: FPTK is still in draft status)';
+            }
 
             return response()->json([
                 'success' => true,
@@ -293,7 +302,7 @@ class RecruitmentSessionController extends Controller
      */
     public function getSessions(Request $request)
     {
-        // Get FPTK-based sessions - only approved FPTKs
+        // Get FPTK-based sessions - approved or draft FPTKs
         $fptkQuery = RecruitmentRequest::with([
             'department',
             'position',
@@ -307,7 +316,7 @@ class RecruitmentSessionController extends Controller
             'sessions.offering',
             'sessions.mcu',
             'sessions.hiring'
-        ])->where('status', 'approved');
+        ])->whereIn('status', ['approved', 'draft']);
 
         // Apply FPTK filters
         if ($request->filled('fptk_number')) {
