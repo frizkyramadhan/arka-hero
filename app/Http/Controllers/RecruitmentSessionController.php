@@ -391,8 +391,10 @@ class RecruitmentSessionController extends Controller
         }
 
         // Add MPP data (group by MPP Detail)
+        /** @var \App\Models\ManPowerPlan $mpp */
         foreach ($mpps as $mpp) {
-            foreach ($mpp->details()->with('position')->get() as $detail) {
+            /** @var \App\Models\ManPowerPlanDetail $detail */
+            foreach ($mpp->details as $detail) {
                 if ($detail->sessions->count() > 0) {
                     $combinedData->push([
                         'id' => $mpp->id . '_' . $detail->id,

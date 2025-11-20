@@ -470,8 +470,8 @@
                         </div>
 
                         <!-- Approval Status Card -->
-                        <x-approval-status-card :documentType="'recruitment_request'" :documentId="$fptk->id" mode="preview" :projectId="old('project_id', $fptk->project_id)"
-                            :departmentId="old('department_id', $fptk->department_id)" :requestReason="old('request_reason', $fptk->request_reason)" title="Approval Preview" id="dynamicApprovalCard" />
+                        {{-- <x-approval-status-card :documentType="'recruitment_request'" :documentId="$fptk->id" mode="preview" :projectId="old('project_id', $fptk->project_id)"
+                            :departmentId="old('department_id', $fptk->department_id)" :requestReason="old('request_reason', $fptk->request_reason)" title="Approval Preview" id="dynamicApprovalCard" /> --}}
 
                         <!-- Action Buttons -->
                         <div class="card elevation-3">
