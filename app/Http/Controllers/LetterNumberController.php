@@ -40,7 +40,6 @@ class LetterNumberController extends Controller
             'subject',
             'administration.employee',
             'administration.project',
-            'project',
             'user',
             'reservedBy',
             'usedBy'
@@ -174,6 +173,7 @@ class LetterNumberController extends Controller
             'letter_date' => 'required|date',
             'destination' => 'nullable|string|max:200',
             'remarks' => 'nullable|string',
+            'project_code' => 'nullable|string|max:50',
         ];
 
         // Dynamic validation based on category
@@ -229,7 +229,6 @@ class LetterNumberController extends Controller
             'subject',
             'administration.employee',
             'administration.project',
-            'project',
             'reservedBy',
             'usedBy'
         ])
@@ -286,6 +285,7 @@ class LetterNumberController extends Controller
             'letter_date' => 'required|date',
             'destination' => 'nullable|string|max:200',
             'remarks' => 'nullable|string',
+            'project_code' => 'nullable|string|max:50',
         ];
 
         // Dynamic validation based on category
@@ -491,11 +491,15 @@ class LetterNumberController extends Controller
             if ($failures->isNotEmpty()) {
                 $formattedFailures = collect();
                 foreach ($failures as $failure) {
+                    /** @var \Maatwebsite\Excel\Validators\Failure $failure */
+                    $values = $failure->values();
+                    $attribute = $failure->attribute();
+                    $value = is_array($values) && array_key_exists($attribute, $values) ? $values[$attribute] : null;
                     $formattedFailures->push([
                         'sheet'     => 'Letter Import',
                         'row'       => $failure->row(),
-                        'attribute' => $failure->attribute(),
-                        'value'     => $failure->values()[$failure->attribute()] ?? null,
+                        'attribute' => $attribute,
+                        'value'     => $value,
                         'errors'    => implode(', ', $failure->errors()),
                     ]);
                 }
@@ -506,11 +510,15 @@ class LetterNumberController extends Controller
         } catch (ValidationException $e) {
             $failures = collect();
             foreach ($e->failures() as $failure) {
+                /** @var \Maatwebsite\Excel\Validators\Failure $failure */
+                $values = $failure->values();
+                $attribute = $failure->attribute();
+                $value = is_array($values) && array_key_exists($attribute, $values) ? $values[$attribute] : null;
                 $failures->push([
                     'sheet'     => 'Letter Import',
                     'row'       => $failure->row(),
-                    'attribute' => $failure->attribute(),
-                    'value'     => $failure->values()[$failure->attribute()] ?? null,
+                    'attribute' => $attribute,
+                    'value'     => $value,
                     'errors'    => implode(', ', $failure->errors()),
                 ]);
             }

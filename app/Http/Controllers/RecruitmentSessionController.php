@@ -33,7 +33,7 @@ class RecruitmentSessionController extends Controller
         $this->sessionService = $sessionService;
         $this->middleware('permission:recruitment-sessions.show')->only('index', 'show', 'showSession', 'getSessions', 'getSessionData', 'getSessionsByFPTK', 'getSessionsByCandidate');
         $this->middleware('permission:recruitment-sessions.create')->only('store');
-        $this->middleware('permission:recruitment-sessions.edit')->only('updateCvReview', 'updatePsikotes', 'updateTesTeori', 'updateInterview', 'updateOffering', 'updateMcu', 'updateHiring', 'closeRequest');
+        $this->middleware('permission:recruitment-sessions.edit-stages')->only('transitionStage');
         $this->middleware('permission:recruitment-sessions.delete')->only('destroy');
     }
 
@@ -1847,6 +1847,217 @@ class RecruitmentSessionController extends Controller
     }
 
 
+
+    public function transitionStage(Request $request, $sessionId)
+    {
+        // Validate permission - only users with edit-stages permission can transition stages
+        $this->authorize('recruitment-sessions.edit-stages');
+
+        $request->validate([
+            'target_stage' => 'required|in:cv_review,psikotes,tes_teori,interview,offering,mcu,hire',
+            'reason' => 'required|string|max:500',
+            'force_transition' => 'nullable|boolean'
+        ]);
+
+        try {
+            DB::beginTransaction();
+
+            $session = RecruitmentSession::with(['candidate', 'fptk', 'mppDetail.mpp'])->findOrFail($sessionId);
+
+            $targetStage = $request->target_stage;
+            $currentStage = $session->current_stage;
+
+            // Prevent transition to same stage
+            if ($targetStage === $currentStage) {
+                return back()->with('toast_error', 'Cannot transition to the same stage.');
+            }
+
+            // Get valid stages for this session type
+            $validStages = $this->getValidStagesForSession($session);
+
+            if (!in_array($targetStage, $validStages)) {
+                return back()->with('toast_error', 'Invalid target stage for this session type.');
+            }
+
+            // Validate transition logic unless force transition is enabled
+            if (!$request->force_transition) {
+                $transitionValidation = $this->validateStageTransition($session, $targetStage);
+                if (!$transitionValidation['valid']) {
+                    return back()->with('toast_error', $transitionValidation['message']);
+                }
+            }
+
+            // Calculate new progress based on target stage
+            $newProgress = $this->calculateProgressForStage($session, $targetStage);
+
+            // Update session stage
+            $session->update([
+                'current_stage' => $targetStage,
+                'stage_status' => 'pending',
+                'stage_started_at' => now(),
+                'overall_progress' => $newProgress,
+                'stage_completed_at' => null, // Reset completion timestamp
+            ]);
+
+            // Log the transition
+            Log::info('Recruitment session stage transitioned', [
+                'session_id' => $sessionId,
+                'from_stage' => $currentStage,
+                'to_stage' => $targetStage,
+                'reason' => $request->reason,
+                'forced' => $request->force_transition ?? false,
+                'user_id' => auth()->id(),
+            ]);
+
+            DB::commit();
+
+            $message = "Stage transitioned from " . ucfirst(str_replace('_', ' ', $currentStage)) .
+                " to " . ucfirst(str_replace('_', ' ', $targetStage)) . " successfully.";
+
+            return back()->with('toast_success', $message);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Failed to transition recruitment session stage', [
+                'session_id' => $sessionId,
+                'target_stage' => $request->target_stage,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return back()->with('toast_error', 'Failed to transition stage. Please try again.');
+        }
+    }
+
+    /**
+     * Get valid stages for a session based on its type (FPTK/MMP and employment type)
+     */
+    private function getValidStagesForSession($session)
+    {
+        // For magang and harian (simplified process)
+        if (
+            $session->fptk_id && $session->fptk &&
+            in_array($session->fptk->employment_type, ['magang', 'harian'])
+        ) {
+            return ['mcu', 'hire'];
+        }
+
+        // Standard stages for regular employment types
+        $stages = ['cv_review', 'psikotes', 'tes_teori', 'interview', 'offering', 'mcu', 'hire'];
+
+        // Remove tes_teori if should be skipped
+        if ($session->shouldSkipTheoryTest()) {
+            $stages = array_diff($stages, ['tes_teori']);
+        }
+
+        return array_values($stages);
+    }
+
+    /**
+     * Validate if stage transition is allowed
+     */
+    private function validateStageTransition($session, $targetStage)
+    {
+        $currentStage = $session->current_stage;
+        $validStages = $this->getValidStagesForSession($session);
+
+        // Get current stage index
+        $currentIndex = array_search($currentStage, $validStages);
+        $targetIndex = array_search($targetStage, $validStages);
+
+        if ($currentIndex === false || $targetIndex === false) {
+            return [
+                'valid' => false,
+                'message' => 'Invalid stage transition.'
+            ];
+        }
+
+        // Allow forward transitions (advancing stages)
+        if ($targetIndex > $currentIndex) {
+            return ['valid' => true];
+        }
+
+        // For backward transitions, check if previous stages are completed
+        if ($targetIndex < $currentIndex) {
+            // Check if any stages between current and target have failed assessments
+            for ($i = $targetIndex; $i < $currentIndex; $i++) {
+                $stageToCheck = $validStages[$i];
+                if ($this->hasFailedAssessment($session, $stageToCheck)) {
+                    return [
+                        'valid' => false,
+                        'message' => "Cannot transition backward. Stage '" . ucfirst(str_replace('_', ' ', $stageToCheck)) . "' has failed assessment."
+                    ];
+                }
+            }
+        }
+
+        return ['valid' => true];
+    }
+
+    /**
+     * Check if a stage has failed assessment
+     */
+    private function hasFailedAssessment($session, $stage)
+    {
+        switch ($stage) {
+            case 'cv_review':
+                $assessment = $session->cvReview;
+                return $assessment && $assessment->decision === 'not_recommended';
+
+            case 'psikotes':
+                $assessment = $session->psikotes;
+                return $assessment && $assessment->result === 'fail';
+
+            case 'tes_teori':
+                $assessment = $session->tesTeori;
+                return $assessment && $assessment->result === 'fail';
+
+            case 'interview':
+                return $session->getInterviewStatus() === 'danger';
+
+            case 'offering':
+                $assessment = $session->offering;
+                return $assessment && $assessment->result === 'rejected';
+
+            case 'mcu':
+                $assessment = $session->mcu;
+                return $assessment && $assessment->result === 'unfit';
+
+            default:
+                return false;
+        }
+    }
+
+    /**
+     * Calculate progress percentage based on completed stages
+     * Progress is dynamic: (completed_stages / total_valid_stages) * 100
+     * This gives accurate progress based on actual completion status
+     */
+    private function calculateProgressForStage($session, $targetStage)
+    {
+        $validStages = $this->getValidStagesForSession($session);
+
+        if (!in_array($targetStage, $validStages)) {
+            return 0;
+        }
+
+        $totalStages = count($validStages);
+        $completedStages = 0;
+
+        // Count how many stages are actually completed (have valid assessments)
+        foreach ($validStages as $stage) {
+            if ($session->isStageCompleted($stage)) {
+                $completedStages++;
+            }
+        }
+
+        // Calculate progress as percentage of completed stages vs total stages
+        if ($totalStages === 0) {
+            return 0;
+        }
+
+        $progress = ($completedStages / $totalStages) * 100;
+
+        return round($progress);
+    }
 
     public function closeRequest(Request $request, $sessionOrFptkId)
     {

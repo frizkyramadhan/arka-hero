@@ -628,6 +628,12 @@
                                         <i class="fas fa-arrow-left"></i> Back to Session
                                     </a>
                                 @endif
+                                @can('recruitment-sessions.edit-stages')
+                                    <button class="btn-action transition-btn" data-toggle="modal"
+                                        data-target="#transitionStageModal">
+                                        <i class="fas fa-exchange-alt"></i> Transition Stage
+                                    </button>
+                                @endcan
                             </div>
                         </div>
                     </div>
@@ -1458,6 +1464,15 @@
 
         .back-btn:hover {
             background-color: #5a6268;
+            color: white;
+        }
+
+        .transition-btn {
+            background-color: #17a2b8;
+        }
+
+        .transition-btn:hover {
+            background-color: #138496;
             color: white;
         }
 
@@ -2748,6 +2763,74 @@
                 $icon.removeClass('fa-chevron-down').addClass('fa-chevron-up');
                 $button.attr('title', 'Show truncated notes');
                 $button.data('expanded', true);
+            }
+        });
+
+        // Stage Transition Modal Handlers
+        $('#transitionStageModal').on('show.bs.modal', function() {
+            // Reset form
+            $('#target_stage').val('');
+            $('#transition_reason').val('');
+            $('#force_transition').prop('checked', false);
+            $('#transition_warnings').hide();
+            $('#transition_submit_btn').prop('disabled', true);
+        });
+
+        // Validate transition form
+        function validateTransitionForm() {
+            const targetStage = $('#target_stage').val();
+            const reason = $('#transition_reason').val().trim();
+
+            const isValid = targetStage !== '' && reason.length >= 1; // Minimum 10 characters for reason
+
+            $('#transition_submit_btn').prop('disabled', !isValid);
+
+            return isValid;
+        }
+
+        // Listen for form changes
+        $('#target_stage, #transition_reason').on('change input', validateTransitionForm);
+
+        // Show warnings for certain transitions
+        $('#target_stage').on('change', function() {
+            const targetStage = $(this).val();
+            const currentStage = '{{ $session->current_stage }}';
+
+            if (!targetStage) {
+                $('#transition_warnings').hide();
+                return;
+            }
+
+            // Get valid stages order
+            @php
+                $validStagesForJS = [];
+                if ($session->fptk_id && $session->fptk && in_array($session->fptk->employment_type, ['magang', 'harian'])) {
+                    $validStagesForJS = ['mcu', 'hire'];
+                } else {
+                    $validStagesForJS = ['cv_review', 'psikotes', 'tes_teori', 'interview', 'offering', 'mcu', 'hire'];
+                    if ($session->shouldSkipTheoryTest()) {
+                        $validStagesForJS = array_diff($validStagesForJS, ['tes_teori']);
+                    }
+                }
+            @endphp
+            const validStages = @json($validStagesForJS);
+            const currentIndex = validStages.indexOf(currentStage);
+            const targetIndex = validStages.indexOf(targetStage);
+
+            let warningMessage = '';
+
+            if (targetIndex < currentIndex) {
+                warningMessage =
+                    'You are transitioning backward. This may skip some stages and could affect the recruitment flow.';
+            } else if (targetIndex > currentIndex + 1) {
+                warningMessage = 'You are skipping one or more stages. Make sure this is intentional.';
+            }
+
+            if (warningMessage) {
+                $('#warning_text').text(warningMessage);
+                $('#transition_warnings').show();
+            } else {
+                $('#transition_warnings').hide();
             }
         });
     </script>

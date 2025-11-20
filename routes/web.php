@@ -510,6 +510,7 @@ Route::group(['middleware' => ['auth']], function () {
             Route::post('/{sessionId}/update-mcu', [RecruitmentSessionController::class, 'updateMcu'])->name('update-mcu');
             Route::post('/{sessionId}/update-hiring', [RecruitmentSessionController::class, 'updateHiring'])->name('update-hiring');
 
+            Route::post('/{sessionId}/transition-stage', [RecruitmentSessionController::class, 'transitionStage'])->name('transition-stage');
             Route::post('/{sessionId}/close-request', [RecruitmentSessionController::class, 'closeRequest'])->name('close-request');
             Route::delete('/{id}', [RecruitmentSessionController::class, 'destroy'])->name('destroy');
 

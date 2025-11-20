@@ -39,10 +39,11 @@ class LetterNumber extends Model
         return $this->belongsTo(Administration::class, 'administration_id');
     }
 
-    public function project()
-    {
-        return $this->belongsTo(Project::class);
-    }
+    // Project relationship removed - now using project_code string
+    // public function project()
+    // {
+    //     return $this->belongsTo(Project::class);
+    // }
 
     public function user()
     {
@@ -95,13 +96,13 @@ class LetterNumber extends Model
             $this->administration->employee->fullname : null;
     }
 
-    // Mendapatkan project dari administration atau dari field project_id langsung
+    // Mendapatkan project_code dari administration atau dari field project_code langsung
     public function getEmployeeProjectAttribute()
     {
         if ($this->administration && $this->administration->project) {
-            return $this->administration->project;
+            return $this->administration->project->project_code;
         }
-        return $this->project;
+        return $this->project_code;
     }
 
     /**
