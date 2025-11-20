@@ -63,6 +63,7 @@ Route::prefix('v1/letter-numbers')->group(function () {
 
     // Utility Endpoints
     Route::post('/check-availability', [LetterNumberApiController::class, 'checkAvailability']);
+    Route::post('/preview-next-number', [LetterNumberApiController::class, 'previewNextNumber']);
 });
 
 Route::prefix('v1/letter-subjects')->group(function () {

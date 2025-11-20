@@ -39,11 +39,10 @@ class LetterNumber extends Model
         return $this->belongsTo(Administration::class, 'administration_id');
     }
 
-    // Project relationship removed - now using project_code string
-    // public function project()
-    // {
-    //     return $this->belongsTo(Project::class);
-    // }
+    public function project()
+    {
+        return $this->belongsTo(Project::class);
+    }
 
     public function user()
     {
@@ -108,6 +107,7 @@ class LetterNumber extends Model
     /**
      * Generate letter number dengan pendekatan yang lebih reliable
      * Menggunakan database sequence untuk menghindari race condition
+     * Sequence per category/year/project_id
      */
     public function generateLetterNumberReliable()
     {
@@ -118,9 +118,10 @@ class LetterNumber extends Model
 
         $category = $this->category;
         $year = date('Y', strtotime($this->letter_date));
+        $projectId = $this->project_id;
 
         // Gunakan database transaction dengan retry logic
-        return DB::transaction(function () use ($category, $year) {
+        return DB::transaction(function () use ($category, $year, $projectId) {
             $maxAttempts = 5;
             $attempt = 0;
 
@@ -128,11 +129,10 @@ class LetterNumber extends Model
                 $attempt++;
 
                 // Dapatkan sequence number terbaru dengan lock
-                $query = static::where('letter_category_id', $this->letter_category_id);
-
-                if ($category->numbering_behavior === 'annual_reset') {
-                    $query->whereYear('letter_date', $year);
-                }
+                // Sequence per category/year/project_id
+                $query = static::where('letter_category_id', $this->letter_category_id)
+                    ->where('year', $year)
+                    ->where('project_id', $projectId);
 
                 // Gunakan lockForUpdate untuk mencegah race condition
                 $lastNumber = $query->lockForUpdate()
@@ -149,9 +149,11 @@ class LetterNumber extends Model
                 // Format letter number (format asli tanpa tahun)
                 $this->letter_number = "{$category->category_code}{$formattedSequence}";
 
-                // Cek apakah letter number sudah ada untuk tahun yang sama (double check)
+                // Cek apakah letter number sudah ada untuk category/year/project yang sama (double check)
                 $exists = static::where('letter_number', $this->letter_number)
                     ->where('year', $year)
+                    ->where('letter_category_id', $this->letter_category_id)
+                    ->where('project_id', $projectId)
                     ->exists();
 
                 if (!$exists) {
@@ -254,26 +256,26 @@ class LetterNumber extends Model
 
     /**
      * Get next sequence number dengan cara yang aman untuk menghindari race condition
+     * Sequence per category/year/project_id
      *
      * @param int $categoryId
      * @param string|null $year
+     * @param int|null $projectId
      * @return int
      */
-    public static function getNextSequenceNumberSafe($categoryId, $year = null)
+    public static function getNextSequenceNumberSafe($categoryId, $year = null, $projectId = null)
     {
         $year = $year ?? date('Y');
 
-        return DB::transaction(function () use ($categoryId, $year) {
+        return DB::transaction(function () use ($categoryId, $year, $projectId) {
             $category = LetterCategory::find($categoryId);
             if (!$category) {
                 throw new \Exception('Letter category not found');
             }
 
-            $query = static::where('letter_category_id', $categoryId);
-
-            if ($category->numbering_behavior === 'annual_reset') {
-                $query->whereYear('letter_date', $year);
-            }
+            $query = static::where('letter_category_id', $categoryId)
+                ->where('year', $year)
+                ->where('project_id', $projectId);
 
             $lastNumber = $query->lockForUpdate()
                 ->orderBy('sequence_number', 'desc')
@@ -283,12 +285,13 @@ class LetterNumber extends Model
         });
     }
 
-    // Get next sequence number for a category
-    public static function getNextSequenceNumber($categoryId)
+    // Get next sequence number for a category/year/project
+    public static function getNextSequenceNumber($categoryId, $projectId = null)
     {
         $currentYear = date('Y');
         $lastNumber = static::byCategory($categoryId)
             ->where('year', $currentYear)
+            ->where('project_id', $projectId)
             ->orderBy('sequence_number', 'desc')
             ->first();
 
@@ -363,9 +366,9 @@ class LetterNumber extends Model
     }
 
     /**
-     * Get estimated next letter number for a category
+     * Get estimated next letter number for a category/year/project
      */
-    public static function getEstimatedNextNumber($categoryId, $year = null)
+    public static function getEstimatedNextNumber($categoryId, $year = null, $projectId = null)
     {
         if (!$year) {
             $year = date('Y');
@@ -377,12 +380,9 @@ class LetterNumber extends Model
                 return null;
             }
 
-            $query = static::where('letter_category_id', $categoryId);
-
-            // Check if numbering_behavior exists and handle accordingly
-            if (isset($category->numbering_behavior) && $category->numbering_behavior === 'annual_reset') {
-                $query->whereYear('letter_date', $year);
-            }
+            $query = static::where('letter_category_id', $categoryId)
+                ->where('year', $year)
+                ->where('project_id', $projectId);
 
             $lastNumber = $query->orderBy('sequence_number', 'desc')->first();
             $nextSequence = $lastNumber ? $lastNumber->sequence_number + 1 : 1;
@@ -392,6 +392,7 @@ class LetterNumber extends Model
                 'next_sequence' => $nextSequence,
                 'next_letter_number' => "{$category->category_code}{$formattedSequence}",
                 'year' => $year,
+                'project_id' => $projectId,
                 'category_code' => $category->category_code
             ];
         } catch (\Exception $e) {
@@ -420,9 +421,9 @@ class LetterNumber extends Model
     }
 
     /**
-     * Get last few numbers for a category
+     * Get last few numbers for a category/year/project
      */
-    public static function getLastNumbersForCategory($categoryId, $limit = 5, $year = null)
+    public static function getLastNumbersForCategory($categoryId, $limit = 5, $year = null, $projectId = null)
     {
         try {
             $category = LetterCategory::find($categoryId);
@@ -430,13 +431,13 @@ class LetterNumber extends Model
                 return collect();
             }
 
+            $year = $year ?? date('Y');
+
             $query = static::where('letter_category_id', $categoryId)
+                ->where('year', $year)
+                ->where('project_id', $projectId)
                 ->where('status', '!=', 'cancelled')
                 ->orderBy('sequence_number', 'desc');
-
-            if (isset($category->numbering_behavior) && $category->numbering_behavior === 'annual_reset' && $year) {
-                $query->whereYear('letter_date', $year);
-            }
 
             return $query->limit($limit)->get();
         } catch (\Exception $e) {
@@ -446,9 +447,9 @@ class LetterNumber extends Model
     }
 
     /**
-     * Get letter count for a category
+     * Get letter count for a category/year/project
      */
-    public static function getLetterCountForCategory($categoryId, $year = null)
+    public static function getLetterCountForCategory($categoryId, $year = null, $projectId = null)
     {
         try {
             $category = LetterCategory::find($categoryId);
@@ -456,12 +457,12 @@ class LetterNumber extends Model
                 return 0;
             }
 
-            $query = static::where('letter_category_id', $categoryId)
-                ->where('status', '!=', 'cancelled');
+            $year = $year ?? date('Y');
 
-            if (isset($category->numbering_behavior) && $category->numbering_behavior === 'annual_reset' && $year) {
-                $query->whereYear('letter_date', $year);
-            }
+            $query = static::where('letter_category_id', $categoryId)
+                ->where('year', $year)
+                ->where('project_id', $projectId)
+                ->where('status', '!=', 'cancelled');
 
             return $query->count();
         } catch (\Exception $e) {

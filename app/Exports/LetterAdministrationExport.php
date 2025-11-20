@@ -21,13 +21,14 @@ class LetterAdministrationExport implements FromQuery, WithHeadings, WithMapping
             'administration.project',
             'reservedBy',
             'usedBy'
-        ])->orderBy('created_at', 'desc');
+        ])->orderBy('id', 'desc');
     }
 
     public function headings(): array
     {
         return [
             'id',
+            'project_code',
             'letter_number',
             'sequence_number',
             'category_code',
@@ -40,7 +41,6 @@ class LetterAdministrationExport implements FromQuery, WithHeadings, WithMapping
             'remarks',
             'nik',
             'employee_name',
-            'project_code',
             'duration',
             'start_date',
             'end_date',
@@ -56,11 +56,14 @@ class LetterAdministrationExport implements FromQuery, WithHeadings, WithMapping
 
     public function map($letterNumber): array
     {
-        // Determine project code - prioritize direct project_code, then administration project
-        $projectCode = $letterNumber->project_code ?? $letterNumber->administration?->project?->project_code;
+        // Determine project code - prioritize direct project_code, then project relationship, then administration project
+        $projectCode = $letterNumber->project_code ??
+            $letterNumber->project?->project_code ??
+            $letterNumber->administration?->project?->project_code;
 
         return [
             $letterNumber->id,
+            $projectCode,
             $letterNumber->letter_number,
             $letterNumber->sequence_number,
             $letterNumber->category?->category_code,
@@ -73,7 +76,6 @@ class LetterAdministrationExport implements FromQuery, WithHeadings, WithMapping
             $letterNumber->remarks,
             $letterNumber->administration?->nik,
             $letterNumber->administration?->employee?->fullname,
-            $projectCode,
             $letterNumber->duration,
             $letterNumber->start_date ? date('d F Y', strtotime($letterNumber->start_date)) : '',
             $letterNumber->end_date ? date('d F Y', strtotime($letterNumber->end_date)) : '',

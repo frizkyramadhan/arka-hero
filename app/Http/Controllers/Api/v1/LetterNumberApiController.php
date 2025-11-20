@@ -25,16 +25,27 @@ class LetterNumberApiController extends Controller
                 'letter_date' => 'required|date',
                 'custom_subject' => 'nullable|string|max:200',
                 'administration_id' => 'nullable|exists:administrations,id',
+                'project_id' => 'nullable|exists:projects,id',
                 'project_code' => 'nullable|string|max:50',
                 'destination' => 'nullable|string|max:200',
                 'remarks' => 'nullable|string',
             ]);
+
+            // Set project_id: priority from administration, then from request
+            $projectId = $request->project_id;
+            if ($request->administration_id) {
+                $administration = \App\Models\Administration::find($request->administration_id);
+                if ($administration && $administration->project_id) {
+                    $projectId = $administration->project_id;
+                }
+            }
 
             $letterNumber = LetterNumber::createWithRetry([
                 'letter_category_id' => $request->letter_category_id,
                 'letter_date' => $request->letter_date,
                 'custom_subject' => $request->custom_subject,
                 'administration_id' => $request->administration_id,
+                'project_id' => $projectId,
                 'project_code' => $request->project_code,
                 'destination' => $request->destination,
                 'remarks' => $request->remarks,
@@ -299,6 +310,7 @@ class LetterNumberApiController extends Controller
                     'status' => $letterNumber->status,
                     'employee_name' => $letterNumber->employee_name,
                     'nik' => $letterNumber->nik,
+                    'project_id' => $letterNumber->project_id,
                     'project_code' => $letterNumber->administration && $letterNumber->administration->project
                         ? $letterNumber->administration->project->project_code
                         : $letterNumber->project_code,
@@ -320,6 +332,80 @@ class LetterNumberApiController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to retrieve letter number details: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Preview next letter number for given category and project
+     *
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function previewNextNumber(Request $request): JsonResponse
+    {
+        try {
+            $request->validate([
+                'letter_category_id' => 'required|exists:letter_categories,id',
+                'project_id' => 'required|exists:projects,id',
+                'letter_date' => 'nullable|date',
+            ]);
+
+            $categoryId = $request->letter_category_id;
+            $projectId = $request->project_id;
+            $letterDate = $request->letter_date ? new \Carbon\Carbon($request->letter_date) : now();
+            $year = $letterDate->year;
+
+            // Get next sequence number for this category and project
+            $nextSequence = LetterNumber::getNextSequenceNumberSafe($categoryId, $year, $projectId);
+
+            // Get category details
+            $category = \App\Models\LetterCategory::find($categoryId);
+
+            if (!$category) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Category not found'
+                ], 404);
+            }
+
+            // Get project details
+            $project = \App\Models\Project::find($projectId);
+
+            if (!$project) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Project not found'
+                ], 404);
+            }
+
+            // Generate the letter number
+            $letterNumber = $category->category_code . sprintf('%04d', $nextSequence);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Next letter number preview retrieved successfully',
+                'data' => [
+                    'letter_number' => $letterNumber,
+                    'category_code' => $category->category_code,
+                    'category_name' => $category->category_name,
+                    'project_code' => $project->project_code,
+                    'project_name' => $project->project_name,
+                    'sequence_number' => $nextSequence,
+                    'year' => $year,
+                    'letter_date' => $letterDate->format('Y-m-d'),
+                ]
+            ]);
+        } catch (ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to preview next number: ' . $e->getMessage()
             ], 500);
         }
     }
