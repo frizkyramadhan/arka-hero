@@ -24,17 +24,56 @@ class LetterNumberController extends Controller
         $this->middleware('permission:letter-numbers.delete')->only('destroy');
     }
 
+    /**
+     * Check if user has access to project 000H
+     */
+    private function hasAccessToProject000H()
+    {
+        return auth()->user()->projects()
+            ->where('project_status', 1)
+            ->where('project_code', '000H')
+            ->exists();
+    }
+
+    /**
+     * Get filtered letter categories based on user access
+     */
+    private function getFilteredCategories()
+    {
+        $query = LetterCategory::where('is_active', 1);
+
+        // If user doesn't have access to project 000H, exclude restricted categories
+        if (!$this->hasAccessToProject000H()) {
+            $query->whereNotIn('category_code', ['CRTE', 'PKWT', 'SKPK']);
+        }
+
+        return $query->orderBy('category_code', 'asc')->get();
+    }
+
+    /**
+     * Validate category access based on user permissions
+     */
+    private function validateCategoryAccess($categoryCode)
+    {
+        if (in_array($categoryCode, ['CRTE', 'PKWT', 'SKPK']) && !$this->hasAccessToProject000H()) {
+            abort(403, 'You do not have permission to use this letter category.');
+        }
+    }
+
     public function index()
     {
         $title = 'Letter Number Administration';
         $subtitle = 'Letter Numbers List';
-        $categories = LetterCategory::where('is_active', 1)->orderBy('category_code', 'asc')->get();
+        $categories = $this->getFilteredCategories();
 
         return view('letter-numbers.index', compact('title', 'subtitle', 'categories'));
     }
 
     public function getLetterNumbers(Request $request)
     {
+        // Get user's accessible project IDs
+        $userProjects = auth()->user()->projects()->where('project_status', 1)->pluck('projects.id')->toArray();
+
         $letterNumbers = LetterNumber::with([
             'category',
             'subject',
@@ -45,6 +84,7 @@ class LetterNumberController extends Controller
             'reservedBy',
             'usedBy'
         ])
+            ->whereIn('project_id', $userProjects)
             ->when($request->letter_number, function ($query, $letterNumber) {
                 return $query->where('letter_number', 'like', '%' . $letterNumber . '%');
             })
@@ -122,7 +162,7 @@ class LetterNumberController extends Controller
     public function create($categoryCode = null)
     {
         $title = 'Create Letter Number';
-        $categories = LetterCategory::where('is_active', 1)->orderBy('category_code', 'asc')->get();
+        $categories = $this->getFilteredCategories();
 
         // Menggunakan administrations aktif untuk dropdown karyawan
         $administrations = Administration::with(['employee', 'project', 'position'])
@@ -178,8 +218,13 @@ class LetterNumberController extends Controller
             'project_id' => 'required|exists:projects,id',
         ];
 
-        // Dynamic validation based on category
+        // Validate category access based on user permissions
         $category = LetterCategory::find($request->letter_category_id);
+        if ($category) {
+            $this->validateCategoryAccess($category->category_code);
+        }
+
+        // Dynamic validation based on category
         if ($category) {
             switch ($category->category_code) {
                 case 'A':
@@ -267,7 +312,7 @@ class LetterNumberController extends Controller
         }
 
         $title = 'Edit Letter Number';
-        $categories = LetterCategory::where('is_active', 1)->orderBy('category_code', 'asc')->get();
+        $categories = $this->getFilteredCategories();
         $administrations = Administration::with(['employee', 'project', 'position'])
             ->active()
             ->orderBy('nik')
@@ -305,8 +350,13 @@ class LetterNumberController extends Controller
             'project_id' => 'required|exists:projects,id',
         ];
 
-        // Dynamic validation based on category
+        // Validate category access based on user permissions
         $category = LetterCategory::find($request->letter_category_id);
+        if ($category) {
+            $this->validateCategoryAccess($category->category_code);
+        }
+
+        // Dynamic validation based on category
         if ($category) {
             switch ($category->category_code) {
                 case 'A':
