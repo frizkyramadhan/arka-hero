@@ -138,61 +138,12 @@
                 {{-- HERO SECTION --}}
                 <li class="nav-header">HERO SECTION</li>
 
-                {{-- DASHBOARD --}}
-                <li
-                    class="nav-item {{ Request::is('dashboard/employees') || Request::is('dashboard/official-travel') || Request::is('dashboard/recruitment') || Request::is('dashboard/letter-administration') || Request::is('dashboard/leave-management') ? 'menu-open' : '' }}">
-                    <a href="#"
-                        class="nav-link {{ Request::is('dashboard/employees') || Request::is('dashboard/official-travel') || Request::is('dashboard/recruitment') || Request::is('dashboard/letter-administration') || Request::is('dashboard/leave-management') ? 'active' : '' }}">
-                        <i class="nav-icon fas fa-tachometer-alt"></i>
-                        <p>
-                            Dashboard
-                            <i class="fas fa-angle-left right"></i>
-                        </p>
-                    </a>
-                    <ul class="nav nav-treeview">
-                        <li class="nav-item">
-                            <a href="{{ route('dashboard.employees') }}"
-                                class="nav-link {{ Request::is('dashboard/employees') ? 'active' : '' }}">
-                                <i class="far fa-circle nav-icon"></i>
-                                <p>Employee</p>
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a href="{{ route('dashboard.recruitment') }}"
-                                class="nav-link {{ Request::is('dashboard/recruitment') ? 'active' : '' }}">
-                                <i class="far fa-circle nav-icon"></i>
-                                <p>Recruitment</p>
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a href="{{ route('dashboard.officialtravel') }}"
-                                class="nav-link {{ Request::is('dashboard/official-travel') ? 'active' : '' }}">
-                                <i class="far fa-circle nav-icon"></i>
-                                <p>Official Travel</p>
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a href="{{ route('dashboard.leave-management') }}"
-                                class="nav-link {{ Request::is('dashboard/leave-management') ? 'active' : '' }}">
-                                <i class="far fa-circle nav-icon"></i>
-                                <p>Leave Management</p>
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a href="{{ route('dashboard.letter-administration') }}"
-                                class="nav-link {{ Request::is('dashboard/letter-administration') ? 'active' : '' }}">
-                                <i class="far fa-circle nav-icon"></i>
-                                <p>Letter Administration</p>
-                            </a>
-                        </li>
-                    </ul>
-                </li>
 
                 {{-- EMPLOYEE MANAGEMENT --}}
                 <li
-                    class="nav-item {{ Request::is('employees*') || Request::is('terminations*') || Request::is('employee-bonds*') || Request::is('bond-violations*') ? 'menu-open' : '' }}">
+                    class="nav-item {{ Request::is('dashboard/employees') || Request::is('employees*') || Request::is('terminations*') || Request::is('employee-bonds*') || Request::is('bond-violations*') ? 'menu-open' : '' }}">
                     <a href="#"
-                        class="nav-link {{ Request::is('employees*') || Request::is('terminations*') || Request::is('employee-bonds*') || Request::is('bond-violations*') ? 'active' : '' }}">
+                        class="nav-link {{ Request::is('dashboard/employees') || Request::is('employees*') || Request::is('terminations*') || Request::is('employee-bonds*') || Request::is('bond-violations*') ? 'active' : '' }}">
                         <i class="nav-icon fas fa-users"></i>
                         <p>
                             Employee Management
@@ -201,10 +152,17 @@
                     </a>
                     <ul class="nav nav-treeview">
                         <li class="nav-item">
+                            <a href="{{ route('dashboard.employees') }}"
+                                class="nav-link {{ Request::is('dashboard/employees') ? 'active' : '' }}">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>Employee Dashboard</p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
                             <a href="{{ url('employees') }}"
                                 class="nav-link {{ Request::is('employees*') || Request::is('terminations*') ? 'active' : '' }}">
                                 <i class="far fa-circle nav-icon"></i>
-                                <p>Employees</p>
+                                <p>Employee Lists</p>
                             </a>
                         </li>
                         <li class="nav-item">
@@ -388,8 +346,10 @@
 
 
                 @canany(['recruitment-requests.show', 'recruitment-candidates.show', 'recruitment-sessions.show'])
-                    <li class="nav-item {{ Request::is('recruitment*') ? 'menu-open' : '' }}">
-                        <a href="#" class="nav-link {{ Request::is('recruitment*') ? 'active' : '' }}">
+                    <li
+                        class="nav-item {{ Request::is('dashboard/recruitment') || Request::is('recruitment*') ? 'menu-open' : '' }}">
+                        <a href="#"
+                            class="nav-link {{ Request::is('dashboard/recruitment') || Request::is('recruitment*') ? 'active' : '' }}">
                             <i class="nav-icon fas fa-user-tie"></i>
                             <p>
                                 Recruitment
@@ -397,6 +357,13 @@
                             <i class="fas fa-angle-left right"></i>
                         </a>
                         <ul class="nav nav-treeview">
+                            <li class="nav-item">
+                                <a href="{{ route('dashboard.recruitment') }}"
+                                    class="nav-link {{ Request::is('dashboard/recruitment') ? 'active' : '' }}">
+                                    <i class="far fa-circle nav-icon"></i>
+                                    <p>Recruitment Dashboard</p>
+                                </a>
+                            </li>
                             @can('recruitment-requests.show')
                                 <li class="nav-item">
                                     <a href="{{ route('recruitment.requests.index') }}"
@@ -445,103 +412,47 @@
                 @endcanany
 
                 @can('official-travels.show')
-                    <li class="nav-item">
-                        <a href="{{ url('officialtravels') }}"
-                            class="nav-link {{ Request::is('officialtravels*') ? 'active' : '' }}">
+                    <li
+                        class="nav-item {{ Request::is('dashboard/official-travel') || Request::is('officialtravels*') ? 'menu-open' : '' }}">
+                        <a href="#"
+                            class="nav-link {{ Request::is('dashboard/official-travel') || Request::is('officialtravels*') ? 'active' : '' }}">
                             <i class="nav-icon fas fa-route"></i>
                             <p>
                                 Official Travel (LOT)
+                                <i class="fas fa-angle-left right"></i>
                                 <br>
                                 <small
                                     style="text-align: left; display: block; margin-left: 0; padding-left: 0;">Perjalanan
                                     Dinas</small>
-                            </p>
-                        </a>
-                    </li>
-                @endcan
-
-                {{-- RECRUITMENT MANAGEMENT --}}
-                @canany(['recruitment-requests.show', 'recruitment-candidates.show', 'recruitment-sessions.show'])
-                    <li class="nav-item {{ Request::is('recruitment*') ? 'menu-open' : '' }}">
-                        <a href="#" class="nav-link {{ Request::is('recruitment*') ? 'active' : '' }}">
-                            <i class="nav-icon fas fa-user-tie"></i>
-                            <p>
-                                Recruitment
-                                <i class="fas fa-angle-left right"></i>
                             </p>
                         </a>
                         <ul class="nav nav-treeview">
-                            @can('recruitment-requests.show')
-                                <li class="nav-item">
-                                    <a href="{{ route('recruitment.requests.index') }}"
-                                        class="nav-link {{ Request::is('recruitment/requests*') ? 'active' : '' }}">
-                                        <i class="far fa-circle nav-icon"></i>
-                                        <p>Requests (FPTK)</p>
-                                    </a>
-                                </li>
-                            @endcan
-                            @can('mpp.show')
-                                <li class="nav-item">
-                                    <a href="{{ route('recruitment.mpp.index') }}"
-                                        class="nav-link {{ Request::is('recruitment/mpp*') ? 'active' : '' }}">
-                                        <i class="far fa-circle nav-icon"></i>
-                                        <p>Requests (MPP)</p>
-                                    </a>
-                                </li>
-                            @endcan
-                            @can('recruitment-candidates.show')
-                                <li class="nav-item">
-                                    <a href="{{ route('recruitment.candidates.index') }}"
-                                        class="nav-link {{ Request::is('recruitment/candidates*') ? 'active' : '' }}">
-                                        <i class="far fa-circle nav-icon"></i>
-                                        <p>Candidates (CV)</p>
-                                    </a>
-                                </li>
-                            @endcan
-                            @can('recruitment-sessions.show')
-                                <li class="nav-item">
-                                    <a href="{{ route('recruitment.sessions.index') }}"
-                                        class="nav-link {{ Request::is('recruitment/sessions*') ? 'active' : '' }}">
-                                        <i class="far fa-circle nav-icon"></i>
-                                        <p>Sessions</p>
-                                    </a>
-                                </li>
-                            @endcan
                             <li class="nav-item">
-                                <a href="{{ route('recruitment.reports.index') }}"
-                                    class="nav-link {{ Request::is('recruitment/reports*') ? 'active' : '' }}">
+                                <a href="{{ route('dashboard.officialtravel') }}"
+                                    class="nav-link {{ Request::is('dashboard/official-travel') ? 'active' : '' }}">
                                     <i class="far fa-circle nav-icon"></i>
-                                    <p>Reports</p>
+                                    <p>Official Travel Dashboard</p>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="{{ url('officialtravels') }}"
+                                    class="nav-link {{ Request::is('officialtravels*') ? 'active' : '' }}">
+                                    <i class="far fa-circle nav-icon"></i>
+                                    <p>Official Travels</p>
                                 </a>
                             </li>
                         </ul>
                     </li>
-                @endcanany
-
-                {{-- OFFICIAL TRAVEL MANAGEMENT --}}
-                @can('official-travels.show')
-                    <li class="nav-item">
-                        <a href="{{ url('officialtravels') }}"
-                            class="nav-link {{ Request::is('officialtravels*') ? 'active' : '' }}">
-                            <i class="nav-icon fas fa-route"></i>
-                            <p>
-                                Official Travel (LOT)
-                                <br>
-                                <small
-                                    style="text-align: left; display: block; margin-left: 0; padding-left: 0;">Perjalanan
-                                    Dinas</small>
-                            </p>
-                        </a>
-                    </li>
                 @endcan
+
 
                 {{-- LEAVE MANAGEMENT --}}
                 @canany(['leave-requests.show', 'bulk-leave-requests.show', 'leave-entitlements.show',
                     'leave-reports.show'])
                     <li
-                        class="nav-item {{ Request::is('leave/requests*') || Request::is('leave/bulk-requests*') || Request::is('leave/entitlements*') || Request::is('leave/reports*') ? 'menu-open' : '' }}">
+                        class="nav-item {{ Request::is('dashboard/leave-management') || Request::is('leave/requests*') || Request::is('leave/bulk-requests*') || Request::is('leave/entitlements*') || Request::is('leave/reports*') ? 'menu-open' : '' }}">
                         <a href="#"
-                            class="nav-link {{ Request::is('leave/requests*') || Request::is('leave/bulk-requests*') || Request::is('leave/entitlements*') || Request::is('leave/reports*') ? 'active' : '' }}">
+                            class="nav-link {{ Request::is('dashboard/leave-management') || Request::is('leave/requests*') || Request::is('leave/bulk-requests*') || Request::is('leave/entitlements*') || Request::is('leave/reports*') ? 'active' : '' }}">
                             <i class="nav-icon fas fa-calendar-alt"></i>
                             <p>
                                 Leave Management
@@ -552,6 +463,13 @@
                             </p>
                         </a>
                         <ul class="nav nav-treeview">
+                            <li class="nav-item">
+                                <a href="{{ route('dashboard.leave-management') }}"
+                                    class="nav-link {{ Request::is('dashboard/leave-management') ? 'active' : '' }}">
+                                    <i class="far fa-circle nav-icon"></i>
+                                    <p>Leave Management Dashboard</p>
+                                </a>
+                            </li>
                             @can('leave-requests.show')
                                 <li class="nav-item">
                                     <a href="{{ route('leave.requests.index') }}"
@@ -607,45 +525,42 @@
                 </li>
 
                 {{-- LETTER ADMINISTRATION --}}
-                <li class="nav-item">
-                    <a href="{{ route('letter-numbers.index') }}"
-                        class="nav-link {{ Request::is('letter-numbers*') ? 'active' : '' }}">
-                        <i class="nav-icon fas fa-file-alt"></i>
-                        <p>Letter Administration</p>
-                    </a>
-                </li>
-
-                {{-- Roster Management --}}
-                <li class="nav-item">
-                    <a href="{{ route('rosters.index') }}"
-                        class="nav-link {{ Request::is('rosters*') ? 'active' : '' }}">
-                        <i class="nav-icon fas fa-calendar-week"></i>
-                        <p>
-                            Roster Management
-                            <br>
-                            <small style="text-align: left; display: block; margin-left: 0; padding-left: 0;">Manajemen
-                                Jadwal Kerja</small>
-                        </p>
-                    </a>
-                </li>
-
-                <li class="nav-item">
-                    <a href="{{ route('letter-numbers.index') }}"
-                        class="nav-link {{ Request::is('letter-numbers*') ? 'active' : '' }}">
+                <li
+                    class="nav-item {{ Request::is('dashboard/letter-administration') || Request::is('letter-numbers*') ? 'menu-open' : '' }}">
+                    <a href="#"
+                        class="nav-link {{ Request::is('dashboard/letter-administration') || Request::is('letter-numbers*') ? 'active' : '' }}">
                         <i class="nav-icon fas fa-file-alt"></i>
                         <p>
                             Letter Administration
+                            <i class="fas fa-angle-left right"></i>
                         </p>
                     </a>
+                    <ul class="nav nav-treeview">
+                        <li class="nav-item">
+                            <a href="{{ route('dashboard.letter-administration') }}"
+                                class="nav-link {{ Request::is('dashboard/letter-administration') ? 'active' : '' }}">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>Letter Administration Dashboard</p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="{{ route('letter-numbers.index') }}"
+                                class="nav-link {{ Request::is('letter-numbers*') ? 'active' : '' }}">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>Letter Numbers</p>
+                            </a>
+                        </li>
+                    </ul>
                 </li>
+
 
 
                 {{-- MASTER DATA --}}
                 @canany(['master-data.show'])
                     <li
-                        class="nav-item {{ Request::is('positions*') || Request::is('departments*') || Request::is('projects*') || Request::is('transportations*') || Request::is('leave/types*') || Request::is('letter-categories*') ? 'menu-open' : '' }}">
+                        class="nav-item {{ Request::is('positions*') || Request::is('departments*') || Request::is('projects*') || Request::is('transportations*') || Request::is('leave/types*') || Request::is('letter-categories*') || Request::is('personals*') || Request::is('administrations*') || Request::is('employeebanks*') || Request::is('taxidentifications*') || Request::is('insurances*') || Request::is('licenses*') || Request::is('families*') || Request::is('educations*') || Request::is('courses*') || Request::is('jobexperiences*') || Request::is('operableunits*') || Request::is('emrgcalls*') || Request::is('additionaldatas*') ? 'menu-open' : '' }}">
                         <a href="#"
-                            class="nav-link {{ Request::is('positions*') || Request::is('departments*') || Request::is('projects*') || Request::is('transportations*') || Request::is('leave/types*') || Request::is('letter-categories*') ? 'active' : '' }}">
+                            class="nav-link {{ Request::is('positions*') || Request::is('departments*') || Request::is('projects*') || Request::is('transportations*') || Request::is('leave/types*') || Request::is('letter-categories*') || Request::is('personals*') || Request::is('administrations*') || Request::is('employeebanks*') || Request::is('taxidentifications*') || Request::is('insurances*') || Request::is('licenses*') || Request::is('families*') || Request::is('educations*') || Request::is('courses*') || Request::is('jobexperiences*') || Request::is('operableunits*') || Request::is('emrgcalls*') || Request::is('additionaldatas*') ? 'active' : '' }}">
                             <i class="nav-icon fas fa-database"></i>
                             <p>
                                 Master Data
@@ -693,6 +608,123 @@
                                     class="nav-link {{ Request::is('letter-categories*') ? 'active' : '' }}">
                                     <i class="far fa-circle nav-icon"></i>
                                     <p>Letter Categories</p>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="{{ url('personals') }}"
+                                    class="nav-link {{ Request::is('personals*') ? 'active' : '' }}">
+                                    <i class="nav-icon fa fa-house-user"></i>
+                                    <p>
+                                        Personal Details
+                                    </p>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="{{ url('administrations') }}"
+                                    class="nav-link {{ Request::is('administrations*') ? 'active' : '' }}">
+                                    <i class="nav-icon fa fa-folder"></i>
+                                    <p>
+                                        Administrations
+                                    </p>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="{{ url('employeebanks') }}"
+                                    class="nav-link {{ Request::is('employeebanks*') ? 'active' : '' }}">
+                                    <i class="nav-icon fa fa-credit-card"></i>
+                                    <p>
+                                        Bank Accounts
+                                    </p>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="{{ url('taxidentifications') }}"
+                                    class="nav-link {{ Request::is('taxidentifications*') ? 'active' : '' }}">
+                                    <i class="nav-icon fa fa-user-md"></i>
+                                    <p>
+                                        Tax Identification
+                                    </p>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="{{ url('insurances') }}"
+                                    class="nav-link {{ Request::is('insurances*') ? 'active' : '' }}">
+                                    <i class="nav-icon fa fa-medkit"></i>
+                                    <p>
+                                        Insurances
+                                    </p>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="{{ url('licenses') }}"
+                                    class="nav-link {{ Request::is('licenses*') ? 'active' : '' }}">
+                                    <i class="nav-icon fa fa-car"></i>
+                                    <p>
+                                        Driver Licenses
+                                    </p>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="{{ url('families') }}"
+                                    class="nav-link {{ Request::is('families*') ? 'active' : '' }}">
+                                    <i class="nav-icon fa fa-address-card"></i>
+                                    <p>
+                                        Employee Families
+                                    </p>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="{{ url('educations') }}"
+                                    class="nav-link {{ Request::is('educations*') ? 'active' : '' }}">
+                                    <i class="nav-icon fa fa-university"></i>
+                                    <p>
+                                        Educations
+                                    </p>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="{{ url('courses') }}"
+                                    class="nav-link {{ Request::is('courses*') ? 'active' : '' }}">
+                                    <i class="nav-icon fa fa-graduation-cap"></i>
+                                    <p>
+                                        Courses
+                                    </p>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="{{ url('jobexperiences') }}"
+                                    class="nav-link {{ Request::is('jobexperiences*') ? 'active' : '' }}">
+                                    <i class="nav-icon fa fa-building"></i>
+                                    <p>
+                                        Job Experiences
+                                    </p>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="{{ url('operableunits') }}"
+                                    class="nav-link {{ Request::is('operableunits*') ? 'active' : '' }}">
+                                    <i class="nav-icon fa fa-truck"></i>
+                                    <p>
+                                        Operable Units
+                                    </p>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="{{ url('emrgcalls') }}"
+                                    class="nav-link {{ Request::is('emrgcalls*') ? 'active' : '' }}">
+                                    <i class="nav-icon fa fa-ambulance"></i>
+                                    <p>
+                                        Emergency Calls
+                                    </p>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="{{ url('additionaldatas') }}"
+                                    class="nav-link {{ Request::is('additionaldatas*') ? 'active' : '' }}">
+                                    <i class="nav-icon fa fa-list"></i>
+                                    <p>
+                                        Additional Data
+                                    </p>
                                 </a>
                             </li>
                         </ul>
