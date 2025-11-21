@@ -71,4 +71,27 @@ class User extends Authenticatable
     {
         return $this->hasMany(ApprovalStage::class, 'approver_id', 'id');
     }
+
+    /**
+     * Get the active administration for this user
+     */
+    public function administration()
+    {
+        return $this->hasOneThrough(
+            \App\Models\Administration::class,
+            \App\Models\Employee::class,
+            'id', // Foreign key on employees table
+            'employee_id', // Foreign key on administrations table
+            'employee_id', // Local key on users table
+            'id' // Local key on employees table
+        )->where('administrations.is_active', 1);
+    }
+
+    /**
+     * Get administration ID accessor for compatibility
+     */
+    public function getAdministrationIdAttribute()
+    {
+        return $this->administration?->id;
+    }
 }

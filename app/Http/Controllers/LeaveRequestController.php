@@ -1161,4 +1161,162 @@ class LeaveRequestController extends Controller
             return back()->with(['toast_error' => 'Failed to reject cancellation request: ' . $e->getMessage()]);
         }
     }
+
+    // ========================================
+    // SELF-SERVICE METHODS FOR USER ROLE
+    // ========================================
+
+    /**
+     * Display user's own leave requests
+     */
+    public function myRequests()
+    {
+        $this->authorize('personal.leave.view-own');
+
+        return view('leave-requests.my-requests')
+            ->with('title', 'My Leave Requests');
+    }
+
+    /**
+     * Get data for user's own leave requests DataTable
+     */
+    public function myRequestsData(Request $request)
+    {
+        $this->authorize('personal.leave.view-own');
+
+        $user = Auth::user();
+
+        $query = LeaveRequest::with(['leaveType', 'administration', 'requestedBy'])
+            ->where('employee_id', $user->employee_id)
+            ->select('leave_requests.*')
+            ->orderBy('created_at', 'desc');
+
+        // Apply status filter
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+
+        return datatables()->of($query)
+            ->addIndexColumn()
+            ->addColumn('leave_type', function ($row) {
+                return $row->leaveType->name ?? 'N/A';
+            })
+            ->addColumn('leave_period', function ($row) {
+                return date('d M Y', strtotime($row->start_date)) . ' - ' . date('d M Y', strtotime($row->end_date));
+            })
+            ->addColumn('total_days', function ($row) {
+                return $row->total_days . ' days';
+            })
+            ->addColumn('status_badge', function ($row) {
+                $badges = [
+                    'draft' => '<span class="badge badge-secondary">Draft</span>',
+                    'pending' => '<span class="badge badge-warning">Pending</span>',
+                    'approved' => '<span class="badge badge-success">Approved</span>',
+                    'rejected' => '<span class="badge badge-danger">Rejected</span>',
+                    'cancelled' => '<span class="badge badge-dark">Cancelled</span>',
+                    'closed' => '<span class="badge badge-info">Closed</span>',
+                ];
+                return $badges[$row->status] ?? '<span class="badge badge-secondary">Unknown</span>';
+            })
+            ->addColumn('action', function ($row) {
+                $btn = '<a href="' . route('leave.requests.show', $row->id) . '" class="btn btn-sm btn-info mr-1">
+                            <i class="fas fa-eye"></i> View
+                        </a>';
+
+                if ($row->status === 'draft' || $row->status === 'pending') {
+                    $btn .= '<a href="' . route('leave.requests.edit', $row->id) . '" class="btn btn-sm btn-warning mr-1">
+                                <i class="fas fa-edit"></i> Edit
+                            </a>';
+                }
+
+                return $btn;
+            })
+            ->rawColumns(['status_badge', 'action'])
+            ->make(true);
+    }
+
+    /**
+     * Display user's leave entitlements - Web View
+     */
+    public function myEntitlements()
+    {
+        $this->authorize('personal.leave.view-entitlements');
+
+        return view('leave-requests.my-entitlements')
+            ->with('title', 'My Leave Entitlements');
+    }
+
+    // ========================================
+    // API METHODS FOR PERSONAL FEATURES
+    // ========================================
+
+    /**
+     * API: Get user's own leave requests data
+     */
+    public function apiMyRequests(Request $request)
+    {
+        $this->authorize('personal.leave.view-own');
+        $user = Auth::user();
+
+        $query = LeaveRequest::with(['leaveType', 'administration', 'requestedBy'])
+            ->where('employee_id', $user->employee_id)
+            ->select('leave_requests.*')
+            ->orderBy('created_at', 'desc');
+
+        // Apply status filter
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+
+        $leaveRequests = $query->get()->map(function ($request) {
+            return [
+                'id' => $request->id,
+                'leave_type' => $request->leaveType->name ?? 'N/A',
+                'leave_period' => date('d M Y', strtotime($request->start_date)) . ' - ' . date('d M Y', strtotime($request->end_date)),
+                'total_days' => $request->total_days,
+                'status' => $request->status,
+                'created_at' => $request->created_at->format('Y-m-d H:i:s'),
+                'actions' => [
+                    'view_url' => route('leave.requests.show', $request->id),
+                    'edit_url' => in_array($request->status, ['draft', 'pending']) ? route('leave.requests.edit', $request->id) : null,
+                ]
+            ];
+        });
+
+        return response()->json([
+            'data' => $leaveRequests,
+            'total' => $leaveRequests->count(),
+        ]);
+    }
+
+    /**
+     * API: Get user's leave entitlements data
+     */
+    public function apiMyEntitlements()
+    {
+        $this->authorize('personal.leave.view-entitlements');
+        $user = Auth::user();
+
+        $entitlements = LeaveEntitlement::with(['leaveType'])
+            ->where('employee_id', $user->employee_id)
+            ->orderBy('period_end', 'desc')
+            ->get()
+            ->map(function ($entitlement) {
+                return [
+                    'id' => $entitlement->id,
+                    'leave_type' => $entitlement->leaveType->name ?? 'N/A',
+                    'entitled_days' => $entitlement->entitled_days,
+                    'taken_days' => $entitlement->taken_days,
+                    'remaining_days' => $entitlement->remaining_days,
+                    'period_start' => $entitlement->period_start->format('M d, Y'),
+                    'period_end' => $entitlement->period_end->format('M d, Y'),
+                    'is_expired' => $entitlement->period_end < now(),
+                    'expires_soon' => $entitlement->period_end < now()->addDays(30) && $entitlement->period_end >= now(),
+                ];
+            });
+
+        return response()->json([
+            'data' => $entitlements,
+        ]);
+    }
 }

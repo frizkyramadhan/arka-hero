@@ -123,7 +123,7 @@ Route::group(['middleware' => ['auth']], function () {
 
     // Profile routes
     Route::get('profile/change-password', [ProfileController::class, 'showChangePasswordForm'])->name('profile.change-password');
-    Route::put('profile/change-password', [ProfileController::class, 'updatePassword'])->name('profile.change-password');
+    Route::put('profile/change-password', [ProfileController::class, 'updatePassword'])->name('profile.change-password.update');
 
     Route::get('/', [DashboardController::class, 'dashboard'])->name('dashboard');
     Route::get('/dashboard/pending-recommendations', [DashboardController::class, 'pendingRecommendations'])->name('dashboard.pendingRecommendations');
@@ -138,6 +138,9 @@ Route::group(['middleware' => ['auth']], function () {
         Route::get('/recruitment', [DashboardController::class, 'recruitment'])->name('recruitment');
         Route::get('/letter-administration', [DashboardController::class, 'letterAdministration'])->name('letter-administration');
         Route::get('/leave-management', [DashboardController::class, 'leaveManagement'])->name('leave-management');
+        Route::middleware('user_data_filter')->group(function () {
+            Route::get('/personal', [DashboardController::class, 'personal'])->name('personal');
+        });
     });
 
     // Dashboard Employee routes
@@ -226,21 +229,18 @@ Route::group(['middleware' => ['auth']], function () {
     Route::resource('positions', PositionController::class)->except(['show', 'create', 'edit']);
 
     Route::get('grades/data', [GradeController::class, 'getGrades'])->name('grades.data');
-    Route::get('levels/data', [LevelController::class, 'getLevels'])->name('levels.data');
-
-    Route::get('transportations/data', [TransportationController::class, 'getTransportations'])->name('transportations.data');
-    Route::resource('transportations', TransportationController::class)->except(['show', 'create', 'edit']);
-
-    Route::get('accommodations/data', [AccommodationController::class, 'getAccommodations'])->name('accommodations.data');
-    Route::resource('accommodations', AccommodationController::class);
-
-    Route::get('grades/data', [GradeController::class, 'getGrades'])->name('grades.data');
     Route::post('grades/status/{id}', [GradeController::class, 'changeStatus'])->name('grades.status');
     Route::resource('grades', GradeController::class);
 
     Route::get('levels/data', [LevelController::class, 'getLevels'])->name('levels.data');
     Route::post('levels/status/{id}', [LevelController::class, 'changeStatus'])->name('levels.status');
     Route::resource('levels', LevelController::class);
+
+    Route::get('transportations/data', [TransportationController::class, 'getTransportations'])->name('transportations.data');
+    Route::resource('transportations', TransportationController::class)->except(['show', 'create', 'edit']);
+
+    Route::get('accommodations/data', [AccommodationController::class, 'getAccommodations'])->name('accommodations.data');
+    Route::resource('accommodations', AccommodationController::class);
 
     // APPS
 
@@ -260,6 +260,12 @@ Route::group(['middleware' => ['auth']], function () {
     Route::get('officialtravels/{officialtravel}/print', [OfficialtravelController::class, 'print'])->name('officialtravels.print');
     Route::patch('officialtravels/{officialtravel}/close', [OfficialtravelController::class, 'close'])->name('officialtravels.close');
     Route::post('officialtravels/export', [OfficialtravelController::class, 'exportExcel'])->name('officialtravels.export');
+
+    // Self-service routes for user role
+    Route::middleware('user_data_filter')->group(function () {
+        Route::get('officialtravels/my-travels', [OfficialtravelController::class, 'myTravels'])->name('officialtravels.my-travels');
+        Route::get('officialtravels/my-travels/data', [OfficialtravelController::class, 'myTravelsData'])->name('officialtravels.my-travels.data');
+    });
 
     // LETTER NUMBERING SYSTEM ROUTES
     Route::prefix('letter-numbers')->name('letter-numbers.')->group(function () {
@@ -453,6 +459,12 @@ Route::group(['middleware' => ['auth']], function () {
             Route::post('/{id}/reject', [RecruitmentRequestController::class, 'reject'])->name('reject');
             Route::post('/{id}/assign-letter-number', [RecruitmentRequestController::class, 'assignLetterNumber'])->name('assign-letter-number');
 
+            // Self-service routes for user role
+            Route::middleware('user_data_filter')->group(function () {
+                Route::get('/my-requests', [RecruitmentRequestController::class, 'myRequests'])->name('my-requests');
+                Route::get('/my-requests/data', [RecruitmentRequestController::class, 'myRequestsData'])->name('my-requests.data');
+            });
+
             // AJAX Routes
         });
 
@@ -599,6 +611,13 @@ Route::group(['middleware' => ['auth']], function () {
             Route::delete('/{leaveRequest}/delete-document', [LeaveRequestController::class, 'deleteDocument'])->name('delete-document');
             Route::post('/{leaveRequest}/approve', [LeaveRequestController::class, 'approve'])->name('approve');
             Route::post('/{leaveRequest}/reject', [LeaveRequestController::class, 'reject'])->name('reject');
+
+            // Self-service routes for user role
+            Route::middleware('user_data_filter')->group(function () {
+                Route::get('/my-requests', [LeaveRequestController::class, 'myRequests'])->name('my-requests');
+                Route::get('/my-requests/data', [LeaveRequestController::class, 'myRequestsData'])->name('my-requests.data');
+                Route::get('/my-entitlements', [LeaveRequestController::class, 'myEntitlements'])->name('my-entitlements');
+            });
 
             // Close and cancellation routes
             Route::post('/{leaveRequest}/close', [LeaveRequestController::class, 'close'])->name('close');
