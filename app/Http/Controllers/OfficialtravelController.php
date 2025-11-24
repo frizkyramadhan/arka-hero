@@ -1166,113 +1166,19 @@ class OfficialtravelController extends Controller
     /**
      * Display user's own official travels
      */
-    public function myTravels()
+    public function myTravels(Request $request)
     {
         $this->authorize('personal.official-travel.view-own');
 
-        return view('official-travels.my-travels')
-            ->with('title', 'My Official Travels');
-    }
-
-    /**
-     * Get data for user's own official travels DataTable - Web View
-     */
-    public function myTravelsData(Request $request)
-    {
-        $this->authorize('personal.official-travel.view-own');
         $user = Auth::user();
-
-        // Check if user has administration
         $administrationId = $user->administration_id;
+
         if (!$administrationId) {
-            // Return empty DataTable if user has no administration
-            return datatables()->of(collect())->make(true);
-        }
-
-        $query = Officialtravel::with(['traveler.employee', 'project', 'stops'])
-            ->where(function ($q) use ($administrationId) {
-                // User is the main traveler
-                $q->where('traveler_id', $administrationId)
-                    // OR user is a follower
-                    ->orWhereHas('details', function ($detailQuery) use ($administrationId) {
-                        $detailQuery->where('follower_id', $administrationId);
-                    });
-            })
-            ->select('officialtravels.*')
-            ->orderBy('created_at', 'desc');
-
-        // Apply status filter
-        if ($request->filled('status')) {
-            $query->where('status', $request->status);
-        }
-
-        return datatables()->of($query)
-            ->addIndexColumn()
-            ->addColumn('travel_date', function ($row) {
-                return date('d M Y', strtotime($row->official_travel_date));
-            })
-            ->addColumn('destination', function ($row) {
-                return $row->destination;
-            })
-            ->addColumn('purpose', function ($row) {
-                return Str::limit($row->purpose, 50);
-            })
-            ->addColumn('traveler_name', function ($row) {
-                return $row->traveler->employee->fullname ?? 'N/A';
-            })
-            ->addColumn('role', function ($row) use ($administrationId) {
-                if ($row->traveler_id === $administrationId) {
-                    return '<span class="badge badge-primary">Main Traveler</span>';
-                } else {
-                    return '<span class="badge badge-info">Follower</span>';
-                }
-            })
-            ->addColumn('status_badge', function ($row) {
-                $badges = [
-                    'draft' => '<span class="badge badge-secondary">Draft</span>',
-                    'submitted' => '<span class="badge badge-info">Submitted</span>',
-                    'approved' => '<span class="badge badge-success">Approved</span>',
-                    'rejected' => '<span class="badge badge-danger">Rejected</span>',
-                    'closed' => '<span class="badge badge-dark">Closed</span>',
-                ];
-                return $badges[$row->status] ?? '<span class="badge badge-secondary">Unknown</span>';
-            })
-            ->addColumn('action', function ($row) {
-                $btn = '<a href="' . route('officialtravels.show', $row->id) . '" class="btn btn-sm btn-info mr-1">
-                            <i class="fas fa-eye"></i> View
-                        </a>';
-
-                if ($row->status === 'draft') {
-                    $btn .= '<a href="' . route('officialtravels.edit', $row->id) . '" class="btn btn-sm btn-warning mr-1">
-                                <i class="fas fa-edit"></i> Edit
-                            </a>';
-                }
-
-                return $btn;
-            })
-            ->rawColumns(['role', 'status_badge', 'action'])
-            ->make(true);
-    }
-
-    // ========================================
-    // API METHODS FOR PERSONAL FEATURES
-    // ========================================
-
-    /**
-     * API: Get user's own official travels data
-     */
-    public function apiMyTravels(Request $request)
-    {
-        // Note: Removed authorization check as per user's request
-        $user = Auth::user();
-
-        // Check if user has administration
-        $administrationId = $user->administration_id;
-        if (!$administrationId) {
-            return response()->json([
-                'data' => [],
-                'total' => 0,
-                'message' => 'User does not have associated administration record'
+            return view('official-travels.my-travels', [
+                'title' => 'My Official Travels',
+                'subtitle' => 'My Official Travel History',
+                'travels' => collect(),
+                'statusFilter' => $request->get('status', '')
             ]);
         }
 
@@ -1288,32 +1194,24 @@ class OfficialtravelController extends Controller
             ->select('officialtravels.*')
             ->orderBy('created_at', 'desc');
 
-        // Apply status filter
+        // Apply status filter if provided
         if ($request->filled('status')) {
             $query->where('status', $request->status);
         }
 
-        $travels = $query->get()->map(function ($travel) use ($administrationId) {
-            return [
-                'id' => $travel->id,
-                'travel_date' => date('d M Y', strtotime($travel->official_travel_date)),
-                'destination' => $travel->destination,
-                'purpose' => Str::limit($travel->purpose, 50),
-                'traveler_name' => $travel->traveler->employee->fullname ?? 'N/A',
-                'project' => $travel->project->project_code ?? 'N/A',
-                'role' => $travel->traveler_id === $administrationId ? 'Main Traveler' : 'Follower',
-                'status' => $travel->status,
-                'created_at' => $travel->created_at->format('Y-m-d H:i:s'),
-                'actions' => [
-                    'view_url' => route('officialtravels.show', $travel->id),
-                    'edit_url' => $travel->status === 'draft' ? route('officialtravels.edit', $travel->id) : null,
-                ]
-            ];
-        });
+        $travels = $query->get();
 
-        return response()->json([
-            'data' => $travels,
-            'total' => $travels->count(),
+        return view('official-travels.my-travels', [
+            'title' => 'My Official Travels',
+            'subtitle' => 'My Official Travel History',
+            'travels' => $travels,
+            'statusFilter' => $request->get('status', '')
         ]);
     }
+
+
+    // ========================================
+    // API METHODS FOR PERSONAL FEATURES
+    // ========================================
+
 }

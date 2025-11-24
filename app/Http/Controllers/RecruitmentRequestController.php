@@ -1204,21 +1204,10 @@ class RecruitmentRequestController extends Controller
     /**
      * Display user's own recruitment requests
      */
-    public function myRequests()
+    public function myRequests(Request $request)
     {
-        // Note: Removed authorization check as per user's request
-        $title = 'My Recruitment Requests';
-        $subtitle = 'Recruitment Requests I Created';
+        $this->authorize('personal.recruitment.view-own');
 
-        return view('recruitment.requests.my-requests', compact('title', 'subtitle'));
-    }
-
-    /**
-     * Get data for user's own recruitment requests DataTable
-     */
-    public function myRequestsData(Request $request)
-    {
-        // Note: Removed authorization check as per user's request
         $user = Auth::user();
 
         $query = RecruitmentRequest::with(['position', 'department', 'project', 'level', 'createdBy'])
@@ -1226,94 +1215,24 @@ class RecruitmentRequestController extends Controller
             ->select('recruitment_requests.*')
             ->orderBy('created_at', 'desc');
 
-        // Apply status filter
+        // Apply status filter if provided
         if ($request->filled('status')) {
             $query->where('status', $request->status);
         }
 
-        return datatables()->of($query)
-            ->addIndexColumn()
-            ->addColumn('position_name', function ($row) {
-                return $row->position->position_name ?? 'N/A';
-            })
-            ->addColumn('department_name', function ($row) {
-                return $row->department->department_name ?? 'N/A';
-            })
-            ->addColumn('project_code', function ($row) {
-                return $row->project->project_code ?? 'N/A';
-            })
-            ->addColumn('required_quantity', function ($row) {
-                return $row->required_quantity;
-            })
-            ->addColumn('status_badge', function ($row) {
-                $badges = [
-                    'draft' => '<span class="badge badge-secondary">Draft</span>',
-                    'acknowledged' => '<span class="badge badge-info">Acknowledged</span>',
-                    'pm_approved' => '<span class="badge badge-primary">PM Approved</span>',
-                    'approved' => '<span class="badge badge-success">Approved</span>',
-                    'rejected' => '<span class="badge badge-danger">Rejected</span>',
-                    'cancelled' => '<span class="badge badge-dark">Cancelled</span>',
-                ];
-                return $badges[$row->status] ?? '<span class="badge badge-secondary">Unknown</span>';
-            })
-            ->addColumn('action', function ($row) {
-                $btn = '<a href="' . route('recruitment.requests.show', $row->id) . '" class="btn btn-sm btn-info mr-1">
-                            <i class="fas fa-eye"></i> View
-                        </a>';
+        $recruitmentRequests = $query->get();
 
-                if ($row->status === 'draft') {
-                    $btn .= '<a href="' . route('recruitment.requests.edit', $row->id) . '" class="btn btn-sm btn-warning mr-1">
-                                <i class="fas fa-edit"></i> Edit
-                            </a>';
-                }
-
-                return $btn;
-            })
-            ->rawColumns(['status_badge', 'action'])
-            ->make(true);
+        return view('recruitment.requests.my-requests', [
+            'title' => 'My Recruitment Requests',
+            'subtitle' => 'Recruitment Requests I Created',
+            'recruitmentRequests' => $recruitmentRequests,
+            'statusFilter' => $request->get('status', '')
+        ]);
     }
+
 
     // ========================================
     // API METHODS FOR PERSONAL FEATURES
     // ========================================
 
-    /**
-     * API: Get user's own recruitment requests data
-     */
-    public function apiMyRequests(Request $request)
-    {
-        // Note: Removed authorization check as per user's request
-        $user = Auth::user();
-
-        $query = RecruitmentRequest::with(['position', 'department', 'project', 'level'])
-            ->where('created_by', $user->id)
-            ->select('recruitment_requests.*')
-            ->orderBy('created_at', 'desc');
-
-        // Apply status filter
-        if ($request->filled('status')) {
-            $query->where('status', $request->status);
-        }
-
-        $requests = $query->get()->map(function ($request) {
-            return [
-                'id' => $request->id,
-                'position_name' => $request->position->position_name ?? 'N/A',
-                'department_name' => $request->department->department_name ?? 'N/A',
-                'project_code' => $request->project->project_code ?? 'N/A',
-                'required_quantity' => $request->required_quantity,
-                'status' => $request->status,
-                'created_at' => $request->created_at->format('Y-m-d H:i:s'),
-                'actions' => [
-                    'view_url' => route('recruitment.requests.show', $request->id),
-                    'edit_url' => $request->status === 'draft' ? route('recruitment.requests.edit', $request->id) : null,
-                ]
-            ];
-        });
-
-        return response()->json([
-            'data' => $requests,
-            'total' => $requests->count(),
-        ]);
-    }
 }

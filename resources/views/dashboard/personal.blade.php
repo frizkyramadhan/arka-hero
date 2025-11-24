@@ -118,13 +118,24 @@
                             </div>
                         </div>
                         <div class="card-body p-0">
-                            <ul class="list-group list-group-flush" id="recent-leave-requests">
-                                <li class="list-group-item text-center text-muted">
-                                    <div class="spinner-border spinner-border-sm" role="status">
-                                        <span class="sr-only">Loading...</span>
-                                    </div>
-                                    Loading...
-                                </li>
+                            <ul class="list-group list-group-flush">
+                                @forelse($recentLeaveRequests as $request)
+                                    <li class="list-group-item">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <strong>{{ $request['leave_type'] }}</strong><br>
+                                                <small class="text-muted">{{ $request['period'] }} -
+                                                    {{ $request['days'] }}</small>
+                                            </div>
+                                            <span
+                                                class="badge {{ $request['status'] === 'approved' ? 'badge-success' : ($request['status'] === 'pending' ? 'badge-warning' : 'badge-secondary') }}">
+                                                {{ ucfirst($request['status']) }}
+                                            </span>
+                                        </div>
+                                    </li>
+                                @empty
+                                    <li class="list-group-item text-center text-muted">No leave requests found</li>
+                                @endforelse
                             </ul>
                         </div>
                     </div>
@@ -142,13 +153,24 @@
                             </div>
                         </div>
                         <div class="card-body p-0">
-                            <ul class="list-group list-group-flush" id="recent-travels">
-                                <li class="list-group-item text-center text-muted">
-                                    <div class="spinner-border spinner-border-sm" role="status">
-                                        <span class="sr-only">Loading...</span>
-                                    </div>
-                                    Loading...
-                                </li>
+                            <ul class="list-group list-group-flush">
+                                @forelse($recentTravels as $travel)
+                                    <li class="list-group-item">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <strong>{{ $travel['destination'] }}</strong><br>
+                                                <small class="text-muted">{{ $travel['travel_date'] }} -
+                                                    {{ $travel['project'] }}</small>
+                                            </div>
+                                            <span
+                                                class="badge {{ $travel['status'] === 'approved' ? 'badge-success' : ($travel['status'] === 'submitted' ? 'badge-info' : ($travel['status'] === 'rejected' ? 'badge-danger' : 'badge-secondary')) }}">
+                                                {{ ucfirst($travel['status']) }}
+                                            </span>
+                                        </div>
+                                    </li>
+                                @empty
+                                    <li class="list-group-item text-center text-muted">No official travels found</li>
+                                @endforelse
                             </ul>
                         </div>
                     </div>
@@ -168,13 +190,35 @@
                             </div>
                         </div>
                         <div class="card-body">
-                            <div class="row" id="leave-entitlements">
-                                <div class="col-12 text-center text-muted">
-                                    <div class="spinner-border spinner-border-sm" role="status">
-                                        <span class="sr-only">Loading...</span>
+                            <div class="row">
+                                @forelse($leaveEntitlements as $entitlement)
+                                    <div class="col-md-4 mb-3">
+                                        <div
+                                            class="card border-left-primary {{ $entitlement['is_expired'] ? 'border-danger' : ($entitlement['expires_soon'] ? 'border-warning' : '') }}">
+                                            <div class="card-body">
+                                                <h5 class="card-title">{{ $entitlement['leave_type'] }}</h5>
+                                                <p class="card-text">
+                                                    <strong>Entitled:</strong> {{ $entitlement['entitled'] }} days<br>
+                                                    <strong>Used:</strong> {{ $entitlement['used'] }} days<br>
+                                                    <strong>Remaining:</strong> {{ $entitlement['remaining'] }} days<br>
+                                                    <small class="text-muted">Valid until:
+                                                        {{ $entitlement['period_end'] }}</small>
+                                                </p>
+                                                <div class="progress">
+                                                    <div class="progress-bar bg-success"
+                                                        style="width: {{ $entitlement['entitled'] > 0 ? ($entitlement['remaining'] / $entitlement['entitled']) * 100 : 0 }}%">
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
-                                    Loading entitlements...
-                                </div>
+                                @empty
+                                    <div class="col-12">
+                                        <div class="alert alert-info">
+                                            <i class="fas fa-info-circle"></i> No active leave entitlements found.
+                                        </div>
+                                    </div>
+                                @endforelse
                             </div>
                         </div>
                     </div>
@@ -240,152 +284,36 @@
 @section('scripts')
     <script>
         $(document).ready(function() {
-            loadDashboardData();
+            // Update stats with proper JSON encoding
+            var leaveStats = @json($leaveStats);
+            var travelStats = @json($travelStats);
+            var recruitmentStats = @json($recruitmentStats);
+            var pendingApprovals = @json($pendingApprovals);
+
+            $('#leave-total').text(leaveStats.total_requests);
+            $('#leave-approved').text(leaveStats.approved_requests);
+            $('#leave-progress').css('width', leaveStats.total_requests > 0 ?
+                (leaveStats.approved_requests / leaveStats.total_requests) * 100 + '%' : '0%');
+
+            $('#travel-total').text(travelStats.total_travels);
+            $('#travel-upcoming').text(travelStats.upcoming_travels);
+            $('#travel-progress').css('width', travelStats.total_travels > 0 ?
+                (travelStats.upcoming_travels / travelStats.total_travels) * 100 + '%' : '0%');
+
+            $('#recruitment-total').text(recruitmentStats.total_requests);
+            $('#recruitment-approved').text(recruitmentStats.approved_requests);
+            $('#recruitment-progress').css('width', recruitmentStats.total_requests > 0 ?
+                (recruitmentStats.approved_requests / recruitmentStats.total_requests) * 100 + '%' : '0%');
+
+            $('#approvals-total').text(pendingApprovals);
+            $('#approvals-progress').css('width', pendingApprovals > 0 ? '100%' : '0%');
+
+            // Show all content since data is already loaded
+            $('#stats-row, #content-row, #entitlements-row, #actions-row').show();
+
+            @if($pendingApprovals > 0)
+                $('#pending-approvals-badge').text(pendingApprovals).show();
+            @endif
         });
-
-        function loadDashboardData() {
-            $('#loading-spinner').show();
-            $('#error-alert').hide();
-
-            $.ajax({
-                url: '{{ route('api.personal.dashboard') }}',
-                method: 'GET',
-                headers: {
-                    'Accept': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest'
-                },
-                success: function(response) {
-                    $('#loading-spinner').hide();
-                    populateDashboard(response);
-                    $('#stats-row, #content-row, #entitlements-row, #actions-row').show();
-                },
-                error: function(xhr, status, error) {
-                    $('#loading-spinner').hide();
-                    $('#error-message').text('Failed to load dashboard data. Please refresh the page.');
-                    $('#error-alert').show();
-                    console.error('Dashboard API Error:', error);
-                }
-            });
-        }
-
-        function populateDashboard(data) {
-            // Update stats
-            $('#leave-total').text(data.leaveStats.total_requests);
-            $('#leave-approved').text(data.leaveStats.approved_requests);
-            $('#leave-progress').css('width', data.leaveStats.total_requests > 0 ?
-                (data.leaveStats.approved_requests / data.leaveStats.total_requests) * 100 + '%' : '0%');
-
-            $('#travel-total').text(data.travelStats.total_travels);
-            $('#travel-upcoming').text(data.travelStats.upcoming_travels);
-            $('#travel-progress').css('width', data.travelStats.total_travels > 0 ?
-                (data.travelStats.upcoming_travels / data.travelStats.total_travels) * 100 + '%' : '0%');
-
-            $('#recruitment-total').text(data.recruitmentStats.total_requests);
-            $('#recruitment-approved').text(data.recruitmentStats.approved_requests);
-            $('#recruitment-progress').css('width', data.recruitmentStats.total_requests > 0 ?
-                (data.recruitmentStats.approved_requests / data.recruitmentStats.total_requests) * 100 + '%' : '0%');
-
-            $('#approvals-total').text(data.pendingApprovals);
-            $('#approvals-progress').css('width', data.pendingApprovals > 0 ? '100%' : '0%');
-
-            if (data.pendingApprovals > 0) {
-                $('#pending-approvals-badge').text(data.pendingApprovals).show();
-            }
-
-            // Update recent leave requests
-            let leaveHtml = '';
-            if (data.recentLeaveRequests.length > 0) {
-                data.recentLeaveRequests.forEach(function(request) {
-                    let badgeClass = 'badge-secondary';
-                    if (request.status === 'approved') badgeClass = 'badge-success';
-                    else if (request.status === 'pending') badgeClass = 'badge-warning';
-                    else if (request.status === 'rejected') badgeClass = 'badge-danger';
-
-                    leaveHtml += `
-                <li class="list-group-item">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <strong>${request.leave_type}</strong><br>
-                            <small class="text-muted">${request.period} (${request.total_days} days)</small>
-                        </div>
-                        <span class="badge ${badgeClass}">${request.status.charAt(0).toUpperCase() + request.status.slice(1)}</span>
-                    </div>
-                </li>
-            `;
-                });
-            } else {
-                leaveHtml = '<li class="list-group-item text-center text-muted">No leave requests found</li>';
-            }
-            $('#recent-leave-requests').html(leaveHtml);
-
-            // Update recent travels
-            let travelHtml = '';
-            if (data.recentTravels.length > 0) {
-                data.recentTravels.forEach(function(travel) {
-                    let badgeClass = 'badge-secondary';
-                    if (travel.status === 'approved') badgeClass = 'badge-success';
-                    else if (travel.status === 'submitted') badgeClass = 'badge-info';
-                    else if (travel.status === 'rejected') badgeClass = 'badge-danger';
-
-                    travelHtml += `
-                <li class="list-group-item">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <strong>${travel.destination}</strong><br>
-                            <small class="text-muted">${travel.travel_date} - ${travel.project}</small>
-                        </div>
-                        <span class="badge ${badgeClass}">${travel.status.charAt(0).toUpperCase() + travel.status.slice(1)}</span>
-                    </div>
-                </li>
-            `;
-                });
-            } else {
-                travelHtml = '<li class="list-group-item text-center text-muted">No official travels found</li>';
-            }
-            $('#recent-travels').html(travelHtml);
-
-            // Update leave entitlements
-            let entitlementsHtml = '';
-            if (data.leaveEntitlements.length > 0) {
-                data.leaveEntitlements.forEach(function(entitlement) {
-                    let progressWidth = entitlement.entitled > 0 ? (entitlement.remaining / entitlement.entitled) *
-                        100 : 0;
-                    let alertClass = '';
-                    if (entitlement.is_expired) {
-                        alertClass = 'border-danger';
-                    } else if (entitlement.expires_soon) {
-                        alertClass = 'border-warning';
-                    }
-
-                    entitlementsHtml += `
-                <div class="col-md-4 mb-3">
-                    <div class="card border-left-primary ${alertClass}">
-                        <div class="card-body">
-                            <h5 class="card-title">${entitlement.leave_type}</h5>
-                            <p class="card-text">
-                                <strong>Entitled:</strong> ${entitlement.entitled} days<br>
-                                <strong>Used:</strong> ${entitlement.used} days<br>
-                                <strong>Remaining:</strong> ${entitlement.remaining} days<br>
-                                <small class="text-muted">Valid until: ${entitlement.period_end}</small>
-                            </p>
-                            <div class="progress">
-                                <div class="progress-bar bg-success" style="width: ${progressWidth}%"></div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `;
-                });
-            } else {
-                entitlementsHtml = `
-            <div class="col-12">
-                <div class="alert alert-info">
-                    <i class="fas fa-info-circle"></i> No active leave entitlements found.
-                </div>
-            </div>
-        `;
-            }
-            $('#leave-entitlements').html(entitlementsHtml);
-        }
     </script>
 @endsection

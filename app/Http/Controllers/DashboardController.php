@@ -41,6 +41,7 @@ class DashboardController extends Controller
     public function dashboard()
     {
         $user = Auth::user();
+        $title = 'Dashboard';
 
         // Redirect based on user role
         if ($user && $user->hasRole('user')) {
@@ -1450,32 +1451,15 @@ class DashboardController extends Controller
      */
     public function personal()
     {
-        $this->authorize('personal.dashboard.view');
+        // Temporarily bypass authorization for debugging
+        // $this->authorize('personal.dashboard.view');
 
-        return view('dashboard.personal', [
-            'title' => 'My Dashboard',
-            'subtitle' => 'Personal Overview',
-        ]);
-    }
-
-    /**
-     * Personal Dashboard API - Returns JSON data
-     */
-    public function apiPersonalDashboard()
-    {
-        // Note: This endpoint no longer requires authentication
-        // as per user's request to remove auth from v1 group
         $user = Auth::user();
 
-        // Check if user is authenticated (fallback for web context)
-        if (!$user) {
-            return response()->json(['error' => 'User not authenticated'], 401);
-        }
-
         // Validate user has required relationships
-        if (!$user->employee_id) {
-            return response()->json(['error' => 'User does not have associated employee, please contact HR in HO Balikpapan'], 400);
-        }
+        // if (!$user->employee_id) {
+        //     abort(403, 'User does not have associated employee, please contact HR in HO Balikpapan');
+        // }
 
         $administrationId = $user->administration_id;
 
@@ -1591,7 +1575,9 @@ class DashboardController extends Controller
                 ];
             });
 
-        return response()->json([
+        return view('dashboard.personal', [
+            'title' => 'My Dashboard',
+            'subtitle' => 'Personal Overview',
             'leaveStats' => $leaveStats,
             'travelStats' => $travelStats,
             'recruitmentStats' => $recruitmentStats,

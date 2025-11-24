@@ -404,25 +404,6 @@ Route::prefix('v1')->group(function () {
         Route::post('/{id}/approve', [App\Http\Controllers\EmployeeRegistrationAdminController::class, 'apiApprove']);
         Route::post('/{id}/reject', [App\Http\Controllers\EmployeeRegistrationAdminController::class, 'apiReject']);
     });
-
-    // Personal Dashboard API Routes
-    Route::prefix('personal')->middleware(['auth'])->group(function () {
-        // Dashboard
-        Route::get('/dashboard', [App\Http\Controllers\DashboardController::class, 'apiPersonalDashboard'])->name('api.personal.dashboard');
-
-        // Leave Management
-        Route::get('/leave/requests', [App\Http\Controllers\LeaveRequestController::class, 'apiMyRequests'])->name('api.personal.leave.requests');
-        Route::get('/leave/entitlements', [App\Http\Controllers\LeaveRequestController::class, 'apiMyEntitlements'])->name('api.personal.leave.entitlements');
-
-        // Official Travel
-        Route::get('/official-travels', [App\Http\Controllers\OfficialtravelController::class, 'apiMyTravels'])->name('api.personal.official-travels');
-
-        // Recruitment
-        Route::get('/recruitment/requests', [App\Http\Controllers\RecruitmentRequestController::class, 'apiMyRequests'])->name('api.personal.recruitment.requests');
-
-        // Approvals
-        Route::get('/approvals', [App\Http\Controllers\ApprovalRequestController::class, 'apiMyApprovals'])->name('api.personal.approvals');
-    });
 });
 
 // Public routes removed - system simplified

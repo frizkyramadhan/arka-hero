@@ -32,125 +32,32 @@
                                 @endcan
                             </div>
                         </div>
-                    <div class="card-body">
-                        <div id="loading-table" class="text-center" style="display: none;">
-                            <div class="spinner-border text-primary" role="status">
-                                <span class="sr-only">Loading...</span>
-                            </div>
-                            <p>Loading recruitment requests...</p>
-                        </div>
-                        <div id="error-table" class="alert alert-danger" style="display: none;">
-                            Failed to load recruitment requests data.
-                        </div>
-                        <table id="recruitment-requests-table" class="table table-bordered table-striped" style="display: none;">
-                            <thead>
-                                <tr>
-                                    <th>Position</th>
-                                    <th>Department</th>
-                                    <th>Project</th>
-                                    <th>Required</th>
-                                    <th>Status</th>
-                                    <th>Created</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                            </tbody>
-                        </table>
-                    </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
-@endsection
+                        <div class="card-body">
+                            <table class="table table-bordered table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Position</th>
+                                        <th>Department</th>
+                                        <th>Project</th>
+                                        <th>Required</th>
+                                        <th>Status</th>
+                                        <th>Created</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @forelse($recruitmentRequests as $request)
+                                        <tr>
+                                            <td>{{ $request->position->position_name ?? 'N/A' }}</td>
+                                            <td>{{ $request->department->department_name ?? 'N/A' }}</td>
+                                            <td>{{ $request->project->project_code ?? 'N/A' }}</td>
+                                            <td>{{ $request->required_quantity }}</td>
+                                            <td>
+                                                @switch($request->status)
+                                                    @case('draft')
+                                                        <span class="badge badge-secondary">Draft</span>
+                                                    @break
 
-@section('scripts')
-<script>
-$(document).ready(function() {
-    loadRecruitmentRequests();
-});
-
-function loadRecruitmentRequests() {
-    $('#loading-table').show();
-    $('#recruitment-requests-table').hide();
-    $('#error-table').hide();
-
-    $.ajax({
-        url: '{{ route("api.personal.recruitment.requests") }}',
-        method: 'GET',
-        headers: {
-            'Accept': 'application/json',
-            'X-Requested-With': 'XMLHttpRequest'
-        },
-        success: function(response) {
-            $('#loading-table').hide();
-            populateRecruitmentTable(response.data);
-            $('#recruitment-requests-table').show();
-        },
-        error: function(xhr, status, error) {
-            $('#loading-table').hide();
-            $('#error-table').show();
-            console.error('Recruitment Requests API Error:', error);
-        }
-    });
-}
-
-function populateRecruitmentTable(data) {
-    let tbody = $('#recruitment-requests-table tbody');
-    tbody.empty();
-
-    if (data.length === 0) {
-        tbody.append('<tr><td colspan="7" class="text-center text-muted">No recruitment requests found</td></tr>');
-        return;
-    }
-
-    data.forEach(function(request) {
-        let badgeClass = 'badge-secondary';
-        if (request.status === 'approved') badgeClass = 'badge-success';
-        else if (request.status === 'acknowledged') badgeClass = 'badge-info';
-        else if (request.status === 'pm_approved') badgeClass = 'badge-primary';
-        else if (request.status === 'rejected') badgeClass = 'badge-danger';
-
-        let actions = '';
-        if (request.actions.view_url) {
-            actions += `<a href="${request.actions.view_url}" class="btn btn-sm btn-info mr-1">
-                            <i class="fas fa-eye"></i> View
-                        </a>`;
-        }
-        if (request.actions.edit_url) {
-            actions += `<a href="${request.actions.edit_url}" class="btn btn-sm btn-warning mr-1">
-                            <i class="fas fa-edit"></i> Edit
-                        </a>`;
-        }
-
-        let row = `
-            <tr>
-                <td>${request.position_name}</td>
-                <td>${request.department_name}</td>
-                <td>${request.project_code}</td>
-                <td>${request.required_quantity}</td>
-                <td><span class="badge ${badgeClass}">${request.status.charAt(0).toUpperCase() + request.status.slice(1)}</span></td>
-                <td>${new Date(request.created_at).toLocaleDateString()}</td>
-                <td>${actions}</td>
-            </tr>
-        `;
-        tbody.append(row);
-    });
-
-    // Initialize DataTable for sorting and searching
-    if ($.fn.DataTable.isDataTable('#recruitment-requests-table')) {
-        $('#recruitment-requests-table').DataTable().destroy();
-    }
-
-    $('#recruitment-requests-table').DataTable({
-        pageLength: 25,
-        order: [[5, 'desc']],
-        columnDefs: [
-            { orderable: false, targets: [4, 6] }
-        ]
-    });
-}
-
-</script>
-@endsection
+                                                    @case('acknowledged')
+                                                        <span class="badge badge-info">Acknowledged</span>
+                                                    @break

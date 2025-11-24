@@ -32,126 +32,83 @@
                                 @endcan
                             </div>
                         </div>
-                    <div class="card-body">
-                        <div id="loading-table" class="text-center" style="display: none;">
-                            <div class="spinner-border text-primary" role="status">
-                                <span class="sr-only">Loading...</span>
+                        <div class="card-body">
+                            <table class="table table-bordered table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Travel Date</th>
+                                        <th>Destination</th>
+                                        <th>Purpose</th>
+                                        <th>Traveler</th>
+                                        <th>Role</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @forelse($travels as $travel)
+                                        <tr>
+                                            <td>{{ date('d M Y', strtotime($travel->official_travel_date)) }}</td>
+                                            <td>{{ $travel->destination }}</td>
+                                            <td>{{ Str::limit($travel->purpose, 50) }}</td>
+                                            <td>{{ $travel->traveler->employee->fullname ?? 'N/A' }}</td>
+                                            <td>
+                                                @if ($travel->traveler_id === Auth::user()->administration_id)
+                                                    <span class="badge badge-primary">Main Traveler</span>
+                                                @else
+                                                    <span class="badge badge-info">Follower</span>
+                                                @endif
+                                            </td>
+                                            <td>
+                                                @switch($travel->status)
+                                                    @case('draft')
+                                                        <span class="badge badge-secondary">Draft</span>
+                                                    @break
+
+                                                    @case('submitted')
+                                                        <span class="badge badge-info">Submitted</span>
+                                                    @break
+
+                                                    @case('approved')
+                                                        <span class="badge badge-success">Approved</span>
+                                                    @break
+
+                                                    @case('rejected')
+                                                        <span class="badge badge-danger">Rejected</span>
+                                                    @break
+
+                                                    @case('closed')
+                                                        <span class="badge badge-dark">Closed</span>
+                                                    @break
+
+                                                    @default
+                                                        <span class="badge badge-secondary">{{ ucfirst($travel->status) }}</span>
+                                                @endswitch
+                                            </td>
+                                            <td>
+                                                <a href="{{ route('officialtravels.show', $travel->id) }}"
+                                                    class="btn btn-sm btn-info mr-1">
+                                                    <i class="fas fa-eye"></i> View
+                                                </a>
+                                                @if ($travel->status === 'draft')
+                                                    <a href="{{ route('officialtravels.edit', $travel->id) }}"
+                                                        class="btn btn-sm btn-warning mr-1">
+                                                        <i class="fas fa-edit"></i> Edit
+                                                    </a>
+                                                @endif
+                                            </td>
+                                        </tr>
+                                        @empty
+                                            <tr>
+                                                <td colspan="7" class="text-center text-muted">No official travels found</td>
+                                            </tr>
+                                        @endforelse
+                                    </tbody>
+                                </table>
                             </div>
-                            <p>Loading official travels...</p>
                         </div>
-                        <div id="error-table" class="alert alert-danger" style="display: none;">
-                            Failed to load official travels data.
-                        </div>
-                        <table id="official-travels-table" class="table table-bordered table-striped" style="display: none;">
-                            <thead>
-                                <tr>
-                                    <th>Travel Date</th>
-                                    <th>Destination</th>
-                                    <th>Purpose</th>
-                                    <th>Traveler</th>
-                                    <th>Role</th>
-                                    <th>Status</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                            </tbody>
-                        </table>
-                    </div>
                     </div>
                 </div>
             </div>
-        </div>
-    </section>
-@endsection
-
-@section('scripts')
-<script>
-$(document).ready(function() {
-    loadOfficialTravels();
-});
-
-function loadOfficialTravels() {
-    $('#loading-table').show();
-    $('#official-travels-table').hide();
-    $('#error-table').hide();
-
-    $.ajax({
-        url: '{{ route("api.personal.official-travels") }}',
-        method: 'GET',
-        headers: {
-            'Accept': 'application/json',
-            'X-Requested-With': 'XMLHttpRequest'
-        },
-        success: function(response) {
-            $('#loading-table').hide();
-            populateTravelsTable(response.data);
-            $('#official-travels-table').show();
-        },
-        error: function(xhr, status, error) {
-            $('#loading-table').hide();
-            $('#error-table').show();
-            console.error('Official Travels API Error:', error);
-        }
-    });
-}
-
-function populateTravelsTable(data) {
-    let tbody = $('#official-travels-table tbody');
-    tbody.empty();
-
-    if (data.length === 0) {
-        tbody.append('<tr><td colspan="7" class="text-center text-muted">No official travels found</td></tr>');
-        return;
-    }
-
-    data.forEach(function(travel) {
-        let badgeClass = 'badge-secondary';
-        if (travel.status === 'approved') badgeClass = 'badge-success';
-        else if (travel.status === 'submitted') badgeClass = 'badge-info';
-        else if (travel.status === 'rejected') badgeClass = 'badge-danger';
-
-        let roleBadge = travel.role === 'Main Traveler' ? 'badge-primary' : 'badge-info';
-
-        let actions = '';
-        if (travel.actions.view_url) {
-            actions += `<a href="${travel.actions.view_url}" class="btn btn-sm btn-info mr-1">
-                            <i class="fas fa-eye"></i> View
-                        </a>`;
-        }
-        if (travel.actions.edit_url) {
-            actions += `<a href="${travel.actions.edit_url}" class="btn btn-sm btn-warning mr-1">
-                            <i class="fas fa-edit"></i> Edit
-                        </a>`;
-        }
-
-        let row = `
-            <tr>
-                <td>${travel.travel_date}</td>
-                <td>${travel.destination}</td>
-                <td>${travel.purpose}</td>
-                <td>${travel.traveler_name}</td>
-                <td><span class="badge ${roleBadge}">${travel.role}</span></td>
-                <td><span class="badge ${badgeClass}">${travel.status.charAt(0).toUpperCase() + travel.status.slice(1)}</span></td>
-                <td>${actions}</td>
-            </tr>
-        `;
-        tbody.append(row);
-    });
-
-    // Initialize DataTable for sorting and searching
-    if ($.fn.DataTable.isDataTable('#official-travels-table')) {
-        $('#official-travels-table').DataTable().destroy();
-    }
-
-    $('#official-travels-table').DataTable({
-        pageLength: 25,
-        order: [[0, 'desc']],
-        columnDefs: [
-            { orderable: false, targets: [4, 5, 6] }
-        ]
-    });
-}
-
-</script>
-@endsection
+        </section>
+    @endsection

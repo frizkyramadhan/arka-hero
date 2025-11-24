@@ -91,6 +91,14 @@ Route::prefix('employee-registration')->group(function () {
     Route::get('/{token}/success', [EmployeeRegistrationController::class, 'success'])->name('employee.registration.success');
 })->middleware(['throttle:10,1']); // Rate limiting
 
+// Root route for dashboard - direct redirect to avoid caching issues
+Route::get('/', function () {
+    if (auth()->check() && auth()->user()->hasRole('user')) {
+        return redirect()->route('dashboard.personal');
+    }
+    return redirect()->route('dashboard.employees');
+})->name('dashboard');
+
 Route::group(['middleware' => ['auth']], function () {
     // Route::get('/', [ProfileController::class, 'dashboard'])->name('dashboard');
     Route::get('dashboard/getHobpn', [ProfileController::class, 'getHobpn'])->name('hobpn.list');
@@ -217,16 +225,25 @@ Route::group(['middleware' => ['auth']], function () {
     Route::resource('religions', ReligionController::class)->except(['show', 'create', 'edit']);
 
     Route::get('projects/data', [ProjectController::class, 'getProjects'])->name('projects.data');
-    Route::resource('projects', ProjectController::class)->except(['show', 'create', 'edit']);
+    Route::get('projects', [ProjectController::class, 'index'])->name('web.projects.index');
+    Route::post('projects', [ProjectController::class, 'store'])->name('web.projects.store');
+    Route::put('projects/{project}', [ProjectController::class, 'update'])->name('web.projects.update');
+    Route::delete('projects/{project}', [ProjectController::class, 'destroy'])->name('web.projects.destroy');
 
     Route::get('departments/data', [DepartmentController::class, 'getDepartments'])->name('departments.data');
     Route::post('departments/import', [DepartmentController::class, 'import'])->name('departments.import');
-    Route::resource('departments', DepartmentController::class)->except(['show', 'create', 'edit']);
+    Route::get('departments', [DepartmentController::class, 'index'])->name('web.departments.index');
+    Route::post('departments', [DepartmentController::class, 'store'])->name('web.departments.store');
+    Route::put('departments/{department}', [DepartmentController::class, 'update'])->name('web.departments.update');
+    Route::delete('departments/{department}', [DepartmentController::class, 'destroy'])->name('web.departments.destroy');
 
     Route::get('positions/data', [PositionController::class, 'getPositions'])->name('positions.data');
     Route::post('positions/import', [PositionController::class, 'import'])->name('positions.import');
     Route::get('positions/export', [PositionController::class, 'export'])->name('positions.export');
-    Route::resource('positions', PositionController::class)->except(['show', 'create', 'edit']);
+    Route::get('positions', [PositionController::class, 'index'])->name('web.positions.index');
+    Route::post('positions', [PositionController::class, 'store'])->name('web.positions.store');
+    Route::put('positions/{position}', [PositionController::class, 'update'])->name('web.positions.update');
+    Route::delete('positions/{position}', [PositionController::class, 'destroy'])->name('web.positions.destroy');
 
     Route::get('grades/data', [GradeController::class, 'getGrades'])->name('grades.data');
     Route::post('grades/status/{id}', [GradeController::class, 'changeStatus'])->name('grades.status');
@@ -302,12 +319,12 @@ Route::group(['middleware' => ['auth']], function () {
     });
 
     // EMPLOYEE REGISTRATION ADMIN ROUTES
-    Route::prefix('employee-registrations')->name('employee.registration.admin.')->group(function () {
+    Route::prefix('employee-registrations')->group(function () {
         Route::get('/', [EmployeeRegistrationAdminController::class, 'index'])->name('index');
         Route::get('/pending', [EmployeeRegistrationAdminController::class, 'getPendingRegistrations'])->name('pending');
         Route::get('/tokens', [EmployeeRegistrationAdminController::class, 'getTokens'])->name('tokens');
-        Route::get('/invite', [EmployeeRegistrationAdminController::class, 'showInviteForm'])->name('invite');
-        Route::post('/invite', [EmployeeRegistrationAdminController::class, 'invite'])->name('invite');
+        Route::get('/invite', [EmployeeRegistrationAdminController::class, 'showInviteForm'])->name('invite.form');
+        Route::post('/invite', [EmployeeRegistrationAdminController::class, 'invite'])->name('invite.process');
         Route::post('/bulk-invite', [EmployeeRegistrationAdminController::class, 'bulkInvite'])->name('bulk-invite');
         Route::post('/tokens/{tokenId}/resend', [EmployeeRegistrationAdminController::class, 'resendInvitation'])->name('resend');
         Route::delete('/tokens/{tokenId}', [EmployeeRegistrationAdminController::class, 'deleteToken'])->name('delete-token');
