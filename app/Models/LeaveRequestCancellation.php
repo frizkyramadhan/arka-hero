@@ -118,9 +118,7 @@ class LeaveRequestCancellation extends Model
             // Reduce taken days by the cancelled amount
             $entitlement->taken_days -= $this->days_to_cancel;
 
-            // Recalculate remaining days
-            $entitlement->remaining_days = $entitlement->withdrawable_days - $entitlement->taken_days;
-
+            // remaining_days is now calculated via accessor, no need to update manually
             $entitlement->save();
         }
     }

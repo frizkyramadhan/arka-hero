@@ -1204,7 +1204,19 @@ class RecruitmentRequestController extends Controller
     /**
      * Display user's own recruitment requests
      */
-    public function myRequests(Request $request)
+    public function myRequests()
+    {
+        $this->authorize('personal.recruitment.view-own');
+
+        $title = 'My Recruitment Requests';
+
+        return view('recruitment.my-requests', compact('title'));
+    }
+
+    /**
+     * Get data for user's own recruitment requests DataTable
+     */
+    public function myRequestsData(Request $request)
     {
         $this->authorize('personal.recruitment.view-own');
 
@@ -1215,24 +1227,62 @@ class RecruitmentRequestController extends Controller
             ->select('recruitment_requests.*')
             ->orderBy('created_at', 'desc');
 
-        // Apply status filter if provided
+        // Apply status filter
         if ($request->filled('status')) {
             $query->where('status', $request->status);
         }
 
-        $recruitmentRequests = $query->get();
+        // Apply date filters
+        if ($request->filled('start_date')) {
+            $query->whereDate('created_at', '>=', $request->start_date);
+        }
 
-        return view('recruitment.requests.my-requests', [
-            'title' => 'My Recruitment Requests',
-            'subtitle' => 'Recruitment Requests I Created',
-            'recruitmentRequests' => $recruitmentRequests,
-            'statusFilter' => $request->get('status', '')
-        ]);
+        if ($request->filled('end_date')) {
+            $query->whereDate('created_at', '<=', $request->end_date);
+        }
+
+        return datatables()->of($query)
+            ->addIndexColumn()
+            ->addColumn('position_name', function ($row) {
+                return $row->position->position_name ?? 'N/A';
+            })
+            ->addColumn('department_name', function ($row) {
+                return $row->department->department_name ?? 'N/A';
+            })
+            ->addColumn('project_code', function ($row) {
+                return $row->project->project_code ?? 'N/A';
+            })
+            ->addColumn('required_quantity', function ($row) {
+                return $row->required_quantity;
+            })
+            ->addColumn('status_badge', function ($row) {
+                $badges = [
+                    'draft' => '<span class="badge badge-secondary">Draft</span>',
+                    'acknowledged' => '<span class="badge badge-info">Acknowledged</span>',
+                    'pm_approved' => '<span class="badge badge-primary">PM Approved</span>',
+                    'approved' => '<span class="badge badge-success">Approved</span>',
+                    'rejected' => '<span class="badge badge-danger">Rejected</span>',
+                    'cancelled' => '<span class="badge badge-dark">Cancelled</span>',
+                ];
+                return $badges[$row->status] ?? '<span class="badge badge-secondary">Unknown</span>';
+            })
+            ->addColumn('requested_at', function ($row) {
+                return $row->created_at ? $row->created_at->format('Y-m-d') : 'N/A';
+            })
+            ->addColumn('action', function ($row) {
+                $btn = '<a href="' . route('recruitment.requests.show', $row->id) . '" class="btn btn-sm btn-info mr-1">
+                            <i class="fas fa-eye"></i> View
+                        </a>';
+
+                if ($row->status === 'draft') {
+                    $btn .= '<a href="' . route('recruitment.requests.edit', $row->id) . '" class="btn btn-sm btn-warning mr-1">
+                                <i class="fas fa-edit"></i> Edit
+                            </a>';
+                }
+
+                return $btn;
+            })
+            ->rawColumns(['status_badge', 'action'])
+            ->make(true);
     }
-
-
-    // ========================================
-    // API METHODS FOR PERSONAL FEATURES
-    // ========================================
-
 }

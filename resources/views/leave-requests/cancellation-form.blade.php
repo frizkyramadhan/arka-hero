@@ -11,10 +11,23 @@
                 </div>
                 <div class="col-sm-6">
                     <ol class="breadcrumb float-sm-right">
+                        @php
+                            // Determine routes based on route asal, bukan permission
+                            // Jika dari my-requests.cancellation-form, gunakan my-requests routes
+                            // Jika dari cancellation-form, gunakan leave.requests routes
+                            $isFromMyRequests = request()->routeIs('leave.my-requests.cancellation-form');
+
+                            $listRoute = $isFromMyRequests ? route('leave.my-requests') : route('leave.requests.index');
+                            $showRoute = $isFromMyRequests
+                                ? route('leave.my-requests.show', $leaveRequest)
+                                : route('leave.requests.show', $leaveRequest);
+                            $cancellationRoute = $isFromMyRequests
+                                ? route('leave.my-requests.cancellation', $leaveRequest)
+                                : route('leave.requests.cancellation', $leaveRequest);
+                        @endphp
                         <li class="breadcrumb-item"><a href="{{ route('dashboard') }}">Home</a></li>
-                        <li class="breadcrumb-item"><a href="{{ route('leave.requests.index') }}">Leave Requests</a></li>
-                        <li class="breadcrumb-item"><a href="{{ route('leave.requests.show', $leaveRequest) }}">Details</a>
-                        </li>
+                        <li class="breadcrumb-item"><a href="{{ $listRoute }}">Leave Requests</a></li>
+                        <li class="breadcrumb-item"><a href="{{ $showRoute }}">Details</a></li>
                         <li class="breadcrumb-item active">Cancellation</li>
                     </ol>
                 </div>
@@ -33,7 +46,24 @@
                                 <strong>Cancellation Request Form</strong>
                             </h3>
                         </div>
-                        <form method="POST" action="{{ route('leave.requests.cancellation', $leaveRequest) }}">
+                        @php
+                            // Determine routes based on route asal, bukan permission
+                            // Jika dari my-requests.cancellation-form, gunakan my-requests routes
+                            // Jika dari cancellation-form, gunakan leave.requests routes
+                            $isFromMyRequests = request()->routeIs('leave.my-requests.cancellation-form');
+
+                            $cancellationRoute = $isFromMyRequests
+                                ? route('leave.my-requests.cancellation', $leaveRequest)
+                                : route('leave.requests.cancellation', $leaveRequest);
+                            $showRoute = $isFromMyRequests
+                                ? route('leave.my-requests.show', $leaveRequest)
+                                : route('leave.requests.show', $leaveRequest);
+
+                            // Calculate available days to cancel
+                            $totalCancelledDays = $leaveRequest->getTotalCancelledDays();
+                            $availableDaysToCancel = $leaveRequest->total_days - $totalCancelledDays;
+                        @endphp
+                        <form method="POST" action="{{ $cancellationRoute }}">
                             @csrf
                             <div class="card-body">
                                 <!-- Leave Request Information -->
@@ -74,6 +104,23 @@
                                                                     <span class="info-value">{{ $leaveRequest->total_days }}
                                                                         day{{ $leaveRequest->total_days > 1 ? 's' : '' }}</span>
                                                                 </div>
+                                                                @if ($totalCancelledDays > 0)
+                                                                    <div class="info-item mb-1">
+                                                                        <span class="info-label">Cancelled Days:</span>
+                                                                        <span class="info-value text-warning">
+                                                                            {{ $totalCancelledDays }}
+                                                                            day{{ $totalCancelledDays > 1 ? 's' : '' }}
+                                                                        </span>
+                                                                    </div>
+                                                                    <div class="info-item mb-1">
+                                                                        <span class="info-label">Available to Cancel:</span>
+                                                                        <span
+                                                                            class="info-value text-success font-weight-bold">
+                                                                            {{ $availableDaysToCancel }}
+                                                                            day{{ $availableDaysToCancel > 1 ? 's' : '' }}
+                                                                        </span>
+                                                                    </div>
+                                                                @endif
                                                                 <div class="info-item mb-1">
                                                                     <span class="info-label">Status:</span>
                                                                     <span
@@ -101,27 +148,43 @@
                                                 <i class="fas fa-calendar-times mr-1"></i>
                                                 Days to Cancel <span class="text-danger">*</span>
                                             </label>
-                                            <select class="form-control @error('days_to_cancel') is-invalid @enderror"
-                                                name="days_to_cancel" id="days_to_cancel" required>
-                                                <option value="">Select number of days to cancel</option>
-                                                @for ($i = 1; $i <= $leaveRequest->total_days; $i++)
-                                                    <option value="{{ $i }}"
-                                                        {{ old('days_to_cancel') == $i ? 'selected' : '' }}>
-                                                        {{ $i }} day{{ $i > 1 ? 's' : '' }}
-                                                        @if ($i == $leaveRequest->total_days)
-                                                            (Full cancellation)
-                                                        @else
-                                                            (Partial cancellation - {{ $leaveRequest->total_days - $i }}
-                                                            day{{ $leaveRequest->total_days - $i > 1 ? 's' : '' }}
-                                                            remaining)
-                                                        @endif
-                                                    </option>
-                                                @endfor
-                                            </select>
+                                            @if ($availableDaysToCancel > 0)
+                                                <select class="form-control @error('days_to_cancel') is-invalid @enderror"
+                                                    name="days_to_cancel" id="days_to_cancel" required>
+                                                    <option value="">Select number of days to cancel</option>
+                                                    @for ($i = 1; $i <= $availableDaysToCancel; $i++)
+                                                        <option value="{{ $i }}"
+                                                            {{ old('days_to_cancel') == $i ? 'selected' : '' }}>
+                                                            {{ $i }} day{{ $i > 1 ? 's' : '' }}
+                                                            @if ($i == $availableDaysToCancel)
+                                                                (Full cancellation)
+                                                            @else
+                                                                (Partial cancellation - {{ $availableDaysToCancel - $i }}
+                                                                day{{ $availableDaysToCancel - $i > 1 ? 's' : '' }}
+                                                                remaining)
+                                                            @endif
+                                                        </option>
+                                                    @endfor
+                                                </select>
+                                            @else
+                                                <div class="alert alert-warning">
+                                                    <i class="fas fa-exclamation-triangle"></i>
+                                                    All days have already been cancelled. No days available for
+                                                    cancellation.
+                                                </div>
+                                            @endif
                                             @error('days_to_cancel')
                                                 <div class="invalid-feedback">{{ $message }}</div>
                                             @enderror
                                             <small class="form-text text-muted">
+                                                @if ($totalCancelledDays > 0)
+                                                    <strong>Note:</strong> You have already cancelled
+                                                    {{ $totalCancelledDays }} day{{ $totalCancelledDays > 1 ? 's' : '' }}
+                                                    from this leave request.
+                                                    <br>Available days to cancel: <strong>{{ $availableDaysToCancel }}
+                                                        day{{ $availableDaysToCancel > 1 ? 's' : '' }}</strong>
+                                                    <br>
+                                                @endif
                                                 <strong>Partial Cancellation:</strong> You can cancel part or all of your
                                                 approved leave, even if the leave has already started.
                                                 Cancelled days will be returned to your leave entitlement.
@@ -153,12 +216,17 @@
                                 <div class="row">
                                     <div class="col-md-12">
                                         <div class="form-group">
-                                            <button type="submit" class="btn btn-danger"
-                                                onclick="return confirm('Are you sure you want to submit this cancellation request?')">
-                                                <i class="fas fa-paper-plane"></i> Submit Cancellation Request
-                                            </button>
-                                            <a href="{{ route('leave.requests.show', $leaveRequest) }}"
-                                                class="btn btn-secondary ml-2">
+                                            @if ($availableDaysToCancel > 0)
+                                                <button type="submit" class="btn btn-danger"
+                                                    onclick="return confirm('Are you sure you want to submit this cancellation request?')">
+                                                    <i class="fas fa-paper-plane"></i> Submit Cancellation Request
+                                                </button>
+                                            @else
+                                                <button type="button" class="btn btn-danger" disabled>
+                                                    <i class="fas fa-ban"></i> No Days Available to Cancel
+                                                </button>
+                                            @endif
+                                            <a href="{{ $showRoute }}" class="btn btn-secondary ml-2">
                                                 <i class="fas fa-times"></i> Cancel
                                             </a>
                                         </div>

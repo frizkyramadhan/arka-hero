@@ -22,10 +22,62 @@ class LeaveRequestController extends Controller
 {
     public function __construct()
     {
-        $this->middleware('permission:leave-requests.show')->only('index', 'show', 'data', 'download', 'getProjectInfo', 'getLeavePeriod', 'getEmployeeLeaveBalance', 'getLeaveTypeInfo', 'getEmployeesByProject', 'getLeaveTypesByEmployee');
-        $this->middleware('permission:leave-requests.create')->only('create', 'store', 'upload');
-        $this->middleware('permission:leave-requests.edit')->only('edit', 'update', 'deleteDocument');
-        $this->middleware('permission:leave-requests.delete')->only('destroy', 'showCancellationForm', 'storeCancellation', 'approveCancellation', 'rejectCancellation', 'close');
+        // ========================================
+        // ADMIN/HR PERMISSIONS
+        // ========================================
+        // These permissions are for admin/HR roles (administrator, hr-manager, hr-supervisor, hr-staff)
+        // They can manage ALL leave requests across the organization
+
+        // View all leave requests (index, data, download)
+        $this->middleware('permission:leave-requests.show')->only('index', 'data', 'download');
+
+        // Create leave requests for any employee
+        $this->middleware('permission:leave-requests.create')->only('create', 'store');
+
+        // Edit any leave request
+        $this->middleware('permission:leave-requests.edit')->only('edit', 'update', 'deleteDocument', 'upload');
+
+        // Delete/cancel any leave request and manage cancellations
+        // Note: showCancellationForm and storeCancellation are dual access methods (see below)
+        $this->middleware('permission:leave-requests.delete')->only('destroy', 'approveCancellation', 'rejectCancellation', 'close');
+
+        // AJAX methods for admin (project info, employees by project)
+        // Note: getLeaveTypeInfo is handled as dual access method (see below)
+        $this->middleware('permission:leave-requests.show')->only('getProjectInfo', 'getEmployeesByProject');
+
+        // ========================================
+        // PERSONAL/USER PERMISSIONS
+        // ========================================
+        // These permissions are for regular users (user role)
+        // They can only manage their OWN leave requests
+
+        // View own leave requests
+        $this->middleware('permission:personal.leave.view-own')->only('myRequests', 'myRequestsData', 'myRequestsShow');
+
+        // Create own leave requests
+        // Note: getLeaveTypeInfo is handled as dual access method (see below)
+        $this->middleware('permission:personal.leave.create-own')->only('myRequestsCreate', 'myRequestsStore', 'getLeaveTypesByEmployee', 'getLeavePeriod', 'getEmployeeLeaveBalance');
+
+        // Edit own leave requests
+        // Note: getLeaveTypeInfo is handled as dual access method (see below)
+        $this->middleware('permission:personal.leave.edit-own')->only('myRequestsEdit', 'myRequestsUpdate');
+
+        // View own entitlements
+        $this->middleware('permission:personal.leave.view-entitlements')->only('myEntitlements');
+
+        // ========================================
+        // METHODS WITH DUAL PERMISSION ACCESS
+        // ========================================
+        // These methods can be accessed by BOTH admin and personal users
+        // Permission checks are handled manually within the methods:
+        // - show() - admin can see all, personal can see own
+        // - edit() - admin can edit all, personal can edit own (if has personal.leave.edit-own)
+        // - update() - admin can update all, personal can update own (if has personal.leave.edit-own)
+        // - store() - admin can create for anyone, personal can create for self
+        // - showCancellationForm() - admin can cancel any, personal can cancel own (if has personal.leave.cancel-own)
+        // - storeCancellation() - admin can cancel any, personal can cancel own (if has personal.leave.cancel-own)
+        // - getLeaveTypeInfo() - admin can access with leave-requests.show, personal can access with personal.leave.create-own or personal.leave.edit-own
+        // Note: These methods are NOT in middleware to allow dual access
     }
     /**
      * Display a listing of the resource.
@@ -167,9 +219,18 @@ class LeaveRequestController extends Controller
 
     /**
      * Show the form for creating a new resource.
+     *
+     * ADMIN/HR: Can create leave requests for any employee (permission: leave-requests.create)
+     * PERSONAL/USER: Can create leave requests for themselves (permission: personal.leave.create-own)
+     *
+     * Note: This method is protected by middleware 'permission:leave-requests.create'
+     * Personal users should use myRequestsCreate() instead
      */
     public function create(Request $request)
     {
+        // This method is for admin/HR only (protected by middleware)
+        // Personal users should use myRequestsCreate() which is protected by 'personal.leave.create-own'
+
         $leaveTypes = LeaveType::where('is_active', true)->orderBy('code', 'asc')->get();
 
         // Get all active projects for project selection
@@ -187,9 +248,27 @@ class LeaveRequestController extends Controller
 
     /**
      * Store a newly created resource in storage.
+     *
+     * ADMIN/HR: Can create leave requests for any employee (permission: leave-requests.create)
+     * PERSONAL/USER: Can create leave requests for themselves (permission: personal.leave.create-own)
+     *
+     * Note: This method can be called by both admin (via create form) and personal users (via myRequestsStore)
      */
     public function store(Request $request)
     {
+        /** @var \App\Models\User $user */
+        $user = auth()->user();
+
+        // Check if user has either admin or personal permission
+        if (!$user->can('leave-requests.create') && !$user->can('personal.leave.create-own')) {
+            abort(403, 'Unauthorized action. You do not have permission to create leave requests.');
+        }
+
+        // If personal user (has personal permission but not admin permission), force employee_id to their own
+        if ($user->can('personal.leave.create-own') && !$user->can('leave-requests.create')) {
+            $request->merge(['employee_id' => $user->employee_id]);
+        }
+
         // Get leave type to determine if reason is required
         $leaveType = LeaveType::find($request->leave_type_id);
         $isUnpaidLeave = $leaveType && (
@@ -244,7 +323,14 @@ class LeaveRequestController extends Controller
         ]);
 
         // Get total days from request (either calculated or manually entered)
-        $totalDays = $request->total_days;
+        $totalDays = $request->total_days ?? 0;
+
+        // Validate total_days is present
+        if (!$totalDays || $totalDays <= 0) {
+            return back()->with([
+                'total_days' => 'Total days is required and must be greater than 0.'
+            ])->withInput();
+        }
 
         // Handle LSL flexible calculation
         $takenDays = $totalDays; // Default value
@@ -423,6 +509,13 @@ class LeaveRequestController extends Controller
                 $successMessage = 'Roster leave request submitted successfully.';
             }
 
+            // Jika request berasal dari my requests (misal dari route my-requests.store), redirect ke my-requests,
+            // walaupun yang akses admin/HR. Kalau tidak, tetap ke leave.requests.index.
+            if ($request->route() && in_array($request->route()->getName(), ['leave.my-requests.store', 'leave.my-requests.update', 'leave.my-requests'])) {
+                return redirect()->route('leave.my-requests')
+                    ->with('toast_success', $successMessage);
+            }
+
             return redirect()->route('leave.requests.index')
                 ->with('toast_success', $successMessage);
         } catch (\Exception $e) {
@@ -443,9 +536,29 @@ class LeaveRequestController extends Controller
 
     /**
      * Display the specified resource.
+     *
+     * ADMIN/HR: Can view any leave request (permission: leave-requests.show)
+     * PERSONAL/USER: Can only view their own leave requests (permission: personal.leave.view-own)
+     *
+     * Note: This method is NOT protected by middleware to allow dual access
      */
     public function show(LeaveRequest $leaveRequest)
     {
+        /** @var \App\Models\User $user */
+        $user = auth()->user();
+
+        // Check if user has either admin or personal permission
+        if (!$user->can('leave-requests.show') && !$user->can('personal.leave.view-own')) {
+            abort(403, 'Unauthorized action. You do not have permission to view leave requests.');
+        }
+
+        // If personal user (has personal permission but not admin permission), ensure they can only view their own
+        if ($user->can('personal.leave.view-own') && !$user->can('leave-requests.show')) {
+            if ($leaveRequest->employee_id !== $user->employee_id) {
+                abort(403, 'You can only view your own leave requests.');
+            }
+        }
+
         $leaveRequest->load([
             'employee.administrations.project',
             'employee.administrations.position',
@@ -461,12 +574,35 @@ class LeaveRequestController extends Controller
 
     /**
      * Show the form for editing the specified resource.
+     *
+     * ADMIN/HR: Can edit any leave request (permission: leave-requests.edit)
+     * PERSONAL/USER: Can only edit their own leave requests (permission: personal.leave.edit-own)
+     *
+     * Note: This method is NOT protected by middleware to allow dual access
      */
     public function edit(LeaveRequest $leaveRequest)
     {
-        // if (!$leaveRequest->canBeCancelled()) {
-        //     return back()->with(['toast_error' => 'This leave request cannot be edited.']);
-        // }
+        /** @var \App\Models\User $user */
+        $user = auth()->user();
+
+        // Check if user has either admin or personal permission
+        if (!$user->can('leave-requests.edit') && !$user->can('personal.leave.edit-own')) {
+            abort(403, 'Unauthorized action. You do not have permission to edit leave requests.');
+        }
+
+        // If personal user (has personal permission but not admin permission), ensure they can only edit their own
+        if ($user->can('personal.leave.edit-own') && !$user->can('leave-requests.edit')) {
+            if ($leaveRequest->employee_id !== $user->employee_id) {
+                abort(403, 'You can only edit your own leave requests.');
+            }
+
+            // Personal users can only edit leave requests that are not yet approved
+            // Allowed statuses: 'draft', 'pending'
+            // Not allowed: 'approved', 'rejected', 'cancelled', 'closed', 'auto_approved'
+            if (!in_array($leaveRequest->status, ['draft', 'pending'])) {
+                return back()->with(['toast_error' => 'You can only edit leave requests that are not yet approved.']);
+            }
+        }
 
         // Load leave types for leave type selection
         $leaveTypes = LeaveType::where('is_active', true)->orderBy('code', 'asc')->get();
@@ -482,9 +618,39 @@ class LeaveRequestController extends Controller
 
     /**
      * Update the specified resource in storage.
+     *
+     * ADMIN/HR: Can update any leave request (permission: leave-requests.edit)
+     * PERSONAL/USER: Can only update their own leave requests (permission: personal.leave.edit-own)
+     *
+     * Note: This method is NOT protected by middleware to allow dual access
      */
     public function update(Request $request, LeaveRequest $leaveRequest)
     {
+        /** @var \App\Models\User $user */
+        $user = auth()->user();
+
+        // Check if user has either admin or personal permission
+        if (!$user->can('leave-requests.edit') && !$user->can('personal.leave.edit-own')) {
+            abort(403, 'Unauthorized action. You do not have permission to update leave requests.');
+        }
+
+        // If personal user (has personal permission but not admin permission), ensure they can only update their own
+        if ($user->can('personal.leave.edit-own') && !$user->can('leave-requests.edit')) {
+            if ($leaveRequest->employee_id !== $user->employee_id) {
+                abort(403, 'You can only update your own leave requests.');
+            }
+
+            // Personal users can only update leave requests that are not yet approved
+            // Allowed statuses: 'draft', 'pending'
+            // Not allowed: 'approved', 'rejected', 'cancelled', 'closed', 'auto_approved'
+            if (!in_array($leaveRequest->status, ['draft', 'pending'])) {
+                return back()->with(['toast_error' => 'You can only update leave requests that are not yet approved.']);
+            }
+
+            // Force employee_id to current user's employee_id to prevent tampering
+            $request->merge(['employee_id' => $user->employee_id]);
+        }
+
         // if (!$leaveRequest->canBeCancelled()) {
         //     return back()->with(['toast_error' => 'This leave request cannot be updated.']);
         // }
@@ -539,9 +705,16 @@ class LeaveRequestController extends Controller
         // Handle LSL flexible calculation
         $employeeId = $request->employee_id;
         $leaveTypeId = $request->leave_type_id;
-        $totalDays = $request->total_days;
+        $totalDays = $request->total_days ?? 0;
         $takenDays = $totalDays; // Default value
         $cashoutDays = 0; // Default value
+
+        // Validate total_days is present
+        if (!$totalDays || $totalDays <= 0) {
+            return back()->with([
+                'total_days' => 'Total days is required and must be greater than 0.'
+            ])->withInput();
+        }
 
         if ($isLSL) {
             // Get taken days from manual input or use total_days as fallback
@@ -562,6 +735,9 @@ class LeaveRequestController extends Controller
                     'lsl_cashout_days' => 'Cash out days cannot exceed total days.'
                 ])->withInput();
             }
+
+            // Merge calculated total_days into request
+            $request->merge(['total_days' => $totalDays]);
         }
 
         $leaveEntitlement = LeaveEntitlement::where('employee_id', $employeeId)
@@ -648,6 +824,14 @@ class LeaveRequestController extends Controller
 
             DB::commit();
 
+            // Samakan dengan function store: jika request.route adalah my-requests.update, redirect ke my-requests WALAU yang akses admin/HR
+            /** @var \App\Models\User $user */
+            $user = auth()->user();
+            if ($request->route() && in_array($request->route()->getName(), ['leave.my-requests.update', 'leave.my-requests.edit', 'leave.my-requests'])) {
+                return redirect()->route('leave.my-requests')
+                    ->with('toast_success', 'Leave request updated successfully.');
+            }
+
             return redirect()->route('leave.requests.show', $leaveRequest)
                 ->with('toast_success', 'Leave request updated successfully.');
         } catch (\Exception $e) {
@@ -658,9 +842,24 @@ class LeaveRequestController extends Controller
 
     /**
      * Download supporting document
+     *
+     * ADMIN/HR: Can download any leave request document (permission: leave-requests.show)
+     * PERSONAL/USER: Can only download their own leave request documents (permission: personal.leave.view-own)
+     *
+     * Note: Protected by middleware 'permission:leave-requests.show' for admin
+     * Personal users need manual check
      */
     public function download(LeaveRequest $leaveRequest)
     {
+        $user = auth()->user();
+
+        // If personal user (has personal permission but not admin permission), ensure they can only download their own
+        if ($user->can('personal.leave.view-own') && !$user->can('leave-requests.show')) {
+            if ($leaveRequest->employee_id !== $user->employee_id) {
+                abort(403, 'You can only download your own leave request documents.');
+            }
+        }
+
         if (!$leaveRequest->supporting_document) {
             abort(404, 'Document not found');
         }
@@ -676,9 +875,24 @@ class LeaveRequestController extends Controller
 
     /**
      * Delete supporting document
+     *
+     * ADMIN/HR: Can delete any leave request document (permission: leave-requests.edit)
+     * PERSONAL/USER: Can only delete their own leave request documents (permission: personal.leave.edit-own)
+     *
+     * Note: Protected by middleware 'permission:leave-requests.edit' for admin
+     * Personal users need manual check
      */
     public function deleteDocument(LeaveRequest $leaveRequest)
     {
+        $user = auth()->user();
+
+        // If personal user (has personal permission but not admin permission), ensure they can only delete their own
+        if ($user->can('personal.leave.edit-own') && !$user->can('leave-requests.edit')) {
+            if ($leaveRequest->employee_id !== $user->employee_id) {
+                abort(403, 'You can only delete your own leave request documents.');
+            }
+        }
+
         if (!$leaveRequest->supporting_document) {
             return back()->with(['toast_error' => 'No document found to delete.']);
         }
@@ -705,9 +919,24 @@ class LeaveRequestController extends Controller
 
     /**
      * Upload supporting document
+     *
+     * ADMIN/HR: Can upload documents for any leave request (permission: leave-requests.edit)
+     * PERSONAL/USER: Can only upload documents for their own leave requests (permission: personal.leave.edit-own)
+     *
+     * Note: Protected by middleware 'permission:leave-requests.edit' for admin
+     * Personal users need manual check
      */
     public function upload(Request $request, LeaveRequest $leaveRequest)
     {
+        $user = auth()->user();
+
+        // If personal user (has personal permission but not admin permission), ensure they can only upload for their own
+        if ($user->can('personal.leave.edit-own') && !$user->can('leave-requests.edit')) {
+            if ($leaveRequest->employee_id !== $user->employee_id) {
+                abort(403, 'You can only upload documents for your own leave requests.');
+            }
+        }
+
         // Check if leave request can have documents uploaded
         if (in_array($leaveRequest->status, ['closed', 'cancelled'])) {
             return back()->with(['toast_error' => 'Cannot upload document for closed or cancelled leave requests.']);
@@ -739,18 +968,26 @@ class LeaveRequestController extends Controller
         }
     }
 
+    /**
+     * Delete/Cancel leave request
+     *
+     * ADMIN/HR: Can delete/cancel any leave request (permission: leave-requests.delete)
+     * PERSONAL/USER: Can cancel their own leave requests (permission: personal.leave.cancel-own)
+     *
+     * Note: Protected by middleware 'permission:leave-requests.delete' for admin
+     * Personal users should use cancellation form instead
+     */
     public function destroy(LeaveRequest $leaveRequest)
     {
-        // if (!$leaveRequest->canBeCancelled()) {
-        //     return back()->with(['toast_error' => 'This leave request cannot be cancelled.']);
-        // }
+        // This method is primarily for admin/HR (protected by middleware)
+        // Personal users should use showCancellationForm() and storeCancellation() instead
 
         // Delete supporting document and folder
         $this->deleteSupportingDocument($leaveRequest);
 
         $leaveRequest->cancel();
 
-        return redirect()->route('leave-requests.index')
+        return redirect()->route('leave.requests.index')
             ->with('toast_success', 'Leave request cancelled successfully.');
     }
 
@@ -808,6 +1045,17 @@ class LeaveRequestController extends Controller
      */
     public function getLeaveTypesByEmployee($employeeId)
     {
+        // Check if user is accessing their own data or has admin permission
+        $user = Auth::user();
+        $isPersonalUser = $user->can('personal.leave.create-own') && !$user->can('leave-requests.show');
+
+        if ($isPersonalUser && $user->employee_id !== $employeeId) {
+            return response()->json([
+                'success' => false,
+                'message' => 'You can only view your own leave types'
+            ], 403);
+        }
+
         $today = now()->toDateString();
 
         $entitlements = LeaveEntitlement::where('employee_id', $employeeId)
@@ -815,12 +1063,17 @@ class LeaveRequestController extends Controller
             ->where('period_start', '<=', $today)
             ->where('period_end', '>=', $today)
             ->with(['leaveType' => function ($query) {
-                $query->orderBy('code', 'asc');
+                $query->where('is_active', 1)->orderBy('code', 'asc');
             }])
             ->join('leave_types', 'leave_entitlements.leave_type_id', '=', 'leave_types.id')
+            ->where('leave_types.is_active', 1) // Only show active leave types
             ->orderBy('leave_types.code', 'asc')
             ->select('leave_entitlements.*')
             ->get()
+            ->filter(function ($entitlement) {
+                // Additional filter: ensure leaveType relationship exists and is active
+                return $entitlement->leaveType && $entitlement->leaveType->is_active;
+            })
             ->map(function ($entitlement) {
                 return [
                     'leave_type_id' => $entitlement->leave_type_id,
@@ -858,6 +1111,17 @@ class LeaveRequestController extends Controller
 
     public function getLeavePeriod($employeeId, $leaveTypeId)
     {
+        // Check if user is accessing their own data or has admin permission
+        $user = Auth::user();
+        $isPersonalUser = $user->can('personal.leave.create-own') && !$user->can('leave-requests.show');
+
+        if ($isPersonalUser && $user->employee_id !== $employeeId) {
+            return response()->json([
+                'success' => false,
+                'message' => 'You can only view your own leave period'
+            ], 403);
+        }
+
         $today = now()->toDateString();
 
         $leaveEntitlement = LeaveEntitlement::where('employee_id', $employeeId)
@@ -917,6 +1181,18 @@ class LeaveRequestController extends Controller
     {
         try {
             $employee = Employee::findOrFail($employeeId);
+
+            // Check if user is accessing their own data or has admin permission
+            $user = Auth::user();
+            $isPersonalUser = $user->can('personal.leave.create-own') && !$user->can('leave-requests.show');
+
+            if ($isPersonalUser && $user->employee_id !== $employeeId) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'You can only view your own leave balance'
+                ], 403);
+            }
+
             $today = now()->toDateString();
 
             $leaveEntitlements = LeaveEntitlement::where('employee_id', $employeeId)
@@ -965,6 +1241,12 @@ class LeaveRequestController extends Controller
                 'leave_balance' => $balanceData
             ]);
         } catch (\Exception $e) {
+            Log::error('Failed to load leave balance', [
+                'employee_id' => $employeeId,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to load leave balance: ' . $e->getMessage()
@@ -975,8 +1257,29 @@ class LeaveRequestController extends Controller
     /**
      * Get leave type information for AJAX calls
      */
+    /**
+     * Get leave type information
+     *
+     * ADMIN/HR: Can access with permission:leave-requests.show
+     * PERSONAL/USER: Can access with permission:personal.leave.create-own or personal.leave.edit-own
+     */
     public function getLeaveTypeInfo($leaveTypeId)
     {
+        /** @var \App\Models\User $user */
+        $user = auth()->user();
+
+        // Check if user has either admin or personal permission
+        if (
+            !$user->can('leave-requests.show') &&
+            !$user->can('personal.leave.create-own') &&
+            !$user->can('personal.leave.edit-own')
+        ) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized. You do not have permission to access this resource.'
+            ], 403);
+        }
+
         try {
             $leaveType = LeaveType::findOrFail($leaveTypeId);
 
@@ -1062,21 +1365,29 @@ class LeaveRequestController extends Controller
 
     /**
      * Close leave request
+     *
+     * ADMIN/HR: Can close any leave request (permission: leave-requests.delete)
+     * PERSONAL/USER: Can close their own leave requests (if allowed by business logic)
+     *
+     * Note: Protected by middleware 'permission:leave-requests.delete' for admin
      */
     public function close(LeaveRequest $leaveRequest)
     {
+        $user = auth()->user();
+
+        // If personal user (has personal permission but not admin permission), ensure they can only close their own
+        if ($user->can('personal.leave.edit-own') && !$user->can('leave-requests.delete')) {
+            if ($leaveRequest->employee_id !== $user->employee_id) {
+                abort(403, 'You can only close your own leave requests.');
+            }
+        }
+
         if (!$leaveRequest->canBeClosed()) {
             return back()->with(['toast_error' => 'This leave request cannot be closed.']);
         }
 
         try {
-            // Get the current user's ID
-            $userId = Auth::id();
-            if (!$userId) {
-                return back()->with(['toast_error' => 'User not authenticated.']);
-            }
-
-            $leaveRequest->close($userId);
+            $leaveRequest->close($user->id);
 
             return back()->with(['toast_success' => 'Leave request closed successfully.']);
         } catch (\Exception $e) {
@@ -1086,9 +1397,30 @@ class LeaveRequestController extends Controller
 
     /**
      * Show cancellation request form
+     *
+     * ADMIN/HR: Can cancel any leave request (permission: leave-requests.delete)
+     * PERSONAL/USER: Can cancel their own leave requests (permission: personal.leave.cancel-own)
+     *
+     * Note: Protected by middleware 'permission:leave-requests.delete' for admin
+     * Personal users need manual check
      */
     public function showCancellationForm(LeaveRequest $leaveRequest)
     {
+        /** @var \App\Models\User $user */
+        $user = auth()->user();
+
+        // Check if user has either admin or personal permission
+        if (!$user->can('leave-requests.delete') && !$user->can('personal.leave.cancel-own')) {
+            abort(403, 'Unauthorized action. You do not have permission to cancel leave requests.');
+        }
+
+        // If personal user (has personal permission but not admin permission), ensure they can only cancel their own
+        if ($user->can('personal.leave.cancel-own') && !$user->can('leave-requests.delete')) {
+            if ($leaveRequest->employee_id !== $user->employee_id) {
+                abort(403, 'You can only cancel your own leave requests.');
+            }
+        }
+
         if (!$leaveRequest->canBeCancelled()) {
             return back()->with(['toast_error' => 'This leave request cannot be cancelled.']);
         }
@@ -1099,21 +1431,96 @@ class LeaveRequestController extends Controller
 
     /**
      * Store cancellation request
+     *
+     * ADMIN/HR: Can cancel any leave request directly (permission: leave-requests.delete)
+     * PERSONAL/USER: Can request cancellation for their own leave requests (permission: personal.leave.cancel-own)
+     *
+     * Note: Protected by middleware 'permission:leave-requests.delete' for admin
+     * Personal users need manual check
      */
     public function storeCancellation(Request $request, LeaveRequest $leaveRequest)
     {
+        /** @var \App\Models\User $user */
+        $user = auth()->user();
+
+        // Check if user has either admin or personal permission
+        if (!$user->can('leave-requests.delete') && !$user->can('personal.leave.cancel-own')) {
+            abort(403, 'Unauthorized action. You do not have permission to cancel leave requests.');
+        }
+
+        // If personal user (has personal permission but not admin permission), ensure they can only cancel their own
+        if ($user->can('personal.leave.cancel-own') && !$user->can('leave-requests.delete')) {
+            if ($leaveRequest->employee_id !== $user->employee_id) {
+                abort(403, 'You can only cancel your own leave requests.');
+            }
+        }
+
+        // Calculate available days to cancel (total days minus already cancelled days)
+        $totalCancelledDays = $leaveRequest->getTotalCancelledDays();
+        $availableDaysToCancel = $leaveRequest->total_days - $totalCancelledDays;
+
+        if ($availableDaysToCancel <= 0) {
+            return back()->with(['toast_error' => 'All days from this leave request have already been cancelled.']);
+        }
+
         $request->validate([
-            'days_to_cancel' => 'required|integer|min:1|max:' . $leaveRequest->total_days,
+            'days_to_cancel' => 'required|integer|min:1|max:' . $availableDaysToCancel,
             'reason' => 'required|string|max:1000'
+        ], [
+            'days_to_cancel.max' => "You can only cancel up to {$availableDaysToCancel} day(s). {$totalCancelledDays} day(s) have already been cancelled from this leave request."
         ]);
 
         try {
             $leaveRequest->requestCancellation(
                 $request->days_to_cancel,
                 $request->reason,
-                Auth::id()
+                $user->id
             );
 
+            // Redirect sesuai route asal - TANPA permission check, HANYA berdasarkan route name atau URL
+            // Jika dari my-requests.cancellation (POST dari my-requests.cancellation-form), redirect ke my-requests.show
+            // Jika dari cancellation (POST dari cancellation-form), redirect ke leave.requests.show
+
+            // Ambil route name, path, dan URL untuk pengecekan
+            $routeName = $request->route() ? $request->route()->getName() : null;
+            $fullUrl = $request->fullUrl();
+            $path = $request->path();
+
+            // Debug logging (uncomment untuk debug)
+            // \Log::info('Cancellation redirect debug', [
+            //     'route_name' => $routeName,
+            //     'path' => $path,
+            //     'full_url' => $fullUrl,
+            //     'user_id' => $user->id,
+            //     'has_admin_permission' => $user->can('leave-requests.delete'),
+            //     'has_personal_permission' => $user->can('personal.leave.cancel-own')
+            // ]);
+
+            // Check route name - ini adalah cara paling reliable
+            // Route name untuk my-requests: 'leave.my-requests.cancellation'
+            // Route name untuk admin: 'leave.requests.cancellation'
+            $isFromMyRequests = false;
+
+            // Priority 1: Check route name
+            if ($routeName === 'leave.my-requests.cancellation') {
+                $isFromMyRequests = true;
+            }
+            // Priority 2: Check path (lebih reliable dari URL)
+            elseif (strpos($path, 'my-requests') !== false) {
+                $isFromMyRequests = true;
+            }
+            // Priority 3: Check full URL sebagai fallback terakhir
+            elseif (strpos($fullUrl, '/my-requests/') !== false) {
+                $isFromMyRequests = true;
+            }
+
+            if ($isFromMyRequests) {
+                // Dari my-requests.cancellation-form, redirect ke my-requests.show
+                return redirect()->route('leave.my-requests.show', $leaveRequest)
+                    ->with('toast_success', 'Cancellation request submitted successfully. Waiting for HR confirmation.');
+            }
+
+            // Default: dari cancellation-form (leave.requests.cancellation), redirect ke leave.requests.show
             return redirect()->route('leave.requests.show', $leaveRequest)
                 ->with('toast_success', 'Cancellation request submitted successfully. Waiting for HR confirmation.');
         } catch (\Exception $e) {
@@ -1125,14 +1532,18 @@ class LeaveRequestController extends Controller
     /**
      * Approve cancellation request
      */
-    public function approveCancellation(LeaveRequestCancellation $cancellation)
+    public function approveCancellation(Request $request, LeaveRequestCancellation $cancellation)
     {
         if (!$cancellation->isPending()) {
             return back()->with(['toast_error' => 'This cancellation request has already been processed.']);
         }
 
+        $request->validate([
+            'confirmation_notes' => 'nullable|string|max:1000'
+        ]);
+
         try {
-            $cancellation->approve(Auth::id());
+            $cancellation->approve(Auth::id(), $request->confirmation_notes);
 
             return back()->with(['toast_success' => 'Cancellation request approved successfully.']);
         } catch (\Exception $e) {
@@ -1169,10 +1580,157 @@ class LeaveRequestController extends Controller
     /**
      * Display user's own leave requests
      */
-    public function myRequests(Request $request)
+    public function myRequests()
     {
-        $this->authorize('personal.leave.view-own');
+        return view('leave-requests.my-requests', [
+            'title' => 'My Leave Request'
+        ]);
+    }
 
+    /**
+     * Show the form for creating a new leave request for personal user
+     */
+    public function myRequestsCreate(Request $request)
+    {
+        $leaveTypes = LeaveType::where('is_active', true)->orderBy('code', 'asc')->get();
+
+        // Get user's project and department from their administration
+        $user = Auth::user();
+        $administration = $user->employee && $user->employee->administrations ? $user->employee->administrations->first() : null;
+        $project = $administration ? $administration->project : null;
+        $department = $administration ? $administration->department : null;
+
+        // Get all active projects for project selection (if needed)
+        $projects = Project::where('project_status', 1)->get();
+
+        // Get all active departments for department selection (if needed)
+        $departments = Department::where('department_status', 1)->get();
+
+        // Get pre-selected leave type from query parameter
+        $selectedLeaveTypeId = $request->query('leave_type');
+
+        return view('leave-requests.my-create', compact('leaveTypes', 'projects', 'departments'))
+            ->with('title', 'Create My Leave Request')
+            ->with('defaultEmployeeId', $user->employee_id)
+            ->with('defaultProject', $project)
+            ->with('defaultDepartment', $department)
+            ->with('selectedLeaveTypeId', $selectedLeaveTypeId);
+    }
+
+    /**
+     * Store a newly created leave request for personal user
+     */
+    public function myRequestsStore(Request $request)
+    {
+        // Force employee_id to current user's employee_id
+        $request->merge(['employee_id' => auth()->user()->employee_id]);
+
+        // Call the existing store method which will handle all logic
+        // The store method already has redirect logic for personal users
+        return $this->store($request);
+    }
+
+    /**
+     * Display own leave request details for personal user
+     *
+     * PERSONAL/USER: Can only view their own leave requests (permission: personal.leave.view-own)
+     */
+    public function myRequestsShow(LeaveRequest $leaveRequest)
+    {
+        $user = auth()->user();
+
+        // Ensure user can only view their own leave requests
+        if ($leaveRequest->employee_id !== $user->employee_id) {
+            abort(403, 'You can only view your own leave requests.');
+        }
+
+        $leaveRequest->load([
+            'employee.administrations.project',
+            'employee.administrations.position',
+            'leaveType',
+            'leaveCalculations',
+            'approvalPlans',
+            'cancellations.requestedBy',
+            'cancellations.confirmedBy'
+        ]);
+
+        return view('leave-requests.show', compact('leaveRequest'))
+            ->with('title', 'My Leave Request Details');
+    }
+
+    /**
+     * Show the form for editing own leave request for personal user
+     *
+     * PERSONAL/USER: Can only edit their own leave requests (permission: personal.leave.edit-own)
+     * Only allowed for status: 'draft', 'pending' (not yet approved)
+     */
+    public function myRequestsEdit(LeaveRequest $leaveRequest)
+    {
+        $user = auth()->user();
+
+        // Ensure user can only edit their own leave requests
+        if ($leaveRequest->employee_id !== $user->employee_id) {
+            abort(403, 'You can only edit your own leave requests.');
+        }
+
+        // Personal users can only edit leave requests that are not yet approved
+        // Allowed statuses: 'draft', 'pending'
+        // Not allowed: 'approved', 'rejected', 'cancelled', 'closed', 'auto_approved'
+        if (!in_array($leaveRequest->status, ['draft', 'pending'])) {
+            return redirect()->route('leave.my-requests')
+                ->with('toast_error', 'You can only edit leave requests that are not yet approved.');
+        }
+
+        // Load leave types for leave type selection
+        $leaveTypes = LeaveType::where('is_active', true)->orderBy('code', 'asc')->get();
+
+        // Load projects for project selection (needed for JavaScript)
+        $projects = Project::where('project_status', 1)->get();
+
+        // Get all active departments for department selection (needed for JavaScript)
+        $departments = Department::where('department_status', 1)->get();
+
+        return view('leave-requests.my-edit', compact('leaveRequest', 'leaveTypes', 'projects', 'departments'))
+            ->with('title', 'Edit My Leave Request');
+    }
+
+    /**
+     * Update own leave request for personal user
+     *
+     * PERSONAL/USER: Can only update their own leave requests (permission: personal.leave.edit-own)
+     * Only allowed for status: 'draft', 'pending' (not yet approved)
+     */
+    public function myRequestsUpdate(Request $request, LeaveRequest $leaveRequest)
+    {
+        $user = auth()->user();
+
+        // Ensure user can only update their own leave requests
+        if ($leaveRequest->employee_id !== $user->employee_id) {
+            abort(403, 'You can only update your own leave requests.');
+        }
+
+        // Personal users can only update leave requests that are not yet approved
+        // Allowed statuses: 'draft', 'pending'
+        // Not allowed: 'approved', 'rejected', 'cancelled', 'closed', 'auto_approved'
+        if (!in_array($leaveRequest->status, ['draft', 'pending'])) {
+            return redirect()->route('leave.my-requests')
+                ->with('toast_error', 'You can only update leave requests that are not yet approved.');
+        }
+
+        // Force employee_id to current user's employee_id to prevent tampering
+        $request->merge(['employee_id' => $user->employee_id]);
+
+        // Call the existing update method which will handle all logic
+        // The update method already has redirect logic for personal users (line 803-805)
+        // It will automatically redirect to my-requests for personal users
+        return $this->update($request, $leaveRequest);
+    }
+
+    /**
+     * Get data for user's own leave requests DataTable
+     */
+    public function myRequestsData(Request $request)
+    {
         $user = Auth::user();
 
         $query = LeaveRequest::with(['leaveType', 'administration', 'requestedBy'])
@@ -1180,55 +1738,147 @@ class LeaveRequestController extends Controller
             ->select('leave_requests.*')
             ->orderBy('created_at', 'desc');
 
-        // Apply status filter if provided
+        // Apply filters
         if ($request->filled('status')) {
             $query->where('status', $request->status);
         }
 
-        $leaveRequests = $query->get();
+        if ($request->filled('leave_type_id')) {
+            $query->where('leave_type_id', $request->leave_type_id);
+        }
 
-        return view('leave-requests.my-requests', [
-            'title' => 'My Leave Requests',
-            'subtitle' => 'My Leave Request History',
-            'leaveRequests' => $leaveRequests,
-            'statusFilter' => $request->get('status', '')
-        ]);
+        if ($request->filled('start_date')) {
+            $query->where('start_date', '>=', $request->start_date);
+        }
+
+        if ($request->filled('end_date')) {
+            $query->where('end_date', '<=', $request->end_date);
+        }
+
+        return datatables()->of($query)
+            ->addIndexColumn()
+            ->addColumn('leave_type', function ($row) {
+                return '<span class="badge badge-info">' . ($row->leaveType->name ?? 'N/A') . '</span>';
+            })
+            ->addColumn('start_date', function ($row) {
+                return $row->start_date ? \Carbon\Carbon::parse($row->start_date)->format('d/m/Y') : 'N/A';
+            })
+            ->addColumn('end_date', function ($row) {
+                return $row->end_date ? \Carbon\Carbon::parse($row->end_date)->format('d/m/Y') : 'N/A';
+            })
+            ->addColumn('total_days', function ($row) {
+                return $row->total_days . ' days';
+            })
+            ->addColumn('status_badge', function ($row) {
+                $badges = [
+                    'draft' => '<span class="badge badge-secondary">Draft</span>',
+                    'pending' => '<span class="badge badge-warning">Pending</span>',
+                    'approved' => '<span class="badge badge-success">Approved</span>',
+                    'rejected' => '<span class="badge badge-danger">Rejected</span>',
+                    'cancelled' => '<span class="badge badge-dark">Cancelled</span>',
+                    'closed' => '<span class="badge badge-info">Closed</span>',
+                ];
+                return $badges[$row->status] ?? '<span class="badge badge-secondary">Unknown</span>';
+            })
+            ->addColumn('requested_at', function ($row) {
+                return $row->requested_at ? \Carbon\Carbon::parse($row->requested_at)->format('d/m/Y H:i') : 'N/A';
+            })
+            ->addColumn('action', function ($row) use ($user) {
+                $btn = '<div class="btn-group" role="group">';
+
+                $btn .= '<a href="' . route('leave.my-requests.show', $row->id) . '" class="btn btn-info btn-sm mr-1"><i class="fas fa-eye"></i></a>';
+
+                if ($row->status === 'draft' || $row->status === 'pending') {
+                    $btn .= '<a href="' . route('leave.my-requests.edit', $row->id) . '" class="btn btn-warning btn-sm mr-1"><i class="fas fa-edit"></i></a>';
+                }
+
+                $btn .= '</div>';
+                return $btn;
+            })
+            ->rawColumns(['leave_type', 'status_badge', 'action'])
+            ->make(true);
     }
 
-
     /**
-     * Display user's leave entitlements - Web View
+     * Display user's leave entitlements
      */
     public function myEntitlements()
     {
-        $this->authorize('personal.leave.view-entitlements');
-
         $user = Auth::user();
+        $employee = $user->employee;
 
+        if (!$employee) {
+            return redirect()->route('dashboard.personal')
+                ->with('toast_error', 'Employee information not found. Please contact HR to setup your leave entitlements.');
+        }
+
+        // Recalculate taken_days from approved leave requests (considering cancellations)
         $entitlements = LeaveEntitlement::with(['leaveType'])
-            ->where('employee_id', $user->employee_id)
+            ->where('employee_id', $employee->id)
             ->orderBy('period_end', 'desc')
             ->get()
             ->map(function ($entitlement) {
-                return [
-                    'id' => $entitlement->id,
-                    'leave_type' => $entitlement->leaveType->name ?? 'N/A',
-                    'entitled_days' => $entitlement->entitled_days,
-                    'taken_days' => $entitlement->taken_days,
-                    'remaining_days' => $entitlement->remaining_days,
-                    'period_start' => $entitlement->period_start->format('M d, Y'),
-                    'period_end' => $entitlement->period_end->format('M d, Y'),
-                    'is_expired' => $entitlement->period_end < now(),
-                    'expires_soon' => $entitlement->period_end < now()->addDays(30) && $entitlement->period_end >= now(),
-                ];
+                // Recalculate taken_days from approved leave requests (effective days after cancellation)
+                $approvedRequests = LeaveRequest::where('employee_id', $entitlement->employee_id)
+                    ->where('leave_type_id', $entitlement->leave_type_id)
+                    ->whereIn('status', ['approved', 'auto_approved'])
+                    ->whereBetween('start_date', [$entitlement->period_start, $entitlement->period_end])
+                    ->get();
+
+                // Calculate effective taken days (total_days - cancelled_days)
+                $effectiveTakenDays = $approvedRequests->sum(function ($request) {
+                    return $request->getEffectiveDays();
+                });
+
+                // Update taken_days if different (to keep it in sync)
+                if ($entitlement->taken_days != $effectiveTakenDays) {
+                    $entitlement->taken_days = $effectiveTakenDays;
+                    $entitlement->save();
+                }
+
+                return $entitlement;
             });
 
-        return view('leave-requests.my-entitlements', [
-            'title' => 'My Leave Entitlements',
-            'subtitle' => 'My Leave Entitlement Summary',
-            'entitlements' => $entitlements
-        ]);
+        return view('leave-requests.my-entitlements', compact('entitlements', 'employee'))
+            ->with('title', 'My Leave Entitlements');
     }
 
-    // ========================================
+    /**
+     * Show cancellation request form for personal user
+     *
+     * PERSONAL/USER: Can only cancel their own leave requests (permission: personal.leave.cancel-own)
+     */
+    public function myRequestsCancellationForm(LeaveRequest $leaveRequest)
+    {
+        /** @var \App\Models\User $user */
+        $user = auth()->user();
+
+        // Ensure user can only cancel their own leave requests
+        if ($leaveRequest->employee_id !== $user->employee_id) {
+            abort(403, 'You can only cancel your own leave requests.');
+        }
+
+        // Call the existing showCancellationForm method which will handle all logic
+        return $this->showCancellationForm($leaveRequest);
+    }
+
+    /**
+     * Store cancellation request for personal user
+     *
+     * PERSONAL/USER: Can only cancel their own leave requests (permission: personal.leave.cancel-own)
+     */
+    public function myRequestsStoreCancellation(Request $request, LeaveRequest $leaveRequest)
+    {
+        /** @var \App\Models\User $user */
+        $user = auth()->user();
+
+        // Ensure user can only cancel their own leave requests
+        if ($leaveRequest->employee_id !== $user->employee_id) {
+            abort(403, 'You can only cancel your own leave requests.');
+        }
+
+        // Call the existing storeCancellation method which will handle all logic
+        // The storeCancellation method already has redirect logic for personal users
+        return $this->storeCancellation($request, $leaveRequest);
+    }
 }

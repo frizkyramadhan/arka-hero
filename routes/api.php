@@ -75,7 +75,7 @@ Route::get('letter-subjects/available/{documentType}/{categoryId}', [LetterSubje
 Route::get('letter-numbers/available/{categoryCode}', [LetterNumberController::class, 'getAvailableNumbers'])->name('api.letter-numbers.available');
 
 // Approval System API Routes
-Route::prefix('approval')->group(function () {
+Route::prefix('approval')->middleware(['auth:sanctum'])->group(function () {
 
     // API routes removed - system simplified
 });
@@ -97,12 +97,12 @@ Route::prefix('v1')->group(function () {
     // Authentication API Routes
     Route::prefix('auth')->group(function () {
         Route::post('/login', [App\Http\Controllers\AuthController::class, 'apiLogin']);
-        Route::post('/logout', [App\Http\Controllers\AuthController::class, 'apiLogout']);
-        Route::get('/user', [App\Http\Controllers\AuthController::class, 'apiUser']);
+        Route::post('/logout', [App\Http\Controllers\AuthController::class, 'apiLogout'])->middleware('auth:sanctum');
+        Route::get('/user', [App\Http\Controllers\AuthController::class, 'apiUser'])->middleware('auth:sanctum');
     });
 
     // Dashboard API Routes
-    Route::prefix('dashboard')->group(function () {
+    Route::prefix('dashboard')->middleware(['auth:sanctum'])->group(function () {
         Route::get('/stats', [App\Http\Controllers\DashboardController::class, 'apiStats']);
         Route::get('/pending-recommendations', [App\Http\Controllers\DashboardController::class, 'apiPendingRecommendations']);
         Route::get('/pending-approvals', [App\Http\Controllers\DashboardController::class, 'apiPendingApprovals']);
@@ -123,7 +123,7 @@ Route::prefix('v1')->group(function () {
     });
 
     // Master Data API Routes
-    Route::prefix('master')->group(function () {
+    Route::prefix('master')->middleware(['auth:sanctum'])->group(function () {
         // Banks
         Route::get('/banks', [App\Http\Controllers\BankController::class, 'apiIndex']);
         Route::post('/banks', [App\Http\Controllers\BankController::class, 'apiStore']);
@@ -172,7 +172,7 @@ Route::prefix('v1')->group(function () {
     });
 
     // Employee Management API Routes
-    Route::prefix('employees')->group(function () {
+    Route::prefix('employees')->middleware(['auth:sanctum'])->group(function () {
         Route::get('/', [App\Http\Controllers\EmployeeController::class, 'apiIndex']);
         Route::post('/', [App\Http\Controllers\EmployeeController::class, 'apiStore']);
         Route::get('/{id}', [App\Http\Controllers\EmployeeController::class, 'apiShow']);
@@ -229,7 +229,7 @@ Route::prefix('v1')->group(function () {
     });
 
     // Official Travel API Routes
-    Route::prefix('official-travels')->group(function () {
+    Route::prefix('official-travels')->middleware(['auth:sanctum'])->group(function () {
         Route::get('/', [App\Http\Controllers\OfficialtravelController::class, 'apiIndex']);
         Route::post('/', [App\Http\Controllers\OfficialtravelController::class, 'apiStore']);
         Route::get('/{id}', [App\Http\Controllers\OfficialtravelController::class, 'apiShow']);
@@ -244,7 +244,7 @@ Route::prefix('v1')->group(function () {
     });
 
     // Recruitment API Routes
-    Route::prefix('recruitment')->group(function () {
+    Route::prefix('recruitment')->middleware(['auth:sanctum'])->group(function () {
         // FPTK (Recruitment Requests)
         Route::prefix('requests')->group(function () {
             Route::get('/', [App\Http\Controllers\RecruitmentRequestController::class, 'apiIndex']);
@@ -293,7 +293,7 @@ Route::prefix('v1')->group(function () {
     });
 
     // Leave Management API Routes
-    Route::prefix('leave')->group(function () {
+    Route::prefix('leave')->middleware(['auth:sanctum'])->group(function () {
         // Leave Requests
         Route::prefix('requests')->group(function () {
             Route::get('/', [App\Http\Controllers\LeaveRequestController::class, 'apiIndex']);
@@ -337,7 +337,7 @@ Route::prefix('v1')->group(function () {
     });
 
     // User Management API Routes
-    Route::prefix('users')->group(function () {
+    Route::prefix('users')->middleware(['auth:sanctum'])->group(function () {
         Route::get('/', [App\Http\Controllers\UserController::class, 'apiIndex']);
         Route::post('/', [App\Http\Controllers\UserController::class, 'apiStore']);
         Route::get('/{id}', [App\Http\Controllers\UserController::class, 'apiShow']);
@@ -346,7 +346,7 @@ Route::prefix('v1')->group(function () {
     });
 
     // Role Management API Routes
-    Route::prefix('roles')->group(function () {
+    Route::prefix('roles')->middleware(['auth:sanctum'])->group(function () {
         Route::get('/', [App\Http\Controllers\RoleController::class, 'apiIndex']);
         Route::post('/', [App\Http\Controllers\RoleController::class, 'apiStore']);
         Route::get('/{id}', [App\Http\Controllers\RoleController::class, 'apiShow']);
@@ -355,7 +355,7 @@ Route::prefix('v1')->group(function () {
     });
 
     // Permission Management API Routes
-    Route::prefix('permissions')->group(function () {
+    Route::prefix('permissions')->middleware(['auth:sanctum'])->group(function () {
         Route::get('/', [App\Http\Controllers\PermissionController::class, 'apiIndex']);
         Route::post('/', [App\Http\Controllers\PermissionController::class, 'apiStore']);
         Route::get('/{id}', [App\Http\Controllers\PermissionController::class, 'apiShow']);
@@ -364,7 +364,7 @@ Route::prefix('v1')->group(function () {
     });
 
     // Termination API Routes
-    Route::prefix('terminations')->group(function () {
+    Route::prefix('terminations')->middleware(['auth:sanctum'])->group(function () {
         Route::get('/', [App\Http\Controllers\TerminationController::class, 'apiIndex']);
         Route::post('/', [App\Http\Controllers\TerminationController::class, 'apiStore']);
         Route::get('/{id}', [App\Http\Controllers\TerminationController::class, 'apiShow']);
@@ -374,7 +374,7 @@ Route::prefix('v1')->group(function () {
     });
 
     // Bond Violation API Routes
-    Route::prefix('bond-violations')->group(function () {
+    Route::prefix('bond-violations')->middleware(['auth:sanctum'])->group(function () {
         Route::get('/', [App\Http\Controllers\BondViolationController::class, 'apiIndex']);
         Route::post('/', [App\Http\Controllers\BondViolationController::class, 'apiStore']);
         Route::get('/{id}', [App\Http\Controllers\BondViolationController::class, 'apiShow']);
@@ -384,13 +384,13 @@ Route::prefix('v1')->group(function () {
     });
 
     // Email API Routes
-    Route::prefix('emails')->group(function () {
+    Route::prefix('emails')->middleware(['auth:sanctum'])->group(function () {
         Route::get('/', [App\Http\Controllers\EmailController::class, 'apiIndex']);
         Route::post('/send', [App\Http\Controllers\EmailController::class, 'apiSendMail']);
     });
 
     // Employee Registration Admin API Routes
-    Route::prefix('employee-registrations')->group(function () {
+    Route::prefix('employee-registrations')->middleware(['auth:sanctum'])->group(function () {
         Route::get('/', [App\Http\Controllers\EmployeeRegistrationAdminController::class, 'apiIndex']);
         Route::get('/pending', [App\Http\Controllers\EmployeeRegistrationAdminController::class, 'apiGetPendingRegistrations']);
         Route::get('/tokens', [App\Http\Controllers\EmployeeRegistrationAdminController::class, 'apiGetTokens']);

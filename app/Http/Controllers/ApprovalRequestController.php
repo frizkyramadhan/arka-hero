@@ -869,9 +869,4 @@ class ApprovalRequestController extends Controller
             ]);
         }
     }
-
-    // ========================================
-    // API METHODS FOR PERSONAL FEATURES
-    // ========================================
-
 }

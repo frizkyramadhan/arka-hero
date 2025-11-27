@@ -5,18 +5,30 @@ namespace App\Http\Controllers;
 use Carbon\Carbon;
 use App\Models\Bank;
 use App\Models\User;
+use App\Models\Image;
 use App\Models\Users;
+use App\Models\Course;
+use App\Models\Family;
+use App\Models\License;
 use App\Models\Project;
 use App\Models\Employee;
+use App\Models\Emrgcall;
 use App\Models\Position;
 use App\Models\Religion;
+use App\Models\Education;
+use App\Models\Insurance;
 use App\Models\Department;
 use App\Models\Termination;
+use App\Models\Employeebank;
 use App\Models\Notification;
+use App\Models\Operableunit;
 use Illuminate\Http\Request;
+use App\Models\Jobexperience;
 use PHPMailer\PHPMailer\SMTP;
+use App\Models\Additionaldata;
 use App\Models\Administration;
 use Yajra\DataTables\DataTables;
+use App\Models\Taxidentification;
 use Illuminate\Support\Facades\DB;
 use PHPMailer\PHPMailer\Exception;
 use PHPMailer\PHPMailer\PHPMailer;
@@ -1059,6 +1071,97 @@ class ProfileController extends Controller
             })
 
             ->toJson();
+    }
+
+    /**
+     * Display the user's own employee profile (self-service).
+     *
+     * @return \Illuminate\Http\Response
+     */
+    public function myProfile()
+    {
+        $this->authorize('personal.profile.view-own');
+
+        $user = Auth::user();
+
+        if (!$user->employee_id) {
+            return redirect()->route('dashboard.personal')
+                ->with('toast_error', 'Employee profile not found. Please contact HR.');
+        }
+
+        $employee = Employee::with(['religion'])
+            ->where('id', $user->employee_id)
+            ->firstOrFail();
+
+        // Ensure user can only view their own profile
+        if ($employee->id !== $user->employee_id) {
+            abort(403, 'You can only view your own profile');
+        }
+
+        $banks = Bank::orderBy('bank_name', 'asc')->get();
+        $bank = Employeebank::with(['banks'])->where('employee_id', $employee->id)->first();
+        $tax = Taxidentification::where('employee_id', $employee->id)->first();
+        $insurances = Insurance::where('employee_id', $employee->id)->get();
+        $families = Family::where('employee_id', $employee->id)->get();
+        $educations = Education::where('employee_id', $employee->id)->get();
+        $courses = Course::where('employee_id', $employee->id)->get();
+        $jobs = Jobexperience::where('employee_id', $employee->id)->get();
+        $licenses = License::where('employee_id', $employee->id)->get();
+        $emergencies = Emrgcall::where('employee_id', $employee->id)->get();
+        $additional = Additionaldata::where('employee_id', $employee->id)->first();
+        $units = Operableunit::where('employee_id', $employee->id)->get();
+        $images = Image::where('employee_id', $employee->id)->get();
+
+        // Get active administration data
+        $activeAdministration = Administration::with([
+            'position.department',
+            'project',
+            'grade',
+            'level'
+        ])
+            ->where('employee_id', $employee->id)
+            ->where('is_active', '1')
+            ->first();
+
+        // Get all administrations for history
+        $administrations = Administration::leftJoin('projects', 'administrations.project_id', '=', 'projects.id')
+            ->leftJoin('positions', 'administrations.position_id', '=', 'positions.id')
+            ->leftJoin('departments', 'positions.department_id', '=', 'departments.id')
+            ->leftJoin('grades', 'administrations.grade_id', '=', 'grades.id')
+            ->leftJoin('levels', 'administrations.level_id', '=', 'levels.id')
+            ->select('administrations.*', 'projects.project_code', 'positions.position_name', 'departments.department_name', 'grades.name as grade_name', 'levels.name as level_name')
+            ->where('employee_id', $employee->id)
+            ->orderBy('administrations.nik', 'desc')
+            ->get();
+
+        $profile = Image::where('employee_id', $employee->id)
+            ->where('is_profile', '=', '1')
+            ->first();
+
+        $title = 'My Profile';
+        $subtitle = 'My Profile';
+
+        return view('profile.my-profile', compact(
+            'title',
+            'subtitle',
+            'employee',
+            'banks',
+            'bank',
+            'tax',
+            'insurances',
+            'families',
+            'educations',
+            'courses',
+            'jobs',
+            'licenses',
+            'emergencies',
+            'additional',
+            'units',
+            'images',
+            'activeAdministration',
+            'administrations',
+            'profile'
+        ));
     }
 
     /**

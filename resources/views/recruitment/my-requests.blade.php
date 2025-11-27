@@ -1,6 +1,6 @@
 @extends('layouts.main')
 
-@section('title', 'My Leave Request')
+@section('title', 'My Recruitment Request')
 
 @section('content')
     <div class="content-header">
@@ -12,7 +12,7 @@
                 <div class="col-sm-6">
                     <ol class="breadcrumb float-sm-right">
                         <li class="breadcrumb-item"><a href="{{ route('dashboard.personal') }}">My Dashboard</a></li>
-                        <li class="breadcrumb-item active">My Leave Request</li>
+                        <li class="breadcrumb-item active">My Recruitment Request</li>
                     </ol>
                 </div>
             </div>
@@ -21,21 +21,16 @@
 
     <section class="content">
         <div class="container-fluid">
-            <!-- Leave Requests Section -->
+            <!-- Recruitment Requests Section -->
             <div class="row">
                 <div class="col-12">
                     <div id="accordion">
                         <div class="card">
                             <div class="card-header">
-                                <h3 class="card-title"><strong>{{ auth()->user()->name }}'s Leave Requests</strong></h3>
+                                <h3 class="card-title"><strong>{{ auth()->user()->name }}'s Recruitment Requests</strong></h3>
                                 <div class="card-tools">
-                                    @can('personal.leave.view-entitlements')
-                                        <a href="{{ route('leave.my-entitlements') }}" class="btn btn-info mr-2">
-                                            <i class="fas fa-calendar-week"></i> My Leave Entitlement
-                                        </a>
-                                    @endcan
-                                    @can('personal.leave.create-own')
-                                        <a href="{{ route('leave.my-requests.create') }}" class="btn btn-primary">
+                                    @can('personal.recruitment.create-own')
+                                        <a href="{{ route('recruitment.requests.create') }}" class="btn btn-primary">
                                             <i class="fas fa-plus"></i> Add
                                         </a>
                                     @endcan
@@ -61,20 +56,11 @@
                                                             name="status">
                                                             <option value="">- All -</option>
                                                             <option value="draft">Draft</option>
-                                                            <option value="pending">Pending</option>
+                                                            <option value="acknowledged">Acknowledged</option>
+                                                            <option value="pm_approved">PM Approved</option>
                                                             <option value="approved">Approved</option>
                                                             <option value="rejected">Rejected</option>
                                                             <option value="cancelled">Cancelled</option>
-                                                            <option value="closed">Closed</option>
-                                                        </select>
-                                                    </div>
-                                                </div>
-                                                <div class="col-md-3">
-                                                    <div class="form-group">
-                                                        <label>Leave Type</label>
-                                                        <select class="form-control select2bs4" id="leave_type_id"
-                                                            name="leave_type_id">
-                                                            <option value="">- All -</option>
                                                         </select>
                                                     </div>
                                                 </div>
@@ -106,15 +92,15 @@
                                     </div>
                                 </div>
                                 <div class="table-responsive">
-                                    <table id="leave-requests-table" class="table table-bordered table-striped"
+                                    <table id="recruitment-requests-table" class="table table-bordered table-striped"
                                         width="100%">
                                         <thead>
                                             <tr>
                                                 <th class="align-middle">No</th>
-                                                <th class="align-middle">Leave Type</th>
-                                                <th class="align-middle">Start Date</th>
-                                                <th class="align-middle">End Date</th>
-                                                <th class="align-middle">Total Days</th>
+                                                <th class="align-middle">Position</th>
+                                                <th class="align-middle">Department</th>
+                                                <th class="align-middle">Project</th>
+                                                <th class="align-middle">Required</th>
                                                 <th class="align-middle">Status</th>
                                                 <th class="align-middle">Requested At</th>
                                                 <th class="align-middle" width="12%">Actions</th>
@@ -162,30 +148,19 @@
                 width: '100%'
             });
 
-            // Load leave types for filter
-            $.get('{{ route('api.leave.types') }}', function(data) {
-                var options = '<option value="">- All -</option>';
-                $.each(data, function(index, leaveType) {
-                    options += '<option value="' + leaveType.id + '">' + leaveType.name +
-                        '</option>';
-                });
-                $('#leave_type_id').html(options);
-            });
-
-            var table = $("#leave-requests-table").DataTable({
+            var table = $("#recruitment-requests-table").DataTable({
                 responsive: true,
                 autoWidth: true,
                 dom: 'rtip',
                 processing: true,
                 serverSide: true,
                 ajax: {
-                    url: "{{ route('leave.my-requests.data') }}",
+                    url: "{{ route('recruitment.my-requests.data') }}",
                     data: function(d) {
                         d.status = $('#status').val(),
-                            d.leave_type_id = $('#leave_type_id').val(),
                             d.start_date = $('#start_date').val(),
                             d.end_date = $('#end_date').val(),
-                            d.search = $("input[type=search][aria-controls=leave-requests-table]").val()
+                            d.search = $("input[type=search][aria-controls=recruitment-requests-table]").val()
                     }
                 },
                 columns: [{
@@ -196,25 +171,24 @@
                         className: 'text-center'
                     },
                     {
-                        data: 'leave_type',
-                        name: 'leave_type',
+                        data: 'position_name',
+                        name: 'position_name',
                         orderable: false
                     },
                     {
-                        data: 'start_date',
-                        name: 'start_date',
+                        data: 'department_name',
+                        name: 'department_name',
+                        orderable: false
+                    },
+                    {
+                        data: 'project_code',
+                        name: 'project_code',
                         orderable: false,
                         className: 'text-center'
                     },
                     {
-                        data: 'end_date',
-                        name: 'end_date',
-                        orderable: false,
-                        className: 'text-center'
-                    },
-                    {
-                        data: 'total_days',
-                        name: 'total_days',
+                        data: 'required_quantity',
+                        name: 'required_quantity',
                         orderable: false,
                         className: 'text-right'
                     },
@@ -241,7 +215,7 @@
             });
 
             // Handle filter changes
-            $('#status, #leave_type_id').change(function() {
+            $('#status').change(function() {
                 table.draw();
             });
 
@@ -251,7 +225,7 @@
 
             // Handle reset button
             $('#btn-reset').click(function() {
-                $('#status, #leave_type_id').val('').trigger('change');
+                $('#status').val('').trigger('change');
                 $('#start_date, #end_date').val('');
                 table.draw();
             });
@@ -259,3 +233,4 @@
         });
     </script>
 @endsection
+

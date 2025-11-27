@@ -8,6 +8,15 @@ use App\Models\Project;
 use App\Models\Employee;
 use App\Models\Position;
 use App\Models\Education;
+use App\Models\Employeebank;
+use App\Models\Taxidentification;
+use App\Models\Insurance;
+use App\Models\Family;
+use App\Models\Course;
+use App\Models\Jobexperience;
+use App\Models\Emrgcall;
+use App\Models\Operableunit;
+use App\Models\Additionaldata;
 use App\Models\LeaveType;
 use App\Models\Department;
 use App\Models\Permission;
@@ -41,7 +50,6 @@ class DashboardController extends Controller
     public function dashboard()
     {
         $user = Auth::user();
-        $title = 'Dashboard';
 
         // Redirect based on user role
         if ($user && $user->hasRole('user')) {
@@ -1447,21 +1455,13 @@ class DashboardController extends Controller
     // ========================================
 
     /**
-     * Personal Dashboard for users with 'user' role - Web View
+     * Personal Dashboard for users with 'user' role
      */
     public function personal()
     {
-        // Temporarily bypass authorization for debugging
-        // $this->authorize('personal.dashboard.view');
+        $this->authorize('personal.dashboard.view');
 
         $user = Auth::user();
-
-        // Validate user has required relationships
-        // if (!$user->employee_id) {
-        //     abort(403, 'User does not have associated employee, please contact HR in HO Balikpapan');
-        // }
-
-        $administrationId = $user->administration_id;
 
         // Leave Requests Summary
         $leaveStats = [
@@ -1474,32 +1474,32 @@ class DashboardController extends Controller
                 ->count(),
         ];
 
-        // Official Travel Summary - only if user has administration
+        // Official Travel Summary
         $travelStats = [
-            'total_travels' => $administrationId ? Officialtravel::where(function ($q) use ($administrationId) {
-                $q->where('traveler_id', $administrationId)
-                    ->orWhereHas('details', function ($detailQuery) use ($administrationId) {
-                        $detailQuery->where('follower_id', $administrationId);
+            'total_travels' => Officialtravel::where(function ($q) use ($user) {
+                $q->where('traveler_id', $user->administration_id)
+                    ->orWhereHas('details', function ($detailQuery) use ($user) {
+                        $detailQuery->where('follower_id', $user->administration_id);
                     });
-            })->count() : 0,
-            'upcoming_travels' => $administrationId ? Officialtravel::where(function ($q) use ($administrationId) {
-                $q->where('traveler_id', $administrationId)
-                    ->orWhereHas('details', function ($detailQuery) use ($administrationId) {
-                        $detailQuery->where('follower_id', $administrationId);
+            })->count(),
+            'upcoming_travels' => Officialtravel::where(function ($q) use ($user) {
+                $q->where('traveler_id', $user->administration_id)
+                    ->orWhereHas('details', function ($detailQuery) use ($user) {
+                        $detailQuery->where('follower_id', $user->administration_id);
                     });
             })
                 ->where('status', 'approved')
                 ->where('official_travel_date', '>=', now())
-                ->count() : 0,
-            'this_month_travels' => $administrationId ? Officialtravel::where(function ($q) use ($administrationId) {
-                $q->where('traveler_id', $administrationId)
-                    ->orWhereHas('details', function ($detailQuery) use ($administrationId) {
-                        $detailQuery->where('follower_id', $administrationId);
+                ->count(),
+            'this_month_travels' => Officialtravel::where(function ($q) use ($user) {
+                $q->where('traveler_id', $user->administration_id)
+                    ->orWhereHas('details', function ($detailQuery) use ($user) {
+                        $detailQuery->where('follower_id', $user->administration_id);
                     });
             })
                 ->whereMonth('created_at', now()->month)
                 ->whereYear('created_at', now()->year)
-                ->count() : 0,
+                ->count(),
         ];
 
         // Recruitment Requests Summary
@@ -1520,60 +1520,70 @@ class DashboardController extends Controller
             ->where('employee_id', $user->employee_id)
             ->orderBy('created_at', 'desc')
             ->limit(5)
-            ->get(['id', 'leave_type_id', 'start_date', 'end_date', 'total_days', 'status', 'created_at'])
-            ->map(function ($request) {
-                return [
-                    'id' => $request->id,
-                    'leave_type' => $request->leaveType->name ?? 'N/A',
-                    'period' => date('M d', strtotime($request->start_date)) . ' - ' . date('M d, Y', strtotime($request->end_date)),
-                    'days' => $request->total_days . ' days',
-                    'status' => $request->status,
-                    'created_at' => $request->created_at->format('Y-m-d H:i:s'),
-                ];
-            });
+            ->get();
 
-        // Recent Official Travels - only if user has administration
-        $recentTravels = $administrationId ? Officialtravel::where(function ($q) use ($administrationId) {
-            $q->where('traveler_id', $administrationId)
-                ->orWhereHas('details', function ($detailQuery) use ($administrationId) {
-                    $detailQuery->where('follower_id', $administrationId);
-                });
-        })
+        // Recent Official Travels
+        $recentTravels = Officialtravel::with(['project'])
+            ->where(function ($q) use ($user) {
+                $q->where('traveler_id', $user->administration_id)
+                    ->orWhereHas('details', function ($detailQuery) use ($user) {
+                        $detailQuery->where('follower_id', $user->administration_id);
+                    });
+            })
             ->orderBy('created_at', 'desc')
             ->limit(5)
-            ->get(['id', 'destination', 'purpose', 'official_travel_date', 'status', 'created_at'])
-            ->map(function ($travel) {
-                return [
-                    'id' => $travel->id,
-                    'destination' => $travel->destination,
-                    'purpose' => Str::limit($travel->purpose, 50),
-                    'travel_date' => date('M d, Y', strtotime($travel->official_travel_date)),
-                    'project' => 'N/A', // No project relationship in officialtravels table
-                    'status' => $travel->status,
-                    'created_at' => $travel->created_at->format('Y-m-d H:i:s'),
-                ];
-            }) : collect();
+            ->get();
 
         // Leave Entitlements Summary
+        // Calculate taken_days from approved leave requests (considering cancellations)
         $leaveEntitlements = LeaveEntitlement::with(['leaveType'])
             ->where('employee_id', $user->employee_id)
             ->where('period_end', '>=', now())
             ->orderBy('period_end', 'asc')
-            ->get(['id', 'leave_type_id', 'entitled_days', 'taken_days', 'period_start', 'period_end'])
+            ->get()
             ->map(function ($entitlement) {
-                $remaining = $entitlement->entitled_days - $entitlement->taken_days;
-                return [
-                    'id' => $entitlement->id,
-                    'leave_type' => $entitlement->leaveType->name ?? 'N/A',
-                    'entitled' => $entitlement->entitled_days,
-                    'used' => $entitlement->taken_days,
-                    'remaining' => $remaining,
-                    'period_start' => $entitlement->period_start->format('M d, Y'),
-                    'period_end' => $entitlement->period_end->format('M d, Y'),
-                    'is_expired' => $entitlement->period_end < now(),
-                    'expires_soon' => $entitlement->period_end < now()->addDays(30) && $entitlement->period_end >= now(),
-                ];
+                // Recalculate taken_days from approved leave requests (effective days after cancellation)
+                $approvedRequests = LeaveRequest::where('employee_id', $entitlement->employee_id)
+                    ->where('leave_type_id', $entitlement->leave_type_id)
+                    ->whereIn('status', ['approved', 'auto_approved'])
+                    ->whereBetween('start_date', [$entitlement->period_start, $entitlement->period_end])
+                    ->get();
+                
+                // Calculate effective taken days (total_days - cancelled_days)
+                $effectiveTakenDays = $approvedRequests->sum(function ($request) {
+                    return $request->getEffectiveDays();
+                });
+                
+                // Update taken_days if different (to keep it in sync)
+                if ($entitlement->taken_days != $effectiveTakenDays) {
+                    $entitlement->taken_days = $effectiveTakenDays;
+                    $entitlement->save();
+                }
+                
+                return $entitlement;
             });
+
+        // Profile Completeness Check
+        $employee = Employee::where('id', $user->employee_id)->first();
+        $profileCompleteness = [
+            'bank' => Employeebank::where('employee_id', $user->employee_id)->exists(),
+            'tax' => Taxidentification::where('employee_id', $user->employee_id)->exists(),
+            'insurance' => Insurance::where('employee_id', $user->employee_id)->exists(),
+            'license' => License::where('employee_id', $user->employee_id)->exists(),
+            'family' => Family::where('employee_id', $user->employee_id)->exists(),
+            'education' => Education::where('employee_id', $user->employee_id)->exists(),
+            'course' => Course::where('employee_id', $user->employee_id)->exists(),
+            'job' => Jobexperience::where('employee_id', $user->employee_id)->exists(),
+            'emergency' => Emrgcall::where('employee_id', $user->employee_id)->exists(),
+            'unit' => Operableunit::where('employee_id', $user->employee_id)->exists(),
+            'additional' => Additionaldata::where('employee_id', $user->employee_id)->exists(),
+        ];
+        
+        $missingSections = collect($profileCompleteness)->filter(function($exists) {
+            return !$exists;
+        })->keys()->toArray();
+        
+        $completenessPercentage = round((count($profileCompleteness) - count($missingSections)) / count($profileCompleteness) * 100);
 
         return view('dashboard.personal', [
             'title' => 'My Dashboard',
@@ -1585,6 +1595,9 @@ class DashboardController extends Controller
             'recentLeaveRequests' => $recentLeaveRequests,
             'recentTravels' => $recentTravels,
             'leaveEntitlements' => $leaveEntitlements,
+            'profileCompleteness' => $profileCompleteness,
+            'missingSections' => $missingSections,
+            'completenessPercentage' => $completenessPercentage,
         ]);
     }
 }

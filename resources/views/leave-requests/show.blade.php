@@ -394,94 +394,223 @@
 
                     <!-- Cancellation Requests Section -->
                     @if ($leaveRequest->cancellations->count() > 0)
-                        <div class="card mb-4">
-                            <div class="card-header">
-                                <h5 class="mb-0">
-                                    <i class="fas fa-times-circle text-danger"></i> Cancellation Requests
+                        @php
+                            $isAdmin = auth()->user()->can('leave-requests.delete');
+                            $fromMyRequests = request()->routeIs('leave.my-requests.show');
+                            $showAdminActions = $isAdmin && !$fromMyRequests;
+                        @endphp
+                        <div class="card mb-4 card-outline card-warning">
+                            <div class="card-header bg-warning">
+                                <h5 class="mb-0 text-white">
+                                    <i class="fas fa-exclamation-triangle"></i> Cancellation Requests
+                                    <span
+                                        class="badge badge-light ml-2">{{ $leaveRequest->cancellations->count() }}</span>
                                 </h5>
                             </div>
-                            <div class="card-body">
+                            <div class="card-body p-0">
                                 @foreach ($leaveRequest->cancellations as $cancellation)
-                                    <div class="cancellation-item mb-3 p-3 border rounded">
+                                    <div class="cancellation-item p-4 {{ !$loop->last ? 'border-bottom' : '' }}"
+                                        style="background-color: #fff9e6;">
                                         <div class="row">
-                                            <div class="col-md-8">
-                                                <h6 class="mb-2">
-                                                    Request to Cancel: {{ $cancellation->days_to_cancel }} day(s)
-                                                </h6>
-                                                <p class="mb-2"><strong>Reason:</strong> {{ $cancellation->reason }}</p>
-                                                <p class="mb-2"><strong>Requested by:</strong>
-                                                    {{ $cancellation->requestedBy->name ?? 'N/A' }}</p>
-                                                <p class="mb-2"><strong>Requested at:</strong>
-                                                    {{ $cancellation->requested_at->format('d/m/Y H:i') }}</p>
+                                            <div class="col-md-12">
+                                                <div class="d-flex align-items-start mb-3">
+                                                    <div class="flex-grow-1">
+                                                        <div class="d-flex justify-content-between align-items-start mb-2">
+                                                            <h6 class="mb-0 font-weight-bold">
+                                                                <i class="fas fa-calendar-minus text-danger"></i>
+                                                                Request to Cancel: {{ $cancellation->days_to_cancel }}
+                                                                day(s)
+                                                            </h6>
+                                                            <div>
+                                                                @if ($cancellation->status === 'pending')
+                                                                    <span class="badge badge-warning badge-lg">
+                                                                        <i class="fas fa-hourglass-half"></i> Pending
+                                                                    </span>
+                                                                @elseif ($cancellation->status === 'approved')
+                                                                    <span class="badge badge-success badge-lg">
+                                                                        <i class="fas fa-check"></i> Approved
+                                                                    </span>
+                                                                @elseif ($cancellation->status === 'rejected')
+                                                                    <span class="badge badge-danger badge-lg">
+                                                                        <i class="fas fa-times"></i> Rejected
+                                                                    </span>
+                                                                @endif
+                                                            </div>
+                                                        </div>
 
-                                                @if ($cancellation->confirmed_at)
-                                                    <p class="mb-2"><strong>Confirmed by:</strong>
-                                                        {{ $cancellation->confirmedBy->name ?? 'N/A' }}</p>
-                                                    <p class="mb-2"><strong>Confirmed at:</strong>
-                                                        {{ $cancellation->confirmed_at->format('d/m/Y H:i') }}</p>
-                                                    @if ($cancellation->confirmation_notes)
-                                                        <p class="mb-2"><strong>Notes:</strong>
-                                                            {{ $cancellation->confirmation_notes }}</p>
-                                                    @endif
-                                                @endif
-                                            </div>
-                                            <div class="col-md-4 text-right">
-                                                @if ($cancellation->status === 'pending')
-                                                    <span class="badge badge-warning">Pending</span>
-                                                    <div class="mt-2">
-                                                        <form method="POST"
-                                                            action="{{ route('leave.requests.cancellation.approve', $cancellation) }}"
-                                                            style="display: inline;">
-                                                            @csrf
-                                                            <button type="submit" class="btn btn-success btn-sm"
-                                                                onclick="return confirm('Approve this cancellation request?')">
-                                                                <i class="fas fa-check"></i> Approve
-                                                            </button>
-                                                        </form>
-                                                        <button type="button" class="btn btn-danger btn-sm ml-1"
-                                                            data-toggle="modal"
-                                                            data-target="#rejectModal{{ $cancellation->id }}">
-                                                            <i class="fas fa-times"></i> Reject
-                                                        </button>
-                                                    </div>
-                                                @elseif ($cancellation->status === 'approved')
-                                                    <span class="badge badge-success">Approved</span>
-                                                @elseif ($cancellation->status === 'rejected')
-                                                    <span class="badge badge-danger">Rejected</span>
-                                                @endif
-                                            </div>
-                                        </div>
-                                    </div>
+                                                        <div class="cancellation-details mt-3">
+                                                            <div class="detail-item mb-2">
+                                                                <i class="fas fa-comment-alt text-primary"></i>
+                                                                <strong>Reason:</strong>
+                                                                <span class="ml-2">{{ $cancellation->reason }}</span>
+                                                            </div>
+                                                            <div class="detail-item mb-2">
+                                                                <i class="fas fa-user text-info"></i>
+                                                                <strong>Requested by:</strong>
+                                                                <span
+                                                                    class="ml-2">{{ $cancellation->requestedBy->name ?? 'N/A' }}</span>
+                                                            </div>
+                                                            <div class="detail-item mb-2">
+                                                                <i class="fas fa-calendar text-secondary"></i>
+                                                                <strong>Requested at:</strong>
+                                                                <span
+                                                                    class="ml-2">{{ $cancellation->requested_at->format('d F Y, H:i') }}</span>
+                                                            </div>
 
-                                    <!-- Reject Modal -->
-                                    <div class="modal fade" id="rejectModal{{ $cancellation->id }}" tabindex="-1">
-                                        <div class="modal-dialog">
-                                            <div class="modal-content">
-                                                <div class="modal-header">
-                                                    <h5 class="modal-title">Reject Cancellation Request</h5>
-                                                    <button type="button" class="close" data-dismiss="modal">
-                                                        <span>&times;</span>
-                                                    </button>
-                                                </div>
-                                                <form method="POST"
-                                                    action="{{ route('leave.requests.cancellation.reject', $cancellation) }}">
-                                                    @csrf
-                                                    <div class="modal-body">
-                                                        <div class="form-group">
-                                                            <label for="confirmation_notes">Reason for rejection:</label>
-                                                            <textarea class="form-control" name="confirmation_notes" rows="3" required></textarea>
+                                                            @if ($showAdminActions && $cancellation->status === 'pending')
+                                                                <div class="mt-3">
+                                                                    <div class="row">
+                                                                        <div class="col-md-6">
+                                                                            <button type="button"
+                                                                                class="btn btn-success btn-block"
+                                                                                data-toggle="modal"
+                                                                                data-target="#approveModal{{ $cancellation->id }}">
+                                                                                <i class="fas fa-check"></i> Approve
+                                                                            </button>
+                                                                        </div>
+                                                                        <div class="col-md-6">
+                                                                            <button type="button"
+                                                                                class="btn btn-danger btn-block"
+                                                                                data-toggle="modal"
+                                                                                data-target="#rejectModal{{ $cancellation->id }}">
+                                                                                <i class="fas fa-times"></i> Reject
+                                                                            </button>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            @endif
+
+                                                            @if ($cancellation->confirmed_at)
+                                                                <hr class="my-2">
+                                                                <div class="detail-item mb-2">
+                                                                    <i class="fas fa-user-check text-success"></i>
+                                                                    <strong>Confirmed by:</strong>
+                                                                    <span
+                                                                        class="ml-2">{{ $cancellation->confirmedBy->name ?? 'N/A' }}</span>
+                                                                </div>
+                                                                <div class="detail-item mb-2">
+                                                                    <i class="fas fa-calendar-check text-success"></i>
+                                                                    <strong>Confirmed at:</strong>
+                                                                    <span
+                                                                        class="ml-2">{{ $cancellation->confirmed_at->format('d F Y, H:i') }}</span>
+                                                                </div>
+                                                                @if ($cancellation->confirmation_notes)
+                                                                    <div class="detail-item mb-2">
+                                                                        <i class="fas fa-sticky-note text-warning"></i>
+                                                                        <strong>Notes:</strong>
+                                                                        <span
+                                                                            class="ml-2">{{ $cancellation->confirmation_notes }}</span>
+                                                                    </div>
+                                                                @endif
+                                                            @endif
                                                         </div>
                                                     </div>
-                                                    <div class="modal-footer">
-                                                        <button type="button" class="btn btn-secondary"
-                                                            data-dismiss="modal">Cancel</button>
-                                                        <button type="submit" class="btn btn-danger">Reject
-                                                            Request</button>
-                                                    </div>
-                                                </form>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
+
+                                    <!-- Approve Modal -->
+                                    @if ($showAdminActions && $cancellation->status === 'pending')
+                                        <div class="modal fade" id="approveModal{{ $cancellation->id }}" tabindex="-1">
+                                            <div class="modal-dialog">
+                                                <div class="modal-content">
+                                                    <div class="modal-header bg-success text-white">
+                                                        <h5 class="modal-title">
+                                                            <i class="fas fa-check-circle"></i> Approve Cancellation
+                                                            Request
+                                                        </h5>
+                                                        <button type="button" class="close text-white"
+                                                            data-dismiss="modal">
+                                                            <span>&times;</span>
+                                                        </button>
+                                                    </div>
+                                                    <form method="POST"
+                                                        action="{{ route('leave.requests.cancellation.approve', $cancellation) }}">
+                                                        @csrf
+                                                        <div class="modal-body">
+                                                            <div class="alert alert-info">
+                                                                <i class="fas fa-info-circle"></i>
+                                                                <strong>Info:</strong> This will approve the cancellation
+                                                                request and return {{ $cancellation->days_to_cancel }}
+                                                                day(s) to the employee's leave entitlement.
+                                                            </div>
+                                                            <div class="form-group">
+                                                                <label
+                                                                    for="approve_confirmation_notes{{ $cancellation->id }}">
+                                                                    <i class="fas fa-comment-alt"></i> Notes (Optional):
+                                                                </label>
+                                                                <textarea class="form-control" name="confirmation_notes" id="approve_confirmation_notes{{ $cancellation->id }}"
+                                                                    rows="4" placeholder="Add any notes or comments about this approval (optional)..."></textarea>
+                                                                <small class="form-text text-muted">
+                                                                    These notes will be visible to the requester.
+                                                                </small>
+                                                            </div>
+                                                        </div>
+                                                        <div class="modal-footer">
+                                                            <button type="button" class="btn btn-secondary"
+                                                                data-dismiss="modal">
+                                                                <i class="fas fa-times"></i> Cancel
+                                                            </button>
+                                                            <button type="submit" class="btn btn-success">
+                                                                <i class="fas fa-check"></i> Approve Request
+                                                            </button>
+                                                        </div>
+                                                    </form>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    @endif
+
+                                    <!-- Reject Modal -->
+                                    @if ($showAdminActions && $cancellation->status === 'pending')
+                                        <div class="modal fade" id="rejectModal{{ $cancellation->id }}" tabindex="-1">
+                                            <div class="modal-dialog">
+                                                <div class="modal-content">
+                                                    <div class="modal-header bg-danger text-white">
+                                                        <h5 class="modal-title">
+                                                            <i class="fas fa-times-circle"></i> Reject Cancellation Request
+                                                        </h5>
+                                                        <button type="button" class="close text-white"
+                                                            data-dismiss="modal">
+                                                            <span>&times;</span>
+                                                        </button>
+                                                    </div>
+                                                    <form method="POST"
+                                                        action="{{ route('leave.requests.cancellation.reject', $cancellation) }}">
+                                                        @csrf
+                                                        <div class="modal-body">
+                                                            <div class="alert alert-warning">
+                                                                <i class="fas fa-exclamation-triangle"></i>
+                                                                <strong>Warning:</strong> This action cannot be undone.
+                                                            </div>
+                                                            <div class="form-group">
+                                                                <label
+                                                                    for="reject_confirmation_notes{{ $cancellation->id }}">
+                                                                    <i class="fas fa-comment-alt"></i> Reason for
+                                                                    rejection:
+                                                                </label>
+                                                                <textarea class="form-control" name="confirmation_notes" id="reject_confirmation_notes{{ $cancellation->id }}"
+                                                                    rows="4" placeholder="Please provide a reason for rejecting this cancellation request..." required></textarea>
+                                                                <small class="form-text text-muted">
+                                                                    This reason will be visible to the requester.
+                                                                </small>
+                                                            </div>
+                                                        </div>
+                                                        <div class="modal-footer">
+                                                            <button type="button" class="btn btn-secondary"
+                                                                data-dismiss="modal">
+                                                                <i class="fas fa-times"></i> Cancel
+                                                            </button>
+                                                            <button type="submit" class="btn btn-danger">
+                                                                <i class="fas fa-ban"></i> Reject Request
+                                                            </button>
+                                                        </div>
+                                                    </form>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    @endif
                                 @endforeach
                             </div>
                         </div>
@@ -489,39 +618,114 @@
 
                     <!-- Action Buttons -->
                     <div class="leave-request-action-buttons">
-                        <a href="{{ route('leave.requests.index') }}" class="btn-action back-btn">
+                        @php
+                            // Deteksi jika halaman ini diakses dari 'my-requests' berdasarkan route name
+                            $fromMyRequests = request()->routeIs('leave.my-requests.show');
+
+                            // Route untuk back, edit, cancellation, dan action lainnya --
+                            // pakai 'my-requests' jika dari halaman my-requests,
+                            // jika tidak tetap sesuai permission seperti semula
+                            $backRoute = $fromMyRequests
+                                ? route('leave.my-requests')
+                                : (auth()->user()->can('personal.leave.view-own') &&
+                                !auth()->user()->can('leave-requests.show')
+                                    ? route('leave.my-requests')
+                                    : route('leave.requests.index'));
+
+                            $editRoute = $fromMyRequests
+                                ? route('leave.my-requests.edit', $leaveRequest)
+                                : (auth()->user()->can('personal.leave.view-own') &&
+                                !auth()->user()->can('leave-requests.show')
+                                    ? route('leave.my-requests.edit', $leaveRequest)
+                                    : route('leave.requests.edit', $leaveRequest));
+
+                            $cancellationFormRoute = $fromMyRequests
+                                ? route('leave.my-requests.cancellation-form', $leaveRequest)
+                                : (auth()->user()->can('personal.leave.view-own') &&
+                                !auth()->user()->can('leave-requests.show')
+                                    ? route('leave.my-requests.cancellation-form', $leaveRequest)
+                                    : route('leave.requests.cancellation-form', $leaveRequest));
+                        @endphp
+
+                        <a href="{{ $backRoute }}" class="btn-action back-btn">
                             <i class="fas fa-arrow-left"></i> Back to List
                         </a>
 
-                        @if ($leaveRequest->status === 'pending')
-                            <a href="{{ route('leave.requests.edit', $leaveRequest) }}" class="btn-action edit-btn">
-                                <i class="fas fa-edit"></i> Edit Request
-                            </a>
+                        @if ($leaveRequest->status === 'draft' || $leaveRequest->status === 'pending')
+                            @if ($fromMyRequests || (auth()->user()->can('personal.leave.view-own') && !auth()->user()->can('leave-requests.show')))
+                                {{-- Personal user bisa edit request mereka sendiri --}}
+                                @if ($leaveRequest->employee_id === auth()->user()->employee_id)
+                                    <a href="{{ $editRoute }}" class="btn-action edit-btn">
+                                        <i class="fas fa-edit"></i> Edit Request
+                                    </a>
+                                @endif
+                            @else
+                                {{-- Admin bisa edit semua --}}
+                                <a href="{{ $editRoute }}" class="btn-action edit-btn">
+                                    <i class="fas fa-edit"></i> Edit Request
+                                </a>
+                            @endif
                         @endif
 
                         @if ($leaveRequest->canBeClosed())
-                            <form method="POST" action="{{ route('leave.requests.close', $leaveRequest) }}"
-                                style="display: inline;">
-                                @csrf
-                                <button type="submit" class="btn-action close-btn"
-                                    onclick="return confirm('Are you sure you want to close this leave request?')">
-                                    <i class="fas fa-check-circle"></i> Close Request
-                                </button>
-                            </form>
+                            @if ($fromMyRequests || (auth()->user()->can('personal.leave.view-own') && !auth()->user()->can('leave-requests.show')))
+                                {{-- Personal user bisa close requestnya sendiri --}}
+                                {{-- @if ($leaveRequest->employee_id === auth()->user()->employee_id)
+                                    <form method="POST"
+                                        action="{{ $fromMyRequests
+                                            ? route('leave.my-requests.close', $leaveRequest)
+                                            : route('leave.requests.close', $leaveRequest) }}"
+                                        style="display: inline;">
+                                        @csrf
+                                        <button type="submit" class="btn-action close-btn"
+                                            onclick="return confirm('Are you sure you want to close this leave request?')">
+                                            <i class="fas fa-check-circle"></i> Close Request
+                                        </button>
+                                    </form>
+                                @endif --}}
+                            @else
+                                {{-- Admin close --}}
+                                <form method="POST" action="{{ route('leave.requests.close', $leaveRequest) }}"
+                                    style="display: inline;">
+                                    @csrf
+                                    <button type="submit" class="btn-action close-btn"
+                                        onclick="return confirm('Are you sure you want to close this leave request?')">
+                                        <i class="fas fa-check-circle"></i> Close Request
+                                    </button>
+                                </form>
+                            @endif
                         @endif
 
                         @if ($leaveRequest->canBeCancelled())
-                            <a href="{{ route('leave.requests.cancellation-form', $leaveRequest) }}"
-                                class="btn-action cancel-btn">
-                                <i class="fas fa-times-circle"></i> Request Cancellation
-                            </a>
+                            @if ($fromMyRequests || (auth()->user()->can('personal.leave.view-own') && !auth()->user()->can('leave-requests.show')))
+                                {{-- Personal user bisa batalkan requestnya sendiri --}}
+                                @if ($leaveRequest->employee_id === auth()->user()->employee_id)
+                                    <a href="{{ $cancellationFormRoute }}" class="btn-action cancel-btn">
+                                        <i class="fas fa-times-circle"></i> Request Cancellation
+                                    </a>
+                                @endif
+                            @else
+                                {{-- Admin cancel --}}
+                                <a href="{{ $cancellationFormRoute }}" class="btn-action cancel-btn">
+                                    <i class="fas fa-times-circle"></i> Request Cancellation
+                                </a>
+                            @endif
                         @endif
 
-
-                        <a href="{{ route('leave.entitlements.employee.show', $leaveRequest->employee) }}"
-                            class="btn-action print-btn">
-                            <i class="fas fa-calendar-alt"></i> View Entitlements
-                        </a>
+                        @if (
+                            !$fromMyRequests &&
+                                !(auth()->user()->can('personal.leave.view-own') && !auth()->user()->can('leave-requests.show')))
+                            {{-- Hanya admin --}}
+                            <a href="{{ route('leave.entitlements.employee.show', $leaveRequest->employee) }}"
+                                class="btn-action print-btn">
+                                <i class="fas fa-calendar-alt"></i> View Entitlements
+                            </a>
+                        @else
+                            {{-- Personal user lihat hak sendiri --}}
+                            <a href="{{ route('leave.my-entitlements') }}" class="btn-action print-btn">
+                                <i class="fas fa-calendar-alt"></i> View My Entitlements
+                            </a>
+                        @endif
                     </div>
                 </div>
             </div>
@@ -1081,6 +1285,56 @@
 
             .info-item {
                 padding: 10px 0;
+            }
+        }
+
+        /* Cancellation Request Styles */
+        .cancellation-item {
+            transition: all 0.3s ease;
+        }
+
+        .cancellation-item:hover {
+            background-color: #fffef5 !important;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .cancellation-details .detail-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+        }
+
+        .cancellation-details .detail-item i {
+            margin-top: 4px;
+            min-width: 20px;
+        }
+
+        .cancellation-details .detail-item strong {
+            min-width: 120px;
+        }
+
+        .badge-lg {
+            font-size: 0.875rem;
+            padding: 0.5rem 0.75rem;
+            font-weight: 500;
+        }
+
+        .card-outline.card-warning {
+            border-top: 3px solid #ffc107;
+        }
+
+        .card-header.bg-warning {
+            background-color: #ffc107 !important;
+        }
+
+        @media (max-width: 768px) {
+            .cancellation-details .detail-item {
+                flex-direction: column;
+                gap: 4px;
+            }
+
+            .cancellation-details .detail-item strong {
+                min-width: auto;
             }
         }
     </style>

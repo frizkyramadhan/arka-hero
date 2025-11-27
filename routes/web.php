@@ -91,14 +91,6 @@ Route::prefix('employee-registration')->group(function () {
     Route::get('/{token}/success', [EmployeeRegistrationController::class, 'success'])->name('employee.registration.success');
 })->middleware(['throttle:10,1']); // Rate limiting
 
-// Root route for dashboard - direct redirect to avoid caching issues
-Route::get('/', function () {
-    if (auth()->check() && auth()->user()->hasRole('user')) {
-        return redirect()->route('dashboard.personal');
-    }
-    return redirect()->route('dashboard.employees');
-})->name('dashboard');
-
 Route::group(['middleware' => ['auth']], function () {
     // Route::get('/', [ProfileController::class, 'dashboard'])->name('dashboard');
     Route::get('dashboard/getHobpn', [ProfileController::class, 'getHobpn'])->name('hobpn.list');
@@ -130,6 +122,7 @@ Route::group(['middleware' => ['auth']], function () {
     Route::get('summary/birthday/employees', [ProfileController::class, 'getBirthdayEmployees'])->name('employees.birthday.list');
 
     // Profile routes
+    Route::get('profile/my-profile', [ProfileController::class, 'myProfile'])->name('profile.my-profile');
     Route::get('profile/change-password', [ProfileController::class, 'showChangePasswordForm'])->name('profile.change-password');
     Route::put('profile/change-password', [ProfileController::class, 'updatePassword'])->name('profile.change-password.update');
 
@@ -146,9 +139,9 @@ Route::group(['middleware' => ['auth']], function () {
         Route::get('/recruitment', [DashboardController::class, 'recruitment'])->name('recruitment');
         Route::get('/letter-administration', [DashboardController::class, 'letterAdministration'])->name('letter-administration');
         Route::get('/leave-management', [DashboardController::class, 'leaveManagement'])->name('leave-management');
-        Route::middleware('user_data_filter')->group(function () {
-            Route::get('/personal', [DashboardController::class, 'personal'])->name('personal');
-        });
+        // Route::middleware('user_data_filter')->group(function () {
+        Route::get('/personal', [DashboardController::class, 'personal'])->name('personal');
+        // });
     });
 
     // Dashboard Employee routes
@@ -225,25 +218,25 @@ Route::group(['middleware' => ['auth']], function () {
     Route::resource('religions', ReligionController::class)->except(['show', 'create', 'edit']);
 
     Route::get('projects/data', [ProjectController::class, 'getProjects'])->name('projects.data');
-    Route::get('projects', [ProjectController::class, 'index'])->name('web.projects.index');
-    Route::post('projects', [ProjectController::class, 'store'])->name('web.projects.store');
-    Route::put('projects/{project}', [ProjectController::class, 'update'])->name('web.projects.update');
-    Route::delete('projects/{project}', [ProjectController::class, 'destroy'])->name('web.projects.destroy');
+    Route::resource('projects', ProjectController::class)->except(['show', 'create', 'edit']);
 
     Route::get('departments/data', [DepartmentController::class, 'getDepartments'])->name('departments.data');
     Route::post('departments/import', [DepartmentController::class, 'import'])->name('departments.import');
-    Route::get('departments', [DepartmentController::class, 'index'])->name('web.departments.index');
-    Route::post('departments', [DepartmentController::class, 'store'])->name('web.departments.store');
-    Route::put('departments/{department}', [DepartmentController::class, 'update'])->name('web.departments.update');
-    Route::delete('departments/{department}', [DepartmentController::class, 'destroy'])->name('web.departments.destroy');
+    Route::resource('departments', DepartmentController::class)->except(['show', 'create', 'edit']);
 
     Route::get('positions/data', [PositionController::class, 'getPositions'])->name('positions.data');
     Route::post('positions/import', [PositionController::class, 'import'])->name('positions.import');
     Route::get('positions/export', [PositionController::class, 'export'])->name('positions.export');
-    Route::get('positions', [PositionController::class, 'index'])->name('web.positions.index');
-    Route::post('positions', [PositionController::class, 'store'])->name('web.positions.store');
-    Route::put('positions/{position}', [PositionController::class, 'update'])->name('web.positions.update');
-    Route::delete('positions/{position}', [PositionController::class, 'destroy'])->name('web.positions.destroy');
+    Route::resource('positions', PositionController::class)->except(['show', 'create', 'edit']);
+
+    Route::get('grades/data', [GradeController::class, 'getGrades'])->name('grades.data');
+    Route::get('levels/data', [LevelController::class, 'getLevels'])->name('levels.data');
+
+    Route::get('transportations/data', [TransportationController::class, 'getTransportations'])->name('transportations.data');
+    Route::resource('transportations', TransportationController::class)->except(['show', 'create', 'edit']);
+
+    Route::get('accommodations/data', [AccommodationController::class, 'getAccommodations'])->name('accommodations.data');
+    Route::resource('accommodations', AccommodationController::class);
 
     Route::get('grades/data', [GradeController::class, 'getGrades'])->name('grades.data');
     Route::post('grades/status/{id}', [GradeController::class, 'changeStatus'])->name('grades.status');
@@ -253,15 +246,13 @@ Route::group(['middleware' => ['auth']], function () {
     Route::post('levels/status/{id}', [LevelController::class, 'changeStatus'])->name('levels.status');
     Route::resource('levels', LevelController::class);
 
-    Route::get('transportations/data', [TransportationController::class, 'getTransportations'])->name('transportations.data');
-    Route::resource('transportations', TransportationController::class)->except(['show', 'create', 'edit']);
-
-    Route::get('accommodations/data', [AccommodationController::class, 'getAccommodations'])->name('accommodations.data');
-    Route::resource('accommodations', AccommodationController::class);
-
     // APPS
 
     // OFFICIAL TRAVEL ROUTES
+    // Self-service routes for user role (must be before resource route to avoid conflicts)
+    Route::get('officialtravels/my-travels', [OfficialtravelController::class, 'myTravels'])->name('officialtravels.my-travels');
+    Route::get('officialtravels/my-travels/data', [OfficialtravelController::class, 'myTravelsData'])->name('officialtravels.my-travels.data');
+    Route::get('officialtravels/my-travels/{id}', [OfficialtravelController::class, 'myTravelsShow'])->name('officialtravels.my-travels.show');
     Route::get('officialtravels/data', [OfficialtravelController::class, 'getOfficialtravels'])->name('officialtravels.data');
     // Test route for letter number integration (development only)
     Route::get('officialtravels/test-letter-integration', [OfficialtravelController::class, 'testLetterNumberIntegration'])->name('officialtravels.testLetterIntegration');
@@ -278,11 +269,6 @@ Route::group(['middleware' => ['auth']], function () {
     Route::patch('officialtravels/{officialtravel}/close', [OfficialtravelController::class, 'close'])->name('officialtravels.close');
     Route::post('officialtravels/export', [OfficialtravelController::class, 'exportExcel'])->name('officialtravels.export');
 
-    // Self-service routes for user role
-    Route::middleware('user_data_filter')->group(function () {
-        Route::get('officialtravels/my-travels', [OfficialtravelController::class, 'myTravels'])->name('officialtravels.my-travels');
-        Route::get('officialtravels/my-travels/data', [OfficialtravelController::class, 'myTravelsData'])->name('officialtravels.my-travels.data');
-    });
 
     // LETTER NUMBERING SYSTEM ROUTES
     Route::prefix('letter-numbers')->name('letter-numbers.')->group(function () {
@@ -319,12 +305,12 @@ Route::group(['middleware' => ['auth']], function () {
     });
 
     // EMPLOYEE REGISTRATION ADMIN ROUTES
-    Route::prefix('employee-registrations')->group(function () {
+    Route::prefix('employee-registrations')->name('employee.registration.admin.')->group(function () {
         Route::get('/', [EmployeeRegistrationAdminController::class, 'index'])->name('index');
         Route::get('/pending', [EmployeeRegistrationAdminController::class, 'getPendingRegistrations'])->name('pending');
         Route::get('/tokens', [EmployeeRegistrationAdminController::class, 'getTokens'])->name('tokens');
-        Route::get('/invite', [EmployeeRegistrationAdminController::class, 'showInviteForm'])->name('invite.form');
-        Route::post('/invite', [EmployeeRegistrationAdminController::class, 'invite'])->name('invite.process');
+        Route::get('/invite', [EmployeeRegistrationAdminController::class, 'showInviteForm'])->name('invite');
+        Route::post('/invite', [EmployeeRegistrationAdminController::class, 'invite'])->name('invite');
         Route::post('/bulk-invite', [EmployeeRegistrationAdminController::class, 'bulkInvite'])->name('bulk-invite');
         Route::post('/tokens/{tokenId}/resend', [EmployeeRegistrationAdminController::class, 'resendInvitation'])->name('resend');
         Route::delete('/tokens/{tokenId}', [EmployeeRegistrationAdminController::class, 'deleteToken'])->name('delete-token');
@@ -447,8 +433,13 @@ Route::group(['middleware' => ['auth']], function () {
 
     // Recruitment Routes
     Route::prefix('recruitment')->name('recruitment.')->group(function () {
+        // Self-service routes for user role
+        Route::get('/my-requests', [RecruitmentRequestController::class, 'myRequests'])->name('my-requests');
+        Route::get('/my-requests/data', [RecruitmentRequestController::class, 'myRequestsData'])->name('my-requests.data');
+
         // FPTK (Recruitment Request) Routes
         Route::prefix('requests')->name('requests.')->group(function () {
+
             Route::get('/', [RecruitmentRequestController::class, 'index'])->name('index');
             Route::get('/data', [RecruitmentRequestController::class, 'getRecruitmentRequests'])->name('data');
             Route::get('/{id}/data', [RecruitmentRequestController::class, 'getFPTKData'])->name('single-data');
@@ -476,11 +467,6 @@ Route::group(['middleware' => ['auth']], function () {
             Route::post('/{id}/reject', [RecruitmentRequestController::class, 'reject'])->name('reject');
             Route::post('/{id}/assign-letter-number', [RecruitmentRequestController::class, 'assignLetterNumber'])->name('assign-letter-number');
 
-            // Self-service routes for user role
-            Route::middleware('user_data_filter')->group(function () {
-                Route::get('/my-requests', [RecruitmentRequestController::class, 'myRequests'])->name('my-requests');
-                Route::get('/my-requests/data', [RecruitmentRequestController::class, 'myRequestsData'])->name('my-requests.data');
-            });
 
             // AJAX Routes
         });
@@ -629,12 +615,6 @@ Route::group(['middleware' => ['auth']], function () {
             Route::post('/{leaveRequest}/approve', [LeaveRequestController::class, 'approve'])->name('approve');
             Route::post('/{leaveRequest}/reject', [LeaveRequestController::class, 'reject'])->name('reject');
 
-            // Self-service routes for user role
-            Route::middleware('user_data_filter')->group(function () {
-                Route::get('/my-requests', [LeaveRequestController::class, 'myRequests'])->name('my-requests');
-                Route::get('/my-requests/data', [LeaveRequestController::class, 'myRequestsData'])->name('my-requests.data');
-                Route::get('/my-entitlements', [LeaveRequestController::class, 'myEntitlements'])->name('my-entitlements');
-            });
 
             // Close and cancellation routes
             Route::post('/{leaveRequest}/close', [LeaveRequestController::class, 'close'])->name('close');
@@ -653,6 +633,20 @@ Route::group(['middleware' => ['auth']], function () {
             Route::get('/employees-by-project/{projectId}', [LeaveRequestController::class, 'getEmployeesByProject'])->name('employees-by-project');
             Route::get('/leave-types-by-employee/{employeeId}', [LeaveRequestController::class, 'getLeaveTypesByEmployee'])->name('leave-types-by-employee');
         });
+
+        // Self-service routes for user role (moved outside requests prefix)
+        // Route::middleware('user_data_filter')->group(function () {
+        Route::get('/my-requests', [LeaveRequestController::class, 'myRequests'])->name('my-requests');
+        Route::get('/my-requests/data', [LeaveRequestController::class, 'myRequestsData'])->name('my-requests.data');
+        Route::get('/my-requests/create', [LeaveRequestController::class, 'myRequestsCreate'])->name('my-requests.create');
+        Route::post('/my-requests', [LeaveRequestController::class, 'myRequestsStore'])->name('my-requests.store');
+        Route::get('/my-requests/{leaveRequest}', [LeaveRequestController::class, 'myRequestsShow'])->name('my-requests.show');
+        Route::get('/my-requests/{leaveRequest}/edit', [LeaveRequestController::class, 'myRequestsEdit'])->name('my-requests.edit');
+        Route::put('/my-requests/{leaveRequest}', [LeaveRequestController::class, 'myRequestsUpdate'])->name('my-requests.update');
+        Route::get('/my-requests/{leaveRequest}/cancellation-form', [LeaveRequestController::class, 'showCancellationForm'])->name('my-requests.cancellation-form');
+        Route::post('/my-requests/{leaveRequest}/cancellation', [LeaveRequestController::class, 'storeCancellation'])->name('my-requests.cancellation');
+        Route::get('/my-entitlements', [LeaveRequestController::class, 'myEntitlements'])->name('my-entitlements');
+        // });
 
         // Bulk Leave Requests
         Route::prefix('bulk-requests')->name('bulk-requests.')->group(function () {
