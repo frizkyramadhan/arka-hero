@@ -645,12 +645,20 @@
 
             $('#dynamic-fields').on('change', '#administration_id', function() {
                 var selectedOption = $(this).find('option:selected');
+                var categoryCode = $('#letter_category_id option:selected').data('code');
                 $('#display_nik').val(selectedOption.data('nik'));
                 $('#display_project').val(selectedOption.data('project-name'));
-                // Auto-set project_id from employee's project
-                if (selectedOption.data('project-id')) {
+
+                // CRITICAL: For categories with employee-template (PKWT, PAR, CRTE, SKPK),
+                // project_id MUST come from select project, NOT from employee
+                // Do NOT change project_id when selecting employee for these categories
+                // For other categories, auto-set project_id from employee's project
+                var categoriesWithEmployeeTemplate = ['PKWT', 'PAR', 'CRTE', 'SKPK'];
+                if (selectedOption.data('project-id') && !categoriesWithEmployeeTemplate.includes(
+                        categoryCode)) {
                     $('#project_id').val(selectedOption.data('project-id')).trigger('change');
                 }
+                // For categories with employee-template, project_id remains unchanged (from select project dropdown)
             });
         });
     </script>

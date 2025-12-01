@@ -65,8 +65,9 @@ class LetterNumberController extends Controller
         $title = 'Letter Number Administration';
         $subtitle = 'Letter Numbers List';
         $categories = $this->getFilteredCategories();
+        $projects = auth()->user()->projects()->where('project_status', 1)->orderBy('project_code', 'asc')->get();
 
-        return view('letter-numbers.index', compact('title', 'subtitle', 'categories'));
+        return view('letter-numbers.index', compact('title', 'subtitle', 'categories', 'projects'));
     }
 
     public function getLetterNumbers(Request $request)
@@ -106,8 +107,10 @@ class LetterNumberController extends Controller
             ->when($request->remarks, function ($query, $remarks) {
                 return $query->where('remarks', 'like', '%' . $remarks . '%');
             })
-            ->orderBy('created_at', 'desc')
-            ->orderBy('sequence_number', 'desc');
+            ->when($request->project_id, function ($query, $projectId) {
+                return $query->where('project_id', $projectId);
+            })
+            ->orderBy('id', 'desc');
 
         return datatables()->of($letterNumbers)
             ->addIndexColumn()
@@ -184,14 +187,23 @@ class LetterNumberController extends Controller
         }
 
         // Get estimated next numbers for all categories
-        $estimatedNextNumbers = LetterNumber::getEstimatedNextNumbersForAllCategories();
+        // Since numbering is per project, we'll show for first project as default preview
+        // User can see actual preview when they select a project
+        $defaultProjectId = $projects->first() ? $projects->first()->id : null;
+        $estimatedNextNumbers = $defaultProjectId
+            ? LetterNumber::getEstimatedNextNumbersForAllCategories(null, [$defaultProjectId])
+            : [];
 
-        // Get last numbers for each category for context
+        // Get last numbers for each category for context (for default project)
         $lastNumbersByCategory = [];
         $letterCountsByCategory = [];
         foreach ($categories as $category) {
-            $lastNumbersByCategory[$category->id] = LetterNumber::getLastNumbersForCategory($category->id, 3);
-            $letterCountsByCategory[$category->id] = LetterNumber::getLetterCountForCategory($category->id);
+            $lastNumbersByCategory[$category->id] = $defaultProjectId
+                ? LetterNumber::getLastNumbersForCategory($category->id, 3, null, $defaultProjectId, null)
+                : collect();
+            $letterCountsByCategory[$category->id] = $defaultProjectId
+                ? LetterNumber::getLetterCountForCategory($category->id, null, $defaultProjectId, null)
+                : 0;
         }
 
         return view('letter-numbers.create', compact(
@@ -214,7 +226,6 @@ class LetterNumberController extends Controller
             'letter_date' => 'required|date',
             'destination' => 'nullable|string|max:200',
             'remarks' => 'nullable|string',
-            'project_code' => 'nullable|string|max:50',
             'project_id' => 'required|exists:projects,id',
         ];
 
@@ -261,17 +272,34 @@ class LetterNumberController extends Controller
         $request->validate($rules);
 
         $letterNumber = new LetterNumber();
-        $letterNumber->fill($request->all());
 
-        // Set project_id: priority from administration, then from request
-        if ($request->administration_id) {
-            $administration = Administration::find($request->administration_id);
-            if ($administration && $administration->project_id) {
-                $letterNumber->project_id = $administration->project_id;
+        // Set project_id based on category BEFORE fill()
+        // Categories with employee-template (PKWT, PAR, CRTE, SKPK): ALWAYS use project from request (select project), NEVER from employee
+        // Other categories: priority from administration, then from request
+        $categoriesWithEmployeeTemplate = ['PKWT', 'PAR', 'CRTE', 'SKPK'];
+        if ($category && in_array($category->category_code, $categoriesWithEmployeeTemplate)) {
+            // Categories with employee-template: ONLY use project from request->project_id (select project)
+            // Completely ignore administration project_id for these categories
+            $letterNumber->project_id = $request->project_id;
+        } else {
+            // Other categories: priority from administration, then from request
+            if ($request->administration_id) {
+                $administration = Administration::find($request->administration_id);
+                if ($administration && $administration->project_id) {
+                    $letterNumber->project_id = $administration->project_id;
+                }
+            }
+            // If project_id not set from administration, use from request (or null)
+            if (!$letterNumber->project_id && $request->project_id) {
+                $letterNumber->project_id = $request->project_id;
             }
         }
-        // If project_id not set from administration, use from request (or null)
-        if (!$letterNumber->project_id && $request->project_id) {
+
+        // Fill other fields (project_id already set above, so won't be overridden)
+        $letterNumber->fill($request->all());
+
+        // Ensure categories with employee-template project_id is NOT overridden by fill()
+        if ($category && in_array($category->category_code, $categoriesWithEmployeeTemplate)) {
             $letterNumber->project_id = $request->project_id;
         }
 
@@ -388,17 +416,33 @@ class LetterNumberController extends Controller
 
         $request->validate($rules);
 
-        $letterNumber->fill($request->all());
-
-        // Set project_id: priority from administration, then from request
-        if ($request->administration_id) {
-            $administration = Administration::find($request->administration_id);
-            if ($administration && $administration->project_id) {
-                $letterNumber->project_id = $administration->project_id;
+        // Set project_id based on category BEFORE fill()
+        // Categories with employee-template (PKWT, PAR, CRTE, SKPK): ALWAYS use project from request (select project), NEVER from employee
+        // Other categories: priority from administration, then from request
+        $categoriesWithEmployeeTemplate = ['PKWT', 'PAR', 'CRTE', 'SKPK'];
+        if ($category && in_array($category->category_code, $categoriesWithEmployeeTemplate)) {
+            // Categories with employee-template: ONLY use project from request->project_id (select project)
+            // Completely ignore administration project_id for these categories
+            $letterNumber->project_id = $request->project_id;
+        } else {
+            // Other categories: priority from administration, then from request
+            if ($request->administration_id) {
+                $administration = Administration::find($request->administration_id);
+                if ($administration && $administration->project_id) {
+                    $letterNumber->project_id = $administration->project_id;
+                }
+            }
+            // If project_id not set from administration, use from request (or keep existing)
+            if (!$letterNumber->project_id && $request->project_id) {
+                $letterNumber->project_id = $request->project_id;
             }
         }
-        // If project_id not set from administration, use from request (or keep existing)
-        if (!$letterNumber->project_id && $request->project_id) {
+
+        // Fill other fields (project_id already set above, so won't be overridden)
+        $letterNumber->fill($request->all());
+
+        // Ensure categories with employee-template project_id is NOT overridden by fill()
+        if ($category && in_array($category->category_code, $categoriesWithEmployeeTemplate)) {
             $letterNumber->project_id = $request->project_id;
         }
 
@@ -575,11 +619,32 @@ class LetterNumberController extends Controller
                     $values = $failure->values();
                     $attribute = $failure->attribute();
                     $value = is_array($values) && array_key_exists($attribute, $values) ? $values[$attribute] : null;
+
+                    // For project-related errors, use project_code as attribute and show value
+                    $displayValue = $value;
+                    $displayAttribute = ucwords(str_replace('_', ' ', $attribute));
+
+                    if (in_array($attribute, ['project_code', 'project_id', 'project'])) {
+                        // Always use project_code as attribute name
+                        $displayAttribute = 'project_code';
+                        $projectCode = is_array($values) && array_key_exists('project_code', $values) ? $values['project_code'] : null;
+                        $projectId = is_array($values) && array_key_exists('project_id', $values) ? $values['project_id'] : null;
+
+                        // Show value, or empty if both are empty
+                        if ($projectCode) {
+                            $displayValue = $projectCode;
+                        } elseif ($projectId) {
+                            $displayValue = $projectId;
+                        } else {
+                            $displayValue = ''; // Empty if not provided
+                        }
+                    }
+
                     $formattedFailures->push([
                         'sheet'     => 'Letter Import',
                         'row'       => $failure->row(),
-                        'attribute' => $attribute,
-                        'value'     => $value,
+                        'attribute' => $displayAttribute,
+                        'value'     => $displayValue,
                         'errors'    => implode(', ', $failure->errors()),
                     ]);
                 }
@@ -594,11 +659,32 @@ class LetterNumberController extends Controller
                 $values = $failure->values();
                 $attribute = $failure->attribute();
                 $value = is_array($values) && array_key_exists($attribute, $values) ? $values[$attribute] : null;
+
+                // For project-related errors, use project_code as attribute and show value
+                $displayValue = $value;
+                $displayAttribute = ucwords(str_replace('_', ' ', $attribute));
+
+                if (in_array($attribute, ['project_code', 'project_id', 'project'])) {
+                    // Always use project_code as attribute name
+                    $displayAttribute = 'project_code';
+                    $projectCode = is_array($values) && array_key_exists('project_code', $values) ? $values['project_code'] : null;
+                    $projectId = is_array($values) && array_key_exists('project_id', $values) ? $values['project_id'] : null;
+
+                    // Show value, or empty if both are empty
+                    if ($projectCode) {
+                        $displayValue = $projectCode;
+                    } elseif ($projectId) {
+                        $displayValue = $projectId;
+                    } else {
+                        $displayValue = ''; // Empty if not provided
+                    }
+                }
+
                 $failures->push([
                     'sheet'     => 'Letter Import',
                     'row'       => $failure->row(),
-                    'attribute' => $attribute,
-                    'value'     => $value,
+                    'attribute' => $displayAttribute,
+                    'value'     => $displayValue,
                     'errors'    => implode(', ', $failure->errors()),
                 ]);
             }

@@ -258,7 +258,7 @@ class DashboardController extends Controller
     /**
      * Dedicated Letter Administration Dashboard view
      */
-    public function letterAdministration()
+    public function letterAdministration(Request $request)
     {
         $title = 'Letter Administration Dashboard';
         $subtitle = 'Letter Numbering System Overview';
@@ -350,16 +350,98 @@ class DashboardController extends Controller
             ->orderBy('day')
             ->get();
 
-        // Get estimated next numbers for all categories
-        $estimatedNextNumbers = LetterNumber::getEstimatedNextNumbersForAllCategories();
+        // Get year filter from request, default to current year
+        $selectedYear = $request->get('year', date('Y'));
+        
+        // Get user's accessible projects for filtering
+        $userProjects = auth()->user()->projects()->where('project_status', 1)->orderBy('project_code', 'asc')->get();
+        $userProjectIds = $userProjects->pluck('id')->toArray();
+        
+        // Get project filter from request, default to first project if available
+        $selectedProjectId = $request->get('project_id', null);
+        
+        // If no project selected or project not in user's accessible projects, use first project
+        if (!$selectedProjectId || !in_array($selectedProjectId, $userProjectIds)) {
+            $selectedProjectId = $userProjects->first() ? $userProjects->first()->id : null;
+        }
+        
+        // If user has no projects, return empty data
+        if (!$selectedProjectId) {
+            $categories = LetterCategory::where('is_active', 1)->orderBy('category_code', 'asc')->get();
+            $estimatedNextNumbers = [];
+            $lastNumbersByCategory = [];
+            $letterCountsByCategory = [];
+            $availableYears = [date('Y')];
+            return view('dashboard.letter-administration', compact(
+                'title',
+                'subtitle',
+                'totalLetters',
+                'reservedLetters',
+                'usedLetters',
+                'cancelledLetters',
+                'thisMonthLetters',
+                'monthlyGrowth',
+                'categoriesStats',
+                'usageByCategory',
+                'usageEfficiency',
+                'integratedLetters',
+                'officialTravelLetters',
+                'fptkLetters',
+                'pkwtLetters',
+                'offeringLetters',
+                'integrationBreakdown',
+                'recentLetters',
+                'topUsers',
+                'yearlyStats',
+                'dailyTrend',
+                'categories',
+                'estimatedNextNumbers',
+                'lastNumbersByCategory',
+                'letterCountsByCategory',
+                'selectedYear',
+                'availableYears',
+                'selectedProjectId',
+                'userProjects'
+            ));
+        }
+        
+        // Get estimated next numbers for all categories with year and project filter
+        // Always show for specific selected project
+        $estimatedNextNumbers = LetterNumber::getEstimatedNextNumbersForAllCategories($selectedYear, [$selectedProjectId]);
 
-        // Get last numbers for each category for context
+        // Get last numbers for each category for context (with year and project filter)
         $categories = LetterCategory::where('is_active', 1)->orderBy('category_code', 'asc')->get();
         $lastNumbersByCategory = [];
         $letterCountsByCategory = [];
         foreach ($categories as $category) {
-            $lastNumbersByCategory[$category->id] = LetterNumber::getLastNumbersForCategory($category->id, 3);
-            $letterCountsByCategory[$category->id] = LetterNumber::getLetterCountForCategory($category->id);
+            // Get last numbers for selected project
+            $lastNumbersByCategory[$category->id] = LetterNumber::getLastNumbersForCategory(
+                $category->id, 
+                3, 
+                $selectedYear, 
+                $selectedProjectId, 
+                null
+            );
+            // Get letter count for selected project
+            $letterCountsByCategory[$category->id] = LetterNumber::getLetterCountForCategory(
+                $category->id, 
+                $selectedYear, 
+                $selectedProjectId, 
+                null
+            );
+        }
+        
+        // Get available years for filter (years that have letter numbers in selected project)
+        $availableYears = LetterNumber::where('project_id', $selectedProjectId)
+            ->select(DB::raw('DISTINCT year'))
+            ->orderBy('year', 'desc')
+            ->pluck('year')
+            ->toArray();
+        
+        // If current year not in available years, add it
+        if (!in_array(date('Y'), $availableYears)) {
+            $availableYears[] = date('Y');
+            rsort($availableYears);
         }
 
         return view('dashboard.letter-administration', compact(
@@ -387,7 +469,11 @@ class DashboardController extends Controller
             'categories',
             'estimatedNextNumbers',
             'lastNumbersByCategory',
-            'letterCountsByCategory'
+            'letterCountsByCategory',
+            'selectedYear',
+            'availableYears',
+            'selectedProjectId',
+            'userProjects'
         ));
     }
 
