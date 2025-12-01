@@ -15,20 +15,20 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule)
     {
-        // Auto close FPTKs older than 6 months since approval, run daily at 01:00
+        // Tutup otomatis FPTK yang sudah lebih dari 6 bulan sejak approval, dijalankan setiap hari pukul 00:00
         $schedule->command('recruitment:close-expired-fptk')->dailyAt('00:00');
 
-        // Auto update employee bonds status to completed when end date equals today, run daily at 00:01
-        $schedule->command('employee-bonds:update-expired')->dailyAt('01:00');
+        // Update otomatis status employee bonds menjadi selesai jika end date sama dengan hari ini, dijalankan setiap hari pukul 00:05
+        $schedule->command('employee-bonds:update-expired')->dailyAt('00:05');
 
-        // Auto convert paid leave requests to unpaid if no supporting document after 12 days, run daily at 02:00
-        $schedule->command('leave:auto-convert')->dailyAt('02:00');
+        // Konversi otomatis cuti tahunan berbayar menjadi unpaid jika dokumen pendukung tidak diupload setelah 12 hari, dijalankan setiap hari pukul 00:10
+        $schedule->command('leave:auto-convert')->dailyAt('00:10');
 
-        // Auto approve leave requests pending more than 3 days, run daily at 03:00
-        $schedule->command('leave:auto-approve')->dailyAt('03:00');
+        // Approve otomatis cuti yang pending lebih dari 3 hari, dijalankan setiap hari pukul 00:15
+        $schedule->command('leave:auto-approve')->dailyAt('00:15');
 
-        // Auto mark reserved letter numbers as used after 3 days, run daily at 04:00
-        $schedule->command('letter-numbers:auto-mark-used')->dailyAt('04:00');
+        // Tandai otomatis letter number yang reserved menjadi used setelah 3 hari, dijalankan setiap hari pukul 00:20
+        $schedule->command('letter-numbers:auto-mark-used')->dailyAt('00:20');
     }
 
     /**

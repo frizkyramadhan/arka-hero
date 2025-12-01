@@ -169,19 +169,46 @@
                                 <li>Approval flow ditentukan berdasarkan kombinasi <strong>Project</strong>,
                                     <strong>Department</strong>, dan <strong>Request Reason</strong>
                                 </li>
-                                <li>Request Reason yang berbeda dapat memiliki approval flow yang berbeda:
+                                <li><strong>Request Reason: Additional</strong>
                                     <ul class="mt-1">
-                                        <li><strong>Replacement - Resign:</strong> Penggantian karena karyawan
-                                            resign/terminated/end of contract</li>
-                                        <li><strong>Replacement - Promotion:</strong> Penggantian karena karyawan
-                                            promosi/mutasi/demotion</li>
-                                        <li><strong>Additional - Workplan:</strong> Tambahan karena rencana kerja</li>
-                                        <li><strong>Other:</strong> Alasan lainnya</li>
+                                        <li><strong>Project HO, BO, atau APS:</strong>
+                                            <ol class="mt-1">
+                                                <li>Division Manager masing-masing department</li>
+                                                <li>HCS Division Manager</li>
+                                                <li>HCL Director</li>
+                                            </ol>
+                                        </li>
+                                        <li><strong>Site Project:</strong>
+                                            <ol class="mt-1">
+                                                <li>Project Manager</li>
+                                                <li>Operation General Manager</li>
+                                                <li>HCS Division Manager</li>
+                                            </ol>
+                                        </li>
+                                    </ul>
+                                </li>
+                                <li><strong>Request Reason: Replacement</strong>
+                                    <ul class="mt-1">
+                                        <li><strong>Project HO, BO, atau APS:</strong>
+                                            <ol class="mt-1">
+                                                <li>Division Manager masing-masing department</li>
+                                                <li>HCS Division Manager</li>
+                                            </ol>
+                                        </li>
+                                        <li><strong>Site Project:</strong>
+                                            <ol class="mt-1">
+                                                <li>Project Manager</li>
+                                                <li>HCS Division Manager</li>
+                                            </ol>
+                                        </li>
                                     </ul>
                                 </li>
                                 <li>Approval dilakukan secara <strong>sequential</strong> sesuai urutan yang dipilih
                                 </li>
                                 <li>Approver yang dipilih harus memiliki role <strong>approver</strong></li>
+                                <li class="mt-2"><strong><i class="fas fa-exclamation-triangle text-warning"></i>
+                                        Catatan:</strong> Jika approver yang diperlukan tidak tersedia dalam Approver
+                                    Selection, harap menghubungi <strong>HR HO Balikpapan</strong></li>
                             </ul>
                         @elseif($documentType === 'leave_request')
                             <h6 class="text-primary mb-2">
@@ -196,6 +223,9 @@
                                 </li>
                                 <li>Approver yang dipilih harus memiliki role <strong>approver</strong></li>
                                 <li>Setiap approver akan menerima notifikasi untuk approve/reject request</li>
+                                <li class="mt-2"><strong><i class="fas fa-exclamation-triangle text-warning"></i>
+                                        Catatan:</strong> Jika approver yang diperlukan tidak tersedia dalam Approver
+                                    Selection, harap menghubungi <strong>HR HO Balikpapan</strong></li>
                             </ul>
                         @elseif($documentType === 'officialtravel')
                             <h6 class="text-primary mb-2">
@@ -211,6 +241,9 @@
                                 </li>
                                 <li>Approver yang dipilih harus memiliki role <strong>approver</strong></li>
                                 <li>Setiap approver akan menerima notifikasi untuk approve/reject perjalanan dinas</li>
+                                <li class="mt-2"><strong><i class="fas fa-exclamation-triangle text-warning"></i>
+                                        Catatan:</strong> Jika approver yang diperlukan tidak tersedia dalam Approver
+                                    Selection, harap menghubungi <strong>HR HO Balikpapan</strong></li>
                             </ul>
                         @endif
                     </div>

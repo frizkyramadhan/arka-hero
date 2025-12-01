@@ -11,9 +11,16 @@
                 </div>
                 <div class="col-sm-6">
                     <ol class="breadcrumb float-sm-right">
-                        <li class="breadcrumb-item"><a href="{{ route('dashboard') }}">Home</a></li>
-                        <li class="breadcrumb-item"><a href="{{ route('leave.requests.index') }}">Leave Requests</a></li>
-                        <li class="breadcrumb-item active">Create</li>
+                        @if (isset($isPersonalRequest) && $isPersonalRequest)
+                            <li class="breadcrumb-item"><a href="{{ route('dashboard.personal') }}">My Dashboard</a></li>
+                            <li class="breadcrumb-item"><a href="{{ route('leave.my-requests') }}">My Leave Request</a></li>
+                            <li class="breadcrumb-item active">Create</li>
+                        @else
+                            <li class="breadcrumb-item"><a href="{{ route('dashboard') }}">Home</a></li>
+                            <li class="breadcrumb-item"><a href="{{ route('leave.requests.index') }}">Leave Requests</a>
+                            </li>
+                            <li class="breadcrumb-item active">Create</li>
+                        @endif
                     </ol>
                 </div>
             </div>
@@ -22,7 +29,9 @@
 
     <section class="content">
         <div class="container-fluid">
-            <form method="POST" action="{{ route('leave.requests.store') }}" enctype="multipart/form-data">
+            <form method="POST"
+                action="{{ isset($isPersonalRequest) && $isPersonalRequest ? route('leave.my-requests.store') : route('leave.requests.store') }}"
+                enctype="multipart/form-data">
                 @csrf
                 <div class="row">
                     <div class="col-md-8">
@@ -50,7 +59,7 @@
                                                 @foreach ($projects as $project)
                                                     <option value="{{ $project->id }}"
                                                         {{ old('project_id') == $project->id ? 'selected' : '' }}>
-                                                        {{ $project->project_name }} ({{ $project->project_code }})
+                                                        {{ $project->project_code }} - {{ $project->project_name }}
                                                     </option>
                                                 @endforeach
                                             </select>
@@ -65,37 +74,47 @@
                                                 <i class="fas fa-user mr-1"></i>
                                                 Employee <span class="text-danger">*</span>
                                             </label>
-                                            <select name="employee_id" id="employee_id"
-                                                class="select2bs4 form-control @error('employee_id') is-invalid @enderror"
-                                                required disabled>
-                                                <option value="">Select Employee</option>
-                                                @php
-                                                    $projectId = old('project_id');
-                                                    $employees = \App\Models\Administration::with([
-                                                        'employee',
-                                                        'position',
-                                                    ])
-                                                        ->where('project_id', $projectId)
-                                                        ->where('is_active', 1)
-                                                        ->orderBy('nik', 'asc')
-                                                        ->get()
-                                                        ->map(function ($admin) {
-                                                            return [
-                                                                'id' => $admin->employee_id,
-                                                                'fullname' => $admin->employee->fullname,
-                                                                'position' => $admin->position->position_name ?? 'N/A',
-                                                                'nik' => $admin->nik ?? 'N/A',
-                                                            ];
-                                                        });
-                                                @endphp
-                                                <option value="">Select Employee</option>
-                                                @foreach ($employees as $employee)
-                                                    <option value="{{ $employee['id'] }}"
-                                                        {{ old('employee_id') == $employee['id'] ? 'selected' : '' }}>
-                                                        {{ $employee['nik'] }} - {{ $employee['fullname'] }}
-                                                    </option>
-                                                @endforeach
-                                            </select>
+                                            @if (isset($isPersonalRequest) && $isPersonalRequest && isset($defaultEmployeeId))
+                                                {{-- For personal requests, hide employee selection and auto-set --}}
+                                                <input type="hidden" name="employee_id" value="{{ $defaultEmployeeId }}">
+                                                <input type="text" class="form-control"
+                                                    value="{{ auth()->user()->employee->fullname ?? 'N/A' }}" disabled>
+                                                <small class="text-muted">You are creating a leave request for
+                                                    yourself</small>
+                                            @else
+                                                <select name="employee_id" id="employee_id"
+                                                    class="select2bs4 form-control @error('employee_id') is-invalid @enderror"
+                                                    required disabled>
+                                                    <option value="">Select Employee</option>
+                                                    @php
+                                                        $projectId = old('project_id');
+                                                        $employees = \App\Models\Administration::with([
+                                                            'employee',
+                                                            'position',
+                                                        ])
+                                                            ->where('project_id', $projectId)
+                                                            ->where('is_active', 1)
+                                                            ->orderBy('nik', 'asc')
+                                                            ->get()
+                                                            ->map(function ($admin) {
+                                                                return [
+                                                                    'id' => $admin->employee_id,
+                                                                    'fullname' => $admin->employee->fullname,
+                                                                    'position' =>
+                                                                        $admin->position->position_name ?? 'N/A',
+                                                                    'nik' => $admin->nik ?? 'N/A',
+                                                                ];
+                                                            });
+                                                    @endphp
+                                                    <option value="">Select Employee</option>
+                                                    @foreach ($employees as $employee)
+                                                        <option value="{{ $employee['id'] }}"
+                                                            {{ old('employee_id') == $employee['id'] ? 'selected' : '' }}>
+                                                            {{ $employee['nik'] }} - {{ $employee['fullname'] }}
+                                                        </option>
+                                                    @endforeach
+                                                </select>
+                                            @endif
                                             @error('employee_id')
                                                 <div class="invalid-feedback">{{ $message }}</div>
                                             @enderror
@@ -363,7 +382,8 @@
                                 <button type="submit" class="btn btn-primary">
                                     <i class="fas fa-save"></i> Submit Request
                                 </button>
-                                <a href="{{ route('leave.requests.index') }}" class="btn btn-secondary">
+                                <a href="{{ isset($isPersonalRequest) && $isPersonalRequest ? route('leave.my-requests') : route('leave.requests.index') }}"
+                                    class="btn btn-secondary">
                                     <i class="fas fa-times"></i> Cancel
                                 </a>
                             </div>

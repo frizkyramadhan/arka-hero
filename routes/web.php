@@ -122,8 +122,9 @@ Route::group(['middleware' => ['auth']], function () {
     Route::get('summary/birthday/employees', [ProfileController::class, 'getBirthdayEmployees'])->name('employees.birthday.list');
 
     // Profile routes
+    Route::get('profile/my-profile', [ProfileController::class, 'myProfile'])->name('profile.my-profile');
     Route::get('profile/change-password', [ProfileController::class, 'showChangePasswordForm'])->name('profile.change-password');
-    Route::put('profile/change-password', [ProfileController::class, 'updatePassword'])->name('profile.change-password');
+    Route::put('profile/change-password', [ProfileController::class, 'updatePassword'])->name('profile.change-password.update');
 
     Route::get('/', [DashboardController::class, 'dashboard'])->name('dashboard');
     Route::get('/dashboard/pending-recommendations', [DashboardController::class, 'pendingRecommendations'])->name('dashboard.pendingRecommendations');
@@ -138,6 +139,9 @@ Route::group(['middleware' => ['auth']], function () {
         Route::get('/recruitment', [DashboardController::class, 'recruitment'])->name('recruitment');
         Route::get('/letter-administration', [DashboardController::class, 'letterAdministration'])->name('letter-administration');
         Route::get('/leave-management', [DashboardController::class, 'leaveManagement'])->name('leave-management');
+        // Route::middleware('user_data_filter')->group(function () {
+        Route::get('/personal', [DashboardController::class, 'personal'])->name('personal');
+        // });
     });
 
     // Dashboard Employee routes
@@ -245,6 +249,10 @@ Route::group(['middleware' => ['auth']], function () {
     // APPS
 
     // OFFICIAL TRAVEL ROUTES
+    // Self-service routes for user role (must be before resource route to avoid conflicts)
+    Route::get('officialtravels/my-travels', [OfficialtravelController::class, 'myTravels'])->name('officialtravels.my-travels');
+    Route::get('officialtravels/my-travels/data', [OfficialtravelController::class, 'myTravelsData'])->name('officialtravels.my-travels.data');
+    Route::get('officialtravels/my-travels/{id}', [OfficialtravelController::class, 'myTravelsShow'])->name('officialtravels.my-travels.show');
     Route::get('officialtravels/data', [OfficialtravelController::class, 'getOfficialtravels'])->name('officialtravels.data');
     // Test route for letter number integration (development only)
     Route::get('officialtravels/test-letter-integration', [OfficialtravelController::class, 'testLetterNumberIntegration'])->name('officialtravels.testLetterIntegration');
@@ -260,6 +268,7 @@ Route::group(['middleware' => ['auth']], function () {
     Route::get('officialtravels/{officialtravel}/print', [OfficialtravelController::class, 'print'])->name('officialtravels.print');
     Route::patch('officialtravels/{officialtravel}/close', [OfficialtravelController::class, 'close'])->name('officialtravels.close');
     Route::post('officialtravels/export', [OfficialtravelController::class, 'exportExcel'])->name('officialtravels.export');
+
 
     // LETTER NUMBERING SYSTEM ROUTES
     Route::prefix('letter-numbers')->name('letter-numbers.')->group(function () {
@@ -424,8 +433,19 @@ Route::group(['middleware' => ['auth']], function () {
 
     // Recruitment Routes
     Route::prefix('recruitment')->name('recruitment.')->group(function () {
+        // Self-service routes for user role
+        Route::get('/my-requests', [RecruitmentRequestController::class, 'myRequests'])->name('my-requests');
+        Route::get('/my-requests/data', [RecruitmentRequestController::class, 'myRequestsData'])->name('my-requests.data');
+        Route::get('/my-requests/create', [RecruitmentRequestController::class, 'myRequestsCreate'])->name('my-requests.create');
+        Route::post('/my-requests', [RecruitmentRequestController::class, 'myRequestsStore'])->name('my-requests.store');
+        Route::get('/my-requests/{id}', [RecruitmentRequestController::class, 'myRequestsShow'])->name('my-requests.show');
+        Route::get('/my-requests/{id}/edit', [RecruitmentRequestController::class, 'myRequestsEdit'])->name('my-requests.edit');
+        Route::put('/my-requests/{id}', [RecruitmentRequestController::class, 'myRequestsUpdate'])->name('my-requests.update');
+        Route::post('/my-requests/{id}/submit', [RecruitmentRequestController::class, 'submitForApproval'])->name('my-requests.submit');
+
         // FPTK (Recruitment Request) Routes
         Route::prefix('requests')->name('requests.')->group(function () {
+
             Route::get('/', [RecruitmentRequestController::class, 'index'])->name('index');
             Route::get('/data', [RecruitmentRequestController::class, 'getRecruitmentRequests'])->name('data');
             Route::get('/{id}/data', [RecruitmentRequestController::class, 'getFPTKData'])->name('single-data');
@@ -452,6 +472,7 @@ Route::group(['middleware' => ['auth']], function () {
             Route::post('/{id}/approve', [RecruitmentRequestController::class, 'approve'])->name('approve');
             Route::post('/{id}/reject', [RecruitmentRequestController::class, 'reject'])->name('reject');
             Route::post('/{id}/assign-letter-number', [RecruitmentRequestController::class, 'assignLetterNumber'])->name('assign-letter-number');
+
 
             // AJAX Routes
         });
@@ -600,6 +621,7 @@ Route::group(['middleware' => ['auth']], function () {
             Route::post('/{leaveRequest}/approve', [LeaveRequestController::class, 'approve'])->name('approve');
             Route::post('/{leaveRequest}/reject', [LeaveRequestController::class, 'reject'])->name('reject');
 
+
             // Close and cancellation routes
             Route::post('/{leaveRequest}/close', [LeaveRequestController::class, 'close'])->name('close');
             Route::get('/{leaveRequest}/cancellation-form', [LeaveRequestController::class, 'showCancellationForm'])->name('cancellation-form');
@@ -617,6 +639,20 @@ Route::group(['middleware' => ['auth']], function () {
             Route::get('/employees-by-project/{projectId}', [LeaveRequestController::class, 'getEmployeesByProject'])->name('employees-by-project');
             Route::get('/leave-types-by-employee/{employeeId}', [LeaveRequestController::class, 'getLeaveTypesByEmployee'])->name('leave-types-by-employee');
         });
+
+        // Self-service routes for user role (moved outside requests prefix)
+        // Route::middleware('user_data_filter')->group(function () {
+        Route::get('/my-requests', [LeaveRequestController::class, 'myRequests'])->name('my-requests');
+        Route::get('/my-requests/data', [LeaveRequestController::class, 'myRequestsData'])->name('my-requests.data');
+        Route::get('/my-requests/create', [LeaveRequestController::class, 'myRequestsCreate'])->name('my-requests.create');
+        Route::post('/my-requests', [LeaveRequestController::class, 'myRequestsStore'])->name('my-requests.store');
+        Route::get('/my-requests/{leaveRequest}', [LeaveRequestController::class, 'myRequestsShow'])->name('my-requests.show');
+        Route::get('/my-requests/{leaveRequest}/edit', [LeaveRequestController::class, 'myRequestsEdit'])->name('my-requests.edit');
+        Route::put('/my-requests/{leaveRequest}', [LeaveRequestController::class, 'myRequestsUpdate'])->name('my-requests.update');
+        Route::get('/my-requests/{leaveRequest}/cancellation-form', [LeaveRequestController::class, 'showCancellationForm'])->name('my-requests.cancellation-form');
+        Route::post('/my-requests/{leaveRequest}/cancellation', [LeaveRequestController::class, 'storeCancellation'])->name('my-requests.cancellation');
+        Route::get('/my-entitlements', [LeaveRequestController::class, 'myEntitlements'])->name('my-entitlements');
+        // });
 
         // Bulk Leave Requests
         Route::prefix('bulk-requests')->name('bulk-requests.')->group(function () {

@@ -2,33 +2,43 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-use App\Models\Officialtravel;
 use App\Models\User;
-use App\Models\Permission;
+use App\Models\License;
+use App\Models\Project;
 use App\Models\Employee;
-use App\Models\Department;
 use App\Models\Position;
 use App\Models\Education;
-use App\Models\License;
-use App\Models\Administration;
-use App\Models\Project;
-use App\Models\RecruitmentSession;
-use App\Models\RecruitmentRequest;
-use App\Models\RecruitmentCandidate;
-use App\Models\LetterNumber;
-use App\Models\LetterCategory;
-use App\Models\LetterSubject;
-use App\Models\EmployeeBond;
-use App\Models\BondViolation;
-use App\Models\LeaveRequest;
-use App\Models\LeaveEntitlement;
+use App\Models\Employeebank;
+use App\Models\Taxidentification;
+use App\Models\Insurance;
+use App\Models\Family;
+use App\Models\Course;
+use App\Models\Jobexperience;
+use App\Models\Emrgcall;
+use App\Models\Operableunit;
+use App\Models\Additionaldata;
 use App\Models\LeaveType;
-use App\Models\LeaveRequestCancellation;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
+use App\Models\Department;
+use App\Models\Permission;
 use Illuminate\Support\Str;
+use App\Models\ApprovalPlan;
+use App\Models\EmployeeBond;
+use App\Models\LeaveRequest;
+use App\Models\LetterNumber;
+use Illuminate\Http\Request;
+use App\Models\BondViolation;
+use App\Models\LetterSubject;
+use App\Models\Administration;
+use App\Models\LetterCategory;
+use App\Models\Officialtravel;
+use App\Models\LeaveEntitlement;
 use Yajra\DataTables\DataTables;
+use App\Models\RecruitmentRequest;
+use App\Models\RecruitmentSession;
+use Illuminate\Support\Facades\DB;
+use App\Models\RecruitmentCandidate;
+use Illuminate\Support\Facades\Auth;
+use App\Models\LeaveRequestCancellation;
 
 class DashboardController extends Controller
 {
@@ -39,7 +49,14 @@ class DashboardController extends Controller
      */
     public function dashboard()
     {
-        // Redirect root dashboard to Employee dashboard for clarity
+        $user = Auth::user();
+
+        // Redirect based on user role
+        if ($user && $user->hasRole('user')) {
+            return redirect()->route('dashboard.personal');
+        }
+
+        // Default redirect to Employee dashboard for other roles
         return redirect()->route('dashboard.employees');
     }
 
@@ -1430,6 +1447,159 @@ class DashboardController extends Controller
             'statusStats' => $statusStats,
             'leaveTypeStats' => $leaveTypeStats,
             'departmentStats' => $departmentStats
+        ]);
+    }
+
+    // ========================================
+    // PERSONAL DASHBOARD FOR USER ROLE
+    // ========================================
+
+    /**
+     * Personal Dashboard for users with 'user' role
+     */
+    public function personal()
+    {
+        $this->authorize('personal.dashboard.view');
+
+        $user = Auth::user();
+
+        // Leave Requests Summary
+        $leaveStats = [
+            'total_requests' => LeaveRequest::where('employee_id', $user->employee_id)->count(),
+            'pending_requests' => LeaveRequest::where('employee_id', $user->employee_id)->where('status', 'pending')->count(),
+            'approved_requests' => LeaveRequest::where('employee_id', $user->employee_id)->where('status', 'approved')->count(),
+            'this_month_requests' => LeaveRequest::where('employee_id', $user->employee_id)
+                ->whereMonth('created_at', now()->month)
+                ->whereYear('created_at', now()->year)
+                ->count(),
+        ];
+
+        // Official Travel Summary
+        $travelStats = [
+            'total_travels' => Officialtravel::where(function ($q) use ($user) {
+                $q->where('traveler_id', $user->administration_id)
+                    ->orWhereHas('details', function ($detailQuery) use ($user) {
+                        $detailQuery->where('follower_id', $user->administration_id);
+                    });
+            })->count(),
+            'upcoming_travels' => Officialtravel::where(function ($q) use ($user) {
+                $q->where('traveler_id', $user->administration_id)
+                    ->orWhereHas('details', function ($detailQuery) use ($user) {
+                        $detailQuery->where('follower_id', $user->administration_id);
+                    });
+            })
+                ->where('status', 'approved')
+                ->where('official_travel_date', '>=', now())
+                ->count(),
+            'this_month_travels' => Officialtravel::where(function ($q) use ($user) {
+                $q->where('traveler_id', $user->administration_id)
+                    ->orWhereHas('details', function ($detailQuery) use ($user) {
+                        $detailQuery->where('follower_id', $user->administration_id);
+                    });
+            })
+                ->whereMonth('created_at', now()->month)
+                ->whereYear('created_at', now()->year)
+                ->count(),
+        ];
+
+        // Recruitment Requests Summary
+        $recruitmentStats = [
+            'total_requests' => RecruitmentRequest::where('created_by', $user->id)->count(),
+            'pending_requests' => RecruitmentRequest::where('created_by', $user->id)->where('status', 'draft')->count(),
+            'approved_requests' => RecruitmentRequest::where('created_by', $user->id)->where('status', 'approved')->count(),
+        ];
+
+        // Pending Approvals
+        $pendingApprovals = ApprovalPlan::where('approver_id', $user->id)
+            ->where('is_open', true)
+            ->where('status', 0)
+            ->count();
+
+        // Recent Leave Requests
+        $recentLeaveRequests = LeaveRequest::with(['leaveType'])
+            ->where('employee_id', $user->employee_id)
+            ->orderBy('created_at', 'desc')
+            ->limit(5)
+            ->get();
+
+        // Recent Official Travels
+        $recentTravels = Officialtravel::with(['project', 'stops' => function ($query) {
+                $query->orderBy('created_at', 'desc');
+            }])
+            ->where(function ($q) use ($user) {
+                $q->where('traveler_id', $user->administration_id)
+                    ->orWhereHas('details', function ($detailQuery) use ($user) {
+                        $detailQuery->where('follower_id', $user->administration_id);
+                    });
+            })
+            ->orderBy('created_at', 'desc')
+            ->limit(5)
+            ->get();
+
+        // Leave Entitlements Summary
+        // Calculate taken_days from approved leave requests (considering cancellations)
+        $leaveEntitlements = LeaveEntitlement::with(['leaveType'])
+            ->where('employee_id', $user->employee_id)
+            ->where('period_end', '>=', now())
+            ->orderBy('period_end', 'asc')
+            ->get()
+            ->map(function ($entitlement) {
+                // Recalculate taken_days from approved leave requests (effective days after cancellation)
+                $approvedRequests = LeaveRequest::where('employee_id', $entitlement->employee_id)
+                    ->where('leave_type_id', $entitlement->leave_type_id)
+                    ->whereIn('status', ['approved', 'auto_approved'])
+                    ->whereBetween('start_date', [$entitlement->period_start, $entitlement->period_end])
+                    ->get();
+                
+                // Calculate effective taken days (total_days - cancelled_days)
+                $effectiveTakenDays = $approvedRequests->sum(function ($request) {
+                    return $request->getEffectiveDays();
+                });
+                
+                // Update taken_days if different (to keep it in sync)
+                if ($entitlement->taken_days != $effectiveTakenDays) {
+                    $entitlement->taken_days = $effectiveTakenDays;
+                    $entitlement->save();
+                }
+                
+                return $entitlement;
+            });
+
+        // Profile Completeness Check
+        $employee = Employee::where('id', $user->employee_id)->first();
+        $profileCompleteness = [
+            'bank' => Employeebank::where('employee_id', $user->employee_id)->exists(),
+            'tax' => Taxidentification::where('employee_id', $user->employee_id)->exists(),
+            'insurance' => Insurance::where('employee_id', $user->employee_id)->exists(),
+            'license' => License::where('employee_id', $user->employee_id)->exists(),
+            'family' => Family::where('employee_id', $user->employee_id)->exists(),
+            'education' => Education::where('employee_id', $user->employee_id)->exists(),
+            'course' => Course::where('employee_id', $user->employee_id)->exists(),
+            'job' => Jobexperience::where('employee_id', $user->employee_id)->exists(),
+            'emergency' => Emrgcall::where('employee_id', $user->employee_id)->exists(),
+            'unit' => Operableunit::where('employee_id', $user->employee_id)->exists(),
+            'additional' => Additionaldata::where('employee_id', $user->employee_id)->exists(),
+        ];
+        
+        $missingSections = collect($profileCompleteness)->filter(function($exists) {
+            return !$exists;
+        })->keys()->toArray();
+        
+        $completenessPercentage = round((count($profileCompleteness) - count($missingSections)) / count($profileCompleteness) * 100);
+
+        return view('dashboard.personal', [
+            'title' => 'My Dashboard',
+            'subtitle' => 'Personal Overview',
+            'leaveStats' => $leaveStats,
+            'travelStats' => $travelStats,
+            'recruitmentStats' => $recruitmentStats,
+            'pendingApprovals' => $pendingApprovals,
+            'recentLeaveRequests' => $recentLeaveRequests,
+            'recentTravels' => $recentTravels,
+            'leaveEntitlements' => $leaveEntitlements,
+            'profileCompleteness' => $profileCompleteness,
+            'missingSections' => $missingSections,
+            'completenessPercentage' => $completenessPercentage,
         ]);
     }
 }

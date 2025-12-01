@@ -16,6 +16,7 @@ use App\Models\OfficialtravelStop;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Models\Officialtravel_detail;
 use Maatwebsite\Excel\Concerns\WithMapping;
@@ -1156,5 +1157,167 @@ class OfficialtravelController extends Controller
             return redirect()->back()
                 ->with('toast_error', 'Failed to export data: ' . $e->getMessage());
         }
+    }
+
+    // ========================================
+    // SELF-SERVICE METHODS FOR USER ROLE
+    // ========================================
+
+    /**
+     * Display user's own official travels
+     */
+    public function myTravels()
+    {
+        $this->authorize('personal.official-travel.view-own');
+
+        return view('officialtravels.my-travels')
+            ->with('title', 'My LOT Request')
+            ->with('subtitle', 'My LOT Request');
+    }
+
+    /**
+     * Get data for user's own official travels DataTable
+     */
+    public function myTravelsData(Request $request)
+    {
+        $this->authorize('personal.official-travel.view-own');
+
+        $user = Auth::user();
+
+        $query = Officialtravel::with(['traveler.employee', 'project', 'stops'])
+            ->where(function ($q) use ($user) {
+                // User is the main traveler
+                $q->where('traveler_id', $user->administration_id)
+                    // OR user is a follower
+                    ->orWhereHas('details', function ($detailQuery) use ($user) {
+                        $detailQuery->where('follower_id', $user->administration_id);
+                    });
+            })
+            ->select('officialtravels.*')
+            ->orderBy('created_at', 'desc');
+
+        // Apply travel number filter
+        if ($request->filled('travel_number')) {
+            $query->where('official_travel_number', 'like', '%' . $request->travel_number . '%');
+        }
+
+        // Apply status filter
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+
+        // Apply role filter
+        if ($request->filled('role')) {
+            if ($request->role === 'main') {
+                $query->where('traveler_id', $user->administration_id);
+            } elseif ($request->role === 'follower') {
+                $query->whereHas('details', function ($detailQuery) use ($user) {
+                    $detailQuery->where('follower_id', $user->administration_id);
+                })->where('traveler_id', '!=', $user->administration_id);
+            }
+        }
+
+        // Apply destination filter
+        if ($request->filled('destination')) {
+            $query->where('destination', 'like', '%' . $request->destination . '%');
+        }
+
+        // Apply traveler filter
+        if ($request->filled('traveler')) {
+            $query->whereHas('traveler.employee', function ($q) use ($request) {
+                $q->where('fullname', 'like', '%' . $request->traveler . '%');
+            });
+        }
+
+        // Apply date range filter
+        if ($request->filled('start_date')) {
+            $query->whereDate('official_travel_date', '>=', $request->start_date);
+        }
+        if ($request->filled('end_date')) {
+            $query->whereDate('official_travel_date', '<=', $request->end_date);
+        }
+
+        return datatables()->of($query)
+            ->addIndexColumn()
+            ->addColumn('travel_number', function ($row) {
+                return $row->official_travel_number ?? 'N/A';
+            })
+            ->addColumn('travel_date', function ($row) {
+                return date('d M Y', strtotime($row->official_travel_date));
+            })
+            ->addColumn('destination', function ($row) {
+                return $row->destination;
+            })
+            ->addColumn('purpose', function ($row) {
+                return Str::limit($row->purpose, 50);
+            })
+            ->addColumn('traveler_name', function ($row) {
+                return $row->traveler->employee->fullname ?? 'N/A';
+            })
+            ->addColumn('role', function ($row) use ($user) {
+                if ($row->traveler_id === $user->administration_id) {
+                    return '<span class="badge badge-primary">Main Traveler</span>';
+                } else {
+                    return '<span class="badge badge-info">Follower</span>';
+                }
+            })
+            ->addColumn('status_badge', function ($row) {
+                $badges = [
+                    'draft' => '<span class="badge badge-secondary">Draft</span>',
+                    'submitted' => '<span class="badge badge-info">Submitted</span>',
+                    'approved' => '<span class="badge badge-success">Approved</span>',
+                    'rejected' => '<span class="badge badge-danger">Rejected</span>',
+                    'closed' => '<span class="badge badge-dark">Closed</span>',
+                ];
+                return $badges[$row->status] ?? '<span class="badge badge-secondary">Unknown</span>';
+            })
+            ->addColumn('action', function ($row) {
+                $btn = '<a href="' . route('officialtravels.my-travels.show', $row->id) . '" class="btn btn-sm btn-info mr-1">
+                            <i class="fas fa-eye"></i>
+                        </a>';
+
+                return $btn;
+            })
+            ->rawColumns(['role', 'status_badge', 'action'])
+            ->make(true);
+    }
+
+    /**
+     * Display own official travel details for personal user
+     *
+     * PERSONAL/USER: Can only view their own official travels (permission: personal.official-travel.view-own)
+     */
+    public function myTravelsShow($id)
+    {
+        $this->authorize('personal.official-travel.view-own');
+
+        $user = Auth::user();
+
+        $officialtravel = Officialtravel::with([
+            'traveler.employee',
+            'traveler.position.department',
+            'project',
+            'transportation',
+            'accommodation',
+            'details.follower.employee',
+            'stops.arrivalChecker',
+            'stops.departureChecker',
+            'latestStop'
+        ])->findOrFail($id);
+
+        // Ensure user can only view their own official travels
+        $isMainTraveler = $officialtravel->traveler_id === $user->administration_id;
+        $isFollower = $officialtravel->details->contains(function ($detail) use ($user) {
+            return $detail->follower_id === $user->administration_id;
+        });
+
+        if (!$isMainTraveler && !$isFollower) {
+            abort(403, 'You can only view your own official travels.');
+        }
+
+        $title = 'My Official Travels';
+        $subtitle = 'Official Travel Details';
+
+        return view('officialtravels.my-travels-show', compact('title', 'subtitle', 'officialtravel'));
     }
 }
