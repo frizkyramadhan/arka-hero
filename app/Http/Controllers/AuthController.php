@@ -9,8 +9,11 @@ use RealRashid\SweetAlert\Facades\Alert;
 
 class AuthController extends Controller
 {
-    public function getLogin()
+    public function getLogin(Request $request)
     {
+        // Regenerate session to prevent 419 errors
+        $request->session()->regenerate();
+        
         $title = "Login";
         $subtitle = "Arka HERO";
 

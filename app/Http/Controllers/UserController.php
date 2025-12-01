@@ -109,27 +109,39 @@ class UserController extends Controller
             })
             ->addColumn('roles', function ($model) {
                 $roles = $model->roles->pluck('name');
-                $html = '';
+                if ($roles->isEmpty()) {
+                    return '<span class="text-muted">-</span>';
+                }
+                $html = '<div class="d-flex flex-column">';
                 foreach ($roles as $role) {
                     $badgeClass = in_array($role, ['administrator']) ? 'badge-danger' : 'badge-primary';
-                    $html .= '<span class="badge ' . $badgeClass . ' mr-1">' . $role . '</span>';
+                    $html .= '<span class="badge ' . $badgeClass . ' mb-1 d-inline-block" style="width: fit-content;">' . $role . '</span>';
                 }
+                $html .= '</div>';
                 return $html;
             })
             ->addColumn('projects', function ($model) {
                 $projects = $model->projects->pluck('project_name', 'project_code');
-                $html = '';
-                foreach ($projects as $projectCode => $projectName) {
-                    $html .= '<span class="badge badge-info mr-1">' . $projectCode . ' : ' . $projectName . '</span>';
+                if ($projects->isEmpty()) {
+                    return '<span class="text-muted">-</span>';
                 }
+                $html = '<div class="d-flex flex-column">';
+                foreach ($projects as $projectCode => $projectName) {
+                    $html .= '<span class="badge badge-info mb-1 d-inline-block" style="width: fit-content;">' . $projectCode . ' : ' . $projectName . '</span>';
+                }
+                $html .= '</div>';
                 return $html;
             })
             ->addColumn('departments', function ($model) {
                 $departments = $model->departments->pluck('department_name');
-                $html = '';
-                foreach ($departments as $department) {
-                    $html .= '<span class="badge badge-warning mr-1">' . $department . '</span>';
+                if ($departments->isEmpty()) {
+                    return '<span class="text-muted">-</span>';
                 }
+                $html = '<div class="d-flex flex-column">';
+                foreach ($departments as $department) {
+                    $html .= '<span class="badge badge-warning mb-1 d-inline-block" style="width: fit-content;">' . $department . '</span>';
+                }
+                $html .= '</div>';
                 return $html;
             })
             ->addColumn('employee', function ($model) {

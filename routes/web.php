@@ -80,7 +80,7 @@ Route::get('register', [RegisterController::class, 'index'])->name('register')->
 Route::post('register', [RegisterController::class, 'store']);
 
 Route::get('login', [AuthController::class, 'getLogin'])->name('login')->middleware('guest');
-Route::post('login', [AuthController::class, 'postLogin']);
+Route::post('login', [AuthController::class, 'postLogin'])->name('login.post');
 
 // PUBLIC EMPLOYEE SELF-SERVICE REGISTRATION ROUTES
 Route::prefix('employee-registration')->group(function () {

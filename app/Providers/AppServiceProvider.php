@@ -33,12 +33,5 @@ class AppServiceProvider extends ServiceProvider
 
         // Register observers
         Administration::observe(AdministrationObserver::class);
-
-        // pastikan semua asset punya prefix folder arka-hero
-        URL::forceRootUrl(config('app.url'));
-
-        if (config('app.asset_url')) {
-            URL::forceScheme('http');
-        }
     }
 }
