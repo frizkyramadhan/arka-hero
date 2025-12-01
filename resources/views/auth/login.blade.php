@@ -8,7 +8,7 @@
         <a href="{{ url('/') }}" class="h1"><b>{{ $subtitle }}</b></a>
       </div>
       <div class="card-body">
-        <form action="{{ url('login') }}" method="post">
+        <form action="{{ route('login') }}" method="post">
           @csrf
           <div class="input-group mb-3">
             <input type="email" class="form-control" placeholder="Email" name="email" autofocus>

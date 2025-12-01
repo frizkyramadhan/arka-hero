@@ -90,15 +90,15 @@
                                     <table id="example1" width="100%" class="table table-bordered table-striped">
                                         <thead>
                                             <tr>
-                                                <th style="width: 5%" class="text-center">No</th>
-                                                <th>Name</th>
-                                                <th>Email</th>
-                                                <th>Employee</th>
-                                                <th>Projects</th>
-                                                <th>Departments</th>
-                                                <th>Roles</th>
-                                                <th style="width: 10%" class="text-center">Status</th>
-                                                <th style="width: 20%" class="text-center">Action</th>
+                                                <th class="align-middle" width="5%">No</th>
+                                                <th class="align-middle">Name</th>
+                                                <th class="align-middle">Email</th>
+                                                <th class="align-middle">Employee</th>
+                                                <th class="align-middle">Projects</th>
+                                                <th class="align-middle">Departments</th>
+                                                <th class="align-middle">Roles</th>
+                                                <th class="align-middle" width="10%">Status</th>
+                                                <th class="align-middle" width="10%">Action</th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -186,6 +186,51 @@
     <!-- Select2 -->
     <link rel="stylesheet" href="{{ asset('assets/plugins/select2/css/select2.min.css') }}">
     <link rel="stylesheet" href="{{ asset('assets/plugins/select2-bootstrap4-theme/select2-bootstrap4.min.css') }}">
+    <style>
+        /* DataTable Header Styling */
+        #example1 thead th {
+            background-color: #f8f9fa;
+            border-color: #dee2e6;
+            font-weight: 600;
+            color: #495057;
+        }
+
+        #example1 {
+            width: 100% !important;
+        }
+
+        #example1 th,
+        #example1 td {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* Allow wrapping for Name and Email columns */
+        #example1 th:nth-child(2),
+        #example1 td:nth-child(2),
+        #example1 th:nth-child(3),
+        #example1 td:nth-child(3) {
+            white-space: normal;
+            word-wrap: break-word;
+        }
+
+        /* Projects, Departments, and Roles columns - vertical display */
+        #example1 td:nth-child(5),
+        #example1 td:nth-child(6),
+        #example1 td:nth-child(7) {
+            white-space: normal;
+            vertical-align: top;
+        }
+
+        /* Badge styling for vertical layout */
+        #example1 td .d-flex.flex-column .badge {
+            display: inline-block;
+            width: fit-content;
+            max-width: 100%;
+            word-wrap: break-word;
+        }
+    </style>
 @endsection
 
 @section('scripts')
@@ -211,15 +256,6 @@
             });
 
             var table = $("#example1").DataTable({
-                responsive: true,
-                autoWidth: true,
-                lengthChange: true,
-                lengthMenu: [
-                    [10, 25, 50, 100, -1],
-                    ['10', '25', '50', '100', 'Show all']
-                ],
-                dom: 'frtpi',
-                buttons: ["copy", "csv", "excel", "pdf", "print", "colvis"],
                 processing: true,
                 serverSide: true,
                 ajax: {
@@ -278,7 +314,27 @@
                         className: "text-center"
                     }
                 ],
-                fixedColumns: true,
+                dom: 'rtpi',
+                lengthChange: true,
+                lengthMenu: [
+                    [10, 25, 50, 100, -1],
+                    ['10', '25', '50', '100', 'All']
+                ],
+                language: {
+                    processing: "Processing...",
+                    lengthMenu: "Show _MENU_ entries per page",
+                    info: "Showing _START_ to _END_ of _TOTAL_ entries",
+                    infoEmpty: "Showing 0 to 0 of 0 entries",
+                    infoFiltered: "(filtered from _MAX_ total entries)",
+                    zeroRecords: "No matching records found",
+                    emptyTable: "No data available in table",
+                    paginate: {
+                        first: "First",
+                        previous: "Previous",
+                        next: "Next",
+                        last: "Last"
+                    }
+                }
             });
 
             // Enable tooltips

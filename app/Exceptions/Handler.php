@@ -6,6 +6,7 @@ use Illuminate\Foundation\Exceptions\Handler as ExceptionHandler;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Spatie\Permission\Exceptions\UnauthorizedException;
+use Illuminate\Session\TokenMismatchException;
 use Throwable;
 
 class Handler extends ExceptionHandler
@@ -78,6 +79,23 @@ class Handler extends ExceptionHandler
                     'message' => 'Resource not found'
                 ], 404);
             }
+        });
+
+        // Handle CSRF Token Mismatch (419 error)
+        $this->renderable(function (TokenMismatchException $e, $request) {
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'CSRF token mismatch. Please refresh the page and try again.'
+                ], 419);
+            }
+
+            // For web requests, redirect back to login with error message
+            return redirect()
+                ->route('login')
+                ->with('toast_error', 'Your session has expired. Please try logging in again.')
+                ->with('alert_type', 'error')
+                ->with('alert_title', 'Session Expired');
         });
 
         $this->renderable(function (Throwable $e, $request) {
