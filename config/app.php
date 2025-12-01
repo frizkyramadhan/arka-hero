@@ -58,6 +58,8 @@ return [
 
     'asset_url' => env('ASSET_URL'),
 
+    'base_path' => env('APP_BASE_PATH', '/arka-hero'),
+
     /*
     |--------------------------------------------------------------------------
     | Application Timezone
