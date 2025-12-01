@@ -1529,13 +1529,14 @@ class RecruitmentRequestController extends Controller
             ->orderBy('created_at', 'desc');
 
         // Filter by user's projects and departments
-        // Show recruitment requests that match user's project OR department
+        // Show recruitment requests that match user's project AND department combination
         if (!empty($userProjectIds) || !empty($userDepartmentIds)) {
             $query->where(function ($q) use ($userProjectIds, $userDepartmentIds) {
                 if (!empty($userProjectIds) && !empty($userDepartmentIds)) {
-                    // If user has both projects and departments, show requests matching either
+                    // If user has both projects and departments, show requests matching BOTH
+                    // This ensures users only see requests for their assigned project-department combinations
                     $q->whereIn('project_id', $userProjectIds)
-                        ->orWhereIn('department_id', $userDepartmentIds);
+                        ->whereIn('department_id', $userDepartmentIds);
                 } elseif (!empty($userProjectIds)) {
                     // If user only has projects
                     $q->whereIn('project_id', $userProjectIds);
