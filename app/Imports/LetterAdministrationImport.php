@@ -50,14 +50,50 @@ class LetterAdministrationImport implements ToModel, WithHeadingRow, WithValidat
                 $administration = Administration::where('nik', $row['nik'])->first();
             }
             // Lookup project_id from project_code or use project_id directly
+            // CRITICAL: For categories with employee-template (PKWT, PAR, CRTE, SKPK),
+            // project_id MUST come from project_code/project_id in row, NOT from administration
+            // For other categories, project_id also comes from row (project_code/project_id)
             $project = null;
+            $projectError = null;
+
             if (!empty($row['project_code'])) {
                 $project = Project::where('project_code', $row['project_code'])->first();
+                if (!$project) {
+                    $projectError = "Project with code '{$row['project_code']}' not found. Please check the project code.";
+                }
             } elseif (!empty($row['project_id'])) {
                 $project = Project::find($row['project_id']);
+                if (!$project) {
+                    $projectError = "Project with ID '{$row['project_id']}' not found. Please check the project ID.";
+                }
+            } else {
+                // Project is required for letter numbers
+                $projectError = "Project is required. Please provide project_code.";
             }
+
+            // Validate project access for logged-in user
+            if ($project && auth()->check()) {
+                $userProjects = auth()->user()->projects()->where('project_status', 1)->pluck('projects.id')->toArray();
+                if (!in_array($project->id, $userProjects)) {
+                    $projectError = "You do not have access to project '{$project->project_code}'. Please use a project that you have access to.";
+                }
+            }
+
+            // If there's a project error, throw exception to be caught and reported
+            if ($projectError) {
+                throw new \Exception($projectError);
+            }
+
             $projectId = $project?->id;
             $projectCode = $row['project_code'] ?? $project?->project_code;
+
+            // For categories with employee-template, ensure project_id is ONLY from row (project_code/project_id), never from administration
+            // This is already handled above, but we make it explicit here
+            $categoriesWithEmployeeTemplate = ['PKWT', 'PAR', 'CRTE', 'SKPK'];
+            if ($category && in_array($category->category_code, $categoriesWithEmployeeTemplate)) {
+                // Categories with employee-template: project_id must be from project_code/project_id in row, ignore administration project
+                // projectId is already set from row above, so no need to change
+            }
             $subject = null;
             if ($category && !empty($row['subject_master'])) {
                 $subject = $this->letterSubjects->where('subject_name', $row['subject_master'])
@@ -118,10 +154,32 @@ class LetterAdministrationImport implements ToModel, WithHeadingRow, WithValidat
             // Use createOrUpdate method
             return LetterNumber::createOrUpdate($letterData);
         } catch (\Exception $e) {
+            // Determine the attribute name based on error message
+            $attribute = 'project_code';
+            $errorMessage = $e->getMessage();
+
+            // Check if error is related to project
+            if (stripos($errorMessage, 'project') !== false) {
+                // Always use project_code as attribute for project errors
+                $attribute = 'project_code';
+                // Update error message to remove "or project_id" part
+                $errorMessage = str_replace(' or project_id', '', $errorMessage);
+                $errorMessage = str_replace(' or use a valid project_id', '', $errorMessage);
+            } else {
+                // For other errors, try to determine attribute from message
+                if (stripos($errorMessage, 'category') !== false) {
+                    $attribute = 'category_code';
+                } elseif (stripos($errorMessage, 'date') !== false) {
+                    $attribute = 'letter_date';
+                } else {
+                    $attribute = 'system_error';
+                }
+            }
+
             $this->onFailure(new Failure(
                 $this->rowNumber,
-                'system_error',
-                ['Error: ' . $e->getMessage()],
+                $attribute,
+                [$errorMessage],
                 $row
             ));
             return null;
@@ -143,6 +201,47 @@ class LetterAdministrationImport implements ToModel, WithHeadingRow, WithValidat
                     $existingRecord = LetterNumber::find($row['id']);
                     if (!$existingRecord) {
                         $validator->errors()->add($rowIndex . '.id', 'The ID does not exist in the system.');
+                    }
+                }
+
+                // Validate project_id or project_code
+                $project = null;
+                $projectProvided = false;
+
+                if (!empty($row['project_code'])) {
+                    $projectProvided = true;
+                    $project = Project::where('project_code', $row['project_code'])->first();
+                    if (!$project) {
+                        $validator->errors()->add(
+                            $rowIndex . '.project_code',
+                            "Project with code '{$row['project_code']}' not found. Please check the project code."
+                        );
+                    }
+                } elseif (!empty($row['project_id'])) {
+                    $projectProvided = true;
+                    $project = Project::find($row['project_id']);
+                    if (!$project) {
+                        $validator->errors()->add(
+                            $rowIndex . '.project_code',
+                            "Project with ID '{$row['project_id']}' not found. Please check the project ID."
+                        );
+                    }
+                } else {
+                    // Project is required
+                    $validator->errors()->add(
+                        $rowIndex . '.project_code',
+                        'Project is required. Please provide project_code.'
+                    );
+                }
+
+                // Validate project access for logged-in user
+                if ($project && auth()->check()) {
+                    $userProjects = auth()->user()->projects()->where('project_status', 1)->pluck('projects.id')->toArray();
+                    if (!in_array($project->id, $userProjects)) {
+                        $validator->errors()->add(
+                            $rowIndex . '.project_code',
+                            "You do not have access to project '{$project->project_code}'. Please use a project that you have access to."
+                        );
                     }
                 }
 
