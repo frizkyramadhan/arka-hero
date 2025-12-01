@@ -581,7 +581,7 @@
 
                 {{-- ADMINISTRATOR --}}
                 @canany(['users.show', 'roles.show', 'permissions.show'])
-                    <li class="nav-header">SYSTEM</li>
+                    <li class="nav-header">SYSTEMS</li>
                     <li class="nav-item">
                         <a href="{{ url('users') }}" class="nav-link {{ Request::is('users*') ? 'active' : '' }}">
                             <i class="nav-icon fas fa-user-cog"></i>
