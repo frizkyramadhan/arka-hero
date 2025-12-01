@@ -3,9 +3,10 @@
 namespace App\Providers;
 
 use Carbon\Carbon;
+use App\Models\Administration;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Support\ServiceProvider;
-use App\Models\Administration;
 use App\Observers\AdministrationObserver;
 
 class AppServiceProvider extends ServiceProvider
@@ -32,5 +33,12 @@ class AppServiceProvider extends ServiceProvider
 
         // Register observers
         Administration::observe(AdministrationObserver::class);
+
+        // pastikan semua asset punya prefix folder arka-hero
+        URL::forceRootUrl(config('app.url'));
+
+        if (config('app.asset_url')) {
+            URL::forceScheme('http');
+        }
     }
 }
