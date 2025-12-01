@@ -1171,8 +1171,8 @@ class OfficialtravelController extends Controller
         $this->authorize('personal.official-travel.view-own');
 
         return view('officialtravels.my-travels')
-            ->with('title', 'My Official Travels')
-            ->with('subtitle', 'My Official Travels');
+            ->with('title', 'My LOT Request')
+            ->with('subtitle', 'My LOT Request');
     }
 
     /**

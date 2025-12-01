@@ -10,8 +10,9 @@
                 <div class="col-sm-6">
                     <ol class="breadcrumb float-sm-right">
                         <li class="breadcrumb-item"><a href="{{ url('/') }}">Home</a></li>
-                        <li class="breadcrumb-item"><a href="{{ route('recruitment.requests.index') }}">Recruitment
-                                Requests</a></li>
+                        <li class="breadcrumb-item"><a
+                                href="{{ Request::is('recruitment/my-requests*') ? route('recruitment.my-requests') : route('recruitment.requests.index') }}">{{ $title ?? 'Recruitment Requests' }}</a>
+                        </li>
                         <li class="breadcrumb-item active">Edit</li>
                     </ol>
                 </div>
@@ -21,7 +22,9 @@
 
     <section class="content">
         <div class="container-fluid">
-            <form action="{{ route('recruitment.requests.update', $fptk->id) }}" method="POST" id="fptkForm">
+            <form
+                action="{{ Request::is('recruitment/my-requests*') ? route('recruitment.my-requests.update', $fptk->id) : route('recruitment.requests.update', $fptk->id) }}"
+                method="POST" id="fptkForm">
                 @csrf
                 @method('PUT')
                 <div class="row">
@@ -461,7 +464,7 @@
                             <div class="card-body py-2">
                                 @include('components.manual-approver-selector', [
                                     'selectedApprovers' => old('manual_approvers', $fptk->manual_approvers ?? []),
-                                    'required' => true,
+                                    'required' => false,
                                     'multiple' => true,
                                     'helpText' => 'Pilih minimal 1 approver dengan role approver',
                                     'documentType' => 'recruitment_request',
@@ -747,16 +750,25 @@
                 let errorMessage = '';
 
                 // Check required fields
+                let missingFields = [];
                 $('#fptkForm').find('[required]').each(function() {
                     if (!$(this).val()) {
                         isValid = false;
                         $(this).addClass('is-invalid');
-                        errorMessage += 'Please fill in all required fields.\n';
-                        return false;
+                        // Ambil label field jika ada, atau pakai name/id
+                        let fieldLabel = $(this).closest('.form-group, .form-row').find('label').first().text()
+                            .replace(':', '').trim();
+                        if (!fieldLabel) {
+                            fieldLabel = $(this).attr('name') || $(this).attr('id') || 'Unknown field';
+                        }
+                        missingFields.push(fieldLabel);
                     } else {
                         $(this).removeClass('is-invalid');
                     }
                 });
+                if (missingFields.length > 0) {
+                    errorMessage += "Please fill in all required fields:\n- " + missingFields.join('\n- ') + "\n";
+                }
 
                 // Age validation
                 if (!this.isAgeRangeValid()) {

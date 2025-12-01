@@ -11,7 +11,8 @@
                     <ol class="breadcrumb float-sm-right">
                         <li class="breadcrumb-item"><a href="{{ url('/') }}">Home</a></li>
                         <li class="breadcrumb-item"><a
-                                href="{{ route('recruitment.requests.index') }}">{{ $title }}</a></li>
+                                href="{{ Request::is('recruitment/my-requests/create') ? route('recruitment.my-requests') : route('recruitment.requests.index') }}">{{ $title }}</a>
+                        </li>
                         <li class="breadcrumb-item active">Add New</li>
                     </ol>
                 </div>
@@ -21,7 +22,9 @@
 
     <section class="content">
         <div class="container-fluid">
-            <form action="{{ route('recruitment.requests.store') }}" method="POST" id="fptkForm">
+            <form
+                action="{{ Request::is('recruitment/my-requests/create') ? route('recruitment.my-requests.store') : route('recruitment.requests.store') }}"
+                method="POST" id="fptkForm">
                 @csrf
                 <div class="row">
                     <!-- Left Column -->
@@ -515,12 +518,19 @@
                                             class="btn btn-warning btn-block">
                                             <i class="fas fa-save mr-2"></i> Save as Draft
                                         </button>
+                                        <small class="text-muted d-block mt-1 text-center">
+                                            <i class="fas fa-info-circle"></i> Can be edited later
+                                        </small>
                                     </div>
                                     <div class="col-md-6">
                                         <button type="submit" name="submit_action" value="submit"
-                                            class="btn btn-success btn-block">
+                                            class="btn btn-success btn-block"
+                                            onclick="return confirm('Are you sure you want to submit this FPTK for approval?\\n\\n⚠️ IMPORTANT: After submitting, this FPTK cannot be edited anymore. Please make sure all information is correct before submitting.')">
                                             <i class="fas fa-paper-plane mr-2"></i> Save & Submit
                                         </button>
+                                        <small class="text-muted d-block mt-1 text-center">
+                                            <i class="fas fa-exclamation-triangle"></i> Cannot be edited after submit
+                                        </small>
                                     </div>
                                 </div>
                                 <a href="{{ route('recruitment.requests.index') }}" class="btn btn-secondary btn-block">

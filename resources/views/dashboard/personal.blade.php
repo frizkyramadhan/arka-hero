@@ -159,8 +159,7 @@
                                     </div>
                                 </div>
                             </div>
-                            <a href="{{ route('recruitment.my-requests') }}"
-                                class="btn btn-sm btn-warning btn-block mt-3">
+                            <a href="{{ route('recruitment.my-requests') }}" class="btn btn-sm btn-warning btn-block mt-3">
                                 View Details <i class="fas fa-arrow-right ml-1"></i>
                             </a>
                         </div>
@@ -410,6 +409,56 @@
                         </div>
                         <div class="card-body p-0">
                             @forelse($recentTravels as $travel)
+                                @php
+                                    $latestStop = $travel->stops
+                                        ->sortByDesc(function ($stop) {
+                                            $latestDate = null;
+                                            if ($stop->arrival_at_destination) {
+                                                $latestDate = $stop->arrival_at_destination;
+                                            }
+                                            if (
+                                                $stop->departure_from_destination &&
+                                                (!$latestDate || $stop->departure_from_destination->gt($latestDate))
+                                            ) {
+                                                $latestDate = $stop->departure_from_destination;
+                                            }
+                                            return $latestDate ? $latestDate->timestamp : 0;
+                                        })
+                                        ->first();
+
+                                    $lastActivity = null;
+                                    $lastActivityType = null;
+                                    $lastActivityDate = null;
+
+                                    if ($latestStop) {
+                                        if (
+                                            $latestStop->departure_from_destination &&
+                                            $latestStop->arrival_at_destination
+                                        ) {
+                                            if (
+                                                $latestStop->departure_from_destination->gt(
+                                                    $latestStop->arrival_at_destination,
+                                                )
+                                            ) {
+                                                $lastActivity = 'departure';
+                                                $lastActivityType = 'Departure';
+                                                $lastActivityDate = $latestStop->departure_from_destination;
+                                            } else {
+                                                $lastActivity = 'arrival';
+                                                $lastActivityType = 'Arrival';
+                                                $lastActivityDate = $latestStop->arrival_at_destination;
+                                            }
+                                        } elseif ($latestStop->departure_from_destination) {
+                                            $lastActivity = 'departure';
+                                            $lastActivityType = 'Departure';
+                                            $lastActivityDate = $latestStop->departure_from_destination;
+                                        } elseif ($latestStop->arrival_at_destination) {
+                                            $lastActivity = 'arrival';
+                                            $lastActivityType = 'Arrival';
+                                            $lastActivityDate = $latestStop->arrival_at_destination;
+                                        }
+                                    }
+                                @endphp
                                 <div class="list-group list-group-flush">
                                     <div class="list-group-item">
                                         <div class="d-flex justify-content-between align-items-start">
@@ -425,6 +474,14 @@
                                                     <i class="fas fa-building mr-1"></i>
                                                     {{ $travel->project->project_code ?? 'N/A' }}
                                                 </small>
+                                                @if ($lastActivityDate)
+                                                    <small class="text-muted d-block mt-1">
+                                                        <i
+                                                            class="fas {{ $lastActivity == 'arrival' ? 'fa-plane-arrival' : 'fa-plane-departure' }} mr-1"></i>
+                                                        <strong>{{ $lastActivityType }}:</strong>
+                                                        {{ $lastActivityDate->format('M d, Y H:i') }}
+                                                    </small>
+                                                @endif
                                             </div>
                                             <div class="ml-3">
                                                 <span

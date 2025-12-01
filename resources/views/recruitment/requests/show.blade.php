@@ -392,59 +392,158 @@
 
                     <!-- Action Buttons -->
                     <div class="fptk-action-buttons">
-                        <a href="{{ route('recruitment.requests.index') }}" class="btn-action back-btn">
+                        <a href="{{ Request::is('recruitment/my-requests*') ? route('recruitment.my-requests') : route('recruitment.requests.index') }}" class="btn-action back-btn">
                             <i class="fas fa-arrow-left"></i> Back to List
                         </a>
 
                         @if ($fptk->status != 'rejected' && $fptk->status != 'cancelled')
                             @if ($fptk->status == 'draft')
-                                @can('recruitment-requests.edit')
-                                    <a href="{{ route('recruitment.requests.edit', $fptk->id) }}"
-                                        class="btn-action edit-btn">
-                                        <i class="fas fa-edit"></i> Edit
-                                    </a>
-                                @endcan
+                                @if(Request::is('recruitment/my-requests*'))
+                                    @can('personal.recruitment.edit-own')
+                                        <a href="{{ route('recruitment.my-requests.edit', $fptk->id) }}"
+                                            class="btn-action edit-btn">
+                                            <i class="fas fa-edit"></i> Edit
+                                        </a>
+                                    @endcan
 
-                                @can('recruitment-requests.delete')
-                                    <button type="button" class="btn-action delete-btn" data-toggle="modal"
-                                        data-target="#deleteModal">
-                                        <i class="fas fa-trash"></i> Delete
-                                    </button>
-                                @endcan
+                                    {{-- Delete button hidden for personal users --}}
 
-                                <!-- Submit button -->
-                                @can('recruitment-requests.edit')
-                                    <form action="{{ route('recruitment.requests.submit', $fptk->id) }}" method="post"
-                                        onsubmit="return confirm('Are you sure you want to submit this FPTK for approval?')">
-                                        @csrf
-                                        <button type="submit" class="btn-action submit-btn">
-                                            <i class="fas fa-paper-plane"></i> Submit for Approval
+                                    <!-- Submit button -->
+                                    @can('personal.recruitment.edit-own')
+                                        <div class="mb-2">
+                                            <small class="text-muted d-block">
+                                                <i class="fas fa-info-circle"></i> 
+                                                <strong>Note:</strong> After submitting, this FPTK cannot be edited anymore.
+                                            </small>
+                                        </div>
+                                        <form action="{{ route('recruitment.my-requests.submit', $fptk->id) }}" method="post" id="submitFormMyRequests">
+                                            @csrf
+                                            <button type="button" class="btn-action submit-btn" id="submitBtnMyRequests">
+                                                <i class="fas fa-paper-plane"></i> Submit for Approval
+                                            </button>
+                                        </form>
+                                        <script>
+                                            document.getElementById('submitBtnMyRequests').addEventListener('click', function(e) {
+                                                e.preventDefault();
+                                                Swal.fire({
+                                                    title: 'Submit for Approval?',
+                                                    html: '<div class="text-left">' +
+                                                        '<p>Are you sure you want to submit this FPTK for approval?</p>' +
+                                                        '<div class="alert alert-warning mt-3 mb-0">' +
+                                                        '<i class="fas fa-exclamation-triangle"></i> <strong>Important:</strong><br>' +
+                                                        'After submitting, this FPTK <strong>cannot be edited</strong> anymore.<br>' +
+                                                        'Please make sure all information is correct before submitting.' +
+                                                        '</div>' +
+                                                        '</div>',
+                                                    icon: 'question',
+                                                    showCancelButton: true,
+                                                    confirmButtonColor: '#28a745',
+                                                    cancelButtonColor: '#6c757d',
+                                                    confirmButtonText: '<i class="fas fa-paper-plane"></i> Yes, Submit',
+                                                    cancelButtonText: '<i class="fas fa-times"></i> Cancel',
+                                                    reverseButtons: true
+                                                }).then((result) => {
+                                                    if (result.isConfirmed) {
+                                                        document.getElementById('submitFormMyRequests').submit();
+                                                    }
+                                                });
+                                            });
+                                        </script>
+                                    @endcan
+                                @else
+                                    @can('recruitment-requests.edit')
+                                        <a href="{{ route('recruitment.requests.edit', $fptk->id) }}"
+                                            class="btn-action edit-btn">
+                                            <i class="fas fa-edit"></i> Edit
+                                        </a>
+                                    @endcan
+
+                                    @can('recruitment-requests.delete')
+                                        <button type="button" class="btn-action delete-btn" data-toggle="modal"
+                                            data-target="#deleteModal">
+                                            <i class="fas fa-trash"></i> Delete
                                         </button>
-                                    </form>
-                                @endcan
+                                    @endcan
+
+                                    <!-- Submit button -->
+                                    @can('recruitment-requests.edit')
+                                        <div class="mb-2">
+                                            <small class="text-muted d-block">
+                                                <i class="fas fa-info-circle"></i> 
+                                                <strong>Note:</strong> After submitting, this FPTK cannot be edited anymore.
+                                            </small>
+                                        </div>
+                                        <form action="{{ route('recruitment.requests.submit', $fptk->id) }}" method="post" id="submitFormAdmin">
+                                            @csrf
+                                            <button type="button" class="btn-action submit-btn" id="submitBtnAdmin">
+                                                <i class="fas fa-paper-plane"></i> Submit for Approval
+                                            </button>
+                                        </form>
+                                        <script>
+                                            document.getElementById('submitBtnAdmin').addEventListener('click', function(e) {
+                                                e.preventDefault();
+                                                Swal.fire({
+                                                    title: 'Submit for Approval?',
+                                                    html: '<div class="text-left">' +
+                                                        '<p>Are you sure you want to submit this FPTK for approval?</p>' +
+                                                        '<div class="alert alert-warning mt-3 mb-0">' +
+                                                        '<i class="fas fa-exclamation-triangle"></i> <strong>Important:</strong><br>' +
+                                                        'After submitting, this FPTK <strong>cannot be edited</strong> anymore.<br>' +
+                                                        'Please make sure all information is correct before submitting.' +
+                                                        '</div>' +
+                                                        '</div>',
+                                                    icon: 'question',
+                                                    showCancelButton: true,
+                                                    confirmButtonColor: '#28a745',
+                                                    cancelButtonColor: '#6c757d',
+                                                    confirmButtonText: '<i class="fas fa-paper-plane"></i> Yes, Submit',
+                                                    cancelButtonText: '<i class="fas fa-times"></i> Cancel',
+                                                    reverseButtons: true
+                                                }).then((result) => {
+                                                    if (result.isConfirmed) {
+                                                        document.getElementById('submitFormAdmin').submit();
+                                                    }
+                                                });
+                                            });
+                                        </script>
+                                    @endcan
+                                @endif
                             @endif
 
                             @if ($fptk->status == 'approved')
                                 <!-- Assign Letter Number button -->
                                 @if (!$fptk->hasLetterNumber())
-                                    @can('recruitment-requests.assign-letter-number')
-                                        <form action="{{ route('recruitment.requests.assign-letter-number', $fptk->id) }}"
-                                            method="post"
-                                            onsubmit="return confirm('Are you sure you want to assign a letter number to this FPTK?')">
-                                            @csrf
-                                            <button type="submit" class="btn-action assign-letter-btn">
-                                                <i class="fas fa-hashtag"></i> Assign Letter Number
-                                            </button>
-                                        </form>
-                                    @endcan
+                                    @if(Request::is('recruitment/my-requests*'))
+                                        {{-- Personal users cannot assign letter numbers --}}
+                                    @else
+                                        @can('recruitment-requests.assign-letter-number')
+                                            <form action="{{ route('recruitment.requests.assign-letter-number', $fptk->id) }}"
+                                                method="post"
+                                                onsubmit="return confirm('Are you sure you want to assign a letter number to this FPTK?')">
+                                                @csrf
+                                                <button type="submit" class="btn-action assign-letter-btn">
+                                                    <i class="fas fa-hashtag"></i> Assign Letter Number
+                                                </button>
+                                            </form>
+                                        @endcan
+                                    @endif
                                 @endif
                             @endif
                         @endif
 
-                        <a href="{{ route('recruitment.requests.print', $fptk->id) }}" class="btn-action print-btn"
-                            target="_blank">
-                            <i class="fas fa-print"></i> Print FPTK
-                        </a>
+                        @if(Request::is('recruitment/my-requests*'))
+                            @can('personal.recruitment.view-own')
+                                <a href="{{ route('recruitment.requests.print', $fptk->id) }}" class="btn-action print-btn"
+                                    target="_blank">
+                                    <i class="fas fa-print"></i> Print FPTK
+                                </a>
+                            @endcan
+                        @else
+                            <a href="{{ route('recruitment.requests.print', $fptk->id) }}" class="btn-action print-btn"
+                                target="_blank">
+                                <i class="fas fa-print"></i> Print FPTK
+                            </a>
+                        @endif
                     </div>
                 </div>
 
@@ -547,26 +646,36 @@
                                                                     '<span class="badge badge-secondary">' . ucfirst($session->status) . '</span>' !!}
                                                             </td>
                                                             <td class="text-center">
-                                                                @can('recruitment-sessions.delete')
-                                                                    <a href="{{ route('recruitment.sessions.candidate', $session->id) }}"
-                                                                        class="btn btn-sm btn-info"
-                                                                        title="View Session Details">
-                                                                        <i class="fas fa-eye"></i>
-                                                                    </a>
-                                                                @endcan
-                                                                @can('recruitment-sessions.delete')
-                                                                    @if ($session->status !== 'hired')
-                                                                        <button type="button"
-                                                                            class="btn btn-sm btn-danger delete-session-btn"
-                                                                            data-session-id="{{ $session->id }}"
-                                                                            data-candidate-name="{{ $session->candidate->fullname ?? 'N/A' }}"
-                                                                            data-toggle="modal"
-                                                                            data-target="#deleteSessionModal"
-                                                                            title="Remove Candidate from Session">
-                                                                            <i class="fas fa-trash"></i>
-                                                                        </button>
-                                                                    @endif
-                                                                @endcan
+                                                                @if(Request::is('recruitment/my-requests*'))
+                                                                    @can('personal.recruitment.view-own')
+                                                                        <a href="{{ route('recruitment.sessions.candidate', $session->id) }}"
+                                                                            class="btn btn-sm btn-info"
+                                                                            title="View Session Details">
+                                                                            <i class="fas fa-eye"></i>
+                                                                        </a>
+                                                                    @endcan
+                                                                @else
+                                                                    @can('recruitment-sessions.delete')
+                                                                        <a href="{{ route('recruitment.sessions.candidate', $session->id) }}"
+                                                                            class="btn btn-sm btn-info"
+                                                                            title="View Session Details">
+                                                                            <i class="fas fa-eye"></i>
+                                                                        </a>
+                                                                    @endcan
+                                                                    @can('recruitment-sessions.delete')
+                                                                        @if ($session->status !== 'hired')
+                                                                            <button type="button"
+                                                                                class="btn btn-sm btn-danger delete-session-btn"
+                                                                                data-session-id="{{ $session->id }}"
+                                                                                data-candidate-name="{{ $session->candidate->fullname ?? 'N/A' }}"
+                                                                                data-toggle="modal"
+                                                                                data-target="#deleteSessionModal"
+                                                                                title="Remove Candidate from Session">
+                                                                                <i class="fas fa-trash"></i>
+                                                                            </button>
+                                                                        @endif
+                                                                    @endcan
+                                                                @endif
                                                             </td>
                                                         </tr>
                                                     @endforeach

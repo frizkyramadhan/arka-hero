@@ -436,6 +436,12 @@ Route::group(['middleware' => ['auth']], function () {
         // Self-service routes for user role
         Route::get('/my-requests', [RecruitmentRequestController::class, 'myRequests'])->name('my-requests');
         Route::get('/my-requests/data', [RecruitmentRequestController::class, 'myRequestsData'])->name('my-requests.data');
+        Route::get('/my-requests/create', [RecruitmentRequestController::class, 'myRequestsCreate'])->name('my-requests.create');
+        Route::post('/my-requests', [RecruitmentRequestController::class, 'myRequestsStore'])->name('my-requests.store');
+        Route::get('/my-requests/{id}', [RecruitmentRequestController::class, 'myRequestsShow'])->name('my-requests.show');
+        Route::get('/my-requests/{id}/edit', [RecruitmentRequestController::class, 'myRequestsEdit'])->name('my-requests.edit');
+        Route::put('/my-requests/{id}', [RecruitmentRequestController::class, 'myRequestsUpdate'])->name('my-requests.update');
+        Route::post('/my-requests/{id}/submit', [RecruitmentRequestController::class, 'submitForApproval'])->name('my-requests.submit');
 
         // FPTK (Recruitment Request) Routes
         Route::prefix('requests')->name('requests.')->group(function () {

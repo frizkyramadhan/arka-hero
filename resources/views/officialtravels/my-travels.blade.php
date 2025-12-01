@@ -10,7 +10,7 @@
                 <div class="col-sm-6">
                     <ol class="breadcrumb float-sm-right">
                         <li class="breadcrumb-item"><a href="{{ route('dashboard.personal') }}">My Dashboard</a></li>
-                        <li class="breadcrumb-item active">My Official Travels</li>
+                        <li class="breadcrumb-item active">My LOT Request</li>
                     </ol>
                 </div>
             </div>
@@ -24,7 +24,7 @@
                     <div id="accordion">
                         <div class="card">
                             <div class="card-header">
-                                <h3 class="card-title"><strong>{{ auth()->user()->name }}'s Official Travels</strong></h3>
+                                <h3 class="card-title"><strong>{{ auth()->user()->name }}'s LOT Request</strong></h3>
                             </div>
                             <!-- /.card-header -->
                             <div class="card-body">

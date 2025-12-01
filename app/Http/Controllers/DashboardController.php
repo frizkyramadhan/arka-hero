@@ -1523,7 +1523,9 @@ class DashboardController extends Controller
             ->get();
 
         // Recent Official Travels
-        $recentTravels = Officialtravel::with(['project'])
+        $recentTravels = Officialtravel::with(['project', 'stops' => function ($query) {
+                $query->orderBy('created_at', 'desc');
+            }])
             ->where(function ($q) use ($user) {
                 $q->where('traveler_id', $user->administration_id)
                     ->orWhereHas('details', function ($detailQuery) use ($user) {

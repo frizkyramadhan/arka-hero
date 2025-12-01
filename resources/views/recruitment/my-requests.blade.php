@@ -27,15 +27,32 @@
                     <div id="accordion">
                         <div class="card">
                             <div class="card-header">
-                                <h3 class="card-title"><strong>{{ auth()->user()->name }}'s Recruitment Requests</strong></h3>
+                                <h3 class="card-title"><strong>{{ auth()->user()->name }}'s Recruitment Requests</strong>
+                                </h3>
                                 <div class="card-tools">
                                     @can('personal.recruitment.create-own')
-                                        <a href="{{ route('recruitment.requests.create') }}" class="btn btn-primary">
+                                        <a href="{{ route('recruitment.my-requests.create') }}" class="btn btn-primary">
                                             <i class="fas fa-plus"></i> Add
                                         </a>
                                     @endcan
                                 </div>
+                                <br>
+                                @if (!empty($userProjects) || !empty($userDepartments))
+                                    <small class="text-muted">
+                                        <i class="fas fa-filter"></i>
+                                        Showing requests for
+                                        @if (!empty($userProjects) && !empty($userDepartments))
+                                            Projects: {{ implode(', ', $userProjects) }} | Departments:
+                                            {{ implode(', ', $userDepartments) }}
+                                        @elseif(!empty($userProjects))
+                                            Projects: {{ implode(', ', $userProjects) }}
+                                        @elseif(!empty($userDepartments))
+                                            Departments: {{ implode(', ', $userDepartments) }}
+                                        @endif
+                                    </small>
+                                @endif
                             </div>
+
                             <!-- /.card-header -->
                             <div class="card-body">
                                 <div class="card card-primary">
@@ -97,10 +114,11 @@
                                         <thead>
                                             <tr>
                                                 <th class="align-middle">No</th>
+                                                <th class="align-middle">FPTK Number</th>
                                                 <th class="align-middle">Position</th>
                                                 <th class="align-middle">Department</th>
                                                 <th class="align-middle">Project</th>
-                                                <th class="align-middle">Required</th>
+                                                <th class="align-middle">Request By</th>
                                                 <th class="align-middle">Status</th>
                                                 <th class="align-middle">Requested At</th>
                                                 <th class="align-middle" width="12%">Actions</th>
@@ -160,7 +178,8 @@
                         d.status = $('#status').val(),
                             d.start_date = $('#start_date').val(),
                             d.end_date = $('#end_date').val(),
-                            d.search = $("input[type=search][aria-controls=recruitment-requests-table]").val()
+                            d.search = $("input[type=search][aria-controls=recruitment-requests-table]")
+                            .val()
                     }
                 },
                 columns: [{
@@ -169,6 +188,11 @@
                         orderable: false,
                         searchable: false,
                         className: 'text-center'
+                    },
+                    {
+                        data: 'request_number',
+                        name: 'request_number',
+                        orderable: false
                     },
                     {
                         data: 'position_name',
@@ -187,10 +211,9 @@
                         className: 'text-center'
                     },
                     {
-                        data: 'required_quantity',
-                        name: 'required_quantity',
-                        orderable: false,
-                        className: 'text-right'
+                        data: 'created_by_name',
+                        name: 'created_by_name',
+                        orderable: false
                     },
                     {
                         data: 'status_badge',
@@ -233,4 +256,3 @@
         });
     </script>
 @endsection
-
