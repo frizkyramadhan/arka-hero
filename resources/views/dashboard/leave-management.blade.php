@@ -232,6 +232,7 @@
                                             <th class="py-1 px-2">DOH</th>
                                             <th class="py-1 px-2">Position</th>
                                             <th class="py-1 px-2">Department</th>
+                                            <th class="py-1 px-2">Project</th>
                                             <th class="py-1 px-2" style="text-align: center">Action</th>
                                         </tr>
                                     </thead>
@@ -495,30 +496,23 @@
                 document.querySelector('.select2-search__field').focus();
             });
 
-            // Initialize DataTables
+            // Initialize DataTables (Client-side)
             $('#openLeaveRequestsTable').DataTable({
-                processing: true,
-                serverSide: true,
-                ajax: '{{ route('dashboard.leave-management.open-requests') }}',
+                data: @json($openLeaveRequestsData),
                 columns: [{
-                        data: 'employee_name',
-                        name: 'employee_name'
+                        data: 'employee_name'
                     },
                     {
-                        data: 'leave_type',
-                        name: 'leave_type'
+                        data: 'leave_type'
                     },
                     {
-                        data: 'leave_period',
-                        name: 'leave_period'
+                        data: 'leave_period'
                     },
                     {
-                        data: 'total_days',
-                        name: 'total_days'
+                        data: 'total_days'
                     },
                     {
                         data: 'action',
-                        name: 'action',
                         orderable: false,
                         searchable: false,
                         className: 'text-center'
@@ -532,28 +526,21 @@
             });
 
             $('#pendingCancellationsTable').DataTable({
-                processing: true,
-                serverSide: true,
-                ajax: '{{ route('dashboard.leave-management.pending-cancellations') }}',
+                data: @json($pendingCancellationsData),
                 columns: [{
-                        data: 'employee_name',
-                        name: 'employee_name'
+                        data: 'employee_name'
                     },
                     {
-                        data: 'leave_type',
-                        name: 'leave_type'
+                        data: 'leave_type'
                     },
                     {
-                        data: 'days_to_cancel',
-                        name: 'days_to_cancel'
+                        data: 'days_to_cancel'
                     },
                     {
-                        data: 'reason',
-                        name: 'reason'
+                        data: 'reason'
                     },
                     {
                         data: 'action',
-                        name: 'action',
                         orderable: false,
                         searchable: false,
                         className: 'text-center'
@@ -567,36 +554,27 @@
             });
 
             $('#paidLeaveWithoutDocsTable').DataTable({
-                processing: true,
-                serverSide: true,
-                ajax: '{{ route('dashboard.leave-management.paid-leave-without-docs') }}',
+                data: @json($paidLeaveWithoutDocsData),
                 columns: [{
-                        data: 'employee_name',
-                        name: 'employee_name'
+                        data: 'employee_name'
                     },
                     {
-                        data: 'leave_type',
-                        name: 'leave_type'
+                        data: 'leave_type'
                     },
                     {
-                        data: 'leave_period',
-                        name: 'leave_period'
+                        data: 'leave_period'
                     },
                     {
-                        data: 'total_days',
-                        name: 'total_days'
+                        data: 'total_days'
                     },
                     {
-                        data: 'days_remaining',
-                        name: 'days_remaining'
+                        data: 'days_remaining'
                     },
                     {
-                        data: 'status_badge',
-                        name: 'status_badge'
+                        data: 'status_badge'
                     },
                     {
                         data: 'action',
-                        name: 'action',
                         orderable: false,
                         searchable: false,
                         className: 'text-center'
@@ -610,32 +588,27 @@
             });
 
             $('#employeesWithoutEntitlementsTable').DataTable({
-                processing: true,
-                serverSide: true,
-                ajax: '{{ route('dashboard.leave-management.employees-without-entitlements') }}',
+                data: @json($employeesWithoutEntitlementsData),
                 columns: [{
-                        data: 'employee_name',
-                        name: 'employee_name'
+                        data: 'employee_name'
                     },
                     {
-                        data: 'employee_nik',
-                        name: 'employee_nik'
+                        data: 'employee_nik'
                     },
                     {
-                        data: 'doh',
-                        name: 'doh'
+                        data: 'doh'
                     },
                     {
-                        data: 'position',
-                        name: 'position'
+                        data: 'position'
                     },
                     {
-                        data: 'department',
-                        name: 'department'
+                        data: 'department'
+                    },
+                    {
+                        data: 'project'
                     },
                     {
                         data: 'action',
-                        name: 'action',
                         orderable: false,
                         searchable: false,
                         className: 'text-center'
@@ -649,25 +622,19 @@
             });
 
             $('#employeesWithExpiringEntitlementsTable').DataTable({
-                processing: true,
-                serverSide: true,
-                ajax: '{{ route('dashboard.leave-management.employees-with-expiring-entitlements') }}',
+                data: @json($employeesWithExpiringEntitlementsData),
                 columns: [{
-                        data: 'employee_name',
-                        name: 'employee_name'
+                        data: 'employee_name'
                     },
                     {
-                        data: 'employee_nik',
-                        name: 'employee_nik'
+                        data: 'employee_nik'
                     },
                     {
                         data: 'expires',
-                        name: 'expires',
                         className: 'text-center'
                     },
                     {
                         data: 'action',
-                        name: 'action',
                         orderable: false,
                         searchable: false,
                         className: 'text-center'
@@ -792,7 +759,6 @@
 
         $('#confirmCloseLeaveRequest').click(function() {
             if (currentLeaveRequestId) {
-                // Implement close leave request logic
                 $.ajax({
                     url: `{{ route('leave.requests.close', 'PLACEHOLDER') }}`.replace('PLACEHOLDER',
                         currentLeaveRequestId),
@@ -802,23 +768,25 @@
                     },
                     success: function(response) {
                         $('#closeLeaveRequestModal').modal('hide');
-                        $('#openLeaveRequestsTable').DataTable().ajax.reload();
-                        // Use SweetAlert instead of toastr
                         Swal.fire({
                             icon: 'success',
                             title: 'Success!',
                             text: 'Leave request closed successfully.',
                             timer: 2000,
                             showConfirmButton: false
+                        }).then(() => {
+                            location.reload();
                         });
                     },
-                    error: function(xhr, status, error) {
-                        console.error('Error:', error);
-                        // Use SweetAlert instead of toastr
+                    error: function(xhr) {
+                        let errorMessage = 'Error closing leave request.';
+                        if (xhr.responseJSON && xhr.responseJSON.message) {
+                            errorMessage = xhr.responseJSON.message;
+                        }
                         Swal.fire({
                             icon: 'error',
                             title: 'Error!',
-                            text: 'Error closing leave request.',
+                            text: errorMessage,
                             timer: 2000,
                             showConfirmButton: false
                         });
@@ -848,22 +816,60 @@
             if (currentCancellationId && currentCancellationAction) {
                 const notes = $('#cancellationNotes').val();
 
+                // Validate notes for reject action
+                if (currentCancellationAction === 'reject' && !notes.trim()) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Notes Required',
+                        text: 'Please provide notes for rejecting the cancellation request.',
+                        timer: 2000,
+                        showConfirmButton: false
+                    });
+                    return;
+                }
+
+                let routeUrl;
+                if (currentCancellationAction === 'approve') {
+                    routeUrl = `{{ route('leave.requests.cancellation.approve', 'PLACEHOLDER') }}`.replace(
+                        'PLACEHOLDER', currentCancellationId);
+                } else {
+                    routeUrl = `{{ route('leave.requests.cancellation.reject', 'PLACEHOLDER') }}`.replace(
+                        'PLACEHOLDER', currentCancellationId);
+                }
+
                 $.ajax({
-                    url: `/leave/requests/cancellations/${currentCancellationId}/${currentCancellationAction}`,
+                    url: routeUrl,
                     method: 'POST',
                     data: {
                         _token: '{{ csrf_token() }}',
-                        notes: notes
+                        confirmation_notes: notes
                     },
                     success: function(response) {
                         $('#cancellationActionModal').modal('hide');
-                        $('#pendingCancellationsTable').DataTable().ajax.reload();
-                        toastr.success(
-                            `Cancellation request ${currentCancellationAction}d successfully.`);
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Success!',
+                            text: `Cancellation request ${currentCancellationAction}d successfully.`,
+                            timer: 2000,
+                            showConfirmButton: false
+                        }).then(() => {
+                            location.reload();
+                        });
                         $('#cancellationNotes').val('');
                     },
-                    error: function() {
-                        toastr.error(`Error ${currentCancellationAction}ing cancellation request.`);
+                    error: function(xhr) {
+                        let errorMessage =
+                            `Error ${currentCancellationAction}ing cancellation request.`;
+                        if (xhr.responseJSON && xhr.responseJSON.message) {
+                            errorMessage = xhr.responseJSON.message;
+                        }
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error!',
+                            text: errorMessage,
+                            timer: 2000,
+                            showConfirmButton: false
+                        });
                     }
                 });
             }
@@ -878,36 +884,70 @@
                     _token: '{{ csrf_token() }}'
                 },
                 success: function(response) {
-                    toastr.success('Reminder sent successfully.');
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Success!',
+                        text: 'Reminder sent successfully.',
+                        timer: 2000,
+                        showConfirmButton: false
+                    });
                 },
                 error: function() {
-                    toastr.error('Error sending reminder.');
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error!',
+                        text: 'Error sending reminder.',
+                        timer: 2000,
+                        showConfirmButton: false
+                    });
                 }
             });
         }
 
         // Bulk reminder function
         function sendBulkReminder() {
-            if (confirm('Send reminder to all employees with paid leave without supporting documents?')) {
-                $.ajax({
-                    url: '#', // Route not implemented yet
-                    method: 'POST',
-                    data: {
-                        _token: '{{ csrf_token() }}'
-                    },
-                    success: function(response) {
-                        toastr.success('Bulk reminders sent successfully.');
-                    },
-                    error: function() {
-                        toastr.error('Error sending bulk reminders.');
-                    }
-                });
-            }
+            Swal.fire({
+                title: 'Confirm Action',
+                text: 'Send reminder to all employees with paid leave without supporting documents?',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Yes, Send Reminders'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $.ajax({
+                        url: '#', // Route not implemented yet
+                        method: 'POST',
+                        data: {
+                            _token: '{{ csrf_token() }}'
+                        },
+                        success: function(response) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Success!',
+                                text: 'Bulk reminders sent successfully.',
+                                timer: 2000,
+                                showConfirmButton: false
+                            });
+                        },
+                        error: function() {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error!',
+                                text: 'Error sending bulk reminders.',
+                                timer: 2000,
+                                showConfirmButton: false
+                            });
+                        }
+                    });
+                }
+            });
         }
 
         // View all cancellations
         function viewAllCancellations() {
-            window.location.href = '#'; // Route not implemented yet
+            window.location.href = '{{ route('leave.reports.cancellation') }}';
         }
     </script>
 @endpush

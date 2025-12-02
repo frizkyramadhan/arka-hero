@@ -184,18 +184,20 @@
                             @endif
                         </h3>
                         @if ($showAllProjects || $selectedProject)
-                            <div class="card-tools">
-                                <button type="button" class="btn btn-danger btn-sm mr-2"
-                                    onclick="confirmClearEntitlements()">
-                                    <i class="fas fa-trash"></i> Clear Entitlements
-                                </button>
-                                @if (!$showAllProjects && $selectedProject)
-                                    <button type="button" class="btn btn-success btn-sm"
-                                        onclick="confirmGenerateEntitlements()">
-                                        <i class="fas fa-magic"></i> Generate Entitlements
+                            @if (auth()->user()->hasRole('administrator'))
+                                <div class="card-tools">
+                                    <button type="button" class="btn btn-danger btn-sm mr-2"
+                                        onclick="confirmClearEntitlements()">
+                                        <i class="fas fa-trash"></i> Clear Entitlements
                                     </button>
-                                @endif
-                            </div>
+                                    @if (!$showAllProjects && $selectedProject)
+                                        <button type="button" class="btn btn-success btn-sm"
+                                            onclick="confirmGenerateEntitlements()">
+                                            <i class="fas fa-magic"></i> Generate Entitlements
+                                        </button>
+                                    @endif
+                                </div>
+                            @endif
                         @endif
                     </div>
                     <div class="card-body">

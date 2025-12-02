@@ -6,6 +6,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
+use Spatie\Permission\Models\Role;
 
 class RegisterController extends Controller
 {
@@ -32,7 +33,11 @@ class RegisterController extends Controller
 
         $validatedData['password'] = Hash::make($validatedData['password']);
 
-        User::create($validatedData);
+        $user = User::create($validatedData);
+
+        // Automatically assign 'user' role to newly registered user
+        $userRole = Role::firstOrCreate(['name' => 'user']);
+        $user->assignRole($userRole);
 
         return redirect('login')->with('toast_success', 'Registration success! Please contact IT to activate your account.');
     }

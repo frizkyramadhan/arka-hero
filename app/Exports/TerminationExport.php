@@ -57,8 +57,8 @@ class TerminationExport extends DefaultValueBinder implements
             ->leftJoin('positions', 'positions.id', '=', 'administrations.position_id')
             ->leftJoin('departments', 'departments.id', '=', 'positions.department_id')
             ->select('administrations.*', 'employees.identity_card', 'employees.fullname', 'positions.position_name', 'projects.project_code', 'projects.project_name', 'departments.department_name')
-            ->where('is_active', 0)
-            ->orderBy('nik', 'asc');
+            ->where('administrations.is_active', 0)
+            ->orderBy('administrations.nik', 'asc');
     }
 
     public function map($administration): array
@@ -67,6 +67,8 @@ class TerminationExport extends DefaultValueBinder implements
             $administration->fullname,
             $administration->identity_card,
             $administration->nik,
+            $administration->poh,
+            $administration->doh ? date('d F Y', strtotime($administration->doh)) : '',
             $administration->department_name,
             $administration->position_name,
             $administration->project_code,
@@ -82,6 +84,8 @@ class TerminationExport extends DefaultValueBinder implements
             'Full Name',
             'Identity Card No',
             'NIK',
+            'POH',
+            'DOH',
             'Department',
             'Position',
             'Project Code',

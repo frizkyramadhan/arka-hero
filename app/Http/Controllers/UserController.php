@@ -252,7 +252,30 @@ class UserController extends Controller
                 'user_status' => $request->user_status
             ]);
 
-            $user->syncRoles($request->roles);
+            // Ensure 'user' role is always assigned
+            $roles = $request->roles;
+            $userRole = Role::firstOrCreate(['name' => 'user']);
+            
+            // Check if user role is already in the roles array (by ID or name)
+            $hasUserRole = false;
+            foreach ($roles as $role) {
+                if ($role == $userRole->id || $role == 'user' || $role == $userRole->name) {
+                    $hasUserRole = true;
+                    break;
+                }
+            }
+            
+            // Add user role if not already present
+            if (!$hasUserRole) {
+                // Check if roles array contains IDs or names
+                if (is_numeric($roles[0] ?? null)) {
+                    $roles[] = $userRole->id;
+                } else {
+                    $roles[] = 'user';
+                }
+            }
+
+            $user->syncRoles($roles);
 
             // Sync projects and departments
             if ($request->has('projects')) {

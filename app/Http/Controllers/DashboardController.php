@@ -772,11 +772,11 @@ class DashboardController extends Controller
         $pendingCancellations = LeaveRequestCancellation::with([
             'leaveRequest.employee',
             'leaveRequest.leaveType',
+            'leaveRequest.administration',
             'requestedBy'
         ])
             ->where('status', 'pending')
             ->orderBy('requested_at', 'desc')
-            ->limit(10)
             ->get();
 
         // Paid Leave Without Supporting Documents
@@ -787,7 +787,6 @@ class DashboardController extends Controller
             ->whereNull('supporting_document')
             ->whereIn('status', ['pending', 'approved'])
             ->orderBy('auto_conversion_at', 'asc')
-            ->limit(10)
             ->get();
 
         // Calculate days remaining for auto-conversion
@@ -840,14 +839,13 @@ class DashboardController extends Controller
         // Employees without entitlements
         $employeesWithoutEntitlements = Employee::with(['administrations' => function ($query) {
             $query->where('is_active', '1')
-                ->with(['position.department']);
+                ->with(['position.department', 'project']);
         }])
             ->whereHas('administrations', function ($query) {
                 $query->where('is_active', '1');
             })
             ->whereDoesntHave('leaveEntitlements')
             ->orderBy('fullname', 'asc')
-            ->limit(10)
             ->get();
 
         // Employees with entitlements expiring soon (within 30 days, not expired yet)
@@ -872,7 +870,6 @@ class DashboardController extends Controller
                     ->whereRaw('(entitled_days - taken_days) > 0'); // remaining_days is now accessor
             })
             ->orderBy('fullname', 'asc')
-            ->limit(10)
             ->get();
 
         // Recent Activity
@@ -880,6 +877,116 @@ class DashboardController extends Controller
             ->orderBy('created_at', 'desc')
             ->limit(10)
             ->get();
+
+        // Format data for client-side DataTables
+        $openLeaveRequestsData = $openLeaveRequests->map(function ($request) {
+            return [
+                'employee_name' => $request->employee->fullname ?? 'N/A',
+                'leave_type' => $request->leaveType->name ?? 'N/A',
+                'leave_period' => $request->start_date->format('d M Y') . ' - ' . $request->end_date->format('d M Y'),
+                'total_days' => $request->total_days . ' days',
+                'action' => '<a href="' . route('leave.requests.show', $request->id) . '" class="btn btn-xs btn-info mr-1">
+                            <i class="fas fa-eye"></i>
+                        </a>
+                        <button class="btn btn-xs btn-success" onclick="closeLeaveRequest(\'' . $request->id . '\')">
+                            <i class="fas fa-check"></i>
+                        </button>'
+            ];
+        });
+
+        $pendingCancellationsData = $pendingCancellations->map(function ($cancellation) {
+            $request = $cancellation->leaveRequest;
+            $administration = $request->administration;
+            $employeeNik = 'N/A';
+            if ($administration) {
+                $employeeNik = $administration->nik ?? 'N/A';
+            } else {
+                $employee = $request->employee;
+                if ($employee) {
+                    $activeAdmin = $employee->administrations->where('is_active', '1')->first();
+                    $employeeNik = $activeAdmin->nik ?? 'N/A';
+                }
+            }
+            return [
+                'employee_name' => $request->employee->fullname ?? 'N/A',
+                'leave_type' => $request->leaveType->name ?? 'N/A',
+                'days_to_cancel' => $cancellation->days_to_cancel . ' days',
+                'reason' => Str::limit($cancellation->reason, 50),
+                'action' => '<button class="btn btn-xs btn-success mr-1" onclick="approveCancellation(\'' . $cancellation->id . '\')">
+                            <i class="fas fa-check"></i>
+                        </button>
+                        <button class="btn btn-xs btn-danger" onclick="rejectCancellation(\'' . $cancellation->id . '\')">
+                            <i class="fas fa-times"></i>
+                        </button>'
+            ];
+        });
+
+        $paidLeaveWithoutDocsData = $paidLeaveWithoutDocs->map(function ($request) {
+            $daysRemaining = 'N/A';
+            if ($request->auto_conversion_at) {
+                $days = now()->diffInDays($request->auto_conversion_at, false);
+                if ($days < 0) {
+                    $days = 0;
+                }
+                $badgeClass = $days <= 3 ? 'badge-danger' : ($days <= 7 ? 'badge-warning' : 'badge-info');
+                $daysRemaining = '<span class="badge ' . $badgeClass . '">' . $days . ' days</span>';
+            } else {
+                $daysRemaining = '<span class="badge badge-secondary">N/A</span>';
+            }
+            $statusBadge = [
+                'pending' => '<span class="badge badge-warning">Pending</span>',
+                'approved' => '<span class="badge badge-success">Approved</span>',
+            ];
+            return [
+                'employee_name' => $request->employee->fullname ?? 'N/A',
+                'leave_type' => $request->leaveType->name ?? 'N/A',
+                'leave_period' => $request->start_date->format('d M Y') . ' - ' . $request->end_date->format('d M Y'),
+                'total_days' => $request->total_days . ' days',
+                'days_remaining' => $daysRemaining,
+                'status_badge' => $statusBadge[$request->status] ?? '<span class="badge badge-secondary">Unknown</span>',
+                'action' => '<a href="' . route('leave.requests.show', $request->id) . '" class="btn btn-xs btn-info">
+                            <i class="fas fa-eye"></i>
+                        </a>'
+            ];
+        });
+
+        $employeesWithoutEntitlementsData = $employeesWithoutEntitlements->map(function ($employee) {
+            $administration = $employee->administrations->where('is_active', '1')->first();
+            return [
+                'employee_name' => $employee->fullname ?? 'N/A',
+                'employee_nik' => $administration->nik ?? 'N/A',
+                'doh' => $administration->doh ? $administration->doh->format('d M Y') : 'N/A',
+                'position' => $administration->position->position_name ?? 'N/A',
+                'department' => $administration->position->department->department_name ?? 'N/A',
+                'project' => ($administration && $administration->project) ? $administration->project->project_code : 'N/A',
+                'action' => '<a href="' . route('leave.entitlements.employee.show', $employee->id) . '" class="btn btn-xs btn-info">
+                            <i class="fas fa-eye"></i></a>'
+            ];
+        });
+
+        $employeesWithExpiringEntitlementsData = $employeesWithExpiringEntitlements->map(function ($employee) use ($today, $thirtyDaysLater) {
+            $administration = $employee->administrations->where('is_active', '1')->first();
+            $expiringEntitlements = $employee->leaveEntitlements->filter(function ($entitlement) use ($today, $thirtyDaysLater) {
+                return $entitlement->period_end >= $today &&
+                    $entitlement->period_end <= $thirtyDaysLater &&
+                    ($entitlement->entitled_days - $entitlement->taken_days) > 0;
+            });
+
+            $expiresText = '';
+            if ($expiringEntitlements->isNotEmpty()) {
+                $firstExpiring = $expiringEntitlements->sortBy('period_end')->first();
+                $daysUntilExpiry = now()->diffInDays($firstExpiring->period_end, false);
+                $expiresText = $firstExpiring->period_end->format('d M Y') . ' EXPIRES (' . $daysUntilExpiry . ' days)';
+            }
+
+            return [
+                'employee_name' => $employee->fullname ?? 'N/A',
+                'employee_nik' => $administration->nik ?? 'N/A',
+                'expires' => $expiresText,
+                'action' => '<a href="' . route('leave.entitlements.employee.show', $employee->id) . '" class="btn btn-xs btn-info">
+                            <i class="fas fa-eye"></i></a>'
+            ];
+        });
 
         return view('dashboard.leave-management', compact(
             'title',
@@ -891,17 +998,17 @@ class DashboardController extends Controller
             'cancelledRequests',
             'thisMonthRequests',
             'monthlyGrowth',
-            'openLeaveRequests',
-            'pendingCancellations',
-            'paidLeaveWithoutDocs',
+            'openLeaveRequestsData',
+            'pendingCancellationsData',
+            'paidLeaveWithoutDocsData',
             'leaveTypeStats',
             'departmentLeaveStats',
             'totalEntitlements',
             'usedEntitlements',
             'remainingEntitlements',
             'expiringEntitlements',
-            'employeesWithoutEntitlements',
-            'employeesWithExpiringEntitlements',
+            'employeesWithoutEntitlementsData',
+            'employeesWithExpiringEntitlementsData',
             'recentLeaveRequests'
         ));
     }
@@ -1016,6 +1123,7 @@ class DashboardController extends Controller
         $query = LeaveRequestCancellation::with([
             'leaveRequest.employee',
             'leaveRequest.leaveType',
+            'leaveRequest.administration',
             'requestedBy'
         ])
             ->where('status', 'pending');
@@ -1026,7 +1134,17 @@ class DashboardController extends Controller
                 return $row->leaveRequest->employee->fullname ?? 'N/A';
             })
             ->addColumn('employee_nik', function ($row) {
-                return $row->leaveRequest->administration->nik ?? 'N/A';
+                $administration = $row->leaveRequest->administration;
+                if ($administration) {
+                    return $administration->nik ?? 'N/A';
+                }
+                // Fallback: get from employee's active administration
+                $employee = $row->leaveRequest->employee;
+                if ($employee) {
+                    $activeAdmin = $employee->administrations->where('is_active', '1')->first();
+                    return $activeAdmin->nik ?? 'N/A';
+                }
+                return 'N/A';
             })
             ->addColumn('leave_type', function ($row) {
                 return $row->leaveRequest->leaveType->name ?? 'N/A';
@@ -1215,7 +1333,7 @@ class DashboardController extends Controller
     {
         $query = Employee::with(['administrations' => function ($query) {
             $query->where('is_active', '1')
-                ->with(['position.department']);
+                ->with(['position.department', 'project']);
         }])
             ->whereHas('administrations', function ($query) {
                 $query->where('is_active', '1');
@@ -1243,6 +1361,13 @@ class DashboardController extends Controller
             ->addColumn('department', function ($row) {
                 $administration = $row->administrations->where('is_active', '1')->first();
                 return $administration->position->department->department_name ?? 'N/A';
+            })
+            ->addColumn('project', function ($row) {
+                $administration = $row->administrations->where('is_active', '1')->first();
+                if ($administration && $administration->project) {
+                    return $administration->project->project_code;
+                }
+                return 'N/A';
             })
             ->addColumn('action', function ($row) {
                 $btn = '<a href="' . route('leave.entitlements.employee.show', $row->id) . '" class="btn btn-xs btn-info">
@@ -1524,8 +1649,8 @@ class DashboardController extends Controller
 
         // Recent Official Travels
         $recentTravels = Officialtravel::with(['project', 'stops' => function ($query) {
-                $query->orderBy('created_at', 'desc');
-            }])
+            $query->orderBy('created_at', 'desc');
+        }])
             ->where(function ($q) use ($user) {
                 $q->where('traveler_id', $user->administration_id)
                     ->orWhereHas('details', function ($detailQuery) use ($user) {
@@ -1550,18 +1675,18 @@ class DashboardController extends Controller
                     ->whereIn('status', ['approved', 'auto_approved'])
                     ->whereBetween('start_date', [$entitlement->period_start, $entitlement->period_end])
                     ->get();
-                
+
                 // Calculate effective taken days (total_days - cancelled_days)
                 $effectiveTakenDays = $approvedRequests->sum(function ($request) {
                     return $request->getEffectiveDays();
                 });
-                
+
                 // Update taken_days if different (to keep it in sync)
                 if ($entitlement->taken_days != $effectiveTakenDays) {
                     $entitlement->taken_days = $effectiveTakenDays;
                     $entitlement->save();
                 }
-                
+
                 return $entitlement;
             });
 
@@ -1580,11 +1705,11 @@ class DashboardController extends Controller
             'unit' => Operableunit::where('employee_id', $user->employee_id)->exists(),
             'additional' => Additionaldata::where('employee_id', $user->employee_id)->exists(),
         ];
-        
-        $missingSections = collect($profileCompleteness)->filter(function($exists) {
+
+        $missingSections = collect($profileCompleteness)->filter(function ($exists) {
             return !$exists;
         })->keys()->toArray();
-        
+
         $completenessPercentage = round((count($profileCompleteness) - count($missingSections)) / count($profileCompleteness) * 100);
 
         return view('dashboard.personal', [
