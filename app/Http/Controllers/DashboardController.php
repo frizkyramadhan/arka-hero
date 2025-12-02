@@ -1686,31 +1686,32 @@ class DashboardController extends Controller
         ];
 
         // Official Travel Summary
+        $administrationId = $user->administration_id;
         $travelStats = [
-            'total_travels' => Officialtravel::where(function ($q) use ($user) {
-                $q->where('traveler_id', $user->administration_id)
-                    ->orWhereHas('details', function ($detailQuery) use ($user) {
-                        $detailQuery->where('follower_id', $user->administration_id);
+            'total_travels' => $administrationId ? Officialtravel::where(function ($q) use ($administrationId) {
+                $q->where('traveler_id', $administrationId)
+                    ->orWhereHas('details', function ($detailQuery) use ($administrationId) {
+                        $detailQuery->where('follower_id', $administrationId);
                     });
-            })->count(),
-            'upcoming_travels' => Officialtravel::where(function ($q) use ($user) {
-                $q->where('traveler_id', $user->administration_id)
-                    ->orWhereHas('details', function ($detailQuery) use ($user) {
-                        $detailQuery->where('follower_id', $user->administration_id);
+            })->count() : 0,
+            'upcoming_travels' => $administrationId ? Officialtravel::where(function ($q) use ($administrationId) {
+                $q->where('traveler_id', $administrationId)
+                    ->orWhereHas('details', function ($detailQuery) use ($administrationId) {
+                        $detailQuery->where('follower_id', $administrationId);
                     });
             })
                 ->where('status', 'approved')
                 ->where('official_travel_date', '>=', now())
-                ->count(),
-            'this_month_travels' => Officialtravel::where(function ($q) use ($user) {
-                $q->where('traveler_id', $user->administration_id)
-                    ->orWhereHas('details', function ($detailQuery) use ($user) {
-                        $detailQuery->where('follower_id', $user->administration_id);
+                ->count() : 0,
+            'this_month_travels' => $administrationId ? Officialtravel::where(function ($q) use ($administrationId) {
+                $q->where('traveler_id', $administrationId)
+                    ->orWhereHas('details', function ($detailQuery) use ($administrationId) {
+                        $detailQuery->where('follower_id', $administrationId);
                     });
             })
                 ->whereMonth('created_at', now()->month)
                 ->whereYear('created_at', now()->year)
-                ->count(),
+                ->count() : 0,
         ];
 
         // Recruitment Requests Summary
@@ -1734,18 +1735,19 @@ class DashboardController extends Controller
             ->get();
 
         // Recent Official Travels
-        $recentTravels = Officialtravel::with(['project', 'stops' => function ($query) {
+        $administrationId = $user->administration_id;
+        $recentTravels = $administrationId ? Officialtravel::with(['project', 'stops' => function ($query) {
             $query->orderBy('created_at', 'desc');
         }])
-            ->where(function ($q) use ($user) {
-                $q->where('traveler_id', $user->administration_id)
-                    ->orWhereHas('details', function ($detailQuery) use ($user) {
-                        $detailQuery->where('follower_id', $user->administration_id);
+            ->where(function ($q) use ($administrationId) {
+                $q->where('traveler_id', $administrationId)
+                    ->orWhereHas('details', function ($detailQuery) use ($administrationId) {
+                        $detailQuery->where('follower_id', $administrationId);
                     });
             })
             ->orderBy('created_at', 'desc')
             ->limit(5)
-            ->get();
+            ->get() : collect();
 
         // Leave Entitlements Summary
         // Calculate taken_days from approved leave requests (considering cancellations)
