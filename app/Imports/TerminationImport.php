@@ -88,6 +88,8 @@ class TerminationImport implements
             'full_name' => ['required', 'string', 'exists:employees,fullname'],
             'identity_card_no' => ['required', 'string', 'exists:employees,identity_card'],
             'nik' => ['required'],
+            'poh' => ['nullable', 'string'],
+            'doh' => ['nullable'],
             'department' => ['nullable', 'string'],
             'position' => ['nullable', 'string', 'exists:positions,position_name'],
             'project_code' => ['nullable', 'string', 'exists:projects,project_code'],
@@ -204,11 +206,26 @@ class TerminationImport implements
                 'project_id' => $project ? $project->id : null,
                 'position_id' => $position ? $position->id : null,
                 'nik' => $row['nik'],
+                'poh' => $row['poh'] ?? null,
                 'is_active' => 0, // Set to 0 for termination
                 'termination_reason' => $row['termination_reason'],
                 'coe_no' => $row['coe_no'] ?? null,
                 'user_id' => auth()->user()->id
             ];
+
+            // Process DOH (Date of Hire)
+            if (!empty($row['doh'])) {
+                if (is_numeric($row['doh'])) {
+                    $terminationData['doh'] = Date::excelToDateTimeObject($row['doh']);
+                } else {
+                    try {
+                        $terminationData['doh'] = \Carbon\Carbon::parse($row['doh']);
+                    } catch (\Exception $e) {
+                        // If parsing fails, skip DOH
+                        $terminationData['doh'] = null;
+                    }
+                }
+            }
 
             // Process termination date
             if (!empty($row['termination_date'])) {

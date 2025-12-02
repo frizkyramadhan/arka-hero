@@ -543,19 +543,24 @@ class LeaveEntitlementController extends Controller
             'year' => 'required|integer|min:2020|max:2030'
         ]);
 
+        $generatedCount = 0;
+        $skippedCount = 0;
+
         if ($request->project_id === 'all') {
             // Generate entitlements for all employees in all projects
             $projects = Project::where('project_status', 1)->get();
             foreach ($projects as $project) {
                 $employees = $this->getProjectEmployees($project);
                 foreach ($employees as $employee) {
-                    $this->generateEmployeeEntitlements($employee, $request->year);
+                    $result = $this->generateEmployeeEntitlements($employee, $request->year);
+                    $generatedCount += $result['generated'] ?? 0;
+                    $skippedCount += $result['skipped'] ?? 0;
                 }
             }
 
             return redirect()
                 ->route('leave.entitlements.index', ['project_id' => 'all'])
-                ->with('toast_success', 'Entitlements generated successfully for all employees in all projects.');
+                ->with('toast_success', "Entitlements generated successfully. Generated {$generatedCount} new entitlements, skipped {$skippedCount} existing entitlements.");
         } else {
             $request->validate([
                 'project_id' => 'exists:projects,id'
@@ -565,12 +570,14 @@ class LeaveEntitlementController extends Controller
             $employees = $this->getProjectEmployees($project);
 
             foreach ($employees as $employee) {
-                $this->generateEmployeeEntitlements($employee, $request->year);
+                $result = $this->generateEmployeeEntitlements($employee, $request->year);
+                $generatedCount += $result['generated'] ?? 0;
+                $skippedCount += $result['skipped'] ?? 0;
             }
 
             return redirect()
                 ->route('leave.entitlements.index', ['project_id' => $project->id])
-                ->with('toast_success', 'Entitlements generated successfully for all employees.');
+                ->with('toast_success', "Entitlements generated successfully. Generated {$generatedCount} new entitlements, skipped {$skippedCount} existing entitlements.");
         }
     }
 
@@ -647,18 +654,28 @@ class LeaveEntitlementController extends Controller
                             // Calculate period dates based on project group rules
                             $periodDates = $this->calculatePeriodDates($employee, $currentYear);
 
-                            LeaveEntitlement::updateOrCreate([
-                                'employee_id' => $employee->id,
-                                'leave_type_id' => $leaveType->id,
-                                'period_start' => $periodDates['start'],
-                                'period_end' => $periodDates['end']
-                            ], [
-                                'entitled_days' => $entitlementDays,
-                                'deposit_days' => $leaveType->getDepositDays(),
-                                'taken_days' => 0
-                            ]);
+                            // Check if entitlement already exists - only create if not exists
+                            $existingEntitlement = LeaveEntitlement::where('employee_id', $employee->id)
+                                ->where('leave_type_id', $leaveType->id)
+                                ->where('period_start', $periodDates['start']->format('Y-m-d'))
+                                ->where('period_end', $periodDates['end']->format('Y-m-d'))
+                                ->first();
 
-                            $generatedCount++;
+                            if (!$existingEntitlement) {
+                                LeaveEntitlement::create([
+                                    'employee_id' => $employee->id,
+                                    'leave_type_id' => $leaveType->id,
+                                    'period_start' => $periodDates['start'],
+                                    'period_end' => $periodDates['end'],
+                                    'entitled_days' => $entitlementDays,
+                                    'deposit_days' => $leaveType->getDepositDays(),
+                                    'taken_days' => 0
+                                ]);
+
+                                $generatedCount++;
+                            } else {
+                                $skippedCount++;
+                            }
                         }
                     }
                 }
@@ -946,6 +963,7 @@ class LeaveEntitlementController extends Controller
 
     /**
      * Generate entitlements for individual employee
+     * Returns array with 'generated' and 'skipped' counts
      */
     private function generateEmployeeEntitlements($employee, $year)
     {
@@ -954,6 +972,9 @@ class LeaveEntitlementController extends Controller
 
         // Get eligible leave types based on project group
         $eligibleCategories = $this->getEligibleLeaveCategories($project);
+
+        $generated = 0;
+        $skipped = 0;
 
         foreach ($eligibleCategories as $category) {
             $leaveType = LeaveType::where('category', $category)
@@ -979,18 +1000,34 @@ class LeaveEntitlementController extends Controller
                 // Calculate period dates based on project group rules
                 $periodDates = $this->calculatePeriodDates($employee, $year);
 
-                LeaveEntitlement::updateOrCreate([
-                    'employee_id' => $employee->id,
-                    'leave_type_id' => $leaveType->id,
-                    'period_start' => $periodDates['start'],
-                    'period_end' => $periodDates['end']
-                ], [
-                    'entitled_days' => $entitlementDays,
-                    'deposit_days' => $leaveType->getDepositDays(),
-                    'taken_days' => 0
-                ]);
+                // Check if entitlement already exists - only create if not exists
+                $existingEntitlement = LeaveEntitlement::where('employee_id', $employee->id)
+                    ->where('leave_type_id', $leaveType->id)
+                    ->where('period_start', $periodDates['start']->format('Y-m-d'))
+                    ->where('period_end', $periodDates['end']->format('Y-m-d'))
+                    ->first();
+
+                if (!$existingEntitlement) {
+                    LeaveEntitlement::create([
+                        'employee_id' => $employee->id,
+                        'leave_type_id' => $leaveType->id,
+                        'period_start' => $periodDates['start'],
+                        'period_end' => $periodDates['end'],
+                        'entitled_days' => $entitlementDays,
+                        'deposit_days' => $leaveType->getDepositDays(),
+                        'taken_days' => 0
+                    ]);
+                    $generated++;
+                } else {
+                    $skipped++;
+                }
             }
         }
+
+        return [
+            'generated' => $generated,
+            'skipped' => $skipped
+        ];
     }
 
     /**
