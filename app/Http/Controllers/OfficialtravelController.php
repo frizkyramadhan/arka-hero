@@ -1183,14 +1183,21 @@ class OfficialtravelController extends Controller
         $this->authorize('personal.official-travel.view-own');
 
         $user = Auth::user();
+        $administrationId = $user->administration_id;
+
+        // Return empty result if user has no active administration
+        if (!$administrationId) {
+            return datatables()->of(collect())
+                ->make(true);
+        }
 
         $query = Officialtravel::with(['traveler.employee', 'project', 'stops'])
-            ->where(function ($q) use ($user) {
+            ->where(function ($q) use ($administrationId) {
                 // User is the main traveler
-                $q->where('traveler_id', $user->administration_id)
+                $q->where('traveler_id', $administrationId)
                     // OR user is a follower
-                    ->orWhereHas('details', function ($detailQuery) use ($user) {
-                        $detailQuery->where('follower_id', $user->administration_id);
+                    ->orWhereHas('details', function ($detailQuery) use ($administrationId) {
+                        $detailQuery->where('follower_id', $administrationId);
                     });
             })
             ->select('officialtravels.*')
@@ -1209,11 +1216,11 @@ class OfficialtravelController extends Controller
         // Apply role filter
         if ($request->filled('role')) {
             if ($request->role === 'main') {
-                $query->where('traveler_id', $user->administration_id);
+                $query->where('traveler_id', $administrationId);
             } elseif ($request->role === 'follower') {
-                $query->whereHas('details', function ($detailQuery) use ($user) {
-                    $detailQuery->where('follower_id', $user->administration_id);
-                })->where('traveler_id', '!=', $user->administration_id);
+                $query->whereHas('details', function ($detailQuery) use ($administrationId) {
+                    $detailQuery->where('follower_id', $administrationId);
+                })->where('traveler_id', '!=', $administrationId);
             }
         }
 
@@ -1254,8 +1261,8 @@ class OfficialtravelController extends Controller
             ->addColumn('traveler_name', function ($row) {
                 return $row->traveler->employee->fullname ?? 'N/A';
             })
-            ->addColumn('role', function ($row) use ($user) {
-                if ($row->traveler_id === $user->administration_id) {
+            ->addColumn('role', function ($row) use ($administrationId) {
+                if ($row->traveler_id === $administrationId) {
                     return '<span class="badge badge-primary">Main Traveler</span>';
                 } else {
                     return '<span class="badge badge-info">Follower</span>';
@@ -1306,9 +1313,14 @@ class OfficialtravelController extends Controller
         ])->findOrFail($id);
 
         // Ensure user can only view their own official travels
-        $isMainTraveler = $officialtravel->traveler_id === $user->administration_id;
-        $isFollower = $officialtravel->details->contains(function ($detail) use ($user) {
-            return $detail->follower_id === $user->administration_id;
+        $administrationId = $user->administration_id;
+        if (!$administrationId) {
+            abort(403, 'You do not have an active administration record. Please contact HR.');
+        }
+        
+        $isMainTraveler = $officialtravel->traveler_id === $administrationId;
+        $isFollower = $officialtravel->details->contains(function ($detail) use ($administrationId) {
+            return $detail->follower_id === $administrationId;
         });
 
         if (!$isMainTraveler && !$isFollower) {

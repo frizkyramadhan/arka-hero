@@ -139,9 +139,7 @@ Route::group(['middleware' => ['auth']], function () {
         Route::get('/recruitment', [DashboardController::class, 'recruitment'])->name('recruitment');
         Route::get('/letter-administration', [DashboardController::class, 'letterAdministration'])->name('letter-administration');
         Route::get('/leave-management', [DashboardController::class, 'leaveManagement'])->name('leave-management');
-        // Route::middleware('user_data_filter')->group(function () {
         Route::get('/personal', [DashboardController::class, 'personal'])->name('personal');
-        // });
     });
 
     // Dashboard Employee routes
@@ -641,7 +639,6 @@ Route::group(['middleware' => ['auth']], function () {
         });
 
         // Self-service routes for user role (moved outside requests prefix)
-        // Route::middleware('user_data_filter')->group(function () {
         Route::get('/my-requests', [LeaveRequestController::class, 'myRequests'])->name('my-requests');
         Route::get('/my-requests/data', [LeaveRequestController::class, 'myRequestsData'])->name('my-requests.data');
         Route::get('/my-requests/create', [LeaveRequestController::class, 'myRequestsCreate'])->name('my-requests.create');
@@ -652,7 +649,6 @@ Route::group(['middleware' => ['auth']], function () {
         Route::get('/my-requests/{leaveRequest}/cancellation-form', [LeaveRequestController::class, 'showCancellationForm'])->name('my-requests.cancellation-form');
         Route::post('/my-requests/{leaveRequest}/cancellation', [LeaveRequestController::class, 'storeCancellation'])->name('my-requests.cancellation');
         Route::get('/my-entitlements', [LeaveRequestController::class, 'myEntitlements'])->name('my-entitlements');
-        // });
 
         // Bulk Leave Requests
         Route::prefix('bulk-requests')->name('bulk-requests.')->group(function () {

@@ -709,13 +709,6 @@ class LeaveRequestController extends Controller
         $takenDays = $totalDays; // Default value
         $cashoutDays = 0; // Default value
 
-        // Validate total_days is present
-        if (!$totalDays || $totalDays <= 0) {
-            return back()->with([
-                'total_days' => 'Total days is required and must be greater than 0.'
-            ])->withInput();
-        }
-
         if ($isLSL) {
             // Get taken days from manual input or use total_days as fallback
             $takenDays = $request->lsl_taken_days ?? $totalDays;
@@ -723,10 +716,13 @@ class LeaveRequestController extends Controller
             $cashoutDays = $cashoutEnabled ? ($request->lsl_cashout_days ?? 0) : 0;
             $totalDays = $takenDays + $cashoutDays;
 
+            // Merge calculated total_days into request BEFORE validation
+            $request->merge(['total_days' => $totalDays]);
+
             // Validate LSL flexible business rules
             if ($totalDays <= 0) {
                 return back()->with([
-                    'total_days' => 'Total days must be greater than 0.'
+                    'total_days' => 'Total days must be greater than 0. Please enter at least 1 day for taken days or cashout days.'
                 ])->withInput();
             }
 
@@ -735,9 +731,13 @@ class LeaveRequestController extends Controller
                     'lsl_cashout_days' => 'Cash out days cannot exceed total days.'
                 ])->withInput();
             }
+        }
 
-            // Merge calculated total_days into request
-            $request->merge(['total_days' => $totalDays]);
+        // Validate total_days is present (after LSL calculation if applicable)
+        if (!$totalDays || $totalDays <= 0) {
+            return back()->with([
+                'total_days' => 'Total days is required and must be greater than 0.'
+            ])->withInput();
         }
 
         $leaveEntitlement = LeaveEntitlement::where('employee_id', $employeeId)
