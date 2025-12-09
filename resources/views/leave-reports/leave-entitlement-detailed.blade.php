@@ -96,10 +96,7 @@
                                     <th>Leave Type</th>
                                     <th>Period</th>
                                     <th class="text-center">Entitled</th>
-                                    <th class="text-center">Deposit</th>
-                                    <th class="text-center">Withdrawable</th>
                                     <th class="text-center">Taken</th>
-                                    <th class="text-center">Cancelled</th>
                                     <th class="text-center">Effective</th>
                                     <th class="text-center">Remaining</th>
                                     <th class="text-center">Utilization</th>
@@ -122,25 +119,7 @@
                                             <strong>{{ $entitlement['total_entitlement'] }}</strong>
                                         </td>
                                         <td class="text-center">
-                                            @if (isset($entitlement['deposit_days']) && $entitlement['deposit_days'] > 0)
-                                                <span class="badge badge-warning">{{ $entitlement['deposit_days'] }}</span>
-                                            @else
-                                                <span class="text-muted">-</span>
-                                            @endif
-                                        </td>
-                                        <td class="text-center">
-                                            <strong>{{ $entitlement['total_entitlement'] }}</strong>
-                                        </td>
-                                        <td class="text-center">
                                             <span class="text-primary">{{ $entitlement['taken_days'] }}</span>
-                                        </td>
-                                        <td class="text-center">
-                                            @if ($entitlement['total_cancelled_days'] > 0)
-                                                <span
-                                                    class="text-warning">{{ $entitlement['total_cancelled_days'] }}</span>
-                                            @else
-                                                <span class="text-muted">-</span>
-                                            @endif
                                         </td>
                                         <td class="text-center">
                                             <strong>{{ $entitlement['total_effective_days'] }}</strong>
@@ -164,7 +143,7 @@
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="11" class="text-center">No entitlements found</td>
+                                        <td colspan="8" class="text-center">No entitlements found</td>
                                     </tr>
                                 @endforelse
                             </tbody>
@@ -182,21 +161,18 @@
                 <div class="card mt-3">
                     <div class="card-header">
                         <h5 class="card-title mb-0">
-                            <i class="fas fa-info-circle"></i> Calculation Legend
+                            <i class="fas fa-info-circle"></i> Information
                         </h5>
                     </div>
                     <div class="card-body">
                         <div class="row">
                             <div class="col-md-6">
-                                <h6><strong>Calculation Breakdown:</strong></h6>
+                                <h6><strong>Terms:</strong></h6>
                                 <ul class="list-unstyled">
                                     <li><strong>Entitled:</strong> Total days allocated for the period</li>
-                                    <li><strong>Deposit:</strong> Days held in deposit (LSL first period: 10 days)</li>
-                                    <li><strong>Withdrawable:</strong> Days available for immediate use</li>
                                     <li><strong>Taken:</strong> Total days from approved leave requests</li>
-                                    <li><strong>Cancelled:</strong> Days cancelled from approved requests</li>
-                                    <li><strong>Effective:</strong> Taken days minus cancelled days</li>
-                                    <li><strong>Remaining:</strong> Withdrawable days minus effective days</li>
+                                    <li><strong>Effective:</strong> Actual days taken (excluding cancelled)</li>
+                                    <li><strong>Remaining:</strong> Entitled days minus effective days</li>
                                 </ul>
                             </div>
                             <div class="col-md-6">
@@ -204,16 +180,7 @@
                                 <ul class="list-unstyled">
                                     <li><span class="badge badge-success">Green ≥80%</span> High utilization</li>
                                     <li><span class="badge badge-warning">Yellow 50-79%</span> Moderate utilization</li>
-                                    <li><span class="badge badge-danger">Red <50% </span> Low utilization</li>
-                                </ul>
-                                <h6><strong>Special Notes:</strong></h6>
-                                <ul class="list-unstyled">
-                                    <li><i class="fas fa-info-circle text-info"></i> LSL first period has 40 days
-                                        withdrawable + 10 days deposit</li>
-                                    <li><i class="fas fa-info-circle text-info"></i> Cancelled days are returned to
-                                        entitlement pool</li>
-                                    <li><i class="fas fa-info-circle text-info"></i> Effective days represent actual leave
-                                        taken</li>
+                                    <li><span class="badge badge-danger">Red <50%</span> Low utilization</li>
                                 </ul>
                             </div>
                         </div>

@@ -23,12 +23,54 @@
 
     <section class="content">
         <div class="container-fluid">
+            @php
+                // Get active administration (is_active = 1)
+                $activeAdministration = $employee->administrations->where('is_active', 1)->first();
+
+                // Calculate years of service based on termination reason logic:
+                // - If termination_reason = "end of contract" → count from first DOH (continuity)
+                // - If termination_reason != "end of contract" → count from DOH after termination (reset)
+                $allAdministrations = $employee->administrations->whereNotNull('doh')->sortBy('doh')->values();
+
+                $serviceStartDoh = null;
+                $serviceStartNik = null;
+
+                if ($allAdministrations->count() > 0) {
+                    // Start with first DOH
+                    $serviceStartDoh = $allAdministrations->first()->doh;
+                    $serviceStartNik = $allAdministrations->first()->nik;
+
+                    // Check each administration for termination reason
+                    foreach ($allAdministrations as $index => $admin) {
+                        // Check if this administration has termination
+                        if ($admin->termination_date && $admin->termination_reason) {
+                            // Normalize termination reason (case insensitive)
+                            $terminationReason = strtolower(trim($admin->termination_reason));
+
+                            // If termination reason is NOT "end of contract", reset calculation from next DOH
+                            if ($terminationReason !== 'end of contract') {
+                                // Find next administration after this termination
+                                $nextAdmin = $allAdministrations->firstWhere(function ($next) use ($admin) {
+                                    return $next->doh > $admin->termination_date;
+                                });
+
+                                if ($nextAdmin) {
+                                    $serviceStartDoh = $nextAdmin->doh;
+                                    $serviceStartNik = $nextAdmin->nik;
+                                }
+                            }
+                            // If termination reason IS "end of contract", continue using first DOH (no reset)
+                        }
+                    }
+                }
+            @endphp
+
             <!-- Employee Information Card -->
             <div class="card card-outline card-info">
                 <div class="card-header">
                     <h3 class="card-title"><i class="fas fa-user"></i> Employee Information</h3>
                     <div class="card-tools">
-                        <a href="{{ route('leave.entitlements.index', ['project_id' => $employee->administrations->first()->project_id ?? null]) }}"
+                        <a href="{{ route('leave.entitlements.index', ['project_id' => $activeAdministration->project_id ?? null]) }}"
                             class="btn btn-warning">
                             <i class="fas fa-arrow-left"></i> Back to List
                         </a>
@@ -41,7 +83,7 @@
                             <table class="table table-sm table-borderless">
                                 <tr>
                                     <th width="35%">NIK:</th>
-                                    <td><strong>{{ $employee->administrations->first()->nik ?? 'N/A' }}</strong></td>
+                                    <td><strong>{{ $activeAdministration->nik ?? 'N/A' }}</strong></td>
                                 </tr>
                                 <tr>
                                     <th>Name:</th>
@@ -50,23 +92,23 @@
                                 <tr>
                                     <th>Project:</th>
                                     <td>
-                                        {{ $employee->administrations->first()->project->project_code ?? 'N/A' }} -
-                                        {{ $employee->administrations->first()->project->project_name ?? 'N/A' }}
-                                        @if ($employee->administrations->first()->project)
+                                        {{ $activeAdministration->project->project_code ?? 'N/A' }} -
+                                        {{ $activeAdministration->project->project_name ?? 'N/A' }}
+                                        @if ($activeAdministration->project ?? null)
                                             <span
-                                                class="badge badge-{{ $employee->administrations->first()->project->leave_type === 'roster' ? 'warning' : 'info' }}">
-                                                {{ ucfirst($employee->administrations->first()->project->leave_type) }}
+                                                class="badge badge-{{ ($activeAdministration->project->leave_type ?? '') === 'roster' ? 'warning' : 'info' }}">
+                                                {{ ucfirst($activeAdministration->project->leave_type ?? 'N/A') }}
                                             </span>
                                         @endif
                                     </td>
                                 </tr>
                                 <tr>
                                     <th>Level:</th>
-                                    <td>{{ $employee->administrations->first()->level->name ?? 'N/A' }}</td>
+                                    <td>{{ $activeAdministration->level->name ?? 'N/A' }}</td>
                                 </tr>
                                 <tr>
                                     <th>Position:</th>
-                                    <td>{{ $employee->administrations->first()->position->position_name ?? 'N/A' }}</td>
+                                    <td>{{ $activeAdministration->position->position_name ?? 'N/A' }}</td>
                                 </tr>
                             </table>
                         </div>
@@ -75,20 +117,24 @@
                             <table class="table table-sm table-borderless">
                                 <tr>
                                     <th width="35%">DOH:</th>
-                                    <td>{{ $employee->administrations->first()->doh ? $employee->administrations->first()->doh->format('d F Y') : 'N/A' }}
+                                    <td>{{ $activeAdministration->doh ? $activeAdministration->doh->format('d F Y') : 'N/A' }}
                                     </td>
                                 </tr>
                                 <tr>
                                     <th>Years of Service:</th>
                                     <td>
-                                        @if ($employee->administrations->first()->doh)
+                                        @if ($serviceStartDoh)
                                             @php
-                                                $doh = \Carbon\Carbon::parse($employee->administrations->first()->doh);
+                                                $doh = \Carbon\Carbon::parse($serviceStartDoh);
                                                 $monthsOfService = $doh->diffInMonths(now());
                                                 $yearsOfService = round($monthsOfService / 12, 1);
                                             @endphp
                                             <strong>{{ $yearsOfService }} years</strong>
                                             <small class="text-muted">({{ $monthsOfService }} months)</small>
+                                            @if ($serviceStartNik && $activeAdministration && $serviceStartNik != $activeAdministration->nik)
+                                                <br><small class="text-info"><i class="fas fa-info-circle"></i> Calculated
+                                                    from NIK: {{ $serviceStartNik }}</small>
+                                            @endif
                                         @else
                                             N/A
                                         @endif
@@ -104,7 +150,7 @@
                                     <th>Staff Type:</th>
                                     <td>
                                         @php
-                                            $level = $employee->administrations->first()->level;
+                                            $level = $activeAdministration->level ?? null;
                                             $levelName = $level ? $level->name : '';
                                             // Match the same logic as LeaveEntitlementController::isStaffLevel()
                                             $staffLevels = [
@@ -319,7 +365,8 @@
                                                                 <thead class="thead-light">
                                                                     <tr>
                                                                         <th width="40%">Leave Type</th>
-                                                                        <th width="15%" class="text-center">Entitled</th>
+                                                                        <th width="15%" class="text-center">Entitled
+                                                                        </th>
                                                                         <th width="15%" class="text-center">Taken</th>
                                                                         <th width="15%" class="text-center">Remaining
                                                                         </th>

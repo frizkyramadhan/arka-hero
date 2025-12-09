@@ -85,7 +85,6 @@
                                     <th>Leave Type</th>
                                     <th>Leave Period</th>
                                     <th class="text-center">Days</th>
-                                    <th class="text-center">LSL Details</th>
                                     <th>Project</th>
                                     <th>Auto Conversion Date</th>
                                     <th class="text-center">Status</th>
@@ -109,18 +108,6 @@
                                         </td>
                                         <td class="text-center">
                                             <strong>{{ $conversion['total_days'] }}</strong>
-                                        </td>
-                                        <td class="text-center">
-                                            @if (!empty($conversion['lsl_details']) && $conversion['lsl_details'] !== '-')
-                                                <div class="lsl-info">
-                                                    <small class="text-primary">
-                                                        <i class="fas fa-calendar-check"></i>
-                                                        {{ $conversion['lsl_details'] }}
-                                                    </small>
-                                                </div>
-                                            @else
-                                                <span class="text-muted">-</span>
-                                            @endif
                                         </td>
                                         <td>
                                             {{ $conversion['project_name'] }}

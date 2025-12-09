@@ -131,11 +131,9 @@
                                     <th>Leave Type</th>
                                     <th>Period</th>
                                     <th class="text-center">Days</th>
-                                    <th class="text-center">LSL Details</th>
                                     <th class="text-center">Status</th>
                                     <th>Project</th>
-                                    <th>Auto Conversion</th>
-                                    <th>Document</th>
+                                    <th>Requested At</th>
                                     <th class="text-center">Action</th>
                                 </tr>
                             </thead>
@@ -161,30 +159,6 @@
                                             @if ($request->getEffectiveDays() != $request->total_days)
                                                 <br><small class="text-warning">Effective:
                                                     {{ $request->getEffectiveDays() }}</small>
-                                            @endif
-                                        </td>
-                                        <td class="text-center">
-                                            @if ($request->isLSLFlexible())
-                                                @php
-                                                    $lslTakenDays = $request->lsl_taken_days ?? 0;
-                                                    $lslCashoutDays = $request->lsl_cashout_days ?? 0;
-                                                    $lslTotalDays = $request->getLSLTotalDays();
-                                                @endphp
-                                                <div class="lsl-info">
-                                                    <small class="text-primary">
-                                                        <i class="fas fa-calendar-check"></i> {{ $lslTakenDays }}d
-                                                    </small>
-                                                    @if ($lslCashoutDays > 0)
-                                                        <br><small class="text-warning">
-                                                            <i class="fas fa-money-bill-wave"></i> {{ $lslCashoutDays }}d
-                                                        </small>
-                                                    @endif
-                                                    <br><small class="text-success">
-                                                        <strong>Total: {{ $lslTotalDays }}d</strong>
-                                                    </small>
-                                                </div>
-                                            @else
-                                                <span class="text-muted">-</span>
                                             @endif
                                         </td>
                                         <td class="text-center">
@@ -217,40 +191,7 @@
                                             {{ $request->administration->project->project_name ?? 'Unknown' }}
                                         </td>
                                         <td>
-                                            @if ($request->auto_conversion_at)
-                                                @php
-                                                    $daysUntil = now()->diffInDays($request->auto_conversion_at, false);
-                                                @endphp
-                                                @if ($daysUntil < 0)
-                                                    <span class="text-danger">
-                                                        <i class="fas fa-exclamation-triangle"></i> Overdue
-                                                        <br><small>{{ $request->auto_conversion_at->format('d M Y H:i') }}</small>
-                                                    </span>
-                                                @elseif($daysUntil <= 3)
-                                                    <span class="text-warning">
-                                                        <i class="fas fa-clock"></i> Due Soon
-                                                        <br><small>{{ $request->auto_conversion_at->format('d M Y H:i') }}</small>
-                                                    </span>
-                                                @else
-                                                    <span class="text-info">
-                                                        <i class="fas fa-calendar"></i> {{ $daysUntil }} days
-                                                        <br><small>{{ $request->auto_conversion_at->format('d M Y H:i') }}</small>
-                                                    </span>
-                                                @endif
-                                            @else
-                                                <span class="text-muted">-</span>
-                                            @endif
-                                        </td>
-                                        <td class="text-center">
-                                            @if (!empty($request->supporting_document))
-                                                <span class="badge badge-success">
-                                                    <i class="fas fa-check"></i> Yes
-                                                </span>
-                                            @else
-                                                <span class="badge badge-warning">
-                                                    <i class="fas fa-times"></i> No
-                                                </span>
-                                            @endif
+                                            {{ $request->created_at->format('d M Y H:i') }}
                                         </td>
                                         <td class="text-center">
                                             <a href="{{ route('leave.requests.show', $request->id) }}"

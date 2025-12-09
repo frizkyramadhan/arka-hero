@@ -650,8 +650,8 @@ Route::group(['middleware' => ['auth']], function () {
         Route::post('/my-requests/{leaveRequest}/cancellation', [LeaveRequestController::class, 'storeCancellation'])->name('my-requests.cancellation');
         Route::get('/my-entitlements', [LeaveRequestController::class, 'myEntitlements'])->name('my-entitlements');
 
-        // Bulk Leave Requests
-        Route::prefix('bulk-requests')->name('bulk-requests.')->group(function () {
+        // Periodic Leave Requests
+        Route::prefix('periodic-requests')->name('periodic-requests.')->group(function () {
             Route::get('/', [BulkLeaveRequestController::class, 'index'])->name('index');
             Route::get('/create', [BulkLeaveRequestController::class, 'create'])->name('create');
             Route::post('/', [BulkLeaveRequestController::class, 'store'])->name('store');
@@ -662,6 +662,7 @@ Route::group(['middleware' => ['auth']], function () {
             Route::get('/ajax/employees-due', [BulkLeaveRequestController::class, 'getEmployeesDue'])->name('ajax.employees-due');
             Route::get('/ajax/departments', [BulkLeaveRequestController::class, 'getDepartmentsByProject'])->name('ajax.departments');
             Route::get('/ajax/approval-preview', [BulkLeaveRequestController::class, 'getBulkApprovalPreview'])->name('ajax.approval-preview');
+            Route::get('/ajax/approver-selector', [BulkLeaveRequestController::class, 'getApproverSelector'])->name('ajax.approver-selector');
         });
 
         // Leave Entitlements

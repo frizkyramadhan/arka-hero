@@ -39,7 +39,7 @@
                                 <button class="btn btn-danger"><i class="fas fa-trash mr-1"></i> Delete Employee</button>
                             </form>
                         @endrole
-                        <a href="{{ url()->previous() }}" class="btn btn-warning ml-1">
+                        <a href="{{ url('employees') }}" class="btn btn-warning ml-1">
                             <i class="fas fa-undo mr-1"></i> Back
                         </a>
                     </div>

@@ -25,7 +25,8 @@
             @if (session()->has('failures'))
                 <div class="card card-danger">
                     <div class="card-header">
-                        <h3 class="card-title"><i class="icon fas fa-exclamation-triangle"></i> Import Validation Errors</h3>
+                        <h3 class="card-title"><i class="icon fas fa-exclamation-triangle"></i> Import Validation Errors
+                        </h3>
                         <div class="card-tools">
                             <button type="button" class="btn btn-tool" data-card-widget="collapse">
                                 <i class="fas fa-minus"></i>
@@ -266,8 +267,8 @@
                     <div class="modal-body">
                         <div class="form-group">
                             <label for="file">Select Excel File</label>
-                            <input type="file" name="file" id="file" class="form-control-file" accept=".xlsx,.xls"
-                                required>
+                            <input type="file" name="file" id="file" class="form-control-file"
+                                accept=".xlsx,.xls" required>
                             <small class="form-text text-muted">File format: .xlsx or .xls (max 10MB)</small>
                         </div>
                     </div>
@@ -566,25 +567,44 @@
         }
 
         @if (!$showAllProjects && $selectedProject)
+            /**
+             * Confirm and generate leave entitlements for selected project
+             * Uses service start DOH calculation based on termination reason
+             */
             function confirmGenerateEntitlements() {
-                const projectCode = '{{ $selectedProject->project_code }}';
-                const projectType = '{{ $selectedProject->leave_type }}';
-                const currentYear = '{{ now()->year }}';
+                const config = {
+                    projectCode: '{{ $selectedProject->project_code }}',
+                    projectType: '{{ $selectedProject->leave_type }}',
+                    currentYear: '{{ now()->year }}',
+                    projectId: '{{ $selectedProject->id }}',
+                    route: '{{ route('leave.entitlements.generate-selected-project') }}',
+                    csrfToken: '{{ csrf_token() }}'
+                };
 
-                let leaveTypesText = '';
-                if (projectType === 'roster') {
-                    leaveTypesText = '• Paid Leave (event-based)\n• Unpaid Leave\n• LSL (Long Service Leave)';
-                } else {
-                    leaveTypesText =
-                        '• Annual Leave (12+ months service)\n• Paid Leave (event-based)\n• Unpaid Leave\n• LSL (60/72 months service)';
+                const isRoster = config.projectType === 'roster';
+                const projectGroup = isRoster ? 'Group 2 (Roster)' : 'Group 1 (Regular)';
+                const groupBadgeClass = isRoster ? 'warning' : 'info';
+
+                // Build leave types list based on project type
+                const leaveTypes = [
+                    '• Paid Leave (event-based)',
+                    '• Unpaid Leave'
+                ];
+
+                if (!isRoster) {
+                    leaveTypes.push('• Annual Leave (12+ months service)');
                 }
 
-                let periodText = '';
-                if (projectType === 'roster') {
-                    periodText = '• Calendar Year (Jan-Dec)';
-                } else {
-                    periodText = '• DOH-based Period';
-                }
+                leaveTypes.push(
+                    isRoster ?
+                    '• LSL (Long Service Leave - 60/72 months service)' :
+                    '• LSL (60/72 months service)'
+                );
+
+                // Build period information
+                const periodInfo = isRoster ?
+                    '• Calendar Year (Jan-Dec)' :
+                    '• DOH-based Period (calculated from service start DOH)';
 
                 Swal.fire({
                     title: '<i class="fas fa-magic text-success"></i> Generate Leave Entitlements',
@@ -592,34 +612,65 @@
                     <div class="text-left">
                         <div class="alert alert-info mb-3">
                             <i class="fas fa-info-circle"></i>
-                            <strong>Generate Entitlements for ${projectCode}</strong>
+                            <strong>Generate Entitlements for ${config.projectCode}</strong>
                         </div>
 
-                        <p class="mb-3">This will generate default leave entitlements for all active employees in the <strong>${projectCode}</strong> project based on the following rules:</p>
+                        <p class="mb-3">
+                            This will generate default leave entitlements for all active employees in the
+                            <strong>${config.projectCode}</strong> project based on the following rules:
+                        </p>
 
                         <div class="row mb-3">
                             <div class="col-md-6">
                                 <h6><i class="fas fa-list text-primary"></i> Leave Types:</h6>
                                 <ul class="list-unstyled">
-                                    <li><span class="badge badge-${projectType === 'roster' ? 'warning' : 'info'}">${projectType === 'roster' ? 'Group 2 (Roster)' : 'Group 1 (Regular)'}</span></li>
-                                    <li>• Paid Leave (event-based)</li>
-                                    <li>• Unpaid Leave</li>
-                                    ${projectType === 'roster' ? '' : '<li>• Annual Leave (12+ months service)</li>'}
-                                    <li>• LSL (${projectType === 'roster' ? 'Long Service Leave' : '60/72 months service'})</li>
+                                    <li>
+                                        <span class="badge badge-${groupBadgeClass}">${projectGroup}</span>
+                                    </li>
+                                    ${leaveTypes.map(type => `<li>${type}</li>`).join('')}
                                 </ul>
                             </div>
                             <div class="col-md-6">
                                 <h6><i class="fas fa-calendar text-success"></i> Period:</h6>
                                 <ul class="list-unstyled">
-                                    <li>${periodText}</li>
-                                    <li>• Current Year: ${currentYear}</li>
+                                    <li>${periodInfo}</li>
+                                    <li>• Current Year: ${config.currentYear}</li>
                                 </ul>
                             </div>
                         </div>
 
                         <div class="alert alert-warning">
                             <i class="fas fa-exclamation-triangle"></i>
-                            <strong>Note:</strong> This will create or update entitlements for the current year period. Existing entitlements will be updated if they already exist.
+                            <strong>Note:</strong> This will create entitlements for the current year period.
+                            Existing entitlements for the same period will be skipped to prevent duplicates.
+                        </div>
+
+                        <div class="alert alert-info">
+                            <i class="fas fa-calculator"></i>
+                            <strong>Service Start DOH Calculation:</strong>
+                            <p class="mb-2 mt-2">
+                                Employee service period is calculated from the <strong>service start DOH</strong>,
+                                which is determined by termination reasons:
+                            </p>
+                            <ul class="mb-0">
+                                <li>
+                                    <i class="fas fa-check-circle text-success"></i>
+                                    <strong>"End of Contract"</strong> → Service continues from <strong>first DOH</strong>
+                                    (masa kerja lanjut, termasuk rehire)
+                                </li>
+                                <li>
+                                    <i class="fas fa-times-circle text-danger"></i>
+                                    <strong>Other reasons</strong> → Service resets from <strong>new hire DOH</strong>
+                                    (masa kerja dihitung ulang)
+                                </li>
+                            </ul>
+                            <p class="mb-0 mt-2">
+                                <small>
+                                    <i class="fas fa-info-circle"></i>
+                                    Example: Employee with multiple NIKs and "End of Contract" terminations
+                                    will have service calculated from the earliest DOH.
+                                </small>
+                            </p>
                         </div>
                     </div>
                 `,
@@ -628,35 +679,51 @@
                     cancelButtonColor: '#6c757d',
                     confirmButtonText: '<i class="fas fa-magic"></i> Generate Entitlements',
                     cancelButtonText: '<i class="fas fa-times"></i> Cancel',
-                    width: '600px',
+                    width: '650px',
                     customClass: {
                         popup: 'swal-wide'
+                    },
+                    didOpen: () => {
+                        // Add loading state on confirm
+                        const confirmButton = document.querySelector('.swal2-confirm');
+                        if (confirmButton) {
+                            confirmButton.addEventListener('click', function() {
+                                Swal.showLoading();
+                            });
+                        }
                     }
                 }).then((result) => {
                     if (result.isConfirmed) {
-                        // Create form and submit
-                        const form = document.createElement('form');
-                        form.method = 'POST';
-                        form.action = '{{ route('leave.entitlements.generate-selected-project') }}';
-
-                        // Add CSRF token
-                        const csrfToken = document.createElement('input');
-                        csrfToken.type = 'hidden';
-                        csrfToken.name = '_token';
-                        csrfToken.value = '{{ csrf_token() }}';
-                        form.appendChild(csrfToken);
-
-                        // Add project_id
-                        const projectId = document.createElement('input');
-                        projectId.type = 'hidden';
-                        projectId.name = 'project_id';
-                        projectId.value = '{{ $selectedProject->id }}';
-                        form.appendChild(projectId);
-
-                        document.body.appendChild(form);
-                        form.submit();
+                        submitGenerateForm(config);
                     }
                 });
+            }
+
+            /**
+             * Submit form to generate entitlements
+             * @param {Object} config - Configuration object with route, csrfToken, projectId
+             */
+            function submitGenerateForm(config) {
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = config.route;
+
+                // Add CSRF token
+                const csrfInput = document.createElement('input');
+                csrfInput.type = 'hidden';
+                csrfInput.name = '_token';
+                csrfInput.value = config.csrfToken;
+                form.appendChild(csrfInput);
+
+                // Add project_id
+                const projectInput = document.createElement('input');
+                projectInput.type = 'hidden';
+                projectInput.name = 'project_id';
+                projectInput.value = config.projectId;
+                form.appendChild(projectInput);
+
+                document.body.appendChild(form);
+                form.submit();
             }
         @endif
     </script>

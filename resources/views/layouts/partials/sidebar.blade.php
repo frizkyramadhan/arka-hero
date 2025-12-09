@@ -139,9 +139,9 @@
                 @endcan
 
                 @canany(['employees.show', 'recruitment-requests.show', 'recruitment-candidates.show',
-                    'recruitment-sessions.show', 'official-travels.show', 'leave-requests.show', 'bulk-leave-requests.show',
-                    'leave-entitlements.show', 'leave-reports.show', 'roster.show', 'letter-numbers.show',
-                    'master-data.show'])
+                    'recruitment-sessions.show', 'official-travels.show', 'leave-requests.show',
+                    'periodic-leave-requests.show', 'leave-entitlements.show', 'leave-reports.show', 'roster.show',
+                    'letter-numbers.show', 'master-data.show'])
                     {{-- HERO SECTION --}}
                     <li class="nav-header">HERO SECTION</li>
                 @endcanany
@@ -335,7 +335,7 @@
                 @endcan
 
                 {{-- Leave Management --}}
-                @canany(['leave-requests.show', 'bulk-leave-requests.show', 'leave-entitlements.show',
+                @canany(['leave-requests.show', 'periodic-leave-requests.show', 'leave-entitlements.show',
                     'leave-reports.show'])
                     <li
                         class="nav-item {{ Request::is('leave/requests*') || Request::is('leave/entitlements*') || Request::is('leave/reports*') || Request::is('dashboard/leave-management') ? 'menu-open' : '' }}">
@@ -351,7 +351,7 @@
                             </p>
                         </a>
                         <ul class="nav nav-treeview">
-                            @canany(['leave-requests.show', 'bulk-leave-requests.show', 'leave-entitlements.show',
+                            @canany(['leave-requests.show', 'periodic-leave-requests.show', 'leave-entitlements.show',
                                 'leave-reports.show'])
                                 <li class="nav-item">
                                     <a href="{{ route('dashboard.leave-management') }}"
@@ -395,9 +395,9 @@
                 {{-- Roster Management --}}
                 @canany(['rosters.show', 'leave-requests.show'])
                     <li
-                        class="nav-item {{ Request::is('rosters*') || Request::is('leave/bulk-requests*') ? 'menu-open' : '' }}">
+                        class="nav-item {{ Request::is('rosters*') || Request::is('leave/periodic-requests*') ? 'menu-open' : '' }}">
                         <a href="#"
-                            class="nav-link {{ Request::is('rosters*') || Request::is('leave/bulk-requests*') ? 'active' : '' }}">
+                            class="nav-link {{ Request::is('rosters*') || Request::is('leave/periodic-requests*') ? 'active' : '' }}">
                             <i class="nav-icon fas fa-calendar-week"></i>
                             <p>
                                 Roster Management
@@ -419,8 +419,8 @@
                             @endcan
                             @can('leave-requests.show')
                                 <li class="nav-item">
-                                    <a href="{{ route('leave.bulk-requests.index') }}"
-                                        class="nav-link {{ Request::is('leave/bulk-requests*') ? 'active' : '' }}">
+                                    <a href="{{ route('leave.periodic-requests.index') }}"
+                                        class="nav-link {{ Request::is('leave/periodic-requests*') ? 'active' : '' }}">
                                         <i class="far fa-circle nav-icon"></i>
                                         <p>Periodic Leave Requests</p>
                                     </a>

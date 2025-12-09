@@ -330,11 +330,16 @@ class LeaveEntitlementController extends Controller
 
         $employee = Employee::with(['administrations.project', 'administrations.level'])->find($employeeId);
 
-        if (!$employee || !$employee->administrations->first()) {
+        $activeAdministration = $employee ? $employee->administrations->where('is_active', 1)->first() : null;
+        if (!$activeAdministration && $employee) {
+            $activeAdministration = $employee->administrations->first();
+        }
+
+        if (!$employee || !$activeAdministration) {
             return response()->json(['leaveTypes' => []]);
         }
 
-        $project = $employee->administrations->first()->project;
+        $project = $activeAdministration->project;
         $eligibleCategories = $this->getEligibleLeaveCategories($project);
 
         $availableLeaveTypes = LeaveType::where('is_active', true)
@@ -600,11 +605,19 @@ class LeaveEntitlementController extends Controller
         DB::beginTransaction();
         try {
             foreach ($employees as $employee) {
-                $administration = $employee->administrations->first();
+                $administration = $employee->administrations->where('is_active', 1)->first();
+                if (!$administration) {
+                    $administration = $employee->administrations->first();
+                }
                 if (!$administration) {
                     $skippedCount++;
                     continue;
                 }
+
+                // Note: Service start DOH calculation is handled in calculateEntitlementDays()
+                // which uses getServiceStartDoh() to handle rehire scenarios:
+                // - "End of Contract" termination → service continues from first DOH
+                // - Other termination reasons → service resets from new hire DOH
 
                 // Get eligible leave types based on project group
                 $eligibleCategories = $this->getEligibleLeaveCategories($project);
@@ -655,10 +668,11 @@ class LeaveEntitlementController extends Controller
                             $periodDates = $this->calculatePeriodDates($employee, $currentYear);
 
                             // Check if entitlement already exists - only create if not exists
+                            // Use whereDate for proper date comparison with datetime columns
                             $existingEntitlement = LeaveEntitlement::where('employee_id', $employee->id)
                                 ->where('leave_type_id', $leaveType->id)
-                                ->where('period_start', $periodDates['start']->format('Y-m-d'))
-                                ->where('period_end', $periodDates['end']->format('Y-m-d'))
+                                ->whereDate('period_start', $periodDates['start']->format('Y-m-d'))
+                                ->whereDate('period_end', $periodDates['end']->format('Y-m-d'))
                                 ->first();
 
                             if (!$existingEntitlement) {
@@ -683,11 +697,23 @@ class LeaveEntitlementController extends Controller
 
             DB::commit();
 
+            $message = "Entitlements generated successfully for {$project->project_code} project. ";
+            $message .= "Generated {$generatedCount} entitlements for " . $employees->count() . " employees.";
+            if ($skippedCount > 0) {
+                $message .= " Skipped {$skippedCount} duplicate entitlements.";
+            }
+
             return redirect()
                 ->route('leave.entitlements.index', ['project_id' => $project->id])
-                ->with('toast_success', "Entitlements generated successfully for {$project->project_code} project. Generated {$generatedCount} entitlements for " . $employees->count() . " employees.");
+                ->with('toast_success', $message);
         } catch (\Exception $e) {
             DB::rollback();
+            Log::error('Failed to generate entitlements', [
+                'project_id' => $project->id,
+                'project_code' => $project->project_code,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
             return back()->with(['toast_error' => 'Failed to generate entitlements: ' . $e->getMessage()]);
         }
     }
@@ -944,9 +970,10 @@ class LeaveEntitlementController extends Controller
                 ->where('is_active', true);
         })
             ->with([
+                // Load ALL administrations (including inactive) for service start DOH calculation
                 'administrations' => function ($q) use ($project) {
                     $q->where('project_id', $project->id)
-                        ->where('is_active', true);
+                        ->orderBy('doh', 'asc');
                 },
                 'administrations.level',
                 'leaveEntitlements.leaveType' => function ($q) {
@@ -967,7 +994,10 @@ class LeaveEntitlementController extends Controller
      */
     private function generateEmployeeEntitlements($employee, $year)
     {
-        $administration = $employee->administrations->first();
+        $administration = $employee->administrations->where('is_active', 1)->first();
+        if (!$administration) {
+            $administration = $employee->administrations->first();
+        }
         $project = $administration->project;
 
         // Get eligible leave types based on project group
@@ -977,49 +1007,72 @@ class LeaveEntitlementController extends Controller
         $skipped = 0;
 
         foreach ($eligibleCategories as $category) {
-            $leaveType = LeaveType::where('category', $category)
+            // Get ALL leave types for this category (not just first one)
+            $leaveTypesInCategory = LeaveType::where('category', $category)
                 ->where('is_active', true)
-                ->first();
+                ->orderBy('code')
+                ->get();
 
-            if (!$leaveType) continue;
+            foreach ($leaveTypesInCategory as $leaveType) {
+                // Special filtering for LSL based on staff level
+                if ($category === 'lsl') {
+                    $levelName = $administration->level ? $administration->level->name : '';
+                    $isStaff = $this->isStaffLevel($levelName);
+                    $hasStaffInName = str_contains($leaveType->name, 'Staff');
+                    $hasNonStaffInName = str_contains($leaveType->name, 'Non Staff');
 
-            $entitlementDays = $this->calculateEntitlementDays($leaveType, $employee);
-
-            // Special validation for LSL in Group 2 projects
-            if ($category === 'lsl' && $project->leave_type === 'roster') {
-                if (!$this->validateLSLForGroup2($employee, $year)) {
-                    continue; // Skip LSL if special rules not met
+                    if ($isStaff) {
+                        // For Staff employees: show only "Cuti Panjang - Staff"
+                        if ($hasNonStaffInName) {
+                            continue;
+                        }
+                    } else {
+                        // For Non-Staff employees: show only "Cuti Panjang - Non Staff"
+                        if ($hasStaffInName && !$hasNonStaffInName) {
+                            continue;
+                        }
+                    }
                 }
-            }
 
-            // For paid and unpaid leave, always create entitlement regardless of calculated days
-            // For other categories, only create if employee is eligible (entitlementDays > 0)
-            $shouldCreate = in_array($leaveType->category, ['paid', 'unpaid']) || $entitlementDays > 0;
+                $entitlementDays = $this->calculateEntitlementDays($leaveType, $employee);
 
-            if ($shouldCreate) {
-                // Calculate period dates based on project group rules
-                $periodDates = $this->calculatePeriodDates($employee, $year);
+                // Special validation for LSL in Group 2 projects
+                if ($category === 'lsl' && $project->leave_type === 'roster') {
+                    if (!$this->validateLSLForGroup2($employee, $year)) {
+                        continue; // Skip LSL if special rules not met
+                    }
+                }
 
-                // Check if entitlement already exists - only create if not exists
-                $existingEntitlement = LeaveEntitlement::where('employee_id', $employee->id)
-                    ->where('leave_type_id', $leaveType->id)
-                    ->where('period_start', $periodDates['start']->format('Y-m-d'))
-                    ->where('period_end', $periodDates['end']->format('Y-m-d'))
-                    ->first();
+                // For paid and unpaid leave, always create entitlement regardless of calculated days
+                // For other categories, only create if employee is eligible (entitlementDays > 0)
+                $shouldCreate = in_array($leaveType->category, ['paid', 'unpaid']) || $entitlementDays > 0;
 
-                if (!$existingEntitlement) {
-                    LeaveEntitlement::create([
-                        'employee_id' => $employee->id,
-                        'leave_type_id' => $leaveType->id,
-                        'period_start' => $periodDates['start'],
-                        'period_end' => $periodDates['end'],
-                        'entitled_days' => $entitlementDays,
-                        'deposit_days' => $leaveType->getDepositDays(),
-                        'taken_days' => 0
-                    ]);
-                    $generated++;
-                } else {
-                    $skipped++;
+                if ($shouldCreate) {
+                    // Calculate period dates based on project group rules
+                    $periodDates = $this->calculatePeriodDates($employee, $year);
+
+                    // Check if entitlement already exists - only create if not exists
+                    // Use whereDate for proper date comparison with datetime columns
+                    $existingEntitlement = LeaveEntitlement::where('employee_id', $employee->id)
+                        ->where('leave_type_id', $leaveType->id)
+                        ->whereDate('period_start', $periodDates['start']->format('Y-m-d'))
+                        ->whereDate('period_end', $periodDates['end']->format('Y-m-d'))
+                        ->first();
+
+                    if (!$existingEntitlement) {
+                        LeaveEntitlement::create([
+                            'employee_id' => $employee->id,
+                            'leave_type_id' => $leaveType->id,
+                            'period_start' => $periodDates['start'],
+                            'period_end' => $periodDates['end'],
+                            'entitled_days' => $entitlementDays,
+                            'deposit_days' => $leaveType->getDepositDays(),
+                            'taken_days' => 0
+                        ]);
+                        $generated++;
+                    } else {
+                        $skipped++;
+                    }
                 }
             }
         }
@@ -1045,13 +1098,70 @@ class LeaveEntitlementController extends Controller
     }
 
     /**
+     * Get service start DOH based on termination reason logic:
+     * - If termination_reason = "end of contract" → use first DOH (continuity)
+     * - If termination_reason != "end of contract" → use DOH after termination (reset)
+     *
+     * Logic:
+     * 1. Start with the earliest DOH
+     * 2. If any termination is NOT "end of contract", reset to the next DOH after that termination
+     * 3. If all terminations are "end of contract", keep using the first DOH
+     */
+    private function getServiceStartDoh($employee)
+    {
+        $allAdministrations = $employee->administrations
+            ->whereNotNull('doh')
+            ->sortBy('doh')
+            ->values();
+
+        if ($allAdministrations->count() === 0) {
+            return null;
+        }
+
+        // Start with first DOH (earliest)
+        $serviceStartDoh = $allAdministrations->first()->doh;
+
+        // Check each administration in chronological order
+        foreach ($allAdministrations as $admin) {
+            // Check if this administration has termination
+            if ($admin->termination_date && $admin->termination_reason) {
+                // Normalize termination reason (case insensitive)
+                $terminationReason = strtolower(trim($admin->termination_reason));
+
+                // If termination reason is NOT "end of contract", reset calculation from next DOH
+                if ($terminationReason !== 'end of contract') {
+                    // Find next administration after this termination
+                    $nextAdmin = $allAdministrations->filter(function ($next) use ($admin) {
+                        return $next->doh && $admin->termination_date && $next->doh > $admin->termination_date;
+                    })->first();
+
+                    if ($nextAdmin) {
+                        // Reset service start to the next DOH after non-contract termination
+                        $serviceStartDoh = $nextAdmin->doh;
+                    }
+                    // If no next administration found, service start remains at last reset point
+                }
+                // If termination reason IS "end of contract", continue using current service start (no reset)
+            }
+        }
+
+        return $serviceStartDoh;
+    }
+
+    /**
      * Calculate period start and end dates based on project group and DOH
      */
     private function calculatePeriodDates($employee, $year)
     {
-        $administration = $employee->administrations->first();
+        $administration = $employee->administrations->where('is_active', 1)->first();
+        if (!$administration) {
+            $administration = $employee->administrations->first();
+        }
         $project = $administration->project;
-        $doh = Carbon::parse($administration->doh);
+
+        // Use service start DOH for period calculation
+        $serviceStartDoh = $this->getServiceStartDoh($employee);
+        $doh = $serviceStartDoh ? Carbon::parse($serviceStartDoh) : Carbon::parse($administration->doh);
 
         if ($project->leave_type === 'roster') {
             // Group 2 (Roster): Calendar year (1 Jan - 31 Dec)
@@ -1085,12 +1195,16 @@ class LeaveEntitlementController extends Controller
      */
     private function validateEntitlementAssignment($employee, $leaveType, $entitledDays)
     {
-        $administration = $employee->administrations->first();
+        $administration = $employee->administrations->where('is_active', 1)->first();
+        if (!$administration) {
+            $administration = $employee->administrations->first();
+        }
         $project = $administration->project;
         $level = $administration->level;
 
-        // Calculate months of service
-        $doh = \Carbon\Carbon::parse($administration->doh);
+        // Calculate months of service from service start DOH
+        $serviceStartDoh = $this->getServiceStartDoh($employee);
+        $doh = $serviceStartDoh ? \Carbon\Carbon::parse($serviceStartDoh) : \Carbon\Carbon::parse($administration->doh);
         $monthsOfService = $doh->diffInMonths(now());
         $isStaff = $this->isStaffLevel($level ? $level->name : '');
 
@@ -1134,12 +1248,16 @@ class LeaveEntitlementController extends Controller
      */
     private function calculateEntitlementDays($leaveType, $employee)
     {
-        $administration = $employee->administrations->first();
+        $administration = $employee->administrations->where('is_active', 1)->first();
+        if (!$administration) {
+            $administration = $employee->administrations->first();
+        }
         $project = $administration->project;
         $level = $administration->level;
 
-        // Calculate months of service from DOH
-        $doh = \Carbon\Carbon::parse($administration->doh);
+        // Calculate months of service from service start DOH
+        $serviceStartDoh = $this->getServiceStartDoh($employee);
+        $doh = $serviceStartDoh ? \Carbon\Carbon::parse($serviceStartDoh) : \Carbon\Carbon::parse($administration->doh);
         $monthsOfService = $doh->diffInMonths(now());
 
         // Determine if employee is staff or non-staff based on level
@@ -1166,7 +1284,8 @@ class LeaveEntitlementController extends Controller
                 }
 
                 // Periodic leave based on level roster pattern
-                return $this->calculatePeriodicDays($level->name);
+                $levelName = $level ? $level->name : '';
+                return $this->calculatePeriodicDays($levelName);
 
             case 'lsl':
                 // LSL eligibility: 60 months for staff, 72 months for non-staff
@@ -1226,7 +1345,10 @@ class LeaveEntitlementController extends Controller
      */
     private function validateLSLForGroup2($employee, $year)
     {
-        $administration = $employee->administrations->first();
+        $administration = $employee->administrations->where('is_active', 1)->first();
+        if (!$administration) {
+            $administration = $employee->administrations->first();
+        }
         $project = $administration->project;
 
         // Only apply special rules for Group 2 projects
@@ -1249,11 +1371,12 @@ class LeaveEntitlementController extends Controller
 
         // For roster projects, LSL uses same requirements as non-roster projects
         // Check standard LSL eligibility (60 months for staff, 72 months for non-staff)
-        $administration = $employee->administrations->first();
+        // Use service start DOH for months calculation
+        $serviceStartDoh = $this->getServiceStartDoh($employee);
+        $doh = $serviceStartDoh ? Carbon::parse($serviceStartDoh) : Carbon::parse($administration->doh);
         $level = $administration->level;
         $isStaff = $this->isStaffLevel($level ? $level->name : '');
 
-        $doh = Carbon::parse($administration->doh);
         $monthsOfService = $doh->diffInMonths(now());
 
         // Standard LSL eligibility: 60 months for staff, 72 months for non-staff
@@ -1299,7 +1422,10 @@ class LeaveEntitlementController extends Controller
      */
     private function getEmployeeBusinessRules($employee)
     {
-        $administration = $employee->administrations->first();
+        $administration = $employee->administrations->where('is_active', 1)->first();
+        if (!$administration) {
+            $administration = $employee->administrations->first();
+        }
 
         if (!$administration || !$administration->project) {
             return null;
@@ -1307,10 +1433,11 @@ class LeaveEntitlementController extends Controller
 
         $project = $administration->project;
         $level = $administration->level;
-        $doh = $administration->doh;
 
-        // Calculate months of service
-        $monthsOfService = $doh ? Carbon::parse($doh)->diffInMonths(now()) : 0;
+        // Calculate months of service from service start DOH
+        $serviceStartDoh = $this->getServiceStartDoh($employee);
+        $doh = $serviceStartDoh ? Carbon::parse($serviceStartDoh) : Carbon::parse($administration->doh);
+        $monthsOfService = $doh->diffInMonths(now());
         $yearsOfService = round($monthsOfService / 12, 1);
 
         // Determine staff/non-staff
@@ -1353,6 +1480,13 @@ class LeaveEntitlementController extends Controller
                 }
 
                 $calculatedDays = $this->calculateEntitlementDays($leaveType, $employee);
+
+                // Special validation for LSL in Group 2 projects
+                if ($category === 'lsl' && $project->leave_type === 'roster') {
+                    if (!$this->validateLSLForGroup2($employee, now()->year)) {
+                        continue; // Skip LSL if special rules not met
+                    }
+                }
 
                 // Paid and unpaid leave are always eligible regardless of calculated days
                 $isEligible = in_array($category, ['paid', 'unpaid']) ? true : ($calculatedDays > 0);

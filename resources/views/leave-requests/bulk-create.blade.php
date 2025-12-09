@@ -12,7 +12,7 @@
                 <div class="col-sm-6">
                     <ol class="breadcrumb float-sm-right">
                         <li class="breadcrumb-item"><a href="{{ route('dashboard') }}">Home</a></li>
-                        <li class="breadcrumb-item"><a href="{{ route('leave.bulk-requests.index') }}">Periodic Leave
+                        <li class="breadcrumb-item"><a href="{{ route('leave.periodic-requests.index') }}">Periodic Leave
                                 Requests</a></li>
                         <li class="breadcrumb-item active">Create</li>
                     </ol>
@@ -23,7 +23,7 @@
 
     <section class="content">
         <div class="container-fluid">
-            <form id="bulkLeaveForm" method="POST" action="{{ route('leave.bulk-requests.store') }}">
+            <form id="bulkLeaveForm" method="POST" action="{{ route('leave.periodic-requests.store') }}">
                 @csrf
 
                 <!-- Filter Section -->
@@ -38,7 +38,7 @@
                             </div>
                             <div class="card-body">
                                 <div class="row">
-                                    <div class="col-md-4">
+                                    <div class="col-md-3">
                                         <div class="form-group">
                                             <label for="project_id">
                                                 <i class="fas fa-building mr-1"></i>
@@ -75,7 +75,7 @@
                                             </small>
                                         </div>
                                     </div>
-                                    <div class="col-md-2">
+                                    <div class="col-md-3">
                                         <div class="form-group">
                                             <label for="days_ahead">
                                                 <i class="fas fa-calendar-day mr-1"></i>
@@ -90,11 +90,14 @@
                                         </div>
                                     </div>
                                     <div class="col-md-3">
-                                        <div class="form-group">
-                                            <label>&nbsp;</label>
-                                            <button type="button" class="btn btn-primary btn-block" id="btn-search">
-                                                <i class="fas fa-search mr-1"></i> Search Employees
-                                            </button>
+                                        <div class="form-group d-flex flex-column">
+                                            <label for="btn-search" class="sr-only">Search Employees</label>
+                                            <div class="mt-auto">
+                                                <button type="button" class="btn btn-primary btn-block" id="btn-search"
+                                                    aria-label="Search Employees" style="margin-top: 31px;">
+                                                    <i class="fas fa-search mr-1"></i> Search Employees
+                                                </button>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -188,10 +191,30 @@
                                 </h3>
                             </div>
                             <div class="card-body">
-                                <div id="approval-preview-content">
-                                    <div class="text-center py-3 text-muted">
-                                        <i class="fas fa-info-circle fa-2x mb-2"></i>
-                                        <p>Select employees to see approval flow</p>
+                                <!-- Initial State -->
+                                <div id="approval-initial-state">
+                                    <div class="text-center py-5">
+                                        <i class="fas fa-users-cog fa-4x text-muted mb-3"></i>
+                                        <h5 class="text-muted mb-2">Approver Selection</h5>
+                                        <p class="text-muted mb-0">
+                                            <i class="fas fa-info-circle mr-1"></i>
+                                            Select employees from the table above to configure approvers for each department
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <!-- Loading State -->
+                                <div id="approval-loading-state" style="display: none;">
+                                    <div class="text-center py-4">
+                                        <i class="fas fa-spinner fa-spin fa-3x text-primary mb-3"></i>
+                                        <p class="text-muted mb-0">Loading department information...</p>
+                                    </div>
+                                </div>
+
+                                <!-- Approval Selection Section -->
+                                <div id="approval-selection-section" style="display: none;">
+                                    <div id="bulk-approver-selectors-container">
+                                        <!-- Bulk approver selectors will be inserted here -->
                                     </div>
                                 </div>
                             </div>
@@ -208,36 +231,20 @@
                                 </h3>
                             </div>
                             <div class="card-body">
-                                <div class="alert alert-info">
-                                    <i class="fas fa-info-circle mr-2"></i>
-                                    <strong>Note:</strong> Each employee will have an individual leave request with
-                                    their own approval process.
-                                </div>
-
                                 <div class="alert alert-warning">
                                     <i class="fas fa-exclamation-triangle mr-2"></i>
-                                    <strong>Hierarchical Approval Logic:</strong> Actual approval flow will be adjusted
-                                    based on each employee's level:
-                                    <ul class="mb-0 mt-2" style="font-size: 0.85rem;">
-                                        <li><strong>Non Staff/Foreman (Level 1-2):</strong> First from SPV(3) or SPT(4) →
-                                            Manager(5) <span class="badge badge-secondary">2 approvers</span></li>
-                                        <li><strong>Supervisor (Level 3):</strong> Superintendent(4) → Manager(5) <span
-                                                class="badge badge-secondary">2 approvers</span></li>
-                                        <li><strong>Superintendent (Level 4):</strong> Superintendent(4) → Manager(5) <span
-                                                class="badge badge-secondary">2 approvers</span></li>
-                                        <li><strong>Manager (Level 5):</strong> Director(6) <span
-                                                class="badge badge-secondary">1 approver</span></li>
-                                        <li><strong>Director (Level 6):</strong> Follow configured approval stages</li>
-                                    </ul>
+                                    <strong>Manual Approval Selection:</strong> You need to manually select approvers for
+                                    each department.
+                                    The selected approvers will be used for all employees in that department.
                                 </div>
 
                                 <div class="form-group">
                                     <label for="bulk_notes">
                                         <i class="fas fa-sticky-note mr-1"></i>
-                                        Batch Notes (Optional)
+                                        Periodic Leave Notes (Optional)
                                     </label>
                                     <textarea name="bulk_notes" id="bulk_notes" class="form-control" rows="3"
-                                        placeholder="Add notes for this batch submission..."></textarea>
+                                        placeholder="Add notes for this periodic leave submission..."></textarea>
                                 </div>
 
                                 <!-- Hidden inputs for selected employees -->
@@ -248,7 +255,8 @@
                                     <i class="fas fa-paper-plane mr-1"></i> Submit Leave Request (<span
                                         id="submit-count">0</span> Employees)
                                 </button>
-                                <a href="{{ route('leave.bulk-requests.index') }}" class="btn btn-secondary btn-block">
+                                <a href="{{ route('leave.periodic-requests.index') }}"
+                                    class="btn btn-secondary btn-block">
                                     <i class="fas fa-times mr-1"></i> Cancel
                                 </a>
                             </div>
@@ -443,6 +451,181 @@
                     return false;
                 }
 
+                // First, sync all approver selections to hidden inputs
+                $('.bulk-approver-selector-card').each(function() {
+                    const $card = $(this);
+                    const approverIds = [];
+                    $card.find('input[name^="manual_approvers"]:not([disabled])').each(function() {
+                        const val = $(this).val();
+                        if (val && val !== '') {
+                            approverIds.push(parseInt(val));
+                        }
+                    });
+
+                    // Update hidden input
+                    const cardDeptId = $card.data('department-id');
+                    if (cardDeptId) {
+                        let $hiddenInput = $(`#department-approvers-${cardDeptId}`);
+                        if ($hiddenInput.length === 0) {
+                            // Create if doesn't exist
+                            const deptName = $card.data('department-name') || 'Department';
+                            $card.find('.card-body').append(`
+                                <input type="hidden"
+                                       name="department_approvers[${cardDeptId}]"
+                                       id="department-approvers-${cardDeptId}"
+                                       value="${JSON.stringify(approverIds)}"
+                                       aria-label="Department approvers for ${deptName}">
+                            `);
+                        } else {
+                            $hiddenInput.val(JSON.stringify(approverIds));
+                        }
+                    }
+                });
+
+                // Validate that all departments have approvers selected
+                // Use cached department groups or build from selected employees
+                let departmentGroupsToValidate = {};
+
+                // Try to use cached data first
+                if (Object.keys(cachedDepartmentGroups).length > 0) {
+                    departmentGroupsToValidate = cachedDepartmentGroups;
+                } else {
+                    // Fallback: build from selected employees
+                    selectedEmployees.forEach(emp => {
+                        const empData = employeesData.find(e => e.employee_id === emp.employee_id);
+                        if (!empData) return;
+
+                        const deptName = empData.department_name;
+                        const deptId = empData.department_id ||
+                            deptName; // Use name as fallback key
+
+                        if (!departmentGroupsToValidate[deptId]) {
+                            departmentGroupsToValidate[deptId] = {
+                                department_id: empData.department_id || null,
+                                department_name: deptName
+                            };
+                        }
+                    });
+                }
+
+                let hasError = false;
+                let errorMessage = '';
+                const missingDepartments = [];
+
+                // Validate each department group
+                Object.keys(departmentGroupsToValidate).forEach(key => {
+                    const group = departmentGroupsToValidate[key];
+                    const departmentId = group.department_id;
+                    const deptName = group.department_name;
+
+                    // Find the card for this department
+                    let $card = null;
+                    let approvers = [];
+
+                    // Strategy 1: Find by department_id in data attribute
+                    if (departmentId) {
+                        $card = $(
+                            `.bulk-approver-selector-card[data-department-id="${departmentId}"]`
+                        );
+                    }
+
+                    // Strategy 2: Find by department name in data attribute
+                    if ($card.length === 0) {
+                        $card = $(
+                            `.bulk-approver-selector-card[data-department-name="${deptName}"]`);
+                    }
+
+                    // Strategy 3: Find by department name in card title
+                    if ($card.length === 0) {
+                        $(`.bulk-approver-selector-card`).each(function() {
+                            const cardDeptName = $(this).find('.card-title strong').text()
+                                .trim();
+                            if (cardDeptName === deptName) {
+                                $card = $(this);
+                                return false; // break
+                            }
+                        });
+                    }
+
+                    // Strategy 4: Find by checking all cards and matching department name
+                    if ($card.length === 0 && deptName) {
+                        $(`.bulk-approver-selector-card`).each(function() {
+                            const cardDeptName = $(this).data('department-name') ||
+                                $(this).find('.card-title strong').text().trim();
+                            if (cardDeptName === deptName) {
+                                $card = $(this);
+                                return false; // break
+                            }
+                        });
+                    }
+
+                    if ($card.length > 0) {
+                        // Get approvers from manual approver inputs in the card (most reliable source)
+                        $card.find('input[name^="manual_approvers"]:not([disabled])').each(
+                            function() {
+                                const val = $(this).val();
+                                if (val && val !== '' && val !== '0') {
+                                    const approverId = parseInt(val);
+                                    if (!isNaN(approverId) && approverId > 0) {
+                                        approvers.push(approverId);
+                                    }
+                                }
+                            });
+
+                        // If no approvers found from inputs, try hidden input as backup
+                        if (approvers.length === 0) {
+                            const cardDeptId = $card.data('department-id');
+                            if (cardDeptId) {
+                                const $hiddenInput = $(`#department-approvers-${cardDeptId}`);
+                                if ($hiddenInput.length > 0) {
+                                    const approverData = $hiddenInput.val();
+                                    if (approverData && approverData !== '[]' && approverData !==
+                                        'null' && approverData !== '') {
+                                        try {
+                                            const hiddenApprovers = JSON.parse(approverData);
+                                            if (Array.isArray(hiddenApprovers) && hiddenApprovers
+                                                .length > 0) {
+                                                approvers = hiddenApprovers.filter(id => id && id >
+                                                    0);
+                                            }
+                                        } catch (e) {
+                                            console.error('Failed to parse approver data:', e,
+                                                approverData);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    } else {
+                        // Card not found - this shouldn't happen, but log for debugging
+                        console.warn('Card not found for department:', deptName, 'departmentId:',
+                            departmentId);
+                        console.log('Available cards:', $('.bulk-approver-selector-card').map(
+                            function() {
+                                return {
+                                    deptId: $(this).data('department-id'),
+                                    deptName: $(this).data('department-name'),
+                                    title: $(this).find('.card-title strong').text().trim()
+                                };
+                            }).get());
+                    }
+
+                    if (approvers.length === 0) {
+                        missingDepartments.push(deptName);
+                        hasError = true;
+                    }
+                });
+
+                if (hasError) {
+                    const deptList = missingDepartments.map(dept => `\n- ${dept}`).join('');
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Approver Selection Required',
+                        html: 'Please select at least one approver for each department:' + deptList
+                    });
+                    return false;
+                }
+
                 $('#btn-submit').prop('disabled', true).html(
                     '<i class="fas fa-spinner fa-spin mr-1"></i> Submitting...');
 
@@ -459,7 +642,7 @@
             }
 
             $.ajax({
-                url: '{{ route('leave.bulk-requests.ajax.departments') }}',
+                url: '{{ route('leave.periodic-requests.ajax.departments') }}',
                 method: 'GET',
                 data: {
                     project_id: projectId
@@ -499,7 +682,7 @@
             }
 
             $.ajax({
-                url: '{{ route('leave.bulk-requests.ajax.employees-due') }}',
+                url: '{{ route('leave.periodic-requests.ajax.employees-due') }}',
                 method: 'GET',
                 data: requestData,
                 success: function(response) {
@@ -555,13 +738,16 @@
                     </small>` :
                     '<small class="text-muted">-</small>';
 
+                // Store department_id in data attribute for easier lookup during validation
                 const html = `
                     <tr class="${rowClass}">
                         <td>
                             <div class="icheck-primary">
                                 <input type="checkbox" id="emp-${index}"
                                     data-index="${index}"
-                                    data-is-due="${isDue}">
+                                    data-is-due="${isDue}"
+                                    data-department-id="${emp.department_id || ''}"
+                                    data-department-name="${emp.department_name || ''}">
                                 <label for="emp-${index}"></label>
                             </div>
                         </td>
@@ -596,6 +782,8 @@
                     employee_nik: emp.employee_nik,
                     employee_name: emp.employee_name,
                     position_name: emp.position_name,
+                    department_id: emp.department_id || null,
+                    department_name: emp.department_name || '',
                     start_date: emp.off_start_date,
                     end_date: emp.off_end_date,
                     total_days: emp.off_days
@@ -609,11 +797,11 @@
             // Generate hidden inputs
             selectedEmployees.forEach((emp, index) => {
                 container.append(`
-                    <input type="hidden" name="selected_employees[${index}][employee_id]" value="${emp.employee_id}">
-                    <input type="hidden" name="selected_employees[${index}][administration_id]" value="${emp.administration_id}">
-                    <input type="hidden" name="selected_employees[${index}][start_date]" value="${emp.start_date}">
-                    <input type="hidden" name="selected_employees[${index}][end_date]" value="${emp.end_date}">
-                    <input type="hidden" name="selected_employees[${index}][total_days]" value="${emp.total_days}">
+                    <input type="hidden" id="selected_employee_${index}_employee_id" name="selected_employees[${index}][employee_id]" value="${emp.employee_id}">
+                    <input type="hidden" id="selected_employee_${index}_administration_id" name="selected_employees[${index}][administration_id]" value="${emp.administration_id}">
+                    <input type="hidden" id="selected_employee_${index}_start_date" name="selected_employees[${index}][start_date]" value="${emp.start_date}">
+                    <input type="hidden" id="selected_employee_${index}_end_date" name="selected_employees[${index}][end_date]" value="${emp.end_date}">
+                    <input type="hidden" id="selected_employee_${index}_total_days" name="selected_employees[${index}][total_days]" value="${emp.total_days}">
                 `);
             });
 
@@ -624,10 +812,394 @@
                 $('#btn-submit').prop('disabled', true);
             }
 
-            // Update approval preview
-            const employeeIds = selectedEmployees.map(emp => emp.employee_id);
-            loadApprovalPreview(employeeIds);
+            // Update approval preview (optional, can be removed if not needed)
+            // const employeeIds = selectedEmployees.map(emp => emp.employee_id);
+            // loadApprovalPreview(employeeIds);
+
+            // Update bulk approver selectors (with debounce for better performance)
+            clearTimeout(window.bulkApproverTimeout);
+            window.bulkApproverTimeout = setTimeout(function() {
+                updateBulkApproverSelectors();
+            }, 300); // 300ms debounce
         }
+
+        // Cache untuk department groups
+        let cachedDepartmentGroups = {};
+        let lastEmployeeIds = [];
+        let pendingAjaxRequest = null; // Track pending AJAX request
+
+        function updateBulkApproverSelectors() {
+            if (selectedEmployees.length === 0) {
+                $('#approval-selection-section').hide();
+                $('#approval-loading-state').hide();
+                $('#approval-initial-state').show();
+                $('#bulk-approver-selectors-container').empty();
+                cachedDepartmentGroups = {};
+                lastEmployeeIds = [];
+
+                // Cancel pending request
+                if (pendingAjaxRequest) {
+                    pendingAjaxRequest.abort();
+                    pendingAjaxRequest = null;
+                }
+                return;
+            }
+
+            const employeeIds = selectedEmployees.map(emp => emp.employee_id).sort();
+
+            // Check if we can use cached data (same employees selected)
+            if (JSON.stringify(employeeIds) === JSON.stringify(lastEmployeeIds) &&
+                Object.keys(cachedDepartmentGroups).length > 0) {
+                // Use cached data - instant render
+                $('#approval-initial-state').hide();
+                $('#approval-loading-state').hide();
+                renderBulkApproverSelectors(cachedDepartmentGroups);
+                return;
+            }
+
+            // Cancel any pending request
+            if (pendingAjaxRequest) {
+                pendingAjaxRequest.abort();
+                pendingAjaxRequest = null;
+            }
+
+            // Show loading state
+            $('#approval-initial-state').hide();
+            $('#approval-selection-section').hide();
+            $('#approval-loading-state').show();
+
+            // Get department info from approval preview
+            const projectId = $('#project_id').val();
+
+            if (!projectId || employeeIds.length === 0) {
+                $('#approval-loading-state').hide();
+                $('#approval-initial-state').show();
+                return;
+            }
+
+            // Get approval preview to get department IDs and group employees
+            pendingAjaxRequest = $.ajax({
+                url: '{{ route('leave.periodic-requests.ajax.approval-preview') }}',
+                method: 'GET',
+                data: {
+                    employee_ids: employeeIds,
+                    project_id: projectId
+                },
+                success: function(response) {
+                    $('#approval-loading-state').hide();
+                    pendingAjaxRequest = null;
+
+                    if (response.success && response.approval_groups) {
+                        // Build department groups from approval preview response
+                        // Group by department_id only (not by approval flow signature)
+                        const departmentGroups = {};
+
+                        response.approval_groups.forEach(group => {
+                            const deptId = group.department_id;
+                            const deptName = group.department_name;
+
+                            // Use department_id as key, merge all employees from same department
+                            if (!departmentGroups[deptId]) {
+                                departmentGroups[deptId] = {
+                                    department_id: deptId,
+                                    department_name: deptName,
+                                    employees: []
+                                };
+                            }
+
+                            // Add employees from this group (avoid duplicates)
+                            if (group.employee_ids && group.employee_ids.length > 0) {
+                                group.employee_ids.forEach(empId => {
+                                    const emp = selectedEmployees.find(e => e.employee_id ===
+                                        empId);
+                                    if (emp) {
+                                        // Check if employee already exists in this department group
+                                        const exists = departmentGroups[deptId].employees.some(
+                                            e => e.employee_id === emp.employee_id);
+                                        if (!exists) {
+                                            departmentGroups[deptId].employees.push(emp);
+                                        }
+                                    }
+                                });
+                            }
+                        });
+
+                        // Cache the result
+                        cachedDepartmentGroups = departmentGroups;
+                        lastEmployeeIds = employeeIds;
+
+                        // Render approver selectors
+                        renderBulkApproverSelectors(departmentGroups);
+                    } else {
+                        // Fallback: group by department name from employeesData
+                        const departmentGroups = buildDepartmentGroupsFromEmployees();
+                        cachedDepartmentGroups = departmentGroups;
+                        lastEmployeeIds = employeeIds;
+                        renderBulkApproverSelectors(departmentGroups);
+                    }
+                },
+                error: function(xhr) {
+                    // Ignore aborted requests
+                    if (xhr.statusText === 'abort') {
+                        return;
+                    }
+
+                    console.error('Failed to load department info:', xhr);
+                    $('#approval-loading-state').hide();
+                    pendingAjaxRequest = null;
+
+                    // Fallback: group by department name
+                    const departmentGroups = buildDepartmentGroupsFromEmployees();
+                    cachedDepartmentGroups = departmentGroups;
+                    lastEmployeeIds = employeeIds;
+                    renderBulkApproverSelectors(departmentGroups);
+                }
+            });
+        }
+
+        function buildDepartmentGroupsFromEmployees() {
+            const departmentGroups = {};
+            selectedEmployees.forEach(emp => {
+                const empData = employeesData.find(e => e.employee_id === emp.employee_id);
+                if (!empData) return;
+
+                // Use department_id as key if available, otherwise use department_name
+                const deptKey = empData.department_id || empData.department_name;
+                const deptName = empData.department_name;
+
+                if (!departmentGroups[deptKey]) {
+                    departmentGroups[deptKey] = {
+                        department_id: empData.department_id || null,
+                        department_name: deptName,
+                        employees: []
+                    };
+                }
+
+                // Avoid duplicate employees
+                const exists = departmentGroups[deptKey].employees.some(e => e.employee_id === emp.employee_id);
+                if (!exists) {
+                    departmentGroups[deptKey].employees.push(emp);
+                }
+            });
+            return departmentGroups;
+        }
+
+        let departmentApproverMap = {}; // Store department_id -> approvers mapping
+
+        function renderBulkApproverSelectors(departmentGroups) {
+            const container = $('#bulk-approver-selectors-container');
+
+            // Clear container completely first
+            container.empty();
+
+            // Remove any existing cards to prevent duplicates
+            $('.bulk-approver-selector-card').remove();
+
+            // Show approval selection section
+            $('#approval-selection-section').show();
+
+            // Deduplicate by department_id to ensure unique departments
+            const uniqueDepartments = {};
+            Object.keys(departmentGroups).forEach(key => {
+                const group = departmentGroups[key];
+                const deptId = group.department_id || key; // Use department_id as primary key
+
+                // If department_id exists, merge employees from all groups with same department_id
+                if (!uniqueDepartments[deptId]) {
+                    uniqueDepartments[deptId] = {
+                        department_id: group.department_id,
+                        department_name: group.department_name,
+                        employees: []
+                    };
+                }
+
+                // Merge employees (avoid duplicates)
+                group.employees.forEach(emp => {
+                    const exists = uniqueDepartments[deptId].employees.some(e => e.employee_id === emp
+                        .employee_id);
+                    if (!exists) {
+                        uniqueDepartments[deptId].employees.push(emp);
+                    }
+                });
+            });
+
+            const departmentKeys = Object.keys(uniqueDepartments);
+            let loadedCount = 0;
+            const totalDepartments = departmentKeys.length;
+
+            if (totalDepartments === 0) {
+                container.html(`
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle mr-2"></i>
+                        No departments found for selected employees.
+                    </div>
+                `);
+                return;
+            }
+
+            // Track which departments are already being loaded to prevent duplicates
+            const loadingDepartments = new Set();
+
+            // Load all approver selectors in parallel for faster rendering
+            departmentKeys.forEach(key => {
+                const group = uniqueDepartments[key];
+                const departmentId = group.department_id || key;
+                const deptName = group.department_name;
+                const employeeCount = group.employees.length;
+
+                // Skip if already loading this department
+                if (loadingDepartments.has(departmentId)) {
+                    return;
+                }
+                loadingDepartments.add(departmentId);
+
+                // Check if card already exists for this department
+                const existingCard = $(`.bulk-approver-selector-card[data-department-id="${departmentId}"]`);
+                if (existingCard.length > 0) {
+                    // Update employee count on existing card
+                    const $badge = existingCard.find('.badge.badge-light').first();
+                    if ($badge.length) {
+                        $badge.text(`${employeeCount} employee${employeeCount > 1 ? 's' : ''}`);
+                    }
+                    loadedCount++;
+                    if (loadedCount === totalDepartments) {
+                        $('#approval-loading-state').hide();
+                    }
+                    return;
+                }
+
+                // Get existing approvers for this department if any
+                const existingApprovers = departmentApproverMap[departmentId] || [];
+
+                // Create approver selector card using AJAX to load component
+                $.ajax({
+                    url: '{{ route('leave.periodic-requests.ajax.approver-selector') }}',
+                    method: 'GET',
+                    data: {
+                        department_id: departmentId,
+                        department_name: deptName,
+                        selected_approvers: JSON.stringify(existingApprovers)
+                    },
+                    success: function(html) {
+                        const $card = $(html);
+
+                        // Double check if card already exists (race condition protection)
+                        const checkCard = $(
+                            `.bulk-approver-selector-card[data-department-id="${departmentId}"]`);
+                        if (checkCard.length > 0) {
+                            // Card already exists, just update employee count
+                            const $badge = checkCard.find('.badge.badge-light').first();
+                            if ($badge.length) {
+                                $badge.text(`${employeeCount} employee${employeeCount > 1 ? 's' : ''}`);
+                            }
+                            loadedCount++;
+                            if (loadedCount === totalDepartments) {
+                                $('#approval-loading-state').hide();
+                            }
+                            return;
+                        }
+
+                        // Update employee count - find the badge by class or ID
+                        const $badge = $card.find('.badge.badge-light').first();
+                        if ($badge.length) {
+                            $badge.text(`${employeeCount} employee${employeeCount > 1 ? 's' : ''}`);
+                        }
+                        container.append($card);
+
+                        // Initialize sync for this card
+                        const cardDeptId = $card.data('department-id');
+                        initApproverSync($card, cardDeptId);
+
+                        loadedCount++;
+                        if (loadedCount === totalDepartments) {
+                            // All selectors loaded, hide loading if still visible
+                            $('#approval-loading-state').hide();
+                        }
+                    },
+                    error: function(xhr) {
+                        // Ignore aborted requests
+                        if (xhr.statusText === 'abort') {
+                            return;
+                        }
+
+                        console.error('Failed to load approver selector:', xhr);
+                        loadedCount++;
+
+                        // Show error card instead
+                        container.append(`
+                            <div class="card card-danger card-outline mb-3">
+                                <div class="card-body">
+                                    <i class="fas fa-exclamation-triangle mr-2"></i>
+                                    Failed to load approver selector for <strong>${deptName}</strong>
+                                </div>
+                            </div>
+                        `);
+
+                        if (loadedCount === totalDepartments) {
+                            $('#approval-loading-state').hide();
+                        }
+                    }
+                });
+            });
+        }
+
+
+        function initApproverSync($card, departmentId) {
+            if (!departmentId) return;
+
+            // Function to sync approvers to hidden input
+            const syncApprovers = function() {
+                const approverIds = [];
+                $card.find('input[name^="manual_approvers"]:not([disabled])').each(function() {
+                    const val = $(this).val();
+                    if (val && val !== '') {
+                        approverIds.push(parseInt(val));
+                    }
+                });
+
+                // Update hidden input
+                const $hiddenInput = $card.find(`input[name^="department_approvers"]`);
+                if ($hiddenInput.length) {
+                    $hiddenInput.val(JSON.stringify(approverIds));
+                } else {
+                    // Create hidden input if it doesn't exist
+                    const cardDeptId = $card.data('department-id');
+                    if (cardDeptId) {
+                        const deptName = $card.data('department-name') || 'Department';
+                        $card.find('.card-body').append(`
+                            <input type="hidden"
+                                   name="department_approvers[${cardDeptId}]"
+                                   id="department-approvers-${cardDeptId}"
+                                   value="${JSON.stringify(approverIds)}"
+                                   aria-label="Department approvers for ${deptName}">
+                        `);
+                    }
+                }
+
+                // Store in map
+                departmentApproverMap[departmentId] = approverIds;
+            };
+
+            // Watch for changes in manual approver inputs within this card
+            $card.on('change', 'input[name^="manual_approvers"]', syncApprovers);
+
+            // Also watch for click events on remove buttons
+            $card.on('click', '.btn-remove-approver', function() {
+                setTimeout(syncApprovers, 100); // Small delay to ensure DOM is updated
+            });
+
+            // Initial sync
+            setTimeout(syncApprovers, 200);
+        }
+
+        function createFallbackApproverSelector(departmentId, deptName, employeeCount, selectedApprovers) {
+            // This function is not used anymore since we use AJAX to load the component
+            // But kept for fallback purposes
+            return '';
+        }
+
+        // Sync approver selections to hidden inputs
+        // This is handled by initApproverSync function per card
 
         function loadApprovalPreview(employeeIds) {
             const projectId = $('#project_id').val();
@@ -651,7 +1223,7 @@
             `);
 
             $.ajax({
-                url: '{{ route('leave.bulk-requests.ajax.approval-preview') }}',
+                url: '{{ route('leave.periodic-requests.ajax.approval-preview') }}',
                 method: 'GET',
                 data: {
                     employee_ids: employeeIds,

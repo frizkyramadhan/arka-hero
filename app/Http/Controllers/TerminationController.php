@@ -26,8 +26,11 @@ class TerminationController extends Controller
     {
         $title = 'Termination';
         $subtitle = 'List of Terminated Employees';
+        $departments = Department::where('department_status', '1')->orderBy('department_name', 'asc')->get();
+        $positions = Position::where('position_status', '1')->orderBy('position_name', 'asc')->get();
+        $projects = Project::where('project_status', '1')->orderBy('project_code', 'asc')->get();
 
-        return view('termination.index', compact('subtitle', 'title'));
+        return view('termination.index', compact('subtitle', 'title', 'departments', 'positions', 'projects'));
     }
 
     /**
@@ -118,13 +121,10 @@ class TerminationController extends Controller
             ->leftJoin('projects', 'administrations.project_id', '=', 'projects.id')
             ->leftJoin('positions', 'administrations.position_id', '=', 'positions.id')
             ->leftJoin('departments', 'positions.department_id', '=', 'departments.id')
-            ->select('employees.fullname', 'employees.created_at as created_date', 'administrations.*', 'projects.project_code', 'positions.position_name', 'departments.department_name')
+            ->leftJoin('grades', 'administrations.grade_id', '=', 'grades.id')
+            ->leftJoin('levels', 'administrations.level_id', '=', 'levels.id')
+            ->select('employees.fullname', 'employees.created_at as created_date', 'administrations.*', 'projects.project_code', 'positions.position_name', 'departments.department_name', 'grades.name as grade_name', 'levels.name as level_name')
             ->where('administrations.is_active', 0)
-            // ->whereExists(function ($query) {
-            //     $query->select(DB::raw(1))
-            //         ->from('terminations')
-            //         ->whereRaw('terminations.employee_id = employees.id');
-            // })
             ->orderBy('administrations.nik', 'desc');
 
         return datatables()->of($employee)
@@ -134,6 +134,9 @@ class TerminationController extends Controller
             })
             ->addColumn('fullname', function ($employee) {
                 return $employee->fullname;
+            })
+            ->addColumn('poh', function ($employee) {
+                return $employee->poh;
             })
             ->addColumn('department_name', function ($employee) {
                 return $employee->department_name;
@@ -145,10 +148,10 @@ class TerminationController extends Controller
                 return $employee->project_code;
             })
             ->addColumn('doh', function ($employee) {
-                return date('d-M-Y', strtotime($employee->doh));
+                return $employee->doh ? date('d-M-Y', strtotime($employee->doh)) : '-';
             })
             ->addColumn('termination_date', function ($employee) {
-                return date('d-M-Y', strtotime($employee->termination_date));
+                return $employee->termination_date ? date('d-M-Y', strtotime($employee->termination_date)) : '-';
             })
             ->addColumn('termination_reason', function ($employee) {
                 return $employee->termination_reason;
@@ -157,11 +160,74 @@ class TerminationController extends Controller
                 return $employee->coe_no;
             })
             ->filter(function ($instance) use ($request) {
+                if (!empty($request->get('date1') && !empty($request->get('date2')))) {
+                    $instance->where(function ($w) use ($request) {
+                        $date1 = $request->get('date1');
+                        $date2 = $request->get('date2');
+                        $w->whereBetween('doh', array($date1, $date2));
+                    });
+                }
+                if (!empty($request->get('nik'))) {
+                    $instance->where(function ($w) use ($request) {
+                        $nik = $request->get('nik');
+                        $w->orWhere('nik', 'LIKE', '%' . $nik . '%');
+                    });
+                }
+                if (!empty($request->get('fullname'))) {
+                    $instance->where(function ($w) use ($request) {
+                        $fullname = $request->get('fullname');
+                        $w->orWhere('fullname', 'LIKE', '%' . $fullname . '%');
+                    });
+                }
+                if (!empty($request->get('poh'))) {
+                    $instance->where(function ($w) use ($request) {
+                        $poh = $request->get('poh');
+                        $w->orWhere('poh', 'LIKE', '%' . $poh . '%');
+                    });
+                }
+                if (!empty($request->get('department_name'))) {
+                    $instance->where(function ($w) use ($request) {
+                        $department_name = $request->get('department_name');
+                        $w->orWhere('department_name', 'LIKE', '%' . $department_name . '%');
+                    });
+                }
+                if (!empty($request->get('position_name'))) {
+                    $instance->where(function ($w) use ($request) {
+                        $position_name = $request->get('position_name');
+                        $w->orWhere('position_name', 'LIKE', '%' . $position_name . '%');
+                    });
+                }
+                if (!empty($request->get('project_code'))) {
+                    $instance->where(function ($w) use ($request) {
+                        $project_code = $request->get('project_code');
+                        $w->orWhere('project_code', 'LIKE', '%' . $project_code . '%');
+                    });
+                }
+                if (!empty($request->get('termination_date_from') && !empty($request->get('termination_date_to')))) {
+                    $instance->where(function ($w) use ($request) {
+                        $date_from = $request->get('termination_date_from');
+                        $date_to = $request->get('termination_date_to');
+                        $w->whereBetween('termination_date', array($date_from, $date_to));
+                    });
+                }
+                if (!empty($request->get('termination_reason'))) {
+                    $instance->where(function ($w) use ($request) {
+                        $termination_reason = $request->get('termination_reason');
+                        $w->orWhere('termination_reason', 'LIKE', '%' . $termination_reason . '%');
+                    });
+                }
+                if (!empty($request->get('coe_no'))) {
+                    $instance->where(function ($w) use ($request) {
+                        $coe_no = $request->get('coe_no');
+                        $w->orWhere('coe_no', 'LIKE', '%' . $coe_no . '%');
+                    });
+                }
                 if (!empty($request->get('search'))) {
                     $instance->where(function ($w) use ($request) {
                         $search = $request->get('search');
                         $w->orWhere('nik', 'LIKE', "%$search%")
                             ->orWhere('fullname', 'LIKE', "%$search%")
+                            ->orWhere('poh', 'LIKE', "%$search%")
                             ->orWhere('doh', 'LIKE', "%$search%")
                             ->orWhere('department_name', 'LIKE', "%$search%")
                             ->orWhere('position_name', 'LIKE', "%$search%")

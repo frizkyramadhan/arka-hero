@@ -99,7 +99,6 @@
                                     <th>Employee</th>
                                     <th>Leave Type</th>
                                     <th>Original Leave</th>
-                                    <th class="text-center">LSL Details</th>
                                     <th class="text-center">Days to Cancel</th>
                                     <th class="text-center">Status</th>
                                     <th>Reason</th>
@@ -113,8 +112,6 @@
                                     <tr>
                                         <td>
                                             <strong>{{ $cancellation->leaveRequest->employee->fullname }}</strong>
-                                            <br><small
-                                                class="text-muted">{{ $cancellation->leaveRequest->employee->employee_number }}</small>
                                         </td>
                                         <td>
                                             <span
@@ -128,37 +125,7 @@
                                                 {{ $cancellation->leaveRequest->total_days }} days</small>
                                         </td>
                                         <td class="text-center">
-                                            @if ($cancellation->leaveRequest->isLSLFlexible())
-                                                @php
-                                                    $lslTakenDays = $cancellation->leaveRequest->lsl_taken_days ?? 0;
-                                                    $lslCashoutDays =
-                                                        $cancellation->leaveRequest->lsl_cashout_days ?? 0;
-                                                    $lslTotalDays = $cancellation->leaveRequest->getLSLTotalDays();
-                                                @endphp
-                                                <div class="lsl-info">
-                                                    <small class="text-primary">
-                                                        <i class="fas fa-calendar-check"></i> {{ $lslTakenDays }}d
-                                                    </small>
-                                                    @if ($lslCashoutDays > 0)
-                                                        <br><small class="text-warning">
-                                                            <i class="fas fa-money-bill-wave"></i> {{ $lslCashoutDays }}d
-                                                        </small>
-                                                    @endif
-                                                    <br><small class="text-success">
-                                                        <strong>Total: {{ $lslTotalDays }}d</strong>
-                                                    </small>
-                                                </div>
-                                            @else
-                                                <span class="text-muted">-</span>
-                                            @endif
-                                        </td>
-                                        <td class="text-center">
                                             <strong>{{ $cancellation->days_to_cancel }}</strong>
-                                            @if ($cancellation->days_to_cancel == $cancellation->leaveRequest->total_days)
-                                                <br><small class="text-danger">Full Cancellation</small>
-                                            @else
-                                                <br><small class="text-warning">Partial Cancellation</small>
-                                            @endif
                                         </td>
                                         <td class="text-center">
                                             @switch($cancellation->status)
@@ -188,15 +155,11 @@
                                         </td>
                                         <td>
                                             {{ $cancellation->requested_at->format('d M Y H:i') }}
-                                            @if ($cancellation->confirmed_at)
-                                                <br><small class="text-muted">Confirmed:
-                                                    {{ $cancellation->confirmed_at->format('d M Y H:i') }}</small>
-                                            @endif
                                         </td>
                                         <td class="text-center">
                                             <a href="{{ route('leave.requests.show', $cancellation->leaveRequest->id) }}"
                                                 class="btn btn-sm btn-outline-primary">
-                                                <i class="fas fa-eye"></i> View Leave
+                                                <i class="fas fa-eye"></i> View
                                             </a>
                                         </td>
                                     </tr>

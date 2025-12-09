@@ -836,19 +836,22 @@ class DashboardController extends Controller
             ->limit(10)
             ->get();
 
-        // Employees without entitlements
+        // Employees without entitlements (only from active projects)
         $employeesWithoutEntitlements = Employee::with(['administrations' => function ($query) {
             $query->where('is_active', '1')
                 ->with(['position.department', 'project']);
         }])
             ->whereHas('administrations', function ($query) {
-                $query->where('is_active', '1');
+                $query->where('is_active', '1')
+                    ->whereHas('project', function ($q) {
+                        $q->where('project_status', 1); // Only active projects
+                    });
             })
             ->whereDoesntHave('leaveEntitlements')
             ->orderBy('fullname', 'asc')
             ->get();
 
-        // Employees with entitlements expiring soon (within 30 days, not expired yet)
+        // Employees with entitlements expiring soon (within 30 days, not expired yet) - only from active projects
         $employeesWithExpiringEntitlements = Employee::with([
             'administrations' => function ($query) {
                 $query->where('is_active', '1')
@@ -862,7 +865,10 @@ class DashboardController extends Controller
             }
         ])
             ->whereHas('administrations', function ($query) {
-                $query->where('is_active', '1');
+                $query->where('is_active', '1')
+                    ->whereHas('project', function ($q) {
+                        $q->where('project_status', 1); // Only active projects
+                    });
             })
             ->whereHas('leaveEntitlements', function ($query) use ($today, $thirtyDaysLater) {
                 $query->where('period_end', '>=', $today)
@@ -1336,7 +1342,10 @@ class DashboardController extends Controller
                 ->with(['position.department', 'project']);
         }])
             ->whereHas('administrations', function ($query) {
-                $query->where('is_active', '1');
+                $query->where('is_active', '1')
+                    ->whereHas('project', function ($q) {
+                        $q->where('project_status', 1); // Only active projects
+                    });
             })
             ->whereDoesntHave('leaveEntitlements')
             ->orderBy('fullname', 'asc');
@@ -1414,7 +1423,10 @@ class DashboardController extends Controller
             }
         ])
             ->whereHas('administrations', function ($query) {
-                $query->where('is_active', '1');
+                $query->where('is_active', '1')
+                    ->whereHas('project', function ($q) {
+                        $q->where('project_status', 1); // Only active projects
+                    });
             })
             ->whereHas('leaveEntitlements', function ($query) use ($today, $thirtyDaysLater, $thirtyDaysAgo) {
                 $query->where(function ($q) use ($today, $thirtyDaysLater) {
