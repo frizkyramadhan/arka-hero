@@ -84,8 +84,13 @@
                 <div class="input-group-prepend">
                     <span class="input-group-text"><i class="fas fa-search"></i></span>
                 </div>
-                <input type="text" class="form-control approver-search-input"
-                    placeholder="Ketik nama atau email approver untuk mencari..." autocomplete="off">
+                <input type="text" 
+                    id="approver-search-{{ $componentId }}"
+                    name="approver_search_{{ $componentId }}"
+                    class="form-control approver-search-input"
+                    placeholder="Ketik nama atau email approver untuk mencari..." 
+                    autocomplete="off"
+                    aria-label="Search approver">
             </div>
 
             <!-- Approver List (Hidden by default, shown when typing) -->

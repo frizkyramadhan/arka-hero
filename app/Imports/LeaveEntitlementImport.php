@@ -116,8 +116,13 @@ class LeaveEntitlementImport implements ToCollection, WithHeadingRow
         $employee = $administration->employee;
 
         // 3. Validate period dates (REQUIRED)
-        $startPeriod = $this->getColumnValue($row, 'start_period');
-        $endPeriod = $this->getColumnValue($row, 'end_period');
+        // Try both 'start_period' and 'Start Period' (with space)
+        $startPeriod = $this->getColumnValue($row, 'start_period') 
+            ?: $this->getColumnValue($row, 'start period')
+            ?: $this->getColumnValue($row, 'Start Period');
+        $endPeriod = $this->getColumnValue($row, 'end_period')
+            ?: $this->getColumnValue($row, 'end period')
+            ?: $this->getColumnValue($row, 'End Period');
 
         if (empty($startPeriod) || empty($endPeriod)) {
             return ['success' => false, 'errors' => ['Start Period and End Period are required']];
@@ -143,19 +148,21 @@ class LeaveEntitlementImport implements ToCollection, WithHeadingRow
 
         // 6. Process each leave type
         foreach ($this->leaveTypes as $leaveType) {
-            // Get entitled days from Excel using original leave type name
-            $entitledDays = $this->getLeaveTypeValue($row, $leaveType->name);
+            // Get remaining days from Excel (export shows actual entitlement = remaining_days)
+            // Excel contains remaining_days (entitled_days - taken_days)
+            $remainingDays = $this->getLeaveTypeValue($row, $leaveType->name);
 
             // Default to 0 if not found or empty
-            $entitledDays = is_numeric($entitledDays) ? max(0, (int) $entitledDays) : 0;
+            $remainingDays = is_numeric($remainingDays) ? max(0, (int) $remainingDays) : 0;
 
             // Check if this is a "Cuti Panjang" leave type
             $isCutiPanjang = stripos($leaveType->name, 'Cuti Panjang') !== false;
 
             if ($isCutiPanjang) {
-                // Determine employee level (Staff/Non Staff)
+                // Determine employee level (Staff/Non Staff) - same logic as export
                 $level = $administration->level;
-                $isStaff = ($level && strtolower($level->name) === 'staff');
+                $levelName = $level ? $level->name : '';
+                $isStaff = $this->isStaffLevel($levelName);
 
                 // Check if leave type matches employee level
                 $isCutiPanjangStaff = stripos($leaveType->name, 'Staff') !== false &&
@@ -188,15 +195,20 @@ class LeaveEntitlementImport implements ToCollection, WithHeadingRow
                 ->where('period_end', $periodEnd->format('Y-m-d'))
                 ->first();
 
-            // Skip if entitled_days is 0 and no existing record
-            // But process if: entitled_days > 0 OR existing record exists OR is paid/unpaid leave
-            $isPaidOrUnpaid = in_array($leaveType->category, ['paid', 'unpaid']);
-            if ($entitledDays == 0 && !$existing && !$isPaidOrUnpaid) {
-                continue;
-            }
-
             // Preserve taken_days from existing record
             $takenDays = $existing ? $existing->taken_days : 0;
+
+            // Calculate entitled_days from remaining_days (Excel contains remaining_days)
+            // Formula: entitled_days = remaining_days + taken_days
+            // This ensures that when we import, the actual entitlement (remaining) matches Excel
+            $entitledDays = $remainingDays + $takenDays;
+
+            // Skip if remaining_days is 0 and no existing record
+            // But process if: remaining_days > 0 OR existing record exists OR is paid/unpaid leave
+            $isPaidOrUnpaid = in_array($leaveType->category, ['paid', 'unpaid']);
+            if ($remainingDays == 0 && !$existing && !$isPaidOrUnpaid) {
+                continue;
+            }
 
             // Set deposit_days only for LSL category
             $finalDepositDays = ($leaveType->category === 'lsl') ? $depositDays : 0;
@@ -204,7 +216,9 @@ class LeaveEntitlementImport implements ToCollection, WithHeadingRow
             // Log for debugging
             Log::info("Processing leave entitlement for NIK {$nik}", [
                 'leave_type' => $leaveType->name,
-                'entitled_days' => $entitledDays,
+                'remaining_days_from_excel' => $remainingDays,
+                'taken_days_preserved' => $takenDays,
+                'calculated_entitled_days' => $entitledDays,
                 'deposit_days' => $finalDepositDays,
                 'existing_id' => $existing ? $existing->id : null,
                 'employee_level' => $administration->level ? $administration->level->name : 'N/A'
@@ -220,7 +234,7 @@ class LeaveEntitlementImport implements ToCollection, WithHeadingRow
                 ],
                 [
                     'entitled_days' => $entitledDays,
-                    'taken_days' => $takenDays,
+                    'taken_days' => $takenDays, // Preserve existing taken_days
                     'deposit_days' => $finalDepositDays,
                 ]
             );
@@ -414,6 +428,30 @@ class LeaveEntitlementImport implements ToCollection, WithHeadingRow
         });
 
         return array_values($variations);
+    }
+
+    /**
+     * Determine if level is considered staff (same logic as export)
+     */
+    private function isStaffLevel($levelName)
+    {
+        if (empty($levelName)) {
+            return false;
+        }
+
+        $staffLevels = [
+            'Director',
+            'Manager',
+            'Superintendent',
+            'Supervisor',
+            'Foreman/Officer',
+            'Project Manager',
+            'SPT',
+            'SPV',
+            'FM'
+        ];
+
+        return in_array($levelName, $staffLevels);
     }
 
     /**

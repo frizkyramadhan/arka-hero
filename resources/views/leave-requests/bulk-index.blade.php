@@ -1,6 +1,6 @@
 @extends('layouts.main')
 
-@section('title', 'Bulk Leave Requests')
+@section('title', 'Periodic Leave Requests')
 
 @section('content')
     <div class="content-header">
@@ -28,7 +28,7 @@
                         <strong>Periodic Leave Request Batches</strong>
                     </h3>
                     <div class="card-tools">
-                        <a href="{{ route('leave.bulk-requests.create') }}" class="btn btn-primary btn-sm">
+                        <a href="{{ route('leave.periodic-requests.create') }}" class="btn btn-primary btn-sm">
                             <i class="fas fa-plus mr-1"></i> Create Periodic Leave Request
                         </a>
                     </div>
@@ -39,7 +39,7 @@
                             <i class="fas fa-inbox fa-4x text-muted mb-3"></i>
                             <h5 class="text-muted">No periodic leave requests found</h5>
                             <p class="text-muted">Create your first periodic leave request</p>
-                            <a href="{{ route('leave.bulk-requests.create') }}" class="btn btn-primary mt-2">
+                            <a href="{{ route('leave.periodic-requests.create') }}" class="btn btn-primary mt-2">
                                 <i class="fas fa-plus mr-1"></i> Create Periodic Leave Request
                             </a>
                         </div>
@@ -61,7 +61,7 @@
                                         <tr>
                                             <td>{{ $batches->firstItem() + $index }}</td>
                                             <td>
-                                                <a href="{{ route('leave.bulk-requests.show', $batch->batch_id) }}"
+                                                <a href="{{ route('leave.periodic-requests.show', $batch->batch_id) }}"
                                                     class="text-primary font-weight-bold">
                                                     <i class="fas fa-layer-group mr-1"></i>
                                                     {{ $batch->batch_id }}
@@ -91,7 +91,7 @@
                                                 </small>
                                             </td>
                                             <td class="text-center">
-                                                <a href="{{ route('leave.bulk-requests.show', $batch->batch_id) }}"
+                                                <a href="{{ route('leave.periodic-requests.show', $batch->batch_id) }}"
                                                     class="btn btn-sm btn-info" title="View Details">
                                                     <i class="fas fa-eye"></i>
                                                 </a>

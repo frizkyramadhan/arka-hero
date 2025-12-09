@@ -35,22 +35,18 @@ class LeaveReportController extends Controller
      */
     public function byProject(Request $request)
     {
-        $projectData = collect(); // Default empty collection
+        $projectData = collect();
 
-        // Only load data if filters are applied or show_all is requested
         if ($request->filled('start_date') || $request->filled('end_date') || $request->filled('project_id') || $request->has('show_all')) {
-            $query = LeaveRequest::with(['employee.administrations.project', 'leaveType', 'cancellations'])
-                ->whereIn('status', ['approved', 'closed']); // Include closed requests
+            $query = LeaveRequest::with(['employee.administrations.project', 'leaveType'])
+                ->whereIn('status', ['approved', 'closed']);
 
-            // Filter by date range
             if ($request->filled('start_date')) {
                 $query->where('start_date', '>=', $request->start_date);
             }
             if ($request->filled('end_date')) {
                 $query->where('end_date', '<=', $request->end_date);
             }
-
-            // Filter by project
             if ($request->filled('project_id')) {
                 $query->whereHas('administration', function ($q) use ($request) {
                     $q->where('project_id', $request->project_id);
@@ -59,55 +55,23 @@ class LeaveReportController extends Controller
 
             $leaveRequests = $query->get();
 
-            // Group by project
             $projectData = $leaveRequests->groupBy(function ($item) {
                 return $item->employee->administrations->first()->project->project_name ?? 'Unknown';
             })->map(function ($requests, $projectName) {
-                $totalEffectiveDays = $requests->sum(function ($request) {
-                    return $request->getEffectiveDays();
-                });
-
-                $totalCancelledDays = $requests->sum(function ($request) {
-                    return $request->getTotalCancelledDays();
-                });
-
-                // Calculate LSL statistics
-                $lslRequests = $requests->filter(function ($request) {
-                    return $request->isLSLFlexible();
-                });
-
-                $lslStats = [
-                    'total_lsl_requests' => $lslRequests->count(),
-                    'total_lsl_leave_days' => $lslRequests->sum('lsl_taken_days'),
-                    'total_lsl_cashout_days' => $lslRequests->sum('lsl_cashout_days'),
-                    'total_lsl_days' => $lslRequests->sum(function ($request) {
-                        return $request->getLSLTotalDays();
-                    })
-                ];
-
                 return [
                     'project_name' => $projectName,
                     'total_requests' => $requests->count(),
                     'total_days' => $requests->sum('total_days'),
-                    'effective_days' => $totalEffectiveDays,
-                    'cancelled_days' => $totalCancelledDays,
-                    'lsl_stats' => $lslStats,
+                    'effective_days' => $requests->sum(function ($request) {
+                        return $request->getEffectiveDays();
+                    }),
                     'by_type' => $requests->groupBy('leaveType.name')->map(function ($typeRequests) {
-                        $typeEffectiveDays = $typeRequests->sum(function ($request) {
-                            return $request->getEffectiveDays();
-                        });
-                        $typeCancelledDays = $typeRequests->sum(function ($request) {
-                            return $request->getTotalCancelledDays();
-                        });
-
                         return [
                             'count' => $typeRequests->count(),
                             'total_days' => $typeRequests->sum('total_days'),
-                            'effective_days' => $typeEffectiveDays,
-                            'cancelled_days' => $typeCancelledDays,
-                            'utilization_rate' => $typeRequests->sum('total_days') > 0
-                                ? round(($typeEffectiveDays / $typeRequests->sum('total_days')) * 100, 2)
-                                : 0
+                            'effective_days' => $typeRequests->sum(function ($request) {
+                                return $request->getEffectiveDays();
+                            }),
                         ];
                     })
                 ];
@@ -116,7 +80,8 @@ class LeaveReportController extends Controller
 
         $projects = Project::where('project_status', 1)->get();
 
-        return view('leave-reports.leave-by-project', compact('projectData', 'projects'))->with('title', 'Leave by Project Report');
+        return view('leave-reports.leave-by-project', compact('projectData', 'projects'))
+            ->with('title', 'Leave by Project Report');
     }
 
 
@@ -142,10 +107,9 @@ class LeaveReportController extends Controller
      */
     private function exportByProject(Request $request)
     {
-        $query = LeaveRequest::with(['employee.administrations.project', 'leaveType', 'cancellations'])
+        $query = LeaveRequest::with(['employee.administrations.project', 'leaveType'])
             ->whereIn('status', ['approved', 'closed']);
 
-        // Apply same filters as byProject method
         if ($request->filled('start_date')) {
             $query->where('start_date', '>=', $request->start_date);
         }
@@ -165,40 +129,13 @@ class LeaveReportController extends Controller
 
         $data = collect();
         foreach ($projectData as $projectName => $requests) {
-            $totalEffectiveDays = $requests->sum(function ($request) {
-                return $request->getEffectiveDays();
-            });
-            $totalCancelledDays = $requests->sum(function ($request) {
-                return $request->getTotalCancelledDays();
-            });
-
-            // Calculate LSL statistics
-            $lslRequests = $requests->filter(function ($request) {
-                return $request->isLSLFlexible();
-            });
-
-            $lslStats = [
-                'total_lsl_requests' => $lslRequests->count(),
-                'total_lsl_leave_days' => $lslRequests->sum('lsl_taken_days'),
-                'total_lsl_cashout_days' => $lslRequests->sum('lsl_cashout_days'),
-                'total_lsl_days' => $lslRequests->sum(function ($request) {
-                    return $request->getLSLTotalDays();
-                })
-            ];
-
             $data->push([
                 'Project Name' => $projectName,
                 'Total Requests' => $requests->count(),
                 'Total Days' => $requests->sum('total_days'),
-                'Effective Days' => $totalEffectiveDays,
-                'Cancelled Days' => $totalCancelledDays,
-                'LSL Requests' => $lslStats['total_lsl_requests'],
-                'LSL Leave Days' => $lslStats['total_lsl_leave_days'],
-                'LSL Cashout Days' => $lslStats['total_lsl_cashout_days'],
-                'LSL Total Days' => $lslStats['total_lsl_days'],
-                'Utilization Rate %' => $requests->sum('total_days') > 0
-                    ? round(($totalEffectiveDays / $requests->sum('total_days')) * 100, 2)
-                    : 0
+                'Effective Days' => $requests->sum(function ($request) {
+                    return $request->getEffectiveDays();
+                }),
             ]);
         }
 
@@ -219,185 +156,12 @@ class LeaveReportController extends Controller
                     'Total Requests',
                     'Total Days',
                     'Effective Days',
-                    'Cancelled Days',
-                    'LSL Requests',
-                    'LSL Leave Days',
-                    'LSL Cashout Days',
-                    'LSL Total Days',
-                    'Utilization Rate %'
                 ];
             }
         }, 'leave_by_project_report.xlsx');
     }
 
-    /**
-     * Export accumulation report
-     */
-    private function exportAccumulation(Request $request)
-    {
-        $query = LeaveEntitlement::with(['employee', 'leaveType'])
-            ->where('leave_type_id', function ($query) {
-                $query->select('id')
-                    ->from('leave_types')
-                    ->where('category', 'annual');
-            });
 
-        // Apply same filters as accumulation method
-        if ($request->filled('year')) {
-            $query->whereYear('period_start', $request->year);
-        } else {
-            $query->whereYear('period_start', now()->year);
-        }
-
-        $data = $query->get()->map(function ($entitlement) {
-            $effectiveDays = LeaveRequest::where('employee_id', $entitlement->employee_id)
-                ->where('leave_type_id', $entitlement->leave_type_id)
-                ->whereBetween('start_date', [$entitlement->period_start, $entitlement->period_end])
-                ->where('status', 'approved')
-                ->get()
-                ->sum(function ($request) {
-                    return $request->getEffectiveDays();
-                });
-
-            $cancelledDays = LeaveRequest::where('employee_id', $entitlement->employee_id)
-                ->where('leave_type_id', $entitlement->leave_type_id)
-                ->whereBetween('start_date', [$entitlement->period_start, $entitlement->period_end])
-                ->where('status', 'approved')
-                ->get()
-                ->sum(function ($request) {
-                    return $request->getTotalCancelledDays();
-                });
-
-            return [
-                'Employee Name' => $entitlement->employee->fullname,
-                'Entitled Days' => $entitlement->entitled_days,
-                'Deposit Days' => $entitlement->deposit_days,
-                'Taken Days' => $entitlement->taken_days,
-                'Effective Days' => $effectiveDays,
-                'Cancelled Days' => $cancelledDays,
-                'Remaining Days' => $entitlement->remaining_days,
-                'Utilization %' => $entitlement->entitled_days > 0
-                    ? round(($effectiveDays / $entitlement->entitled_days) * 100, 2)
-                    : 0,
-                'Cancellation Rate %' => $entitlement->taken_days > 0
-                    ? round(($cancelledDays / $entitlement->taken_days) * 100, 2)
-                    : 0
-            ];
-        });
-
-        return Excel::download(new class($data) implements FromCollection, WithHeadings {
-            private $data;
-            public function __construct($data)
-            {
-                $this->data = $data;
-            }
-            public function collection()
-            {
-                return $this->data;
-            }
-            public function headings(): array
-            {
-                return [
-                    'Employee Name',
-                    'Entitled Days', // Changed from 'Withdrawable Days' - withdrawable_days column removed
-                    'Deposit Days',
-                    'Taken Days',
-                    'Effective Days',
-                    'Cancelled Days',
-                    'Remaining Days',
-                    'Utilization %',
-                    'Cancellation Rate %'
-                ];
-            }
-        }, 'leave_accumulation_report.xlsx');
-    }
-
-    /**
-     * Export balance report
-     */
-    private function exportBalance(Request $request)
-    {
-        $query = LeaveEntitlement::with(['employee', 'leaveType'])
-            ->whereRaw('(entitled_days - taken_days) > 0'); // remaining_days is now accessor
-
-        // Apply same filters as balance method
-        if ($request->filled('employee_id')) {
-            $query->where('employee_id', $request->employee_id);
-        }
-        if ($request->filled('leave_type_id')) {
-            $query->where('leave_type_id', $request->leave_type_id);
-        }
-
-        $data = $query->get()->map(function ($entitlement) {
-            $effectiveDays = LeaveRequest::where('employee_id', $entitlement->employee_id)
-                ->where('leave_type_id', $entitlement->leave_type_id)
-                ->whereBetween('start_date', [$entitlement->period_start, $entitlement->period_end])
-                ->where('status', 'approved')
-                ->get()
-                ->sum(function ($request) {
-                    return $request->getEffectiveDays();
-                });
-
-            $cancelledDays = LeaveRequest::where('employee_id', $entitlement->employee_id)
-                ->where('leave_type_id', $entitlement->leave_type_id)
-                ->whereBetween('start_date', [$entitlement->period_start, $entitlement->period_end])
-                ->where('status', 'approved')
-                ->get()
-                ->sum(function ($request) {
-                    return $request->getTotalCancelledDays();
-                });
-
-            $actualRemaining = $entitlement->entitled_days - $effectiveDays;
-
-            return [
-                'Employee Name' => $entitlement->employee->fullname,
-                'Leave Type' => $entitlement->leaveType->name,
-                'Period Start' => $entitlement->period_start->format('d M Y'),
-                'Period End' => $entitlement->period_end->format('d M Y'),
-                'Entitled Days' => $entitlement->entitled_days,
-                'Deposit Days' => $entitlement->deposit_days,
-                'Taken Days' => $entitlement->taken_days,
-                'Effective Days' => $effectiveDays,
-                'Cancelled Days' => $cancelledDays,
-                'Remaining Days' => $entitlement->remaining_days,
-                'Actual Remaining' => $actualRemaining,
-                'Utilization %' => $entitlement->entitled_days > 0
-                    ? round(($effectiveDays / $entitlement->entitled_days) * 100, 2)
-                    : 0,
-                'Is Accurate' => $entitlement->remaining_days == $actualRemaining ? 'Yes' : 'No'
-            ];
-        });
-
-        return Excel::download(new class($data) implements FromCollection, WithHeadings {
-            private $data;
-            public function __construct($data)
-            {
-                $this->data = $data;
-            }
-            public function collection()
-            {
-                return $this->data;
-            }
-            public function headings(): array
-            {
-                return [
-                    'Employee Name',
-                    'Leave Type',
-                    'Period Start',
-                    'Period End',
-                    'Entitled Days', // Changed from 'Withdrawable Days' - withdrawable_days column removed
-                    'Deposit Days',
-                    'Taken Days',
-                    'Effective Days',
-                    'Cancelled Days',
-                    'Remaining Days',
-                    'Actual Remaining',
-                    'Utilization %',
-                    'Is Accurate'
-                ];
-            }
-        }, 'leave_balance_report.xlsx');
-    }
 
     /**
      * Get leave statistics for dashboard
@@ -454,42 +218,31 @@ class LeaveReportController extends Controller
      */
     public function monitoring(Request $request)
     {
-        $leaveRequests = new \Illuminate\Pagination\LengthAwarePaginator([], 0, 50); // Default empty paginator
+        $leaveRequests = new \Illuminate\Pagination\LengthAwarePaginator([], 0, 50);
 
-        // Only load data if filters are applied or show_all is requested
         if (
             $request->filled('status') || $request->filled('start_date') || $request->filled('end_date') ||
             $request->filled('employee_id') || $request->filled('leave_type_id') ||
             $request->filled('project_id') || $request->has('show_all')
         ) {
-
-            $query = LeaveRequest::with(['employee', 'leaveType', 'administration.project', 'cancellations'])
+            $query = LeaveRequest::with(['employee', 'leaveType', 'administration.project'])
                 ->orderBy('created_at', 'desc');
 
-            // Filter by status
             if ($request->filled('status')) {
                 $query->where('status', $request->status);
             }
-
-            // Filter by date range
             if ($request->filled('start_date')) {
                 $query->where('start_date', '>=', $request->start_date);
             }
             if ($request->filled('end_date')) {
                 $query->where('end_date', '<=', $request->end_date);
             }
-
-            // Filter by employee
             if ($request->filled('employee_id')) {
                 $query->where('employee_id', $request->employee_id);
             }
-
-            // Filter by leave type
             if ($request->filled('leave_type_id')) {
                 $query->where('leave_type_id', $request->leave_type_id);
             }
-
-            // Filter by project
             if ($request->filled('project_id')) {
                 $query->whereHas('administration', function ($q) use ($request) {
                     $q->where('project_id', $request->project_id);
@@ -518,31 +271,24 @@ class LeaveReportController extends Controller
      */
     public function cancellation(Request $request)
     {
-        $cancellations = new \Illuminate\Pagination\LengthAwarePaginator([], 0, 50); // Default empty paginator
+        $cancellations = new \Illuminate\Pagination\LengthAwarePaginator([], 0, 50);
 
-        // Only load data if filters are applied or show_all is requested
         if (
             $request->filled('status') || $request->filled('start_date') || $request->filled('end_date') ||
             $request->filled('employee_id') || $request->has('show_all')
         ) {
-
             $query = LeaveRequestCancellation::with(['leaveRequest.employee', 'leaveRequest.leaveType', 'requestedBy'])
                 ->orderBy('requested_at', 'desc');
 
-            // Filter by status
             if ($request->filled('status')) {
                 $query->where('status', $request->status);
             }
-
-            // Filter by date range
             if ($request->filled('start_date')) {
                 $query->where('requested_at', '>=', $request->start_date);
             }
             if ($request->filled('end_date')) {
                 $query->where('requested_at', '<=', $request->end_date);
             }
-
-            // Filter by employee
             if ($request->filled('employee_id')) {
                 $query->whereHas('leaveRequest', function ($q) use ($request) {
                     $q->where('employee_id', $request->employee_id);
@@ -571,21 +317,17 @@ class LeaveReportController extends Controller
     {
         $entitlements = new \Illuminate\Pagination\LengthAwarePaginator([], 0, 50);
 
-        // Only load data if filters are applied or show_all is requested
         if ($request->filled('year') || $request->filled('employee_id') || $request->filled('leave_type_id') || $request->has('show_all')) {
             $query = LeaveEntitlement::with(['employee', 'leaveType']);
 
-            // Apply filters
             if ($request->filled('year')) {
                 $query->whereYear('period_start', $request->year);
             } else {
                 $query->whereYear('period_start', now()->year);
             }
-
             if ($request->filled('employee_id')) {
                 $query->where('employee_id', $request->employee_id);
             }
-
             if ($request->filled('leave_type_id')) {
                 $query->where('leave_type_id', $request->leave_type_id);
             }
@@ -602,7 +344,6 @@ class LeaveReportController extends Controller
             });
         }
 
-        // Get filter options
         $leaveTypes = LeaveType::where('is_active', true)->get();
         $employees = Employee::whereHas('administrations', function ($q) {
             $q->where('is_active', 1);
@@ -621,16 +362,14 @@ class LeaveReportController extends Controller
      */
     public function autoConversion(Request $request)
     {
-        $autoConversions = new \Illuminate\Pagination\LengthAwarePaginator([], 0, 50); // Default empty paginator
+        $autoConversions = new \Illuminate\Pagination\LengthAwarePaginator([], 0, 50);
 
-        // Only load data if filters are applied or show_all is requested
         if ($request->filled('conversion_status') || $request->filled('employee_id') || $request->has('show_all')) {
             $query = LeaveRequest::with(['employee', 'leaveType', 'administration.project'])
                 ->whereNotNull('auto_conversion_at')
-                ->where('auto_conversion_at', '<=', now()->addDays(7)) // Show upcoming conversions
+                ->where('auto_conversion_at', '<=', now()->addDays(7))
                 ->orderBy('auto_conversion_at', 'asc');
 
-            // Filter by conversion status
             if ($request->filled('conversion_status')) {
                 switch ($request->conversion_status) {
                     case 'due_soon':
@@ -645,27 +384,12 @@ class LeaveReportController extends Controller
                         break;
                 }
             }
-
-            // Filter by employee
             if ($request->filled('employee_id')) {
                 $query->where('employee_id', $request->employee_id);
             }
 
             $autoConversions = $query->paginate(50)->through(function ($request) {
                 $daysUntilConversion = now()->diffInDays($request->auto_conversion_at, false);
-
-                $lslInfo = '';
-                if ($request->isLSLFlexible()) {
-                    $lslTakenDays = $request->lsl_taken_days ?? 0;
-                    $lslCashoutDays = $request->lsl_cashout_days ?? 0;
-                    $lslTotalDays = $request->getLSLTotalDays();
-
-                    $lslInfo = "Leave: {$lslTakenDays} days";
-                    if ($lslCashoutDays > 0) {
-                        $lslInfo .= ", Cash Out: {$lslCashoutDays} days";
-                    }
-                    $lslInfo .= " (Total: {$lslTotalDays} days)";
-                }
 
                 return [
                     'id' => $request->id,
@@ -674,13 +398,11 @@ class LeaveReportController extends Controller
                     'start_date' => $request->start_date->format('d M Y'),
                     'end_date' => $request->end_date->format('d M Y'),
                     'total_days' => $request->total_days,
-                    'lsl_details' => $lslInfo ?: '-',
                     'auto_conversion_at' => $request->auto_conversion_at->format('d M Y H:i'),
                     'days_until_conversion' => $daysUntilConversion,
                     'conversion_status' => $daysUntilConversion < 0 ? 'overdue' : ($daysUntilConversion <= 3 ? 'due_soon' : 'upcoming'),
                     'has_document' => !empty($request->supporting_document),
                     'project_name' => $request->administration->project->project_name ?? 'Unknown',
-                    'created_at' => $request->created_at->format('d M Y'),
                 ];
             });
         }
@@ -702,9 +424,8 @@ class LeaveReportController extends Controller
      */
     public function exportMonitoring(Request $request)
     {
-        $query = LeaveRequest::with(['employee', 'leaveType', 'administration.project', 'cancellations']);
+        $query = LeaveRequest::with(['employee', 'leaveType', 'administration.project']);
 
-        // Apply same filters as monitoring method
         if ($request->filled('status')) {
             $query->where('status', $request->status);
         }
@@ -722,19 +443,6 @@ class LeaveReportController extends Controller
         }
 
         $data = $query->get()->map(function ($request) {
-            $lslInfo = '';
-            if ($request->isLSLFlexible()) {
-                $lslTakenDays = $request->lsl_taken_days ?? 0;
-                $lslCashoutDays = $request->lsl_cashout_days ?? 0;
-                $lslTotalDays = $request->getLSLTotalDays();
-
-                $lslInfo = "Leave: {$lslTakenDays} days";
-                if ($lslCashoutDays > 0) {
-                    $lslInfo .= ", Cash Out: {$lslCashoutDays} days";
-                }
-                $lslInfo .= " (Total: {$lslTotalDays} days)";
-            }
-
             return [
                 'Employee Name' => $request->employee->fullname,
                 'Leave Type' => $request->leaveType->name,
@@ -742,12 +450,9 @@ class LeaveReportController extends Controller
                 'End Date' => $request->end_date->format('d M Y'),
                 'Total Days' => $request->total_days,
                 'Effective Days' => $request->getEffectiveDays(),
-                'LSL Details' => $lslInfo ?: '-',
                 'Status' => ucfirst($request->status),
                 'Project' => $request->administration->project->project_name ?? 'Unknown',
                 'Requested At' => $request->created_at->format('d M Y H:i'),
-                'Auto Conversion' => $request->auto_conversion_at ? $request->auto_conversion_at->format('d M Y H:i') : '-',
-                'Has Document' => !empty($request->supporting_document) ? 'Yes' : 'No',
             ];
         });
 
@@ -770,12 +475,9 @@ class LeaveReportController extends Controller
                     'End Date',
                     'Total Days',
                     'Effective Days',
-                    'LSL Details',
                     'Status',
                     'Project',
                     'Requested At',
-                    'Auto Conversion',
-                    'Has Document'
                 ];
             }
         }, 'leave_monitoring_report.xlsx');
@@ -788,7 +490,6 @@ class LeaveReportController extends Controller
     {
         $query = LeaveRequestCancellation::with(['leaveRequest.employee', 'leaveRequest.leaveType', 'requestedBy']);
 
-        // Apply same filters as cancellation method
         if ($request->filled('status')) {
             $query->where('status', $request->status);
         }
@@ -805,26 +506,12 @@ class LeaveReportController extends Controller
         }
 
         $data = $query->get()->map(function ($cancellation) {
-            $lslInfo = '';
-            if ($cancellation->leaveRequest->isLSLFlexible()) {
-                $lslTakenDays = $cancellation->leaveRequest->lsl_taken_days ?? 0;
-                $lslCashoutDays = $cancellation->leaveRequest->lsl_cashout_days ?? 0;
-                $lslTotalDays = $cancellation->leaveRequest->getLSLTotalDays();
-
-                $lslInfo = "Leave: {$lslTakenDays} days";
-                if ($lslCashoutDays > 0) {
-                    $lslInfo .= ", Cash Out: {$lslCashoutDays} days";
-                }
-                $lslInfo .= " (Total: {$lslTotalDays} days)";
-            }
-
             return [
                 'Employee Name' => $cancellation->leaveRequest->employee->fullname,
                 'Leave Type' => $cancellation->leaveRequest->leaveType->name,
                 'Original Start Date' => $cancellation->leaveRequest->start_date->format('d M Y'),
                 'Original End Date' => $cancellation->leaveRequest->end_date->format('d M Y'),
                 'Original Total Days' => $cancellation->leaveRequest->total_days,
-                'LSL Details' => $lslInfo ?: '-',
                 'Days to Cancel' => $cancellation->days_to_cancel,
                 'Cancellation Status' => ucfirst($cancellation->status),
                 'Reason' => $cancellation->reason,
@@ -852,7 +539,6 @@ class LeaveReportController extends Controller
                     'Original Start Date',
                     'Original End Date',
                     'Original Total Days',
-                    'LSL Details',
                     'Days to Cancel',
                     'Cancellation Status',
                     'Reason',

@@ -8,8 +8,8 @@
 @endphp
 
 <div id="administration-pane" class="content" role="tabpanel" aria-labelledby="administration-pane-trigger">
-    <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
-        <h5 class="mb-0">Employment History</h5>
+    <div class="d-flex justify-content-between align-items-center mb-2 border-bottom pb-2">
+        <h5 class="mb-0" style="font-size: 1.1rem;">Employment History</h5>
         <div>
             <button class="btn btn-primary" data-toggle="modal" data-target="#modal-administration"
                 title="Add Administration Data">
@@ -43,6 +43,8 @@
                     <th>Level</th>
                     <th class="text-center">Project</th>
                     <th>Class</th>
+                    <th>Termination Date</th>
+                    <th>Termination Reason</th>
                     <th class="text-center">Action</th>
                 </tr>
             </thead>
@@ -83,6 +85,20 @@
                         <td>{{ $administration->level_name }}</td>
                         <td>{{ $administration->project_code }}</td>
                         <td>{{ $administration->class }}</td>
+                        <td>
+                            @if ($administration->is_active == 0 && $administration->termination_date)
+                                {{ date('d M Y', strtotime($administration->termination_date)) }}
+                            @else
+                                -
+                            @endif
+                        </td>
+                        <td>
+                            @if ($administration->is_active == 0 && $administration->termination_reason)
+                                {{ $administration->termination_reason }}
+                            @else
+                                -
+                            @endif
+                        </td>
                         <td class="action-buttons">
                             <button class="btn btn-primary btn-action" data-toggle="modal"
                                 data-target="#modal-administration-{{ $administration->id }}">
@@ -101,7 +117,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="13">
+                        <td colspan="15">
                             <div class="empty-state">
                                 <i class="fas fa-exclamation-circle"></i>
                                 <h6>No Data Available</h6>
@@ -168,10 +184,10 @@
         background-color: #f8f9fa;
         color: #495057;
         font-weight: 600;
-        padding: 1rem;
+        padding: 0.6rem 0.75rem;
         border-bottom: 2px solid #dee2e6;
         text-transform: uppercase;
-        font-size: 0.75rem;
+        font-size: 0.7rem;
         letter-spacing: 0.5px;
     }
 
@@ -184,10 +200,11 @@
     }
 
     .table-modern tbody td {
-        padding: 1rem;
+        padding: 0.6rem 0.75rem;
         vertical-align: middle;
         border-bottom: 1px solid #dee2e6;
         color: #212529;
+        font-size: 0.875rem;
     }
 
     .table-modern .action-buttons {
@@ -196,10 +213,11 @@
     }
 
     .table-modern .action-buttons .btn {
-        padding: 0.375rem 0.75rem;
-        margin: 0 0.25rem;
+        padding: 0.25rem 0.5rem;
+        margin: 0 0.15rem;
         border-radius: 0.25rem;
         transition: all 0.2s ease;
+        font-size: 0.875rem;
     }
 
     .table-modern .action-buttons .btn:hover {
@@ -235,11 +253,11 @@
 
     /* Status Badges */
     .badge-status {
-        padding: 0.5em 0.75em;
+        padding: 0.35em 0.6em;
         font-weight: 500;
         border-radius: 0.25rem;
         text-transform: uppercase;
-        font-size: 0.75rem;
+        font-size: 0.7rem;
         letter-spacing: 0.5px;
     }
 
@@ -255,10 +273,11 @@
 
     /* Action Buttons */
     .btn-action {
-        padding: 0.375rem 0.75rem;
+        padding: 0.25rem 0.5rem;
         border-radius: 0.25rem;
         transition: all 0.2s ease;
-        margin: 0 0.25rem;
+        margin: 0 0.15rem;
+        font-size: 0.875rem;
     }
 
     .btn-action:hover {

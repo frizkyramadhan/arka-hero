@@ -167,7 +167,7 @@
                                         <div class="info-content">
                                             <div class="info-label">Batch ID</div>
                                             <div class="info-value">
-                                                <a href="{{ route('leave.bulk-requests.show', ['batch_id' => $leaveRequest->batch_id]) }}"
+                                                <a href="{{ route('leave.periodic-requests.show', ['batch_id' => $leaveRequest->batch_id]) }}"
                                                     class="batch-link" title="View all requests in this batch">
                                                     {{ $leaveRequest->batch_id }}
                                                     <i class="fas fa-external-link-alt"

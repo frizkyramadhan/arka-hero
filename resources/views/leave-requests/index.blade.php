@@ -28,7 +28,7 @@
                             <div class="card-header">
                                 <h3 class="card-title"><strong>Leave Requests</strong></h3>
                                 <div class="card-tools">
-                                    <a href="{{ route('leave.bulk-requests.create') }}" class="btn btn-success mr-2">
+                                    <a href="{{ route('leave.periodic-requests.create') }}" class="btn btn-success mr-2">
                                         <i class="fas fa-users"></i> Add Periodic Leave
                                     </a>
                                     <a href="{{ route('leave.requests.create') }}" class="btn btn-primary">
