@@ -739,5 +739,8 @@ Route::group(['middleware' => ['auth']], function () {
         Route::get('/export', [RosterController::class, 'export'])->name('export');
         Route::post('/import', [RosterController::class, 'import'])->name('import');
         Route::post('/clear', [RosterController::class, 'clearRoster'])->name('clear');
+        Route::post('/apply-balancing', [RosterController::class, 'applyBalancing'])->name('apply-balancing');
+        Route::post('/balancing-preview', [RosterController::class, 'getBalancingPreview'])->name('balancing-preview');
+        Route::get('/{roster}/balancing-history', [RosterController::class, 'getBalancingHistory'])->name('balancing-history');
     });
 });
