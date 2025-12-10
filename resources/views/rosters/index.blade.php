@@ -168,6 +168,13 @@
                                         <button class="btn btn-success btn-sm mr-2" onclick="exportRoster()">
                                             <i class="fas fa-download mr-1"></i> Export
                                         </button>
+                                        <button class="btn btn-warning btn-sm mr-2" 
+                                                onclick="openBalancingModal()" 
+                                                id="balanceBtn" 
+                                                disabled
+                                                title="Balance Leave for Selected Employees">
+                                            <i class="fas fa-balance-scale mr-1"></i> Balance Leave
+                                        </button>
                                         <button type="button" class="btn btn-tool" data-card-widget="maximize">
                                             <i class="fas fa-expand"></i>
                                         </button>
@@ -181,6 +188,9 @@
                                             <thead class="thead-light">
                                                 <tr>
                                                     <th class="text-center align-middle" style="width: 20px;">#</th>
+                                                    <th class="text-center align-middle" style="width: 40px;">
+                                                        <input type="checkbox" id="selectAll" onchange="toggleSelectAll()" title="Select All">
+                                                    </th>
                                                     <th class="align-middle" style="width: 150px;">Name</th>
                                                     <th class="text-center align-middle" style="width: 80px;">NIK</th>
                                                     <th class="text-center align-middle" style="width: 120px;">Department
@@ -202,7 +212,25 @@
                                                 @foreach ($employees as $index => $admin)
                                                     <tr>
                                                         <td class="text-center">{{ $loop->iteration }}</td>
-                                                        <td class="font-weight-bold">{{ $admin->employee->fullname }}</td>
+                                                        <td class="text-center">
+                                                            @if($admin->roster)
+                                                                <input type="checkbox" 
+                                                                       class="employee-checkbox" 
+                                                                       data-roster-id="{{ $admin->roster->id }}"
+                                                                       data-administration-id="{{ $admin->id }}"
+                                                                       data-employee-name="{{ $admin->employee->fullname }}"
+                                                                       onchange="updateBalanceButton()">
+                                                            @endif
+                                                        </td>
+                                                        <td class="font-weight-bold">
+                                                            {{ $admin->employee->fullname }}
+                                                            @if($admin->roster && $admin->roster->getNetAdjustment() != 0)
+                                                                <span class="badge badge-warning ml-2" title="Has balancing adjustment">
+                                                                    <i class="fas fa-balance-scale"></i>
+                                                                    {{ $admin->roster->getNetAdjustment() > 0 ? '+' : '' }}{{ $admin->roster->getNetAdjustment() }} days
+                                                                </span>
+                                                            @endif
+                                                        </td>
                                                         <td class="text-center">{{ $admin->nik }}</td>
                                                         <td>{{ $admin->position->department->department_name ?? 'N/A' }}
                                                         </td>
@@ -479,6 +507,111 @@
             </div>
         </div>
     </div>
+
+    <!-- Balancing Modal -->
+    <div class="modal fade" id="balancingModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-warning">
+                    <h4 class="modal-title">
+                        <i class="fas fa-balance-scale mr-2"></i>
+                        Balance Leave
+                    </h4>
+                    <button type="button" class="close" data-dismiss="modal">
+                        <span>&times;</span>
+                    </button>
+                </div>
+                <form id="balancingForm">
+                    <div class="modal-body">
+                        <!-- Selected Employees List -->
+                        <div class="alert alert-info">
+                            <i class="fas fa-users mr-2"></i>
+                            <strong id="selectedCount">0</strong> employee(s) selected
+                        </div>
+                        
+                        <div id="selectedEmployeesList" class="mb-3" style="max-height: 150px; overflow-y: auto;">
+                            <!-- Will be populated by JavaScript -->
+                        </div>
+                        
+                        <!-- Adjustment Input -->
+                        <div class="form-group">
+                            <label for="adjustment_days">
+                                Adjustment Days <span class="text-danger">*</span>
+                            </label>
+                            <div class="input-group">
+                                <div class="input-group-prepend">
+                                    <select class="form-control" id="adjustment_sign" style="width: 80px;" onchange="updatePreview()">
+                                        <option value="+">+</option>
+                                        <option value="-">-</option>
+                                    </select>
+                                </div>
+                                <input type="number" 
+                                       class="form-control" 
+                                       id="adjustment_days" 
+                                       name="adjustment_days"
+                                       min="1" 
+                                       max="365" 
+                                       required
+                                       onchange="updatePreview()">
+                                <div class="input-group-append">
+                                    <span class="input-group-text">days</span>
+                                </div>
+                            </div>
+                            <small class="form-text text-muted">
+                                Positive (+) untuk tambah hari kerja, Negative (-) untuk kurangi hari kerja
+                            </small>
+                        </div>
+                        
+                        <!-- Effective Date (Optional) -->
+                        <div class="form-group">
+                            <label for="effective_date">Effective Date (Optional)</label>
+                            <input type="date" 
+                                   class="form-control" 
+                                   id="effective_date" 
+                                   name="effective_date"
+                                   onchange="updatePreview()">
+                            <small class="form-text text-muted">
+                                Leave empty to apply from today
+                            </small>
+                        </div>
+                        
+                        <!-- Reason -->
+                        <div class="form-group">
+                            <label for="reason">
+                                Reason <span class="text-danger">*</span>
+                            </label>
+                            <textarea class="form-control" 
+                                      id="reason" 
+                                      name="reason" 
+                                      rows="3" 
+                                      required
+                                      placeholder="Enter reason for balancing..."></textarea>
+                        </div>
+                        
+                        <!-- Preview Section -->
+                        <div id="previewSection" class="card bg-light" style="display: none;">
+                            <div class="card-header">
+                                <h6 class="mb-0">
+                                    <i class="fas fa-eye mr-2"></i>Preview
+                                </h6>
+                            </div>
+                            <div class="card-body" id="previewContent">
+                                <!-- Will be populated by JavaScript -->
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">
+                            <i class="fas fa-times mr-1"></i>Cancel
+                        </button>
+                        <button type="submit" class="btn btn-warning" id="applyBalancingBtn">
+                            <i class="fas fa-check mr-1"></i>Apply Balancing
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 @endsection
 
 @section('styles')
@@ -536,7 +669,7 @@
             border: 1px solid #dee2e6;
         }
 
-        /* Sticky Columns - #, Name, NIK, Department, Position */
+        /* Sticky Columns - #, Checkbox, Name, NIK, Department, Position */
         /* Column 1: # (NO) - left: 0 */
         .roster-table thead th:nth-child(1),
         .roster-table tbody td:nth-child(1) {
@@ -549,11 +682,23 @@
             max-width: 50px;
         }
 
-        /* Column 2: Name - left: 50px */
+        /* Column 2: Checkbox - left: 50px */
         .roster-table thead th:nth-child(2),
         .roster-table tbody td:nth-child(2) {
             position: sticky;
             left: 50px;
+            z-index: 9;
+            background-color: #f8f9fa;
+            width: 40px;
+            min-width: 40px;
+            max-width: 40px;
+        }
+
+        /* Column 3: Name - left: 90px (50 + 40) */
+        .roster-table thead th:nth-child(3),
+        .roster-table tbody td:nth-child(3) {
+            position: sticky;
+            left: 90px;
             z-index: 9;
             background-color: #f8f9fa;
             width: 150px;
@@ -561,11 +706,11 @@
             max-width: 150px;
         }
 
-        /* Column 3: NIK - left: 200px (50 + 150) */
-        .roster-table thead th:nth-child(3),
-        .roster-table tbody td:nth-child(3) {
+        /* Column 4: NIK - left: 240px (50 + 40 + 150) */
+        .roster-table thead th:nth-child(4),
+        .roster-table tbody td:nth-child(4) {
             position: sticky;
-            left: 200px;
+            left: 240px;
             z-index: 9;
             background-color: #f8f9fa;
             width: 80px;
@@ -573,11 +718,11 @@
             max-width: 80px;
         }
 
-        /* Column 4: Department - left: 280px (50 + 150 + 80) */
-        .roster-table thead th:nth-child(4),
-        .roster-table tbody td:nth-child(4) {
+        /* Column 5: Department - left: 320px (50 + 40 + 150 + 80) */
+        .roster-table thead th:nth-child(5),
+        .roster-table tbody td:nth-child(5) {
             position: sticky;
-            left: 280px;
+            left: 320px;
             z-index: 9;
             background-color: #f8f9fa;
             width: 120px;
@@ -585,11 +730,11 @@
             max-width: 120px;
         }
 
-        /* Column 5: Position - left: 400px (50 + 150 + 80 + 120) */
-        .roster-table thead th:nth-child(5),
-        .roster-table tbody td:nth-child(5) {
+        /* Column 6: Position - left: 440px (50 + 40 + 150 + 80 + 120) */
+        .roster-table thead th:nth-child(6),
+        .roster-table tbody td:nth-child(6) {
             position: sticky;
-            left: 400px;
+            left: 440px;
             z-index: 9;
             background-color: #f8f9fa;
             width: 150px;
@@ -609,7 +754,9 @@
             .roster-table thead th:nth-child(4),
             .roster-table tbody td:nth-child(4),
             .roster-table thead th:nth-child(5),
-            .roster-table tbody td:nth-child(5) {
+            .roster-table tbody td:nth-child(5),
+            .roster-table thead th:nth-child(6),
+            .roster-table tbody td:nth-child(6) {
                 position: static;
                 left: auto;
                 z-index: auto;
@@ -625,7 +772,8 @@
         .roster-table tbody tr:hover td:nth-child(2),
         .roster-table tbody tr:hover td:nth-child(3),
         .roster-table tbody tr:hover td:nth-child(4),
-        .roster-table tbody tr:hover td:nth-child(5) {
+        .roster-table tbody tr:hover td:nth-child(5),
+        .roster-table tbody tr:hover td:nth-child(6) {
             background-color: #e9ecef !important;
         }
 
@@ -634,12 +782,13 @@
         .roster-table thead th:nth-child(2),
         .roster-table thead th:nth-child(3),
         .roster-table thead th:nth-child(4),
-        .roster-table thead th:nth-child(5) {
+        .roster-table thead th:nth-child(5),
+        .roster-table thead th:nth-child(6) {
             z-index: 11;
         }
 
         /* Shadow effect for sticky columns */
-        .roster-table tbody td:nth-child(5)::after {
+        .roster-table tbody td:nth-child(6)::after {
             content: '';
             position: absolute;
             top: 0;
@@ -1080,6 +1229,249 @@
             @endforeach
             console.log('=== END ROSTER DEBUG INFO ===');
         @endif
+
+        // ========== BALANCING FUNCTIONALITY ==========
+        // Selected rosters
+        let selectedRosters = [];
+
+        // Toggle select all
+        function toggleSelectAll() {
+            const selectAll = document.getElementById('selectAll');
+            const checkboxes = document.querySelectorAll('.employee-checkbox');
+            
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = selectAll.checked;
+            });
+            
+            updateSelectedRosters();
+            updateBalanceButton();
+        }
+
+        // Update selected rosters array
+        function updateSelectedRosters() {
+            selectedRosters = [];
+            document.querySelectorAll('.employee-checkbox:checked').forEach(checkbox => {
+                selectedRosters.push({
+                    roster_id: checkbox.dataset.rosterId,
+                    administration_id: checkbox.dataset.administrationId,
+                    employee_name: checkbox.dataset.employeeName
+                });
+            });
+        }
+
+        // Update balance button state
+        function updateBalanceButton() {
+            const balanceBtn = document.getElementById('balanceBtn');
+            const selectedCount = selectedRosters.length;
+            balanceBtn.disabled = selectedCount === 0;
+            
+            if (selectedCount > 0) {
+                balanceBtn.innerHTML = `<i class="fas fa-balance-scale mr-1"></i> Balance Leave (${selectedCount})`;
+            } else {
+                balanceBtn.innerHTML = `<i class="fas fa-balance-scale mr-1"></i> Balance Leave`;
+            }
+        }
+
+        // Open balancing modal
+        function openBalancingModal() {
+            updateSelectedRosters();
+            
+            if (selectedRosters.length === 0) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'No Selection',
+                    text: 'Please select at least one employee',
+                    toast: true,
+                    position: 'top-end'
+                });
+                return;
+            }
+            
+            // Update selected count
+            document.getElementById('selectedCount').textContent = selectedRosters.length;
+            
+            // Populate selected employees list
+            const listContainer = document.getElementById('selectedEmployeesList');
+            listContainer.innerHTML = '<ul class="list-group">' +
+                selectedRosters.map(roster => 
+                    `<li class="list-group-item py-2">
+                        <i class="fas fa-user mr-2"></i>${roster.employee_name}
+                    </li>`
+                ).join('') +
+                '</ul>';
+            
+            // Reset form
+            document.getElementById('balancingForm').reset();
+            document.getElementById('adjustment_sign').value = '+';
+            document.getElementById('previewSection').style.display = 'none';
+            
+            // Show modal
+            $('#balancingModal').modal('show');
+        }
+
+        // Update preview
+        function updatePreview() {
+            const adjustmentDays = parseInt(document.getElementById('adjustment_days').value);
+            const adjustmentSign = document.getElementById('adjustment_sign').value;
+            const effectiveDate = document.getElementById('effective_date').value;
+            
+            if (!adjustmentDays || adjustmentDays <= 0) {
+                document.getElementById('previewSection').style.display = 'none';
+                return;
+            }
+            
+            const finalAdjustment = adjustmentSign === '+' ? adjustmentDays : -adjustmentDays;
+            const rosterIds = selectedRosters.map(r => r.roster_id);
+            
+            // Show loading
+            document.getElementById('previewContent').innerHTML = '<div class="text-center"><i class="fas fa-spinner fa-spin"></i> Loading preview...</div>';
+            document.getElementById('previewSection').style.display = 'block';
+            
+            // Fetch preview
+            fetch('{{ route('rosters.balancing-preview') }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                },
+                body: JSON.stringify({
+                    roster_ids: rosterIds,
+                    adjustment_days: finalAdjustment,
+                    effective_date: effectiveDate || null
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    let previewHtml = '<div class="table-responsive"><table class="table table-sm table-bordered">';
+                    previewHtml += '<thead><tr><th>Employee</th><th>Current</th><th>Adjusted</th><th>Next Periodic Leave</th></tr></thead>';
+                    previewHtml += '<tbody>';
+                    
+                    data.data.forEach(item => {
+                        const nextLeaveDate = new Date(item.estimate.periodic_leave_start);
+                        previewHtml += `<tr>
+                            <td>${item.employee_name}</td>
+                            <td>${item.current_work_days} days</td>
+                            <td><strong>${item.adjusted_work_days} days</strong> <span class="badge badge-${item.adjustment_days > 0 ? 'success' : 'danger'}">${item.adjustment_days > 0 ? '+' : ''}${item.adjustment_days}</span></td>
+                            <td>${nextLeaveDate.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</td>
+                        </tr>`;
+                    });
+                    
+                    previewHtml += '</tbody></table></div>';
+                    document.getElementById('previewContent').innerHTML = previewHtml;
+                }
+            })
+            .catch(error => {
+                console.error('Preview error:', error);
+                document.getElementById('previewContent').innerHTML = '<div class="alert alert-danger">Failed to load preview</div>';
+            });
+        }
+
+        // Handle form submission
+        document.getElementById('balancingForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const adjustmentDays = parseInt(document.getElementById('adjustment_days').value);
+            const adjustmentSign = document.getElementById('adjustment_sign').value;
+            const effectiveDate = document.getElementById('effective_date').value;
+            const reason = document.getElementById('reason').value;
+            
+            if (!adjustmentDays || adjustmentDays <= 0) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Invalid Input',
+                    text: 'Please enter valid adjustment days',
+                    toast: true,
+                    position: 'top-end'
+                });
+                return;
+            }
+            
+            if (!reason.trim()) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Reason Required',
+                    text: 'Please enter reason for balancing',
+                    toast: true,
+                    position: 'top-end'
+                });
+                return;
+            }
+            
+            const finalAdjustment = adjustmentSign === '+' ? adjustmentDays : -adjustmentDays;
+            const rosterIds = selectedRosters.map(r => r.roster_id);
+            
+            // Show loading
+            const submitBtn = document.getElementById('applyBalancingBtn');
+            const originalText = submitBtn.innerHTML;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i>Applying...';
+            submitBtn.disabled = true;
+            
+            // Submit
+            fetch('{{ route('rosters.apply-balancing') }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                },
+                body: JSON.stringify({
+                    roster_ids: rosterIds,
+                    adjustment_days: finalAdjustment,
+                    reason: reason,
+                    effective_date: effectiveDate || null
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Success!',
+                        text: data.message,
+                        timer: 2000,
+                        showConfirmButton: false,
+                        toast: true,
+                        position: 'top-end'
+                    }).then(() => {
+                        $('#balancingModal').modal('hide');
+                        // Reload page to show updated data
+                        setTimeout(() => window.location.reload(), 500);
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error!',
+                        text: data.message || 'Failed to apply balancing',
+                        toast: true,
+                        position: 'top-end'
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error!',
+                    text: 'An error occurred while applying balancing',
+                    toast: true,
+                    position: 'top-end'
+                });
+            })
+            .finally(() => {
+                submitBtn.innerHTML = originalText;
+                submitBtn.disabled = false;
+            });
+        });
+
+        // Update selected rosters when checkbox changes
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('.employee-checkbox').forEach(checkbox => {
+                checkbox.addEventListener('change', function() {
+                    updateSelectedRosters();
+                    updateBalanceButton();
+                });
+            });
+        });
     </script>
 
     <!-- Import Modal -->

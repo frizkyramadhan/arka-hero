@@ -76,14 +76,44 @@ class Roster extends Model
 
     public function calculateActualWorkDays()
     {
-        $baseWorkDays = $this->getWorkDays();
+        return $this->getAdjustedWorkDays();
+    }
 
-        // Apply adjustments from leave requests
-        $adjustments = $this->rosterAdjustments()
+    /**
+     * Get adjusted work days (base work_days + net adjustment)
+     */
+    public function getAdjustedWorkDays()
+    {
+        $baseWorkDays = $this->getWorkDays();
+        $netAdjustment = $this->getNetAdjustment();
+        return max(0, $baseWorkDays + $netAdjustment);
+    }
+
+    /**
+     * Get net adjustment from all roster adjustments
+     */
+    public function getNetAdjustment()
+    {
+        $positive = $this->rosterAdjustments()
+            ->where('adjustment_type', '+days')
+            ->sum('adjusted_value');
+        
+        $negative = $this->rosterAdjustments()
             ->where('adjustment_type', '-days')
             ->sum('adjusted_value');
+        
+        return $positive - $negative;
+    }
 
-        return $baseWorkDays + $this->adjusted_days - $adjustments;
+    /**
+     * Get manual balancing adjustments only (exclude leave request adjustments)
+     */
+    public function getManualBalancingAdjustments()
+    {
+        return $this->rosterAdjustments()
+            ->whereNull('leave_request_id')
+            ->orderBy('created_at', 'desc')
+            ->get();
     }
 
     public function calculateActualOffDays()

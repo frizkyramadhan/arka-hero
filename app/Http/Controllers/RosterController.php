@@ -10,6 +10,7 @@ use App\Models\Administration;
 use App\Models\RosterDailyStatus;
 use App\Exports\RosterExport;
 use App\Imports\RosterImport;
+use App\Services\RosterBalancingService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Maatwebsite\Excel\Facades\Excel;
@@ -498,6 +499,116 @@ class RosterController extends Controller
                 'year' => $year,
                 'month' => $month
             ]
+        ]);
+    }
+
+    /**
+     * Apply balancing untuk selected rosters
+     */
+    public function applyBalancing(Request $request)
+    {
+        $request->validate([
+            'roster_ids' => 'required|array|min:1',
+            'roster_ids.*' => 'required|exists:rosters,id',
+            'adjustment_days' => 'required|integer|not_in:0',
+            'reason' => 'required|string|max:500',
+            'effective_date' => 'nullable|date'
+        ]);
+
+        try {
+            $service = app(RosterBalancingService::class);
+            $result = $service->applyBulkBalancing(
+                $request->roster_ids,
+                $request->adjustment_days,
+                $request->reason,
+                $request->effective_date
+            );
+
+            if ($result['success']) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Balancing applied successfully',
+                    'data' => $result
+                ]);
+            } else {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Some balancing failed',
+                    'data' => $result
+                ], 422);
+            }
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Get balancing preview untuk selected rosters
+     */
+    public function getBalancingPreview(Request $request)
+    {
+        $request->validate([
+            'roster_ids' => 'required|array|min:1',
+            'roster_ids.*' => 'required|exists:rosters,id',
+            'adjustment_days' => 'required|integer|not_in:0',
+            'effective_date' => 'nullable|date'
+        ]);
+
+        $service = app(RosterBalancingService::class);
+        $previews = [];
+
+        foreach ($request->roster_ids as $rosterId) {
+            $roster = Roster::with(['employee', 'administration.level'])->find($rosterId);
+            if (!$roster) continue;
+
+            $currentWorkDays = $roster->getWorkDays();
+            $adjustedWorkDays = $currentWorkDays + $request->adjustment_days;
+            $estimate = $service->estimateNextPeriodicLeave(
+                $roster,
+                $request->effective_date ? Carbon::parse($request->effective_date) : now()
+            );
+
+            $previews[] = [
+                'roster_id' => $rosterId,
+                'employee_name' => $roster->employee->fullname ?? 'N/A',
+                'current_work_days' => $currentWorkDays,
+                'adjusted_work_days' => max(0, $adjustedWorkDays),
+                'adjustment_days' => $request->adjustment_days,
+                'estimate' => $estimate
+            ];
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => $previews
+        ]);
+    }
+
+    /**
+     * Get balancing history untuk roster
+     */
+    public function getBalancingHistory($rosterId)
+    {
+        $roster = Roster::findOrFail($rosterId);
+        $service = app(RosterBalancingService::class);
+
+        $history = $service->getHistory($rosterId);
+
+        return response()->json([
+            'success' => true,
+            'data' => $history->map(function ($adj) {
+                return [
+                    'id' => $adj->id,
+                    'adjustment_type' => $adj->adjustment_type,
+                    'adjusted_value' => $adj->adjusted_value,
+                    'reason' => $adj->reason,
+                    'created_at' => $adj->created_at->format('Y-m-d H:i:s'),
+                    'description' => $adj->getAdjustmentDescription()
+                ];
+            })
         ]);
     }
 }
