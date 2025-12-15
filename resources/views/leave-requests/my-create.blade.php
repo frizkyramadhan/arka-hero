@@ -121,7 +121,17 @@
                                                 </div>
                                                 <input type="text" class="form-control float-right" id="leave_date"
                                                     placeholder="Select date range" required
-                                                    value="{{ old('start_date') && old('end_date') ? \Carbon\Carbon::parse(old('start_date'))->format('d/m/Y') . ' - ' . \Carbon\Carbon::parse(old('end_date'))->format('d/m/Y') : '' }}">
+                                                    value="@if (old('start_date') && old('end_date')) @php
+                                                        $start = old('start_date');
+                                                        $end = old('end_date');
+                                                        if (strpos($start, '/') === false) {
+                                                            try { $start = \Carbon\Carbon::parse($start)->format('d/m/Y'); } catch (\Exception $e) { $start = old('start_date'); }
+                                                        }
+                                                        if (strpos($end, '/') === false) {
+                                                            try { $end = \Carbon\Carbon::parse($end)->format('d/m/Y'); } catch (\Exception $e) { $end = old('end_date'); }
+                                                        }
+                                                        echo $start . ' - ' . $end;
+                                                    @endphp @endif">
                                                 <input type="hidden" name="start_date" id="start_date"
                                                     value="{{ old('start_date') }}">
                                                 <input type="hidden" name="end_date" id="end_date"
@@ -151,10 +161,27 @@
                                                         <i class="far fa-calendar-alt"></i>
                                                     </span>
                                                 </div>
-                                                <input type="text" name="back_to_work_date" id="back_to_work_date"
+                                                <input type="text" id="back_to_work_date"
                                                     class="form-control @error('back_to_work_date') is-invalid @enderror"
-                                                    value="{{ old('back_to_work_date') ? \Carbon\Carbon::parse(old('back_to_work_date'))->format('d/m/Y') : '' }}"
+                                                    value="@if (old('back_to_work_date')) @php
+                                                        $date = old('back_to_work_date');
+                                                        if (strpos($date, '/') === false) {
+                                                            try { $date = \Carbon\Carbon::parse($date)->format('d/m/Y'); } catch (\Exception $e) { $date = old('back_to_work_date'); }
+                                                        }
+                                                        echo $date;
+                                                    @endphp @endif"
                                                     placeholder="Select back to work date">
+                                                <input type="hidden" name="back_to_work_date"
+                                                    id="back_to_work_date_hidden"
+                                                    value="@if (old('back_to_work_date')) @php
+                                                        $date = old('back_to_work_date');
+                                                        if (strpos($date, '/') !== false) {
+                                                            try { $date = \Carbon\Carbon::createFromFormat('d/m/Y', $date)->format('Y-m-d'); } catch (\Exception $e) { $date = old('back_to_work_date'); }
+                                                        } else {
+                                                            try { $date = \Carbon\Carbon::parse($date)->format('Y-m-d'); } catch (\Exception $e) { $date = old('back_to_work_date'); }
+                                                        }
+                                                        echo $date;
+                                                    @endphp @endif">
                                             </div>
                                             @error('back_to_work_date')
                                                 <div class="invalid-feedback">{{ $message }}</div>
@@ -688,8 +715,10 @@
                     opens: 'left'
                 }).on('apply.daterangepicker', function(ev, picker) {
                     $(this).val(picker.startDate.format('DD/MM/YYYY'));
+                    $('#back_to_work_date_hidden').val(picker.startDate.format('YYYY-MM-DD'));
                 }).on('cancel.daterangepicker', function() {
                     $(this).val('');
+                    $('#back_to_work_date_hidden').val('');
                 });
             }
 
@@ -1337,7 +1366,7 @@
                     e.preventDefault();
                     alert(
                         'Total days must be greater than 0. Please select a date range or enter total days.'
-                        );
+                    );
                     return false;
                 }
 
