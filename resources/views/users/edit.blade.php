@@ -31,7 +31,7 @@
                             </div>
                             <div class="card-body">
                                 <div class="form-group">
-                                    <label for="name">Name</label>
+                                    <label for="name">Full Name</label>
                                     <input type="text" class="form-control @error('name') is-invalid @enderror"
                                         name="name" id="name" value="{{ old('name', $user->name) }}" required>
                                     @error('name')
@@ -39,9 +39,22 @@
                                     @enderror
                                 </div>
                                 <div class="form-group">
-                                    <label for="email">Email</label>
+                                    <label for="username">Username <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control @error('username') is-invalid @enderror"
+                                        name="username" id="username"
+                                        placeholder="Username (min 3 characters, letters, numbers, dashes, underscores)"
+                                        value="{{ old('username', $user->username) }}" required>
+                                    <small class="form-text text-muted">Username must be unique and can only contain
+                                        letters, numbers, dashes and underscores (min 3 characters)</small>
+                                    @error('username')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                    @enderror
+                                </div>
+                                <div class="form-group">
+                                    <label for="email">Email <small class="text-muted">(Optional)</small></label>
                                     <input type="email" class="form-control @error('email') is-invalid @enderror"
-                                        name="email" id="email" value="{{ old('email', $user->email) }}" required>
+                                        name="email" id="email" value="{{ old('email', $user->email) }}">
+                                    <small class="form-text text-muted">If provided, must end with @arka.co.id</small>
                                     @error('email')
                                         <div class="invalid-feedback">{{ $message }}</div>
                                     @enderror

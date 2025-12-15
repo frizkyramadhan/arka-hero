@@ -31,40 +31,45 @@
                             @method('PUT')
                             <div class="card-body">
                                 <div class="form-group">
-                                    <label for="name">Name</label>
-                                    <input type="text" 
-                                        class="form-control @error('name') is-invalid @enderror" 
-                                        name="name" 
-                                        id="name" 
-                                        value="{{ old('name', $user->name) }}" 
-                                        required>
+                                    <label for="name">Full Name</label>
+                                    <input type="text" class="form-control @error('name') is-invalid @enderror"
+                                        name="name" id="name" value="{{ old('name', $user->name) }}" required>
                                     @error('name')
                                         <div class="invalid-feedback">{{ $message }}</div>
                                     @enderror
                                 </div>
 
                                 <div class="form-group">
+                                    <label for="username">Username <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control @error('username') is-invalid @enderror"
+                                        name="username" id="username"
+                                        placeholder="Username (min 3 characters, letters, numbers, dashes, underscores)"
+                                        value="{{ old('username', $user->username) }}" required>
+                                    <small class="form-text text-muted">Username must be unique and can only contain
+                                        letters, numbers, dashes and underscores (min 3 characters)</small>
+                                    @error('username')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                    @enderror
+                                </div>
+
+                                <div class="form-group">
                                     <label for="email">Email</label>
-                                    <input type="email" 
-                                        class="form-control" 
-                                        name="email" 
-                                        id="email" 
-                                        value="{{ $user->email }}" 
-                                        disabled>
+                                    <input type="email" class="form-control" name="email" id="email"
+                                        value="{{ $user->email }}" disabled>
                                     <small class="form-text text-muted">Email cannot be changed</small>
                                 </div>
 
                                 <hr>
 
                                 <h5 class="mb-3"><i class="fas fa-key"></i> Change Password</h5>
-                                <p class="text-muted">Leave password fields blank if you don't want to change your password.</p>
+                                <p class="text-muted">Leave password fields blank if you don't want to change your password.
+                                </p>
 
                                 <div class="form-group">
                                     <label for="current_password">Current Password</label>
-                                    <input type="password" 
-                                        class="form-control @error('current_password') is-invalid @enderror" 
-                                        name="current_password" 
-                                        id="current_password">
+                                    <input type="password"
+                                        class="form-control @error('current_password') is-invalid @enderror"
+                                        name="current_password" id="current_password">
                                     @error('current_password')
                                         <div class="invalid-feedback">{{ $message }}</div>
                                     @enderror
@@ -72,10 +77,8 @@
 
                                 <div class="form-group">
                                     <label for="password">New Password</label>
-                                    <input type="password" 
-                                        class="form-control @error('password') is-invalid @enderror" 
-                                        name="password" 
-                                        id="password">
+                                    <input type="password" class="form-control @error('password') is-invalid @enderror"
+                                        name="password" id="password">
                                     @error('password')
                                         <div class="invalid-feedback">{{ $message }}</div>
                                     @enderror
@@ -84,9 +87,7 @@
 
                                 <div class="form-group">
                                     <label for="password_confirmation">Confirm New Password</label>
-                                    <input type="password" 
-                                        class="form-control" 
-                                        name="password_confirmation" 
+                                    <input type="password" class="form-control" name="password_confirmation"
                                         id="password_confirmation">
                                 </div>
                             </div>
@@ -113,27 +114,42 @@
                                 <dt class="col-sm-4">Name</dt>
                                 <dd class="col-sm-8">{{ $user->name }}</dd>
 
+                                <dt class="col-sm-4">Username</dt>
+                                <dd class="col-sm-8">
+                                    @if ($user->username)
+                                        {{ $user->username }}
+                                    @else
+                                        <span class="text-muted">Not set</span>
+                                    @endif
+                                </dd>
+
                                 <dt class="col-sm-4">Email</dt>
-                                <dd class="col-sm-8">{{ $user->email }}</dd>
+                                <dd class="col-sm-8">
+                                    @if ($user->email)
+                                        {{ $user->email }}
+                                    @else
+                                        <span class="text-muted">Not set</span>
+                                    @endif
+                                </dd>
 
                                 <dt class="col-sm-4">Status</dt>
                                 <dd class="col-sm-8">
-                                    @if($user->user_status)
+                                    @if ($user->user_status)
                                         <span class="badge badge-success">Active</span>
                                     @else
                                         <span class="badge badge-danger">Inactive</span>
                                     @endif
                                 </dd>
 
-                                @if($user->employee)
+                                @if ($user->employee)
                                     <dt class="col-sm-4">Employee</dt>
                                     <dd class="col-sm-8">{{ $user->employee->fullname ?? 'N/A' }}</dd>
                                 @endif
 
                                 <dt class="col-sm-4">Roles</dt>
                                 <dd class="col-sm-8">
-                                    @if($user->roles->count() > 0)
-                                        @foreach($user->roles as $role)
+                                    @if ($user->roles->count() > 0)
+                                        @foreach ($user->roles as $role)
                                             <span class="badge badge-info">{{ $role->name }}</span>
                                         @endforeach
                                     @else
@@ -151,4 +167,3 @@
         </div>
     </section>
 @endsection
-

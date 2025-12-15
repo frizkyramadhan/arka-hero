@@ -8,6 +8,7 @@ use App\Models\Project;
 use Illuminate\Http\Request;
 use App\Models\Administration;
 use App\Models\RosterDailyStatus;
+use App\Models\RosterAdjustment;
 use App\Exports\RosterExport;
 use App\Imports\RosterImport;
 use App\Services\RosterBalancingService;
@@ -610,5 +611,73 @@ class RosterController extends Controller
                 ];
             })
         ]);
+    }
+
+    /**
+     * Display list of rosters with adjustments
+     */
+    public function adjustments(Request $request)
+    {
+        $title = 'Roster Adjustments';
+        
+        // Get all rosters that have manual balancing adjustments
+        $query = Roster::with(['administration.employee', 'administration.project', 'administration.position.department'])
+            ->whereHas('rosterAdjustments', function ($q) {
+                $q->whereNull('leave_request_id'); // Only manual balancing
+            })
+            ->where('is_active', 1);
+
+        // Filter by project if provided
+        if ($request->filled('project_id')) {
+            $query->whereHas('administration', function ($q) use ($request) {
+                $q->where('project_id', $request->project_id);
+            });
+        }
+
+        // Filter by year/month if provided
+        if ($request->filled('year') && $request->filled('month')) {
+            $year = $request->year;
+            $month = $request->month;
+            $startDate = Carbon::create($year, $month, 1)->startOfDay();
+            $endDate = $startDate->copy()->endOfMonth();
+            
+            $query->whereHas('rosterAdjustments', function ($q) use ($startDate, $endDate) {
+                $q->whereNull('leave_request_id')
+                  ->whereBetween('effective_date', [$startDate, $endDate]);
+            });
+        }
+
+        $rosters = $query->get()->map(function ($roster) {
+            $adjustments = $roster->rosterAdjustments()
+                ->whereNull('leave_request_id')
+                ->orderBy('created_at', 'desc')
+                ->get();
+            
+            $netAdjustment = $roster->getNetAdjustment();
+            $adjustedWorkDays = $roster->getAdjustedWorkDays();
+            
+            return [
+                'roster' => $roster,
+                'employee' => $roster->administration->employee ?? null,
+                'project' => $roster->administration->project ?? null,
+                'department' => $roster->administration->position->department ?? null,
+                'adjustments' => $adjustments,
+                'net_adjustment' => $netAdjustment,
+                'adjusted_work_days' => $adjustedWorkDays,
+                'base_work_days' => $roster->getWorkDays(),
+                'last_adjustment_date' => $adjustments->first()->created_at ?? null,
+            ];
+        });
+
+        $projects = Project::where('leave_type', 'roster')
+            ->where('project_status', 1)
+            ->orderBy('project_code')
+            ->get();
+
+        return view('rosters.adjustments', compact(
+            'title',
+            'rosters',
+            'projects'
+        ));
     }
 }

@@ -22,12 +22,19 @@ class RegisterController extends Controller
     {
         $validatedData = $request->validate([
             'name' => 'required',
-            'email' => 'required|email:dns|unique:users|ends_with:@arka.co.id',
+            'username' => 'required|unique:users|alpha_dash|min:3|max:255',
+            'email' => 'nullable|email:dns|unique:users|ends_with:@arka.co.id',
             'password' => 'required|min:5',
             'user_status' => 'required',
         ], [
             'name.required' => 'Name is required',
-            'email.required' => 'Email is required',
+            'username.required' => 'Username is required',
+            'username.unique' => 'Username already exists',
+            'username.alpha_dash' => 'Username can only contain letters, numbers, dashes and underscores',
+            'username.min' => 'Username must be at least 3 characters',
+            'email.email' => 'Email must be a valid email address',
+            'email.unique' => 'Email already exists',
+            'email.ends_with' => 'Email must end with @arka.co.id',
             'password.required' => 'Password is required'
         ]);
 

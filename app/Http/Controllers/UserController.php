@@ -213,7 +213,8 @@ class UserController extends Controller
         try {
             $this->validate($request, [
                 'name' => 'required',
-                'email' => 'required|email:dns|unique:users|ends_with:@arka.co.id',
+                'username' => 'required|unique:users|alpha_dash|min:3|max:255',
+                'email' => 'nullable|email:dns|unique:users|ends_with:@arka.co.id',
                 'password' => 'required|min:5',
                 'user_status' => 'required',
                 'employee_id' => 'nullable|exists:employees,id|unique:users,employee_id',
@@ -222,7 +223,11 @@ class UserController extends Controller
                 'departments' => 'nullable|array',
             ], [
                 'name.required' => 'Name is required',
-                'email.required' => 'Email is required',
+                'username.required' => 'Username is required',
+                'username.unique' => 'Username already exists',
+                'username.alpha_dash' => 'Username can only contain letters, numbers, dashes and underscores',
+                'username.min' => 'Username must be at least 3 characters',
+                'email.email' => 'Email must be a valid email address',
                 'email.unique' => 'Email already exists',
                 'email.ends_with' => 'Email must end with @arka.co.id',
                 'password.required' => 'Password is required',
@@ -246,6 +251,7 @@ class UserController extends Controller
 
             $user = User::create([
                 'name' => $request->name,
+                'username' => $request->username,
                 'email' => $request->email,
                 'password' => Hash::make($request->password),
                 'employee_id' => $request->employee_id,
@@ -255,7 +261,7 @@ class UserController extends Controller
             // Ensure 'user' role is always assigned
             $roles = $request->roles;
             $userRole = Role::firstOrCreate(['name' => 'user']);
-            
+
             // Check if user role is already in the roles array (by ID or name)
             $hasUserRole = false;
             foreach ($roles as $role) {
@@ -264,7 +270,7 @@ class UserController extends Controller
                     break;
                 }
             }
-            
+
             // Add user role if not already present
             if (!$hasUserRole) {
                 // Check if roles array contains IDs or names
@@ -357,7 +363,8 @@ class UserController extends Controller
         try {
             $this->validate($request, [
                 'name' => 'required',
-                'email' => 'required|email:dns|ends_with:@arka.co.id|unique:users,email,' . $id,
+                'username' => 'required|alpha_dash|min:3|max:255|unique:users,username,' . $id,
+                'email' => 'nullable|email:dns|ends_with:@arka.co.id|unique:users,email,' . $id,
                 'employee_id' => 'nullable|exists:employees,id|unique:users,employee_id,' . $id,
                 'user_status' => 'required',
                 'roles' => 'required|array|min:1',
@@ -366,7 +373,11 @@ class UserController extends Controller
                 'departments' => 'nullable|array',
             ], [
                 'name.required' => 'Name is required',
-                'email.required' => 'Email is required',
+                'username.required' => 'Username is required',
+                'username.unique' => 'Username already exists',
+                'username.alpha_dash' => 'Username can only contain letters, numbers, dashes and underscores',
+                'username.min' => 'Username must be at least 3 characters',
+                'email.email' => 'Email must be a valid email address',
                 'email.unique' => 'Email already exists',
                 'email.ends_with' => 'Email must end with @arka.co.id',
                 'employee_id.exists' => 'Selected employee does not exist',

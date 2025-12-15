@@ -159,6 +159,11 @@
                                         @endif
                                     </h5>
                                     <div class="card-tools">
+                                        <a href="{{ route('rosters.adjustments') }}" 
+                                           class="btn btn-info btn-sm mr-2"
+                                           title="View All Roster Adjustments">
+                                            <i class="fas fa-list mr-1"></i> View Adjustments
+                                        </a>
                                         <button class="btn btn-danger btn-sm mr-2" onclick="clearRoster()">
                                             <i class="fas fa-trash mr-1"></i> Clear Roster
                                         </button>

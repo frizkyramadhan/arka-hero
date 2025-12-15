@@ -1195,6 +1195,14 @@ class ProfileController extends Controller
         $messages['name.required'] = 'Name is required';
         $messages['name.max'] = 'Name must not exceed 255 characters';
 
+        // Always validate username
+        $rules['username'] = ['required', 'alpha_dash', 'min:3', 'max:255', 'unique:users,username,' . $user->id];
+        $messages['username.required'] = 'Username is required';
+        $messages['username.unique'] = 'Username already exists';
+        $messages['username.alpha_dash'] = 'Username can only contain letters, numbers, dashes and underscores';
+        $messages['username.min'] = 'Username must be at least 3 characters';
+        $messages['username.max'] = 'Username must not exceed 255 characters';
+
         // Validate password only if provided
         if ($request->filled('password') || $request->filled('current_password')) {
             $rules['current_password'] = ['required'];
@@ -1210,6 +1218,9 @@ class ProfileController extends Controller
         // Update name
         $user->name = $request->name;
 
+        // Update username
+        $user->username = $request->username;
+
         // Update password if provided
         if ($request->filled('password')) {
             if (!Hash::check($request->current_password, $user->password)) {
@@ -1222,9 +1233,9 @@ class ProfileController extends Controller
 
         $message = 'Profile updated successfully';
         if ($request->filled('password')) {
-            $message = 'Name and password updated successfully';
+            $message = 'Name, username and password updated successfully';
         } else {
-            $message = 'Name updated successfully';
+            $message = 'Name and username updated successfully';
         }
 
         return redirect()->route('profile.change-password')->with('toast_success', $message);

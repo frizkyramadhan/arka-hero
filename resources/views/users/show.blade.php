@@ -31,8 +31,23 @@
                                 <dt class="col-sm-3">Name</dt>
                                 <dd class="col-sm-9">{{ $user->name }}</dd>
 
+                                <dt class="col-sm-3">Username</dt>
+                                <dd class="col-sm-9">
+                                    @if ($user->username)
+                                        {{ $user->username }}
+                                    @else
+                                        <span class="text-muted">Not set</span>
+                                    @endif
+                                </dd>
+
                                 <dt class="col-sm-3">Email</dt>
-                                <dd class="col-sm-9">{{ $user->email }}</dd>
+                                <dd class="col-sm-9">
+                                    @if ($user->email)
+                                        {{ $user->email }}
+                                    @else
+                                        <span class="text-muted">Not set</span>
+                                    @endif
+                                </dd>
 
                                 <dt class="col-sm-3">Employee</dt>
                                 <dd class="col-sm-9">
