@@ -269,6 +269,29 @@ class LeaveRequestController extends Controller
             $request->merge(['employee_id' => $user->employee_id]);
         }
 
+        // Convert date format from dd/mm/yyyy to Y-m-d if needed
+        if ($request->has('start_date') && strpos($request->start_date, '/') !== false) {
+            try {
+                $request->merge(['start_date' => \Carbon\Carbon::createFromFormat('d/m/Y', $request->start_date)->format('Y-m-d')]);
+            } catch (\Exception $e) {
+                // If parsing fails, let validation handle it
+            }
+        }
+        if ($request->has('end_date') && strpos($request->end_date, '/') !== false) {
+            try {
+                $request->merge(['end_date' => \Carbon\Carbon::createFromFormat('d/m/Y', $request->end_date)->format('Y-m-d')]);
+            } catch (\Exception $e) {
+                // If parsing fails, let validation handle it
+            }
+        }
+        if ($request->has('back_to_work_date') && $request->back_to_work_date && strpos($request->back_to_work_date, '/') !== false) {
+            try {
+                $request->merge(['back_to_work_date' => \Carbon\Carbon::createFromFormat('d/m/Y', $request->back_to_work_date)->format('Y-m-d')]);
+            } catch (\Exception $e) {
+                // If parsing fails, let validation handle it
+            }
+        }
+
         // Get leave type to determine if reason is required
         $leaveType = LeaveType::find($request->leave_type_id);
         $isUnpaidLeave = $leaveType && (
@@ -649,6 +672,29 @@ class LeaveRequestController extends Controller
 
             // Force employee_id to current user's employee_id to prevent tampering
             $request->merge(['employee_id' => $user->employee_id]);
+        }
+
+        // Convert date format from dd/mm/yyyy to Y-m-d if needed
+        if ($request->has('start_date') && strpos($request->start_date, '/') !== false) {
+            try {
+                $request->merge(['start_date' => \Carbon\Carbon::createFromFormat('d/m/Y', $request->start_date)->format('Y-m-d')]);
+            } catch (\Exception $e) {
+                // If parsing fails, let validation handle it
+            }
+        }
+        if ($request->has('end_date') && strpos($request->end_date, '/') !== false) {
+            try {
+                $request->merge(['end_date' => \Carbon\Carbon::createFromFormat('d/m/Y', $request->end_date)->format('Y-m-d')]);
+            } catch (\Exception $e) {
+                // If parsing fails, let validation handle it
+            }
+        }
+        if ($request->has('back_to_work_date') && $request->back_to_work_date && strpos($request->back_to_work_date, '/') !== false) {
+            try {
+                $request->merge(['back_to_work_date' => \Carbon\Carbon::createFromFormat('d/m/Y', $request->back_to_work_date)->format('Y-m-d')]);
+            } catch (\Exception $e) {
+                // If parsing fails, let validation handle it
+            }
         }
 
         // if (!$leaveRequest->canBeCancelled()) {
