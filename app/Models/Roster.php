@@ -56,22 +56,34 @@ class Roster extends Model
     // Business Logic Methods - Updated to use level directly
     public function getWorkDays()
     {
+        if (!$this->administration || !$this->administration->level) {
+            return 0;
+        }
         return $this->administration->level->getWorkDays() ?? 0;
     }
 
     public function getOffDays()
     {
+        if (!$this->administration || !$this->administration->level) {
+            return 14;
+        }
         return $this->administration->level->getOffDays() ?? 14;
     }
 
     public function getCycleLength()
     {
+        if (!$this->administration || !$this->administration->level) {
+            return 0;
+        }
         return $this->administration->level->getCycleLength() ?? 0;
     }
 
     public function getRosterPattern()
     {
-        return $this->administration->level->getRosterPattern();
+        if (!$this->administration || !$this->administration->level) {
+            return 'N/A';
+        }
+        return $this->administration->level->getRosterPattern() ?? 'N/A';
     }
 
     public function calculateActualWorkDays()
@@ -97,11 +109,11 @@ class Roster extends Model
         $positive = $this->rosterAdjustments()
             ->where('adjustment_type', '+days')
             ->sum('adjusted_value');
-        
+
         $negative = $this->rosterAdjustments()
             ->where('adjustment_type', '-days')
             ->sum('adjusted_value');
-        
+
         return $positive - $negative;
     }
 

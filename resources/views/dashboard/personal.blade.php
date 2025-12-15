@@ -55,6 +55,34 @@
                 </div>
             </div>
 
+            <!-- Username Reminder Alert -->
+            @if (empty(auth()->user()->username) || is_null(auth()->user()->username))
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <div class="alert alert-warning alert-dismissible fade show shadow-sm" role="alert">
+                            <div class="d-flex align-items-center">
+                                <div class="flex-grow-1">
+                                    <h5 class="alert-heading mb-2">
+                                        <i class="fas fa-exclamation-triangle mr-2"></i>
+                                        Username Belum Diisi
+                                    </h5>
+                                    <p class="mb-2">
+                                        Silakan lengkapi username Anda di halaman <strong>Change Password</strong> untuk
+                                        keamanan akun yang lebih baik. Username digunakan untuk login selain email.
+                                    </p>
+                                    <a href="{{ route('profile.change-password') }}" class="btn btn-warning btn-sm">
+                                        <i class="fas fa-key mr-1"></i> Isi Username Sekarang
+                                    </a>
+                                </div>
+                                <button type="button" class="close ml-3" data-dismiss="alert" aria-label="Close">
+                                    <span aria-hidden="true">&times;</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            @endif
+
             <!-- Statistics Cards -->
             <div class="row mb-4">
                 <!-- Leave Requests -->
@@ -159,7 +187,8 @@
                                     </div>
                                 </div>
                             </div>
-                            <a href="{{ route('recruitment.my-requests') }}" class="btn btn-sm btn-warning btn-block mt-3">
+                            <a href="{{ route('recruitment.my-requests') }}"
+                                class="btn btn-sm btn-warning btn-block mt-3">
                                 View Details <i class="fas fa-arrow-right ml-1"></i>
                             </a>
                         </div>

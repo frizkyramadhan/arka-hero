@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Roster;
 use App\Models\RosterAdjustment;
+use App\Models\RosterDailyStatus;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -21,19 +22,30 @@ class RosterBalancingService
             throw new \InvalidArgumentException('Adjustment days cannot be zero');
         }
         
-        // Create adjustment record
-        $adjustment = RosterAdjustment::create([
-            'roster_id' => $rosterId,
-            'leave_request_id' => null, // Manual balancing
-            'adjustment_type' => $days > 0 ? '+days' : '-days',
-            'adjusted_value' => abs($days),
-            'reason' => "Manual balancing: {$reason}",
-        ]);
-        
-        // Update roster adjusted_days
-        $roster->updateAdjustedDays();
-        
-        return $adjustment;
+        DB::beginTransaction();
+        try {
+            // Create adjustment record
+            $adjustment = RosterAdjustment::create([
+                'roster_id' => $rosterId,
+                'leave_request_id' => null, // Manual balancing
+                'adjustment_type' => $days > 0 ? '+days' : '-days',
+                'adjusted_value' => abs($days),
+                'reason' => "Manual balancing: {$reason}",
+                'effective_date' => $effectiveDate ? Carbon::parse($effectiveDate) : Carbon::now(),
+            ]);
+            
+            // Update roster adjusted_days
+            $roster->updateAdjustedDays();
+            
+            // Shift periodic leave dates in roster_daily_status
+            $this->shiftPeriodicLeaveDates($roster, $days, $effectiveDate);
+            
+            DB::commit();
+            return $adjustment;
+        } catch (\Exception $e) {
+            DB::rollBack();
+            throw $e;
+        }
     }
     
     /**
@@ -103,6 +115,136 @@ class RosterBalancingService
             ->whereNull('leave_request_id') // Hanya manual balancing
             ->orderBy('created_at', 'desc')
             ->get();
+    }
+    
+    /**
+     * Shift periodic leave dates in roster_daily_status
+     * Menggeser semua status 'C' (Periodic Leave) sesuai dengan adjustment days
+     */
+    protected function shiftPeriodicLeaveDates(Roster $roster, $days, $effectiveDate = null)
+    {
+        $effectiveDate = $effectiveDate ? Carbon::parse($effectiveDate)->startOfDay() : Carbon::now()->startOfDay();
+        
+        // Cari semua status 'C' yang >= effective_date
+        // Kita akan geser semua status 'C' yang berurutan pertama yang ditemukan
+        $leaveDates = RosterDailyStatus::where('roster_id', $roster->id)
+            ->where('status_code', 'C')
+            ->where('date', '>=', $effectiveDate)
+            ->orderBy('date', 'asc')
+            ->get();
+        
+        if ($leaveDates->isEmpty()) {
+            return; // Tidak ada cuti untuk digeser
+        }
+        
+        // Cari semua status 'C' yang berurutan mulai dari tanggal pertama
+        $consecutiveLeaveDates = [];
+        $expectedDate = null;
+        
+        foreach ($leaveDates as $leaveDate) {
+            $leaveDateCarbon = Carbon::parse($leaveDate->date)->startOfDay();
+            
+            if (empty($consecutiveLeaveDates)) {
+                // Ini adalah tanggal pertama
+                $consecutiveLeaveDates[] = $leaveDate;
+                $expectedDate = $leaveDateCarbon->copy()->addDay();
+            } elseif ($leaveDateCarbon->equalTo($expectedDate)) {
+                // Tanggal ini berurutan dengan tanggal sebelumnya
+                $consecutiveLeaveDates[] = $leaveDate;
+                $expectedDate->addDay();
+            } else {
+                // Tidak berurutan, stop (hanya geser cuti yang berurutan pertama)
+                break;
+            }
+        }
+        
+        if (empty($consecutiveLeaveDates)) {
+            return;
+        }
+        
+        // Geser semua status 'C' yang berurutan
+        foreach ($consecutiveLeaveDates as $leaveDate) {
+            $oldDate = Carbon::parse($leaveDate->date)->startOfDay();
+            $newDate = $oldDate->copy()->addDays($days);
+            
+            // Simpan notes lama jika ada
+            $oldNotes = $leaveDate->notes;
+            
+            // Hapus status lama
+            RosterDailyStatus::where('roster_id', $roster->id)
+                ->where('date', $oldDate->format('Y-m-d'))
+                ->delete();
+            
+            // Buat status baru di tanggal yang baru
+            $newNotes = $oldNotes 
+                ? "Shifted from {$oldDate->format('Y-m-d')}: {$oldNotes}" 
+                : "Shifted from {$oldDate->format('Y-m-d')}";
+            
+            RosterDailyStatus::updateOrCreate(
+                [
+                    'roster_id' => $roster->id,
+                    'date' => $newDate->format('Y-m-d')
+                ],
+                [
+                    'status_code' => 'C',
+                    'notes' => $newNotes
+                ]
+            );
+            
+            // Jika days > 0 (cuti diundur), ubah tanggal-tanggal yang di antara menjadi 'D'
+            if ($days > 0) {
+                $tempDate = $oldDate->copy()->addDay();
+                while ($tempDate->lt($newDate)) {
+                    // Cek apakah tanggal ini sudah ada status lain
+                    $existingStatus = RosterDailyStatus::where('roster_id', $roster->id)
+                        ->where('date', $tempDate->format('Y-m-d'))
+                        ->first();
+                    
+                    // Hanya update jika tidak ada status atau status adalah 'C' (yang sudah dihapus)
+                    if (!$existingStatus || $existingStatus->status_code === 'C') {
+                        // Update atau create status 'D' untuk hari kerja tambahan
+                        RosterDailyStatus::updateOrCreate(
+                            [
+                                'roster_id' => $roster->id,
+                                'date' => $tempDate->format('Y-m-d')
+                            ],
+                            [
+                                'status_code' => 'D',
+                                'notes' => 'Work day added due to leave adjustment'
+                            ]
+                        );
+                    }
+                    
+                    $tempDate->addDay();
+                }
+            } elseif ($days < 0) {
+                // Jika days < 0 (cuti dimajukan), tanggal-tanggal yang di antara perlu diubah menjadi 'D'
+                // karena cuti sudah dipindah ke tanggal yang lebih awal
+                $tempDate = $newDate->copy()->addDays(abs($days));
+                $endDate = $oldDate->copy();
+                
+                while ($tempDate->lt($endDate)) {
+                    $existingStatus = RosterDailyStatus::where('roster_id', $roster->id)
+                        ->where('date', $tempDate->format('Y-m-d'))
+                        ->first();
+                    
+                    if (!$existingStatus || $existingStatus->status_code === 'C') {
+                        RosterDailyStatus::updateOrCreate(
+                            [
+                                'roster_id' => $roster->id,
+                                'date' => $tempDate->format('Y-m-d')
+                            ],
+                            [
+                                'status_code' => 'D',
+                                'notes' => 'Work day added due to leave adjustment'
+                            ]
+                        );
+                    }
+                    
+                    $tempDate->addDay();
+                }
+            }
+        }
     }
 }
 

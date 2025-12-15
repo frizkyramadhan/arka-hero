@@ -741,6 +741,7 @@ Route::group(['middleware' => ['auth']], function () {
         Route::post('/clear', [RosterController::class, 'clearRoster'])->name('clear');
         Route::post('/apply-balancing', [RosterController::class, 'applyBalancing'])->name('apply-balancing');
         Route::post('/balancing-preview', [RosterController::class, 'getBalancingPreview'])->name('balancing-preview');
+        Route::get('/adjustments', [RosterController::class, 'adjustments'])->name('adjustments');
         Route::get('/{roster}/balancing-history', [RosterController::class, 'getBalancingHistory'])->name('balancing-history');
     });
 });

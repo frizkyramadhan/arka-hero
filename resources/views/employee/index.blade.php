@@ -365,6 +365,9 @@
     <!-- Page specific script -->
     <script>
         $(function() {
+            // Variable to store pending AJAX request
+            var xhr = null;
+            
             var table = $("#example1").DataTable({
                 responsive: true,
                 autoWidth: true,
@@ -379,8 +382,10 @@
                 buttons: ["copy", "csv", "excel", "pdf", "print", "colvis"],
                 processing: true,
                 serverSide: true,
+                searchDelay: 500, // Add delay for search input to prevent rapid requests
                 ajax: {
                     url: "{{ route('employees.data') }}",
+                    type: 'GET',
                     data: function(d) {
                         d.date1 = $('#date1').val(), d.date2 = $('#date2').val(), d.nik = $('#nik')
                             .val(), d.fullname = $('#fullname').val(), d.poh = $('#poh').val(), d
@@ -389,6 +394,26 @@
                             .grade_id = $('#grade_id').val(), d.level_id = $('#level_id').val(), d
                             .class = $('#class').val(), d.status = $('#status').val(), d.search = $(
                                 "input[type=search][aria-controls=example1]").val()
+                    },
+                    beforeSend: function(jqXHR, settings) {
+                        // Cancel previous pending request
+                        if (xhr && xhr.readyState !== 4) {
+                            xhr.abort();
+                        }
+                        // Store current request
+                        xhr = jqXHR;
+                    },
+                    error: function(xhr, error, thrown) {
+                        // Suppress error if request was aborted
+                        if (xhr.statusText === 'abort') {
+                            return;
+                        }
+                        // Handle other errors silently to prevent DataTables warning
+                        console.error('DataTables Ajax Error:', error);
+                    },
+                    complete: function() {
+                        // Clear xhr reference when request completes
+                        xhr = null;
                     }
                 },
                 columns: [{
@@ -439,12 +464,25 @@
                 }],
                 fixedColumns: true,
             })
+            
+            // Debounce function to prevent rapid requests
+            var debounceTimer = null;
+            function debounceDraw(callback, delay) {
+                clearTimeout(debounceTimer);
+                debounceTimer = setTimeout(callback, delay);
+            }
+            
+            // Apply debouncing to text inputs (keyup events)
             $('#date1, #date2, #nik, #fullname, #poh, #department_name, #position_name, #project_code, #class, #grade_id, #level_id')
-                .keyup(function() {
-                    table.draw();
+                .on('keyup', function() {
+                    debounceDraw(function() {
+                        table.draw();
+                    }, 500); // 500ms delay
                 });
+            
+            // Immediate draw for select changes (no debounce needed)
             $('#date1, #date2, #department_name, #position_name, #project_code, #class, #grade_id, #level_id, #status')
-                .change(function() {
+                .on('change', function() {
                     table.draw();
                 });
             $('#btn-reset').click(function() {

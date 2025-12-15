@@ -20,18 +20,113 @@ class AuthController extends Controller
     public function postLogin(Request $request)
     {
         $validatedData = $request->validate([
-            'email' => 'required|ends_with:@arka.co.id',
+            'login' => 'required', // Can be email or username
             'password' => 'required|min:5',
         ], [
-            'email.required' => 'Email is required',
+            'login.required' => 'Email or username is required',
             'password.required' => 'Password is required'
         ]);
-        if (Auth::attempt(['email' => $validatedData['email'], 'password' => $validatedData['password'], 'user_status' => 1])) {
+
+        // Determine if login is email or username
+        $loginField = filter_var($validatedData['login'], FILTER_VALIDATE_EMAIL) ? 'email' : 'username';
+
+        // If email, validate it ends with @arka.co.id
+        if ($loginField === 'email' && !str_ends_with($validatedData['login'], '@arka.co.id')) {
+            return back()->with('errors', 'Email must end with @arka.co.id');
+        }
+
+        // Attempt authentication
+        $credentials = [
+            $loginField => $validatedData['login'],
+            'password' => $validatedData['password'],
+            'user_status' => 1
+        ];
+
+        if (Auth::attempt($credentials)) {
             $request->session()->regenerate();
             return redirect()->intended('/');
         } else {
             return back()->with('errors', 'Login failed!');
         }
+    }
+
+    public function apiLogin(Request $request)
+    {
+        $validatedData = $request->validate([
+            'login' => 'required', // Can be email or username
+            'password' => 'required|min:5',
+        ], [
+            'login.required' => 'Email or username is required',
+            'password.required' => 'Password is required'
+        ]);
+
+        // Determine if login is email or username
+        $loginField = filter_var($validatedData['login'], FILTER_VALIDATE_EMAIL) ? 'email' : 'username';
+
+        // If email, validate it ends with @arka.co.id
+        if ($loginField === 'email' && !str_ends_with($validatedData['login'], '@arka.co.id')) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Email must end with @arka.co.id'
+            ], 422);
+        }
+
+        // Attempt authentication
+        $credentials = [
+            $loginField => $validatedData['login'],
+            'password' => $validatedData['password'],
+            'user_status' => 1
+        ];
+
+        if (Auth::attempt($credentials)) {
+            $user = Auth::user();
+            $token = $user->createToken('auth-token')->plainTextToken;
+
+            return response()->json([
+                'status' => 'success',
+                'data' => [
+                    'user' => [
+                        'id' => $user->id,
+                        'name' => $user->name,
+                        'email' => $user->email,
+                        'username' => $user->username,
+                    ],
+                    'token' => $token
+                ]
+            ]);
+        } else {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Invalid credentials'
+            ], 401);
+        }
+    }
+
+    public function apiLogout(Request $request)
+    {
+        $user = $request->user();
+        $tokenId = $user->currentAccessToken()?->id;
+        if ($tokenId) {
+            $user->tokens()->where('id', $tokenId)->delete();
+        }
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Logged out successfully'
+        ]);
+    }
+
+    public function apiUser(Request $request)
+    {
+        $user = $request->user();
+        return response()->json([
+            'status' => 'success',
+            'data' => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+                'username' => $user->username,
+            ]
+        ]);
     }
 
     public function logout()
