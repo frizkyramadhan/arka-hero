@@ -201,7 +201,7 @@
                                 <table class="table table-striped">
                                     <thead>
                                         <tr>
-                                            <th class="align-middle">FPTK Number</th>
+                                            <th class="align-middle">FPTK/MPP Number</th>
                                             <th class="align-middle">Position</th>
                                             <th class="align-middle">Candidate</th>
                                             <th class="align-middle">Stage</th>
@@ -214,9 +214,23 @@
                                         @forelse($recentSessions as $session)
                                             <tr>
                                                 <td>
-                                                    <strong>{{ $session->fptk->request_number ?? 'N/A' }}</strong>
+                                                    @if ($session->fptk_id)
+                                                        <strong>{{ $session->fptk->request_number ?? 'N/A' }}</strong>
+                                                    @elseif ($session->mpp_detail_id)
+                                                        <strong>{{ $session->mppDetail->mpp->mpp_number ?? 'N/A' }}</strong>
+                                                    @else
+                                                        <strong>N/A</strong>
+                                                    @endif
                                                 </td>
-                                                <td>{{ $session->fptk->position->position_name ?? 'N/A' }}</td>
+                                                <td>
+                                                    @if ($session->fptk_id)
+                                                        {{ $session->fptk->position->position_name ?? 'N/A' }}
+                                                    @elseif ($session->mpp_detail_id)
+                                                        {{ $session->mppDetail->position->position_name ?? 'N/A' }}
+                                                    @else
+                                                        N/A
+                                                    @endif
+                                                </td>
                                                 <td>{{ $session->candidate->fullname ?? 'N/A' }}</td>
                                                 <td>
                                                     @php

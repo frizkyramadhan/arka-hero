@@ -47,6 +47,15 @@ class Level extends Model
         return $this->work_days;
     }
 
+    public function getCycleLength()
+    {
+        // Use stored cycle_length if available, otherwise calculate it
+        if (!is_null($this->cycle_length)) {
+            return $this->cycle_length;
+        }
+        return $this->getTotalCycleDays();
+    }
+
     public function getTotalCycleDays()
     {
         return $this->work_days + $this->getOffDays();
@@ -55,13 +64,29 @@ class Level extends Model
     public function getRosterPattern()
     {
         if (!$this->work_days) {
-            return null; // Level tidak punya roster config
+            return null; // Level tidak punya roster cycle
         }
 
         $workWeeks = $this->work_days / 7;
         $offWeeks = $this->getOffDays() / 7;
 
         return "{$workWeeks}/{$offWeeks}";
+    }
+
+    /**
+     * Get roster pattern in display format (off/work instead of work/off)
+     * This is for display purposes only, does not change calculation logic
+     */
+    public function getRosterPatternDisplay()
+    {
+        if (!$this->work_days) {
+            return null; // Level tidak punya roster cycle
+        }
+
+        $workWeeks = $this->work_days / 7;
+        $offWeeks = $this->getOffDays() / 7;
+
+        return "{$offWeeks}/{$workWeeks}";
     }
 
     public function hasRosterConfig()

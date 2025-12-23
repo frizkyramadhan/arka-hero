@@ -14,7 +14,7 @@ use App\Models\ApprovalStage;
 use App\Models\Administration;
 use App\Models\LeaveEntitlement;
 use App\Models\Roster;
-use App\Models\RosterDailyStatus;
+use App\Models\RosterDetail;
 use Illuminate\Support\Facades\DB;
 use App\Services\RosterLeaveService;
 use Illuminate\Support\Facades\Auth;
@@ -657,7 +657,7 @@ class BulkLeaveRequestController extends Controller
                     }
 
                     // Note: Periodic leave is roster-based, not entitlement-based
-                    // The leave schedule is determined by the employee's roster pattern
+                    // The leave schedule is determined by the employee's Roster Cycle
                     // No need to check entitlement balance for periodic leave
 
                     // Calculate period
@@ -821,8 +821,8 @@ class BulkLeaveRequestController extends Controller
     }
 
     /**
-     * Update roster daily status notes for leave period
-     * Menandai di roster bahwa status cuti sudah dibuatkan leave request
+     * Update roster detail remarks for leave period
+     * Menandai di roster_detail bahwa status cuti sudah dibuatkan leave request
      *
      * @param int $administrationId
      * @param Carbon $startDate
@@ -835,9 +835,7 @@ class BulkLeaveRequestController extends Controller
     {
         try {
             // Find roster for this administration
-            $roster = Roster::where('administration_id', $administrationId)
-                ->where('is_active', true)
-                ->first();
+            $roster = Roster::where('administration_id', $administrationId)->first();
 
             if (!$roster) {
                 Log::warning("Roster not found for administration: {$administrationId}");
@@ -850,24 +848,34 @@ class BulkLeaveRequestController extends Controller
                 $notesText .= " - {$bulkNotes}";
             }
 
-            // Update notes for each day in the leave period
-            $currentDate = $startDate->copy();
-            while ($currentDate->lte($endDate)) {
-                // Update or create roster daily status with notes
-                RosterDailyStatus::where('roster_id', $roster->id)
-                    ->where('date', $currentDate->format('Y-m-d'))
-                    ->update([
-                        'notes' => $notesText
-                    ]);
+            // Find roster_detail that matches the leave period
+            $rosterDetail = RosterDetail::where('roster_id', $roster->id)
+                ->where('leave_start', '<=', $startDate)
+                ->where('leave_end', '>=', $endDate)
+                ->first();
 
-                Log::info("Updated roster notes", [
+            if ($rosterDetail) {
+                // Update remarks in roster_detail
+                $existingRemarks = $rosterDetail->remarks ?? '';
+                $newRemarks = $existingRemarks 
+                    ? "{$existingRemarks}\n{$notesText}"
+                    : $notesText;
+                
+                $rosterDetail->update(['remarks' => $newRemarks]);
+
+                Log::info("Updated roster detail remarks", [
                     'roster_id' => $roster->id,
-                    'date' => $currentDate->format('Y-m-d'),
+                    'roster_detail_id' => $rosterDetail->id,
                     'batch_id' => $batchId,
                     'notes' => $notesText
                 ]);
-
-                $currentDate->addDay();
+            } else {
+                Log::warning("Roster detail not found for leave period", [
+                    'roster_id' => $roster->id,
+                    'start_date' => $startDate->format('Y-m-d'),
+                    'end_date' => $endDate->format('Y-m-d'),
+                    'batch_id' => $batchId
+                ]);
             }
         } catch (\Exception $e) {
             Log::error("Failed to update roster notes: " . $e->getMessage(), [
@@ -893,33 +901,32 @@ class BulkLeaveRequestController extends Controller
     {
         try {
             // Find roster for this administration
-            $roster = Roster::where('administration_id', $administrationId)
-                ->where('is_active', true)
-                ->first();
+            $roster = Roster::where('administration_id', $administrationId)->first();
 
             if (!$roster) {
                 Log::warning("Roster not found for administration: {$administrationId}");
                 return;
             }
 
-            // Clear notes for each day in the leave period
-            $currentDate = $startDate->copy();
-            while ($currentDate->lte($endDate)) {
-                // Only clear if notes contain the batch_id
-                RosterDailyStatus::where('roster_id', $roster->id)
-                    ->where('date', $currentDate->format('Y-m-d'))
-                    ->where('notes', 'like', "%{$batchId}%")
-                    ->update([
-                        'notes' => null
-                    ]);
+            // Find roster_detail that matches the leave period
+            $rosterDetail = RosterDetail::where('roster_id', $roster->id)
+                ->where('leave_start', '<=', $startDate)
+                ->where('leave_end', '>=', $endDate)
+                ->first();
 
-                Log::info("Cleared roster notes", [
+            if ($rosterDetail && $rosterDetail->remarks) {
+                // Remove batch_id from remarks
+                $remarks = $rosterDetail->remarks;
+                $remarks = preg_replace("/{$batchId}.*?\n?/", '', $remarks);
+                $remarks = trim($remarks);
+                
+                $rosterDetail->update(['remarks' => $remarks ?: null]);
+
+                Log::info("Cleared roster detail remarks", [
                     'roster_id' => $roster->id,
-                    'date' => $currentDate->format('Y-m-d'),
+                    'roster_detail_id' => $rosterDetail->id,
                     'batch_id' => $batchId
                 ]);
-
-                $currentDate->addDay();
             }
         } catch (\Exception $e) {
             Log::error("Failed to clear roster notes: " . $e->getMessage(), [

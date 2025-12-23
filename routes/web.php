@@ -731,17 +731,29 @@ Route::group(['middleware' => ['auth']], function () {
         });
     });
 
-    // Roster Management Routes
+    // Roster Management Routes (New Clean Structure)
     Route::prefix('rosters')->name('rosters.')->group(function () {
-        Route::get('/', [RosterController::class, 'index'])->name('index');
-        Route::post('/update-status', [RosterController::class, 'updateStatus'])->name('update-status');
-        Route::post('/bulk-update', [RosterController::class, 'bulkUpdate'])->name('bulk-update');
+        // Dashboard (must be before {roster} route to avoid conflict)
+        Route::get('/dashboard', [RosterController::class, 'dashboard'])->name('dashboard');
+
+        // Export/Import (must be before {roster} route to avoid conflict)
         Route::get('/export', [RosterController::class, 'export'])->name('export');
         Route::post('/import', [RosterController::class, 'import'])->name('import');
-        Route::post('/clear', [RosterController::class, 'clearRoster'])->name('clear');
-        Route::post('/apply-balancing', [RosterController::class, 'applyBalancing'])->name('apply-balancing');
-        Route::post('/balancing-preview', [RosterController::class, 'getBalancingPreview'])->name('balancing-preview');
-        Route::get('/adjustments', [RosterController::class, 'adjustments'])->name('adjustments');
-        Route::get('/{roster}/balancing-history', [RosterController::class, 'getBalancingHistory'])->name('balancing-history');
+        Route::get('/calendar', [RosterController::class, 'calendar'])->name('calendar');
+
+        // Main routes
+        Route::get('/', [RosterController::class, 'index'])->name('index');
+        Route::get('/{roster}', [RosterController::class, 'show'])->name('show');
+        Route::post('/', [RosterController::class, 'store'])->name('store');
+        Route::delete('/{roster}', [RosterController::class, 'destroy'])->name('destroy');
+
+        // Cycle management
+        Route::get('/cycles/{cycle}', [RosterController::class, 'getCycle'])->name('cycles.show');
+        Route::post('/{roster}/cycles', [RosterController::class, 'addCycle'])->name('cycles.add');
+        Route::put('/cycles/{cycle}', [RosterController::class, 'updateCycle'])->name('cycles.update');
+        Route::delete('/cycles/{cycle}', [RosterController::class, 'deleteCycle'])->name('cycles.delete');
+
+        // Helper endpoints
+        Route::get('/{roster}/statistics', [RosterController::class, 'getStatistics'])->name('statistics');
     });
 });

@@ -6,7 +6,7 @@ use App\Models\Administration;
 use App\Models\LeaveEntitlement;
 use App\Models\LeaveType;
 use App\Models\Roster;
-use App\Models\RosterDailyStatus;
+use App\Models\RosterDetail;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -14,7 +14,7 @@ class RosterLeaveService
 {
     /**
      * Get employees who are due for periodic leave
-     * Menggunakan data dari roster_daily_status dengan status_code = 'C'
+     * Menggunakan data dari roster_details dengan leave_start dan leave_end
      *
      * @param int $projectId
      * @param int $daysAhead Number of days to look ahead (default 7)
@@ -27,12 +27,10 @@ class RosterLeaveService
         $targetDate = $today->copy()->addDays($daysAhead);
 
         // Get all active roster employees in project
-        $query = Administration::with(['employee', 'position.department', 'level', 'roster.dailyStatuses'])
+        $query = Administration::with(['employee', 'position.department', 'level', 'roster.rosterDetails'])
             ->where('project_id', $projectId)
             ->where('is_active', 1)
-            ->whereHas('roster', function ($q) {
-                $q->where('is_active', 1);
-            });
+            ->whereHas('roster');
 
         // Filter by department if provided
         if ($departmentId) {
@@ -48,11 +46,11 @@ class RosterLeaveService
         foreach ($administrations as $admin) {
             // Skip if no roster or employee
             if (!$admin->roster || !$admin->employee) continue;
-            
-            // Skip if no level (required for roster pattern)
+
+            // Skip if no level (required for Roster Cycle)
             if (!$admin->level) continue;
 
-            // Get next off period from roster_daily_status
+            // Get next off period from roster_details
             $offPeriod = $this->getNextOffPeriodFromRoster($admin->roster, $daysAhead);
 
             if (!$offPeriod) continue;
@@ -65,22 +63,13 @@ class RosterLeaveService
             $daysUntilOff = $today->diffInDays($nextOffStart, false);
 
             // Check if within lookahead window
-            // Hanya ambil jika tanggal C pertama dalam range days_ahead
             $isDue = $daysUntilOff >= 0 && $daysUntilOff <= $daysAhead;
 
-            // Get roster pattern safely
+            // Get Roster Cycle safely
             $rosterPattern = $admin->level ? $admin->level->getRosterPattern() : 'No Pattern';
 
-            // Get roster notes for the first day of off period
-            $rosterNote = null;
-            $firstDayStatus = RosterDailyStatus::where('roster_id', $admin->roster->id)
-                ->where('date', $nextOffStart->format('Y-m-d'))
-                ->where('status_code', 'C')
-                ->first();
-            
-            if ($firstDayStatus && $firstDayStatus->notes) {
-                $rosterNote = $firstDayStatus->notes;
-            }
+            // Get roster notes from roster_detail remarks
+            $rosterNote = $offPeriod['remarks'] ?? null;
 
             $employeesDue[] = [
                 'employee_id' => $admin->employee_id,
@@ -106,8 +95,8 @@ class RosterLeaveService
     }
 
     /**
-     * Get next off period from roster_daily_status
-     * Membaca data dari table roster_daily_status dengan status_code = 'C'
+     * Get next off period from roster_details
+     * Membaca data dari table roster_details dengan leave_start dan leave_end
      *
      * @param Roster $roster
      * @param int $daysAhead
@@ -118,52 +107,30 @@ class RosterLeaveService
         $today = now()->startOfDay();
         $targetDate = $today->copy()->addDays($daysAhead);
 
-        // Cari tanggal C pertama setelah today() dalam range days_ahead
-        $firstLeaveDate = RosterDailyStatus::where('roster_id', $roster->id)
-            ->where('status_code', 'C')
-            ->where('date', '>=', $today)
-            ->where('date', '<=', $targetDate)
-            ->orderBy('date', 'asc')
+        // Cari roster_detail dengan leave_start yang akan datang dalam range days_ahead
+        $nextRosterDetail = RosterDetail::where('roster_id', $roster->id)
+            ->whereNotNull('leave_start')
+            ->whereNotNull('leave_end')
+            ->where('leave_start', '>=', $today)
+            ->where('leave_start', '<=', $targetDate)
+            ->orderBy('leave_start', 'asc')
             ->first();
 
-        if (!$firstLeaveDate) {
+        if (!$nextRosterDetail) {
             return null;
         }
 
-        $startDate = Carbon::parse($firstLeaveDate->date)->startOfDay();
-
-        // Cari semua tanggal C yang berurutan mulai dari tanggal pertama
-        // untuk menentukan end_date dan total days
-        $consecutiveLeaveDates = RosterDailyStatus::where('roster_id', $roster->id)
-            ->where('status_code', 'C')
-            ->where('date', '>=', $startDate)
-            ->orderBy('date', 'asc')
-            ->get();
-
-        $endDate = $startDate;
-        $totalDays = 1;
-
-        // Hitung consecutive leave days
-        foreach ($consecutiveLeaveDates as $index => $leaveDate) {
-            if ($index == 0) continue; // Skip first date
-
-            $currentDate = Carbon::parse($leaveDate->date)->startOfDay();
-            $expectedNextDate = $endDate->copy()->addDay();
-
-            // Check if consecutive
-            if ($currentDate->equalTo($expectedNextDate)) {
-                $endDate = $currentDate;
-                $totalDays++;
-            } else {
-                // Break if not consecutive
-                break;
-            }
-        }
+        $startDate = Carbon::parse($nextRosterDetail->leave_start)->startOfDay();
+        $endDate = Carbon::parse($nextRosterDetail->leave_end)->startOfDay();
+        
+        // Calculate total days (inclusive of both start and end)
+        $totalDays = $startDate->diffInDays($endDate) + 1;
 
         return [
             'start' => $startDate,
             'end' => $endDate,
-            'days' => $totalDays
+            'days' => $totalDays,
+            'remarks' => $nextRosterDetail->remarks
         ];
     }
 

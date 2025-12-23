@@ -264,7 +264,7 @@ class DashboardController extends Controller
             ->groupBy('current_stage')
             ->get();
 
-        $recentSessions = RecruitmentSession::with(['fptk.position', 'candidate'])
+        $recentSessions = RecruitmentSession::with(['fptk.position', 'candidate', 'mppDetail.mpp', 'mppDetail.position'])
             ->latest()
             ->limit(10)
             ->get();

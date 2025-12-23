@@ -26,6 +26,59 @@
 <script src="{{ asset('assets/plugins/sweetalert2/sweetalert2.min.js') }}"></script>
 
 <script>
+    // Toast helper functions
+    function toast_success(message, title = 'Success') {
+        Swal.fire({
+            icon: 'success',
+            title: title,
+            text: message,
+            toast: true,
+            position: 'top-end',
+            showConfirmButton: false,
+            timer: 3000,
+            timerProgressBar: true
+        });
+    }
+
+    function toast_error(message, title = 'Error') {
+        Swal.fire({
+            icon: 'error',
+            title: title,
+            text: message,
+            toast: true,
+            position: 'top-end',
+            showConfirmButton: false,
+            timer: 5000,
+            timerProgressBar: true
+        });
+    }
+
+    function toast_info(message, title = 'Info') {
+        Swal.fire({
+            icon: 'info',
+            title: title,
+            text: message,
+            toast: true,
+            position: 'top-end',
+            showConfirmButton: false,
+            timer: 3000,
+            timerProgressBar: true
+        });
+    }
+
+    function toast_warning(message, title = 'Warning') {
+        Swal.fire({
+            icon: 'warning',
+            title: title,
+            text: message,
+            toast: true,
+            position: 'top-end',
+            showConfirmButton: false,
+            timer: 4000,
+            timerProgressBar: true
+        });
+    }
+
     // Check for SweetAlert2 messages
     document.addEventListener('DOMContentLoaded', function() {
         // Handle toast_error from exception handler

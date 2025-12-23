@@ -1283,7 +1283,7 @@ class LeaveEntitlementController extends Controller
                     return 0;
                 }
 
-                // Periodic leave based on level roster pattern
+                // Periodic leave based on level Roster Cycle
                 $levelName = $level ? $level->name : '';
                 return $this->calculatePeriodicDays($levelName);
 
@@ -1330,7 +1330,7 @@ class LeaveEntitlementController extends Controller
     }
 
     /**
-     * Calculate periodic leave days based on level roster pattern
+     * Calculate periodic leave days based on level Roster Cycle
      */
     private function calculatePeriodicDays($levelName)
     {
@@ -1514,7 +1514,7 @@ class LeaveEntitlementController extends Controller
 
         if ($project->leave_type === 'roster') {
             $rosterPattern = $this->getRosterPatternForLevel($level->name ?? '');
-            $specialNotes[] = "Roster Pattern: {$rosterPattern}";
+            $specialNotes[] = "Roster Cycle: {$rosterPattern}";
             // Note: Periodic leave implementation coming soon
         }
 
@@ -1561,7 +1561,7 @@ class LeaveEntitlementController extends Controller
                 if ($projectType !== 'roster') {
                     return 'Only available for roster-based projects';
                 }
-                return 'Eligible - Based on roster pattern';
+                return 'Eligible - Based on Roster Cycle';
 
             case 'lsl':
                 $requiredMonths = $isStaff ? 60 : 72;
@@ -1583,7 +1583,7 @@ class LeaveEntitlementController extends Controller
     }
 
     /**
-     * Get roster pattern for level
+     * Get Roster Cycle for level
      */
     private function getRosterPatternForLevel($levelName)
     {

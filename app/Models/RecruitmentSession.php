@@ -749,6 +749,11 @@ class RecruitmentSession extends Model
             return false;
         }
 
+        // Check if fptk exists before accessing employment_type
+        if (!$this->fptk_id || !$this->fptk) {
+            return false;
+        }
+
         return in_array($this->fptk->employment_type, ['magang', 'harian']);
     }
 

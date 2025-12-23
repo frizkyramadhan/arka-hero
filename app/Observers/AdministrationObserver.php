@@ -4,7 +4,6 @@ namespace App\Observers;
 
 use App\Models\Administration;
 use App\Models\Roster;
-use App\Models\RosterDailyStatus;
 use Illuminate\Support\Facades\Log;
 
 class AdministrationObserver
@@ -58,22 +57,19 @@ class AdministrationObserver
         $deletedStatusCount = 0;
 
         foreach ($oldRosters as $roster) {
-            // Count daily statuses before deletion
-            $statusCount = $roster->dailyStatuses->count();
+            // Delete roster details first (cascade will handle it, but explicit for logging)
+            $detailsCount = $roster->rosterDetails()->count();
 
-            // Delete all daily statuses first
-            RosterDailyStatus::where('roster_id', $roster->id)->delete();
-
-            // Delete the roster
+            // Delete the roster (cascade will delete roster_details)
             $roster->delete();
 
             $deletedCount++;
-            $deletedStatusCount += $statusCount;
+            $deletedStatusCount += $detailsCount;
         }
 
         // Log cleanup activity if there were deletions
         if ($deletedCount > 0) {
-            Log::info("Roster cleanup completed: {$deletedCount} rosters and {$deletedStatusCount} daily statuses deleted for employee {$employeeId}");
+            Log::info("Roster cleanup completed: {$deletedCount} rosters and {$deletedStatusCount} roster details deleted for employee {$employeeId}");
         }
     }
 
@@ -84,19 +80,14 @@ class AdministrationObserver
     {
         // Check if level has roster configuration
         if (!$administration->level || !$administration->level->hasRosterConfig()) {
-            Log::info("No roster config found for level: " . ($administration->level->name ?? 'Unknown'));
+            Log::info("No roster cycle found for level: " . ($administration->level->name ?? 'Unknown'));
             return;
         }
 
         try {
             Roster::create([
                 'employee_id' => $administration->employee_id,
-                'administration_id' => $administration->id,
-                'start_date' => now()->startOfMonth(),
-                'end_date' => now()->addMonths(3)->endOfMonth(),
-                'cycle_no' => 1,
-                'adjusted_days' => 0,
-                'is_active' => true
+                'administration_id' => $administration->id
             ]);
 
             Log::info("New roster created for employee {$administration->employee_id} with level {$administration->level->name}");

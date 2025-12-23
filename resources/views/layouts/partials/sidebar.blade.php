@@ -408,10 +408,19 @@
                             </p>
                         </a>
                         <ul class="nav nav-treeview">
+                            @canany(['rosters.show', 'leave-requests.show'])
+                                <li class="nav-item">
+                                    <a href="{{ route('rosters.dashboard') }}"
+                                        class="nav-link {{ Request::is('rosters/dashboard*') ? 'active' : '' }}">
+                                        <i class="far fa-circle nav-icon"></i>
+                                        <p>Dashboard</p>
+                                    </a>
+                                </li>
+                            @endcanany
                             @can('rosters.show')
                                 <li class="nav-item">
                                     <a href="{{ route('rosters.index') }}"
-                                        class="nav-link {{ Request::is('rosters*') ? 'active' : '' }}">
+                                        class="nav-link {{ Request::is('rosters*') && !Request::is('rosters/dashboard*') ? 'active' : '' }}">
                                         <i class="far fa-circle nav-icon"></i>
                                         <p>Rosters</p>
                                     </a>

@@ -113,7 +113,7 @@ class RecruitmentSessionController extends Controller
                 }
 
                 // Determine initial stage based on employment type
-                $initialStage = in_array($fptk->employment_type, ['magang', 'harian']) ? 'mcu' : 'cv_review';
+                $initialStage = ($fptk && in_array($fptk->employment_type, ['magang', 'harian'])) ? 'mcu' : 'cv_review';
             }
             // Handle MPP Detail source
             else {
