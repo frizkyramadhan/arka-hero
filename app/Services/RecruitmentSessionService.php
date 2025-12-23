@@ -1069,9 +1069,20 @@ class RecruitmentSessionService
             ];
         }
 
-        // Get agreement type from FPTK employment type (hardcode mapping)
-        $fptk = $session->fptk;
-        $agreementType = \App\Models\RecruitmentHiring::getAgreementTypeFromEmploymentType($fptk->employment_type);
+        // Get agreement type from FPTK or MPP Detail
+        $agreementType = null;
+        if ($session->fptk_id && $session->fptk) {
+            // For FPTK: get from employment_type
+            $agreementType = \App\Models\RecruitmentHiring::getAgreementTypeFromEmploymentType($session->fptk->employment_type);
+        } elseif ($session->mpp_detail_id && $session->mppDetail) {
+            // For MPP: get from agreement_type in MPP Detail
+            $agreementType = $session->mppDetail->agreement_type ?? 'pkwt';
+        }
+
+        // Fallback to pkwt if still null
+        if (!$agreementType) {
+            $agreementType = 'pkwt';
+        }
 
         // Create or update hire assessment
         $hiring = $session->hiring;
@@ -1396,8 +1407,10 @@ class RecruitmentSessionService
     private function getValidStagesForSession($session): array
     {
         // For magang and harian: only MCU and Hire stages
-        if ($session->fptk_id && $session->fptk &&
-            in_array($session->fptk->employment_type, ['magang', 'harian'])) {
+        if (
+            $session->fptk_id && $session->fptk &&
+            in_array($session->fptk->employment_type, ['magang', 'harian'])
+        ) {
             return ['mcu', 'hire'];
         }
 

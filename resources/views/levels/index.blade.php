@@ -41,7 +41,7 @@
                                             <th class="text-center">No</th>
                                             <th width="25%">Name</th>
                                             <th class="text-center" width="12%">Order</th>
-                                            <th class="text-center" width="15%">Roster Config</th>
+                                            <th class="text-center" width="15%">Roster Cycle</th>
                                             <th class="text-center" width="12%">Status</th>
                                             <th class="text-center" width="15%">Action</th>
                                         </tr>

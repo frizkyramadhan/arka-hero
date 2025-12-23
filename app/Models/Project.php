@@ -27,6 +27,21 @@ class Project extends Model
     }
 
     /**
+     * Get rosters through administrations
+     */
+    public function rosters()
+    {
+        return $this->hasManyThrough(
+            \App\Models\Roster::class,
+            Administration::class,
+            'project_id', // Foreign key on administrations table
+            'administration_id', // Foreign key on rosters table
+            'id', // Local key on projects table
+            'id' // Local key on administrations table
+        );
+    }
+
+    /**
      * Get the users that belong to the project.
      */
     public function users()

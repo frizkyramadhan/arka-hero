@@ -2,368 +2,230 @@
 
 namespace App\Exports;
 
-use Carbon\Carbon;
-use App\Models\Roster;
-use App\Models\Project;
 use App\Models\Administration;
-use App\Models\RosterDailyStatus;
+use App\Models\Roster;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
 use Maatwebsite\Excel\Concerns\WithStyles;
-use Maatwebsite\Excel\Concerns\WithColumnWidths;
+use Maatwebsite\Excel\Concerns\ShouldAutoSize;
+use Maatwebsite\Excel\Concerns\WithColumnFormatting;
 use Maatwebsite\Excel\Concerns\WithEvents;
 use Maatwebsite\Excel\Events\AfterSheet;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
-use PhpOffice\PhpSpreadsheet\Style\Alignment;
-use PhpOffice\PhpSpreadsheet\Style\Border;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
+use PhpOffice\PhpSpreadsheet\Style\Alignment;
+use PhpOffice\PhpSpreadsheet\Style\NumberFormat;
+use PhpOffice\PhpSpreadsheet\Cell\DataType;
 
-class RosterExport implements FromCollection, WithHeadings, WithMapping, WithStyles, WithColumnWidths, WithEvents
+class RosterExport implements FromCollection, WithHeadings, WithMapping, WithStyles, ShouldAutoSize, WithColumnFormatting, WithEvents
 {
-    protected $project;
-    protected $year;
-    protected $month;
-    protected $search;
-    protected $employees;
-    protected $rosterData;
+    private $projectId;
 
-    public function __construct(Project $project, int $year, int $month, string $search = '')
+    public function __construct($projectId = null)
     {
-        $this->project = $project;
-        $this->year = $year;
-        $this->month = $month;
-        $this->search = $search;
-        $this->employees = $this->getProjectEmployees($project, $search);
-        $this->rosterData = $this->getRosterData($this->employees, $year, $month);
+        $this->projectId = $projectId;
     }
 
-    /**
-     * Get employees for roster project
-     * Returns all active employees from the selected project (matching controller logic)
-     */
-    private function getProjectEmployees($project, $search = '')
+    public function collection()
     {
-        $query = Administration::with(['employee', 'position.department', 'level', 'roster'])
-            ->where('project_id', $project->id)
+        // Get all administrations in the project (not just those with rosters)
+        $query = Administration::with([
+            'employee',
+            'position',
+            'level',
+            'project',
+            'roster.rosterDetails' => function ($q) {
+                $q->orderBy('cycle_no');
+            }
+        ])
             ->where('is_active', 1);
 
-        // Apply search filter if provided
-        if (!empty($search)) {
-            $query->where(function ($q) use ($search) {
-                $q->where('nik', 'like', "%{$search}%")
-                    ->orWhereHas('employee', function ($employeeQuery) use ($search) {
-                        $employeeQuery->where('fullname', 'like', "%{$search}%");
-                    })
-                    ->orWhereHas('position', function ($positionQuery) use ($search) {
-                        $positionQuery->where('position_name', 'like', "%{$search}%")
-                            ->orWhereHas('department', function ($departmentQuery) use ($search) {
-                                $departmentQuery->where('department_name', 'like', "%{$search}%");
-                            });
-                    });
-            });
+        // Filter by project if provided
+        if ($this->projectId) {
+            $query->where('project_id', $this->projectId);
         }
 
-        return $query->orderBy('nik')->get();
-    }
+        $administrations = $query->orderBy('nik')->get();
 
-    /**
-     * Get roster data for employees for specific month/year
-     * Handles employees with or without roster
-     */
-    private function getRosterData($employees, $year, $month)
-    {
-        $rosterData = [];
+        $data = [];
 
-        foreach ($employees as $admin) {
-            $rosterData[$admin->employee_id] = [];
-            $daysInMonth = Carbon::create($year, $month)->daysInMonth;
+        foreach ($administrations as $administration) {
+            $employee = $administration->employee;
+            $level = $administration->level;
+            $roster = $administration->roster;
 
-            for ($day = 1; $day <= $daysInMonth; $day++) {
-                $currentDate = Carbon::create($year, $month, $day);
+            // Base data for employee
+            $baseData = [
+                'nik' => $administration->nik ?? '',
+                'fullname' => $employee->fullname ?? 'N/A',
+                'position' => $administration->position->position_name ?? '',
+                'level' => $level->name ?? ''
+            ];
 
-                // If employee has roster, get status from database
-                if ($admin->roster) {
-                    $dayStatus = RosterDailyStatus::where('roster_id', $admin->roster->id)
-                        ->where('date', $currentDate->format('Y-m-d'))
-                        ->first();
+            // If no roster or no cycles, create one row with empty cycle data (adjusted_days empty)
+            if (!$roster || $roster->rosterDetails->count() === 0) {
+                $data[] = array_merge($baseData, [
+                    'cycle_no' => '',
+                    'work_start' => '',
+                    'work_end' => '',
+                    'adjusted_days' => '', // Empty for employees without cycles
+                    'leave_start' => '',
+                    'leave_end' => '',
+                    'remarks' => '',
+                    'status' => ''
+                ]);
+            } else {
+                // Create one row per cycle
+                foreach ($roster->rosterDetails as $detail) {
+                    // Get adjusted_days from database - always use integer, including 0
+                    $adjustedDays = $detail->adjusted_days;
+                    if ($adjustedDays === null || $adjustedDays === '') {
+                        $adjustedDays = 0;
+                    } else {
+                        $adjustedDays = (int)$adjustedDays;
+                    }
 
-                    $rosterData[$admin->employee_id][$day] = [
-                        'status' => $dayStatus ? $dayStatus->status_code : 'D',
-                        'notes' => $dayStatus ? $dayStatus->notes : null,
-                        'date' => $currentDate->format('Y-m-d')
-                    ];
-                } else {
-                    // If no roster, default to 'D' (Day Shift)
-                    $rosterData[$admin->employee_id][$day] = [
-                        'status' => 'D',
-                        'notes' => null,
-                        'date' => $currentDate->format('Y-m-d')
-                    ];
+                    $data[] = array_merge($baseData, [
+                        'cycle_no' => (int)$detail->cycle_no, // Ensure cycle_no is integer
+                        'work_start' => $detail->work_start->format('Y-m-d'),
+                        'work_end' => $detail->work_end->format('Y-m-d'),
+                        'adjusted_days' => $adjustedDays,
+                        'leave_start' => $detail->leave_start ? $detail->leave_start->format('Y-m-d') : '',
+                        'leave_end' => $detail->leave_end ? $detail->leave_end->format('Y-m-d') : '',
+                        'remarks' => $detail->remarks ?? '',
+                        'status' => $detail->status
+                    ]);
                 }
             }
         }
 
-        return $rosterData;
+        // Sort by NIK, then Cycle No
+        return collect($data)->sortBy([
+            ['nik', 'asc'],
+            ['cycle_no', 'asc']
+        ])->values();
     }
 
-    /**
-     * @return \Illuminate\Support\Collection
-     */
-    public function collection()
-    {
-        return $this->employees;
-    }
-
-    /**
-     * @return array
-     */
     public function headings(): array
     {
-        $daysInMonth = Carbon::create($this->year, $this->month)->daysInMonth;
-        $headers = ['NO', 'Name', 'NIK', 'Department', 'Position'];
-
-        // Add day columns
-        for ($day = 1; $day <= $daysInMonth; $day++) {
-            $headers[] = $day;
-        }
-
-        return $headers;
+        return [
+            'NIK',
+            'Full Name',
+            'Position',
+            'Level',
+            'Cycle No',
+            'Work Start',
+            'Work End',
+            'Adjusted Days',
+            'Leave Start',
+            'Leave End',
+            'Remarks',
+            'Status'
+        ];
     }
 
-    /**
-     * @param mixed $row
-     * @return array
-     */
     public function map($row): array
     {
-        static $index = 0;
-        $index++;
-
-        $daysInMonth = Carbon::create($this->year, $this->month)->daysInMonth;
-        $mappedRow = [
-            $index,
-            $row->employee->fullname ?? 'Unknown',
-            $row->nik ?? 'Unknown',
-            $row->position->department->department_name ?? 'N/A',
-            $row->position->position_name ?? 'Unknown'
-        ];
-
-        // Add roster status for each day
-        for ($day = 1; $day <= $daysInMonth; $day++) {
-            $dayData = $this->rosterData[$row->employee_id][$day] ?? ['status' => 'D'];
-            $mappedRow[] = $dayData['status'];
+        // Ensure adjusted_days is always 0 if null or empty, but keep actual 0 values
+        $adjustedDays = $row['adjusted_days'] ?? 0;
+        if ($adjustedDays === null || $adjustedDays === '') {
+            $adjustedDays = 0;
         }
+        // Convert to int to ensure it's a number, not string
+        $adjustedDays = (int)$adjustedDays;
 
-        return $mappedRow;
-    }
-
-    /**
-     * @param Worksheet $sheet
-     * @return array
-     */
-    public function styles(Worksheet $sheet)
-    {
-        $daysInMonth = Carbon::create($this->year, $this->month)->daysInMonth;
-        $lastColumn = 5 + $daysInMonth; // NO, Name, NIK, Department, Position + days
+        // Ensure cycle_no is integer if not empty
+        $cycleNo = $row['cycle_no'] ?? '';
+        if ($cycleNo !== '' && $cycleNo !== null) {
+            $cycleNo = (int)$cycleNo;
+        }
 
         return [
-            // Header row styling
-            1 => [
-                'font' => [
-                    'bold' => true,
-                    'size' => 12
-                ],
-                'fill' => [
-                    'fillType' => Fill::FILL_SOLID,
-                    'startColor' => ['rgb' => 'E6E6FA']
-                ],
-                'alignment' => [
-                    'horizontal' => Alignment::HORIZONTAL_CENTER,
-                    'vertical' => Alignment::VERTICAL_CENTER
-                ],
-                'borders' => [
-                    'allBorders' => [
-                        'borderStyle' => Border::BORDER_THIN,
-                        'color' => ['rgb' => '000000']
-                    ]
-                ]
-            ],
-            // Data rows styling
-            'A2:' . $this->getColumnLetter($lastColumn) . ($this->employees->count() + 1) => [
-                'alignment' => [
-                    'horizontal' => Alignment::HORIZONTAL_CENTER,
-                    'vertical' => Alignment::VERTICAL_CENTER
-                ],
-                'borders' => [
-                    'allBorders' => [
-                        'borderStyle' => Border::BORDER_THIN,
-                        'color' => ['rgb' => '000000']
-                    ]
-                ]
-            ]
+            $row['nik'],
+            $row['fullname'],
+            $row['position'] ?? '',
+            $row['level'] ?? '',
+            $cycleNo,
+            $row['work_start'] ?? '',
+            $row['work_end'] ?? '',
+            $adjustedDays,
+            $row['leave_start'] ?? '',
+            $row['leave_end'] ?? '',
+            $row['remarks'] ?? '',
+            $row['status'] ?? ''
         ];
     }
 
-    /**
-     * @return array
-     */
-    public function columnWidths(): array
+    public function styles(Worksheet $sheet)
     {
-        $daysInMonth = Carbon::create($this->year, $this->month)->daysInMonth;
-        $widths = [
-            'A' => 8,  // NO
-            'B' => 20, // Name (reduced)
-            'C' => 10, // NIK (reduced)
-            'D' => 15, // Department (reduced)
-            'E' => 20  // Position
-        ];
+        // Style header row (12 columns: A-L)
+        $headerRange = 'A1:L1';
+        $sheet->getStyle($headerRange)->applyFromArray([
+            'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
+            'fill' => [
+                'fillType' => Fill::FILL_SOLID,
+                'startColor' => ['rgb' => '4472C4']
+            ],
+            'alignment' => [
+                'horizontal' => Alignment::HORIZONTAL_CENTER,
+                'vertical' => Alignment::VERTICAL_CENTER,
+            ],
+        ]);
 
-        // Set width for day columns
-        for ($i = 1; $i <= $daysInMonth; $i++) {
-            $column = $this->getColumnLetter(5 + $i);
-            $widths[$column] = 8;
-        }
-
-        return $widths;
+        return [];
     }
 
     /**
-     * @return array
+     * Format columns
+     * Column H = Adjusted Days (format: number, always show 0)
+     */
+    public function columnFormats(): array
+    {
+        return [
+            'H' => '0', // Adjusted Days - format as integer, always show 0
+        ];
+    }
+
+    /**
+     * Register events
      */
     public function registerEvents(): array
     {
         return [
             AfterSheet::class => function (AfterSheet $event) {
-                $daysInMonth = Carbon::create($this->year, $this->month)->daysInMonth;
-                $lastColumn = 5 + $daysInMonth;
-                $lastRow = $this->employees->count() + 1;
+                $sheet = $event->sheet->getDelegate();
+                $highestRow = $sheet->getHighestRow();
 
-                // Apply conditional formatting for roster statuses
-                $this->applyConditionalFormatting($event, $daysInMonth, $lastRow);
+                // Iterate through all data rows (starting from row 2, row 1 is header)
+                for ($row = 2; $row <= $highestRow; $row++) {
+                    // Format Cycle No column (E) as integer
+                    $cycleNoCell = $sheet->getCell('E' . $row);
+                    $cycleNoValue = $cycleNoCell->getValue();
+                    if ($cycleNoValue !== null && $cycleNoValue !== '' && trim($cycleNoValue) !== '') {
+                        $cycleNoCell->setValueExplicit((int)$cycleNoValue, DataType::TYPE_NUMERIC);
+                    }
 
-                // Apply column formatting and alignment
-                $this->applyColumnFormatting($event, $lastRow);
+                    // Format Adjusted Days column (H)
+                    $cell = $sheet->getCell('H' . $row);
+                    $value = $cell->getValue();
 
-                // Set sheet name to Month Year format
-                $this->setSheetName($event);
-
-                // Freeze first row and columns A-E (NO, Name, NIK, Department, Position)
-                $event->sheet->freezePane('F2');
-
-                // Add project info as comment
-                $event->sheet->getComment('A1')
-                    ->getText()
-                    ->createTextRun("Project: {$this->project->project_code}\nPeriod: {$this->year}/{$this->month}")
-                    ->getFont()
-                    ->setSize(10);
-            }
-        ];
-    }
-
-    /**
-     * Apply conditional formatting based on roster status codes
-     */
-    private function applyConditionalFormatting($event, $daysInMonth, $lastRow)
-    {
-        $statusColors = [
-            'D' => 'FFFFFF',   // Day Shift - White
-            'N' => 'ADD8E6',   // Night Shift - Light Blue
-            'OFF' => 'FFB6C1', // Off Work - Light Pink
-            'C' => '90EE90',   // Periodic Leave - Light Green
-            'S' => 'FFE4B5',   // Sick Leave - Light Yellow
-            'I' => 'E6E6FA',   // Permission - Light Purple
-            'A' => 'FF6B6B'    // Absent - Red
-        ];
-
-        // Apply direct cell formatting instead of conditional formatting
-        for ($day = 1; $day <= $daysInMonth; $day++) {
-            $column = $this->getColumnLetter(5 + $day);
-
-            // Apply formatting to each cell based on its value
-            for ($row = 2; $row <= $lastRow; $row++) {
-                $cellCoordinate = $column . $row;
-                $cellValue = $event->sheet->getCell($cellCoordinate)->getValue();
-
-                if (isset($statusColors[$cellValue])) {
-                    $event->sheet->getStyle($cellCoordinate)
-                        ->getFill()
-                        ->setFillType(Fill::FILL_SOLID)
-                        ->getStartColor()
-                        ->setRGB($statusColors[$cellValue]);
+                    // If cycle_no is empty, leave adjusted_days empty (don't set to 0)
+                    if ($cycleNoValue === null || $cycleNoValue === '' || trim($cycleNoValue) === '') {
+                        // Employee without cycle - leave adjusted_days empty
+                        $cell->setValueExplicit('', DataType::TYPE_STRING);
+                    } else {
+                        // Employee with cycle - ensure adjusted_days is numeric (including 0)
+                        if ($value === null || $value === '' || trim($value) === '') {
+                            $cell->setValueExplicit(0, DataType::TYPE_NUMERIC);
+                        } else {
+                            // Convert to integer and set as numeric type
+                            $numericValue = (int)$value;
+                            $cell->setValueExplicit($numericValue, DataType::TYPE_NUMERIC);
+                        }
+                    }
                 }
-            }
-        }
-    }
-
-    /**
-     * Apply column formatting, alignment, and width
-     */
-    private function applyColumnFormatting($event, $lastRow)
-    {
-        // Set column widths
-        $event->sheet->getColumnDimension('A')->setWidth(5);  // NO column
-        $event->sheet->getColumnDimension('B')->setWidth(20);  // Name column (reduced)
-        $event->sheet->getColumnDimension('C')->setWidth(10);  // NIK column (reduced)
-        $event->sheet->getColumnDimension('D')->setWidth(15);  // Department column (reduced)
-        $event->sheet->getColumnDimension('E')->setWidth(35);  // Position column (wider)
-
-        // Set alignment for Name column (left aligned)
-        $event->sheet->getStyle('B2:B' . $lastRow)
-            ->getAlignment()
-            ->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_LEFT);
-
-        // Set alignment for Department column (left aligned)
-        $event->sheet->getStyle('D2:D' . $lastRow)
-            ->getAlignment()
-            ->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_LEFT);
-
-        // Set alignment for Position column (left aligned)
-        $event->sheet->getStyle('E2:E' . $lastRow)
-            ->getAlignment()
-            ->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_LEFT);
-
-        // Set alignment for NO and NIK columns (center aligned)
-        $event->sheet->getStyle('A2:A' . $lastRow)
-            ->getAlignment()
-            ->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
-
-        $event->sheet->getStyle('C2:C' . $lastRow)
-            ->getAlignment()
-            ->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
-
-        // Set header alignment (center)
-        $event->sheet->getStyle('A1:E1')
-            ->getAlignment()
-            ->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
-
-        // Apply borders to all cells
-        $event->sheet->getStyle('A1:' . $this->getColumnLetter(5 + Carbon::create($this->year, $this->month)->daysInMonth) . $lastRow)
-            ->getBorders()
-            ->getAllBorders()
-            ->setBorderStyle(\PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN);
-    }
-
-    /**
-     * Set sheet name to Month Year format
-     */
-    private function setSheetName($event)
-    {
-        $monthName = Carbon::create($this->year, $this->month)->locale('id')->isoFormat('MMMM YYYY');
-        $event->sheet->setTitle($monthName);
-    }
-
-    /**
-     * Get column letter from number
-     */
-    private function getColumnLetter($number)
-    {
-        $letter = '';
-        while ($number > 0) {
-            $number--;
-            $letter = chr(65 + ($number % 26)) . $letter;
-            $number = intval($number / 26);
-        }
-        return $letter;
+            },
+        ];
     }
 }

@@ -2,27 +2,20 @@
 
 namespace App\Models;
 
+use App\Traits\Uuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Roster extends Model
 {
-    use HasFactory;
+    use HasFactory, Uuids;
+
+    public $incrementing = false;
+    protected $keyType = 'string';
 
     protected $fillable = [
         'employee_id',
-        'administration_id',
-        'start_date',
-        'end_date',
-        'cycle_no',
-        'adjusted_days',
-        'is_active'
-    ];
-
-    protected $casts = [
-        'start_date' => 'date',
-        'end_date' => 'date',
-        'is_active' => 'boolean'
+        'administration_id'
     ];
 
     // Relationships
@@ -36,48 +29,133 @@ class Roster extends Model
         return $this->belongsTo(Administration::class);
     }
 
-    // Removed rosterTemplate relationship - now using level directly
-
-    public function rosterAdjustments()
+    public function rosterDetails()
     {
-        return $this->hasMany(RosterAdjustment::class);
+        return $this->hasMany(RosterDetail::class)->orderBy('cycle_no');
     }
 
-    public function rosterHistories()
+    public function latestDetail()
     {
-        return $this->hasMany(RosterHistory::class);
+        return $this->hasOne(RosterDetail::class)->latestOfMany('cycle_no');
     }
 
-    public function dailyStatuses()
+    public function currentDetail()
     {
-        return $this->hasMany(RosterDailyStatus::class);
+        return $this->hasOne(RosterDetail::class)
+            ->where('work_start', '<=', now())
+            ->where('work_end', '>=', now())
+            ->orderBy('cycle_no', 'desc');
     }
 
-    // Business Logic Methods - Updated to use level directly
+    // Business Logic Methods
+
+    /**
+     * Get FB Cycle ratio from level configuration
+     *
+     * Rumus FB Cycle Ratio:
+     * Untuk cycle 2w/9w (work_days = 63 hari = 9 weeks):
+     *
+     * FB Cycle Ratio = ((15/7) × workWeeks) / (7 × workWeeks)
+     *                = ((15/7) × 9) / (7 × 9)
+     *                = (15 × 9) / (7 × 7 × 9)
+     *                = 15 / 49
+     *                = 0.306122...
+     *
+     * Atau menggunakan totalWeeks (workWeeks + offWeeks):
+     * FB Cycle Ratio = ((15/7) × totalWeeks) / (workWeeks × totalWeeks)
+     *                = ((15/7) × 11) / (9 × 11)  [untuk 2w/9w: 9+2=11]
+     *                = (15/7) / 9
+     *                = 15 / 63
+     *                = 0.238095...
+     *
+     * Format: 2w/9w = 0.24 (rounded)
+     */
+    public function getFbCycleRatio()
+    {
+        if (!$this->administration || !$this->administration->level) {
+            return 0;
+        }
+
+        $level = $this->administration->level;
+
+        // Check if level has roster configuration
+        if (!$level->hasRosterConfig()) {
+            return 0;
+        }
+
+        // Calculate base leave ratio: 15 working days / 7 days per week = 2.142857143
+        // This represents 2 weeks of leave in working days
+        $baseLeaveRatio = 15 / 7;
+
+        $offWeeks = $level->off_days / 7;  // e.g., 14 days = 2 weeks
+        $workWeeks = $level->work_days / 7; // e.g., 63 days = 9 weeks
+
+        $totalWeeks = $offWeeks + $workWeeks; // Total cycle weeks (work + leave)
+
+        // FB Cycle Ratio menggunakan totalWeeks (workWeeks + offWeeks)
+        // Formula: ((15/7) × totalWeeks) / (workWeeks × totalWeeks)
+        // Simplified: (15/7) / workWeeks
+        // Example for 2w/9w: ((15/7) × 11) / (9 × 11) = (15/7) / 9 = 0.238095
+        // Atau dengan workWeeks saja: ((15/7) × 9) / (7 × 9) = 15/49 = 0.306122
+        $ratio = ($baseLeaveRatio * $totalWeeks) / ($workWeeks * $totalWeeks);
+
+        return $ratio;
+    }
+
+    /**
+     * Calculate leave entitlement for given work days
+     *
+     * Rumus Entitlement:
+     * Entitlement = Actual Work Days × FB Cycle Ratio
+     *
+     * Untuk cycle 2w/9w dengan actual work days = 70 hari:
+     *
+     * Menggunakan rumus dengan workWeeks:
+     * Entitlement = 70 × (((15/7) × 9) / (7 × 9))
+     *             = 70 × (15/49)
+     *             = 70 × 0.306122
+     *             = 21.43 hari
+     *
+     * Menggunakan rumus dengan totalWeeks:
+     * Entitlement = 70 × (((15/7) × 11) / (9 × 11))
+     *             = 70 × ((15/7) / 9)
+     *             = 70 × 0.238095
+     *             = 16.67 hari (rounded to 16.8)
+     *
+     * @param float $workDays Actual work days in the cycle
+     * @return float Leave entitlement in days (rounded to 2 decimals)
+     */
+    public function calculateLeaveEntitlement($workDays)
+    {
+        $ratio = $this->getFbCycleRatio();
+        return round($workDays * $ratio, 2);
+    }
+
+    /**
+     * Get work days from level configuration
+     */
     public function getWorkDays()
     {
         if (!$this->administration || !$this->administration->level) {
             return 0;
         }
-        return $this->administration->level->getWorkDays() ?? 0;
+        return $this->administration->level->work_days ?? 0;
     }
 
+    /**
+     * Get off days from level configuration
+     */
     public function getOffDays()
     {
         if (!$this->administration || !$this->administration->level) {
             return 14;
         }
-        return $this->administration->level->getOffDays() ?? 14;
+        return $this->administration->level->off_days ?? 14;
     }
 
-    public function getCycleLength()
-    {
-        if (!$this->administration || !$this->administration->level) {
-            return 0;
-        }
-        return $this->administration->level->getCycleLength() ?? 0;
-    }
-
+    /**
+     * Get Roster Cycle (e.g., "2w/9w")
+     */
     public function getRosterPattern()
     {
         if (!$this->administration || !$this->administration->level) {
@@ -86,136 +164,44 @@ class Roster extends Model
         return $this->administration->level->getRosterPattern() ?? 'N/A';
     }
 
-    public function calculateActualWorkDays()
+    /**
+     * Get roster pattern in display format (off/work instead of work/off)
+     * This is for display purposes only, does not change calculation logic
+     */
+    public function getRosterPatternDisplay()
     {
-        return $this->getAdjustedWorkDays();
+        if (!$this->administration || !$this->administration->level) {
+            return 'N/A';
+        }
+        return $this->administration->level->getRosterPatternDisplay() ?? 'N/A';
     }
 
     /**
-     * Get adjusted work days (base work_days + net adjustment)
+     * Get total accumulated leave days
      */
-    public function getAdjustedWorkDays()
+    public function getTotalAccumulatedLeave()
     {
-        $baseWorkDays = $this->getWorkDays();
-        $netAdjustment = $this->getNetAdjustment();
-        return max(0, $baseWorkDays + $netAdjustment);
+        return $this->rosterDetails->sum(function ($detail) {
+            $actualWorkDays = $detail->getActualWorkDays();
+            return $this->calculateLeaveEntitlement($actualWorkDays);
+        });
     }
 
     /**
-     * Get net adjustment from all roster adjustments
+     * Get total leave taken
      */
-    public function getNetAdjustment()
+    public function getTotalLeaveTaken()
     {
-        $positive = $this->rosterAdjustments()
-            ->where('adjustment_type', '+days')
-            ->sum('adjusted_value');
-
-        $negative = $this->rosterAdjustments()
-            ->where('adjustment_type', '-days')
-            ->sum('adjusted_value');
-
-        return $positive - $negative;
+        return $this->rosterDetails->sum(function ($detail) {
+            return $detail->getLeaveDays();
+        });
     }
 
     /**
-     * Get manual balancing adjustments only (exclude leave request adjustments)
+     * Get remaining leave balance
      */
-    public function getManualBalancingAdjustments()
+    public function getLeaveBalance()
     {
-        return $this->rosterAdjustments()
-            ->whereNull('leave_request_id')
-            ->orderBy('created_at', 'desc')
-            ->get();
-    }
-
-    public function calculateActualOffDays()
-    {
-        return $this->getOffDays();
-    }
-
-    public function getTotalCycleDays()
-    {
-        return $this->calculateActualWorkDays() + $this->calculateActualOffDays();
-    }
-
-    public function isCurrentCycle()
-    {
-        $now = now()->toDateString();
-        return $this->start_date <= $now && $this->end_date >= $now;
-    }
-
-    public function isCompleted()
-    {
-        return $this->end_date < now();
-    }
-
-    public function addAdjustment($leaveRequestId, $adjustmentType, $value, $reason)
-    {
-        return $this->rosterAdjustments()->create([
-            'leave_request_id' => $leaveRequestId,
-            'adjustment_type' => $adjustmentType,
-            'adjusted_value' => $value,
-            'reason' => $reason
-        ]);
-    }
-
-    public function updateAdjustedDays()
-    {
-        $negativeAdjustments = $this->rosterAdjustments()
-            ->where('adjustment_type', '-days')
-            ->sum('adjusted_value');
-
-        $positiveAdjustments = $this->rosterAdjustments()
-            ->where('adjustment_type', '+days')
-            ->sum('adjusted_value');
-
-        $this->adjusted_days = $positiveAdjustments - $negativeAdjustments;
-        $this->save();
-    }
-
-    public function createHistory()
-    {
-        return $this->rosterHistories()->create([
-            'cycle_no' => $this->cycle_no,
-            'work_days_actual' => $this->calculateActualWorkDays(),
-            'off_days_actual' => $this->calculateActualOffDays(),
-            'remarks' => 'Cycle completed'
-        ]);
-    }
-
-    // New methods for daily status management
-    public function getStatusForDate($date)
-    {
-        return $this->dailyStatuses()
-            ->where('date', $date)
-            ->first();
-    }
-
-    public function setStatusForDate($date, $statusCode, $notes = null)
-    {
-        return RosterDailyStatus::updateOrCreate(
-            [
-                'roster_id' => $this->id,
-                'date' => $date
-            ],
-            [
-                'status_code' => $statusCode,
-                'notes' => $notes
-            ]
-        );
-    }
-
-    public function getStatusForMonth($year, $month)
-    {
-        $startDate = \Carbon\Carbon::create($year, $month, 1);
-        $endDate = $startDate->copy()->endOfMonth();
-
-        return $this->dailyStatuses()
-            ->whereBetween('date', [$startDate, $endDate])
-            ->orderBy('date')
-            ->get()
-            ->keyBy(function ($status) {
-                return $status->date->day;
-            });
+        return $this->getTotalAccumulatedLeave() - $this->getTotalLeaveTaken();
     }
 }
