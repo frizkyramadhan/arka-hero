@@ -181,6 +181,7 @@
 
     @include('employee.modal-employee')
     @include('employee.modal-administration')
+    @include('employee.modal-termination-employment')
     @include('employee.modal-bank')
     @include('employee.modal-tax')
     @include('employee.modal-insurance')

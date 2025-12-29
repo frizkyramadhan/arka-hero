@@ -163,8 +163,12 @@
                                             Employee
                                         </th>
                                         <th class="calendar-col-nik"
-                                            style="position: sticky; left: 200px; background: #f8f9fa; z-index: 11;">
+                                            style="position: sticky; left: 150px; background: #f8f9fa; z-index: 11;">
                                             NIK
+                                        </th>
+                                        <th class="calendar-col-position"
+                                            style="position: sticky; left: 270px; background: #f8f9fa; z-index: 11;">
+                                            Position
                                         </th>
                                         @for ($day = 1; $day <= Carbon\Carbon::create($year, $month, 1)->daysInMonth; $day++)
                                             <th class="text-center calendar-col-day">
@@ -187,8 +191,12 @@
                                                 </a>
                                             </td>
                                             <td class="calendar-col-nik"
-                                                style="position: sticky; left: 200px; background: white; z-index: 9;">
+                                                style="position: sticky; left: 150px; background: white; z-index: 9;">
                                                 {{ $employee['nik'] }}
+                                            </td>
+                                            <td class="calendar-col-position"
+                                                style="position: sticky; left: 270px; background: white; z-index: 9;">
+                                                {{ $employee['position'] ?? '-' }}
                                             </td>
                                             @for ($day = 1; $day <= Carbon\Carbon::create($year, $month, 1)->daysInMonth; $day++)
                                                 @php
@@ -257,6 +265,7 @@
             font-weight: 600;
             border: 1px solid #dee2e6;
             vertical-align: middle;
+            font-size: 12px;
         }
 
         .calendar-table tbody td {
@@ -275,19 +284,25 @@
             border-left: none;
         }
 
+        .calendar-table thead th.calendar-col-position,
+        .calendar-table tbody td.calendar-col-position {
+            border-left: none;
+        }
+
         .calendar-table tbody tr:hover {
             background-color: #f8f9fa;
         }
 
         /* Fixed width columns */
         .calendar-col-employee {
-            width: 200px;
-            min-width: 200px;
-            max-width: 200px;
+            width: 150px;
+            min-width: 150px;
+            max-width: 150px;
             padding: 8px 12px 8px 12px;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
+            font-size: 12px;
         }
 
         .calendar-col-nik {
@@ -296,6 +311,18 @@
             max-width: 120px;
             padding: 8px 12px 8px 8px;
             text-align: center;
+            font-size: 12px;
+        }
+
+        .calendar-col-position {
+            width: 250px;
+            min-width: 250px;
+            max-width: 250px;
+            padding: 8px 12px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            font-size: 12px;
         }
 
         .calendar-col-day {
@@ -309,8 +336,10 @@
         /* Sticky column styling */
         .calendar-table thead th:first-child,
         .calendar-table thead th:nth-child(2),
+        .calendar-table thead th:nth-child(3),
         .calendar-table tbody td:first-child,
-        .calendar-table tbody td:nth-child(2) {
+        .calendar-table tbody td:nth-child(2),
+        .calendar-table tbody td:nth-child(3) {
             box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
         }
 

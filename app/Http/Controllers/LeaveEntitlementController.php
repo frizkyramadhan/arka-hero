@@ -74,6 +74,16 @@ class LeaveEntitlementController extends Controller
                 ]);
             }
 
+            // Get specific leave types for display: Sakit (paid) and Izin Tanpa Upah (unpaid)
+            $sickLeaveType = LeaveType::where('category', 'paid')
+                ->where('name', 'LIKE', '%Sakit%')
+                ->where('is_active', true)
+                ->first();
+
+            $unpaidLeaveType = LeaveType::where('category', 'unpaid')
+                ->where('is_active', true)
+                ->first();
+
             if ($projectId === 'all') {
                 // Get all employees from all active projects
                 $query = $this->getAllProjectsEmployeesQuery();
@@ -112,9 +122,9 @@ class LeaveEntitlementController extends Controller
                 4 => 'projects.project_code', // Project (only for all projects)
                 5 => 'administrations.doh', // DOH
                 6 => 'annual', // Annual
-                7 => 'lsl', // LSL
-                8 => 'levels.name', // Level
-                9 => 'periodic', // Periodic
+                7 => 'sick', // Sakit
+                8 => 'unpaid', // Ijin Tanpa Upah
+                9 => 'lsl', // LSL
                 10 => 'actions' // Actions
             ];
 
@@ -147,6 +157,10 @@ class LeaveEntitlementController extends Controller
                     continue;
                 }
 
+                // Get all entitlements grouped by leave type ID for paid leave lookup
+                $entitlementsByTypeId = $employee->leaveEntitlements->keyBy('leave_type_id');
+
+                // Get entitlements grouped by category for annual and LSL
                 $entitlements = $employee->leaveEntitlements->keyBy('leaveType.category');
 
                 // Get current active period entitlements for remaining days calculation
@@ -155,8 +169,10 @@ class LeaveEntitlementController extends Controller
                     ->where('period_start', '<=', $today)
                     ->where('period_end', '>=', $today)
                     ->with('leaveType')
-                    ->get()
-                    ->keyBy('leaveType.category');
+                    ->get();
+
+                $currentPeriodEntitlementsByCategory = $currentPeriodEntitlements->keyBy('leaveType.category');
+                $currentPeriodEntitlementsByTypeId = $currentPeriodEntitlements->keyBy('leave_type_id');
 
                 // Determine project type for this employee
                 $projectType = null;
@@ -180,25 +196,47 @@ class LeaveEntitlementController extends Controller
                     $row['project'] = $administration->project->project_code ?? 'N/A';
                 }
 
+                // Annual leave - always show (0 for roster projects)
                 if ($projectType === 'roster') {
-                    $row['lsl'] = $entitlements->get('lsl')->entitled_days ?? 0;
-                    $row['lsl_remaining'] = $currentPeriodEntitlements->get('lsl')->remaining_days ?? 0;
-                    $row['level'] = $administration->level ? $administration->level->name : 'N/A';
-                    $row['periodic'] = $entitlements->get('periodic')->entitled_days ?? 0;
-                    $row['periodic_remaining'] = $currentPeriodEntitlements->get('periodic')->remaining_days ?? 0;
-                    // For roster projects, set annual to 0
                     $row['annual'] = 0;
                     $row['annual_remaining'] = 0;
                 } else {
-                    $row['annual'] = $entitlements->get('annual')->entitled_days ?? 0;
-                    $row['annual_remaining'] = $currentPeriodEntitlements->get('annual')->remaining_days ?? 0;
-                    $row['lsl'] = $entitlements->get('lsl')->entitled_days ?? 0;
-                    $row['lsl_remaining'] = $currentPeriodEntitlements->get('lsl')->remaining_days ?? 0;
-                    // For non-roster projects, set level and periodic to empty
-                    $row['level'] = '';
-                    $row['periodic'] = 0;
-                    $row['periodic_remaining'] = 0;
+                    $annualEntitlement = $entitlements->get('annual');
+                    $row['annual'] = $annualEntitlement ? $annualEntitlement->entitled_days : 0;
+                    $annualCurrent = $currentPeriodEntitlementsByCategory->get('annual');
+                    $row['annual_remaining'] = $annualCurrent ? $annualCurrent->remaining_days : 0;
                 }
+
+                // Sakit (Sick Leave) - specific paid leave type
+                if ($sickLeaveType) {
+                    $sickEntitlement = $entitlementsByTypeId->get($sickLeaveType->id);
+                    $row['sick'] = $sickEntitlement ? $sickEntitlement->entitled_days : 0;
+                    $sickCurrent = $currentPeriodEntitlementsByTypeId->get($sickLeaveType->id);
+                    $row['sick_remaining'] = $sickCurrent ? $sickCurrent->remaining_days : 0;
+                } else {
+                    $row['sick'] = 0;
+                    $row['sick_remaining'] = 0;
+                }
+
+                // Ijin Tanpa Upah (Unpaid Leave)
+                if ($unpaidLeaveType) {
+                    $unpaidEntitlement = $entitlementsByTypeId->get($unpaidLeaveType->id);
+                    $row['unpaid'] = $unpaidEntitlement ? $unpaidEntitlement->entitled_days : 0;
+                    $unpaidCurrent = $currentPeriodEntitlementsByTypeId->get($unpaidLeaveType->id);
+                    $row['unpaid_remaining'] = $unpaidCurrent ? $unpaidCurrent->remaining_days : 0;
+                } else {
+                    // Fallback to category-based lookup if specific type not found
+                    $unpaidEntitlement = $entitlements->get('unpaid');
+                    $row['unpaid'] = $unpaidEntitlement ? $unpaidEntitlement->entitled_days : 0;
+                    $unpaidCurrent = $currentPeriodEntitlementsByCategory->get('unpaid');
+                    $row['unpaid_remaining'] = $unpaidCurrent ? $unpaidCurrent->remaining_days : 0;
+                }
+
+                // LSL
+                $lslEntitlement = $entitlements->get('lsl');
+                $row['lsl'] = $lslEntitlement ? $lslEntitlement->entitled_days : 0;
+                $lslCurrent = $currentPeriodEntitlementsByCategory->get('lsl');
+                $row['lsl_remaining'] = $lslCurrent ? $lslCurrent->remaining_days : 0;
 
                 // Get latest period from leave entitlements for edit URL
                 $latestEntitlement = LeaveEntitlement::where('employee_id', $administration->employee_id)
@@ -249,6 +287,7 @@ class LeaveEntitlementController extends Controller
                 'employee',
                 'level',
                 'position',
+                'project',
                 'employee.leaveEntitlements.leaveType' => function ($q) {
                     $q->where('is_active', true);
                 }
@@ -256,6 +295,7 @@ class LeaveEntitlementController extends Controller
             ->join('employees', 'administrations.employee_id', '=', 'employees.id')
             ->leftJoin('levels', 'administrations.level_id', '=', 'levels.id')
             ->leftJoin('positions', 'administrations.position_id', '=', 'positions.id')
+            ->leftJoin('projects', 'administrations.project_id', '=', 'projects.id')
             ->select(
                 'administrations.id as administration_id',
                 'administrations.employee_id',
@@ -267,7 +307,9 @@ class LeaveEntitlementController extends Controller
                 'employees.id as employee_id',
                 'employees.fullname',
                 'levels.name as level_name',
-                'positions.position_name'
+                'positions.position_name',
+                'projects.project_code',
+                'projects.leave_type'
             );
 
         return $query;

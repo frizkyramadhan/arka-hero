@@ -158,35 +158,35 @@
                     <div class="card-body">
                         @if ($employees->count() > 0)
                             <div class="table-responsive">
-                                <table class="table table-hover table-bordered">
+                                <table id="rostersTable" class="table table-hover table-bordered table-striped">
                                     <thead class="thead-light">
                                         <tr>
-                                            <th width="5%">No</th>
-                                            <th width="10%">NIK</th>
-                                            <th width="20%">Full Name</th>
-                                            <th width="15%">Position</th>
-                                            <th width="10%">Level</th>
-                                            <th width="10%">Pattern</th>
-                                            <th width="10%">Cycles</th>
-                                            <th width="10%">Status</th>
-                                            <th width="10%" class="text-center">Action</th>
+                                            <th width="5%" class="text-center align-middle">No</th>
+                                            <th width="10%" class="align-middle">NIK</th>
+                                            <th width="20%" class="align-middle">Full Name</th>
+                                            <th width="15%" class="align-middle">Position</th>
+                                            <th width="10%" class="text-center align-middle">Level</th>
+                                            <th width="10%" class="text-center align-middle">Pattern</th>
+                                            <th width="10%" class="text-center align-middle">Cycles</th>
+                                            <th width="10%" class="text-center align-middle">Status</th>
+                                            <th width="10%" class="text-center align-middle">Action</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         @foreach ($employees as $index => $admin)
                                             <tr>
-                                                <td>{{ $employees->firstItem() + $index }}</td>
+                                                <td class="text-center">{{ $employees->firstItem() + $index }}</td>
                                                 <td><strong>{{ $admin->nik }}</strong></td>
                                                 <td>{{ $admin->employee->fullname ?? 'N/A' }}</td>
                                                 <td>{{ $admin->position->position_name ?? 'N/A' }}</td>
-                                                <td>
+                                                <td class="text-center">
                                                     @if ($admin->level)
                                                         <span class="badge badge-info">{{ $admin->level->name }}</span>
                                                     @else
                                                         <span class="badge badge-secondary">No Level</span>
                                                     @endif
                                                 </td>
-                                                <td>
+                                                <td class="text-center">
                                                     @if ($admin->level && $admin->level->hasRosterConfig())
                                                         <span
                                                             class="badge badge-success">{{ $admin->level->getRosterPatternDisplay() }}</span>
@@ -194,7 +194,7 @@
                                                         <span class="badge badge-secondary">-</span>
                                                     @endif
                                                 </td>
-                                                <td>
+                                                <td class="text-center">
                                                     @if ($admin->roster)
                                                         <span class="badge badge-primary">
                                                             {{ $admin->roster->roster_details_count ?? 0 }} cycles
@@ -203,7 +203,7 @@
                                                         <span class="badge badge-secondary">0 cycles</span>
                                                     @endif
                                                 </td>
-                                                <td>
+                                                <td class="text-center">
                                                     @if ($admin->roster)
                                                         @php
                                                             $currentDetail = $admin->roster->currentDetail;
@@ -285,6 +285,42 @@
     </section>
 @endsection
 
+@section('styles')
+    <style>
+        /* Compact table styling */
+        #rostersTable {
+            font-size: 0.9rem;
+        }
+
+        #rostersTable thead th {
+            padding: 0.5rem 0.4rem;
+            font-size: 0.85rem;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        #rostersTable tbody td {
+            padding: 0.4rem 0.4rem;
+            vertical-align: middle;
+        }
+
+        #rostersTable .badge {
+            font-size: 0.8rem;
+            padding: 0.3rem 0.6rem;
+            font-weight: 700;
+        }
+
+        #rostersTable .btn {
+            padding: 0.3rem 0.6rem;
+            font-size: 0.8rem;
+        }
+
+        #rostersTable .btn i {
+            font-size: 0.75rem;
+        }
+    </style>
+@endsection
+
 @section('scripts')
     <script>
         $(document).ready(function() {
@@ -337,12 +373,12 @@
                                     // Update Cycles column
                                     $row.find('td:eq(6)').html(
                                         '<span class="badge badge-primary">0 cycles</span>'
-                                    );
+                                    ).addClass('text-center');
 
                                     // Update Status column
                                     $row.find('td:eq(7)').html(
                                         '<span class="badge badge-info">No Active Cycle</span>'
-                                    );
+                                    ).addClass('text-center');
 
                                     // Update Action column
                                     const actionCell = $row.find('td:eq(8)');
@@ -416,12 +452,12 @@
                                     // Update Cycles column
                                     $row.find('td:eq(6)').html(
                                         '<span class="badge badge-secondary">0 cycles</span>'
-                                    );
+                                    ).addClass('text-center');
 
                                     // Update Status column
                                     $row.find('td:eq(7)').html(
                                         '<span class="badge badge-secondary">No Roster</span>'
-                                    );
+                                    ).addClass('text-center');
 
                                     // Update Action column
                                     const actionCell = $row.find('td:eq(8)');

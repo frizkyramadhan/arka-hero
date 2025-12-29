@@ -206,28 +206,19 @@
                             <table id="employeesTable" class="table table-bordered table-striped" width="100%">
                                 <thead>
                                     <tr>
-                                        <th class="text-center">No</th>
-                                        <th>NIK</th>
-                                        <th>Nama</th>
-                                        <th>Position</th>
+                                        <th class="text-center align-middle">No</th>
+                                        <th class="align-middle">NIK</th>
+                                        <th class="align-middle">Nama</th>
+                                        <th class="align-middle">Position</th>
                                         @if ($showAllProjects)
-                                            <th>Project</th>
+                                            <th class="align-middle">Project</th>
                                         @endif
-                                        <th>DOH</th>
-                                        @if ($showAllProjects)
-                                            <th>Annual</th>
-                                            <th>LSL</th>
-                                            <th>Level</th>
-                                            <th>Periodic</th>
-                                        @elseif ($selectedProject->leave_type === 'roster')
-                                            <th>LSL</th>
-                                            <th>Level</th>
-                                            <th>Periodic</th>
-                                        @else
-                                            <th>Annual</th>
-                                            <th>LSL</th>
-                                        @endif
-                                        <th class="text-center">Actions</th>
+                                        <th class="align-middle">DOH</th>
+                                        <th class="text-center align-middle">Cuti Tahunan</th>
+                                        <th class="text-center align-middle">Sakit</th>
+                                        <th class="text-center align-middle">Ijin Tanpa Upah</th>
+                                        <th class="text-center align-middle">Cuti Panjang</th>
+                                        <th class="text-center align-middle">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -296,6 +287,38 @@
 
         .swal-wide .swal2-html-container {
             text-align: left !important;
+        }
+
+        /* Compact table styling */
+        #employeesTable {
+            font-size: 0.9rem;
+        }
+
+        #employeesTable thead th {
+            padding: 0.5rem 0.4rem;
+            font-size: 0.85rem;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        #employeesTable tbody td {
+            padding: 0.4rem 0.4rem;
+            vertical-align: middle;
+        }
+
+        #employeesTable .badge {
+            font-size: 0.8rem;
+            padding: 0.3rem 0.6rem;
+            font-weight: 700;
+        }
+
+        #employeesTable .btn {
+            padding: 0.3rem 0.6rem;
+            font-size: 0.8rem;
+        }
+
+        #employeesTable .btn i {
+            font-size: 0.75rem;
         }
     </style>
 @endsection
@@ -457,66 +480,43 @@
                         data: 'doh',
                         name: 'doh'
                     },
-                    @if ($showAllProjects)
-                        {
-                            data: 'annual',
-                            name: 'annual',
-                            render: function(data, type, row) {
-                                return '<span class="badge badge-info">' + (row.annual_remaining || 0) +
-                                    '</span>';
-                            }
-                        }, {
-                            data: 'lsl',
-                            name: 'lsl',
-                            render: function(data, type, row) {
-                                return '<span class="badge badge-success">' + (row.lsl_remaining || 0) +
-                                    '</span>';
-                            }
-                        }, {
-                            data: 'level',
-                            name: 'level'
-                        }, {
-                            data: 'periodic',
-                            name: 'periodic',
-                            render: function(data, type, row) {
-                                return '<span class="badge badge-warning">' + (row.periodic_remaining ||
-                                    0) + '</span>';
-                            }
-                        },
-                    @elseif ($selectedProject && $selectedProject->leave_type === 'roster') {
-                            data: 'lsl',
-                            name: 'lsl',
-                            render: function(data, type, row) {
-                                return '<span class="badge badge-success">' + (row.lsl_remaining || 0) +
-                                    '</span>';
-                            }
-                        }, {
-                            data: 'level',
-                            name: 'level'
-                        }, {
-                            data: 'periodic',
-                            name: 'periodic',
-                            render: function(data, type, row) {
-                                return '<span class="badge badge-warning">' + (row.periodic_remaining ||
-                                    0) + '</span>';
-                            }
-                        },
-                    @elseif ($selectedProject && $selectedProject->leave_type === 'non_roster') {
-                            data: 'annual',
-                            name: 'annual',
-                            render: function(data, type, row) {
-                                return '<span class="badge badge-info">' + (row.annual_remaining || 0) +
-                                    '</span>';
-                            }
-                        }, {
-                            data: 'lsl',
-                            name: 'lsl',
-                            render: function(data, type, row) {
-                                return '<span class="badge badge-success">' + (row.lsl_remaining || 0) +
-                                    '</span>';
-                            }
-                        },
-                    @endif {
+                    {
+                        data: 'annual',
+                        name: 'annual',
+                        className: 'text-center',
+                        render: function(data, type, row) {
+                            return '<span class="badge badge-info">' + (row.annual_remaining || 0) +
+                                '</span>';
+                        }
+                    },
+                    {
+                        data: 'sick',
+                        name: 'sick',
+                        className: 'text-center',
+                        render: function(data, type, row) {
+                            return '<span class="badge badge-primary">' + (row.sick_remaining || 0) +
+                                '</span>';
+                        }
+                    },
+                    {
+                        data: 'unpaid',
+                        name: 'unpaid',
+                        className: 'text-center',
+                        render: function(data, type, row) {
+                            return '<span class="badge badge-warning">' + (row.unpaid_remaining || 0) +
+                                '</span>';
+                        }
+                    },
+                    {
+                        data: 'lsl',
+                        name: 'lsl',
+                        className: 'text-center',
+                        render: function(data, type, row) {
+                            return '<span class="badge badge-success">' + (row.lsl_remaining || 0) +
+                                '</span>';
+                        }
+                    },
+                    {
                         data: 'actions',
                         name: 'actions',
                         orderable: false,

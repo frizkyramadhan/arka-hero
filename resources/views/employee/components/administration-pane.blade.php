@@ -45,7 +45,7 @@
                     <th>Class</th>
                     <th>Termination Date</th>
                     <th>Termination Reason</th>
-                    <th class="text-center">Action</th>
+                    <th class="text-center" style="min-width: 150px; width: 150px;">Action</th>
                 </tr>
             </thead>
             <tbody>
@@ -99,20 +99,38 @@
                                 -
                             @endif
                         </td>
-                        <td class="action-buttons">
-                            <button class="btn btn-primary btn-action" data-toggle="modal"
-                                data-target="#modal-administration-{{ $administration->id }}">
-                                <i class="fas fa-pen-square"></i>
-                            </button>
-                            <form action="{{ url('administrations/' . $employee->id . '/' . $administration->id) }}"
-                                method="post" onsubmit="return confirm('Are you sure want to delete this record?')"
-                                class="d-inline">
-                                @method('delete')
-                                @csrf
-                                <button class="btn btn-danger btn-action">
-                                    <i class="fas fa-times"></i>
+                        <td class="text-center" style="white-space: nowrap;">
+                            <div class="btn-group">
+                                <button type="button" class="btn btn-primary" data-toggle="modal"
+                                    data-target="#modal-administration-{{ $administration->id }}"
+                                    title="Edit Employment History">
+                                    <i class="fas fa-edit"></i> Edit
                                 </button>
-                            </form>
+                                <button type="button"
+                                    class="btn btn-primary btn-sm dropdown-toggle dropdown-toggle-split"
+                                    data-toggle="dropdown" aria-expanded="false">
+                                    <span class="sr-only">Toggle Dropdown</span>
+                                </button>
+                                <div class="dropdown-menu dropdown-menu-right">
+                                    <a class="dropdown-item" href="#" data-toggle="modal"
+                                        data-target="#modal-termination-employment-{{ $administration->id }}"
+                                        title="Terminate Employment">
+                                        <i class="fas fa-user-times text-danger"></i> Terminate
+                                    </a>
+                                    <div class="dropdown-divider"></div>
+                                    <form
+                                        action="{{ url('administrations/' . $employee->id . '/' . $administration->id) }}"
+                                        method="post"
+                                        onsubmit="return confirm('Are you sure want to delete this record?')"
+                                        class="d-inline">
+                                        @method('delete')
+                                        @csrf
+                                        <button type="submit" class="dropdown-item" title="Delete Employment History">
+                                            <i class="fas fa-trash mr-2 text-danger"></i> Delete
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
                         </td>
                     </tr>
                 @empty
@@ -207,24 +225,6 @@
         font-size: 0.875rem;
     }
 
-    .table-modern .action-buttons {
-        white-space: nowrap;
-        text-align: center;
-    }
-
-    .table-modern .action-buttons .btn {
-        padding: 0.25rem 0.5rem;
-        margin: 0 0.15rem;
-        border-radius: 0.25rem;
-        transition: all 0.2s ease;
-        font-size: 0.875rem;
-    }
-
-    .table-modern .action-buttons .btn:hover {
-        transform: translateY(-1px);
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    }
-
     .table-modern .badge {
         padding: 0.5em 0.75em;
         font-weight: 500;
@@ -269,24 +269,6 @@
     .badge-status.inactive {
         background-color: #dc3545;
         color: white;
-    }
-
-    /* Action Buttons */
-    .btn-action {
-        padding: 0.25rem 0.5rem;
-        border-radius: 0.25rem;
-        transition: all 0.2s ease;
-        margin: 0 0.15rem;
-        font-size: 0.875rem;
-    }
-
-    .btn-action:hover {
-        transform: translateY(-1px);
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    }
-
-    .btn-action i {
-        margin-right: 0.25rem;
     }
 
     /* Empty State */
@@ -337,5 +319,6 @@
                 }, 500);
             });
         }
+
     });
 </script>

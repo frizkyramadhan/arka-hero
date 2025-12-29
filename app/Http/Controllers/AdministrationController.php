@@ -215,21 +215,35 @@ class AdministrationController extends Controller
         $administration->basic_salary = $request->basic_salary;
         $administration->site_allowance = $request->site_allowance;
         $administration->other_allowance = $request->other_allowance;
+        $administration->is_active = $request->is_active;
+        $administration->user_id = auth()->user()->id;
+        $administration->save();
 
-        // Set is_active based on termination section
-        if (!empty($request->termination_date) || !empty($request->termination_reason)) {
-            $administration->is_active = 0; // Set to inactive if termination data exists
-        } else {
-            $administration->is_active = $request->is_active;
+        return redirect('employees/' . $request->employee_id . '#administration')->with('toast_success', 'Administration Updated Successfully');
+    }
+
+    public function terminate(Request $request, $id)
+    {
+        $request->validate([
+            'termination_date' => 'required|date',
+            'termination_reason' => 'required|string',
+            'coe_no' => 'nullable|string',
+        ]);
+
+        $administration = Administration::where('id', $id)->first();
+
+        if (!$administration) {
+            return redirect()->back()->with('toast_error', 'Administration record not found');
         }
 
         $administration->termination_date = $request->termination_date;
         $administration->termination_reason = $request->termination_reason;
         $administration->coe_no = $request->coe_no;
+        $administration->is_active = 0; // Set to inactive when terminated
         $administration->user_id = auth()->user()->id;
         $administration->save();
 
-        return redirect('employees/' . $request->employee_id . '#administration')->with('toast_success', 'Administration Updated Successfully');
+        return redirect('employees/' . $administration->employee_id . '#administration')->with('toast_success', 'Employment History Terminated Successfully');
     }
 
     public function delete($employee_id, $id)
@@ -250,6 +264,12 @@ class AdministrationController extends Controller
     {
         $administration = Administration::find($id);
         $administration->is_active = 1;
+
+        // Clear termination data when reactivating employment history
+        $administration->termination_date = null;
+        $administration->termination_reason = null;
+        $administration->coe_no = null;
+
         $administration->save();
         Administration::where('employee_id', $administration->employee_id)->where('id', '!=', $id)->update(['is_active' => 0]);
 
