@@ -394,6 +394,7 @@ Route::group(['middleware' => ['auth']], function () {
     Route::get('administrations/getAdministration', [AdministrationController::class, 'getAdministration'])->name('administrations.list');
     Route::resource('administrations', AdministrationController::class)->except(['store', 'show', 'create', 'edit', 'destroy']);
     Route::post('administrations/{employee_id}', [AdministrationController::class, 'store'])->name('administrations.store');
+    Route::patch('administrations/{id}/terminate', [AdministrationController::class, 'terminate'])->name('administrations.terminate');
     Route::delete('administrations/{employee_id}/{id}', [AdministrationController::class, 'delete'])->name('administrations.delete');
     Route::delete('administrations/{employee_id}', [AdministrationController::class, 'deleteAll'])->name('administrations.deleteAll');
     Route::patch('administrations/changeStatus/{employee_id}/{id}', [AdministrationController::class, 'changeStatus'])->name('administrations.changeStatus');
