@@ -156,23 +156,76 @@ class UserController extends Controller
                 return '<span class="badge ' . $statusClass . '">' . $statusText . '</span>';
             })
             ->filter(function ($instance) use ($request) {
-                if (!empty($request->get('search'))) {
-                    $instance->where(function ($w) use ($request) {
-                        $search = $request->get('search');
-                        $w->orWhere('name', 'LIKE', "%$search%")
-                            ->orWhere('email', 'LIKE', "%$search%")
-                            ->orWhereHas('projects', function ($q) use ($search) {
-                                $q->where('project_code', 'LIKE', "%$search%")
-                                    ->orWhere('project_name', 'LIKE', "%$search%");
+                // General search (from DataTables search box)
+                $searchValue = null;
+                if ($request->has('search')) {
+                    $search = $request->get('search');
+                    if (is_array($search) && !empty($search['value'])) {
+                        $searchValue = $search['value'];
+                    } elseif (is_string($search) && !empty($search)) {
+                        $searchValue = $search;
+                    }
+                }
+
+                if (!empty($searchValue)) {
+                    $instance->where(function ($w) use ($searchValue) {
+                        $w->orWhere('name', 'LIKE', "%$searchValue%")
+                            ->orWhere('email', 'LIKE', "%$searchValue%")
+                            ->orWhereHas('projects', function ($q) use ($searchValue) {
+                                $q->where('project_code', 'LIKE', "%$searchValue%")
+                                    ->orWhere('project_name', 'LIKE', "%$searchValue%");
                             })
-                            ->orWhereHas('departments', function ($q) use ($search) {
-                                $q->where('department_name', 'LIKE', "%$search%")
-                                    ->orWhere('slug', 'LIKE', "%$search%");
+                            ->orWhereHas('departments', function ($q) use ($searchValue) {
+                                $q->where('department_name', 'LIKE', "%$searchValue%")
+                                    ->orWhere('slug', 'LIKE', "%$searchValue%");
                             })
-                            ->orWhereHas('roles', function ($q) use ($search) {
-                                $q->where('name', 'LIKE', "%$search%");
+                            ->orWhereHas('roles', function ($q) use ($searchValue) {
+                                $q->where('name', 'LIKE', "%$searchValue%");
                             });
                     });
+                }
+
+                // Filter by name
+                if (!empty($request->get('filter_name'))) {
+                    $instance->where('name', 'LIKE', '%' . $request->get('filter_name') . '%');
+                }
+
+                // Filter by email
+                if (!empty($request->get('filter_email'))) {
+                    $instance->where('email', 'LIKE', '%' . $request->get('filter_email') . '%');
+                }
+
+                // Filter by employee
+                if (!empty($request->get('filter_employee'))) {
+                    $instance->whereHas('employee', function ($q) use ($request) {
+                        $q->where('fullname', 'LIKE', '%' . $request->get('filter_employee') . '%');
+                    });
+                }
+
+                // Filter by project
+                if (!empty($request->get('filter_project'))) {
+                    $instance->whereHas('projects', function ($q) use ($request) {
+                        $q->where('projects.id', $request->get('filter_project'));
+                    });
+                }
+
+                // Filter by department
+                if (!empty($request->get('filter_department'))) {
+                    $instance->whereHas('departments', function ($q) use ($request) {
+                        $q->where('departments.id', $request->get('filter_department'));
+                    });
+                }
+
+                // Filter by role
+                if (!empty($request->get('filter_role'))) {
+                    $instance->whereHas('roles', function ($q) use ($request) {
+                        $q->where('roles.id', $request->get('filter_role'));
+                    });
+                }
+
+                // Filter by status
+                if ($request->get('filter_status') !== null && $request->get('filter_status') !== '') {
+                    $instance->where('user_status', $request->get('filter_status'));
                 }
             })
             ->addColumn('action', function ($model) use ($roles) {
