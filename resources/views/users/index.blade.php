@@ -86,8 +86,116 @@
                                 </div>
                             </div><!-- /.card-header -->
                             <div class="card-body">
+                                <!-- Filter Form -->
+                                <div class="card card-primary">
+                                    <div class="card-header">
+                                        <h4 class="card-title w-100">
+                                            <a class="d-block w-100" data-toggle="collapse" href="#collapseOne">
+                                                <i class="fas fa-filter"></i> Filter
+                                            </a>
+                                        </h4>
+                                    </div>
+                                    <div id="collapseOne" class="collapse" data-parent="#accordion">
+                                        <div class="card-body">
+                                            <div class="row form-group">
+                                                <div class="col-3">
+                                                    <div class="form-group">
+                                                        <label class="form-control-label">Name</label>
+                                                        <input type="text" class="form-control" name="filter_name"
+                                                            id="filter_name" value="{{ request('filter_name') }}">
+                                                    </div>
+                                                </div>
+                                                <div class="col-3">
+                                                    <div class="form-group">
+                                                        <label class="form-control-label">Email</label>
+                                                        <input type="text" class="form-control" name="filter_email"
+                                                            id="filter_email" value="{{ request('filter_email') }}">
+                                                    </div>
+                                                </div>
+                                                <div class="col-3">
+                                                    <div class="form-group">
+                                                        <label class="form-control-label">Employee</label>
+                                                        <input type="text" class="form-control" name="filter_employee"
+                                                            id="filter_employee" value="{{ request('filter_employee') }}">
+                                                    </div>
+                                                </div>
+                                                <div class="col-3">
+                                                    <div class="form-group">
+                                                        <label class="form-control-label">Project</label>
+                                                        <select name="filter_project" class="form-control select2bs4"
+                                                            id="filter_project" style="width: 100%;">
+                                                            <option value="">- All -</option>
+                                                            @foreach ($projects as $project)
+                                                                <option value="{{ $project->id }}"
+                                                                    {{ request('filter_project') == $project->id ? 'selected' : '' }}>
+                                                                    {{ $project->project_code }} -
+                                                                    {{ $project->project_name }}
+                                                                </option>
+                                                            @endforeach
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                                <div class="col-3">
+                                                    <div class="form-group">
+                                                        <label class="form-control-label">Department</label>
+                                                        <select name="filter_department" class="form-control select2bs4"
+                                                            id="filter_department" style="width: 100%;">
+                                                            <option value="">- All -</option>
+                                                            @foreach ($departments as $department)
+                                                                <option value="{{ $department->id }}"
+                                                                    {{ request('filter_department') == $department->id ? 'selected' : '' }}>
+                                                                    {{ $department->department_name }}
+                                                                </option>
+                                                            @endforeach
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                                <div class="col-3">
+                                                    <div class="form-group">
+                                                        <label class="form-control-label">Role</label>
+                                                        <select name="filter_role" class="form-control select2bs4"
+                                                            id="filter_role" style="width: 100%;">
+                                                            <option value="">- All -</option>
+                                                            @foreach ($roles as $role)
+                                                                <option value="{{ $role->id }}"
+                                                                    {{ request('filter_role') == $role->id ? 'selected' : '' }}>
+                                                                    {{ $role->name }}
+                                                                </option>
+                                                            @endforeach
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                                <div class="col-3">
+                                                    <div class="form-group">
+                                                        <label class="form-control-label">Status</label>
+                                                        <select name="filter_status" class="form-control select2bs4"
+                                                            id="filter_status" style="width: 100%;">
+                                                            <option value=""
+                                                                {{ request('filter_status') == '' ? 'selected' : '' }}>
+                                                                - All -</option>
+                                                            <option value="1"
+                                                                {{ request('filter_status') == '1' ? 'selected' : '' }}>
+                                                                Active</option>
+                                                            <option value="0"
+                                                                {{ request('filter_status') == '0' ? 'selected' : '' }}>
+                                                                Inactive</option>
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                                <div class="col-3">
+                                                    <div class="form-group">
+                                                        <label class="form-control-label">&nbsp;</label>
+                                                        <button id="btn-reset" type="button"
+                                                            class="btn btn-danger btn-block">Reset</button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                                 <div class="table-responsive">
-                                    <table id="example1" width="100%" class="table table-bordered table-striped">
+                                    <table id="example1" width="100%"
+                                        class="table table-bordered table-striped table-sm">
                                         <thead>
                                             <tr>
                                                 <th class="align-middle" width="5%">No</th>
@@ -197,6 +305,7 @@
 
         #example1 {
             width: 100% !important;
+            font-size: 0.875rem;
         }
 
         #example1 th,
@@ -204,6 +313,7 @@
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
+            padding: 0.5rem;
         }
 
         /* Allow wrapping for Name and Email columns */
@@ -249,19 +359,60 @@
     <!-- Page specific script -->
     <script>
         $(function() {
+            // Variable to store pending AJAX request
+            var xhr = null;
+
             //Initialize Select2 Elements
             $('.select2').select2({
                 theme: 'bootstrap4',
                 dropdownParent: $('#modal-lg')
             });
 
+            //Initialize Select2 Elements
+            $('.select2bs4').select2({
+                theme: 'bootstrap4'
+            });
+
+            $(document).on('select2:open', () => {
+                document.querySelector('.select2-search__field').focus();
+            });
+
             var table = $("#example1").DataTable({
                 processing: true,
                 serverSide: true,
+                searchDelay: 500, // Add delay for search input to prevent rapid requests
                 ajax: {
                     url: "{{ route('users.data') }}",
+                    type: 'GET',
                     data: function(d) {
+                        d.filter_name = $('#filter_name').val();
+                        d.filter_email = $('#filter_email').val();
+                        d.filter_employee = $('#filter_employee').val();
+                        d.filter_project = $('#filter_project').val();
+                        d.filter_department = $('#filter_department').val();
+                        d.filter_role = $('#filter_role').val();
+                        d.filter_status = $('#filter_status').val();
                         d.search = $("input[type=search][aria-controls=example1]").val();
+                    },
+                    beforeSend: function(jqXHR, settings) {
+                        // Cancel previous pending request
+                        if (xhr && xhr.readyState !== 4) {
+                            xhr.abort();
+                        }
+                        // Store current request
+                        xhr = jqXHR;
+                    },
+                    error: function(xhr, error, thrown) {
+                        // Suppress error if request was aborted
+                        if (xhr.statusText === 'abort') {
+                            return;
+                        }
+                        // Handle other errors silently to prevent DataTables warning
+                        console.error('DataTables Ajax Error:', error);
+                    },
+                    complete: function() {
+                        // Clear xhr reference when request completes
+                        xhr = null;
                     }
                 },
                 columns: [{
@@ -339,6 +490,35 @@
 
             // Enable tooltips
             $('[data-toggle="tooltip"]').tooltip();
+
+            // Debounce function to prevent rapid requests
+            var debounceTimer = null;
+
+            function debounceDraw(callback, delay) {
+                clearTimeout(debounceTimer);
+                debounceTimer = setTimeout(callback, delay);
+            }
+
+            // Apply debouncing to text inputs (keyup events)
+            $('#filter_name, #filter_email, #filter_employee')
+                .on('keyup', function() {
+                    debounceDraw(function() {
+                        table.draw();
+                    }, 500); // 500ms delay
+                });
+
+            // Immediate draw for select changes (no debounce needed)
+            $('#filter_project, #filter_department, #filter_role, #filter_status')
+                .on('change', function() {
+                    table.draw();
+                });
+
+            $('#btn-reset').click(function() {
+                $('#filter_name, #filter_email, #filter_employee').val('');
+                $('#filter_project, #filter_department, #filter_role, #filter_status').val('').trigger(
+                    'change');
+                table.draw();
+            });
         });
 
         // Initialize DataTables for Roles Overview
