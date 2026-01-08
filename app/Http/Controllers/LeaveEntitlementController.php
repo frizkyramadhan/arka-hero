@@ -20,7 +20,16 @@ class LeaveEntitlementController extends Controller
 {
     public function __construct()
     {
-        $this->middleware('permission:leave-entitlements.show')->only('index', 'show', 'data', 'showEmployee', 'showLeaveCalculationDetails', 'getAvailableLeaveTypes', 'getLeaveCalculationDetailsAjax', 'exportTemplate');
+        $this->middleware('permission:leave-entitlements.show')->only('index', 'show', 'data', 'showEmployee', 'getAvailableLeaveTypes', 'getLeaveCalculationDetailsAjax', 'exportTemplate');
+        // showLeaveCalculationDetails can be accessed by both admin (leave-entitlements.show) and personal users (personal.leave.view-entitlements)
+        // Permission check is handled inside the method - allow either permission
+        $this->middleware(function ($request, $next) {
+            $user = auth()->user();
+            if (!$user->can('leave-entitlements.show') && !$user->can('personal.leave.view-entitlements')) {
+                abort(403, 'Unauthorized access.');
+            }
+            return $next($request);
+        })->only('showLeaveCalculationDetails');
         $this->middleware('permission:leave-entitlements.create')->only('create', 'store', 'generateProjectEntitlements', 'generateSelectedProjectEntitlements', 'importTemplate');
         $this->middleware('permission:leave-entitlements.edit')->only('edit', 'update', 'editEmployee', 'updateEmployee', 'importTemplate');
         $this->middleware('permission:leave-entitlements.delete')->only('destroy', 'clearAllEntitlements');
@@ -782,6 +791,14 @@ class LeaveEntitlementController extends Controller
      */
     public function showLeaveCalculationDetails(Request $request, Employee $employee)
     {
+        // Check if user is accessing their own data or has admin permission
+        $user = auth()->user();
+        $isPersonalUser = $user->can('personal.leave.view-entitlements') && !$user->can('leave-entitlements.show');
+
+        if ($isPersonalUser && $user->employee_id !== $employee->id) {
+            return back()->with(['toast_error' => 'You can only view your own leave calculation details.']);
+        }
+
         $request->validate([
             'leave_type_id' => 'required|exists:leave_types,id',
             'period_start' => 'nullable|date',
