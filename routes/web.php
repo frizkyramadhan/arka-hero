@@ -650,6 +650,7 @@ Route::group(['middleware' => ['auth']], function () {
         Route::get('/my-requests/{leaveRequest}/cancellation-form', [LeaveRequestController::class, 'showCancellationForm'])->name('my-requests.cancellation-form');
         Route::post('/my-requests/{leaveRequest}/cancellation', [LeaveRequestController::class, 'storeCancellation'])->name('my-requests.cancellation');
         Route::get('/my-entitlements', [LeaveRequestController::class, 'myEntitlements'])->name('my-entitlements');
+        Route::get('/my-entitlements/calculation-details', [LeaveRequestController::class, 'myEntitlementsCalculationDetails'])->name('my-entitlements.calculation-details');
 
         // Periodic Leave Requests
         Route::prefix('periodic-requests')->name('periodic-requests.')->group(function () {

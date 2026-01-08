@@ -14,11 +14,16 @@
                     <div class="col-sm-6">
                         <ol class="breadcrumb float-sm-right">
                             <li class="breadcrumb-item"><a href="{{ route('dashboard') }}">Home</a></li>
-                            <li class="breadcrumb-item"><a href="{{ route('leave.entitlements.index') }}">Leave
-                                    Entitlements</a></li>
-                            <li class="breadcrumb-item"><a
-                                    href="{{ route('leave.entitlements.employee.show', $employee->id) }}">{{ $employee->fullname }}</a>
-                            </li>
+                            @if (auth()->user()->can('leave-entitlements.show'))
+                                <li class="breadcrumb-item"><a href="{{ route('leave.entitlements.index') }}">Leave
+                                        Entitlements</a></li>
+                                <li class="breadcrumb-item"><a
+                                        href="{{ route('leave.entitlements.employee.show', $employee->id) }}">{{ $employee->fullname }}</a>
+                                </li>
+                            @else
+                                <li class="breadcrumb-item"><a href="{{ route('leave.my-entitlements') }}">My Leave
+                                        Entitlements</a></li>
+                            @endif
                             <li class="breadcrumb-item active">Calculation Details</li>
                         </ol>
                     </div>
@@ -292,19 +297,24 @@
                             <div class="card-body">
                                 <div class="row">
                                     <div class="col-md-6">
-                                        <a href="{{ route('leave.entitlements.employee.show', $employee) }}"
-                                            class="btn btn-secondary">
-                                            <i class="fas fa-arrow-left mr-1"></i> Kembali ke Entitlements
-                                        </a>
+                                        @if (auth()->user()->can('leave-entitlements.show'))
+                                            <a href="{{ route('leave.entitlements.employee.show', $employee) }}"
+                                                class="btn btn-secondary">
+                                                <i class="fas fa-arrow-left mr-1"></i> Kembali ke Entitlements
+                                            </a>
+                                        @else
+                                            <a href="{{ route('leave.my-entitlements') }}" class="btn btn-secondary">
+                                                <i class="fas fa-arrow-left mr-1"></i> Kembali ke My Entitlements
+                                            </a>
+                                        @endif
                                     </div>
                                     <div class="col-md-6 text-right">
-                                        <button type="button" class="btn btn-info" onclick="window.print()">
-                                            <i class="fas fa-print mr-1"></i> Cetak Laporan
-                                        </button>
-                                        <a href="{{ route('leave.entitlements.employee.edit', $employee) }}"
-                                            class="btn btn-warning">
-                                            <i class="fas fa-edit mr-1"></i> Edit Entitlements
-                                        </a>
+                                        @if (auth()->user()->can('leave-entitlements.edit'))
+                                            <a href="{{ route('leave.entitlements.employee.edit', $employee) }}"
+                                                class="btn btn-warning">
+                                                <i class="fas fa-edit mr-1"></i> Edit Entitlements
+                                            </a>
+                                        @endif
                                     </div>
                                 </div>
                             </div>
@@ -390,4 +400,3 @@
         </style>
     @endpush
 @endsection
-

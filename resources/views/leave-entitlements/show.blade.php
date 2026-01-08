@@ -378,9 +378,7 @@
                                                                     @foreach ($entitlements as $entitlement)
                                                                         <tr>
                                                                             <td>
-                                                                                <span class="badge badge-info">
-                                                                                    {{ $entitlement->leaveType->name }}
-                                                                                </span>
+                                                                                <b>{{ $entitlement->leaveType->name }}</b>
                                                                                 @if ($entitlement->leaveType->code)
                                                                                     <br><small
                                                                                         class="text-muted">{{ $entitlement->leaveType->code }}</small>

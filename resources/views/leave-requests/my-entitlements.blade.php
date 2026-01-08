@@ -133,7 +133,7 @@
                     <h3 class="card-title"><i class="fas fa-calendar-alt"></i> Leave Entitlements Summary</h3>
                     <div class="card-tools">
                         @can('personal.leave.create-own')
-                            <a href="{{ route('leave.my-requests.create') }}" class="btn btn-primary">
+                            <a href="{{ route('leave.my-requests.create') }}" class="btn btn-primary mr-2">
                                 <i class="fas fa-plus"></i> Request Leave
                             </a>
                         @endcan
@@ -321,7 +321,8 @@
                                                                         <th width="12%" class="text-center">Remaining
                                                                         </th>
                                                                         <th width="12%" class="text-center">Period</th>
-                                                                        <th width="22%" class="text-center">Actions</th>
+                                                                        <th width="22%" class="text-center">Actions
+                                                                        </th>
                                                                     </tr>
                                                                 </thead>
                                                                 <tbody>
@@ -337,9 +338,7 @@
                                                                         <tr
                                                                             class="{{ $isExpired ? 'table-secondary' : '' }}">
                                                                             <td>
-                                                                                <span class="badge badge-info">
-                                                                                    {{ $entitlement->leaveType->name ?? 'N/A' }}
-                                                                                </span>
+                                                                                <b>{{ $entitlement->leaveType->name ?? 'N/A' }}</b>
                                                                                 @if ($entitlement->leaveType->code)
                                                                                     <br><small
                                                                                         class="text-muted">{{ $entitlement->leaveType->code }}</small>
@@ -387,24 +386,22 @@
                                                                                 </small>
                                                                             </td>
                                                                             <td class="text-center">
-                                                                                @can('personal.leave.create-own')
-                                                                                    @if (!$isExpired && $entitlement->remaining_days > 0)
-                                                                                        <a href="{{ route('leave.my-requests.create', ['leave_type' => $entitlement->leave_type_id]) }}"
-                                                                                            class="btn btn-sm btn-primary mb-1"
-                                                                                            title="Request {{ $entitlement->leaveType->name ?? 'Leave' }}">
-                                                                                            <i
-                                                                                                class="fas fa-calendar-plus"></i>
-                                                                                            Request
-                                                                                        </a>
-                                                                                    @else
-                                                                                        <button
-                                                                                            class="btn btn-sm btn-secondary mb-1"
-                                                                                            disabled
-                                                                                            title="{{ $isExpired ? 'This entitlement has expired' : 'No balance available' }}">
-                                                                                            <i class="fas fa-ban"></i> N/A
-                                                                                        </button>
-                                                                                    @endif
-                                                                                @endcan
+                                                                                <div class="d-flex justify-content-center">
+                                                                                    @can('personal.leave.create-own')
+                                                                                        @if (!$isExpired && $entitlement->remaining_days > 0)
+                                                                                            <a href="{{ route('leave.my-requests.create', ['leave_type' => $entitlement->leave_type_id]) }}"
+                                                                                                class="btn btn-sm btn-primary mr-2"
+                                                                                                title="Request {{ $entitlement->leaveType->name ?? 'Leave' }}">
+                                                                                                Request
+                                                                                            </a>
+                                                                                        @endif
+                                                                                    @endcan
+                                                                                    <a href="{{ route('leave.my-entitlements.calculation-details') }}?leave_type_id={{ $entitlement->leave_type_id }}&period_start={{ $entitlement->period_start->format('Y-m-d') }}&period_end={{ $entitlement->period_end->format('Y-m-d') }}"
+                                                                                        class="btn btn-sm btn-info"
+                                                                                        title="View Calculation Details">
+                                                                                        Details
+                                                                                    </a>
+                                                                                </div>
                                                                                 <div class="progress mt-1"
                                                                                     style="height: 4px;">
                                                                                     <div class="progress-bar bg-{{ $entitlement->remaining_days > 0 ? 'success' : 'secondary' }}"

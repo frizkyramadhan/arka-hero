@@ -63,7 +63,7 @@ class LeaveRequestController extends Controller
         $this->middleware('permission:personal.leave.edit-own')->only('myRequestsEdit', 'myRequestsUpdate');
 
         // View own entitlements
-        $this->middleware('permission:personal.leave.view-entitlements')->only('myEntitlements');
+        $this->middleware('permission:personal.leave.view-entitlements')->only('myEntitlements', 'myEntitlementsCalculationDetails');
 
         // ========================================
         // METHODS WITH DUAL PERMISSION ACCESS
@@ -1887,6 +1887,53 @@ class LeaveRequestController extends Controller
 
         return view('leave-requests.my-entitlements', compact('entitlements', 'employee'))
             ->with('title', 'My Leave Entitlements');
+    }
+
+    /**
+     * Show calculation details for personal user's own entitlements
+     */
+    public function myEntitlementsCalculationDetails(Request $request)
+    {
+        $user = Auth::user();
+        $employee = $user->employee;
+
+        if (!$employee) {
+            return redirect()->route('leave.my-entitlements')
+                ->with('toast_error', 'Employee information not found.');
+        }
+
+        $request->validate([
+            'leave_type_id' => 'required|exists:leave_types,id',
+            'period_start' => 'nullable|date',
+            'period_end' => 'nullable|date|after:period_start'
+        ]);
+
+        $leaveTypeId = $request->leave_type_id;
+        $periodStart = $request->period_start;
+        $periodEnd = $request->period_end;
+
+        // Get leave calculation details using the model method
+        $calculationDetails = LeaveEntitlement::getEmployeeLeaveDetails(
+            $employee->id,
+            $leaveTypeId,
+            $periodStart,
+            $periodEnd
+        );
+
+        if (!$calculationDetails) {
+            return redirect()->route('leave.my-entitlements')
+                ->with('toast_error', 'No leave entitlement found for this leave type and period.');
+        }
+
+        // Load additional data for the view
+        $employee->load(['administrations.project', 'administrations.level']);
+        $leaveType = LeaveType::findOrFail($leaveTypeId);
+
+        return view('leave-entitlements.calculation-details', compact(
+            'employee',
+            'leaveType',
+            'calculationDetails'
+        ))->with('title', 'Leave Calculation Details - ' . $employee->fullname);
     }
 
     /**

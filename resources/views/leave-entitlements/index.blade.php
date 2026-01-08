@@ -185,20 +185,22 @@
                             @endif
                         </h3>
                         @if ($showAllProjects || $selectedProject)
-                            @if (auth()->user()->hasRole('administrator'))
-                                <div class="card-tools">
+                            <div class="card-tools">
+                                @if (auth()->user()->hasRole('administrator'))
                                     <button type="button" class="btn btn-danger btn-sm mr-2"
                                         onclick="confirmClearEntitlements()">
                                         <i class="fas fa-trash"></i> Clear Entitlements
                                     </button>
+                                @endif
+                                @can('leave-entitlements.create')
                                     @if (!$showAllProjects && $selectedProject)
                                         <button type="button" class="btn btn-success btn-sm"
                                             onclick="confirmGenerateEntitlements()">
                                             <i class="fas fa-magic"></i> Generate Entitlements
                                         </button>
                                     @endif
-                                </div>
-                            @endif
+                                @endcan
+                            </div>
                         @endif
                     </div>
                     <div class="card-body">
