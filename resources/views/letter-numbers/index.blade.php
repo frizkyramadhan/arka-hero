@@ -130,7 +130,7 @@
                                                         <input type="date" class="form-control" id="filter-date-to">
                                                     </div>
                                                 </div>
-                                                <div class="col-md-2">
+                                                <div class="col-md-3">
                                                     <div class="form-group">
                                                         <label>Letter Category</label>
                                                         <select class="form-control select2bs4" id="filter-category">
@@ -144,7 +144,7 @@
                                                         </select>
                                                     </div>
                                                 </div>
-                                                <div class="col-md-2">
+                                                <div class="col-md-3">
                                                     <div class="form-group">
                                                         <label>Status</label>
                                                         <select class="form-control select2bs4" id="filter-status">
@@ -155,26 +155,30 @@
                                                         </select>
                                                     </div>
                                                 </div>
-                                                <div class="col-md-2">
+                                            </div>
+                                            <div class="row">
+                                                <div class="col-md-5">
                                                     <div class="form-group">
                                                         <label>Destination</label>
                                                         <input type="text" class="form-control"
                                                             id="filter-destination" placeholder="Search destination...">
                                                     </div>
                                                 </div>
-                                            </div>
-                                            <div class="row">
-                                                <div class="col-md-3">
+                                                <div class="col-md-5">
                                                     <div class="form-group">
                                                         <label>Remarks</label>
                                                         <input type="text" class="form-control" id="filter-remarks"
                                                             placeholder="Search remarks...">
                                                     </div>
                                                 </div>
-                                                <div class="col-md-9 text-right">
-                                                    <button type="button" id="btn-reset-filter" class="btn btn-danger">
-                                                        <i class="fas fa-times"></i> Reset Filter
-                                                    </button>
+                                                <div class="col-md-2 text-right">
+                                                    <div class="form-group">
+                                                        <label>&nbsp;</label>
+                                                        <button type="button" id="btn-reset-filter"
+                                                            class="btn btn-danger btn-block">
+                                                            <i class="fas fa-times"></i> Reset Filter
+                                                        </button>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>

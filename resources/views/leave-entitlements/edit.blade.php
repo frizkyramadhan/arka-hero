@@ -3,6 +3,47 @@
 @section('title', ($isEditMode ?? false ? 'Edit' : 'Add') . ' Employee Leave Entitlements - ' . $employee->fullname)
 
 @section('content')
+    @php
+        // Get active administration (is_active = 1)
+        $activeAdministration = $employee->administrations->where('is_active', 1)->first();
+        
+        // If no active administration, use the last one
+        if (!$activeAdministration) {
+            $activeAdministration = $employee->administrations->sortByDesc('doh')->first();
+        }
+
+        // Calculate years of service based on termination reason logic:
+        // - If termination_reason = "end of contract" → count from first DOH (continuity)
+        // - If termination_reason != "end of contract" → count from DOH after termination (reset)
+        $allAdministrations = $employee->administrations->whereNotNull('doh')->sortBy('doh')->values();
+        
+        $serviceStartDoh = null;
+        $serviceStartNik = null;
+        
+        if ($allAdministrations->count() > 0) {
+            // Start with first DOH (earliest)
+            $serviceStartDoh = $allAdministrations->first()->doh;
+            $serviceStartNik = $allAdministrations->first()->nik;
+            
+            // Check each administration for termination reason
+            foreach ($allAdministrations as $admin) {
+                if ($admin->termination_date && $admin->termination_reason) {
+                    $terminationReason = strtolower(trim($admin->termination_reason));
+                    
+                    // If termination is NOT "end of contract", reset to next DOH
+                    if ($terminationReason !== 'end of contract') {
+                        // Find next administration after this termination
+                        $nextAdmin = $allAdministrations->where('doh', '>', $admin->termination_date)->first();
+                        if ($nextAdmin) {
+                            $serviceStartDoh = $nextAdmin->doh;
+                            $serviceStartNik = $nextAdmin->nik;
+                        }
+                    }
+                }
+            }
+        }
+    @endphp
+    
     @if ($businessRules)
         <!-- Info Banner - Full Width -->
         <div class="info-banner">
@@ -10,8 +51,8 @@
                 <div class="employee-info">
                     <div class="employee-name">{{ $employee->fullname }}</div>
                     <div class="employee-details">
-                        {{ $employee->administrations->first()->project->project_code ?? 'N/A' }} -
-                        {{ $employee->administrations->first()->nik ?? 'N/A' }}
+                        {{ $activeAdministration->project->project_code ?? 'N/A' }} -
+                        {{ $activeAdministration->nik ?? 'N/A' }}
                     </div>
                     @if ($periodDates)
                         <div class="period-info">
@@ -45,17 +86,24 @@
                                     <div class="info-section">
                                         <div class="info-label"><i class="fas fa-briefcase text-primary"></i> Level</div>
                                         <div class="info-value">
-                                            {{ $employee->administrations->first()->level->name ?? 'N/A' }}</div>
+                                            {{ $activeAdministration->level->name ?? 'N/A' }}</div>
                                     </div>
                                     <div class="info-section">
                                         <div class="info-label"><i class="fas fa-user-tag text-secondary"></i> Position</div>
                                         <div class="info-value">
-                                            {{ $employee->administrations->first()->position->position_name ?? 'N/A' }}</div>
+                                            {{ $activeAdministration->position->position_name ?? 'N/A' }}</div>
                                     </div>
                                     <div class="info-section">
                                         <div class="info-label"><i class="fas fa-calendar-check text-success"></i> DOH</div>
                                         <div class="info-value">
-                                            {{ $employee->administrations->first()->doh ? $employee->administrations->first()->doh->format('d M Y') : 'N/A' }}
+                                            @if ($serviceStartDoh)
+                                                {{ \Carbon\Carbon::parse($serviceStartDoh)->format('d M Y') }}
+                                                @if ($serviceStartNik && $activeAdministration && $serviceStartNik != $activeAdministration->nik)
+                                                    <br><small class="text-info"><i class="fas fa-info-circle"></i> From NIK: {{ $serviceStartNik }}</small>
+                                                @endif
+                                            @else
+                                                N/A
+                                            @endif
                                         </div>
                                     </div>
                                     <div class="info-section">

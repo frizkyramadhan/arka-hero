@@ -352,9 +352,16 @@ class LetterNumber extends Model
             }
         }
 
-        // Priority 2: Update by letter_number if provided
+        // Priority 2: Update by letter_number if provided (only if year matches)
         if (!empty($attributes['letter_number'])) {
-            $existingRecord = static::where('letter_number', $attributes['letter_number'])->first();
+            $query = static::where('letter_number', $attributes['letter_number']);
+
+            // If year is provided, also check year match
+            if (!empty($attributes['year'])) {
+                $query->where('year', $attributes['year']);
+            }
+
+            $existingRecord = $query->first();
             if ($existingRecord) {
                 $existingRecord->update($attributes);
                 return $existingRecord;
