@@ -1,27 +1,23 @@
--   [x] Align Officialtravel API with Approval Plan model and fix claim search logic (2025-08-13)
-        Keep your task management simple and focused on what you're actually working on:
-
-```markdown
-**Purpose**: Track current work and immediate priorities
-**Last Updated**: 2025-01-15
+**Purpose**: Track current work and immediate priorities for ARKA HERO HRMS
+**Last Updated**: 2026-01-09
 
 ## Task Management Guidelines
 
 ### Entry Format
 
 Each task entry must follow this format:
-[status] priority: task description [context] (completed: YYYY-MM-DD)
+`[status] priority: task description [context] (completed: YYYY-MM-DD)`
 
 ### Context Information
 
 Include relevant context in brackets to help with future AI-assisted coding:
 
--   **Files**: `[src/components/Search.tsx:45]` - specific file and line numbers
--   **Functions**: `[handleSearch(), validateInput()]` - relevant function names
--   **APIs**: `[/api/jobs/search, POST /api/profile]` - API endpoints
--   **Database**: `[job_results table, profiles.skills column]` - tables/columns
--   **Error Messages**: `["Unexpected token '<'", "404 Page Not Found"]` - exact errors
--   **Dependencies**: `[blocked by auth system, needs API key]` - blockers
+-   **Files**: `[app/Http/Controllers/LeaveRequestController.php:145]` - specific file and line numbers
+-   **Functions**: `[calculateLeaveBalance(), generateEntitlements()]` - relevant function names
+-   **APIs**: `[POST /api/v1/leave/requests, GET /api/employees/list]` - API endpoints
+-   **Database**: `[leave_requests table, leave_entitlements.balance column]` - tables/columns
+-   **Error Messages**: `["Days to Approve calculation error", "Token mismatch"]` - exact errors
+-   **Dependencies**: `[blocked by roster system, needs project classification]` - blockers
 
 ### Status Options
 
@@ -44,141 +40,108 @@ Include relevant context in brackets to help with future AI-assisted coding:
 
 ## Working On Now
 
--   `[done] P1: Implement interview type validation to prevent duplicate interviews for same type [app/Http/Controllers/RecruitmentSessionController.php, app/Models/RecruitmentSession.php, resources/views/recruitment/sessions/partials/modals.blade.php, JavaScript validation, database unique constraint enforcement] (completed: 2025-01-27)`
--   `[WIP] P1: Complete recruitment system integration [recruitment candidates, sessions, requests]`
--   `[WIP] P1: Implement approval stage restructure to separated tables [service layer, testing, deployment]`
--   `[done] P1: Execute database migrations for approval stage restructure [database structure updated successfully] (completed: 2025-01-15)`
--   `[done] P1: Add dedicated dashboards and routes for Employees, Official Travel, Recruitment [routes/web.php, DashboardController, RecruitmentSessionController, resources/views/dashboard/*] (completed: 2025-08-13)`
--   `[done] P2: Update recruitment dashboard statistic cards to stage-based metrics (In Interview, Offering & MCU) [resources/views/dashboard/recruitment.blade.php] (completed: 2025-08-13)`
--   `[done] P1: Fix approval status card to show approval flow preview for draft recruitment requests [resources/views/recruitment/requests/show.blade.php, resources/views/recruitment/requests/edit.blade.php, resources/views/components/approval-status-card.blade.php] (completed: 2025-01-15)`
--   `[done] P1: Debug approval status card loading issues and jQuery dependency [resources/views/components/approval-status-card.blade.php, app/Http/Controllers/ApprovalStageController.php] (completed: 2025-01-15)`
--   `[done] P1: Make approval status card dynamic in edit form [resources/views/recruitment/requests/edit.blade.php, resources/views/components/approval-status-card.blade.php] (completed: 2025-01-15)`
--   `[done] P1: Fix approval system queries to use new approval_stage_details structure [app/Http/Controllers/ApprovalPlanController.php, app/Http/Controllers/ApprovalRequestController.php] (completed: 2025-01-15)`
--   `[done] P1: Apply approval status card improvements to official travel system [resources/views/officialtravels/show.blade.php, resources/views/officialtravels/edit.blade.php] (completed: 2025-01-15)`
--   `[done] P1: Fix official travel approval status card data access issues [app/Http/Controllers/OfficialtravelController.php, resources/views/officialtravels/edit.blade.php] (completed: 2025-01-15)`
--   `[done] P1: Fix official travel approval status card styling conflicts and department display [resources/views/officialtravels/show.blade.php, app/Http/Controllers/ApprovalStageController.php, resources/views/components/approval-status-card.blade.php] (completed: 2025-01-15)`
+-   `[done] P0: Complete comprehensive documentation update [docs/*, MEMORY.md, AGENTS.md]` (completed: 2026-01-09)
 
 ## Up Next (This Week)
 
--   `[done] P1: Create migration files for approval stage restructure [create_approval_stages_table, create_approval_stage_details_table, migrate_approval_stages_data] (completed: 2025-01-15)`
--   `[done] P1: Update ApprovalStage and create ApprovalStageDetail models [app/Models/ApprovalStage.php, app/Models/ApprovalStageDetail.php] (completed: 2025-01-15)`
--   `[done] P1: Update ApprovalStageController for new table structure [store, update, edit, data, preview methods] (completed: 2025-01-15)`
--   `[done] P1: Update approval stage views for new structure [create.blade.php, edit.blade.php, index.blade.php] (completed: 2025-01-15)`
--   `[ ] P1: Test CV file upload with new UUID folder structure [candidate ID as folder name]`
--   `[ ] P1: Test recruitment candidate DataTables functionality [app/Http/Controllers/RecruitmentCandidateController.php:getRecruitmentCandidates()]`
--   `[ ] P1: Verify all recruitment routes are working [routes/web.php:recruitment candidates section]`
--   `[ ] P2: Add export functionality for recruitment candidates [similar to recruitment requests]`
+-   `[ ] P1: Sync all API routes to Postman collection "ARKA HERO - API" [routes/api.php, Postman MCP]`
+-   `[ ] P2: Review and optimize leave entitlement calculation performance [LeaveEntitlementController, leave_calculations table]`
+-   `[ ] P2: Add automated tests for critical workflows [tests/Feature/, recruitment sessions, leave requests]`
 
 ## Blocked/Waiting
 
--   `[ ] P3: Add print functionality for recruitment candidates [if needed]`
+-   None currently
 
 ## Recently Completed
 
--   `[done] P1: Merge onboarding stage into hiring stage - simplified workflow and removed onboarding complexity [database migration, controller updates, service updates, view updates, model updates] (completed: 2025-08-29)`
--   `[done] P1: Remove department validation from recruitment hire stage and implement automatic department filling [app/Http/Controllers/RecruitmentSessionController.php, resources/views/recruitment/sessions/partials/modals.blade.php, JavaScript AJAX functionality, fixed jQuery error by moving script to @section('scripts'), enhanced validation with proper error messages and old data handling] (completed: 2025-01-27)`
--   `[done] P1: Add new termination reasons "Efficiency" and "Passed Away" to all termination forms and validation [app/Imports/TerminationImport.php, modal-administration.blade.php, termination forms, database migration] (completed: 2025-01-27)`
--   `[done] P1: Fix TaxImport date validation for Excel serial numbers [app/Imports/TaxImport.php, removed strict date validation, added Excel date range checking, enhanced error handling] (completed: 2024-12-19)`
--   `[done] P1: Fix LicenseImport date validation for Excel serial numbers [app/Imports/LicenseImport.php, removed strict date validation, added Excel date range checking, enhanced error handling] (completed: 2024-12-19)`
--   `[done] P1: Implemented stage validation system preventing editing of failed stages and subsequent stages with visual indicators and user-friendly messaging [resources/views/recruitment/sessions/show-session.blade.php, stage validation logic, modal controls, CSS styling] (completed: 2025-01-15)`
--   `[done] P1: Enhanced recruitment session stage display with yellow clock icons for waiting/in progress states and comprehensive fail/not recommended indicators [resources/views/recruitment/sessions/show.blade.php, Bootstrap tooltips, stage status logic] (completed: 2025-01-15)`
--   `[done] P1: Create comprehensive recruitment reports system with funnel and aging reports [app/Http/Controllers/RecruitmentReportController.php, routes/web.php, resources/views/recruitment/reports/{index,funnel,aging}.blade.php, sidebar navigation] (completed: 2025-08-14)`
--   `[done] P1: Implement Time-to-Hire Analysis report with performance metrics and filtering [app/Http/Controllers/RecruitmentReportController.php:timeToHire(), routes/web.php, resources/views/recruitment/reports/time-to-hire.blade.php] (completed: 2025-08-14)`
--   `[done] P1: Fix Official Travel exportExcel to align headers with row mapping and use approval_plans instead of old recommend/approver fields [app/Http/Controllers/OfficialtravelController.php:exportExcel()] (completed: 2025-08-14)`
-
--   `[done] P1: Create missing RecruitmentAssessment model to resolve linter errors and complete offering functionality [app/Models/RecruitmentAssessment.php] (completed: 2025-01-15)`
--   `[done] P1: Complete offering stage functionality with decision buttons, form validation, and proper stage advancement [app/Http/Controllers/RecruitmentSessionController.php:updateOffering(), resources/views/recruitment/sessions/show-session.blade.php, app/Models/RecruitmentOffering.php] (completed: 2025-01-15)`
--   `[done] P1: Fix workflow service inconsistencies and update to use RecruitmentOffering model [app/Services/RecruitmentWorkflowService.php, app/Models/RecruitmentSession.php:getLatestOffer()] (completed: 2025-01-15)`
--   `[done] P1: Update notification service to use RecruitmentOffering model and fix method signatures [app/Services/RecruitmentNotificationService.php] (completed: 2025-01-15)`
--   `[done] P1: Add delete candidate from session functionality with confirmation modal and proper validation [resources/views/recruitment/sessions/show.blade.php, app/Http/Controllers/RecruitmentSessionController.php, routes/web.php] (completed: 2025-01-15)`
--   `[done] P1: Apply consistent structure and styling from show request to show session and show-session views [resources/views/recruitment/sessions/show.blade.php, resources/views/recruitment/sessions/show-session.blade.php] (completed: 2025-01-15)`
--   `[done] P1: Fix duplicate session number error and implement RSN/YYYY/MM/NNNN format with robust generation [app/Http/Controllers/RecruitmentSessionController.php] (completed: 2025-01-15)`
--   `[done] P1: Fix HTTP 500 error and toast_ undefined function in Add Candidate functionality [app/Http/Controllers/RecruitmentSessionController.php, app/Models/RecruitmentSession.php, resources/views/recruitment/sessions/index.blade.php, resources/views/recruitment/sessions/show.blade.php] (completed: 2025-01-15)`
--   `[done] P1: Enhance candidate search with position_applied field and fix Add Candidate to FPTK functionality [app/Http/Controllers/RecruitmentCandidateController.php, app/Http/Controllers/RecruitmentSessionController.php, app/Models/RecruitmentSession.php, resources/views/recruitment/sessions/index.blade.php, resources/views/recruitment/sessions/show.blade.php] (completed: 2025-01-15)`
--   `[done] P1: Refactor Add Candidate functionality - remove header buttons, fix candidate name field, add separate interview columns, fix timeline icon error [resources/views/recruitment/sessions/index.blade.php, resources/views/recruitment/sessions/show.blade.php, resources/views/recruitment/sessions/show-session.blade.php] (completed: 2025-01-15)`
--   `[done] P1: Add "Add Candidate" button to each row in sessions list and candidate sessions table for direct FPTK assignment [resources/views/recruitment/sessions/action.blade.php, resources/views/recruitment/sessions/index.blade.php, resources/views/recruitment/sessions/show.blade.php] (completed: 2025-01-15)`
--   `[done] P1: Fix missing route and controller methods for candidate search and session creation functionality [routes/web.php, app/Http/Controllers/RecruitmentCandidateController.php, app/Http/Controllers/RecruitmentSessionController.php] (completed: 2025-01-15)`
--   `[done] P1: Update recruitment sessions show and show-session views to match requests show structure and styling [resources/views/recruitment/sessions/show.blade.php, resources/views/recruitment/sessions/show-session.blade.php] (completed: 2025-01-15)`
--   `[done] P1: Add "Add Candidate" functionality with modal search to sessions index and show views [resources/views/recruitment/sessions/index.blade.php, resources/views/recruitment/sessions/show.blade.php] (completed: 2025-01-15)`
--   `[done] P1: Update recruitment sessions index styling and structure to match requests index pattern [resources/views/recruitment/sessions/index.blade.php] (completed: 2025-01-15)`
--   `[done] P1: Filter recruitment sessions to show only approved FPTKs and update styling to match other index pages [app/Http/Controllers/RecruitmentSessionController.php, resources/views/recruitment/sessions/index.blade.php] (completed: 2025-01-15)`
--   `[done] P1: Restructure recruitment sessions to be FPTK-based with aggregated candidate data and timeline view [app/Http/Controllers/RecruitmentSessionController.php, resources/views/recruitment/sessions/index.blade.php, resources/views/recruitment/sessions/show.blade.php, resources/views/recruitment/sessions/show-session.blade.php, resources/views/recruitment/sessions/action.blade.php, routes/web.php] (completed: 2025-01-15)`
--   `[done] P1: Add detailed timeline event modals with stage-specific information and assessment details [resources/views/recruitment/sessions/show.blade.php] (completed: 2025-01-15)`
--   `[done] P1: Fix method visibility issue for recordStageCompletion in RecruitmentSession model [app/Models/RecruitmentSession.php] (completed: 2025-01-15)`
--   `[done] P1: Add detailed error messages for recruitment session advance-stage failures with specific stage status validation [app/Services/RecruitmentSessionService.php, app/Http/Controllers/RecruitmentSessionController.php] (completed: 2025-01-15)`
--   `[done] P1: Fix recruitment session advance-stage functionality by auto-completing current stage before advancement [app/Services/RecruitmentSessionService.php, app/Http/Controllers/RecruitmentSessionController.php] (completed: 2025-01-15)`
--   `[done] P1: Fix Bootstrap modal loading issue by removing duplicate script imports [resources/views/recruitment/sessions/show.blade.php] (completed: 2025-01-15)`
--   `[done] P1: Enhance modal functionality with improved UX, validation, loading states, and error handling [resources/views/recruitment/sessions/show.blade.php] (completed: 2025-01-15)`
--   `[done] P1: Fix timeline line CSS and restore simple responsive design [resources/views/recruitment/sessions/show.blade.php] (completed: 2025-01-15)`
--   `[done] P1: Make timeline line responsive using viewport units to adapt to screen resolution changes [resources/views/recruitment/sessions/show.blade.php] (completed: 2025-01-15)`
--   `[done] P1: Fix timeline line positioning to extend full width across card-body container [resources/views/recruitment/sessions/show.blade.php] (completed: 2025-01-15)`
--   `[done] P1: Fix timeline line width to properly fill card-body across all resolutions [resources/views/recruitment/sessions/show.blade.php] (completed: 2025-01-15)`
--   `[done] P1: Extend horizontal timeline line to be longer and more prominent [resources/views/recruitment/sessions/show.blade.php] (completed: 2025-01-15)`
--   `[done] P1: Adjust session content padding and card styles to match candidate show view exactly [resources/views/recruitment/sessions/show.blade.php] (completed: 2025-01-15)`
--   `[done] P1: Adjust session header styling to match candidate header exactly [resources/views/recruitment/sessions/show.blade.php] (completed: 2025-01-15)`
--   `[done] P1: Make session header full-width to fill content area [resources/views/recruitment/sessions/show.blade.php] (completed: 2025-01-15)`
--   `[done] P1: Update session header to match candidate header style [resources/views/recruitment/sessions/show.blade.php] (completed: 2025-01-15)`
--   `[done] P1: Redesign recruitment session show view with horizontal timeline [resources/views/recruitment/sessions/show.blade.php] (completed: 2025-01-15)`
--   `[done] P1: Create recruitment session dashboard view [resources/views/recruitment/sessions/dashboard.blade.php] (completed: 2025-01-15)`
--   `[done] P2: Restructure sidebar Dashboard into multilevel with Employee, Official Travel, Recruitment; update Recruitment Sessions link to list [resources/views/layouts/partials/sidebar.blade.php] (completed: 2025-08-13)`
--   `[done] P1: Fix recruitment session timeline data structure [resources/views/recruitment/sessions/show.blade.php, timeline keys] (completed: 2025-01-15)`
--   `[done] P1: Create comprehensive recruitment session show view [resources/views/recruitment/sessions/show.blade.php] (completed: 2025-01-15)`
--   `[done] P1: Fix recruitment session show relationship error [app/Http/Controllers/RecruitmentSessionController.php, requestedBy to createdBy] (completed: 2025-01-15)`
--   `[done] P1: Fix recruitment session filters functionality [controller and view updates] (completed: 2025-01-15)`
--   `[done] P1: Create recruitment session action view [resources/views/recruitment/sessions/action.blade.php] (completed: 2025-01-15)`
--   `[done] P1: Fix recruitment session DataTables column mismatch [app/Http/Controllers/RecruitmentSessionController.php, getSessions method] (completed: 2025-01-15)`
--   `[done] P1: Fix recruitment assessment model cast error [app/Models/RecruitmentAssessment.php, scheduled_time cast] (completed: 2025-01-15)`
--   `[done] P1: Fix recruitment session DataTables route issue [routes/web.php, recruitment.sessions.data route] (completed: 2025-01-15)`
--   `[done] P1: Update recruitment session controller for consistency [app/Http/Controllers/RecruitmentSessionController.php] (completed: 2025-01-15)`
--   `[done] P1: Align recruitment candidate controller structure with recruitment request [app/Http/Controllers/RecruitmentCandidateController.php] (completed: 2025-01-15)`
--   `[done] P1: Update recruitment candidate return messages to use toast_ functions [consistent with recruitment request] (completed: 2025-01-15)`
--   `[done] P1: Create comprehensive view files for recruitment candidates [create, show, edit, action] (completed: 2025-01-15)`
--   `[done] P1: Fix recruitment candidate routes and DataTables integration [routes/web.php, getRecruitmentCandidates()] (completed: 2025-01-15)`
--   `[done] P1: Add missing destroy route for recruitment candidates [routes/web.php:Route::delete] (completed: 2025-01-15)`
--   `[done] P2: Improve CV file storage structure with UUID folders [cv_files/{uuid}/{filename}] (completed: 2025-01-15)`
--   `[done] P2: Add support for ZIP and RAR file formats in CV upload [validation and view updates] (completed: 2025-01-15)`
--   `[done] P2: Update CV storage to use candidate UUID ID as folder name [cv_files/{candidate_id}/{filename}] (completed: 2025-01-15)`
--   `[done] P1: Add position_applied and remarks columns to recruitment candidates [migration, model, controller, views] (completed: 2025-01-15)`
--   `[done] P2: Improve recruitment candidate UI layout [remove experience from DataTables, add position filter, move remarks to right column] (completed: 2025-01-15)`
--   `[done] P2: Update action button styling to match design system [create and edit forms] (completed: 2025-01-15)`
--   `[done] P2: Redesign show candidate page to match officialtravel show style [modern header, card layout, action buttons] (completed: 2025-01-15)`
--   `[done] P2: Implement blacklist and remove blacklist functionality [using remarks field, created_by tracking] (completed: 2025-01-15)`
--   `[done] P2: Consolidate recruitment candidates migrations and add user tracking [position_applied, remarks, created_by, updated_by] (completed: 2025-01-15)`
--   `[done] P2: Add print functionality for recruitment candidates [print view, route, button styling] (completed: 2025-01-15)`
--   `[done] P2: Add dedicated blacklist tracking columns [blacklist_reason, blacklisted_at] (completed: 2025-01-15)`
--   `[done] P1: Fix Select2 initialization error in recruitment session offering modal by adding global Select2 CSS/JS includes in layout scripts and header [resources/views/layouts/partials/{header,scripts}.blade.php] (completed: 2025-01-15)`
+-   `[done] P0: Enhanced project documentation automation system [AGENTS.md, docs/* templates] (completed: 2026-01-09)`
+-   `[done] P0: Updated architecture documentation with current system state [docs/architecture.md, 140 migrations, 62 controllers, 62 models] (completed: 2026-01-09)`
+-   `[done] P1: Fixed Days to Approve calculation in Excel export [OfficialtravelController export, calculateDaysToApproveHelper() method, Carbon::diffInDays()] (completed: 2025-12-XX)`
+-   `[done] P1: Implemented comprehensive recruitment stage validation [recruitment/sessions/show-session.blade.php, failed stage detection, modal triggers, SweetAlert validation] (completed: 2025-11-XX)`
+-   `[done] P1: Modified recruitment session UI with yellow clock icons for waiting states [recruitment/sessions/show.blade.php, AdminLTE CSS classes] (completed: 2025-11-XX)`
+-   `[done] P0: Created leave entitlement technical flow documentation [docs/LEAVE_ENTITLEMENT_TECHNICAL_FLOW.md, Group 1/Group 2 project classification, DOH-based + Roster-based calculations, LSL special rules] (completed: 2025-10-XX)`
+-   `[done] P1: Restructured roster system with cycle-based approach [database/migrations, RosterController, rosters table, roster_details table, roster_daily_status table] (completed: 2025-12-XX)`
+-   `[done] P1: Implemented leave request cancellation workflow [leave_request_cancellations table, LeaveRequestController cancellation methods] (completed: 2025-10-XX)`
+-   `[done] P1: Added bulk periodic leave request functionality [BulkLeaveRequestController, batch_id tracking, bulk approval preview] (completed: 2025-11-XX)`
+-   `[done] P0: Integrated letter numbering system with Official Travel and Recruitment [LetterNumberController, letter_numbers table, API integration endpoints] (completed: 2025-07-XX)`
+-   `[done] P1: Implemented employee self-service registration system [EmployeeRegistrationController, token-based invitation, document upload] (completed: 2025-06-XX)`
+-   `[done] P1: Created employee bond tracking and violation management [EmployeeBondController, BondViolationController, penalty calculation] (completed: 2025-09-XX)`
+-   `[done] P1: Implemented Man Power Plan (MPP) module [ManPowerPlanController, man_power_plans table, MPP-FPTK integration] (completed: 2025-11-XX)`
+-   `[done] P0: Refactored recruitment system with multi-stage approach [7 stage tables: cv_reviews, psikotes, tes_teori, interviews, offerings, mcu, hiring, session-based tracking] (completed: 2025-08-XX)`
+-   `[done] P1: Added 3-level FPTK approval workflow [acknowledge → PM approval → Director approval, approval_plans table] (completed: 2025-08-XX)`
 
 ## Quick Notes
 
--   **CV Download Fix**: Fixed downloadCV function to handle special characters in filenames properly (enhanced sanitization)
--   **CV Delete Function**: Added deleteCV function with AdminLTE split button implementation (enhanced styling for show page)
--   **Action Button Simplification**: Simplified DataTables action buttons to show, edit, apply, and delete only
--   **Filter Fix**: Fixed DataTables filters for candidate_number, phone, education_level, and date range
--   **Dummy Data Creation**: Created 50 recruitment candidates and 50 recruitment requests with Indonesian data
--   **AJAX Response Standardization**: Updated controller and JavaScript to use consistent toast\_ messages for AJAX requests
--   **Toast System Migration**: Removed toastr JavaScript library usage, now using Laravel toast\_ session flash messages
--   **jQuery Error Fix**: Fixed "$ is not defined" error in recruitment session show view by adding proper script sections
--   **Position & Department Display**: Added position and department information in recruitment candidate show view
+### Leave Entitlement System
 
-**Recruitment System Status**:
+-   **Group 1 Projects** (000H, 001H, APS, 021C, 025C): Standard leave types based on DOH eligibility
+-   **Group 2 Projects** (017C, 022C): Roster-based periodic leave + standard types
+-   **DOH Requirements**:
+    -   Annual Leave: 12 months
+    -   LSL Staff: 60 months
+    -   LSL Non-staff: 72 months
+-   **Special LSL Rule for Group 2**: Must take 10 days periodic leave before eligible for LSL
 
--   Recruitment requests: ✅ Complete with approval system
--   Recruitment candidates: ✅ Complete with CRUD operations and DataTables
--   Recruitment sessions: ✅ Complete with consistent controller structure
+### Roster Patterns by Level
 
-**Key Changes Made**:
+-   PM/SPT: 6 working days / 2 off days
+-   SPV: 8 working days / 2 off days
+-   FM: 9 working days / 2 off days
+-   NS: 10 working days / 2 off days
 
--   Standardized return messages to use `toast_success` and `toast_error` for consistency
--   Implemented DataTables for recruitment candidates with comprehensive filtering
--   Created modern, responsive view files following the same patterns as recruitment requests
--   Added proper route structure with DataTables support
--   Integrated candidate application to FPTK functionality
--   Updated recruitment session controller to follow consistent patterns (middleware, DataTables, toast messages)
+### Recruitment Stage Validation
 
-**Technical Decisions**:
+-   Failed stage locks all subsequent stages
+-   Visual lock indicators with tooltips
+-   JavaScript validation with SweetAlert messages
+-   Yellow clock icons for waiting/in-progress states
 
--   Used same DataTables structure as recruitment requests for consistency
--   Implemented proper error handling and validation
--   Added comprehensive action buttons with permission checks
--   Used Select2 for enhanced dropdown experiences
-```
+### Official Travel Claim System
+
+-   **search**: Returns all travel records
+-   **search-claimed**: Returns already claimed records
+-   **search-claimable**: Returns finished trips not yet claimed (departure_from_destination not null and claim status not set)
+
+### API Authentication
+
+-   Sanctum token-based for all `/api/v1/*` routes
+-   Legacy `/api/*` routes remain unprotected for backward compatibility
+-   Token obtained via `POST /api/v1/auth/login`
+
+### Badge Color System (AdminLTE)
+
+-   **Success (Green)**: Pass, Passed, Recommended, Approved, Accepted, Hired, Fit
+-   **Danger (Red)**: Fail, Failed, Rejected, Declined, Not_recommended, Unfit
+-   **Warning (Yellow)**: Pending, In_progress, Negotiating, Follow_up
+-   **Secondary (Gray)**: Default/unknown status
+
+### Notification System
+
+-   Use `toast_success()`, `toast_error()`, `toast_warning()`, `toast_info()` helpers
+-   Controller methods return messages in English
+-   Avoid using toastr library directly
+
+### Testing Strategy
+
+-   Do NOT use `migrate:fresh` to reset database during testing
+-   Continue using existing migration state
+-   Focus tests on critical workflows: recruitment sessions, leave calculations, approval flows
+
+### Documentation Maintenance
+
+After every significant code change:
+
+1. Update `docs/architecture.md` with current state
+2. Update progress in `docs/todo.md`
+3. Log decisions in `docs/decisions.md`
+4. Note important discoveries in `MEMORY.md`
+5. Move future ideas to `docs/backlog.md`
+
+---
+
+**Active Priorities for Next Development Session**:
+
+1. Sync API routes to Postman collection
+2. Optimize leave entitlement calculation queries
+3. Add automated tests for recruitment and leave workflows
+4. Review and improve error handling across modules

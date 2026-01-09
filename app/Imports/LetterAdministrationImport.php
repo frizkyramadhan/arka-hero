@@ -19,6 +19,7 @@ use Maatwebsite\Excel\Concerns\ToModel;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
 use Maatwebsite\Excel\Concerns\WithValidation;
 use Maatwebsite\Excel\Validators\Failure;
+use PhpOffice\PhpSpreadsheet\Shared\Date as ExcelDate;
 
 class LetterAdministrationImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnFailure, SkipsOnError, SkipsEmptyRows
 {
@@ -32,6 +33,69 @@ class LetterAdministrationImport implements ToModel, WithHeadingRow, WithValidat
     {
         $this->letterCategories = LetterCategory::select('id', 'category_code')->get();
         $this->letterSubjects = LetterSubject::select('id', 'subject_name', 'letter_category_id')->get();
+    }
+
+    /**
+     * Parse date from various formats (Excel serial, string formats, etc.)
+     */
+    private function parseDate($value)
+    {
+        if (empty($value)) {
+            return null;
+        }
+
+        try {
+            // If already a Carbon instance
+            if ($value instanceof Carbon) {
+                return $value->format('Y-m-d');
+            }
+
+            // If it's a numeric value (Excel date serial number)
+            if (is_numeric($value)) {
+                // Check if it's a valid Excel date serial
+                if ($value > 0 && $value < 2958466) { // Excel date range
+                    $date = ExcelDate::excelToDateTimeObject($value);
+                    return Carbon::instance($date)->format('Y-m-d');
+                }
+            }
+
+            // Try to parse as string with various formats
+            $formats = [
+                'Y-m-d',           // 2024-01-09
+                'd/m/Y',           // 09/01/2024
+                'd-m-Y',           // 09-01-2024
+                'd F Y',           // 09 January 2024
+                'd M Y',           // 09 Jan 2024
+                'd/m/y',           // 09/01/24
+                'd-m-y',           // 09-01-24
+                'm/d/Y',           // 01/09/2024 (US format)
+                'm-d-Y',           // 01-09-2024 (US format)
+                'Y/m/d',           // 2024/01/09
+                'd.m.Y',           // 09.01.2024
+                'Y.m.d',           // 2024.01.09
+            ];
+
+            foreach ($formats as $format) {
+                try {
+                    $date = Carbon::createFromFormat($format, $value);
+                    if ($date && $date->year > 1900 && $date->year < 2100) {
+                        return $date->format('Y-m-d');
+                    }
+                } catch (\Exception $e) {
+                    continue;
+                }
+            }
+
+            // Last resort: let Carbon try to parse it automatically
+            $date = Carbon::parse($value);
+            if ($date && $date->year > 1900 && $date->year < 2100) {
+                return $date->format('Y-m-d');
+            }
+
+            return null;
+        } catch (\Exception $e) {
+            return null;
+        }
     }
 
     public function model(array $row)
@@ -104,7 +168,7 @@ class LetterAdministrationImport implements ToModel, WithHeadingRow, WithValidat
             $letterData = [
                 'letter_category_id' => $category?->id,
                 'subject_id' => $subject?->id,
-                'letter_date' => $row['letter_date'] ? Carbon::parse($row['letter_date'])->format('Y-m-d') : null,
+                'letter_date' => $this->parseDate($row['letter_date']),
                 'destination' => $row['destination'],
                 'remarks' => $row['remarks'],
                 'custom_subject' => $row['subject_custom'],
@@ -112,8 +176,8 @@ class LetterAdministrationImport implements ToModel, WithHeadingRow, WithValidat
                 'project_id' => $projectId,
                 'project_code' => $projectCode,
                 'duration' => $row['duration'],
-                'start_date' => $row['start_date'] ? Carbon::parse($row['start_date'])->format('Y-m-d') : null,
-                'end_date' => $row['end_date'] ? Carbon::parse($row['end_date'])->format('Y-m-d') : null,
+                'start_date' => $this->parseDate($row['start_date']),
+                'end_date' => $this->parseDate($row['end_date']),
                 'classification' => $row['classification'],
                 'pkwt_type' => $row['pkwt_type'],
                 'par_type' => $row['par_type'],
@@ -121,8 +185,12 @@ class LetterAdministrationImport implements ToModel, WithHeadingRow, WithValidat
                 'user_id' => auth()->id(),
             ];
 
-            // Handle sequence_number and status from import
-            $year = isset($letterData['letter_date']) ? date('Y', strtotime($letterData['letter_date'])) : date('Y');
+            // Handle year: use from import if provided, otherwise derive from letter_date
+            if (!empty($row['year'])) {
+                $year = $row['year'];
+            } else {
+                $year = isset($letterData['letter_date']) ? date('Y', strtotime($letterData['letter_date'])) : date('Y');
+            }
             $letterData['year'] = $year;
 
             // Use sequence_number from import if provided, otherwise auto-generate
@@ -253,11 +321,16 @@ class LetterAdministrationImport implements ToModel, WithHeadingRow, WithValidat
                 // PKWT Date Validation
                 if ($categoryCode === 'PKWT' && !empty($row['start_date']) && !empty($row['end_date'])) {
                     try {
-                        $startDate = Carbon::parse($row['start_date']);
-                        $endDate = Carbon::parse($row['end_date']);
+                        $startDate = $this->parseDate($row['start_date']);
+                        $endDate = $this->parseDate($row['end_date']);
 
-                        if ($endDate->lessThanOrEqualTo($startDate)) {
-                            $validator->errors()->add($rowIndex . '.end_date', 'The end date must be after the start date.');
+                        if ($startDate && $endDate) {
+                            $startCarbon = Carbon::parse($startDate);
+                            $endCarbon = Carbon::parse($endDate);
+
+                            if ($endCarbon->lessThanOrEqualTo($startCarbon)) {
+                                $validator->errors()->add($rowIndex . '.end_date', 'The end date must be after the start date.');
+                            }
                         }
                     } catch (\Exception $e) {
                         // Let the main date validation rule handle parsing errors.
@@ -346,9 +419,11 @@ class LetterAdministrationImport implements ToModel, WithHeadingRow, WithValidat
         return [
             // ID field for update existing records
             'id' => 'nullable|exists:letter_numbers,id',
+            // Year field - can be imported or derived from letter_date
+            'year' => 'nullable|integer',
             // Basic required fields
             'category_code' => 'required|exists:letter_categories,category_code',
-            'letter_date' => 'required|date',
+            'letter_date' => 'required', // Will be validated with custom parseDate method
             'subject_master' => 'nullable|string',
             'destination' => 'nullable|string',
             'remarks' => 'nullable|string',
@@ -376,8 +451,8 @@ class LetterAdministrationImport implements ToModel, WithHeadingRow, WithValidat
                 Rule::in(['PKWT', 'PKWTT']),
             ],
             'duration' => 'nullable',
-            'start_date' => 'nullable|date',
-            'end_date' => 'nullable|date',
+            'start_date' => 'nullable', // Will be validated with custom parseDate method
+            'end_date' => 'nullable', // Will be validated with custom parseDate method
 
             // PAR-specific fields
             'par_type' => [
@@ -399,11 +474,13 @@ class LetterAdministrationImport implements ToModel, WithHeadingRow, WithValidat
             // ID validation messages
             'id.exists' => 'The ID does not exist in the system.',
 
+            // Year validation messages
+            'year.integer' => 'The Year must be an integer.',
+
             // Basic validation messages
             'category_code.required' => 'Category Code is required.',
             'category_code.exists' => 'The selected Category Code is invalid.',
             'letter_date.required' => 'Letter Date is required.',
-            'letter_date.date' => 'The Letter Date must be a valid date.',
             'subject_master.string' => 'The Master Subject must be a string.',
             'destination.string' => 'The Destination must be a string.',
             'remarks.string' => 'The Remarks must be a string.',
@@ -428,9 +505,6 @@ class LetterAdministrationImport implements ToModel, WithHeadingRow, WithValidat
 
             // PKWT validation
             'pkwt_type.in' => 'The selected PKWT Type is invalid. Valid options: PKWT, PKWTT.',
-
-            'start_date.date' => 'The Start Date must be a valid date.',
-            'end_date.date' => 'The End Date must be a valid date.',
 
             // PAR validation
             'par_type.in' => 'The selected PAR Type is invalid. Valid options: new hire, promosi, mutasi, demosi.',

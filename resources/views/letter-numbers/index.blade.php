@@ -130,7 +130,7 @@
                                                         <input type="date" class="form-control" id="filter-date-to">
                                                     </div>
                                                 </div>
-                                                <div class="col-md-2">
+                                                <div class="col-md-3">
                                                     <div class="form-group">
                                                         <label>Letter Category</label>
                                                         <select class="form-control select2bs4" id="filter-category">
@@ -144,7 +144,7 @@
                                                         </select>
                                                     </div>
                                                 </div>
-                                                <div class="col-md-2">
+                                                <div class="col-md-3">
                                                     <div class="form-group">
                                                         <label>Status</label>
                                                         <select class="form-control select2bs4" id="filter-status">
@@ -155,7 +155,9 @@
                                                         </select>
                                                     </div>
                                                 </div>
-                                                <div class="col-md-2">
+                                            </div>
+                                            <div class="row">
+                                                <div class="col-md-5">
                                                     <div class="form-group">
                                                         <label>Project</label>
                                                         <select class="form-control select2bs4" id="filter-project">
@@ -169,9 +171,7 @@
                                                         </select>
                                                     </div>
                                                 </div>
-                                            </div>
-                                            <div class="row">
-                                                <div class="col-md-3">
+                                                <div class="col-md-5">
                                                     <div class="form-group">
                                                         <label>Destination</label>
                                                         <input type="text" class="form-control"

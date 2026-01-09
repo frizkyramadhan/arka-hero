@@ -1,7 +1,3 @@
----
-alwaysApply: true
----
-
 # Enhanced Project Documentation Automation
 
 ## Core Documentation Maintenance

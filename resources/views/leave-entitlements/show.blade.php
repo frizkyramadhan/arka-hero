@@ -117,7 +117,15 @@
                             <table class="table table-sm table-borderless">
                                 <tr>
                                     <th width="35%">DOH:</th>
-                                    <td>{{ $activeAdministration->doh ? $activeAdministration->doh->format('d F Y') : 'N/A' }}
+                                    <td>
+                                        @if ($serviceStartDoh)
+                                            {{ \Carbon\Carbon::parse($serviceStartDoh)->format('d F Y') }}
+                                            @if ($serviceStartNik && $activeAdministration && $serviceStartNik != $activeAdministration->nik)
+                                                <br><small class="text-info"><i class="fas fa-info-circle"></i> From NIK: {{ $serviceStartNik }}</small>
+                                            @endif
+                                        @else
+                                            N/A
+                                        @endif
                                     </td>
                                 </tr>
                                 <tr>
@@ -131,10 +139,6 @@
                                             @endphp
                                             <strong>{{ $yearsOfService }} years</strong>
                                             <small class="text-muted">({{ $monthsOfService }} months)</small>
-                                            @if ($serviceStartNik && $activeAdministration && $serviceStartNik != $activeAdministration->nik)
-                                                <br><small class="text-info"><i class="fas fa-info-circle"></i> Calculated
-                                                    from NIK: {{ $serviceStartNik }}</small>
-                                            @endif
                                         @else
                                             N/A
                                         @endif
