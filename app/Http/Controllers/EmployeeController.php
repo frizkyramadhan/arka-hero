@@ -238,7 +238,7 @@ class EmployeeController extends Controller
             'project_id' => 'required',
             'grade_id' => 'nullable|exists:grades,id',
             'level_id' => 'nullable|exists:levels,id',
-            'filename.*' => 'image|mimes:jpeg,png,jpg,gif,svg|max:2048'
+            'filename.*' => 'image:allow_svg|mimes:jpeg,png,jpg,gif,svg|max:2048'
         ], [
             'fullname.required' => 'Full Name is required',
             'identity_card.required' => 'Identity Card No is required',
