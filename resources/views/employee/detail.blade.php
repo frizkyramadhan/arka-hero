@@ -30,7 +30,7 @@
                         <a href="{{ url('employees/print/' . $employee->id) }}" class="btn btn-success" target="blank">
                             <i class="fas fa-print mr-1"></i> Print
                         </a>
-                        @role('administrator')
+                        @can('employees.delete')
                             <form action="{{ url('employees/' . $employee->id) }}" method="post"
                                 onsubmit="return confirm('This employee and all associated data will be deleted. Are you sure?')"
                                 class="d-inline ml-1">
@@ -38,7 +38,7 @@
                                 @csrf
                                 <button class="btn btn-danger"><i class="fas fa-trash mr-1"></i> Delete Employee</button>
                             </form>
-                        @endrole
+                        @endcan
                         <a href="{{ url('employees') }}" class="btn btn-warning ml-1">
                             <i class="fas fa-undo mr-1"></i> Back
                         </a>
