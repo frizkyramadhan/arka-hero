@@ -82,11 +82,11 @@
                     <h3 class="card-title">Project Filter & Generate Entitlements</h3>
                     <div class="card-tools">
                         <a href="{{ route('leave.entitlements.export-template') }}" class="btn btn-info btn-sm mr-2">
-                            <i class="fas fa-file-excel"></i> Export Template
+                            <i class="fas fa-file-excel"></i> Export
                         </a>
                         <button type="button" class="btn btn-success btn-sm mr-2" data-toggle="modal"
                             data-target="#importModal">
-                            <i class="fas fa-file-upload"></i> Import Data
+                            <i class="fas fa-file-upload"></i> Import
                         </button>
                         <button type="button" class="btn btn-tool" data-card-widget="collapse">
                             <i class="fas fa-minus"></i>
