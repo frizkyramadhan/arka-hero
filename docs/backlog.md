@@ -1,9 +1,42 @@
 **Purpose**: Future features and improvements prioritized by value for ARKA HERO HRMS
-**Last Updated**: 2026-01-09
+**Last Updated**: 2026-01-14
 
 # Feature Backlog - ARKA HERO HRMS
 
 ## Next Sprint (High Priority)
+
+### General Affair (GA) Modules Development 🆕
+
+-   **Description**: Complete development of 5 GA modules - Office Supplies, Vehicle Administration, Property Management System (PMS), Ticket Reservations, and Meeting Room Reservations
+-   **User Value**: Comprehensive GA management, automated workflows for supply requests, vehicle tracking, room bookings, integrated system for all GA operations
+-   **Effort**: Large (12 weeks / 3 months)
+-   **Dependencies**: Core ARKA HERO modules (Employees, Projects, Departments, Approval System)
+-   **Documentation**: `docs/GA_MODULES_ANALYSIS.md`
+-   **Modules Included**:
+    -   Office Supplies Module (8 tables, supply request workflow, stock opname)
+    -   Vehicle Administration Module (5 tables, fuel tracking, maintenance, ArkFleet integration)
+    -   Property Management System (4 tables, room reservations, check-in/out workflow)
+    -   Ticket Reservations Module (2 tables, travel ticket booking system)
+    -   Meeting Room Reservations Module (3 tables, dual approval, supply consumption)
+-   **Implementation Phases**:
+    -   Phase 1-2: Foundation & Core Features (4 weeks)
+    -   Phase 3-4: Advanced Features & Additional Modules (4 weeks)
+    -   Phase 5-6: Integration, Testing & Deployment (4 weeks)
+-   **Acceptance Criteria**:
+    -   All 22 database tables created with proper relationships
+    -   Complete CRUD for all modules with DataTables
+    -   Approval workflows integrated (single and dual approval)
+    -   Employee self-service portals for all applicable modules
+    -   RESTful API endpoints with Sanctum authentication
+    -   Export/Import functionality for master data
+    -   Calendar views for reservations
+    -   Stock opname with variance calculation
+    -   Document management with revision tracking
+    -   Form number integration for supply requests
+    -   Notification system for approvals
+    -   Comprehensive permissions structure
+
+## Next Sprint (High Priority cont.)
 
 ### Automated Testing Suite
 
@@ -271,5 +304,5 @@ When prioritizing backlog items, consider:
 
 ---
 
-**Last Backlog Review**: 2026-01-09
-**Next Backlog Review**: 2026-02-09
+**Last Backlog Review**: 2026-01-14
+**Next Backlog Review**: 2026-02-14
