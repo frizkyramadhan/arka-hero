@@ -81,13 +81,6 @@
                 <div class="card-header">
                     <h3 class="card-title">Project Filter & Generate Entitlements</h3>
                     <div class="card-tools">
-                        <a href="{{ route('leave.entitlements.export-template') }}" class="btn btn-info btn-sm mr-2">
-                            <i class="fas fa-file-excel"></i> Export
-                        </a>
-                        <button type="button" class="btn btn-success btn-sm mr-2" data-toggle="modal"
-                            data-target="#importModal">
-                            <i class="fas fa-file-upload"></i> Import
-                        </button>
                         <button type="button" class="btn btn-tool" data-card-widget="collapse">
                             <i class="fas fa-minus"></i>
                         </button>
@@ -96,32 +89,48 @@
                 <div class="card-body">
                     <div class="row">
                         <!-- Project Filter -->
-                        <div class="col-md-6">
-                            <form method="GET" action="{{ route('leave.entitlements.index') }}">
+                        <div class="col-md-12">
+                            <form method="GET" action="{{ route('leave.entitlements.index') }}" id="projectFilterForm">
                                 <div class="form-group">
-                                    <label for="project_id">Select Project</label>
-                                    <select name="project_id" id="project_id" class="select2bs4 form-control" required>
-                                        <option value="">Choose Project...</option>
-                                        <option value="all" {{ $showAllProjects ? 'selected' : '' }}>All Projects
-                                        </option>
-                                        @foreach ($projects as $project)
-                                            <option value="{{ $project->id }}"
-                                                {{ $selectedProject && $selectedProject->id == $project->id ? 'selected' : '' }}>
-                                                {{ $project->project_code }} - {{ $project->project_name }}
-                                                @if ($project->leave_type)
-                                                    ({{ ucfirst($project->leave_type) }})
-                                                @endif
-                                            </option>
-                                        @endforeach
-                                    </select>
-                                </div>
-                                <div class="form-group">
-                                    <button type="submit" class="btn btn-primary">
-                                        <i class="fas fa-search"></i> Load Employees
-                                    </button>
-                                    <a href="{{ route('leave.entitlements.index') }}" class="btn btn-secondary">
-                                        <i class="fas fa-times"></i> Clear
-                                    </a>
+                                    <div class="row align-items-end">
+                                        <div class="col-md-4">
+                                            <label for="project_id">Select Project</label>
+                                            <select name="project_id" id="project_id" class="select2bs4 form-control"
+                                                required>
+                                                <option value="">Choose Project...</option>
+                                                <option value="all" {{ $showAllProjects ? 'selected' : '' }}>All Projects
+                                                </option>
+                                                @foreach ($projects as $project)
+                                                    <option value="{{ $project->id }}"
+                                                        {{ $selectedProject && $selectedProject->id == $project->id ? 'selected' : '' }}>
+                                                        {{ $project->project_code }} - {{ $project->project_name }}
+                                                        @if ($project->leave_type)
+                                                            ({{ ucfirst($project->leave_type) }})
+                                                        @endif
+                                                    </option>
+                                                @endforeach
+                                            </select>
+                                        </div>
+                                        <div class="col-md-8">
+                                            <div class="btn-group" role="group">
+                                                <button type="submit" class="btn btn-primary">
+                                                    <i class="fas fa-search"></i> Load Employees
+                                                </button>
+                                                <a href="{{ route('leave.entitlements.index') }}"
+                                                    class="btn btn-secondary">
+                                                    <i class="fas fa-times"></i> Clear
+                                                </a>
+                                                <a href="#" id="exportBtn" class="btn btn-info"
+                                                    onclick="exportData(event)">
+                                                    <i class="fas fa-file-excel"></i> Export
+                                                </a>
+                                                <button type="button" class="btn btn-success" data-toggle="modal"
+                                                    data-target="#importModal">
+                                                    <i class="fas fa-file-upload"></i> Import
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             </form>
                         </div>
@@ -356,6 +365,23 @@
                     $(this).closest('form').submit();
                 }
             });
+
+            // Export function
+            window.exportData = function(event) {
+                event.preventDefault();
+                const projectId = $('#project_id').val();
+
+                // Build export URL
+                let exportUrl = "{{ route('leave.entitlements.export-template') }}?include_data=1";
+
+                // Add project_id parameter if project is selected
+                if (projectId) {
+                    exportUrl += "&project_id=" + encodeURIComponent(projectId);
+                }
+
+                // Redirect to export URL
+                window.location.href = exportUrl;
+            };
 
             // Clear Entitlements Confirmation
             window.confirmClearEntitlements = function() {

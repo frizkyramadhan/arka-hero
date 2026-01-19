@@ -30,6 +30,40 @@ Decision: [Title] - [YYYY-MM-DD]
 
 ## Recent Decisions
 
+### Decision: Remove Unused leave_calculations Table - 2026-01-15
+
+**Context**: The `leave_calculations` table and `LeaveCalculation` model were introduced as future infrastructure for an audit trail of leave entitlement calculations, but no code ever populated or queried this table. All current leave logic relies on `leave_entitlements` + `leave_requests` with runtime calculations in `LeaveEntitlement::getLeaveCalculationDetails()`.
+
+**Options Considered**:
+
+1. **Implement Full Audit Trail Using leave_calculations**
+    - ✅ Pros: Strong historical audit trail, point-in-time balance snapshots, better for compliance
+    - ❌ Cons: Additional complexity, data duplication, requires service layer and backfill, not currently needed by business
+2. **Remove Table and Model as Unused Infrastructure**
+    - ✅ Pros: Simpler schema, no dead code, clearer architecture, no maintenance cost for unused components
+    - ❌ Cons: Losing prepared path for future audit-trail implementation (would need new migration later)
+3. **Keep Table and Model but Still Unused**
+    - ✅ Pros: Future option remains open without immediate work
+    - ❌ Cons: Technical debt (dead schema + model), confusing for future developers, misleading documentation
+
+**Decision**: Remove unused `leave_calculations` table and `LeaveCalculation` model.
+
+**Rationale**:
+
+- No production code path ever writes to or reads from `leave_calculations` (confirmed via code search and DB count = 0)
+- Current leave features (entitlements, requests, reports) work entirely via `leave_entitlements` and `leave_requests`
+- Keeping unused schema and model adds cognitive load and can mislead future maintenance
+- If a formal audit trail is required in the future, it can be reintroduced with a fresh design aligned to real requirements
+
+**Implementation**:
+
+- Added migration `2026_01_15_120000_drop_leave_calculations_table.php` to drop `leave_calculations` (with down() recreating the latest known structure)
+- Deleted `app/Models/LeaveCalculation.php`
+- Removed `leaveCalculations()` relationship from `LeaveRequest` model
+- Updated `docs/architecture.md` to remove `LeaveCalculation` and `leave_calculations` from the current model/table list
+
+**Review Date**: 2026-12-01 (revisit if audit/compliance requirements around leave balances appear)
+
 ### Decision: Leave Entitlement Dual-System Architecture - 2025-09-XX
 
 **Context**: ARKA has two types of projects with different leave management needs:

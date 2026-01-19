@@ -32,7 +32,7 @@ class LeaveEntitlementController extends Controller
         })->only('showLeaveCalculationDetails');
         $this->middleware('permission:leave-entitlements.create')->only('create', 'store', 'generateProjectEntitlements', 'generateSelectedProjectEntitlements', 'importTemplate');
         $this->middleware('permission:leave-entitlements.edit')->only('edit', 'update', 'editEmployee', 'updateEmployee', 'importTemplate');
-        $this->middleware('permission:leave-entitlements.delete')->only('destroy', 'clearAllEntitlements');
+        $this->middleware('permission:leave-entitlements.delete')->only('destroy', 'clearAllEntitlements', 'deletePeriodEntitlements');
     }
     /**
      * Display a listing of the resource.
@@ -541,6 +541,70 @@ class LeaveEntitlementController extends Controller
 
         return redirect()->route('leave-entitlements.index')
             ->with('toast_success', 'Leave entitlement deleted successfully.');
+    }
+
+    /**
+     * Delete all entitlements for a specific employee and period
+     */
+    public function deletePeriodEntitlements(Request $request, Employee $employee)
+    {
+        $request->validate([
+            'period_start' => 'required|date',
+            'period_end' => 'required|date|after:period_start'
+        ]);
+
+        DB::beginTransaction();
+        try {
+            // Get all entitlements for this employee and period
+            $entitlements = LeaveEntitlement::where('employee_id', $employee->id)
+                ->where('period_start', $request->period_start)
+                ->where('period_end', $request->period_end)
+                ->get();
+
+            // Check if any entitlements have been used (taken_days > 0)
+            // If taken_days > 0, it means the entitlement has been used and cannot be deleted
+            $hasUsedEntitlements = false;
+            $usedEntitlements = [];
+            
+            foreach ($entitlements as $entitlement) {
+                if ($entitlement->taken_days > 0) {
+                    $hasUsedEntitlements = true;
+                    $usedEntitlements[] = [
+                        'id' => $entitlement->id,
+                        'leave_type' => $entitlement->leaveType->name ?? 'N/A',
+                        'taken_days' => $entitlement->taken_days,
+                        'entitled_days' => $entitlement->entitled_days,
+                        'remaining_days' => $entitlement->remaining_days
+                    ];
+                }
+            }
+
+            if ($hasUsedEntitlements) {
+                DB::rollBack();
+                
+                // Build detailed error message
+                $usedTypes = collect($usedEntitlements)->pluck('leave_type')->unique()->implode(', ');
+                $totalTaken = collect($usedEntitlements)->sum('taken_days');
+                
+                return back()->with([
+                    'toast_error' => "Cannot delete entitlements that have been used. Found {$totalTaken} taken day(s) in: {$usedTypes}."
+                ]);
+            }
+
+            $deletedCount = $entitlements->count();
+            LeaveEntitlement::where('employee_id', $employee->id)
+                ->where('period_start', $request->period_start)
+                ->where('period_end', $request->period_end)
+                ->delete();
+
+            DB::commit();
+
+            return redirect()->route('leave.entitlements.employee.show', $employee)
+                ->with('toast_success', "Successfully deleted {$deletedCount} entitlement(s) for the selected period.");
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->with(['toast_error' => 'Failed to delete entitlements: ' . $e->getMessage()]);
+        }
     }
 
 
@@ -1669,10 +1733,24 @@ class LeaveEntitlementController extends Controller
     public function exportTemplate(Request $request)
     {
         $includeData = $request->get('include_data', true);
-        $filename = 'leave_entitlement_' . ($includeData ? 'data_' : 'template_') . date('Y-m-d_His') . '.xlsx';
+        $projectId = $request->get('project_id', null);
+        
+        // Build filename with project info if specified
+        $filename = 'leave_entitlement_' . ($includeData ? 'data_' : 'template_');
+        
+        if ($projectId && $projectId !== 'all') {
+            $project = Project::find($projectId);
+            if ($project) {
+                $filename .= str_replace(' ', '_', $project->project_code) . '_';
+            }
+        } elseif ($projectId === 'all') {
+            $filename .= 'all_projects_';
+        }
+        
+        $filename .= date('Y-m-d_His') . '.xlsx';
 
         return Excel::download(
-            new LeaveEntitlementExport($includeData),
+            new LeaveEntitlementExport($includeData, $projectId),
             $filename
         );
     }

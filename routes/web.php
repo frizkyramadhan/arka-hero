@@ -692,6 +692,7 @@ Route::group(['middleware' => ['auth']], function () {
             Route::get('/employee/{employee}', [LeaveEntitlementController::class, 'showEmployee'])->name('employee.show');
             Route::get('/employee/{employee}/edit', [LeaveEntitlementController::class, 'editEmployee'])->name('employee.edit');
             Route::put('/employee/{employee}', [LeaveEntitlementController::class, 'updateEmployee'])->name('employee.update');
+            Route::delete('/employee/{employee}/period', [LeaveEntitlementController::class, 'deletePeriodEntitlements'])->name('employee.delete-period');
 
             // Leave calculation details
             Route::get('/employee/{employee}/calculation-details', [LeaveEntitlementController::class, 'showLeaveCalculationDetails'])->name('employee.calculation-details');

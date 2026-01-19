@@ -45,7 +45,7 @@ Include relevant context in brackets to help with future AI-assisted coding:
 ## Up Next (This Week)
 
 -   `[ ] P1: Sync all API routes to Postman collection "ARKA HERO - API" [routes/api.php, Postman MCP]`
--   `[ ] P2: Review and optimize leave entitlement calculation performance [LeaveEntitlementController, leave_calculations table]`
+-   `[✓] P2: Review leave_calculations table usage and purpose [COMPLETED - See docs/LEAVE_CALCULATIONS_ANALYSIS.md]`
 -   `[ ] P2: Add automated tests for critical workflows [tests/Feature/, recruitment sessions, leave requests]`
 
 ## Blocked/Waiting

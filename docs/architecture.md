@@ -237,7 +237,7 @@ graph TD
 ### 4. Leave Management
 
 **Controllers**: `LeaveRequestController`, `LeaveEntitlementController`, `LeaveTypeController`, `LeaveReportController`, `BulkLeaveRequestController`, `RosterController`
-**Models**: `LeaveRequest`, `LeaveEntitlement`, `LeaveType`, `LeaveCalculation`, `LeaveRequestCancellation`, `Roster`, `RosterDetail`, `RosterDailyStatus`
+**Models**: `LeaveRequest`, `LeaveEntitlement`, `LeaveType`, `LeaveRequestCancellation`, `Roster`, `RosterDetail`, `RosterDailyStatus`
 
 **Features**:
 
@@ -487,7 +487,6 @@ graph TD
 -   `leave_types` - Leave type master data
 -   `leave_entitlements` - Employee leave balances
 -   `leave_requests` - Leave request transactions
--   `leave_calculations` - Calculation audit trail
 -   `leave_request_cancellations` - Cancellation requests
 -   `rosters` - Employee roster assignments
 -   `roster_details` - Roster cycle details

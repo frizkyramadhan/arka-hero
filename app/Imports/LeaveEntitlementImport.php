@@ -23,7 +23,12 @@ class LeaveEntitlementImport implements ToCollection, WithHeadingRow
     public function __construct()
     {
         // Get leave types ordered by code (same as export)
+        // Exclude "Cuti Periodik Site" from import (same as export)
         $this->leaveTypes = LeaveType::where('is_active', true)
+            ->where(function ($query) {
+                $query->where('name', '!=', 'Cuti Periodik Site')
+                    ->where('name', 'NOT LIKE', '%Periodik Site%');
+            })
             ->orderBy('code')
             ->get();
 
@@ -148,12 +153,12 @@ class LeaveEntitlementImport implements ToCollection, WithHeadingRow
 
         // 6. Process each leave type
         foreach ($this->leaveTypes as $leaveType) {
-            // Get remaining days from Excel (export shows actual entitlement = remaining_days)
-            // Excel contains remaining_days (entitled_days - taken_days)
-            $remainingDays = $this->getLeaveTypeValue($row, $leaveType->name);
+            // Get entitled_days from Excel (export shows entitled_days - the source of truth)
+            // Excel contains entitled_days (the actual entitlement value)
+            $entitledDays = $this->getLeaveTypeValue($row, $leaveType->name);
 
             // Default to 0 if not found or empty
-            $remainingDays = is_numeric($remainingDays) ? max(0, (int) $remainingDays) : 0;
+            $entitledDays = is_numeric($entitledDays) ? max(0, (int) $entitledDays) : 0;
 
             // Check if this is a "Cuti Panjang" leave type
             $isCutiPanjang = stripos($leaveType->name, 'Cuti Panjang') !== false;
@@ -195,18 +200,21 @@ class LeaveEntitlementImport implements ToCollection, WithHeadingRow
                 ->where('period_end', $periodEnd->format('Y-m-d'))
                 ->first();
 
-            // Preserve taken_days from existing record
+            // Preserve taken_days from existing record (taken_days is auto-updated by system)
+            // taken_days should NOT be changed via import - it's calculated from approved leave requests
             $takenDays = $existing ? $existing->taken_days : 0;
 
-            // Calculate entitled_days from remaining_days (Excel contains remaining_days)
-            // Formula: entitled_days = remaining_days + taken_days
-            // This ensures that when we import, the actual entitlement (remaining) matches Excel
-            $entitledDays = $remainingDays + $takenDays;
+            // Excel contains entitled_days (the actual entitlement value)
+            // Import directly without calculation - this is the source of truth
+            // Ensure entitled_days is at least equal to taken_days (cannot have negative remaining)
+            if ($entitledDays < $takenDays) {
+                $entitledDays = $takenDays;
+            }
 
-            // Skip if remaining_days is 0 and no existing record
-            // But process if: remaining_days > 0 OR existing record exists OR is paid/unpaid leave
+            // Skip if entitled_days is 0 and no existing record
+            // But process if: entitled_days > 0 OR existing record exists OR is paid/unpaid leave
             $isPaidOrUnpaid = in_array($leaveType->category, ['paid', 'unpaid']);
-            if ($remainingDays == 0 && !$existing && !$isPaidOrUnpaid) {
+            if ($entitledDays == 0 && !$existing && !$isPaidOrUnpaid) {
                 continue;
             }
 
@@ -216,9 +224,9 @@ class LeaveEntitlementImport implements ToCollection, WithHeadingRow
             // Log for debugging
             Log::info("Processing leave entitlement for NIK {$nik}", [
                 'leave_type' => $leaveType->name,
-                'remaining_days_from_excel' => $remainingDays,
+                'entitled_days_from_excel' => $entitledDays,
                 'taken_days_preserved' => $takenDays,
-                'calculated_entitled_days' => $entitledDays,
+                'calculated_remaining_days' => max(0, $entitledDays - $takenDays),
                 'deposit_days' => $finalDepositDays,
                 'existing_id' => $existing ? $existing->id : null,
                 'employee_level' => $administration->level ? $administration->level->name : 'N/A'
@@ -476,7 +484,8 @@ class LeaveEntitlementImport implements ToCollection, WithHeadingRow
     }
 
     /**
-     * Parse date from various formats
+     * Parse date from various formats including all Excel date formats
+     * Prioritizes dd/mm/yyyy format (Indonesian/European format)
      */
     private function parseDate($dateValue)
     {
@@ -484,42 +493,185 @@ class LeaveEntitlementImport implements ToCollection, WithHeadingRow
             return null;
         }
 
-        // Handle Excel date serial number
+        // Trim whitespace
+        $dateValue = trim($dateValue);
+
+        // Handle Excel date serial number (numeric value)
         if (is_numeric($dateValue)) {
             try {
                 $dateTime = Date::excelToDateTimeObject((float) $dateValue);
                 return Carbon::instance($dateTime)->startOfDay();
             } catch (\Exception $e) {
-                return null;
+                // If it's a numeric string that looks like a date (e.g., "20240115")
+                if (strlen($dateValue) == 8 && is_numeric($dateValue)) {
+                    try {
+                        return Carbon::createFromFormat('Ymd', $dateValue)->startOfDay();
+                    } catch (\Exception $e2) {
+                        // Continue to other formats
+                    }
+                }
             }
         }
 
-        // Try standard formats
-        try {
-            $date = Carbon::parse($dateValue);
-            return $date->startOfDay();
-        } catch (\Exception $e) {
-            // Try specific formats
-            $formats = [
-                'Y-m-d',
-                'd/m/Y',
-                'm/d/Y',
-                'd-m-Y',
-                'm-d-Y',
-                'Y/m/d',
-                'd.m.Y',
-                'Ymd'
-            ];
+        // Smart detection for dd/mm/yyyy vs mm/dd/yyyy format
+        // If date contains slashes or dashes, try to detect format intelligently
+        if (preg_match('/^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})$/', $dateValue, $matches)) {
+            $firstPart = (int) $matches[1];
+            $secondPart = (int) $matches[2];
+            $year = (int) $matches[3];
+            $separator = $matches[0][strpos($matches[0], $matches[1]) + strlen($matches[1])];
 
-            foreach ($formats as $format) {
+            // If first part > 12, it MUST be day (dd/mm/yyyy format)
+            if ($firstPart > 12) {
                 try {
-                    $date = Carbon::createFromFormat($format, trim($dateValue));
-                    if ($date) {
+                    $format = 'd' . $separator . 'm' . $separator . 'Y';
+                    $date = Carbon::createFromFormat($format, $dateValue);
+                    if ($date && $date->year >= 1900 && $date->year <= 2100) {
                         return $date->startOfDay();
                     }
                 } catch (\Exception $e) {
-                    continue;
+                    // Continue
                 }
+            }
+            // If second part > 12, it MUST be day (mm/dd/yyyy format)
+            elseif ($secondPart > 12) {
+                try {
+                    $format = 'm' . $separator . 'd' . $separator . 'Y';
+                    $date = Carbon::createFromFormat($format, $dateValue);
+                    if ($date && $date->year >= 1900 && $date->year <= 2100) {
+                        return $date->startOfDay();
+                    }
+                } catch (\Exception $e) {
+                    // Continue
+                }
+            }
+            // If both parts <= 12, prioritize dd/mm/yyyy (Indonesian format)
+            else {
+                // Try dd/mm/yyyy first (priority for Indonesian format)
+                try {
+                    $format = 'd' . $separator . 'm' . $separator . 'Y';
+                    $date = Carbon::createFromFormat($format, $dateValue);
+                    if ($date && $date->year >= 1900 && $date->year <= 2100) {
+                        // Validate: day should be <= 31, month should be <= 12
+                        if ($date->day <= 31 && $date->month <= 12) {
+                            return $date->startOfDay();
+                        }
+                    }
+                } catch (\Exception $e) {
+                    // Try mm/dd/yyyy as fallback
+                    try {
+                        $format = 'm' . $separator . 'd' . $separator . 'Y';
+                        $date = Carbon::createFromFormat($format, $dateValue);
+                        if ($date && $date->year >= 1900 && $date->year <= 2100) {
+                            return $date->startOfDay();
+                        }
+                    } catch (\Exception $e2) {
+                        // Continue to other formats
+                    }
+                }
+            }
+        }
+
+        // Try specific date formats with dd/mm/yyyy prioritized
+        $formats = [
+            // Prioritize dd/mm/yyyy formats first (Indonesian/European format)
+            'd/m/Y',           // 15/01/2024 (PRIORITY)
+            'd-m-Y',           // 15-01-2024 (PRIORITY)
+            'd.m.Y',           // 15.01.2024 (PRIORITY)
+            'd/m/Y H:i',       // 15/01/2024 10:30
+            'd/m/Y H:i:s',     // 15/01/2024 10:30:45
+            
+            // Standard formats
+            'Y-m-d',           // 2024-01-15
+            'Y/m/d',           // 2024/01/15
+            'Y.m.d',           // 2024.01.15
+            'Ymd',             // 20240115
+            
+            // mm/dd/yyyy formats (lower priority)
+            'm/d/Y',           // 01/15/2024
+            'm-d-Y',           // 01-15-2024
+            'm.d.Y',           // 01.15.2024
+            
+            // Formats with leading zeros optional (dd/mm prioritized)
+            'j/n/Y',           // 15/1/2024 (no leading zeros - day/month)
+            'j-n-Y',           // 15-1-2024
+            'n/j/Y',           // 1/15/2024 (no leading zeros - month/day)
+            'n-j-Y',           // 1-15-2024
+            
+            // Formats with 2-digit year (dd/mm prioritized)
+            'd/m/y',           // 15/01/24
+            'd-m-y',           // 15-01-24
+            'm/d/y',           // 01/15/24
+            'm-d-y',           // 01-15-24
+            'y-m-d',           // 24-01-15
+            
+            // Other formats
+            'dmY',             // 15012024
+            'mdY',             // 01152024
+            
+            // Formats with month name (English)
+            'd M Y',           // 15 Jan 2024
+            'd F Y',           // 15 January 2024
+            'M d, Y',          // Jan 15, 2024
+            'F d, Y',          // January 15, 2024
+            'd M, Y',          // 15 Jan, 2024
+            'd F, Y',          // 15 January, 2024
+            'Y M d',           // 2024 Jan 15
+            'Y F d',           // 2024 January 15
+            
+            // Formats with month name (abbreviated)
+            'd-M-Y',           // 15-Jan-2024
+            'd-F-Y',           // 15-January-2024
+            'M-d-Y',           // Jan-15-2024
+            'F-d-Y',           // January-15-2024
+            
+            // Excel common formats
+            'Y-m-d H:i',       // 2024-01-15 10:30
+            'Y-m-d H:i:s',     // 2024-01-15 10:30:45
+        ];
+
+        foreach ($formats as $format) {
+            try {
+                $date = Carbon::createFromFormat($format, $dateValue);
+                // Validate that the parsed date is reasonable
+                if ($date && $date->year >= 1900 && $date->year <= 2100) {
+                    return $date->startOfDay();
+                }
+            } catch (\Exception $e) {
+                continue;
+            }
+        }
+
+        // Last resort: try to extract date from string with regex
+        // This handles cases like "15/01/2024 00:00:00" or other mixed formats
+        if (preg_match('/(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})/', $dateValue, $matches)) {
+            try {
+                $day = (int) $matches[1];
+                $month = (int) $matches[2];
+                $year = (int) $matches[3];
+                
+                // Validate ranges
+                if ($day >= 1 && $day <= 31 && $month >= 1 && $month <= 12 && $year >= 1900 && $year <= 2100) {
+                    return Carbon::create($year, $month, $day)->startOfDay();
+                }
+            } catch (\Exception $e) {
+                // Continue
+            }
+        }
+
+        // Try reverse format (YYYY-MM-DD from string)
+        if (preg_match('/(\d{4})[\/\-\.](\d{1,2})[\/\-\.](\d{1,2})/', $dateValue, $matches)) {
+            try {
+                $year = (int) $matches[1];
+                $month = (int) $matches[2];
+                $day = (int) $matches[3];
+                
+                // Validate ranges
+                if ($day >= 1 && $day <= 31 && $month >= 1 && $month <= 12 && $year >= 1900 && $year <= 2100) {
+                    return Carbon::create($year, $month, $day)->startOfDay();
+                }
+            } catch (\Exception $e) {
+                // Continue
             }
         }
 

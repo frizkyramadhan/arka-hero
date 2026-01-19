@@ -64,11 +64,6 @@ class LeaveRequest extends Model
         return $this->belongsTo(LeaveType::class);
     }
 
-    public function leaveCalculations()
-    {
-        return $this->hasMany(LeaveCalculation::class);
-    }
-
     public function rosterAdjustments()
     {
         return $this->hasMany(RosterAdjustment::class);

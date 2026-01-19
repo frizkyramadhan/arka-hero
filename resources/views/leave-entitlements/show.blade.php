@@ -121,7 +121,8 @@
                                         @if ($serviceStartDoh)
                                             {{ \Carbon\Carbon::parse($serviceStartDoh)->format('d F Y') }}
                                             @if ($serviceStartNik && $activeAdministration && $serviceStartNik != $activeAdministration->nik)
-                                                <br><small class="text-info"><i class="fas fa-info-circle"></i> From NIK: {{ $serviceStartNik }}</small>
+                                                <br><small class="text-info"><i class="fas fa-info-circle"></i> From NIK:
+                                                    {{ $serviceStartNik }}</small>
                                             @endif
                                         @else
                                             N/A
@@ -315,12 +316,20 @@
                                                     </div>
                                                     @if ($isActive)
                                                         <div class="mt-2 pt-2 border-top border-white border-opacity-50">
-                                                            <a href="{{ route('leave.entitlements.employee.edit', ['employee' => $employee->id, 'period_start' => $period['period_start']->format('Y-m-d'), 'period_end' => $period['period_end']->format('Y-m-d')]) }}"
-                                                                class="btn btn-sm btn-light btn-block btn-xs"
-                                                                onclick="event.stopPropagation();"
-                                                                style="font-size: 0.75rem; padding: 0.25rem 0.5rem;">
-                                                                <i class="fas fa-edit"></i> Edit
-                                                            </a>
+                                                            <div class="btn-group btn-group-sm w-100" role="group">
+                                                                <a href="{{ route('leave.entitlements.employee.edit', ['employee' => $employee->id, 'period_start' => $period['period_start']->format('Y-m-d'), 'period_end' => $period['period_end']->format('Y-m-d')]) }}"
+                                                                    class="btn btn-light btn-xs"
+                                                                    onclick="event.stopPropagation();"
+                                                                    style="font-size: 0.75rem; padding: 0.25rem 0.5rem;">
+                                                                    <i class="fas fa-edit"></i> Edit
+                                                                </a>
+                                                                <button type="button" class="btn btn-danger btn-xs"
+                                                                    onclick="event.stopPropagation(); deletePeriodEntitlements('{{ $employee->id }}', '{{ $period['period_start']->format('Y-m-d') }}', '{{ $period['period_end']->format('Y-m-d') }}', '{{ $period['formatted_start'] }} - {{ $period['formatted_end'] }}');"
+                                                                    style="font-size: 0.75rem; padding: 0.25rem 0.5rem;"
+                                                                    title="Delete all entitlements for this period">
+                                                                    <i class="fas fa-trash"></i> Delete
+                                                                </button>
+                                                            </div>
                                                         </div>
                                                     @endif
                                                 </li>
@@ -354,6 +363,16 @@
                                     <div class="card-body">
                                         @if ($groupedEntitlements->count() > 0)
                                             @foreach ($groupedEntitlements as $category => $entitlements)
+                                                @php
+                                                    // Sort entitlements by leave type code (ASC) for paid leave category
+                                                    if ($category === 'paid') {
+                                                        $entitlements = $entitlements
+                                                            ->sortBy(function ($entitlement) {
+                                                                return $entitlement->leaveType->code ?? '';
+                                                            })
+                                                            ->values();
+                                                    }
+                                                @endphp
                                                 <div class="card card-secondary card-outline mb-3">
                                                     <div class="card-header py-2">
                                                         <h6 class="card-title mb-0">
@@ -504,6 +523,83 @@
 
             // Navigate to the new URL
             window.location.href = url.toString();
+        }
+
+        function deletePeriodEntitlements(employeeId, periodStart, periodEnd, periodDisplay) {
+            Swal.fire({
+                title: '<i class="fas fa-exclamation-triangle text-danger"></i> Delete Entitlements',
+                html: `
+                    <div class="text-left">
+                        <p><strong>⚠️ WARNING: This action cannot be undone!</strong></p>
+                        <p>You are about to delete <strong>ALL</strong> leave entitlements for:</p>
+                        <ul class="text-left">
+                            <li><strong>Period:</strong> ${periodDisplay}</li>
+                            <li><strong>Employee:</strong> {{ $employee->fullname }}</li>
+                        </ul>
+                        <p class="text-danger"><strong>This will permanently remove all entitlement records for this period.</strong></p>
+                        <div class="form-group mt-3">
+                            <label for="confirmText">Type <strong>DELETE</strong> to confirm:</label>
+                            <input type="text" id="confirmText" class="form-control" placeholder="Type DELETE here">
+                        </div>
+                    </div>
+                `,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#dc3545',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: '<i class="fas fa-trash"></i> Delete All Entitlements',
+                cancelButtonText: '<i class="fas fa-times"></i> Cancel',
+                width: '600px',
+                customClass: {
+                    popup: 'swal-wide'
+                },
+                preConfirm: () => {
+                    const confirmValue = document.getElementById('confirmText').value;
+                    if (confirmValue !== 'DELETE') {
+                        Swal.showValidationMessage('Please type DELETE to confirm');
+                        return false;
+                    }
+                    return true;
+                }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Create form and submit
+                    const form = document.createElement('form');
+                    form.method = 'POST';
+                    form.action = '{{ route('leave.entitlements.employee.delete-period', $employee->id) }}';
+
+                    // Add CSRF token
+                    const csrfToken = document.createElement('input');
+                    csrfToken.type = 'hidden';
+                    csrfToken.name = '_token';
+                    csrfToken.value = '{{ csrf_token() }}';
+                    form.appendChild(csrfToken);
+
+                    // Add method spoofing for DELETE
+                    const methodInput = document.createElement('input');
+                    methodInput.type = 'hidden';
+                    methodInput.name = '_method';
+                    methodInput.value = 'DELETE';
+                    form.appendChild(methodInput);
+
+                    // Add period_start
+                    const periodStartInput = document.createElement('input');
+                    periodStartInput.type = 'hidden';
+                    periodStartInput.name = 'period_start';
+                    periodStartInput.value = periodStart;
+                    form.appendChild(periodStartInput);
+
+                    // Add period_end
+                    const periodEndInput = document.createElement('input');
+                    periodEndInput.type = 'hidden';
+                    periodEndInput.name = 'period_end';
+                    periodEndInput.value = periodEnd;
+                    form.appendChild(periodEndInput);
+
+                    document.body.appendChild(form);
+                    form.submit();
+                }
+            });
         }
     </script>
 @endsection

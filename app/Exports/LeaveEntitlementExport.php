@@ -18,38 +18,21 @@ class LeaveEntitlementExport implements FromCollection, WithHeadings, WithMappin
 {
     private $leaveTypes;
     private $includeData;
+    private $projectId;
 
-    public function __construct($includeData = true)
+    public function __construct($includeData = true, $projectId = null)
     {
         // Get all active leave types ordered by code for consistent column order
+        // Exclude "Cuti Periodik Site" from export
         $this->leaveTypes = LeaveType::where('is_active', true)
+            ->where(function ($query) {
+                $query->where('name', '!=', 'Cuti Periodik Site')
+                    ->where('name', 'NOT LIKE', '%Periodik Site%');
+            })
             ->orderBy('code')
             ->get();
         $this->includeData = $includeData;
-    }
-
-    /**
-     * Determine if level is considered staff
-     */
-    private function isStaffLevel($levelName)
-    {
-        if (empty($levelName)) {
-            return false;
-        }
-
-        $staffLevels = [
-            'Director',
-            'Manager',
-            'Superintendent',
-            'Supervisor',
-            'Foreman/Officer',
-            'Project Manager',
-            'SPT',
-            'SPV',
-            'FM'
-        ];
-
-        return in_array($levelName, $staffLevels);
+        $this->projectId = $projectId;
     }
 
     /**
@@ -77,11 +60,17 @@ class LeaveEntitlementExport implements FromCollection, WithHeadings, WithMappin
 
         // Get all active administrations with employee, project, position, and level
         // Only from active projects
-        $administrations = Administration::where('is_active', 1)
+        $administrationsQuery = Administration::where('is_active', 1)
             ->whereHas('project', function ($q) {
                 $q->where('project_status', 1); // Only active projects
-            })
-            ->with(['employee', 'project', 'position', 'level'])
+            });
+
+        // Filter by project if specified
+        if ($this->projectId && $this->projectId !== 'all') {
+            $administrationsQuery->where('project_id', $this->projectId);
+        }
+
+        $administrations = $administrationsQuery->with(['employee', 'project', 'position', 'level'])
             ->get();
 
         // Get all entitlements grouped by employee and period for quick lookup
@@ -108,37 +97,58 @@ class LeaveEntitlementExport implements FromCollection, WithHeadings, WithMappin
                 return strpos($key, $employee->id . '_') === 0;
             });
 
-            // If employee has entitlements, create one row per period
+            // If employee has entitlements, get only the latest period (most recent period_end)
             if ($employeeEntitlements->count() > 0) {
+                // Find the latest period by comparing period_end dates
+                $latestPeriod = null;
+                $latestPeriodEnd = null;
+
                 foreach ($employeeEntitlements as $groupKey => $groupedEntitlements) {
                     $firstEntitlement = $groupedEntitlements->first();
+                    
+                    // Ensure period_end exists and is valid
+                    if (!$firstEntitlement || !$firstEntitlement->period_end) {
+                        continue;
+                    }
+                    
+                    $periodEnd = $firstEntitlement->period_end;
 
-                    // Determine staff/non-staff based on level
-                    $levelName = $administration->level ? $administration->level->name : '';
-                    $staffType = $this->isStaffLevel($levelName) ? 'Staff' : 'Non-Staff';
+                    // If this is the first period or this period_end is more recent, update latest
+                    if ($latestPeriodEnd === null || $periodEnd->gt($latestPeriodEnd)) {
+                        $latestPeriodEnd = $periodEnd;
+                        $latestPeriod = $groupedEntitlements;
+                    }
+                }
+
+                // Process only the latest period
+                if ($latestPeriod) {
+                    $firstEntitlement = $latestPeriod->first();
+                    
+                    // Ensure we have valid period dates
+                    if (!$firstEntitlement || !$firstEntitlement->period_start || !$firstEntitlement->period_end) {
+                        continue;
+                    }
 
                     $row = [
                         'employee_id' => $employee->id,
                         'nik' => $administration->nik ?? '',
                         'nama' => $employee->fullname,
                         'position' => $administration->position->position_name ?? '',
-                        'staff_type' => $staffType,
                         'project' => $administration->project->project_code ?? '',
-                        'doh' => $administration->doh ? $administration->doh->format('Y-m-d') : '',
-                        'period_start' => $firstEntitlement->period_start->format('Y-m-d'),
-                        'period_end' => $firstEntitlement->period_end->format('Y-m-d'),
+                        'doh' => $administration->doh ? $administration->doh->format('d-m-Y') : '',
+                        'period_start' => $firstEntitlement->period_start->format('d-m-Y'),
+                        'period_end' => $firstEntitlement->period_end->format('d-m-Y'),
                         'deposit_days' => 0,
                     ];
 
                     // Map entitlements by leave type name (matching heading - use exact name)
-                    // Display actual entitlement (remaining_days = entitled_days - taken_days)
+                    // Export entitled_days (source of truth) - remaining_days is calculated automatically
                     foreach ($this->leaveTypes as $leaveType) {
-                        $entitlement = $groupedEntitlements->firstWhere('leave_type_id', $leaveType->id);
+                        $entitlement = $latestPeriod->firstWhere('leave_type_id', $leaveType->id);
 
                         if ($entitlement) {
-                            // Calculate actual entitlement (remaining days)
-                            $remainingDays = $entitlement->entitled_days - $entitlement->taken_days;
-                            $row[$leaveType->name] = max(0, $remainingDays); // Ensure non-negative
+                            // Export entitled_days (the actual entitlement value stored in database)
+                            $row[$leaveType->name] = $entitlement->entitled_days;
                         } else {
                             $row[$leaveType->name] = 0;
                         }
@@ -153,18 +163,13 @@ class LeaveEntitlementExport implements FromCollection, WithHeadings, WithMappin
                 }
             } else {
                 // Employee has no entitlements - create row with empty entitlement data
-                // Determine staff/non-staff based on level
-                $levelName = $administration->level ? $administration->level->name : '';
-                $staffType = $this->isStaffLevel($levelName) ? 'Staff' : 'Non-Staff';
-
                 $row = [
                     'employee_id' => $employee->id,
                     'nik' => $administration->nik ?? '',
                     'nama' => $employee->fullname,
                     'position' => $administration->position->position_name ?? '',
-                    'staff_type' => $staffType,
                     'project' => $administration->project->project_code ?? '',
-                    'doh' => $administration->doh ? $administration->doh->format('Y-m-d') : '',
+                    'doh' => $administration->doh ? $administration->doh->format('d-m-Y') : '',
                     'period_start' => '', // Empty if no entitlement
                     'period_end' => '', // Empty if no entitlement
                     'deposit_days' => 0,
@@ -191,12 +196,11 @@ class LeaveEntitlementExport implements FromCollection, WithHeadings, WithMappin
     public function headings(): array
     {
         $headings = [
-            'NIK',
             'Nama',
+            'NIK',
             'Position',
-            'Staff Type',
-            'Project',
             'DOH',
+            'Project',
             'Start Period',
             'End Period',
         ];
@@ -215,12 +219,11 @@ class LeaveEntitlementExport implements FromCollection, WithHeadings, WithMappin
     public function map($row): array
     {
         $mapped = [
-            $row['nik'],
             $row['nama'],
+            $row['nik'],
             $row['position'] ?? '',
-            $row['staff_type'] ?? 'Non-Staff',
-            $row['project'],
             $row['doh'] ?? '',
+            $row['project'],
             $row['period_start'] ?? '',
             $row['period_end'] ?? '',
         ];
@@ -239,8 +242,8 @@ class LeaveEntitlementExport implements FromCollection, WithHeadings, WithMappin
 
     public function styles(Worksheet $sheet)
     {
-        // Apply default style to first 8 columns (NIK, Nama, Position, Staff Type, Project, DOH, Start Period, End Period)
-        foreach (['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'] as $defaultCol) {
+        // Apply default style to first 7 columns (Nama, NIK, Position, DOH, Project, Start Period, End Period)
+        foreach (['A', 'B', 'C', 'D', 'E', 'F', 'G'] as $defaultCol) {
             $sheet->getStyle($defaultCol . '1')->applyFromArray([
                 'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
                 'fill' => [
@@ -255,8 +258,8 @@ class LeaveEntitlementExport implements FromCollection, WithHeadings, WithMappin
         }
 
         // Set individual colors for leave type columns based on category
-        // Start from column I (after H = End Period)
-        $leaveTypeCol = 'I';
+        // Start from column H (after G = End Period)
+        $leaveTypeCol = 'H';
         foreach ($this->leaveTypes as $leaveType) {
             $color = $this->getCategoryColor($leaveType->category);
             $cell = $leaveTypeCol . '1';
@@ -272,7 +275,7 @@ class LeaveEntitlementExport implements FromCollection, WithHeadings, WithMappin
                 ],
             ]);
 
-            // Move to next column (G -> H -> I, etc.)
+            // Move to next column
             $leaveTypeCol++;
         }
 
