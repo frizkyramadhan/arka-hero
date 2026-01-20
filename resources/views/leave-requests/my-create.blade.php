@@ -346,14 +346,6 @@
                                     </div>
                                 </div>
                             </div>
-                            <div class="card-footer">
-                                <button type="submit" class="btn btn-primary">
-                                    <i class="fas fa-save"></i> Submit Request
-                                </button>
-                                <a href="{{ route('leave.my-requests') }}" class="btn btn-secondary">
-                                    <i class="fas fa-times"></i> Cancel
-                                </a>
-                            </div>
                         </div>
                     </div>
 
@@ -374,6 +366,18 @@
                                     'helpText' => 'Pilih minimal 1 approver dengan role approver',
                                     'documentType' => 'leave_request',
                                 ])
+                            </div>
+                        </div>
+
+                        <!-- Action Buttons Card -->
+                        <div class="card card-outline elevation-2 mt-3">
+                            <div class="card-body p-3">
+                                <button type="submit" class="btn btn-success btn-block mb-2">
+                                    <i class="fas fa-paper-plane mr-2"></i>Save & Submit
+                                </button>
+                                <a href="{{ route('leave.my-requests') }}" class="btn btn-secondary btn-block">
+                                    <i class="fas fa-times-circle mr-2"></i>Cancel
+                                </a>
                             </div>
                         </div>
 
@@ -512,6 +516,12 @@
             const employeeId = "{{ $defaultEmployeeId }}";
             const projectId = {{ $defaultProject->id ?? 'null' }};
             const currentProject = projectData.find(p => p.id == projectId);
+
+            // Store current entitlement period for date picker limits
+            let currentEntitlementPeriod = {
+                start: null,
+                end: null
+            };
 
             // Initialize all components on page load
             initializeForm();
@@ -743,11 +753,28 @@
                     opens: 'left'
                 };
 
+                // Add minDate and maxDate based on entitlement period
+                if (currentEntitlementPeriod.start && currentEntitlementPeriod.end) {
+                    baseConfig.minDate = currentEntitlementPeriod.start;
+                    baseConfig.maxDate = currentEntitlementPeriod.end;
+                } else {
+                    // Default: allow dates from today onwards
+                    baseConfig.minDate = moment();
+                }
+
                 // Add weekend disable for non-roster projects
                 if (isNonRosterProject) {
+                    const originalIsInvalidDate = baseConfig.isInvalidDate;
                     baseConfig.isInvalidDate = function(date) {
                         // Disable Saturday (6) and Sunday (0)
-                        return date.day() === 0 || date.day() === 6;
+                        if (date.day() === 0 || date.day() === 6) {
+                            return true;
+                        }
+                        // Also check original isInvalidDate if exists
+                        if (originalIsInvalidDate) {
+                            return originalIsInvalidDate.call(this, date);
+                        }
+                        return false;
                     };
                 }
 
@@ -877,15 +904,27 @@
                     hideConditionalFields();
                     $('#leave_period').val('');
                     clearValidation();
+                    // Reset entitlement period and reconfigure date picker
+                    currentEntitlementPeriod.start = null;
+                    currentEntitlementPeriod.end = null;
+                    configureLeaveDatePicker();
                     return;
                 }
 
                 // Load leave type info (for conditional fields)
                 loadLeaveTypeInfo(leaveTypeId);
 
-                // Load leave period for current user
+                // Always load leave period when leave type is selected (employeeId is always available for personal request)
                 if (employeeId) {
+                    // Clear leave period first to show loading state
+                    $('#leave_period').val('Loading...');
                     loadEmployeeLeavePeriod(employeeId, leaveTypeId);
+                } else {
+                    // If no employee selected, clear leave period
+                    $('#leave_period').val('');
+                    currentEntitlementPeriod.start = null;
+                    currentEntitlementPeriod.end = null;
+                    configureLeaveDatePicker();
                 }
 
                 // Validate total days if entered
@@ -973,14 +1012,35 @@
                     .done(function(data) {
                         const $select = $('#leave_type_id');
                         const currentValue = $select.val(); // Preserve current selection
+                        const currentEntitlementId = $select.find('option:selected').data(
+                            'entitlement-id'); // Preserve entitlement ID
 
                         $select.empty().append('<option value="">Select Leave Type</option>');
 
                         if (data.leaveTypes && data.leaveTypes.length > 0) {
+                            // Group by leave_type_id to detect duplicates
+                            const leaveTypeGroups = {};
                             data.leaveTypes.forEach(function(item) {
+                                if (!leaveTypeGroups[item.leave_type_id]) {
+                                    leaveTypeGroups[item.leave_type_id] = [];
+                                }
+                                leaveTypeGroups[item.leave_type_id].push(item);
+                            });
+
+                            // Create options
+                            data.leaveTypes.forEach(function(item) {
+                                // Always use normal format (without period in option text)
+                                const optionText =
+                                    `${item.leave_type.name} (${item.leave_type.code}) - ${item.remaining_days} days remaining`;
+
                                 $select.append(
-                                    `<option value="${item.leave_type_id}" data-remaining="${item.remaining_days}">
-                                        ${item.leave_type.name} (${item.leave_type.code}) - ${item.remaining_days} days remaining
+                                    `<option value="${item.leave_type_id}"
+                                        data-entitlement-id="${item.entitlement_id}"
+                                        data-remaining="${item.remaining_days}"
+                                        data-period-start="${item.period_start}"
+                                        data-period-end="${item.period_end}"
+                                        data-period-display="${item.period_display}">
+                                        ${optionText}
                                     </option>`
                                 );
                             });
@@ -988,8 +1048,22 @@
                             $select.prop('disabled', false);
 
                             // Restore previous selection if exists
-                            if (currentValue) {
+                            if (currentValue && currentEntitlementId) {
+                                // Try to find exact match with entitlement ID
+                                const matchingOption = $select.find(
+                                    `option[value="${currentValue}"][data-entitlement-id="${currentEntitlementId}"]`
+                                );
+                                if (matchingOption.length) {
+                                    matchingOption.prop('selected', true);
+                                } else {
+                                    // Fallback to just leave_type_id
+                                    $select.val(currentValue);
+                                }
+                                // Trigger change event to load leave period for restored selection
+                                $select.trigger('change');
+                            } else if (currentValue) {
                                 $select.val(currentValue);
+                                $select.trigger('change');
                             }
                         }
                     })
@@ -999,6 +1073,26 @@
             }
 
             function loadEmployeeLeavePeriod(employeeId, leaveTypeId) {
+                // Check if we have period info from selected option
+                const $selectedOption = $('#leave_type_id option:selected');
+                const periodStart = $selectedOption.data('period-start');
+                const periodEnd = $selectedOption.data('period-end');
+
+                // If period info is available from dropdown, use it directly (no API call needed)
+                if (periodStart && periodEnd) {
+                    const startMoment = moment(periodStart);
+                    const endMoment = moment(periodEnd);
+                    const periodDisplay = startMoment.format('DD MMM YYYY') + ' - ' + endMoment.format(
+                        'DD MMM YYYY');
+
+                    $('#leave_period').val(periodDisplay);
+                    currentEntitlementPeriod.start = startMoment;
+                    currentEntitlementPeriod.end = endMoment;
+                    configureLeaveDatePicker();
+                    return;
+                }
+
+                // Fallback to API call (for backward compatibility or if data not in dropdown)
                 const url = routes.leavePeriod
                     .replace(':employee', employeeId)
                     .replace(':leavetype', leaveTypeId);
@@ -1007,12 +1101,30 @@
                     .done(function(data) {
                         if (data.success && data.leave_period) {
                             $('#leave_period').val(data.leave_period);
+
+                            // Store period dates for date picker limits
+                            if (data.period_start && data.period_end) {
+                                currentEntitlementPeriod.start = moment(data.period_start);
+                                currentEntitlementPeriod.end = moment(data.period_end);
+                            } else {
+                                currentEntitlementPeriod.start = null;
+                                currentEntitlementPeriod.end = null;
+                            }
+
+                            // Reconfigure date picker with period limits
+                            configureLeaveDatePicker();
                         } else {
                             $('#leave_period').val('');
+                            currentEntitlementPeriod.start = null;
+                            currentEntitlementPeriod.end = null;
+                            configureLeaveDatePicker();
                         }
                     })
                     .fail(function() {
                         $('#leave_period').val('');
+                        currentEntitlementPeriod.start = null;
+                        currentEntitlementPeriod.end = null;
+                        configureLeaveDatePicker();
                     });
             }
 
