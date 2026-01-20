@@ -586,7 +586,6 @@ class LeaveRequestController extends Controller
             'employee.administrations.project',
             'employee.administrations.position',
             'leaveType',
-            'leaveCalculations',
             'approvalPlans',
             'cancellations.requestedBy',
             'cancellations.confirmedBy'
@@ -1122,11 +1121,15 @@ class LeaveRequestController extends Controller
             })
             ->map(function ($entitlement) {
                 return [
+                    'entitlement_id' => $entitlement->id, // Add entitlement ID
                     'leave_type_id' => $entitlement->leave_type_id,
                     'leave_type' => [
                         'name' => $entitlement->leaveType->name,
                         'code' => $entitlement->leaveType->code
                     ],
+                    'period_start' => $entitlement->period_start->format('Y-m-d'),
+                    'period_end' => $entitlement->period_end->format('Y-m-d'),
+                    'period_display' => $entitlement->period_start->format('d M Y') . ' - ' . $entitlement->period_end->format('d M Y'),
                     'remaining_days' => $entitlement->remaining_days, // Accessor will calculate automatically
                     'entitled_days' => $entitlement->entitled_days,
                     'taken_days' => $entitlement->taken_days
@@ -1694,7 +1697,6 @@ class LeaveRequestController extends Controller
             'employee.administrations.project',
             'employee.administrations.position',
             'leaveType',
-            'leaveCalculations',
             'approvalPlans',
             'cancellations.requestedBy',
             'cancellations.confirmedBy'

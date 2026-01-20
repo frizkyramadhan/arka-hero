@@ -198,6 +198,7 @@
                             // Get available periods from entitlements
                             $allPeriods = $employee->leaveEntitlements->map(function ($entitlement) {
                                 return [
+                                    'id' => $entitlement->id,
                                     'year' => $entitlement->period_start->year,
                                     'period_start' => $entitlement->period_start,
                                     'period_end' => $entitlement->period_end,
@@ -216,7 +217,15 @@
                                         '-' .
                                         $period['period_end']->format('Y-m-d');
                                 })
-                                ->sortByDesc('period_start')
+                                ->sort(function ($a, $b) {
+                                    // First sort by id desc
+                                    $idCompare = $b['id'] <=> $a['id'];
+                                    if ($idCompare !== 0) {
+                                        return $idCompare;
+                                    }
+                                    // Then sort by period_start desc
+                                    return $b['period_start']->timestamp <=> $a['period_start']->timestamp;
+                                })
                                 ->take(10)
                                 ->values();
 
