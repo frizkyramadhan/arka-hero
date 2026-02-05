@@ -90,6 +90,11 @@ class LeaveRequest extends Model
         return $this->hasMany(LeaveRequestCancellation::class);
     }
 
+    public function flightRequests()
+    {
+        return $this->hasMany(FlightRequest::class, 'leave_request_id');
+    }
+
     // Business Logic Methods
     public function calculateTotalDays()
     {

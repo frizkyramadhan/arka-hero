@@ -39,6 +39,8 @@ use Illuminate\Support\Facades\DB;
 use App\Models\RecruitmentCandidate;
 use Illuminate\Support\Facades\Auth;
 use App\Models\LeaveRequestCancellation;
+use App\Models\FlightRequest;
+use App\Models\FlightRequestIssuance;
 
 class DashboardController extends Controller
 {
@@ -1016,6 +1018,92 @@ class DashboardController extends Controller
             'employeesWithoutEntitlementsData',
             'employeesWithExpiringEntitlementsData',
             'recentLeaveRequests'
+        ));
+    }
+
+    /**
+     * Flight Management Dashboard (Flight Requests & Issuances / LG).
+     */
+    public function flightManagement()
+    {
+        $title = 'Flight Management Dashboard';
+        $subtitle = 'Flight Requests & Letter of Guarantee Overview';
+
+        // Flight Request statistics
+        $totalFlightRequests = FlightRequest::count();
+        $frDraft = FlightRequest::where('status', FlightRequest::STATUS_DRAFT)->count();
+        $frSubmitted = FlightRequest::where('status', FlightRequest::STATUS_SUBMITTED)->count();
+        $frApproved = FlightRequest::where('status', FlightRequest::STATUS_APPROVED)->count();
+        $frIssued = FlightRequest::where('status', FlightRequest::STATUS_ISSUED)->count();
+        $frCompleted = FlightRequest::where('status', FlightRequest::STATUS_COMPLETED)->count();
+        $frRejected = FlightRequest::where('status', FlightRequest::STATUS_REJECTED)->count();
+        $frCancelled = FlightRequest::where('status', FlightRequest::STATUS_CANCELLED)->count();
+        $frPending = $frDraft + $frSubmitted;
+
+        $thisMonthFlightRequests = FlightRequest::whereMonth('created_at', now()->month)
+            ->whereYear('created_at', now()->year)
+            ->count();
+
+        // Issuance (LG) statistics
+        $totalIssuances = FlightRequestIssuance::count();
+        $issuancePending = FlightRequestIssuance::where('status', FlightRequestIssuance::STATUS_PENDING)->count();
+        $issuanceApproved = FlightRequestIssuance::where('status', FlightRequestIssuance::STATUS_APPROVED)->count();
+        $issuanceRejected = FlightRequestIssuance::where('status', FlightRequestIssuance::STATUS_REJECTED)->count();
+
+        $thisMonthIssuances = FlightRequestIssuance::whereMonth('created_at', now()->month)
+            ->whereYear('created_at', now()->year)
+            ->count();
+
+        // Recent flight requests (for quick list)
+        $recentFlightRequests = FlightRequest::with(['employee', 'administration'])
+            ->orderBy('created_at', 'desc')
+            ->limit(8)
+            ->get();
+
+        // Recent issuances
+        $recentIssuances = FlightRequestIssuance::with(['businessPartner', 'issuedBy'])
+            ->orderBy('created_at', 'desc')
+            ->limit(8)
+            ->get();
+
+        // LG (Issuances) by Business Partner / Vendor for pie chart
+        $issuanceByBusinessPartner = FlightRequestIssuance::select('business_partner_id')
+            ->with('businessPartner:id,bp_code,bp_name')
+            ->get()
+            ->groupBy('business_partner_id')
+            ->map(function ($group, $bpId) {
+                $first = $group->first();
+                $bp = $first->businessPartner;
+                return [
+                    'bp_code' => $bp ? $bp->bp_code : '-',
+                    'bp_name' => $bp ? $bp->bp_name : 'No Vendor',
+                    'count' => $group->count(),
+                ];
+            })
+            ->values()
+            ->toArray();
+
+        return view('dashboard.flight-management', compact(
+            'title',
+            'subtitle',
+            'totalFlightRequests',
+            'frDraft',
+            'frSubmitted',
+            'frApproved',
+            'frIssued',
+            'frCompleted',
+            'frRejected',
+            'frCancelled',
+            'frPending',
+            'thisMonthFlightRequests',
+            'totalIssuances',
+            'issuancePending',
+            'issuanceApproved',
+            'issuanceRejected',
+            'thisMonthIssuances',
+            'recentFlightRequests',
+            'recentIssuances',
+            'issuanceByBusinessPartner'
         ));
     }
 

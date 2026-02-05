@@ -10,6 +10,8 @@ use Illuminate\Http\Request;
 use App\Models\ApprovalStage;
 use App\Models\Officialtravel;
 use App\Models\RecruitmentRequest;
+use App\Models\FlightRequest;
+use App\Models\FlightRequestIssuance;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
@@ -41,7 +43,13 @@ class ApprovalRequestController extends Controller
                 'recruitmentRequest.project',
                 'leaveRequest.administration.employee',
                 'leaveRequest.leaveType',
-                'leaveRequest.requestedBy'
+                'leaveRequest.requestedBy',
+                'flightRequest.requestedBy',
+                'flightRequest.employee',
+                'flightRequest.administration',
+                'flightRequestIssuance.issuedBy',
+                'flightRequestIssuance.businessPartner',
+                'flightRequestIssuance.issuanceDetails'
             ])
                 ->where('approver_id', Auth::id())
                 ->where('is_open', true)
@@ -84,14 +92,29 @@ class ApprovalRequestController extends Controller
                                 $emp->where('fullname', 'LIKE', "%$search%");
                             });
                     });
+
+                    $query->orWhereHas('flightRequest', function ($q) use ($search) {
+                        $q->where('form_number', 'LIKE', "%$search%")
+                            ->orWhere('purpose_of_travel', 'LIKE', "%$search%")
+                            ->orWhere('employee_name', 'LIKE', "%$search%")
+                            ->orWhere('nik', 'LIKE', "%$search%");
+                    });
+
+                    $query->orWhereHas('flightRequestIssuance', function ($q) use ($search) {
+                        $q->where('issued_number', 'LIKE', "%$search%")
+                            ->orWhere('letter_number', 'LIKE', "%$search%");
+                    });
                 });
             }
 
-            $approvalPlans->orderBy('created_at', 'desc');
+            $approvalPlans->orderBy('id', 'desc');
 
             return datatables()->of($approvalPlans)
                 ->addIndexColumn()
                 ->addColumn('document_type', function ($approvalPlan) {
+                    if ($approvalPlan->document_type === 'flight_request_issuance') {
+                        return 'Letter of Guarantee (LG)';
+                    }
                     return ucfirst(str_replace('_', ' ', $approvalPlan->document_type));
                 })
                 ->addColumn('document_number', function ($approvalPlan) {
@@ -104,6 +127,10 @@ class ApprovalRequestController extends Controller
                             return $approvalPlan->leaveRequest->leaveType->name . ' (' . date('d M Y', strtotime($approvalPlan->leaveRequest->start_date)) . ' - ' . date('d M Y', strtotime($approvalPlan->leaveRequest->end_date)) . ')';
                         }
                         return '-';
+                    } elseif ($approvalPlan->document_type === 'flight_request') {
+                        return $approvalPlan->flightRequest ? ($approvalPlan->flightRequest->form_number ?? '-') : '-';
+                    } elseif ($approvalPlan->document_type === 'flight_request_issuance') {
+                        return $approvalPlan->flightRequestIssuance ? ($approvalPlan->flightRequestIssuance->issued_number ?? '-') : '-';
                     }
                     return '-';
                 })
@@ -154,6 +181,24 @@ class ApprovalRequestController extends Controller
                             return $nik . ' - ' . $fullname;
                         }
                         return '-';
+                    } elseif ($approvalPlan->document_type === 'flight_request') {
+                        if ($approvalPlan->flightRequest) {
+                            $nik = $approvalPlan->flightRequest->nik ?? '-';
+                            $name = $approvalPlan->flightRequest->employee_name ?? ($approvalPlan->flightRequest->employee ? $approvalPlan->flightRequest->employee->fullname : '-');
+                            return $nik . ' - ' . $name;
+                        }
+                        return '-';
+                    } elseif ($approvalPlan->document_type === 'flight_request_issuance') {
+                        $issuance = $approvalPlan->flightRequestIssuance;
+                        if (!$issuance) {
+                            return '-';
+                        }
+                        $main = $issuance->issued_number . ($issuance->businessPartner ? ' - ' . $issuance->businessPartner->bp_name : '');
+                        $passengers = $issuance->issuanceDetails->pluck('passenger_name')->filter()->unique()->values();
+                        if ($passengers->isNotEmpty()) {
+                            $main .= ' <div class="small text-muted mt-1">' . e($passengers->take(5)->join(', ')) . ($passengers->count() > 5 ? ' (+' . ($passengers->count() - 5) . ')' : '') . '</div>';
+                        }
+                        return $main;
                     }
                     return '-';
                 })
@@ -167,6 +212,12 @@ class ApprovalRequestController extends Controller
                     } elseif ($approvalPlan->document_type === 'leave_request') {
                         return $approvalPlan->leaveRequest && $approvalPlan->leaveRequest->requestedBy ?
                             $approvalPlan->leaveRequest->requestedBy->name : '-';
+                    } elseif ($approvalPlan->document_type === 'flight_request') {
+                        return $approvalPlan->flightRequest && $approvalPlan->flightRequest->requestedBy ?
+                            $approvalPlan->flightRequest->requestedBy->name : '-';
+                    } elseif ($approvalPlan->document_type === 'flight_request_issuance') {
+                        return $approvalPlan->flightRequestIssuance && $approvalPlan->flightRequestIssuance->issuedBy ?
+                            $approvalPlan->flightRequestIssuance->issuedBy->name : '-';
                     }
                     return '-';
                 })
@@ -180,6 +231,12 @@ class ApprovalRequestController extends Controller
                     } elseif ($approvalPlan->document_type === 'leave_request') {
                         return $approvalPlan->leaveRequest && $approvalPlan->leaveRequest->requested_at ?
                             date('d/m/Y H:i', strtotime($approvalPlan->leaveRequest->requested_at)) : '-';
+                    } elseif ($approvalPlan->document_type === 'flight_request') {
+                        return $approvalPlan->flightRequest && $approvalPlan->flightRequest->requested_at ?
+                            date('d/m/Y H:i', strtotime($approvalPlan->flightRequest->requested_at)) : '-';
+                    } elseif ($approvalPlan->document_type === 'flight_request_issuance') {
+                        return $approvalPlan->flightRequestIssuance && $approvalPlan->flightRequestIssuance->issued_at ?
+                            date('d/m/Y H:i', strtotime($approvalPlan->flightRequestIssuance->issued_at)) : ($approvalPlan->flightRequestIssuance && $approvalPlan->flightRequestIssuance->created_at ? date('d/m/Y H:i', strtotime($approvalPlan->flightRequestIssuance->created_at)) : '-');
                     }
                     return '-';
                 })
@@ -189,7 +246,7 @@ class ApprovalRequestController extends Controller
                 ->addColumn('action', function ($model) {
                     return view('approval-requests.action', compact('model'))->render();
                 })
-                ->rawColumns(['action', 'status', 'current_approval'])
+                ->rawColumns(['action', 'status', 'current_approval', 'remarks'])
                 ->toJson();
         } catch (\Exception $e) {
             Log::error('Error in getApprovalRequests: ' . $e->getMessage());
@@ -372,6 +429,9 @@ class ApprovalRequestController extends Controller
         } elseif ($approvalPlan->document_type === 'leave_request') {
             $document = LeaveRequest::find($approvalPlan->document_id);
             return $document ? $document->administration->project_id : null;
+        } elseif ($approvalPlan->document_type === 'flight_request') {
+            $document = FlightRequest::find($approvalPlan->document_id);
+            return $document && $document->administration ? $document->administration->project_id : null;
         }
         return null;
     }
@@ -390,6 +450,9 @@ class ApprovalRequestController extends Controller
         } elseif ($approvalPlan->document_type === 'leave_request') {
             $document = LeaveRequest::find($approvalPlan->document_id);
             return $document ? $document->administration->position->department_id : null;
+        } elseif ($approvalPlan->document_type === 'flight_request') {
+            $document = FlightRequest::find($approvalPlan->document_id);
+            return $document && $document->administration && $document->administration->position ? $document->administration->position->department_id : null;
         }
         return null;
     }
@@ -566,6 +629,10 @@ class ApprovalRequestController extends Controller
             $document = RecruitmentRequest::find($approvalPlan->document_id);
         } elseif ($documentType === 'leave_request') {
             $document = LeaveRequest::find($approvalPlan->document_id);
+        } elseif ($documentType === 'flight_request') {
+            $document = FlightRequest::find($approvalPlan->document_id);
+        } elseif ($documentType === 'flight_request_issuance') {
+            $document = FlightRequestIssuance::find($approvalPlan->document_id);
         } else {
             return; // Invalid document type
         }
@@ -588,10 +655,14 @@ class ApprovalRequestController extends Controller
 
         // If current approval is rejected, immediately reject the document
         if ($approvalPlan->status === 2) {
-            $document->update([
-                'status' => 'rejected',
-                'rejected_at' => now(),
-            ]);
+            if ($documentType === 'flight_request_issuance') {
+                $document->update(['approved_at' => null, 'status' => 'rejected']);
+            } else {
+                $document->update([
+                    'status' => 'rejected',
+                    'rejected_at' => now(),
+                ]);
+            }
 
             // Close all remaining approval plans
             $this->closeAllApprovalPlans($document->id, $documentType);
@@ -602,17 +673,19 @@ class ApprovalRequestController extends Controller
 
         // If any previous approval was rejected, reject the document
         if ($rejectedCount > 0) {
-            $document->update(['status' => 'rejected']);
+            if ($documentType === 'flight_request_issuance') {
+                $document->update(['approved_at' => null, 'status' => 'rejected']);
+            } else {
+                $document->update(['status' => 'rejected']);
+            }
             $this->closeAllApprovalPlans($document->id, $documentType);
             return;
         }
 
         // Check if all sequential approvals are completed
         if ($this->areAllSequentialApprovalsCompleted($approvalPlan, $allApprovalPlans)) {
-            $document->update([
-                'status' => 'approved',
-                'approved_at' => now(),
-            ]);
+            $updateData = ['approved_at' => now(), 'status' => 'approved'];
+            $document->update($updateData);
             $this->closeAllApprovalPlans($document->id, $documentType);
 
             // Update leave entitlements ONLY for leave_request documents

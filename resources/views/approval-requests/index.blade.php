@@ -37,6 +37,8 @@
                                     <option value="officialtravel">Official Travel</option>
                                     <option value="recruitment_request">Recruitment Request</option>
                                     <option value="leave_request">Leave Request</option>
+                                    <option value="flight_request">Flight Request</option>
+                                    <option value="flight_request_issuance">Letter of Guarantee (LG)</option>
                                 </select>
                             </div>
                         </div>
@@ -220,9 +222,6 @@
                         }
                     }
                 ],
-                order: [
-                    [5, 'desc']
-                ], // Sort by submitted_at desc
                 pageLength: 25,
                 responsive: true,
                 language: {

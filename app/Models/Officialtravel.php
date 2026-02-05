@@ -98,7 +98,10 @@ class Officialtravel extends Model
             ->where('document_type', 'officialtravel');
     }
 
-
+    public function flightRequests()
+    {
+        return $this->hasMany(FlightRequest::class, 'official_travel_id');
+    }
 
     /**
      * Get document type untuk letter number tracking

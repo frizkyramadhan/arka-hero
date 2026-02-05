@@ -64,6 +64,10 @@ use App\Http\Controllers\RecruitmentSessionController;
 use App\Http\Controllers\EmployeeRegistrationController;
 use App\Http\Controllers\RecruitmentCandidateController;
 use App\Http\Controllers\EmployeeRegistrationAdminController;
+use App\Http\Controllers\FlightRequestController;
+use App\Http\Controllers\FlightRequestIssuanceController;
+use App\Http\Controllers\FlightReportController;
+use App\Http\Controllers\BusinessPartnerController;
 
 /*
 |--------------------------------------------------------------------------
@@ -139,6 +143,7 @@ Route::group(['middleware' => ['auth']], function () {
         Route::get('/recruitment', [DashboardController::class, 'recruitment'])->name('recruitment');
         Route::get('/letter-administration', [DashboardController::class, 'letterAdministration'])->name('letter-administration');
         Route::get('/leave-management', [DashboardController::class, 'leaveManagement'])->name('leave-management');
+        Route::get('/flight-management', [DashboardController::class, 'flightManagement'])->name('flight-management');
         Route::get('/personal', [DashboardController::class, 'personal'])->name('personal');
     });
 
@@ -758,5 +763,75 @@ Route::group(['middleware' => ['auth']], function () {
 
         // Helper endpoints
         Route::get('/{roster}/statistics', [RosterController::class, 'getStatistics'])->name('statistics');
+    });
+
+    // ========================================
+    // GAMMA SECTION - Flight Management (referensi: leave prefix)
+    // ========================================
+    Route::prefix('flight')->group(function () {
+        // Flight Requests -> flight/requests (nama: flight-requests.*)
+        Route::prefix('requests')->name('flight-requests.')->group(function () {
+            Route::get('/', [FlightRequestController::class, 'index'])->name('index');
+            Route::get('/data', [FlightRequestController::class, 'data'])->name('data');
+            Route::get('/api/leave-requests', [FlightRequestController::class, 'getLeaveRequests'])->name('api.leave-requests');
+            Route::get('/api/official-travels', [FlightRequestController::class, 'getOfficialTravels'])->name('api.official-travels');
+            Route::get('/api/employees', [FlightRequestController::class, 'getEmployees'])->name('api.employees');
+            Route::get('/create', [FlightRequestController::class, 'create'])->name('create');
+            Route::post('/', [FlightRequestController::class, 'store'])->name('store');
+            Route::get('/{flightRequest}', [FlightRequestController::class, 'show'])->name('show');
+            Route::get('/{flightRequest}/edit', [FlightRequestController::class, 'edit'])->name('edit');
+            Route::put('/{flightRequest}', [FlightRequestController::class, 'update'])->name('update');
+            Route::delete('/{flightRequest}', [FlightRequestController::class, 'destroy'])->name('destroy');
+            Route::post('/{flightRequest}/submit', [FlightRequestController::class, 'submit'])->name('submit');
+            Route::post('/{flightRequest}/cancel', [FlightRequestController::class, 'cancel'])->name('cancel');
+            Route::post('/{flightRequest}/complete', [FlightRequestController::class, 'complete'])->name('complete');
+            Route::get('/{flightRequest}/print', [FlightRequestController::class, 'print'])->name('print');
+        });
+
+        // Personal/My Requests -> flight/my-requests (nama: flight-requests.my-requests, flight-requests.my-requests.*)
+        Route::prefix('my-requests')->name('flight-requests.')->group(function () {
+            Route::get('/', [FlightRequestController::class, 'myRequests'])->name('my-requests');
+            Route::get('/data', [FlightRequestController::class, 'myRequestsData'])->name('my-requests.data');
+            Route::get('/create', [FlightRequestController::class, 'myRequestsCreate'])->name('my-requests.create');
+            Route::post('/', [FlightRequestController::class, 'myRequestsStore'])->name('my-requests.store');
+            Route::get('/{flightRequest}', [FlightRequestController::class, 'myRequestsShow'])->name('my-requests.show');
+            Route::get('/{flightRequest}/edit', [FlightRequestController::class, 'myRequestsEdit'])->name('my-requests.edit');
+            Route::put('/{flightRequest}', [FlightRequestController::class, 'myRequestsUpdate'])->name('my-requests.update');
+        });
+
+        // Flight Reports -> flight/reports (nama: flight.reports.*, referensi: leave.reports)
+        Route::prefix('reports')->name('flight.reports.')->group(function () {
+            Route::get('/', [FlightReportController::class, 'index'])->name('index');
+            Route::get('/flight-management', [FlightReportController::class, 'flightManagement'])->name('flight-management');
+            Route::get('/flight-management/data', [FlightReportController::class, 'flightManagementData'])->name('flight-management.data');
+            Route::get('/flight-management/export', [FlightReportController::class, 'exportFlightManagement'])->name('flight-management.export');
+        });
+
+        // Flight Request Issuances (LG) -> flight/issuances (nama: flight-issuances.*)
+        Route::prefix('issuances')->name('flight-issuances.')->group(function () {
+            Route::get('/', [FlightRequestIssuanceController::class, 'index'])->name('index');
+            Route::get('/data', [FlightRequestIssuanceController::class, 'data'])->name('data');
+            Route::get('/select-flight-requests', [FlightRequestIssuanceController::class, 'selectFlightRequests'])->name('select-flight-requests');
+            Route::post('/store-selected-frs', [FlightRequestIssuanceController::class, 'storeSelectedFrs'])->name('store-selected-frs');
+            Route::get('/create', [FlightRequestIssuanceController::class, 'create'])->name('create');
+            Route::post('/', [FlightRequestIssuanceController::class, 'store'])->name('store');
+            Route::get('/{issuance}', [FlightRequestIssuanceController::class, 'show'])->name('show');
+            Route::get('/{issuance}/edit', [FlightRequestIssuanceController::class, 'edit'])->name('edit');
+            Route::put('/{issuance}', [FlightRequestIssuanceController::class, 'update'])->name('update');
+            Route::get('/{issuance}/print', [FlightRequestIssuanceController::class, 'print'])->name('print');
+            Route::delete('/{issuance}', [FlightRequestIssuanceController::class, 'destroy'])->name('destroy');
+            Route::get('/letter-numbers', [FlightRequestIssuanceController::class, 'getLetterNumbers'])->name('letter-numbers');
+        });
+    });
+
+    // Business Partners (Master Data)
+    Route::prefix('business-partners')->name('business-partners.')->group(function () {
+        Route::get('/', [BusinessPartnerController::class, 'index'])->name('index');
+        Route::get('/data', [BusinessPartnerController::class, 'data'])->name('data');
+        Route::get('/create', [BusinessPartnerController::class, 'create'])->name('create');
+        Route::post('/', [BusinessPartnerController::class, 'store'])->name('store');
+        Route::get('/{businessPartner}/edit', [BusinessPartnerController::class, 'edit'])->name('edit');
+        Route::put('/{businessPartner}', [BusinessPartnerController::class, 'update'])->name('update');
+        Route::delete('/{businessPartner}', [BusinessPartnerController::class, 'destroy'])->name('destroy');
     });
 });

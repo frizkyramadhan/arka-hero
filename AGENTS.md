@@ -1,3 +1,13 @@
+---
+description: 
+alwaysApply: true
+---
+
+---
+description: 
+alwaysApply: true
+---
+
 # Enhanced Project Documentation Automation
 
 ## Core Documentation Maintenance
