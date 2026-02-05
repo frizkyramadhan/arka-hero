@@ -6,10 +6,12 @@ use Carbon\Carbon;
 use App\Models\Project;
 use App\Models\ApprovalPlan;
 use App\Models\LeaveRequest;
-use App\Models\LeaveEntitlement;
 use Illuminate\Http\Request;
 use App\Models\ApprovalStage;
+use App\Models\FlightRequest;
+use App\Models\FlightRequestIssuance;
 use App\Models\Officialtravel;
+use App\Models\LeaveEntitlement;
 use App\Models\RecruitmentRequest;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
@@ -233,6 +235,10 @@ class ApprovalPlanController extends Controller
             $document = RecruitmentRequest::findOrFail($approval_plan->document_id);
         } elseif ($document_type == 'leave_request') {
             $document = LeaveRequest::findOrFail($approval_plan->document_id);
+        } elseif ($document_type == 'flight_request') {
+            $document = FlightRequest::findOrFail($approval_plan->document_id);
+        } elseif ($document_type == 'flight_request_issuance') {
+            $document = FlightRequestIssuance::findOrFail($approval_plan->document_id);
         } else {
             return false; // Invalid document type
         }
@@ -258,9 +264,13 @@ class ApprovalPlanController extends Controller
 
         // Handle document rejection
         if ($rejected_count > 0) {
-            $document->update([
-                'status' => 'rejected',
-            ]);
+            if ($document_type === 'flight_request_issuance') {
+                $document->update(['approved_at' => null, 'status' => 'rejected']);
+            } else {
+                $document->update([
+                    'status' => 'rejected',
+                ]);
+            }
 
             // Close all open approval plans for this document
             $this->closeOpenApprovalPlans($document_type, $document->id);
@@ -270,8 +280,8 @@ class ApprovalPlanController extends Controller
         if ($this->areAllSequentialApprovalsCompleted($approval_plan)) {
             // Update document status to approved
             $updateData = [
-                'status' => 'approved',
                 'approved_at' => $approval_plan->updated_at,
+                'status' => 'approved',
             ];
 
             $document->update($updateData);
@@ -377,7 +387,7 @@ class ApprovalPlanController extends Controller
         $request->validate([
             'ids' => 'required|array',
             'ids.*' => 'required|integer',
-            'document_type' => 'required|string|in:officialtravel,recruitment_request,leave_request',
+            'document_type' => 'required|string|in:officialtravel,recruitment_request,leave_request,flight_request,flight_request_issuance',
             'remarks' => 'nullable|string',
         ]);
 
@@ -415,6 +425,10 @@ class ApprovalPlanController extends Controller
                 $document = RecruitmentRequest::findOrFail($approval_plan->document_id);
             } elseif ($document_type == 'leave_request') {
                 $document = LeaveRequest::findOrFail($approval_plan->document_id);
+            } elseif ($document_type == 'flight_request') {
+                $document = FlightRequest::findOrFail($approval_plan->document_id);
+            } elseif ($document_type == 'flight_request_issuance') {
+                $document = FlightRequestIssuance::findOrFail($approval_plan->document_id);
             } else {
                 $failCount++;
                 continue;
@@ -436,8 +450,8 @@ class ApprovalPlanController extends Controller
 
                 // Update document status to approved
                 $updateData = [
-                    'status' => 'approved',
                     'approved_at' => now(),
+                    'status' => 'approved',
                 ];
 
                 $document->update($updateData);
@@ -463,6 +477,10 @@ class ApprovalPlanController extends Controller
                 $documentTypeLabel = 'Recruitment Request';
             } elseif ($document_type === 'leave_request') {
                 $documentTypeLabel = 'Leave Request';
+            } elseif ($document_type === 'flight_request') {
+                $documentTypeLabel = 'Flight Request';
+            } elseif ($document_type === 'flight_request_issuance') {
+                $documentTypeLabel = 'Flight Request Issuance';
             }
 
             return response()->json([
@@ -1213,6 +1231,10 @@ class ApprovalPlanController extends Controller
             $document = RecruitmentRequest::findOrFail($document_id);
         } elseif ($document_type == 'leave_request') {
             $document = LeaveRequest::findOrFail($document_id);
+        } elseif ($document_type == 'flight_request') {
+            $document = FlightRequest::findOrFail($document_id);
+        } elseif ($document_type == 'flight_request_issuance') {
+            $document = FlightRequestIssuance::findOrFail($document_id);
         } else {
             return false; // Invalid document type
         }

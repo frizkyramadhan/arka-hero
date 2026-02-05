@@ -1,4 +1,19 @@
 <?php
+
+/**
+ * Format nominal Indonesia: ribuan (.) desimal (,)
+ * Contoh: format_amount_id(1234567.5) -> "1.234.567,50"
+ */
+function format_amount_id($number, int $decimals = 2): string
+{
+    if ($number === null || $number === '') {
+        return '';
+    }
+    $n = (float) $number;
+    $formatted = number_format(abs($n), $decimals, ',', '.');
+    return ($n < 0 ? '-' : '') . $formatted;
+}
+
 function showDateTime($carbon, $format = "d M Y @ H:i")
 {
     if (!$carbon) {

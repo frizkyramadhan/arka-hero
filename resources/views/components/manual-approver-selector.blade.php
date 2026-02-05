@@ -3,7 +3,7 @@
     'required' => false,
     'multiple' => true,
     // 'helpText' => 'Pilih user dengan role approver untuk menyetujui dokumen ini',
-    'documentType' => null, // 'recruitment_request', 'leave_request', 'officialtravel'
+    'documentType' => null, // 'recruitment_request', 'leave_request', 'officialtravel', 'flight_request'
     'mode' => 'edit', // 'edit' or 'view' - view mode is read-only, only displays selected approvers
     'documentId' => null, // Document ID to fetch approval plans in view mode
 ])
@@ -84,12 +84,9 @@
                 <div class="input-group-prepend">
                     <span class="input-group-text"><i class="fas fa-search"></i></span>
                 </div>
-                <input type="text" 
-                    id="approver-search-{{ $componentId }}"
-                    name="approver_search_{{ $componentId }}"
+                <input type="text" id="approver-search-{{ $componentId }}" name="approver_search_{{ $componentId }}"
                     class="form-control approver-search-input"
-                    placeholder="Ketik nama atau email approver untuk mencari..." 
-                    autocomplete="off"
+                    placeholder="Ketik nama atau email approver untuk mencari..." autocomplete="off"
                     aria-label="Search approver">
             </div>
 
@@ -246,6 +243,37 @@
                                 </li>
                                 <li>Approver yang dipilih harus memiliki role <strong>approver</strong></li>
                                 <li>Setiap approver akan menerima notifikasi untuk approve/reject perjalanan dinas</li>
+                                <li class="mt-2"><strong><i class="fas fa-exclamation-triangle text-warning"></i>
+                                        Catatan:</strong> Jika approver yang diperlukan tidak tersedia dalam Approver
+                                    Selection, harap menghubungi <strong>HR HO Balikpapan</strong></li>
+                            </ul>
+                        @elseif($documentType === 'flight_request')
+                            <h6 class="text-primary mb-2">
+                                <i class="fas fa-plane mr-1"></i> Flight Request (FRF)
+                            </h6>
+                            <ul class="mb-0 pl-3">
+                                <li>Untuk <strong>Site</strong>: Approval pertama dilakukan oleh <strong>HR</strong>,
+                                    Approval kedua dilakukan oleh <strong>PJO</strong></li>
+                                <li>Untuk <strong>HO</strong>: Approval pertama dilakukan oleh <strong>Department
+                                        Head/Manager Divisi</strong>, Approval kedua dilakukan oleh <strong>HCS
+                                        Manager/Direktur</strong></li>
+                                <li>Approval dilakukan secara <strong>sequential</strong> sesuai urutan yang dipilih
+                                </li>
+                                <li>Approver yang dipilih harus memiliki role <strong>approver</strong></li>
+                                <li>Setiap approver akan menerima notifikasi untuk approve/reject flight request</li>
+                                <li class="mt-2"><strong><i class="fas fa-exclamation-triangle text-warning"></i>
+                                        Catatan:</strong> Jika approver yang diperlukan tidak tersedia dalam Approver
+                                    Selection, harap menghubungi <strong>HR HO Balikpapan</strong></li>
+                            </ul>
+                        @elseif($documentType === 'flight_request_issuance')
+                            <h6 class="text-primary mb-2">
+                                <i class="fas fa-file-invoice mr-1"></i> Flight Request Issuance (LG)
+                            </h6>
+                            <ul class="mb-0 pl-3">
+                                <li>Approval untuk Letter of Guarantee (LG) dilakukan oleh <strong>HCS Division Manager</strong></li>
+                                <li>Approval dilakukan secara <strong>sequential</strong> sesuai urutan yang dipilih</li>
+                                <li>Approver yang dipilih harus memiliki role <strong>approver</strong></li>
+                                <li>Setiap approver akan menerima notifikasi untuk approve/reject issuance</li>
                                 <li class="mt-2"><strong><i class="fas fa-exclamation-triangle text-warning"></i>
                                         Catatan:</strong> Jika approver yang diperlukan tidak tersedia dalam Approver
                                     Selection, harap menghubungi <strong>HR HO Balikpapan</strong></li>

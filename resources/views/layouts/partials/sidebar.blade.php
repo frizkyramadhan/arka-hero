@@ -51,9 +51,9 @@
 
                     {{-- My Features Dropdown --}}
                     <li
-                        class="nav-item {{ Request::is('leave/my-*') || Request::is('officialtravels/my-*') || Request::is('recruitment/my-*') || Request::is('profile/my-profile*') ? 'menu-open' : '' }}">
+                        class="nav-item {{ Request::is('leave/my-*') || Request::is('officialtravels/my-*') || Request::is('recruitment/my-*') || Request::is('profile/my-profile*') || Request::is('flight/my-*') ? 'menu-open' : '' }}">
                         <a href="#"
-                            class="nav-link {{ Request::is('leave/my-*') || Request::is('officialtravels/my-*') || Request::is('recruitment/my-*') || Request::is('profile/my-profile*') ? 'active' : '' }}">
+                            class="nav-link {{ Request::is('leave/my-*') || Request::is('officialtravels/my-*') || Request::is('recruitment/my-*') || Request::is('profile/my-profile*') || Request::is('flight/my-*') ? 'active' : '' }}">
                             <i class="nav-icon fas fa-folder-open"></i>
                             <p>
                                 My Features
@@ -91,6 +91,17 @@
                                         class="nav-link {{ Request::is('leave/my-requests*') || Request::is('leave/my-entitlements*') ? 'active' : '' }}">
                                         <i class="far fa-circle nav-icon"></i>
                                         <p>My Leave Request</p>
+                                    </a>
+                                </li>
+                            @endcanany
+
+                            {{-- My Flight Requests --}}
+                            @canany(['personal.flight.view-own', 'personal.flight.create-own'])
+                                <li class="nav-item">
+                                    <a href="{{ route('flight-requests.my-requests') }}"
+                                        class="nav-link {{ Request::is('flight/my-requests*') ? 'active' : '' }}">
+                                        <i class="far fa-circle nav-icon"></i>
+                                        <p>My Flight Request</p>
                                     </a>
                                 </li>
                             @endcanany
@@ -140,8 +151,7 @@
 
                 @canany(['employees.show', 'recruitment-requests.show', 'recruitment-candidates.show',
                     'recruitment-sessions.show', 'official-travels.show', 'leave-requests.show',
-                    'periodic-leave-requests.show', 'leave-entitlements.show', 'leave-reports.show', 'roster.show',
-                    'letter-numbers.show', 'master-data.show'])
+                    'periodic-leave-requests.show', 'leave-entitlements.show', 'leave-reports.show', 'roster.show'])
                     {{-- HERO SECTION --}}
                     <li class="nav-header">HERO SECTION</li>
                 @endcanany
@@ -439,6 +449,61 @@
                     </li>
                 @endcanany
 
+                {{-- GAMMA SECTION - Flight Management --}}
+                @canany(['flight-requests.show', 'flight-issuances.view', 'flight-issuances.create'])
+                    <li class="nav-header">GAMMA SECTION</li>
+                    <li
+                        class="nav-item {{ Request::is('flight/requests*') || Request::is('flight/issuances*') || Request::is('flight/reports*') || Request::is('dashboard/flight-management') ? 'menu-open' : '' }}">
+                        <a href="#"
+                            class="nav-link {{ Request::is('flight/requests*') || Request::is('flight/issuances*') || Request::is('flight/reports*') || Request::is('dashboard/flight-management') ? 'active' : '' }}">
+                            <i class="nav-icon fas fa-plane"></i>
+                            <p>
+                                Flight Management
+                                <i class="fas fa-angle-left right"></i>
+                            </p>
+                        </a>
+                        <ul class="nav nav-treeview">
+                            <li class="nav-item">
+                                <a href="{{ route('dashboard.flight-management') }}"
+                                    class="nav-link {{ Request::is('dashboard/flight-management') ? 'active' : '' }}">
+                                    <i class="far fa-circle nav-icon"></i>
+                                    <p>Dashboard</p>
+                                </a>
+                            </li>
+                            @can('flight-requests.show')
+                                <li class="nav-item">
+                                    <a href="{{ route('flight-requests.index') }}"
+                                        class="nav-link {{ Request::is('flight/requests*') ? 'active' : '' }}">
+                                        <i class="far fa-circle nav-icon"></i>
+                                        <p>Requests</p>
+                                    </a>
+                                </li>
+                            @endcan
+                            @can('flight-issuances.show')
+                                <li class="nav-item">
+                                    <a href="{{ route('flight-issuances.index') }}"
+                                        class="nav-link {{ Request::is('flight/issuances*') ? 'active' : '' }}">
+                                        <i class="far fa-circle nav-icon"></i>
+                                        <p>Issuances</p>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="{{ route('flight.reports.index') }}"
+                                        class="nav-link {{ Request::is('flight/reports*') ? 'active' : '' }}">
+                                        <i class="far fa-circle nav-icon"></i>
+                                        <p>Reports</p>
+                                    </a>
+                                </li>
+                            @endcan
+                        </ul>
+                    </li>
+                @endcanany
+
+                {{-- GENERAL SECTION --}}
+                @canany(['letter-numbers.show', 'master-data.show', 'business-partners.show'])
+                    <li class="nav-header">GENERAL SECTION</li>
+                @endcanany
+
                 {{-- Letter Administration --}}
                 @can('letter-numbers.show')
                     <li
@@ -471,12 +536,12 @@
                 @endcan
 
                 {{-- MASTER DATA --}}
-                @canany(['master-data.show'])
+                @canany(['master-data.show', 'business-partners.show'])
                     {{-- Master Data Dropdown --}}
                     <li
-                        class="nav-item {{ Request::is('banks*') || Request::is('religions*') || Request::is('positions*') || Request::is('departments*') || Request::is('projects*') || Request::is('grades*') || Request::is('levels*') || Request::is('transportations*') || Request::is('accommodations*') || Request::is('letter-categories*') || Request::is('leave/types*') ? 'menu-open' : '' }}">
+                        class="nav-item {{ Request::is('banks*') || Request::is('religions*') || Request::is('positions*') || Request::is('departments*') || Request::is('projects*') || Request::is('grades*') || Request::is('levels*') || Request::is('transportations*') || Request::is('accommodations*') || Request::is('letter-categories*') || Request::is('leave/types*') || Request::is('business-partners*') ? 'menu-open' : '' }}">
                         <a href="#"
-                            class="nav-link {{ Request::is('banks*') || Request::is('religions*') || Request::is('positions*') || Request::is('departments*') || Request::is('projects*') || Request::is('grades*') || Request::is('levels*') || Request::is('transportations*') || Request::is('accommodations*') || Request::is('letter-categories*') || Request::is('leave/types*') ? 'active' : '' }}">
+                            class="nav-link {{ Request::is('banks*') || Request::is('religions*') || Request::is('positions*') || Request::is('departments*') || Request::is('projects*') || Request::is('grades*') || Request::is('levels*') || Request::is('transportations*') || Request::is('accommodations*') || Request::is('letter-categories*') || Request::is('leave/types*') || Request::is('business-partners*') ? 'active' : '' }}">
                             <i class="nav-icon fas fa-database"></i>
                             <p>
                                 Master Data
@@ -584,6 +649,21 @@
                                     <p>Leave Types</p>
                                 </a>
                             </li>
+
+                            {{-- Flight Management Data Group --}}
+                            <li class="nav-header"
+                                style="font-size: 0.75rem; color: #6c757d; padding: 0.5rem 1rem 0.25rem;">
+                                Flight Management Data
+                            </li>
+                            @can('business-partners.show')
+                                <li class="nav-item">
+                                    <a href="{{ route('business-partners.index') }}"
+                                        class="nav-link {{ Request::is('business-partners*') ? 'active' : '' }}">
+                                        <i class="far fa-circle nav-icon"></i>
+                                        <p>Business Partners</p>
+                                    </a>
+                                </li>
+                            @endcan
                         </ul>
                     </li>
                 @endcanany

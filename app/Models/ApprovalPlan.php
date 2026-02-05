@@ -57,6 +57,16 @@ class ApprovalPlan extends Model
         return $this->belongsTo(RecruitmentRequest::class, 'document_id', 'id');
     }
 
+    public function flightRequest()
+    {
+        return $this->belongsTo(FlightRequest::class, 'document_id', 'id');
+    }
+
+    public function flightRequestIssuance()
+    {
+        return $this->belongsTo(FlightRequestIssuance::class, 'document_id', 'id');
+    }
+
     /**
      * Check if this approval can be processed (hybrid sequential validation)
      *

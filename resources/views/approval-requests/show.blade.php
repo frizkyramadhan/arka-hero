@@ -11,6 +11,11 @@
                         {{ $document->employee->administrations->where('is_active', 1)->first()->project->project_code ?? 'N/A' }}
                         -
                         {{ $document->employee->administrations->where('is_active', 1)->first()->project->project_name ?? 'N/A' }}
+                    @elseif($approvalPlan->document_type === 'flight_request')
+                        @php $document = App\Models\FlightRequest::with(['administration.project'])->find($approvalPlan->document_id); @endphp
+                        {{ $document && $document->administration && $document->administration->project ? $document->administration->project->project_name : 'N/A' }}
+                    @elseif($approvalPlan->document_type === 'flight_request_issuance')
+                        Letter of Guarantee
                     @else
                         {{ ucfirst(str_replace('_', ' ', $approvalPlan->document_type)) }}
                     @endif
@@ -24,6 +29,12 @@
                         {{ $document->request_number ?? 'N/A' }}
                     @elseif($approvalPlan->document_type === 'leave_request')
                         Leave Request
+                    @elseif($approvalPlan->document_type === 'flight_request')
+                        @php $document = App\Models\FlightRequest::find($approvalPlan->document_id); @endphp
+                        {{ $document->form_number ?? 'Flight Request' }}
+                    @elseif($approvalPlan->document_type === 'flight_request_issuance')
+                        @php $document = App\Models\FlightRequestIssuance::find($approvalPlan->document_id); @endphp
+                        {{ $document ? $document->issued_number : 'N/A' }}
                     @endif
                 </h1>
                 <div class="document-date">
@@ -34,6 +45,12 @@
                         {{ date('d F Y', strtotime($document->created_at ?? now())) }}
                     @elseif($approvalPlan->document_type === 'leave_request')
                         {{ date('d F Y', strtotime($document->requested_at ?? now())) }}
+                    @elseif($approvalPlan->document_type === 'flight_request')
+                        @php $document = App\Models\FlightRequest::find($approvalPlan->document_id); @endphp
+                        {{ date('d F Y', strtotime($document->requested_at ?? ($document->created_at ?? now()))) }}
+                    @elseif($approvalPlan->document_type === 'flight_request_issuance')
+                        @php $document = App\Models\FlightRequestIssuance::find($approvalPlan->document_id); @endphp
+                        {{ $document && $document->issued_date ? date('d F Y', strtotime($document->issued_date)) : ($document && $document->created_at ? date('d F Y', strtotime($document->created_at)) : date('d F Y', strtotime(now()))) }}
                     @endif
                 </div>
                 <div class="document-status-pill status-pending-approval">
@@ -647,6 +664,341 @@
                                 </div>
                             </div>
                         </div>
+                    @elseif($approvalPlan->document_type === 'flight_request')
+                        @php
+                            $document = App\Models\FlightRequest::with([
+                                'employee',
+                                'administration.position.department',
+                                'administration.project',
+                                'details',
+                                'requestedBy',
+                                'leaveRequest.employee',
+                                'leaveRequest.administration',
+                                'officialTravel.traveler.employee',
+                            ])->find($approvalPlan->document_id);
+
+                            $employee = $document->employee;
+                            $administration =
+                                $document->administration ?? ($employee ? $employee->activeAdministration : null);
+                            $name = $document->employee_name ?? ($employee ? $employee->fullname : 'N/A');
+                            $nik = $document->nik ?? ($administration ? $administration->nik : 'N/A');
+                            $position =
+                                $document->position ??
+                                ($administration && $administration->position
+                                    ? $administration->position->position_name
+                                    : 'N/A');
+                            $department =
+                                $document->department ??
+                                ($administration && $administration->position && $administration->position->department
+                                    ? $administration->position->department->department_name
+                                    : 'N/A');
+                            $project =
+                                $document->project ??
+                                ($administration && $administration->project
+                                    ? $administration->project->project_name
+                                    : 'N/A');
+                            $projectCode =
+                                $administration && $administration->project
+                                    ? $administration->project->project_code
+                                    : null;
+                            $projectNumber = $projectCode ? $projectCode . ' - ' . $project : $project;
+                            $phoneNumber =
+                                $document->phone_number ?? ($administration ? $administration->phone_number : null);
+                            $poh = $administration && $administration->poh ? $administration->poh : 'N/A';
+                            $doh =
+                                $administration && $administration->doh
+                                    ? \Carbon\Carbon::parse($administration->doh)->format('d F Y')
+                                    : 'N/A';
+                        @endphp
+
+                        <!-- Employee Information -->
+                        <div class="flight-request-card employee-card">
+                            <div class="card-head">
+                                <h2><i class="fas fa-user"></i> Employee Information</h2>
+                            </div>
+                            <div class="card-body">
+                                <div class="employee-info-table">
+                                    <div class="info-row">
+                                        <div class="info-label"><strong>NAME:</strong></div>
+                                        <div class="info-value">{{ $name }}</div>
+                                    </div>
+                                    <div class="info-row">
+                                        <div class="info-label"><strong>REQUEST TYPE:</strong></div>
+                                        <div class="info-value">
+                                            @if ($document->request_type === 'leave_based' && $document->leaveRequest)
+                                                @php
+                                                    $leave = $document->leaveRequest;
+                                                    $leaveEmployee = $leave->employee;
+                                                    $leaveAdmin =
+                                                        $leave->administration ??
+                                                        ($leaveEmployee ? $leaveEmployee->activeAdministration : null);
+                                                @endphp
+                                                Leave Request (Cuti) -
+                                                {{ $leaveEmployee ? $leaveEmployee->fullname : 'N/A' }} -
+                                                {{ $leaveAdmin ? $leaveAdmin->nik : 'N/A' }}
+                                                ({{ $leave->start_date->format('d M Y') }} to
+                                                {{ $leave->end_date->format('d M Y') }})
+                                            @elseif ($document->request_type === 'travel_based' && $document->officialTravel)
+                                                @php
+                                                    $travel = $document->officialTravel;
+                                                    $traveler = $travel->traveler;
+                                                    $travelEmployee = $traveler ? $traveler->employee : null;
+                                                @endphp
+                                                Official Travel (LOT) - {{ $travel->official_travel_number ?? 'N/A' }} -
+                                                {{ $travelEmployee ? $travelEmployee->fullname : 'N/A' }}
+                                                ({{ $travel->destination }})
+                                            @else
+                                                Standalone
+                                            @endif
+                                        </div>
+                                    </div>
+                                    <div class="info-row">
+                                        <div class="info-label"><strong>ID NUMBER / NIK:</strong></div>
+                                        <div class="info-value">{{ $nik }}</div>
+                                    </div>
+                                    <div class="info-row">
+                                        <div class="info-label"><strong>POSITION:</strong></div>
+                                        <div class="info-value">{{ $position }}</div>
+                                    </div>
+                                    <div class="info-row">
+                                        <div class="info-label"><strong>DEPT/DIVISION:</strong></div>
+                                        <div class="info-value">{{ $department }}</div>
+                                    </div>
+                                    <div class="info-row">
+                                        <div class="info-label"><strong>POH:</strong></div>
+                                        <div class="info-value">{{ $poh }}</div>
+                                    </div>
+                                    <div class="info-row">
+                                        <div class="info-label"><strong>DOH:</strong></div>
+                                        <div class="info-value">{{ $doh }}</div>
+                                    </div>
+                                    <div class="info-row">
+                                        <div class="info-label"><strong>PROJECT NUMBER:</strong></div>
+                                        <div class="info-value">{{ $projectNumber }}</div>
+                                    </div>
+                                    @if ($phoneNumber)
+                                        <div class="info-row">
+                                            <div class="info-label"><strong>PHONE NUMBER:</strong></div>
+                                            <div class="info-value">{{ $phoneNumber }}</div>
+                                        </div>
+                                    @endif
+                                    <div class="info-row">
+                                        <div class="info-label"><strong>PURPOSE OF TRAVEL:</strong></div>
+                                        <div class="info-value">{{ $document->purpose_of_travel }}</div>
+                                    </div>
+                                    <div class="info-row">
+                                        <div class="info-label"><strong>TOTAL TRAVEL DAYS:</strong></div>
+                                        <div class="info-value">{{ $document->total_travel_days ?? '-' }}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Flight Details -->
+                        <div class="flight-request-card flight-details-card">
+                            <div class="card-head">
+                                <h2><i class="fas fa-route"></i> Flight Details</h2>
+                            </div>
+                            <div class="card-body">
+                                @if ($document->details->count() > 0)
+                                    <div class="flight-details-list">
+                                        @foreach ($document->details as $index => $detail)
+                                            <div class="flight-detail-card">
+                                                <div class="flight-detail-header">
+                                                    <h4>Flight {{ $index + 1 }}</h4>
+                                                </div>
+                                                <div class="flight-detail-content">
+                                                    <div class="flight-detail-grid">
+                                                        <div class="flight-detail-item">
+                                                            <div class="flight-detail-icon"
+                                                                style="background-color: #e74c3c;">
+                                                                <i class="fas fa-plane-departure"></i>
+                                                            </div>
+                                                            <div class="flight-detail-info">
+                                                                <div class="flight-detail-label">Departure City</div>
+                                                                <div class="flight-detail-value">
+                                                                    {{ $detail->departure_city }}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        <div class="flight-detail-item">
+                                                            <div class="flight-detail-icon"
+                                                                style="background-color: #27ae60;">
+                                                                <i class="fas fa-plane-arrival"></i>
+                                                            </div>
+                                                            <div class="flight-detail-info">
+                                                                <div class="flight-detail-label">Arrival City</div>
+                                                                <div class="flight-detail-value">
+                                                                    {{ $detail->arrival_city }}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        <div class="flight-detail-item">
+                                                            <div class="flight-detail-icon"
+                                                                style="background-color: #3498db;">
+                                                                <i class="fas fa-calendar-alt"></i>
+                                                            </div>
+                                                            <div class="flight-detail-info">
+                                                                <div class="flight-detail-label">Flight Date</div>
+                                                                <div class="flight-detail-value">
+                                                                    {{ $detail->flight_date->format('d F Y') }}</div>
+                                                            </div>
+                                                        </div>
+                                                        @if ($detail->flight_time)
+                                                            <div class="flight-detail-item">
+                                                                <div class="flight-detail-icon"
+                                                                    style="background-color: #9b59b6;">
+                                                                    <i class="fas fa-clock"></i>
+                                                                </div>
+                                                                <div class="flight-detail-info">
+                                                                    <div class="flight-detail-label">Flight Time</div>
+                                                                    <div class="flight-detail-value">
+                                                                        {{ \Carbon\Carbon::parse($detail->flight_time)->format('H:i') }}
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        @endif
+                                                        @if ($detail->airline)
+                                                            <div class="flight-detail-item">
+                                                                <div class="flight-detail-icon"
+                                                                    style="background-color: #f1c40f;">
+                                                                    <i class="fas fa-plane"></i>
+                                                                </div>
+                                                                <div class="flight-detail-info">
+                                                                    <div class="flight-detail-label">Airline</div>
+                                                                    <div class="flight-detail-value">
+                                                                        {{ $detail->airline }}
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        @endif
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        @endforeach
+                                    </div>
+                                @else
+                                    <div class="no-flight-details">
+                                        <i class="fas fa-plane-slash"></i>
+                                        <p>No flight details available</p>
+                                    </div>
+                                @endif
+                            </div>
+                        </div>
+
+                        <!-- Notes -->
+                        @if ($document->notes)
+                            <div class="flight-request-card notes-card">
+                                <div class="card-head">
+                                    <h2><i class="fas fa-sticky-note"></i> Notes</h2>
+                                </div>
+                                <div class="card-body" style="text-align: left !important;">
+                                    <pre
+                                        style="text-align: left; white-space: pre-wrap; font-family: inherit; margin: 0; padding: 0; background: transparent; border: none;">{{ $document->notes }}</pre>
+                                </div>
+                            </div>
+                        @endif
+                    @elseif($approvalPlan->document_type === 'flight_request_issuance')
+                        @php
+                            $document = App\Models\FlightRequestIssuance::with([
+                                'businessPartner',
+                                'issuedBy',
+                                'issuanceDetails',
+                            ])->find($approvalPlan->document_id);
+                        @endphp
+                        @if ($document)
+                            <!-- LG Information -->
+                            <div class="flight-request-card employee-card">
+                                <div class="card-head">
+                                    <h2><i class="fas fa-file-invoice"></i> LG Information</h2>
+                                </div>
+                                <div class="card-body">
+                                    <div class="employee-info-table">
+                                        <div class="info-row">
+                                            <div class="info-label"><strong>ISSUED NUMBER:</strong></div>
+                                            <div class="info-value">{{ $document->issued_number }}</div>
+                                        </div>
+                                        <div class="info-row">
+                                            <div class="info-label"><strong>ISSUED DATE:</strong></div>
+                                            <div class="info-value">
+                                                {{ $document->issued_date ? $document->issued_date->format('d F Y') : '-' }}
+                                            </div>
+                                        </div>
+                                        <div class="info-row">
+                                            <div class="info-label"><strong>LETTER NUMBER:</strong></div>
+                                            <div class="info-value">{{ $document->letter_number ?? '-' }}</div>
+                                        </div>
+                                        <div class="info-row">
+                                            <div class="info-label"><strong>BUSINESS PARTNER:</strong></div>
+                                            <div class="info-value">{{ $document->businessPartner->bp_name ?? '-' }}</div>
+                                        </div>
+                                        <div class="info-row">
+                                            <div class="info-label"><strong>ISSUED BY:</strong></div>
+                                            <div class="info-value">{{ $document->issuedBy->name ?? '-' }}</div>
+                                        </div>
+                                        <div class="info-row">
+                                            <div class="info-label"><strong>TOTAL TICKETS:</strong></div>
+                                            <div class="info-value">{{ $document->issuanceDetails->count() }}</div>
+                                        </div>
+                                        <div class="info-row">
+                                            <div class="info-label"><strong>TOTAL PRICE:</strong></div>
+                                            <div class="info-value">Rp
+                                                {{ number_format($document->total_ticket_price ?? 0, 0, ',', '.') }}</div>
+                                        </div>
+                                        @if ($document->notes)
+                                            <div class="info-row">
+                                                <div class="info-label"><strong>NOTES:</strong></div>
+                                                <div class="info-value">
+                                                    <pre class="info-notes-pre" style="margin:0;padding:0;white-space:pre-wrap;">{{ $document->notes }}</pre>
+                                                </div>
+                                            </div>
+                                        @endif
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Ticket Details -->
+                            <div class="flight-request-card flight-details-card">
+                                <div class="card-head">
+                                    <h2><i class="fas fa-ticket-alt"></i> Ticket Details</h2>
+                                </div>
+                                <div class="card-body">
+                                    @if ($document->issuanceDetails->count() > 0)
+                                        <div class="table-responsive">
+                                            <table class="table table-sm table-bordered table-striped mb-0">
+                                                <thead>
+                                                    <tr>
+                                                        <th class="text-center" style="width: 5%;">No</th>
+                                                        <th>Passenger Name</th>
+                                                        <th>Booking Code</th>
+                                                        <th>Detail Reservation</th>
+                                                        <th class="text-right">Ticket Price</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    @foreach ($document->issuanceDetails as $detail)
+                                                        <tr>
+                                                            <td class="text-center">{{ $detail->ticket_order }}</td>
+                                                            <td>{{ $detail->passenger_name }}</td>
+                                                            <td>{{ $detail->booking_code ?? '-' }}</td>
+                                                            <td>{{ $detail->detail_reservation ?? '-' }}</td>
+                                                            <td class="text-right">Rp
+                                                                {{ $detail->ticket_price ? number_format($detail->ticket_price, 0, ',', '.') : '-' }}
+                                                            </td>
+                                                        </tr>
+                                                    @endforeach
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    @else
+                                        <div class="no-flight-details">
+                                            <i class="fas fa-ticket-alt"></i>
+                                            <p>No ticket details</p>
+                                        </div>
+                                    @endif
+                                </div>
+                            </div>
+                        @endif
                     @endif
                 </div>
 
@@ -742,6 +1094,12 @@
                                                 {{ $document->createdBy->name ?? 'N/A' }}
                                             @elseif($approvalPlan->document_type === 'leave_request')
                                                 {{ $document->requestedBy->name ?? 'N/A' }}
+                                            @elseif($approvalPlan->document_type === 'flight_request')
+                                                @php $document = App\Models\FlightRequest::with('requestedBy')->find($approvalPlan->document_id); @endphp
+                                                {{ $document && $document->requestedBy ? $document->requestedBy->name : 'N/A' }}
+                                            @elseif($approvalPlan->document_type === 'flight_request_issuance')
+                                                @php $document = App\Models\FlightRequestIssuance::with('issuedBy')->find($approvalPlan->document_id); @endphp
+                                                {{ $document && $document->issuedBy ? $document->issuedBy->name : 'N/A' }}
                                             @endif
                                         </div>
                                         <div class="submitter-meta">
@@ -753,6 +1111,12 @@
                                                     {{ $document->submit_at ? date('d M Y H:i', strtotime($document->submit_at)) : 'N/A' }}
                                                 @elseif($approvalPlan->document_type === 'leave_request')
                                                     {{ $document->requested_at ? date('d M Y H:i', strtotime($document->requested_at)) : 'N/A' }}
+                                                @elseif($approvalPlan->document_type === 'flight_request')
+                                                    @php $document = App\Models\FlightRequest::find($approvalPlan->document_id); @endphp
+                                                    {{ $document && $document->requested_at ? date('d M Y H:i', strtotime($document->requested_at)) : 'N/A' }}
+                                                @elseif($approvalPlan->document_type === 'flight_request_issuance')
+                                                    @php $document = App\Models\FlightRequestIssuance::find($approvalPlan->document_id); @endphp
+                                                    {{ $document && ($document->issued_at ?? $document->created_at) ? date('d M Y H:i', strtotime($document->issued_at ?? $document->created_at)) : 'N/A' }}
                                                 @endif
                                             </span>
                                         </div>
@@ -2034,6 +2398,190 @@ if ($plan->status === 1) {
 
         .theory-test-details li:last-child {
             margin-bottom: 0;
+        }
+
+        /* Flight Request Card Styles (same as flight-requests/show.blade.php) */
+        .flight-request-card {
+            background: white;
+            border-radius: 6px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+
+        .flight-request-card .card-head {
+            padding: 15px 20px;
+            border-bottom: 1px solid #e9ecef;
+            background-color: #f8f9fa;
+        }
+
+        .flight-request-card .card-head h2 {
+            margin: 0;
+            font-size: 16px;
+            font-weight: 600;
+            color: #2c3e50;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .flight-request-card .card-body {
+            padding: 20px;
+        }
+
+        /* Employee Card - Official Travel Detail Style (Compact) */
+        .employee-card {
+            overflow: hidden;
+        }
+
+        .employee-card .card-body {
+            padding: 15px 20px;
+        }
+
+        .employee-info-table {
+            width: 100%;
+        }
+
+        .employee-info-table .info-row {
+            display: flex;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid #e9ecef;
+            min-height: 32px;
+        }
+
+        .employee-info-table .info-row:last-child {
+            border-bottom: none;
+        }
+
+        .employee-info-table .info-row:first-child {
+            padding-top: 0;
+        }
+
+        .employee-info-table .info-label {
+            flex: 0 0 180px;
+            font-weight: 600;
+            color: #2c3e50;
+            font-size: 13px;
+            text-align: left;
+            line-height: 1.4;
+        }
+
+        .employee-info-table .info-value {
+            flex: 1;
+            color: #333;
+            font-size: 13px;
+            text-align: left;
+            padding-left: 8px;
+            line-height: 1.4;
+        }
+
+        /* Flight Details Card */
+        .flight-details-list {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .flight-detail-card {
+            border: 1px solid #e9ecef;
+            border-radius: 6px;
+            overflow: hidden;
+        }
+
+        .flight-detail-header {
+            background-color: #f8f9fa;
+            padding: 12px 15px;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .flight-detail-header h4 {
+            margin: 0;
+            font-size: 14px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .flight-detail-content {
+            padding: 15px;
+        }
+
+        .flight-detail-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+        }
+
+        .flight-detail-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+        }
+
+        .flight-detail-icon {
+            width: 28px;
+            height: 28px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 12px;
+            flex-shrink: 0;
+        }
+
+        .flight-detail-info {
+            flex: 1;
+        }
+
+        .flight-detail-label {
+            font-size: 11px;
+            color: #777;
+            margin-bottom: 2px;
+        }
+
+        .flight-detail-value {
+            font-weight: 500;
+            color: #333;
+            font-size: 13px;
+        }
+
+        .no-flight-details {
+            text-align: center;
+            padding: 40px 20px;
+            color: #6c757d;
+        }
+
+        .no-flight-details i {
+            font-size: 48px;
+            margin-bottom: 15px;
+            display: block;
+        }
+
+        .no-flight-details p {
+            margin: 0;
+            font-size: 16px;
+        }
+
+        /* Notes Card - simple left align */
+        .notes-card .card-body {
+            text-align: left !important;
+        }
+
+        .notes-card pre {
+            text-align: left !important;
+            white-space: pre-wrap !important;
+            word-wrap: break-word !important;
+            font-family: inherit !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            background: transparent !important;
+            border: none !important;
+        }
+
+        .notes-content {
+            text-align: left;
+            white-space: pre-wrap;
+            word-wrap: break-word;
         }
     </style>
 @endsection

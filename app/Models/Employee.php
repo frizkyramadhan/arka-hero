@@ -130,6 +130,11 @@ class Employee extends Model
         return $this->hasMany(EmployeeBond::class)->where('status', 'active');
     }
 
+    public function activeAdministration()
+    {
+        return $this->hasOne(Administration::class)->where('is_active', 1);
+    }
+
     public function leaveEntitlements()
     {
         return $this->hasMany(LeaveEntitlement::class);

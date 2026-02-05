@@ -22,7 +22,7 @@
     $fieldName = $fieldName ?? 'letter_number_id';
     $required = $required ?? false;
     $placeholder = $placeholder ?? 'Select Letter Number';
-    $selectedValue = old($fieldName) ?? null;
+    $selectedValue = old($fieldName) ?? ($selectedValue ?? null);
 
     // Component ID for JavaScript isolation
     $componentId = 'letter-selector-' . uniqid();
