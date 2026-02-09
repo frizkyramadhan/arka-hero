@@ -11,6 +11,7 @@ use App\Models\Accommodation;
 use App\Models\ApprovalStage;
 use App\Models\Administration;
 use App\Models\Officialtravel;
+use App\Models\FlightRequest;
 use App\Models\Transportation;
 use App\Models\OfficialtravelStop;
 use Illuminate\Support\Facades\DB;
@@ -111,7 +112,11 @@ class OfficialtravelController extends Controller
 
         // Filter by status
         if (!empty($request->get('status'))) {
-            $officialtravels->where('status', $request->get('status'));
+            if ($request->get('status') === 'pending_hr') {
+                $officialtravels->where('submitted_by_user', true)->whereNull('letter_number_id');
+            } else {
+                $officialtravels->where('status', $request->get('status'));
+            }
         }
 
         // Global search
@@ -155,6 +160,9 @@ class OfficialtravelController extends Controller
                 return $officialtravel->destination;
             })
             ->addColumn('status', function ($officialtravel) {
+                if ($officialtravel->submitted_by_user && empty($officialtravel->letter_number_id)) {
+                    return '<span class="badge badge-info">Menunggu Konfirmasi HR</span>';
+                }
                 switch ($officialtravel->status) {
                     case 'draft':
                         return '<span class="badge badge-warning">Draft</span>';
@@ -555,32 +563,54 @@ class OfficialtravelController extends Controller
     public function update(Request $request, Officialtravel $officialtravel)
     {
         try {
-            $this->validate($request, [
-                'official_travel_number' => 'required|unique:officialtravels,official_travel_number,' . $officialtravel->id,
-                'official_travel_date' => 'required|date',
-                'official_travel_origin' => 'required',
-                'traveler_id' => 'required',
-                'purpose' => 'required',
-                'destination' => 'required',
-                'duration' => 'required',
-                'departure_from' => 'required|date',
-                'transportation_id' => 'required',
-                'accommodation_id' => 'required',
-                'followers' => 'nullable|array',
-                // Manual approvers
-                'manual_approvers' => 'nullable|array|min:1',
-                'manual_approvers.*' => 'exists:users,id',
-            ], [
-                'manual_approvers.array' => 'Approvers must be an array.',
-                'manual_approvers.min' => 'Please select at least one approver.',
-                'manual_approvers.*.exists' => 'One or more selected approvers are invalid.',
-            ]);
+            $isPendingHr = $officialtravel->isPendingHr();
+
+            if ($isPendingHr) {
+                // HR confirming user submission: require letter number and approvers
+                $this->validate($request, [
+                    'letter_number_id' => 'required|exists:letter_numbers,id',
+                    'official_travel_date' => 'required|date',
+                    'official_travel_origin' => 'required',
+                    'traveler_id' => 'required',
+                    'purpose' => 'required',
+                    'destination' => 'required',
+                    'duration' => 'required',
+                    'departure_from' => 'required|date',
+                    'transportation_id' => 'required',
+                    'accommodation_id' => 'required',
+                    'followers' => 'nullable|array',
+                    'manual_approvers' => 'required|array|min:1',
+                    'manual_approvers.*' => 'exists:users,id',
+                ], [
+                    'letter_number_id.required' => 'Pilih nomor surat untuk mengonfirmasi pengajuan ini.',
+                    'manual_approvers.required' => 'Pilih minimal satu approver.',
+                ]);
+            } else {
+                $this->validate($request, [
+                    'official_travel_number' => 'required|unique:officialtravels,official_travel_number,' . $officialtravel->id,
+                    'official_travel_date' => 'required|date',
+                    'official_travel_origin' => 'required',
+                    'traveler_id' => 'required',
+                    'purpose' => 'required',
+                    'destination' => 'required',
+                    'duration' => 'required',
+                    'departure_from' => 'required|date',
+                    'transportation_id' => 'required',
+                    'accommodation_id' => 'required',
+                    'followers' => 'nullable|array',
+                    'manual_approvers' => 'nullable|array|min:1',
+                    'manual_approvers.*' => 'exists:users,id',
+                ], [
+                    'manual_approvers.array' => 'Approvers must be an array.',
+                    'manual_approvers.min' => 'Please select at least one approver.',
+                    'manual_approvers.*.exists' => 'One or more selected approvers are invalid.',
+                ]);
+            }
 
             DB::beginTransaction();
 
-            // Only allow editing if the status is draft
-            if ($officialtravel->status != 'draft') {
-                throw new \Exception('Cannot edit Official Travel that is not in draft status.');
+            if ($officialtravel->status !== 'draft') {
+                throw new \Exception('Cannot edit Official Travel that is not in draft or pending HR confirmation status.');
             }
 
             // Ensure manual_approvers is an array and preserve order
@@ -588,31 +618,61 @@ class OfficialtravelController extends Controller
             if (!is_array($manualApprovers)) {
                 $manualApprovers = [];
             }
-            // Ensure array values are preserved in order (array_values to reset keys)
             $manualApprovers = array_values(array_filter($manualApprovers));
 
-            // Check if manual_approvers changed
             $approversChanged = json_encode($officialtravel->manual_approvers ?? []) !== json_encode($manualApprovers);
 
-            // Update the official travel
-            // Note: arrival_at_destination, arrival_remark, departure_from_destination, departure_remark
-            // have been moved to officialtravel_stops table, so they are not updated here
-            $officialtravel->update([
-                'official_travel_number' => $request->official_travel_number,
-                'official_travel_date' => $request->official_travel_date,
-                'official_travel_origin' => $request->official_travel_origin,
-                'traveler_id' => $request->traveler_id,
-                'purpose' => $request->purpose,
-                'destination' => $request->destination,
-                'duration' => $request->duration,
-                'departure_from' => $request->departure_from,
-                'transportation_id' => $request->transportation_id,
-                'accommodation_id' => $request->accommodation_id,
-                'manual_approvers' => $manualApprovers,
-            ]);
+            if ($isPendingHr && $request->letter_number_id) {
+                // Assign letter number (HR confirmation for user submission)
+                $letterNumberRecord = LetterNumber::find($request->letter_number_id);
+                if (!$letterNumberRecord || $letterNumberRecord->status !== 'reserved') {
+                    throw new \Exception('Nomor surat tidak tersedia atau belum di-reserve. Status: ' . ($letterNumberRecord ? $letterNumberRecord->status : 'not found'));
+                }
+                $romanMonth = $this->numberToRoman(now()->month);
+                $travelNumber = sprintf("ARKA/%s/HR/%s/%s", $letterNumberRecord->letter_number, $romanMonth, now()->year);
+                if (Officialtravel::where('official_travel_number', $travelNumber)->where('id', '!=', $officialtravel->id)->exists()) {
+                    throw new \Exception('Nomor LOT dari surat ini sudah digunakan: ' . $travelNumber);
+                }
 
-            // If approvers changed and there are existing approval plans, delete them
-            // (They will be recreated when document is submitted)
+                $officialtravel->update([
+                    'letter_number_id' => $letterNumberRecord->id,
+                    'letter_number' => $letterNumberRecord->letter_number,
+                    'official_travel_number' => $travelNumber,
+                    'official_travel_date' => $request->official_travel_date,
+                    'official_travel_origin' => $request->official_travel_origin,
+                    'submitted_by_user' => false,
+                    'traveler_id' => $request->traveler_id,
+                    'purpose' => $request->purpose,
+                    'destination' => $request->destination,
+                    'duration' => $request->duration,
+                    'departure_from' => $request->departure_from,
+                    'transportation_id' => $request->transportation_id,
+                    'accommodation_id' => $request->accommodation_id,
+                    'manual_approvers' => $manualApprovers,
+                ]);
+
+                $letterNumberRecord->markAsUsed('officialtravel', $officialtravel->id);
+                Log::info('LOT pending_hr confirmed by HR: letter number assigned', [
+                    'officialtravel_id' => $officialtravel->id,
+                    'letter_number_id' => $letterNumberRecord->id,
+                ]);
+            } else {
+                // Normal draft update
+                $officialtravel->update([
+                    'official_travel_number' => $request->official_travel_number,
+                    'official_travel_date' => $request->official_travel_date,
+                    'official_travel_origin' => $request->official_travel_origin,
+                    'traveler_id' => $request->traveler_id,
+                    'purpose' => $request->purpose,
+                    'destination' => $request->destination,
+                    'duration' => $request->duration,
+                    'departure_from' => $request->departure_from,
+                    'transportation_id' => $request->transportation_id,
+                    'accommodation_id' => $request->accommodation_id,
+                    'manual_approvers' => $manualApprovers,
+                ]);
+            }
+
             if ($approversChanged) {
                 ApprovalPlan::where('document_id', $officialtravel->id)
                     ->where('document_type', 'officialtravel')
@@ -620,9 +680,7 @@ class OfficialtravelController extends Controller
                 Log::info("Deleted existing approval plans for officialtravel {$officialtravel->id} due to approver changes");
             }
 
-            // Update followers - remove all existing and add new ones
             $officialtravel->details()->delete();
-
             if ($request->has('followers') && is_array($request->followers)) {
                 foreach ($request->followers as $followerId) {
                     Officialtravel_detail::create([
@@ -634,7 +692,10 @@ class OfficialtravelController extends Controller
 
             DB::commit();
 
-            return redirect('officialtravels/' . $officialtravel->id)->with('toast_success', 'Official Travel updated successfully!');
+            $message = $isPendingHr
+                ? 'Pengajuan LOT telah dikonfirmasi. Nomor surat dan nomor LOT telah diisi. Status: Draft.'
+                : 'Official Travel updated successfully!';
+            return redirect('officialtravels/' . $officialtravel->id)->with('toast_success', $message);
         } catch (\Illuminate\Validation\ValidationException $e) {
             DB::rollback();
             return redirect()->back()
@@ -1026,7 +1087,11 @@ class OfficialtravelController extends Controller
             }
 
             if (!empty($request->get('status'))) {
-                $query->where('status', $request->get('status'));
+                if ($request->get('status') === 'pending_hr') {
+                    $query->where('submitted_by_user', true)->whereNull('letter_number_id');
+                } else {
+                    $query->where('status', $request->get('status'));
+                }
             }
 
             if (!empty($request->get('search'))) {
@@ -1191,7 +1256,7 @@ class OfficialtravelController extends Controller
                 ->make(true);
         }
 
-        $query = Officialtravel::with(['traveler.employee', 'project', 'stops'])
+        $query = Officialtravel::with(['traveler.employee', 'project', 'stops', 'creator'])
             ->where(function ($q) use ($administrationId) {
                 // User is the main traveler
                 $q->where('traveler_id', $administrationId)
@@ -1210,7 +1275,11 @@ class OfficialtravelController extends Controller
 
         // Apply status filter
         if ($request->filled('status')) {
-            $query->where('status', $request->status);
+            if ($request->status === 'pending_hr') {
+                $query->where('submitted_by_user', true)->whereNull('letter_number_id');
+            } else {
+                $query->where('status', $request->status);
+            }
         }
 
         // Apply role filter
@@ -1250,25 +1319,21 @@ class OfficialtravelController extends Controller
                 return $row->official_travel_number ?? 'N/A';
             })
             ->addColumn('travel_date', function ($row) {
-                return date('d M Y', strtotime($row->official_travel_date));
-            })
-            ->addColumn('destination', function ($row) {
-                return $row->destination;
-            })
-            ->addColumn('purpose', function ($row) {
-                return Str::limit($row->purpose, 50);
+                return date('d/m/Y', strtotime($row->official_travel_date));
             })
             ->addColumn('traveler_name', function ($row) {
                 return $row->traveler->employee->fullname ?? 'N/A';
             })
-            ->addColumn('role', function ($row) use ($administrationId) {
-                if ($row->traveler_id === $administrationId) {
-                    return '<span class="badge badge-primary">Main Traveler</span>';
-                } else {
-                    return '<span class="badge badge-info">Follower</span>';
-                }
+            ->addColumn('project', function ($row) {
+                return $row->project ? $row->project->project_code : '-';
+            })
+            ->addColumn('destination', function ($row) {
+                return $row->destination;
             })
             ->addColumn('status_badge', function ($row) {
+                if ($row->submitted_by_user && empty($row->letter_number_id)) {
+                    return '<span class="badge badge-warning">Menunggu Konfirmasi HR</span>';
+                }
                 $badges = [
                     'draft' => '<span class="badge badge-secondary">Draft</span>',
                     'submitted' => '<span class="badge badge-info">Submitted</span>',
@@ -1278,14 +1343,22 @@ class OfficialtravelController extends Controller
                 ];
                 return $badges[$row->status] ?? '<span class="badge badge-secondary">Unknown</span>';
             })
+            ->addColumn('created_by', function ($row) {
+                return $row->creator ? '<small>' . e($row->creator->name) . '</small>' : '-';
+            })
             ->addColumn('action', function ($row) {
-                $btn = '<a href="' . route('officialtravels.my-travels.show', $row->id) . '" class="btn btn-sm btn-info mr-1">
+                $btn = '<a href="' . route('officialtravels.my-travels.show', $row->id) . '" class="btn btn-sm btn-info mr-1" title="View">
                             <i class="fas fa-eye"></i>
                         </a>';
-
+                $canEdit = $row->submitted_by_user && empty($row->letter_number_id);
+                if ($canEdit) {
+                    $btn .= '<a href="' . route('officialtravels.my-travels.edit', $row->id) . '" class="btn btn-sm btn-warning mr-1" title="Edit">
+                            <i class="fas fa-edit"></i>
+                        </a>';
+                }
                 return $btn;
             })
-            ->rawColumns(['role', 'status_badge', 'action'])
+            ->rawColumns(['status_badge', 'created_by', 'action'])
             ->make(true);
     }
 
@@ -1317,7 +1390,7 @@ class OfficialtravelController extends Controller
         if (!$administrationId) {
             abort(403, 'You do not have an active administration record. Please contact HR.');
         }
-        
+
         $isMainTraveler = $officialtravel->traveler_id === $administrationId;
         $isFollower = $officialtravel->details->contains(function ($detail) use ($administrationId) {
             return $detail->follower_id === $administrationId;
@@ -1331,5 +1404,377 @@ class OfficialtravelController extends Controller
         $subtitle = 'Official Travel Details';
 
         return view('officialtravels.my-travels-show', compact('title', 'subtitle', 'officialtravel'));
+    }
+
+    /**
+     * Show edit form for own LOT submission (only when belum dikonfirmasi HR).
+     */
+    public function myTravelsEdit($id)
+    {
+        $this->authorize('personal.official-travel.view-own');
+
+        $user = Auth::user();
+        $administrationId = $user->administration_id;
+        if (!$administrationId) {
+            return redirect()->route('officialtravels.my-travels')
+                ->with('toast_error', 'Anda tidak memiliki data administrasi aktif. Silakan hubungi HR.');
+        }
+
+        $officialtravel = Officialtravel::with([
+            'traveler.employee',
+            'traveler.position.department',
+            'project',
+            'transportation',
+            'accommodation',
+            'details.follower.employee',
+            'details.follower.position.department',
+            'details.follower.project',
+        ])->findOrFail($id);
+
+        if ($officialtravel->traveler_id !== $administrationId) {
+            abort(403, 'Anda hanya dapat mengedit pengajuan LOT Anda sendiri.');
+        }
+        if (!$officialtravel->submitted_by_user || $officialtravel->letter_number_id) {
+            return redirect()->route('officialtravels.my-travels.show', $id)
+                ->with('toast_error', 'Pengajuan ini sudah dikonfirmasi HR atau bukan pengajuan dari user. Tidak dapat diedit.');
+        }
+
+        $title = 'My LOT Request';
+        $subtitle = 'Edit LOT Request';
+
+        $user = User::with(['projects', 'departments'])->find($user->id);
+        $projects = Project::whereIn('id', $user->projects->pluck('id'))->where('project_status', 1)->get();
+        $accommodations = Accommodation::where('accommodation_status', 1)->get();
+        $transportations = Transportation::where('transportation_status', 1)->get();
+
+        $employees = Administration::with([
+            'employee',
+            'position.department',
+            'project'
+        ])
+            ->where('is_active', 1)
+            ->orderBy('nik', 'asc')->get()->map(function ($employee) {
+                return [
+                    'id' => $employee->id,
+                    'nik' => $employee->nik,
+                    'fullname' => $employee->employee->fullname ?? 'Unknown',
+                    'position' => $employee->position->position_name ?? '-',
+                    'project' => $employee->project->project_name ?? '-',
+                    'department' => $employee->position->department->department_name ?? '-',
+                    'position_id' => $employee->position_id,
+                    'project_id' => $employee->project_id,
+                    'department_id' => $employee->position->department_id ?? null,
+                ];
+            });
+
+        $myAdministration = Administration::with(['employee', 'position.department', 'project'])->find($administrationId);
+
+        $existingFlightRequest = $officialtravel->flightRequests()->with('details')->first();
+
+        return view('officialtravels.my-travels-edit', compact(
+            'title',
+            'subtitle',
+            'projects',
+            'accommodations',
+            'transportations',
+            'employees',
+            'myAdministration',
+            'officialtravel',
+            'existingFlightRequest',
+        ));
+    }
+
+    /**
+     * Update own LOT submission (only when belum dikonfirmasi HR).
+     */
+    public function myTravelsUpdate(Request $request, $id)
+    {
+        $this->authorize('personal.official-travel.view-own');
+
+        $user = Auth::user();
+        $administrationId = $user->administration_id;
+        if (!$administrationId) {
+            return redirect()->route('officialtravels.my-travels')
+                ->with('toast_error', 'Anda tidak memiliki data administrasi aktif. Silakan hubungi HR.');
+        }
+
+        $officialtravel = Officialtravel::with('details')->findOrFail($id);
+        if ($officialtravel->traveler_id !== $administrationId) {
+            abort(403, 'Anda hanya dapat mengedit pengajuan LOT Anda sendiri.');
+        }
+        if (!$officialtravel->submitted_by_user || $officialtravel->letter_number_id) {
+            return redirect()->route('officialtravels.my-travels.show', $id)
+                ->with('toast_error', 'Pengajuan ini sudah dikonfirmasi HR. Tidak dapat diedit.');
+        }
+
+        try {
+            $this->validate($request, [
+                'official_travel_date' => 'required|date',
+                'official_travel_origin' => 'required|exists:projects,id',
+                'purpose' => 'required|string',
+                'destination' => 'required|string|min:3',
+                'duration' => 'required|string|min:1',
+                'departure_from' => 'required|date',
+                'transportation_id' => 'required|exists:transportations,id',
+                'accommodation_id' => 'required|exists:accommodations,id',
+                'followers' => 'nullable|array',
+                'followers.*' => 'exists:administrations,id',
+            ], [
+                'official_travel_date.required' => 'Tanggal LOT wajib diisi.',
+                'official_travel_origin.required' => 'Asal LOT wajib dipilih.',
+                'purpose.required' => 'Tujuan perjalanan wajib diisi.',
+                'destination.required' => 'Destinasi wajib diisi.',
+                'departure_from.after_or_equal' => 'Tanggal keberangkatan tidak boleh di masa lalu.',
+                'transportation_id.required' => 'Transportasi wajib dipilih.',
+                'accommodation_id.required' => 'Akomodasi wajib dipilih.',
+            ]);
+
+            DB::beginTransaction();
+
+            $officialtravel->update([
+                'official_travel_date' => $request->official_travel_date,
+                'official_travel_origin' => $request->official_travel_origin,
+                'purpose' => $request->purpose,
+                'destination' => $request->destination,
+                'duration' => $request->duration,
+                'departure_from' => $request->departure_from,
+                'transportation_id' => $request->transportation_id,
+                'accommodation_id' => $request->accommodation_id,
+            ]);
+
+            // Sync followers: remove current, add from request (exclude main traveler)
+            $officialtravel->details()->delete();
+            if ($request->has('followers') && is_array($request->followers)) {
+                foreach (array_filter($request->followers) as $followerId) {
+                    if ((int) $followerId !== (int) $administrationId) {
+                        Officialtravel_detail::create([
+                            'official_travel_id' => $officialtravel->id,
+                            'follower_id' => $followerId,
+                        ]);
+                    }
+                }
+            }
+
+            // Flight request: if fr_data submitted, replace existing
+            $officialtravel->flightRequests()->each(function ($fr) {
+                $fr->delete();
+            });
+            FlightRequest::createFromFrData($request, $officialtravel);
+
+            DB::commit();
+
+            return redirect()
+                ->route('officialtravels.my-travels.show', $officialtravel->id)
+                ->with('toast_success', 'Pengajuan LOT berhasil diperbarui.');
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return redirect()->back()
+                ->withErrors($e->validator)
+                ->withInput();
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return redirect()->back()
+                ->with('toast_error', 'Gagal memperbarui: ' . $e->getMessage())
+                ->withInput();
+        }
+    }
+
+    /**
+     * Show form for user to submit LOT request (no letter number; HR will confirm later).
+     */
+    public function myTravelsCreate()
+    {
+        $this->authorize('personal.official-travel.create-own');
+
+        $user = Auth::user();
+        $administrationId = $user->administration_id;
+        if (!$administrationId) {
+            return redirect()->route('officialtravels.my-travels')
+                ->with('toast_error', 'Anda tidak memiliki data administrasi aktif. Silakan hubungi HR.');
+        }
+
+        $title = 'My LOT Request';
+        $subtitle = 'Submit LOT Request';
+
+        $user->load(['projects', 'departments']);
+        $projects = Project::whereIn('id', $user->projects->pluck('id'))->where('project_status', 1)->get();
+        $accommodations = Accommodation::where('accommodation_status', 1)->get();
+        $transportations = Transportation::where('transportation_status', 1)->get();
+
+        $employees = Administration::with([
+            'employee',
+            'position.department',
+            'project'
+        ])
+            ->where('is_active', 1)
+            ->orderBy('nik', 'asc')->get()->map(function ($employee) {
+                return [
+                    'id' => $employee->id,
+                    'nik' => $employee->nik,
+                    'fullname' => $employee->employee->fullname ?? 'Unknown',
+                    'position' => $employee->position->position_name ?? '-',
+                    'project' => $employee->project->project_name ?? '-',
+                    'department' => $employee->position->department->department_name ?? '-',
+                    'position_id' => $employee->position_id,
+                    'project_id' => $employee->project_id,
+                    'department_id' => $employee->position->department_id ?? null,
+                ];
+            });
+
+        $myAdministration = Administration::with(['employee', 'position.department', 'project'])->find($administrationId);
+
+        // Preview REQ number (format my-travels: REQ00001 saja, tanpa format nomor surat resmi)
+        $lastTravel = Officialtravel::where('official_travel_number', 'like', 'REQ%')
+            ->where('submitted_by_user', true)
+            ->orderBy('id', 'desc')
+            ->first();
+        $sequence = 1;
+        if ($lastTravel && preg_match('/^REQ(\d+)$/', $lastTravel->official_travel_number, $m)) {
+            $sequence = (int) $m[1] + 1;
+        }
+        $previewTravelNumber = 'REQ' . sprintf('%05d', $sequence);
+
+        return view('officialtravels.my-travels-create', compact(
+            'title',
+            'subtitle',
+            'projects',
+            'accommodations',
+            'transportations',
+            'employees',
+            'myAdministration',
+            'previewTravelNumber',
+        ));
+    }
+
+    /**
+     * Store user LOT submission (status pending_hr; no letter number; HR will confirm and assign letter number).
+     */
+    public function myTravelsStore(Request $request)
+    {
+        $this->authorize('personal.official-travel.create-own');
+
+        $user = Auth::user();
+        $administrationId = $user->administration_id;
+        if (!$administrationId) {
+            return redirect()->route('officialtravels.my-travels')
+                ->with('toast_error', 'Anda tidak memiliki data administrasi aktif. Silakan hubungi HR.');
+        }
+
+        try {
+            $this->validate($request, [
+                'official_travel_date' => 'required|date',
+                'official_travel_origin' => 'required|exists:projects,id',
+                'purpose' => 'required|string',
+                'destination' => 'required|string|min:3',
+                'duration' => 'required|string|min:1',
+                'departure_from' => 'required|date|after_or_equal:today',
+                'transportation_id' => 'required|exists:transportations,id',
+                'accommodation_id' => 'required|exists:accommodations,id',
+                'followers' => 'nullable|array',
+                'followers.*' => 'exists:administrations,id',
+            ], [
+                'official_travel_date.required' => 'Tanggal LOT wajib diisi.',
+                'official_travel_origin.required' => 'Asal LOT wajib dipilih.',
+                'purpose.required' => 'Tujuan perjalanan wajib diisi.',
+                'destination.required' => 'Destinasi wajib diisi.',
+                'departure_from.after_or_equal' => 'Tanggal keberangkatan tidak boleh di masa lalu.',
+                'transportation_id.required' => 'Transportasi wajib dipilih.',
+                'accommodation_id.required' => 'Akomodasi wajib dipilih.',
+            ]);
+
+            DB::beginTransaction();
+
+            // Nomor pengajuan my-travels: REQ00001 saja (tanpa format nomor surat resmi)
+            $lastTravel = Officialtravel::where('official_travel_number', 'like', 'REQ%')
+                ->where('submitted_by_user', true)
+                ->orderBy('id', 'desc')
+                ->first();
+            $sequence = 1;
+            if ($lastTravel && preg_match('/^REQ(\d+)$/', $lastTravel->official_travel_number, $m)) {
+                $sequence = (int) $m[1] + 1;
+            }
+
+            $officialtravel = null;
+            $maxAttempts = 20;
+            $attempt = 0;
+
+            while ($attempt < $maxAttempts) {
+                $travelNumber = 'REQ' . sprintf('%05d', $sequence);
+
+                // Pengecekan nomor: pastikan belum dipakai (termasuk input bersamaan)
+                if (Officialtravel::where('official_travel_number', $travelNumber)->exists()) {
+                    $sequence++;
+                    $attempt++;
+                    continue;
+                }
+
+                try {
+                    $officialtravel = new Officialtravel([
+                        'letter_number_id' => null,
+                        'letter_number' => null,
+                        'official_travel_number' => $travelNumber,
+                        'official_travel_date' => $request->official_travel_date,
+                        'official_travel_origin' => $request->official_travel_origin,
+                        'status' => 'draft',
+                        'submitted_by_user' => true,
+                        'traveler_id' => $administrationId,
+                        'purpose' => $request->purpose,
+                        'destination' => $request->destination,
+                        'duration' => $request->duration,
+                        'departure_from' => $request->departure_from,
+                        'transportation_id' => $request->transportation_id,
+                        'accommodation_id' => $request->accommodation_id,
+                        'manual_approvers' => [],
+                        'created_by' => $user->id,
+                        'submit_at' => null,
+                    ]);
+                    $officialtravel->save();
+                    break;
+                } catch (\Illuminate\Database\QueryException $e) {
+                    // Duplicate entry (input bersamaan): gunakan sequence berikutnya
+                    $isDuplicate = (int) ($e->errorInfo[1] ?? 0) === 1062
+                        || str_contains($e->getMessage(), 'Duplicate entry');
+                    if ($isDuplicate) {
+                        $sequence++;
+                        $attempt++;
+                        continue;
+                    }
+                    throw $e;
+                }
+            }
+
+            if (!$officialtravel) {
+                DB::rollBack();
+                throw new \Exception('Tidak dapat menghasilkan nomor LOT unik. Silakan coba lagi.');
+            }
+
+            if ($request->has('followers') && is_array($request->followers)) {
+                foreach (array_filter($request->followers) as $followerId) {
+                    if ((int) $followerId !== (int) $administrationId) {
+                        Officialtravel_detail::create([
+                            'official_travel_id' => $officialtravel->id,
+                            'follower_id' => $followerId,
+                        ]);
+                    }
+                }
+            }
+
+            // Create flight request from fr_data when "Need flight ticket?" was checked
+            FlightRequest::createFromFrData($request, $officialtravel);
+
+            DB::commit();
+
+            return redirect()
+                ->route('officialtravels.my-travels')
+                ->with('toast_success', 'Pengajuan perjalanan dinas berhasil dikirim. Menunggu konfirmasi HR untuk penetapan nomor surat.');
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return redirect()->back()
+                ->withErrors($e->validator)
+                ->withInput();
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return redirect()->back()
+                ->with('toast_error', 'Gagal mengajukan: ' . $e->getMessage())
+                ->withInput();
+        }
     }
 }

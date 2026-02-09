@@ -113,6 +113,7 @@
                                                             name="status">
                                                             <option value="">- All -</option>
                                                             <option value="draft">Draft</option>
+                                                            <option value="pending_hr">Menunggu Konfirmasi HR</option>
                                                             <option value="submitted">Submitted</option>
                                                             <option value="approved">Approved</option>
                                                             <option value="rejected">Rejected</option>

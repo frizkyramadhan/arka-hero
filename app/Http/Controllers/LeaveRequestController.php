@@ -10,6 +10,7 @@ use App\Models\Employee;
 use App\Models\Administration;
 use App\Models\Project;
 use App\Models\Department;
+use App\Models\FlightRequest;
 use App\Models\ApprovalPlan;
 use App\Http\Controllers\ApprovalPlanController;
 use Illuminate\Http\Request;
@@ -520,6 +521,9 @@ class LeaveRequestController extends Controller
                 $this->createRosterAdjustment($leaveRequest);
             }
 
+            // Create flight request from fr_data when "Need flight ticket?" was checked
+            FlightRequest::createFromFrData($request, $leaveRequest);
+
             // Update leave entitlements immediately for testing purposes
             // $this->updateLeaveEntitlements($leaveRequest);
 
@@ -854,6 +858,12 @@ class LeaveRequestController extends Controller
             }
 
             $leaveRequest->update($updateData);
+
+            // Sync flight request from fr_data (same as store: replace existing)
+            $leaveRequest->flightRequests()->each(function ($fr) {
+                $fr->delete();
+            });
+            FlightRequest::createFromFrData($request, $leaveRequest);
 
             // If approvers changed and there are existing approval plans, delete them
             // (They will be recreated when document is submitted)
@@ -1663,6 +1673,7 @@ class LeaveRequestController extends Controller
             ->with('defaultEmployeeId', $user->employee_id)
             ->with('defaultProject', $project)
             ->with('defaultDepartment', $department)
+            ->with('defaultAdministration', $administration)
             ->with('selectedLeaveTypeId', $selectedLeaveTypeId);
     }
 
@@ -1738,7 +1749,9 @@ class LeaveRequestController extends Controller
         // Get all active departments for department selection (needed for JavaScript)
         $departments = Department::where('department_status', 1)->get();
 
-        return view('leave-requests.my-edit', compact('leaveRequest', 'leaveTypes', 'projects', 'departments'))
+        $existingFlightRequest = $leaveRequest->flightRequests()->with('details')->first();
+
+        return view('leave-requests.my-edit', compact('leaveRequest', 'leaveTypes', 'projects', 'departments', 'existingFlightRequest'))
             ->with('title', 'Edit My Leave Request');
     }
 

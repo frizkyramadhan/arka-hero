@@ -28,6 +28,25 @@
                 <div class="row">
                     <!-- Left Column -->
                     <div class="col-md-8">
+                        @if ($officialtravel->isPendingHr())
+                        <!-- Konfirmasi Pengajuan dari User: Pilih Nomor Surat -->
+                        <div class="card card-info card-outline elevation-2">
+                            <div class="card-header py-2">
+                                <h3 class="card-title">
+                                    <i class="fas fa-check-double mr-2"></i>
+                                    <strong>Konfirmasi Pengajuan dari User</strong>
+                                </h3>
+                            </div>
+                            <div class="card-body py-2">
+                                <p class="text-muted small mb-2">Pengajuan ini dari My Travels. Pilih nomor surat untuk mengonfirmasi dan menghasilkan nomor LOT resmi.</p>
+                                @include('components.smart-letter-number-selector', [
+                                    'categoryCode' => 'B',
+                                    'required' => true,
+                                ])
+                            </div>
+                        </div>
+                        @endif
+
                         <!-- Main Travel Info Card -->
                         <div class="card card-primary card-outline elevation-3">
                             <div class="card-header">
@@ -46,6 +65,14 @@
                                                 <div class="input-group-prepend">
                                                     <span class="input-group-text"><i class="fas fa-hashtag"></i></span>
                                                 </div>
+                                                @if ($officialtravel->isPendingHr())
+                                                <input type="text"
+                                                    class="form-control"
+                                                    id="official_travel_number"
+                                                    value="{{ old('official_travel_number', $officialtravel->official_travel_number) }}"
+                                                    readonly>
+                                                <small class="form-text text-muted">Akan diganti dengan nomor LOT resmi setelah memilih nomor surat di atas.</small>
+                                                @else
                                                 <input type="text"
                                                     class="form-control @error('official_travel_number') is-invalid @enderror"
                                                     name="official_travel_number" id="official_travel_number"
@@ -54,6 +81,7 @@
                                                 @error('official_travel_number')
                                                     <div class="invalid-feedback">{{ $message }}</div>
                                                 @enderror
+                                                @endif
                                             </div>
                                         </div>
                                     </div>
@@ -358,10 +386,11 @@
                                     'selectedApprovers' => old(
                                         'manual_approvers',
                                         $officialtravel->manual_approvers ?? []),
-                                    'required' => false,
+                                    'required' => $officialtravel->isPendingHr(),
                                     'multiple' => true,
-                                    'helpText' =>
-                                        'Pilih approver untuk approval (opsional, dapat dipilih saat submit)',
+                                    'helpText' => $officialtravel->isPendingHr()
+                                        ? 'Pilih minimal satu approver untuk mengonfirmasi pengajuan ini.'
+                                        : 'Pilih approver untuk approval (opsional, dapat dipilih saat submit)',
                                     'documentType' => 'officialtravel',
                                 ])
                             </div>

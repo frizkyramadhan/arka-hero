@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Traits\Uuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Http\Request;
 
 class FlightRequest extends Model
 {
@@ -132,5 +133,115 @@ class FlightRequest extends Model
             self::STATUS_SUBMITTED,
             self::STATUS_APPROVED
         ]);
+    }
+
+    /**
+     * Generate unique form number for new flight request.
+     */
+    public static function generateFormNumber(): string
+    {
+        $year = date('y');
+        $lastRequest = self::where('form_number', 'like', "{$year}FRF-%")
+            ->orderBy('form_number', 'desc')
+            ->first();
+
+        if ($lastRequest && preg_match('/\d+$/', $lastRequest->form_number, $matches)) {
+            $nextNumber = (int) $matches[0] + 1;
+        } else {
+            $nextNumber = 1;
+        }
+
+        return sprintf('%sFRF-%05d', $year, $nextNumber);
+    }
+
+    /**
+     * Create a flight request from fr_data when submitted with leave request or official travel.
+     * Returns the created FlightRequest or null if fr_data not present/invalid.
+     */
+    public static function createFromFrData(Request $request, Model $parent): ?self
+    {
+        $frData = $request->input('fr_data');
+        if (!$frData || empty($frData['need_flight_ticket']) || empty($frData['details']) || !is_array($frData['details'])) {
+            return null;
+        }
+
+        $details = array_values(array_filter($frData['details'], function ($d) {
+            return !empty($d['flight_date']) && !empty($d['departure_city']) && !empty($d['arrival_city']);
+        }));
+        if (empty($details)) {
+            return null;
+        }
+
+        $userId = $request->user()->id ?? null;
+        if ($parent instanceof LeaveRequest) {
+            $parent->load(['employee', 'administration.position.department', 'administration.project', 'leaveType']);
+            $administration = $parent->administration;
+            $employee = $parent->employee;
+            $purpose = 'Leave: ' . ($parent->leaveType->name ?? '') . ' ' . $parent->start_date?->format('d/m/Y') . ' - ' . $parent->end_date?->format('d/m/Y');
+            $flightRequest = self::create([
+                'form_number' => self::generateFormNumber(),
+                'request_type' => self::TYPE_LEAVE_BASED,
+                'employee_id' => $parent->employee_id,
+                'administration_id' => $parent->administration_id,
+                'employee_name' => $employee->fullname ?? null,
+                'nik' => $administration->nik ?? null,
+                'position' => $administration->position->position_name ?? null,
+                'department' => $administration->position->department->department_name ?? null,
+                'project' => $administration->project->project_name ?? null,
+                'phone_number' => null,
+                'purpose_of_travel' => $purpose,
+                'total_travel_days' => (string) ($parent->total_days ?? ''),
+                'leave_request_id' => $parent->id,
+                'official_travel_id' => null,
+                'status' => self::STATUS_DRAFT,
+                'manual_approvers' => null,
+                'requested_by' => $userId,
+                'requested_at' => null,
+                'notes' => 'Created from Leave Request submission.',
+            ]);
+        } elseif ($parent instanceof Officialtravel) {
+            $parent->load(['traveler.employee', 'traveler.position.department', 'traveler.project']);
+            $administration = $parent->traveler;
+            $employee = $administration->employee ?? null;
+            $purpose = ($parent->purpose ?? '') . ' | Destination: ' . ($parent->destination ?? '') . ', Duration: ' . ($parent->duration ?? '');
+            $flightRequest = self::create([
+                'form_number' => self::generateFormNumber(),
+                'request_type' => self::TYPE_TRAVEL_BASED,
+                'employee_id' => $employee->id ?? null,
+                'administration_id' => $administration->id ?? null,
+                'employee_name' => $employee->fullname ?? null,
+                'nik' => $administration->nik ?? null,
+                'position' => $administration->position->position_name ?? null,
+                'department' => $administration->position->department->department_name ?? null,
+                'project' => $administration->project->project_name ?? null,
+                'phone_number' => null,
+                'purpose_of_travel' => $purpose,
+                'total_travel_days' => $parent->duration ?? null,
+                'leave_request_id' => null,
+                'official_travel_id' => $parent->id,
+                'status' => self::STATUS_DRAFT,
+                'manual_approvers' => null,
+                'requested_by' => $userId,
+                'requested_at' => null,
+                'notes' => 'Created from Official Travel (LOT) submission.',
+            ]);
+        } else {
+            return null;
+        }
+
+        foreach ($details as $index => $d) {
+            FlightRequestDetail::create([
+                'flight_request_id' => $flightRequest->id,
+                'segment_order' => $index + 1,
+                'segment_type' => $d['segment_type'] ?? ($index === 0 ? 'departure' : 'return'),
+                'flight_date' => $d['flight_date'],
+                'departure_city' => $d['departure_city'],
+                'arrival_city' => $d['arrival_city'],
+                'airline' => $d['airline'] ?? null,
+                'flight_time' => !empty($d['flight_time']) ? $d['flight_time'] : null,
+            ]);
+        }
+
+        return $flightRequest;
     }
 }

@@ -202,15 +202,14 @@
                                             </td>
                                         </tr>
                                         <tr>
-                                            <td><strong>Penalty per Month:</strong></td>
-                                            <td>Rp
-                                                {{ number_format($bondViolation->employeeBond->penalty_per_month, 0, ',', '.') }}
+                                            <td><strong>Penalty on Violation (Fixed):</strong></td>
+                                            <td><strong>Rp
+                                                    {{ number_format($bondViolation->employeeBond->total_investment_value, 0, ',', '.') }}</strong>
                                             </td>
                                         </tr>
                                         <tr>
-                                            <td><strong>Penalty per Day:</strong></td>
-                                            <td>Rp
-                                                {{ number_format($bondViolation->employeeBond->penalty_per_day, 0, ',', '.') }}
+                                            <td colspan="2" class="small text-muted">
+                                                <i class="fas fa-info-circle"></i> Sesuai kebijakan: penalty = jumlah tetap (biaya pelatihan).
                                             </td>
                                         </tr>
                                         <tr>

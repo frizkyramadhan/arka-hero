@@ -24,7 +24,14 @@
                     <div id="accordion">
                         <div class="card">
                             <div class="card-header">
-                                <h3 class="card-title"><strong>{{ auth()->user()->name }}'s LOT Request</strong></h3>
+                                <h3 class="card-title">{{ $title }}</h3>
+                                <div class="card-tools">
+                                    @can('personal.official-travel.create-own')
+                                        <a href="{{ route('officialtravels.my-travels.create') }}" class="btn btn-warning">
+                                            <i class="fas fa-plus"></i> New Request
+                                        </a>
+                                    @endcan
+                                </div>
                             </div>
                             <!-- /.card-header -->
                             <div class="card-body">
@@ -53,6 +60,7 @@
                                                             name="status">
                                                             <option value="">- All -</option>
                                                             <option value="draft">Draft</option>
+                                                            <option value="pending_hr">Menunggu Konfirmasi HR</option>
                                                             <option value="submitted">Submitted</option>
                                                             <option value="approved">Approved</option>
                                                             <option value="rejected">Rejected</option>
@@ -116,21 +124,21 @@
                                     </div>
                                 </div>
                                 <div class="table-responsive">
-                                    <table id="official-travels-table" class="table table-bordered table-striped"
-                                        width="100%">
+                                    <table id="official-travels-table" class="table table-bordered table-striped">
                                         <thead>
                                             <tr>
-                                                <th class="align-middle">No</th>
-                                                <th class="align-middle">Travel Number</th>
-                                                <th class="align-middle">Travel Date</th>
-                                                <th class="align-middle">Destination</th>
-                                                <th class="align-middle">Purpose</th>
-                                                <th class="align-middle">Traveler</th>
-                                                <th class="align-middle">Role</th>
-                                                <th class="align-middle">Status</th>
-                                                <th class="align-middle" width="10%">Actions</th>
+                                                <th class="text-center" width="5%">No</th>
+                                                <th>Travel Number</th>
+                                                <th>Date</th>
+                                                <th>Traveler</th>
+                                                <th>Project</th>
+                                                <th>Destination</th>
+                                                <th>Status</th>
+                                                <th>Creator</th>
+                                                <th class="text-center">Action</th>
                                             </tr>
                                         </thead>
+                                        <tbody></tbody>
                                     </table>
                                 </div>
                             </div>
@@ -201,29 +209,29 @@
                         className: 'text-center'
                     },
                     {
-                        data: 'destination',
-                        name: 'destination',
-                        orderable: false
-                    },
-                    {
-                        data: 'purpose',
-                        name: 'purpose',
-                        orderable: false
-                    },
-                    {
                         data: 'traveler_name',
                         name: 'traveler_name',
                         orderable: false
                     },
                     {
-                        data: 'role',
-                        name: 'role',
-                        orderable: false,
-                        className: 'text-center'
+                        data: 'project',
+                        name: 'project',
+                        orderable: false
+                    },
+                    {
+                        data: 'destination',
+                        name: 'destination',
+                        orderable: false
                     },
                     {
                         data: 'status_badge',
                         name: 'status_badge',
+                        orderable: false,
+                        className: 'text-center'
+                    },
+                    {
+                        data: 'created_by',
+                        name: 'created_by',
                         orderable: false,
                         className: 'text-center'
                     },

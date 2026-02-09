@@ -12,6 +12,7 @@
                 @php
                     $statusMap = [
                         'draft' => ['label' => 'Draft', 'class' => 'badge badge-secondary', 'icon' => 'fa-edit'],
+                        'pending_hr' => ['label' => 'Menunggu Konfirmasi HR', 'class' => 'badge badge-warning', 'icon' => 'fa-clock'],
                         'submitted' => [
                             'label' => 'Submitted',
                             'class' => 'badge badge-info',
@@ -31,11 +32,13 @@
                         'cancelled' => ['label' => 'Cancelled', 'class' => 'badge badge-warning', 'icon' => 'fa-ban'],
                     ];
                     $status = $officialtravel->status;
-                    $pill = $statusMap[$status] ?? [
-                        'label' => ucfirst($status),
-                        'class' => 'badge badge-secondary',
-                        'icon' => 'fa-question-circle',
-                    ];
+                    $pill = $officialtravel->isPendingHr()
+                        ? $statusMap['pending_hr']
+                        : ($statusMap[$status] ?? [
+                            'label' => ucfirst($status),
+                            'class' => 'badge badge-secondary',
+                            'icon' => 'fa-question-circle',
+                        ]);
                 @endphp
                 <div class="travel-status-pill">
                     <span class="{{ $pill['class'] }}">
@@ -415,19 +418,18 @@
                                 @can('official-travels.edit')
                                     <a href="{{ route('officialtravels.edit', $officialtravel->id) }}"
                                         class="btn-action edit-btn">
-                                        <i class="fas fa-edit"></i> Edit
+                                        <i class="fas fa-edit"></i> {{ $officialtravel->isPendingHr() ? 'Konfirmasi & Isi Nomor Surat' : 'Edit' }}
                                     </a>
                                 @endcan
 
-                                @can('official-travels.delete')
-                                    <button type="button" class="btn-action delete-btn" data-toggle="modal"
-                                        data-target="#deleteModal">
-                                        <i class="fas fa-trash"></i> Delete
-                                    </button>
-                                @endcan
-
-                                <!-- Submit for Approval button (New Approval System) -->
                                 @if ($officialtravel->status == 'draft')
+                                    @can('official-travels.delete')
+                                        <button type="button" class="btn-action delete-btn" data-toggle="modal"
+                                            data-target="#deleteModal">
+                                            <i class="fas fa-trash"></i> Delete
+                                        </button>
+                                    @endcan
+
                                     <button type="button" class="btn-action submit-btn" data-toggle="modal"
                                         data-target="#submitModal">
                                         <i class="fas fa-paper-plane"></i> Submit for Approval
