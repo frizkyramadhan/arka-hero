@@ -243,6 +243,9 @@
                         </div>
                         <div class="card-body">
                             <div id="bond-info">
+                                <p class="small text-muted mb-2">
+                                    <i class="fas fa-info-circle"></i> Penalty pelanggaran = jumlah tetap (biaya pelatihan).
+                                </p>
                                 <div class="table-responsive">
                                     <table class="table table-sm table-bordered">
                                         <thead class="bg-light">
@@ -270,12 +273,8 @@
                                                 <td id="investment-value">-</td>
                                             </tr>
                                             <tr>
-                                                <td><strong>Penalty per Month:</strong></td>
-                                                <td id="penalty-month">-</td>
-                                            </tr>
-                                            <tr>
-                                                <td><strong>Penalty per Day:</strong></td>
-                                                <td id="penalty-day">-</td>
+                                                <td><strong>Penalty on Violation (Fixed):</strong></td>
+                                                <td id="penalty-fixed">-</td>
                                             </tr>
                                         </tbody>
                                     </table>
@@ -383,7 +382,7 @@
                 }
             }
 
-            // Update bond information display
+            // Update bond information display (penalty = fixed = investment value per kebijakan)
             function updateBondInfo() {
                 const startDate = startDateInput.value;
                 const endDate = endDateInput.value;
@@ -391,10 +390,6 @@
                 const investment = investmentInput.value;
 
                 if (startDate && endDate && duration && investment) {
-                    const penaltyPerMonth = investment / duration;
-                    const penaltyPerDay = penaltyPerMonth / 30;
-
-                    // Get duration rule info
                     const value = parseFloat(investment) || 0;
                     let ruleInfo = '';
                     if (value <= 6000000) {
@@ -405,25 +400,20 @@
                         ruleInfo = '> Rp. 12.000.000,-';
                     }
 
-                    // Update the bond info display
                     document.getElementById('investment-range').textContent = ruleInfo;
                     document.getElementById('bond-period').textContent = `${startDate} to ${endDate}`;
                     document.getElementById('duration-display').innerHTML =
                         `<span class="badge badge-primary">${duration} months</span>`;
                     document.getElementById('investment-value').innerHTML =
                         `<strong>Rp ${new Intl.NumberFormat('id-ID').format(investment)}</strong>`;
-                    document.getElementById('penalty-month').textContent =
-                        `Rp ${new Intl.NumberFormat('id-ID').format(penaltyPerMonth)}`;
-                    document.getElementById('penalty-day').textContent =
-                        `Rp ${new Intl.NumberFormat('id-ID').format(penaltyPerDay)}`;
+                    document.getElementById('penalty-fixed').innerHTML =
+                        `<strong>Rp ${new Intl.NumberFormat('id-ID').format(investment)}</strong>`;
                 } else {
-                    // Reset display
                     document.getElementById('investment-range').textContent = '-';
                     document.getElementById('bond-period').textContent = '-';
                     document.getElementById('duration-display').textContent = '-';
                     document.getElementById('investment-value').textContent = '-';
-                    document.getElementById('penalty-month').textContent = '-';
-                    document.getElementById('penalty-day').textContent = '-';
+                    document.getElementById('penalty-fixed').textContent = '-';
                 }
             }
 

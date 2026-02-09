@@ -25,6 +25,7 @@ class Officialtravel extends Model
     protected $casts = [
         'official_travel_date' => 'date',
         'departure_from' => 'date',
+        'submitted_by_user' => 'boolean',
         // Note: arrival_at_destination and departure_from_destination have been moved to officialtravel_stops table
         'manual_approvers' => 'array',
     ];
@@ -33,6 +34,7 @@ class Officialtravel extends Model
 
     // Status enum values
     public const STATUS_DRAFT = 'draft';
+    public const STATUS_PENDING_HR = 'pending_hr'; // User submission awaiting HR confirmation & letter number
     public const STATUS_SUBMITTED = 'submitted';
     public const STATUS_APPROVED = 'approved';
     public const STATUS_REJECTED = 'rejected';
@@ -43,12 +45,19 @@ class Officialtravel extends Model
     {
         return [
             self::STATUS_DRAFT => 'Draft',
+            self::STATUS_PENDING_HR => 'Menunggu Konfirmasi HR',
             self::STATUS_SUBMITTED => 'Submitted',
             self::STATUS_APPROVED => 'Approved',
             self::STATUS_REJECTED => 'Rejected',
             self::STATUS_CANCELLED => 'Cancelled',
             self::STATUS_CLOSED => 'Closed',
         ];
+    }
+
+    /** Whether this LOT was submitted by user (my-travels) and is waiting for HR to assign letter number. */
+    public function isPendingHr(): bool
+    {
+        return (bool) $this->submitted_by_user && empty($this->letter_number_id);
     }
 
     // Relationships
@@ -221,6 +230,10 @@ class Officialtravel extends Model
         parent::boot();
 
         static::created(function ($model) {
+            // Pengajuan dari user (submitted_by_user): tidak auto-assign letter number; HR yang assign saat konfirmasi
+            if (!empty($model->submitted_by_user)) {
+                return;
+            }
             // Jika belum ada letter number, auto-assign (untuk backward compatibility)
             if (!$model->letter_number_id && !$model->letter_number) {
                 // Auto-create letter number untuk kategori B (Internal)

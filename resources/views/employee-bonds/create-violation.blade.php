@@ -176,10 +176,11 @@
                         if (data.is_valid) {
                             const details = data.calculation_details;
                             penaltyDiv.innerHTML = `
+                    <p class="small text-muted mb-2"><i class="fas fa-info-circle"></i> Penalty = jumlah tetap (biaya pelatihan).</p>
                     <div class="table-responsive">
                         <table class="table table-sm">
                             <tr>
-                                <td><strong>Total Investment:</strong></td>
+                                <td><strong>Total Investment (Biaya Pelatihan):</strong></td>
                                 <td>Rp ${new Intl.NumberFormat('id-ID').format(details.investment_value)}</td>
                             </tr>
                             <tr>
@@ -194,12 +195,8 @@
                                 <td><strong>Remaining Days:</strong></td>
                                 <td>${details.remaining_days} days (${details.percentage_remaining}%)</td>
                             </tr>
-                            <tr>
-                                <td><strong>Penalty per Day:</strong></td>
-                                <td>Rp ${new Intl.NumberFormat('id-ID').format(details.penalty_per_day)}</td>
-                            </tr>
                             <tr class="table-danger">
-                                <td><strong>Total Penalty:</strong></td>
+                                <td><strong>Total Penalty (Fixed):</strong></td>
                                 <td><strong>Rp ${new Intl.NumberFormat('id-ID').format(data.penalty_amount)}</strong></td>
                             </tr>
                         </table>

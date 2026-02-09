@@ -223,6 +223,9 @@
                             <h2><i class="fas fa-chart-bar"></i> Bond Statistics</h2>
                         </div>
                         <div class="card-body">
+                            <p class="small text-muted mb-2">
+                                <i class="fas fa-info-circle"></i> Sesuai kebijakan: penalty pelanggaran = jumlah tetap (biaya pelatihan).
+                            </p>
                             <div class="statistics-grid">
                                 <div class="stat-item">
                                     <div class="stat-icon" style="background-color: #007bff;">
@@ -243,28 +246,19 @@
                                     </div>
                                 </div>
                                 <div class="stat-item">
-                                    <div class="stat-icon" style="background-color: #28a745;">
-                                        <i class="fas fa-calendar-week"></i>
-                                    </div>
-                                    <div class="stat-content">
-                                        <div class="stat-label">Penalty per Month</div>
-                                        <div class="stat-value">Rp
-                                            {{ number_format($employeeBond->penalty_per_month, 0, ',', '.') }}</div>
-                                    </div>
-                                </div>
-                                <div class="stat-item">
-                                    <div class="stat-icon" style="background-color: #ffc107;">
-                                        <i class="fas fa-calendar-day"></i>
-                                    </div>
-                                    <div class="stat-content">
-                                        <div class="stat-label">Penalty per Day</div>
-                                        <div class="stat-value">Rp
-                                            {{ number_format($employeeBond->penalty_per_day, 0, ',', '.') }}</div>
-                                    </div>
-                                </div>
-                                <div class="stat-item">
                                     <div class="stat-icon" style="background-color: #dc3545;">
                                         <i class="fas fa-exclamation-triangle"></i>
+                                    </div>
+                                    <div class="stat-content">
+                                        <div class="stat-label">Penalty on Violation (Fixed)</div>
+                                        <div class="stat-value">Rp
+                                            {{ number_format($employeeBond->total_investment_value, 0, ',', '.') }}</div>
+                                        <small class="text-muted">Sama dengan biaya pelatihan</small>
+                                    </div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-icon" style="background-color: #6c757d;">
+                                        <i class="fas fa-list-alt"></i>
                                     </div>
                                     <div class="stat-content">
                                         <div class="stat-label">Total Violations</div>

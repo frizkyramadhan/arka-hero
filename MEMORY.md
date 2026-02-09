@@ -143,6 +143,8 @@
 
 **Key Learning**: Bond tracking requires clear end dates and completion criteria. Penalty calculation should be pro-rated based on time remaining. Notification system (not yet implemented) would greatly improve compliance monitoring. Link bonds to termination workflow to check for violations before processing termination.
 
+**Update (2026-02)**: Kebijakan perusahaan berubah — penalty tidak lagi dihitung proporsional (prorate), melainkan **jumlah tetap** sebesar total biaya pelatihan (investment value) sampai berakhirnya ikatan dinas. Perubahan hanya di logika `EmployeeBond::calculateProratePenalty()`; struktur tabel dan response API/UI tidak diubah. Data violation lama tetap mengikuti nilai yang sudah tersimpan.
+
 **Files**: `EmployeeBondController`, `BondViolationController`, `employee_bonds` table, `bond_violations` table
 
 ---

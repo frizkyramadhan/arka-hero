@@ -76,7 +76,7 @@
                             @canany(['personal.official-travel.view-own', 'personal.official-travel.create-own'])
                                 <li class="nav-item">
                                     <a href="{{ route('officialtravels.my-travels') }}"
-                                        class="nav-link {{ Request::is('officialtravels/my-travels*') ? 'active' : '' }}">
+                                        class="nav-link {{ Request::is('officialtravels/my-requests*') ? 'active' : '' }}">
                                         <i class="far fa-circle nav-icon"></i>
                                         <p>My LOT Request</p>
                                     </a>

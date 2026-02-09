@@ -151,9 +151,15 @@ This document describes the CURRENT WORKING STATE of the application architectur
 
 -   Web: `/officialtravels/*` - Full management interface
 -   API: `/api/official-travels/*` - Search, detail, claim endpoints
--   Self-service: `/officialtravels/my-travels` - Employee portal
+-   Self-service: `/officialtravels/my-travels` - Employee portal (view own LOT)
+-   User submission: `GET/POST /officialtravels/my-travels/create` - User submits LOT without letter number (status `pending_hr`); HR confirms via edit and assigns letter number
 
 **Data Flow**:
+
+- **From HR**: Create (with optional letter number) → Submit → Approval → Stamps → Close → Claimable.
+- **From User (My Travels)**: User submits LOT via "Ajukan LOT" (no letter number) → status `pending_hr` → HR opens Edit, selects letter number and approvers, saves → status becomes `draft` → then HR or user can Submit for Approval; rest of flow same.
+
+**Status `pending_hr`**: LOT submitted by user from My Travels; no nomor surat yet. HR confirms by editing, assigning a letter number (and updating details); status then changes to `draft`.
 
 ```mermaid
 graph LR
@@ -407,7 +413,7 @@ graph TD
 
 -   Employee bond tracking (training bonds, scholarships)
 -   Bond expiry monitoring
--   Bond violation recording with penalty calculation
+-   Bond violation recording with penalty calculation (kebijakan: penalty jumlah tetap = investment value, tidak prorate)
 -   Document attachment support
 -   Bond completion marking
 

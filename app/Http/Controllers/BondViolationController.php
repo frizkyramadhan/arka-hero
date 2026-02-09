@@ -293,7 +293,8 @@ class BondViolationController extends Controller
     }
 
     /**
-     * Calculate penalty for specific bond and violation date
+     * Calculate penalty for specific bond and violation date.
+     * Kebijakan: penalty jumlah tetap = total investment value (tidak prorate). Logika di EmployeeBond::calculateProratePenalty().
      */
     public function calculatePenalty(Request $request)
     {

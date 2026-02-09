@@ -253,9 +253,13 @@ Route::group(['middleware' => ['auth']], function () {
 
     // OFFICIAL TRAVEL ROUTES
     // Self-service routes for user role (must be before resource route to avoid conflicts)
-    Route::get('officialtravels/my-travels', [OfficialtravelController::class, 'myTravels'])->name('officialtravels.my-travels');
-    Route::get('officialtravels/my-travels/data', [OfficialtravelController::class, 'myTravelsData'])->name('officialtravels.my-travels.data');
-    Route::get('officialtravels/my-travels/{id}', [OfficialtravelController::class, 'myTravelsShow'])->name('officialtravels.my-travels.show');
+    Route::get('officialtravels/my-requests', [OfficialtravelController::class, 'myTravels'])->name('officialtravels.my-travels');
+    Route::get('officialtravels/my-requests/create', [OfficialtravelController::class, 'myTravelsCreate'])->name('officialtravels.my-travels.create');
+    Route::post('officialtravels/my-requests', [OfficialtravelController::class, 'myTravelsStore'])->name('officialtravels.my-travels.store');
+    Route::get('officialtravels/my-requests/data', [OfficialtravelController::class, 'myTravelsData'])->name('officialtravels.my-travels.data');
+    Route::get('officialtravels/my-requests/{id}/edit', [OfficialtravelController::class, 'myTravelsEdit'])->name('officialtravels.my-travels.edit');
+    Route::put('officialtravels/my-requests/{id}', [OfficialtravelController::class, 'myTravelsUpdate'])->name('officialtravels.my-travels.update');
+    Route::get('officialtravels/my-requests/{id}', [OfficialtravelController::class, 'myTravelsShow'])->name('officialtravels.my-travels.show');
     Route::get('officialtravels/data', [OfficialtravelController::class, 'getOfficialtravels'])->name('officialtravels.data');
     // Test route for letter number integration (development only)
     Route::get('officialtravels/test-letter-integration', [OfficialtravelController::class, 'testLetterNumberIntegration'])->name('officialtravels.testLetterIntegration');

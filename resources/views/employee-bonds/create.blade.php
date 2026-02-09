@@ -324,7 +324,7 @@
                 }
             }
 
-            // Update bond information display
+            // Update bond information display (penalty = fixed = investment value per kebijakan)
             function updateBondInfo() {
                 const startDate = startDateInput.value;
                 const endDate = endDateInput.value;
@@ -332,10 +332,6 @@
                 const investment = investmentInput.value;
 
                 if (startDate && endDate && duration && investment) {
-                    const penaltyPerMonth = investment / duration;
-                    const penaltyPerDay = penaltyPerMonth / 30;
-
-                    // Get duration rule info
                     const value = parseFloat(investment) || 0;
                     let ruleInfo = '';
                     if (value <= 6000000) {
@@ -347,6 +343,9 @@
                     }
 
                     bondInfoDiv.innerHTML = `
+                        <p class="small text-muted mb-2">
+                            <i class="fas fa-info-circle"></i> Penalty pelanggaran = jumlah tetap (biaya pelatihan).
+                        </p>
                         <div class="table-responsive">
                             <table class="table table-sm table-bordered">
                                 <thead class="bg-light">
@@ -374,12 +373,8 @@
                                         <td><strong>Rp ${new Intl.NumberFormat('id-ID').format(investment)}</strong></td>
                                     </tr>
                                     <tr>
-                                        <td><strong>Penalty per Month:</strong></td>
-                                        <td>Rp ${new Intl.NumberFormat('id-ID').format(penaltyPerMonth)}</td>
-                                    </tr>
-                                    <tr>
-                                        <td><strong>Penalty per Day:</strong></td>
-                                        <td>Rp ${new Intl.NumberFormat('id-ID').format(penaltyPerDay)}</td>
+                                        <td><strong>Penalty on Violation (Fixed):</strong></td>
+                                        <td><strong>Rp ${new Intl.NumberFormat('id-ID').format(investment)}</strong></td>
                                     </tr>
                                 </tbody>
                             </table>

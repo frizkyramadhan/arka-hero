@@ -14,6 +14,7 @@
                 @php
                     $statusMap = [
                         'draft' => ['label' => 'Draft', 'class' => 'badge badge-secondary', 'icon' => 'fa-edit'],
+                        'pending_hr' => ['label' => 'Menunggu Konfirmasi HR', 'class' => 'badge badge-warning', 'icon' => 'fa-clock'],
                         'submitted' => [
                             'label' => 'Submitted',
                             'class' => 'badge badge-info',
@@ -33,11 +34,13 @@
                         'cancelled' => ['label' => 'Cancelled', 'class' => 'badge badge-warning', 'icon' => 'fa-ban'],
                     ];
                     $status = $officialtravel->status;
-                    $pill = $statusMap[$status] ?? [
-                        'label' => ucfirst($status),
-                        'class' => 'badge badge-secondary',
-                        'icon' => 'fa-question-circle',
-                    ];
+                    $pill = $officialtravel->isPendingHr()
+                        ? $statusMap['pending_hr']
+                        : ($statusMap[$status] ?? [
+                            'label' => ucfirst($status),
+                            'class' => 'badge badge-secondary',
+                            'icon' => 'fa-question-circle',
+                        ]);
                 @endphp
                 <div class="travel-status-pill">
                     <span class="{{ $pill['class'] }}">
@@ -398,6 +401,11 @@
                         <a href="{{ route('officialtravels.my-travels') }}" class="btn-action back-btn">
                             <i class="fas fa-arrow-left"></i> Back to List
                         </a>
+                        @if ($officialtravel->traveler_id === auth()->user()->administration_id && $officialtravel->submitted_by_user && empty($officialtravel->letter_number_id))
+                            <a href="{{ route('officialtravels.my-travels.edit', $officialtravel->id) }}" class="btn btn-warning">
+                                <i class="fas fa-edit"></i> Edit
+                            </a>
+                        @endif
                         <a href="{{ route('officialtravels.print', $officialtravel->id) }}" class="btn btn-primary"
                             target="_blank">
                             <i class="fas fa-print"></i> Print

@@ -83,7 +83,9 @@ class EmployeeBond extends Model
 
     // Methods
     /**
-     * Calculate prorate penalty based on violation date
+     * Calculate penalty based on violation date.
+     * Kebijakan perusahaan: penalty jumlah tetap sebesar total biaya pelatihan (investment value),
+     * tidak lagi dihitung proporsional (prorate). Struktur return tetap sama untuk kompatibilitas.
      */
     public function calculateProratePenalty($violationDate = null)
     {
@@ -99,21 +101,18 @@ class EmployeeBond extends Model
             ];
         }
 
-        // Calculate total days in bond period
+        // Calculate total days in bond period (retained for calculation_details / display)
         $totalDays = $this->start_date->diffInDays($this->end_date);
-
-        // Calculate days worked (from start to violation date)
         $daysWorked = $this->start_date->diffInDays($violationDate);
-
-        // Calculate remaining days
         $remainingDays = $violationDate->diffInDays($this->end_date);
+        $percentageWorked = $totalDays > 0 ? ($daysWorked / $totalDays) * 100 : 0;
+        $percentageRemaining = $totalDays > 0 ? ($remainingDays / $totalDays) * 100 : 0;
 
-        // Calculate prorate penalty
-        $penaltyAmount = ($this->total_investment_value * $remainingDays) / $totalDays;
+        // Kebijakan terbaru: penalty jumlah tetap = total biaya pelatihan (tidak prorate)
+        $penaltyAmount = (float) $this->total_investment_value;
 
-        // Calculate percentage worked
-        $percentageWorked = ($daysWorked / $totalDays) * 100;
-        $percentageRemaining = ($remainingDays / $totalDays) * 100;
+        // (Skema lama — prorate — tidak lagi digunakan, dipertahankan di comment untuk referensi)
+        // $penaltyAmount = ($this->total_investment_value * $remainingDays) / $totalDays;
 
         return [
             'is_valid' => true,
@@ -132,7 +131,7 @@ class EmployeeBond extends Model
     }
 
     /**
-     * Create violation record with prorate calculation
+     * Create violation record (penalty = jumlah tetap per kebijakan; struktur unchanged)
      */
     public function createViolation($violationDate, $reason = null)
     {

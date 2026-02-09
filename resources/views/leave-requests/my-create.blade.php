@@ -40,25 +40,27 @@
 
                             <div class="card-body">
                                 {{-- Employee Info Display --}}
-                                <div class="row mb-3">
+                                <div class="row">
                                     <div class="col-md-6">
-                                        <div class="info-box bg-light">
-                                            <span class="info-box-icon bg-info"><i class="fas fa-user"></i></span>
-                                            <div class="info-box-content">
-                                                <span class="info-box-text">Employee</span>
-                                                <span
-                                                    class="info-box-number">{{ auth()->user()->employee->fullname ?? 'N/A' }}</span>
-                                            </div>
+                                        <div class="form-group">
+                                            <label for="employee_display">
+                                                <i class="fas fa-user mr-1"></i>
+                                                Employee
+                                            </label>
+                                            <input type="text" id="employee_display" class="form-control bg-light"
+                                                value="{{ (optional($defaultAdministration)->nik ?? 'N/A') . ' - ' . (auth()->user()->employee->fullname ?? 'N/A') }}"
+                                                readonly>
                                         </div>
                                     </div>
                                     <div class="col-md-6">
-                                        <div class="info-box bg-light">
-                                            <span class="info-box-icon bg-primary"><i class="fas fa-building"></i></span>
-                                            <div class="info-box-content">
-                                                <span class="info-box-text">Project</span>
-                                                <span class="info-box-number">{{ $defaultProject->project_code ?? 'N/A' }} -
-                                                    {{ $defaultProject->project_name ?? 'N/A' }}</span>
-                                            </div>
+                                        <div class="form-group">
+                                            <label for="project_display">
+                                                <i class="fas fa-building mr-1"></i>
+                                                Project
+                                            </label>
+                                            <input type="text" id="project_display" class="form-control bg-light"
+                                                value="{{ ($defaultProject->project_code ?? 'N/A') . ' - ' . ($defaultProject->project_name ?? 'N/A') }}"
+                                                readonly>
                                         </div>
                                     </div>
                                 </div>
@@ -350,6 +352,9 @@
                     </div>
 
                     <div class="col-md-4">
+                        {{-- Flight Request (Tiket Pesawat) - optional --}}
+                        <x-flight-request-fields name-prefix="fr_data" :allow-return-segment="true" />
+
                         <!-- Manual Approver Selection Card -->
                         <div class="card card-info card-outline elevation-2">
                             <div class="card-header py-2">
