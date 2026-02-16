@@ -29,7 +29,7 @@
                                 <div class="col-md-8">
                                     <h4 class="mb-1 text-primary">
                                         <i class="fas fa-user-circle mr-2"></i>
-                                        Welcome back, {{ auth()->user()->name }}!
+                                        Welcome back, {{ auth()->user()->name }}.
                                     </h4>
                                     <p class="text-muted mb-0">
                                         Manage your requests and track your activities from one place.
