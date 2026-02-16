@@ -21,7 +21,7 @@
     <section class="content">
         <div class="container-fluid">
             <!-- Welcome Card -->
-            <div class="row mb-4">
+            <div class="row mb-1">
                 <div class="col-12">
                     <div class="card card-outline card-primary shadow-sm">
                         <div class="card-body">
@@ -35,7 +35,7 @@
                                         Manage your requests and track your activities from one place.
                                     </p>
                                 </div>
-                                <div class="col-md-4 text-right">
+                                {{-- <div class="col-md-4 text-right">
                                     <div class="btn-group">
                                         @can('personal.leave.create-own')
                                             <a href="{{ route('leave.my-requests.create') }}" class="btn btn-primary btn-sm">
@@ -47,8 +47,14 @@
                                                 <i class="fas fa-route mr-1"></i> Travel
                                             </a>
                                         @endcan
+                                        @can('personal.flight.create-own')
+                                            <a href="{{ route('flight-requests.my-requests.create') }}"
+                                                class="btn btn-info btn-sm">
+                                                <i class="fas fa-plane mr-1"></i> Flight Request
+                                            </a>
+                                        @endcan
                                     </div>
-                                </div>
+                                </div> --}}
                             </div>
                         </div>
                     </div>
@@ -57,7 +63,7 @@
 
             <!-- Username Reminder Alert -->
             @if (empty(auth()->user()->username) || is_null(auth()->user()->username))
-                <div class="row mb-4">
+                <div class="row mb-3">
                     <div class="col-12">
                         <div class="alert alert-warning alert-dismissible fade show shadow-sm" role="alert">
                             <div class="d-flex align-items-center">
@@ -83,46 +89,104 @@
                 </div>
             @endif
 
-            <!-- Statistics Cards -->
-            <div class="row mb-4">
-                <!-- Leave Requests -->
-                <div class="col-lg-3 col-md-6 mb-3">
-                    <div class="card card-outline card-info shadow-sm h-100">
-                        <div class="card-body">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <h6 class="text-muted text-uppercase mb-1"
-                                        style="font-size: 0.75rem; letter-spacing: 0.5px;">
-                                        Leave Requests
-                                    </h6>
-                                    <h2 class="mb-0 font-weight-bold">{{ $leaveStats['total_requests'] }}</h2>
-                                    <small class="text-muted">
-                                        <i class="fas fa-check-circle text-success mr-1"></i>
-                                        {{ $leaveStats['approved_requests'] }} Approved
-                                    </small>
-                                </div>
-                                <div class="icon-circle bg-info">
-                                    <i class="fas fa-calendar-alt"></i>
-                                </div>
-                            </div>
-                            <div class="mt-3">
-                                <div class="progress" style="height: 6px;">
-                                    <div class="progress-bar bg-info" role="progressbar"
-                                        style="width: {{ $leaveStats['total_requests'] > 0 ? ($leaveStats['approved_requests'] / $leaveStats['total_requests']) * 100 : 0 }}%"
-                                        aria-valuenow="{{ $leaveStats['approved_requests'] }}" aria-valuemin="0"
-                                        aria-valuemax="{{ $leaveStats['total_requests'] }}">
+            <!-- Feature Tabs (above Statistics) -->
+            <div class="card card-outline card-secondary shadow-sm mb-3">
+                <div class="card-body py-2">
+                    <ul class="nav nav-tabs nav-tabs-dashboard border-0" id="dashboardFeatureTabs" role="tablist">
+                        <li class="nav-item">
+                            <a class="nav-link active" href="#" data-tab="overview" role="tab">
+                                <i class="fas fa-th-large mr-1"></i> Overview
+                            </a>
+                        </li>
+                        @can('personal.profile.view-own')
+                            <li class="nav-item">
+                                <a class="nav-link" href="#" data-tab="profile" role="tab">
+                                    <i class="fas fa-user mr-1"></i> Profile
+                                </a>
+                            </li>
+                        @endcan
+                        @canany(['personal.official-travel.view-own', 'personal.official-travel.create-own'])
+                            <li class="nav-item">
+                                <a class="nav-link" href="#" data-tab="travels" role="tab">
+                                    <i class="fas fa-route mr-1"></i> Official Travels
+                                </a>
+                            </li>
+                        @endcanany
+                        @canany(['personal.leave.view-own', 'personal.leave.create-own',
+                            'personal.leave.view-entitlements'])
+                            <li class="nav-item">
+                                <a class="nav-link" href="#" data-tab="leave" role="tab">
+                                    <i class="fas fa-calendar-alt mr-1"></i> Leave
+                                </a>
+                            </li>
+                        @endcanany
+                        @canany(['personal.flight.view-own', 'personal.flight.create-own'])
+                            <li class="nav-item">
+                                <a class="nav-link" href="#" data-tab="flight" role="tab">
+                                    <i class="fas fa-plane mr-1"></i> Flight Requests
+                                </a>
+                            </li>
+                        @endcanany
+                        @canany(['personal.recruitment.view-own', 'personal.recruitment.create-own'])
+                            <li class="nav-item">
+                                <a class="nav-link" href="#" data-tab="recruitment" role="tab">
+                                    <i class="fas fa-user-tie mr-1"></i> Recruitment
+                                </a>
+                            </li>
+                        @endcanany
+                        @if (auth()->user()->hasRole('approver'))
+                            <li class="nav-item">
+                                <a class="nav-link" href="#" data-tab="approvals" role="tab">
+                                    <i class="fas fa-check-circle mr-1"></i> Approvals
+                                </a>
+                            </li>
+                        @endif
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Statistics Cards (3 per row): Overview, Profile, Official Travel, Leave, Flight, Recruitment, Approval -->
+            <div class="row mb-1">
+                <!-- Profile (statistic card) -->
+                @can('personal.profile.view-own')
+                    <div class="col-lg-4 col-md-6 mb-3 dashboard-tab-content dashboard-tab-overview dashboard-tab-profile">
+                        <div class="card card-outline card-secondary shadow-sm h-100">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h6 class="text-muted text-uppercase mb-1"
+                                            style="font-size: 0.75rem; letter-spacing: 0.5px;">
+                                            Profile
+                                        </h6>
+                                        <h2 class="mb-0 font-weight-bold">{{ $completenessPercentage }}%</h2>
+                                        <small class="text-muted">
+                                            <i class="fas fa-user-check text-secondary mr-1"></i>
+                                            Completeness
+                                        </small>
+                                    </div>
+                                    <div class="icon-circle bg-secondary">
+                                        <i class="fas fa-user"></i>
                                     </div>
                                 </div>
+                                <div class="mt-3">
+                                    <div class="progress" style="height: 6px;">
+                                        <div class="progress-bar bg-secondary" role="progressbar"
+                                            style="width: {{ $completenessPercentage }}%"
+                                            aria-valuenow="{{ $completenessPercentage }}" aria-valuemin="0"
+                                            aria-valuemax="100">
+                                        </div>
+                                    </div>
+                                </div>
+                                <a href="{{ route('profile.my-profile') }}" class="btn btn-sm btn-secondary btn-block mt-3">
+                                    View Profile <i class="fas fa-arrow-right ml-1"></i>
+                                </a>
                             </div>
-                            <a href="{{ route('leave.my-requests') }}" class="btn btn-sm btn-info btn-block mt-3">
-                                View Details <i class="fas fa-arrow-right ml-1"></i>
-                            </a>
                         </div>
                     </div>
-                </div>
+                @endcan
 
                 <!-- Official Travels -->
-                <div class="col-lg-3 col-md-6 mb-3">
+                <div class="col-lg-4 col-md-6 mb-3 dashboard-tab-content dashboard-tab-overview dashboard-tab-travels">
                     <div class="card card-outline card-success shadow-sm h-100">
                         <div class="card-body">
                             <div class="d-flex justify-content-between align-items-center">
@@ -158,8 +222,81 @@
                     </div>
                 </div>
 
+                <!-- Leave Requests -->
+                <div class="col-lg-4 col-md-6 mb-3 dashboard-tab-content dashboard-tab-overview dashboard-tab-leave">
+                    <div class="card card-outline card-info shadow-sm h-100">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="text-muted text-uppercase mb-1"
+                                        style="font-size: 0.75rem; letter-spacing: 0.5px;">
+                                        Leave Requests
+                                    </h6>
+                                    <h2 class="mb-0 font-weight-bold">{{ $leaveStats['total_requests'] }}</h2>
+                                    <small class="text-muted">
+                                        <i class="fas fa-check-circle text-success mr-1"></i>
+                                        {{ $leaveStats['approved_requests'] }} Approved
+                                    </small>
+                                </div>
+                                <div class="icon-circle bg-info">
+                                    <i class="fas fa-calendar-alt"></i>
+                                </div>
+                            </div>
+                            <div class="mt-3">
+                                <div class="progress" style="height: 6px;">
+                                    <div class="progress-bar bg-info" role="progressbar"
+                                        style="width: {{ $leaveStats['total_requests'] > 0 ? ($leaveStats['approved_requests'] / $leaveStats['total_requests']) * 100 : 0 }}%"
+                                        aria-valuenow="{{ $leaveStats['approved_requests'] }}" aria-valuemin="0"
+                                        aria-valuemax="{{ $leaveStats['total_requests'] }}">
+                                    </div>
+                                </div>
+                            </div>
+                            <a href="{{ route('leave.my-requests') }}" class="btn btn-sm btn-info btn-block mt-3">
+                                View Details <i class="fas fa-arrow-right ml-1"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Flight Requests -->
+                <div class="col-lg-4 col-md-6 mb-3 dashboard-tab-content dashboard-tab-overview dashboard-tab-flight">
+                    <div class="card card-outline card-primary shadow-sm h-100">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="text-muted text-uppercase mb-1"
+                                        style="font-size: 0.75rem; letter-spacing: 0.5px;">
+                                        Flight Requests
+                                    </h6>
+                                    <h2 class="mb-0 font-weight-bold">{{ $flightStats['total'] }}</h2>
+                                    <small class="text-muted">
+                                        <i class="fas fa-check-circle text-success mr-1"></i>
+                                        {{ $flightStats['approved'] }} Approved/Issued
+                                    </small>
+                                </div>
+                                <div class="icon-circle bg-primary">
+                                    <i class="fas fa-plane"></i>
+                                </div>
+                            </div>
+                            <div class="mt-3">
+                                <div class="progress" style="height: 6px;">
+                                    <div class="progress-bar bg-primary" role="progressbar"
+                                        style="width: {{ $flightStats['total'] > 0 ? ($flightStats['approved'] / $flightStats['total']) * 100 : 0 }}%"
+                                        aria-valuenow="{{ $flightStats['approved'] }}" aria-valuemin="0"
+                                        aria-valuemax="{{ $flightStats['total'] }}">
+                                    </div>
+                                </div>
+                            </div>
+                            <a href="{{ route('flight-requests.my-requests') }}"
+                                class="btn btn-sm btn-primary btn-block mt-3">
+                                View Details <i class="fas fa-arrow-right ml-1"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Recruitment Requests -->
-                <div class="col-lg-3 col-md-6 mb-3">
+                <div class="col-lg-4 col-md-6 mb-3 dashboard-tab-content dashboard-tab-overview dashboard-tab-recruitment">
                     <div class="card card-outline card-warning shadow-sm h-100">
                         <div class="card-body">
                             <div class="d-flex justify-content-between align-items-center">
@@ -195,53 +332,51 @@
                     </div>
                 </div>
 
-                <!-- Pending Approvals -->
-                <div class="col-lg-3 col-md-6 mb-3">
-                    <div class="card card-outline card-danger shadow-sm h-100">
-                        <div class="card-body">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <h6 class="text-muted text-uppercase mb-1"
-                                        style="font-size: 0.75rem; letter-spacing: 0.5px;">
-                                        Pending Approvals
-                                    </h6>
-                                    <h2 class="mb-0 font-weight-bold">{{ $pendingApprovals }}</h2>
-                                    <small class="text-muted">
-                                        <i class="fas fa-exclamation-circle text-danger mr-1"></i>
-                                        Requires Action
-                                    </small>
-                                </div>
-                                <div class="icon-circle bg-danger">
-                                    <i class="fas fa-check-circle"></i>
-                                </div>
-                            </div>
-                            <div class="mt-3">
-                                <div class="progress" style="height: 6px;">
-                                    <div class="progress-bar bg-danger" role="progressbar"
-                                        style="width: {{ $pendingApprovals > 0 ? 100 : 0 }}%"
-                                        aria-valuenow="{{ $pendingApprovals }}" aria-valuemin="0" aria-valuemax="100">
+                <!-- Pending Approvals (hanya untuk role approver) -->
+                @if (auth()->user()->hasRole('approver'))
+                    <div
+                        class="col-lg-4 col-md-6 mb-3 dashboard-tab-content dashboard-tab-overview dashboard-tab-approvals">
+                        <div class="card card-outline card-danger shadow-sm h-100">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h6 class="text-muted text-uppercase mb-1"
+                                            style="font-size: 0.75rem; letter-spacing: 0.5px;">
+                                            Pending Approvals
+                                        </h6>
+                                        <h2 class="mb-0 font-weight-bold">{{ $pendingApprovals }}</h2>
+                                        <small class="text-muted">
+                                            <i class="fas fa-exclamation-circle text-danger mr-1"></i>
+                                            Requires Action
+                                        </small>
+                                    </div>
+                                    <div class="icon-circle bg-danger">
+                                        <i class="fas fa-check-circle"></i>
                                     </div>
                                 </div>
-                            </div>
-                            @can('personal.approval.view-pending')
+                                <div class="mt-3">
+                                    <div class="progress" style="height: 6px;">
+                                        <div class="progress-bar bg-danger" role="progressbar"
+                                            style="width: {{ $pendingApprovals > 0 ? 100 : 0 }}%"
+                                            aria-valuenow="{{ $pendingApprovals }}" aria-valuemin="0"
+                                            aria-valuemax="100">
+                                        </div>
+                                    </div>
+                                </div>
                                 <a href="{{ route('approval.requests.index') }}"
                                     class="btn btn-sm btn-danger btn-block mt-3">
                                     Review Now <i class="fas fa-arrow-right ml-1"></i>
                                 </a>
-                            @else
-                                <button class="btn btn-sm btn-secondary btn-block mt-3" disabled>
-                                    No Access <i class="fas fa-lock ml-1"></i>
-                                </button>
-                            @endcan
+                            </div>
                         </div>
                     </div>
-                </div>
+                @endif
             </div>
 
             <!-- Main Content Row -->
             <div class="row">
                 <!-- Recent Leave Requests -->
-                <div class="col-lg-6 mb-4">
+                <div class="col-lg-6 mb-4 dashboard-tab-content dashboard-tab-overview dashboard-tab-leave">
                     <div class="card card-outline card-info shadow-sm">
                         <div class="card-header border-bottom">
                             <h3 class="card-title mb-0">
@@ -298,7 +433,7 @@
                 </div>
 
                 <!-- Current Leave Entitlements -->
-                <div class="col-lg-6 mb-3">
+                <div class="col-lg-6 mb-3 dashboard-tab-content dashboard-tab-overview dashboard-tab-leave">
                     <div class="card card-outline card-primary shadow-sm h-100 d-flex flex-column">
                         <div class="card-header border-bottom py-2">
                             <div class="d-flex justify-content-between align-items-center">
@@ -420,10 +555,10 @@
                 </div>
             </div>
 
-            <!-- Recent Official Travels & Profile Completeness -->
+            <!-- Recent Official Travels & Recent Flight Requests -->
             <div class="row mb-4">
                 <!-- Recent Official Travels -->
-                <div class="col-lg-6 mb-3 mb-lg-0">
+                <div class="col-lg-6 mb-3 mb-lg-0 dashboard-tab-content dashboard-tab-overview dashboard-tab-travels">
                     <div class="card card-outline card-success shadow-sm h-100">
                         <div class="card-header border-bottom">
                             <h3 class="card-title mb-0">
@@ -536,8 +671,73 @@
                     </div>
                 </div>
 
+                <!-- Recent Flight Requests -->
+                <div class="col-lg-6 mb-3 mb-lg-0 dashboard-tab-content dashboard-tab-overview dashboard-tab-flight">
+                    <div class="card card-outline card-primary shadow-sm h-100">
+                        <div class="card-header border-bottom">
+                            <h3 class="card-title mb-0">
+                                <i class="fas fa-plane mr-2 text-primary"></i>
+                                Recent Flight Requests
+                            </h3>
+                            <div class="card-tools">
+                                <a href="{{ route('flight-requests.my-requests') }}" class="btn btn-sm btn-primary">
+                                    <i class="fas fa-list mr-1"></i> View All
+                                </a>
+                            </div>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="list-group list-group-flush">
+                                @forelse($recentFlightRequests as $fr)
+                                    <a href="{{ route('flight-requests.my-requests.show', $fr->id) }}"
+                                        class="list-group-item list-group-item-action">
+                                        <div class="d-flex justify-content-between align-items-start">
+                                            <div class="flex-grow-1">
+                                                <h6 class="mb-1 font-weight-bold">
+                                                    {{ $fr->form_number ?? 'Flight Request' }}
+                                                </h6>
+                                                <p class="mb-1 text-muted small">
+                                                    <i class="fas fa-user mr-1"></i>
+                                                    {{ $fr->employee_name ?? (optional($fr->employee)->fullname ?? 'N/A') }}
+                                                </p>
+                                                <small class="text-muted">
+                                                    <i class="far fa-calendar mr-1"></i>
+                                                    {{ $fr->created_at->format('M d, Y') }}
+                                                </small>
+                                            </div>
+                                            <div class="ml-3">
+                                                <span
+                                                    class="badge badge-lg
+                                                    @if (in_array($fr->status, ['approved', 'issued', 'completed'])) badge-success
+                                                    @elseif($fr->status == 'submitted') badge-info
+                                                    @elseif(in_array($fr->status, ['rejected', 'cancelled'])) badge-danger
+                                                    @else badge-secondary @endif">
+                                                    {{ ucfirst($fr->status) }}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </a>
+                                @empty
+                                    <div class="text-center py-5">
+                                        <i class="fas fa-plane fa-3x text-muted mb-3"></i>
+                                        <p class="text-muted mb-0">No flight requests found</p>
+                                        @can('personal.flight.create-own')
+                                            <a href="{{ route('flight-requests.my-requests.create') }}"
+                                                class="btn btn-primary btn-sm mt-2">
+                                                <i class="fas fa-plus mr-1"></i> Create Flight Request
+                                            </a>
+                                        @endcan
+                                    </div>
+                                @endforelse
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Profile Completeness Row -->
+            <div class="row mb-4">
                 <!-- Profile Completeness -->
-                <div class="col-lg-6">
+                <div class="col-lg-6 dashboard-tab-content dashboard-tab-overview dashboard-tab-profile">
                     <div class="card card-outline card-warning shadow-sm h-100 d-flex flex-column">
                         <div class="card-header border-bottom py-2">
                             <h5 class="card-title mb-0">
@@ -621,6 +821,26 @@
 
     @push('styles')
         <style>
+            /* Dashboard Feature Tabs */
+            .nav-tabs-dashboard .nav-link {
+                border: none;
+                color: #6c757d;
+                font-weight: 500;
+                padding: 0.5rem 1rem;
+                margin-right: 0.25rem;
+                border-radius: 0.25rem;
+            }
+
+            .nav-tabs-dashboard .nav-link:hover {
+                color: #495057;
+                background-color: rgba(0, 0, 0, 0.04);
+            }
+
+            .nav-tabs-dashboard .nav-link.active {
+                color: #007bff;
+                background-color: rgba(0, 123, 255, 0.1);
+            }
+
             /* Icon Circle */
             .icon-circle {
                 width: 60px;
@@ -768,6 +988,22 @@
     @push('scripts')
         <script>
             $(document).ready(function() {
+                // Dashboard Feature Tabs
+                function showDashboardTab(tab) {
+                    $('.dashboard-tab-content').hide();
+                    if (tab === 'overview') {
+                        $('.dashboard-tab-overview').show();
+                    } else {
+                        $('.dashboard-tab-' + tab).show();
+                    }
+                    $('#dashboardFeatureTabs .nav-link').removeClass('active');
+                    $('#dashboardFeatureTabs .nav-link[data-tab="' + tab + '"]').addClass('active');
+                }
+                $('#dashboardFeatureTabs .nav-link').on('click', function(e) {
+                    e.preventDefault();
+                    showDashboardTab($(this).data('tab'));
+                });
+
                 let allExpanded = false;
                 const $toggleBtn = $('#toggleAllEntitlements');
                 const $toggleIcon = $('#toggleAllIcon');

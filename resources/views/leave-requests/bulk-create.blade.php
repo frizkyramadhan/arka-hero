@@ -160,11 +160,12 @@
                                                     <th width="100">End Date</th>
                                                     <th width="150">Roster Note</th>
                                                     <th width="80">Status</th>
+                                                    <th width="80" class="text-center">Flight?</th>
                                                 </tr>
                                             </thead>
                                             <tbody id="employees-tbody">
                                                 <tr id="empty-row">
-                                                    <td colspan="9" class="text-center text-muted py-4">
+                                                    <td colspan="10" class="text-center text-muted py-4">
                                                         <i class="fas fa-search fa-2x mb-2"></i>
                                                         <p>Select a project and click "Search Employees" to see available
                                                             employees</p>
@@ -231,13 +232,6 @@
                                 </h3>
                             </div>
                             <div class="card-body">
-                                <div class="alert alert-warning">
-                                    <i class="fas fa-exclamation-triangle mr-2"></i>
-                                    <strong>Manual Approval Selection:</strong> You need to manually select approvers for
-                                    each department.
-                                    The selected approvers will be used for all employees in that department.
-                                </div>
-
                                 <div class="form-group">
                                     <label for="bulk_notes">
                                         <i class="fas fa-sticky-note mr-1"></i>
@@ -264,6 +258,91 @@
                     </div>
                 </div>
             </form>
+
+            <!-- Flight Request Modal (per employee) -->
+            <div class="modal fade" id="flightRequestModal" tabindex="-1" role="dialog">
+                <div class="modal-dialog modal-lg" role="document">
+                    <div class="modal-content">
+                        <div class="modal-header bg-info">
+                            <h5 class="modal-title">
+                                <i class="fas fa-plane mr-2"></i>
+                                Add Flight Request - <span id="flight-modal-employee-name"></span>
+                            </h5>
+                            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                <span aria-hidden="true">&times;</span>
+                            </button>
+                        </div>
+                        <div class="modal-body">
+                            <input type="hidden" id="flight-modal-employee-id">
+                            <div class="form-group">
+                                <div class="custom-control custom-checkbox">
+                                    <input type="checkbox" class="custom-control-input" id="flight-modal-need-ticket"
+                                        value="1">
+                                    <label class="custom-control-label" for="flight-modal-need-ticket">
+                                        Employee needs flight ticket reservation
+                                    </label>
+                                </div>
+                            </div>
+                            <div id="flight-modal-segments-wrap" style="display: none;">
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <p class="text-muted mb-0">
+                                        <i class="fas fa-info-circle"></i> Fill in flight data: date, route, airline, and time.
+                                    </p>
+                                    <button type="button" class="btn btn-sm btn-success" id="flight-modal-add-segment">
+                                        <i class="fas fa-plus"></i> Add Flight Segment
+                                    </button>
+                                </div>
+                                <div id="flight-modal-segments-container">
+                                    <div class="border rounded p-3 mb-3 fr-segment-modal bg-light" data-index="0">
+                                        <strong>Flight 1</strong>
+                                        <div class="row mt-2">
+                                            <div class="col-md-6">
+                                                <div class="form-group mb-2">
+                                                    <label>From (City/Airport) <span class="text-danger">*</span></label>
+                                                    <input type="text" class="form-control flight-departure-city"
+                                                        placeholder="e.g. CGK">
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="form-group mb-2">
+                                                    <label>To (City/Airport) <span class="text-danger">*</span></label>
+                                                    <input type="text" class="form-control flight-arrival-city"
+                                                        placeholder="e.g. DPS">
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="form-group mb-2">
+                                                    <label>Date <span class="text-danger">*</span></label>
+                                                    <input type="date" class="form-control flight-date">
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="form-group mb-2">
+                                                    <label>Time</label>
+                                                    <input type="time" class="form-control flight-time">
+                                                </div>
+                                            </div>
+                                            <div class="col-12">
+                                                <div class="form-group mb-0">
+                                                    <label>Airline</label>
+                                                    <input type="text" class="form-control flight-airline"
+                                                        placeholder="e.g. Garuda">
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                            <button type="button" class="btn btn-primary" id="flight-modal-save">
+                                <i class="fas fa-save mr-1"></i> Save Flight Data
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </section>
 @endsection
@@ -313,6 +392,11 @@
             max-width: 150px;
             word-wrap: break-word;
             font-size: 0.8rem;
+        }
+
+        #employees-table .td-flight-cell {
+            text-align: center;
+            vertical-align: middle;
         }
 
         #btn-submit:disabled {
@@ -387,6 +471,7 @@
     <script>
         let selectedEmployees = [];
         let employeesData = [];
+        let employeeFlightData = {}; // employee_id -> { need_flight_ticket, details, requested_at }
 
         $(document).ready(function() {
             // Initialize select2
@@ -424,21 +509,128 @@
             // Selection handlers
             $('#select-all').on('click', function() {
                 $('#employees-tbody input[type="checkbox"]').prop('checked', true);
+                updateFlightButtonVisibility();
                 updateSelectedEmployees();
             });
 
             $('#deselect-all').on('click', function() {
                 $('#employees-tbody input[type="checkbox"]').prop('checked', false);
+                updateFlightButtonVisibility();
                 updateSelectedEmployees();
             });
 
             $('#checkbox-all').on('change', function() {
                 $('#employees-tbody input[type="checkbox"]').prop('checked', $(this).is(':checked'));
+                updateFlightButtonVisibility();
                 updateSelectedEmployees();
             });
 
             // Employee checkbox change
             $(document).on('change', '#employees-tbody input[type="checkbox"]', function() {
+                updateFlightButtonVisibility();
+                updateSelectedEmployees();
+            });
+
+            // Flight Request Modal - Open when clicking Add flight button
+            $(document).on('click', '.btn-flight-add', function() {
+                const empId = $(this).data('employee-id');
+                const empName = $(this).data('employee-name');
+                const offStart = $(this).data('off-start');
+                const offEnd = $(this).data('off-end');
+                $('#flight-modal-employee-id').val(empId);
+                $('#flight-modal-employee-name').text(empName);
+                // Pre-fill dates from leave period
+                if (offStart) $('#flight-modal-segments-container .flight-date').first().val(offStart);
+                if (offEnd && $('#flight-modal-segments-container .fr-segment-modal').length > 1) {
+                    $('#flight-modal-segments-container .fr-segment-modal').last().find('.flight-date').val(
+                        offEnd);
+                }
+                // Load existing data if any
+                const existing = employeeFlightData[empId];
+                if (existing && existing.need_flight_ticket && existing.details) {
+                    $('#flight-modal-need-ticket').prop('checked', true);
+                    $('#flight-modal-segments-wrap').show();
+                    const container = $('#flight-modal-segments-container');
+                    container.empty();
+                    existing.details.forEach((d, i) => {
+                        container.append(buildFlightSegmentHtml(i, d));
+                    });
+                } else {
+                    $('#flight-modal-need-ticket').prop('checked', false);
+                    $('#flight-modal-segments-wrap').hide();
+                    resetFlightModalSegments(offStart, offEnd);
+                }
+                $('#flightRequestModal').modal('show');
+            });
+
+            $('#flight-modal-need-ticket').on('change', function() {
+                const checked = $(this).is(':checked');
+                $('#flight-modal-segments-wrap').toggle(checked);
+                if (!checked) resetFlightModalSegments();
+            });
+
+            $(document).on('click', '#flight-modal-add-segment', function() {
+                const container = $('#flight-modal-segments-container');
+                const count = container.find('.fr-segment-modal').length;
+                const offEnd = $('.btn-flight-add[data-employee-id="' + $('#flight-modal-employee-id')
+                    .val() + '"]').data('off-end');
+                container.append(buildFlightSegmentHtml(count, {
+                    segment_type: 'return',
+                    flight_date: offEnd || ''
+                }));
+            });
+
+            $(document).on('click', '.fr-modal-remove-segment', function() {
+                const seg = $(this).closest('.fr-segment-modal');
+                if ($('#flight-modal-segments-container .fr-segment-modal').length > 1) {
+                    seg.remove();
+                }
+            });
+
+            $('#flight-modal-save').on('click', function() {
+                const empId = $('#flight-modal-employee-id').val();
+                const needTicket = $('#flight-modal-need-ticket').is(':checked');
+                if (!needTicket) {
+                    delete employeeFlightData[empId];
+                    $('#flightRequestModal').modal('hide');
+                    updateFlightButtonUI(empId, false);
+                    updateSelectedEmployees();
+                    return;
+                }
+                const details = [];
+                $('#flight-modal-segments-container .fr-segment-modal').each(function() {
+                    const $seg = $(this);
+                    details.push({
+                        segment_type: $seg.data('segment-type') || 'departure',
+                        departure_city: $seg.find('.flight-departure-city').val(),
+                        arrival_city: $seg.find('.flight-arrival-city').val(),
+                        flight_date: $seg.find('.flight-date').val(),
+                        flight_time: $seg.find('.flight-time').val(),
+                        airline: $seg.find('.flight-airline').val()
+                    });
+                });
+                const validDetails = details.filter(d => d.flight_date && d.departure_city && d
+                    .arrival_city);
+                if (validDetails.length === 0) {
+                    Swal.fire('Warning',
+                        'Please fill in at least one complete flight segment (From, To, Date)',
+                        'warning');
+                    return;
+                }
+                employeeFlightData[empId] = {
+                    need_flight_ticket: 1,
+                    requested_at: new Date().toISOString().slice(0, 19).replace('T', ' '),
+                    details: validDetails.map((d, i) => ({
+                        segment_type: d.segment_type || (i === 0 ? 'departure' : 'return'),
+                        departure_city: d.departure_city,
+                        arrival_city: d.arrival_city,
+                        flight_date: d.flight_date,
+                        flight_time: d.flight_time || '',
+                        airline: d.airline || ''
+                    }))
+                };
+                $('#flightRequestModal').modal('hide');
+                updateFlightButtonUI(empId, true);
                 updateSelectedEmployees();
             });
 
@@ -634,6 +826,45 @@
             });
         });
 
+        function buildFlightSegmentHtml(index, data) {
+            const segType = index === 0 ? 'departure' : 'return';
+            const removeBtn = index > 0 ?
+                '<button type="button" class="btn btn-sm btn-outline-danger fr-modal-remove-segment float-right"><i class="fas fa-times"></i></button>' :
+                '';
+            return `
+                <div class="border rounded p-3 mb-3 fr-segment-modal bg-light" data-index="${index}" data-segment-type="${data.segment_type || segType}">
+                    <strong>Flight ${index + 1}</strong> ${removeBtn}
+                    <div class="row mt-2">
+                        <div class="col-md-6"><div class="form-group mb-2"><label>From (City/Airport) <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control flight-departure-city" placeholder="e.g. CGK" value="${(data.departure_city || '').replace(/"/g, '&quot;')}"></div></div>
+                        <div class="col-md-6"><div class="form-group mb-2"><label>To (City/Airport) <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control flight-arrival-city" placeholder="e.g. DPS" value="${(data.arrival_city || '').replace(/"/g, '&quot;')}"></div></div>
+                        <div class="col-md-6"><div class="form-group mb-2"><label>Date <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control flight-date" value="${data.flight_date || ''}"></div></div>
+                        <div class="col-md-6"><div class="form-group mb-2"><label>Time</label>
+                            <input type="time" class="form-control flight-time" value="${data.flight_time || ''}"></div></div>
+                        <div class="col-12"><div class="form-group mb-0"><label>Airline</label>
+                            <input type="text" class="form-control flight-airline" placeholder="e.g. Garuda" value="${(data.airline || '').replace(/"/g, '&quot;')}"></div></div>
+                    </div>
+                </div>`;
+        }
+
+        function resetFlightModalSegments(offStart, offEnd) {
+            const container = $('#flight-modal-segments-container');
+            container.empty();
+            container.append(buildFlightSegmentHtml(0, {
+                segment_type: 'departure',
+                flight_date: offStart || ''
+            }));
+        }
+
+        function updateFlightButtonUI(employeeId, hasFlight) {
+            const $btn = $(`.btn-flight-add[data-employee-id="${employeeId}"]`);
+            if ($btn.length) {
+                $btn.html(hasFlight ? '<i class="fas fa-check text-success"></i>' : '<i class="fas fa-plane"></i>');
+            }
+        }
+
         function loadDepartments(projectId) {
             if (!projectId) {
                 $('#department_id').empty().append('<option value="">All Departments</option>');
@@ -717,7 +948,7 @@
 
             if (employeesData.length == 0) {
                 tbody.html(
-                    '<tr id="empty-row"><td colspan="9" class="text-center text-muted py-4"><i class="fas fa-search fa-2x mb-2"></i><p>Select a project and click "Search Employees" to see available employees</p></td></tr>'
+                    '<tr id="empty-row"><td colspan="10" class="text-center text-muted py-4"><i class="fas fa-search fa-2x mb-2"></i><p>Select a project and click "Search Employees" to see available employees</p></td></tr>'
                 );
                 return;
             }
@@ -755,17 +986,32 @@
                         <td>${emp.employee_name}</td>
                         <td>${emp.position_name}</td>
                         <td>${emp.department_name}</td>
-                        <td>${formatDate(emp.off_start_date)}</td>
-                        <td>${formatDate(emp.off_end_date)}</td>
-                        <td>${rosterNote}</td>
-                        <td>${daysUntilBadge}</td>
-                    </tr>
-                `;
+                                                <td>${formatDate(emp.off_start_date)}</td>
+                                                <td>${formatDate(emp.off_end_date)}</td>
+                                                <td>${rosterNote}</td>
+                                                <td>${daysUntilBadge}</td>
+                                                <td class="td-flight-cell text-center">
+                                                    <span class="flight-btn-wrapper" style="display: none;">
+                                                        <button type="button" class="btn btn-sm btn-outline-info btn-flight-add" data-employee-id="${emp.employee_id}" data-employee-name="${(emp.employee_name || 'N/A').replace(/"/g, '&quot;')}" data-off-start="${emp.off_start_date || ''}" data-off-end="${emp.off_end_date || ''}" title="Add flight request">
+                                                            ${(employeeFlightData[emp.employee_id] && employeeFlightData[emp.employee_id].need_flight_ticket) ? '<i class="fas fa-check text-success"></i>' : '<i class="fas fa-plane"></i>'}
+                                                        </button>
+                                                    </span>
+                                                </td>
+                                                    </tr>
+                                                `;
                 tbody.append(html);
             });
 
-            // Update selected employees based on checked boxes
+            // Update selected employees and show flight button only for checked rows
+            updateFlightButtonVisibility();
             updateSelectedEmployees();
+        }
+
+        function updateFlightButtonVisibility() {
+            $('#employees-tbody tr').each(function() {
+                const checked = $(this).find('input[type="checkbox"]').is(':checked');
+                $(this).find('.flight-btn-wrapper').toggle(checked);
+            });
         }
 
         function updateSelectedEmployees() {
@@ -803,6 +1049,42 @@
                     <input type="hidden" id="selected_employee_${index}_end_date" name="selected_employees[${index}][end_date]" value="${emp.end_date}">
                     <input type="hidden" id="selected_employee_${index}_total_days" name="selected_employees[${index}][total_days]" value="${emp.total_days}">
                 `);
+                // Add fr_data if employee has flight request configured
+                const frData = employeeFlightData[emp.employee_id];
+                if (frData && frData.need_flight_ticket && frData.details && frData.details.length > 0) {
+                    const validDetails = frData.details.filter(d => d.flight_date && d.departure_city && d
+                        .arrival_city);
+                    if (validDetails.length > 0) {
+                        const esc = v => (v || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g,
+                            '&lt;').replace(/>/g, '&gt;');
+                        container.append(
+                            `<input type="hidden" name="selected_employees[${index}][fr_data][need_flight_ticket]" value="1">`
+                        );
+                        container.append(
+                            `<input type="hidden" name="selected_employees[${index}][fr_data][requested_at]" value="${esc(frData.requested_at || new Date().toISOString().slice(0, 19).replace('T', ' '))}">`
+                        );
+                        validDetails.forEach((d, i) => {
+                            container.append(
+                                `<input type="hidden" name="selected_employees[${index}][fr_data][details][${i}][segment_type]" value="${esc(d.segment_type || (i === 0 ? 'departure' : 'return'))}">`
+                            );
+                            container.append(
+                                `<input type="hidden" name="selected_employees[${index}][fr_data][details][${i}][departure_city]" value="${esc(d.departure_city)}">`
+                            );
+                            container.append(
+                                `<input type="hidden" name="selected_employees[${index}][fr_data][details][${i}][arrival_city]" value="${esc(d.arrival_city)}">`
+                            );
+                            container.append(
+                                `<input type="hidden" name="selected_employees[${index}][fr_data][details][${i}][flight_date]" value="${esc(d.flight_date)}">`
+                            );
+                            container.append(
+                                `<input type="hidden" name="selected_employees[${index}][fr_data][details][${i}][flight_time]" value="${esc(d.flight_time)}">`
+                            );
+                            container.append(
+                                `<input type="hidden" name="selected_employees[${index}][fr_data][details][${i}][airline]" value="${esc(d.airline)}">`
+                            );
+                        });
+                    }
+                }
             });
 
             // Enable/disable submit button

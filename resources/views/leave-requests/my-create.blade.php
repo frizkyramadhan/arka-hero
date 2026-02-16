@@ -400,7 +400,8 @@
                             'requestReason' => null,
                         ]) --}}
 
-                        <!-- Leave Balance Card -->
+                        {{-- Leave Balance Card (commented out) --}}
+                        {{--
                         <div class="card card-success card-outline elevation-3 mt-3">
                             <div class="card-header py-2">
                                 <h5 class="card-title mb-0">
@@ -417,6 +418,7 @@
                                 </div>
                             </div>
                         </div>
+                        --}}
                     </div>
                 </div>
             </form>

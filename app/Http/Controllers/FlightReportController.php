@@ -60,7 +60,7 @@ class FlightReportController extends Controller
         }
 
         $query = FlightRequestIssuanceDetail::query()
-            ->with(['issuance.businessPartner'])
+            ->with(['issuance.businessPartner', 'employee.activeAdministration.project'])
             ->join('flight_request_issuances', 'flight_request_issuance_details.flight_request_issuance_id', '=', 'flight_request_issuances.id')
             ->join('flight_request_issuance', 'flight_request_issuances.id', '=', 'flight_request_issuance.flight_request_issuance_id')
             ->join('flight_requests', 'flight_request_issuance.flight_request_id', '=', 'flight_requests.id')
@@ -75,7 +75,7 @@ class FlightReportController extends Controller
         if ($request->filled('date_to')) {
             $query->where('flight_request_issuances.issued_date', '<=', $request->date_to);
         }
-        if ($request->filled('business_partner_id')) {
+        if ($request->filled('business_partner_id') && $request->business_partner_id !== 'all') {
             $query->where('flight_request_issuances.business_partner_id', $request->business_partner_id);
         }
         if ($request->filled('issued_number')) {
@@ -138,7 +138,7 @@ class FlightReportController extends Controller
         }
 
         $query = FlightRequestIssuanceDetail::query()
-            ->with(['issuance.businessPartner'])
+            ->with(['issuance.businessPartner', 'employee.activeAdministration.project'])
             ->join('flight_request_issuances', 'flight_request_issuance_details.flight_request_issuance_id', '=', 'flight_request_issuances.id')
             ->join('flight_request_issuance', 'flight_request_issuances.id', '=', 'flight_request_issuance.flight_request_issuance_id')
             ->join('flight_requests', 'flight_request_issuance.flight_request_id', '=', 'flight_requests.id')
@@ -153,7 +153,7 @@ class FlightReportController extends Controller
         if ($request->filled('date_to')) {
             $query->where('flight_request_issuances.issued_date', '<=', $request->date_to);
         }
-        if ($request->filled('business_partner_id')) {
+        if ($request->filled('business_partner_id') && $request->business_partner_id !== 'all') {
             $query->where('flight_request_issuances.business_partner_id', $request->business_partner_id);
         }
         if ($request->filled('issued_number')) {
@@ -259,11 +259,22 @@ class FlightReportController extends Controller
             $serviceChargeFormatted = $serviceCharge > 0 ? number_format($serviceCharge, 0, ',', '.') : '-';
             $jumlahFormatted = number_format($jumlah, 0, ',', '.');
 
+            // NIK dan Site dari employee (administration active); jika penumpang manual isi '-'
+            $nik = '-';
+            $site = '-';
+            if ($detail->employee_id && $detail->employee) {
+                $admin = $detail->employee->activeAdministration;
+                $nik = $admin && $admin->nik !== null && $admin->nik !== '' ? $admin->nik : '-';
+                $site = $admin && $admin->project
+                    ? ($admin->project->project_code ?? '-')
+                    : '-';
+            }
+
             $rows[] = [
                 'no' => $no,
-                'nama' => $detail->passenger_name ?? '-',
-                'nik' => $fr ? ($fr->nik ?? '-') : '-',
-                'site' => $fr ? ($fr->project ?? $fr->department ?? '-') : '-',
+                'nama' => $detail->resolved_passenger_name ?? '-',
+                'nik' => $nik,
+                'site' => $site,
                 'rute' => $rute,
                 'kode_booking' => $detail->booking_code ?? '-',
                 'departure' => $depDate,

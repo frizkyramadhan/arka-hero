@@ -294,7 +294,7 @@
                     @php
                         // Check if current route is my-travels - if so, menu should NOT be open or active
                         $currentPath = Request::path();
-                        $isMyTravels = strpos($currentPath, 'officialtravels/my-travels') === 0;
+                        $isMyTravels = strpos($currentPath, 'officialtravels/my-requests') === 0;
 
                         // Only check for other officialtravels routes if NOT my-travels
                         if ($isMyTravels) {

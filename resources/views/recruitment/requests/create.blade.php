@@ -10,8 +10,7 @@
                 <div class="col-sm-6">
                     <ol class="breadcrumb float-sm-right">
                         <li class="breadcrumb-item"><a href="{{ url('/') }}">Home</a></li>
-                        <li class="breadcrumb-item"><a
-                                href="{{ Request::is('recruitment/my-requests/create') ? route('recruitment.my-requests') : route('recruitment.requests.index') }}">{{ $title }}</a>
+                        <li class="breadcrumb-item"><a href="{{ route('recruitment.requests.index') }}">{{ $title }}</a>
                         </li>
                         <li class="breadcrumb-item active">Add New</li>
                     </ol>
@@ -22,9 +21,7 @@
 
     <section class="content">
         <div class="container-fluid">
-            <form
-                action="{{ Request::is('recruitment/my-requests/create') ? route('recruitment.my-requests.store') : route('recruitment.requests.store') }}"
-                method="POST" id="fptkForm">
+            <form action="{{ route('recruitment.requests.store') }}" method="POST" id="fptkForm">
                 @csrf
                 <div class="row">
                     <!-- Left Column -->

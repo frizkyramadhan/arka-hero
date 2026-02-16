@@ -249,6 +249,128 @@ class FlightRequestController extends Controller
     }
 
     /**
+     * Get leave requests for current user only (for my-requests create).
+     * Returns leave requests where the employee is the logged-in user's employee.
+     */
+    public function getMyLeaveRequests(Request $request)
+    {
+        $user = Auth::user();
+        $employee = $user->employee;
+        if (!$employee) {
+            return response()->json([]);
+        }
+
+        $leaveRequests = LeaveRequest::with([
+            'employee',
+            'administration.position.department',
+            'administration.project'
+        ])
+            ->where('employee_id', $employee->id)
+            ->whereIn('status', ['pending', 'approved'])
+            ->orderBy('start_date', 'desc')
+            ->get()
+            ->map(function ($leave) {
+                $emp = $leave->employee;
+                $admin = $leave->administration;
+
+                return [
+                    'id' => $leave->id,
+                    'text' => sprintf(
+                        '%s - %s (%s to %s)',
+                        $emp ? $emp->fullname : 'N/A',
+                        $admin ? $admin->nik : 'N/A',
+                        $leave->start_date->format('d M Y'),
+                        $leave->end_date->format('d M Y')
+                    ),
+                    'employee_data' => [
+                        'employee_id' => $emp ? $emp->id : null,
+                        'administration_id' => $admin ? $admin->id : null,
+                        'employee_name' => $emp ? $emp->fullname : '',
+                        'nik' => $admin ? $admin->nik : '',
+                        'position' => ($admin && $admin->position) ? $admin->position->position_name : '',
+                        'department' => ($admin && $admin->position && $admin->position->department) ? $admin->position->department->department_name : '',
+                        'poh' => $admin ? ($admin->poh ?? '') : '',
+                        'doh' => ($admin && $admin->doh) ? $admin->doh->format('d F Y') : '',
+                        'project' => ($admin && $admin->project) ? $admin->project->project_name : '',
+                        'phone_number' => $emp ? ($emp->phone ?? '') : '',
+                        'purpose_of_travel' => $leave->reason ?? '',
+                        'total_travel_days' => $leave->total_days ?? ''
+                    ]
+                ];
+            });
+
+        return response()->json($leaveRequests);
+    }
+
+    /**
+     * Get official travels for current user only (for my-requests create).
+     * Returns official travels where the main traveler is the logged-in user's employee.
+     */
+    public function getMyOfficialTravels(Request $request)
+    {
+        $user = Auth::user();
+        $employee = $user->employee;
+        if (!$employee) {
+            return response()->json([]);
+        }
+
+        $officialTravels = Officialtravel::with([
+            'traveler.employee',
+            'traveler.position.department',
+            'traveler.project',
+            'details.follower.employee',
+            'details.follower.position'
+        ])
+            ->whereHas('traveler', function ($q) use ($employee) {
+                $q->where('employee_id', $employee->id);
+            })
+            ->whereIn('status', ['submitted', 'approved'])
+            ->orderBy('departure_from', 'desc')
+            ->get()
+            ->map(function ($travel) {
+                $traveler = $travel->traveler;
+                $emp = $traveler ? $traveler->employee : null;
+
+                $followers = $travel->details->map(function ($detail) {
+                    $follower = $detail->follower;
+                    $followerEmployee = $follower ? $follower->employee : null;
+                    return [
+                        'name' => $followerEmployee ? $followerEmployee->fullname : 'N/A',
+                        'nik' => $follower ? $follower->nik : 'N/A',
+                        'position' => ($follower && $follower->position) ? $follower->position->position_name : 'N/A'
+                    ];
+                })->toArray();
+
+                return [
+                    'id' => $travel->id,
+                    'text' => sprintf(
+                        '%s - %s (%s)',
+                        $travel->official_travel_number ?? 'N/A',
+                        $emp ? $emp->fullname : 'N/A',
+                        $travel->destination
+                    ),
+                    'employee_data' => [
+                        'employee_id' => $emp ? $emp->id : null,
+                        'administration_id' => $traveler ? $traveler->id : null,
+                        'employee_name' => $emp ? $emp->fullname : '',
+                        'nik' => $traveler ? $traveler->nik : '',
+                        'position' => ($traveler && $traveler->position) ? $traveler->position->position_name : '',
+                        'department' => ($traveler && $traveler->position && $traveler->position->department) ? $traveler->position->department->department_name : '',
+                        'poh' => $traveler ? ($traveler->poh ?? '') : '',
+                        'doh' => ($traveler && $traveler->doh) ? $traveler->doh->format('d F Y') : '',
+                        'project' => ($traveler && $traveler->project) ? $traveler->project->project_name : '',
+                        'phone_number' => $emp ? ($emp->phone ?? '') : '',
+                        'purpose_of_travel' => $travel->purpose ?? '',
+                        'total_travel_days' => $travel->duration ?? ''
+                    ],
+                    'followers' => $followers
+                ];
+            });
+
+        return response()->json($officialTravels);
+    }
+
+    /**
      * Get employee list for standalone requests
      */
     public function getEmployees(Request $request)
@@ -410,6 +532,10 @@ class FlightRequestController extends Controller
                 $message .= ' Status: Saved as draft.';
             }
 
+            if ($request->boolean('from_my_requests')) {
+                return redirect()->route('flight-requests.my-requests.show', $flightRequest->id)
+                    ->with('toast_success', $message);
+            }
             return redirect()->route('flight-requests.index')
                 ->with('toast_success', $message);
         } catch (\Exception $e) {
@@ -564,7 +690,10 @@ class FlightRequestController extends Controller
 
             DB::commit();
 
-            return redirect()->route('flight-requests.show', $flightRequest->id)
+            $redirectTo = ($flightRequest->requested_by && $flightRequest->requested_by === Auth::id())
+                ? route('flight-requests.my-requests.show', $flightRequest->id)
+                : route('flight-requests.show', $flightRequest->id);
+            return redirect($redirectTo)
                 ->with('toast_success', 'Flight Request updated successfully.');
         } catch (\Exception $e) {
             DB::rollBack();
@@ -591,7 +720,10 @@ class FlightRequestController extends Controller
             $flightRequest->delete();
             DB::commit();
 
-            return redirect()->route('flight-requests.index')
+            $redirectTo = ($flightRequest->requested_by && $flightRequest->requested_by === Auth::id())
+                ? route('flight-requests.my-requests')
+                : route('flight-requests.index');
+            return redirect($redirectTo)
                 ->with('toast_success', 'Flight Request deleted successfully.');
         } catch (\Exception $e) {
             DB::rollBack();
@@ -733,9 +865,25 @@ class FlightRequestController extends Controller
             ->select('flight_requests.*')
             ->orderBy('created_at', 'desc');
 
-        // Apply filters
+        // Apply filters (aligned with flight/requests)
         if ($request->filled('status')) {
             $query->where('status', $request->status);
+        }
+
+        if ($request->filled('request_type')) {
+            $query->where('request_type', $request->request_type);
+        }
+
+        if ($request->filled('form_number')) {
+            $query->where('form_number', 'like', '%' . $request->form_number . '%');
+        }
+
+        if ($request->filled('date_from')) {
+            $query->where('requested_at', '>=', $request->date_from);
+        }
+
+        if ($request->filled('date_to')) {
+            $query->where('requested_at', '<=', $request->date_to . ' 23:59:59');
         }
 
         return datatables()->of($query)
@@ -767,20 +915,29 @@ class FlightRequestController extends Controller
     }
 
     /**
-     * My Requests Show
+     * My Requests Show - uses same view as admin show with fromMyRequests flag
      */
     public function myRequestsShow($id)
     {
         $title = 'My Flight Request Details';
         $user = Auth::user();
         $flightRequest = FlightRequest::with([
+            'employee',
+            'administration',
+            'leaveRequest.employee',
+            'leaveRequest.administration',
+            'officialTravel.traveler.employee',
             'details',
             'issuances.issuanceDetails',
             'issuances.businessPartner',
-            'requestedBy'
+            'issuances.issuedBy',
+            'requestedBy',
+            'cancelledBy',
+            'approvalPlans.approver',
         ])->where('requested_by', $user->id)->findOrFail($id);
 
-        return view('flight-requests.my-show', compact('flightRequest', 'title'));
+        $fromMyRequests = true;
+        return view('flight-requests.my-show', compact('flightRequest', 'title', 'fromMyRequests'));
     }
 
     /**
@@ -791,9 +948,27 @@ class FlightRequestController extends Controller
         $title = 'Create My Flight Request';
         $user = Auth::user();
         $employee = $user->employee;
-        $administration = $employee->activeAdministration ?? null;
+        $administration = $employee ? $employee->activeAdministration : null;
+        if ($administration) {
+            $administration->load(['position.department', 'project']);
+        }
 
-        return view('flight-requests.my-create', compact('employee', 'administration', 'title'));
+        $myProfileData = [
+            'employee_id' => $employee?->id,
+            'administration_id' => $administration?->id,
+            'employee_name' => $employee?->fullname ?? $employee?->name ?? '',
+            'nik' => $administration?->nik ?? $employee?->nik ?? '',
+            'position' => $administration && $administration->position ? $administration->position->position_name : '',
+            'department' => $administration && $administration->position && $administration->position->department ? $administration->position->department->department_name : '',
+            'poh' => $administration && isset($administration->poh) ? $administration->poh : '',
+            'doh' => $administration && $administration->doh ? $administration->doh->format('d F Y') : '',
+            'project' => $administration && $administration->project ? ($administration->project->project_name ?? $administration->project->project_code) : '',
+            'phone_number' => $employee?->phone ?? $employee?->phone_number ?? '',
+            'purpose_of_travel' => '',
+            'total_travel_days' => '',
+        ];
+
+        return view('flight-requests.my-create', compact('employee', 'administration', 'title', 'myProfileData'));
     }
 
     /**
@@ -801,7 +976,6 @@ class FlightRequestController extends Controller
      */
     public function myRequestsStore(Request $request)
     {
-        // Similar to store() but auto-set employee_id and administration_id from logged user
         $user = Auth::user();
         $employee = $user->employee;
 
@@ -809,10 +983,16 @@ class FlightRequestController extends Controller
             return back()->with('toast_error', 'Employee not found.');
         }
 
-        $request->merge([
-            'employee_id' => $employee->id,
-            'administration_id' => $employee->activeAdministration->id ?? null,
-        ]);
+        // For standalone or when no source document selected, use current user's employee
+        $isStandalone = $request->request_type === 'standalone';
+        $hasLeave = $request->filled('leave_request_id');
+        $hasTravel = $request->filled('official_travel_id');
+        if ($isStandalone || (!$hasLeave && !$hasTravel)) {
+            $request->merge([
+                'employee_id' => $employee->id,
+                'administration_id' => $employee->activeAdministration->id ?? null,
+            ]);
+        }
 
         return $this->store($request);
     }
@@ -824,16 +1004,40 @@ class FlightRequestController extends Controller
     {
         $title = 'Edit My Flight Request';
         $user = Auth::user();
-        $flightRequest = FlightRequest::with(['details'])
-            ->where('requested_by', $user->id)
-            ->findOrFail($id);
+        $flightRequest = FlightRequest::with([
+            'details',
+            'employee',
+            'administration.position.department',
+            'administration.project',
+        ])->where('requested_by', $user->id)->findOrFail($id);
 
         if (!in_array($flightRequest->status, [FlightRequest::STATUS_DRAFT, FlightRequest::STATUS_SUBMITTED])) {
             return redirect()->route('flight-requests.my-requests.show', $id)
                 ->with('toast_error', 'Cannot edit Flight Request with current status.');
         }
 
-        return view('flight-requests.my-edit', compact('flightRequest', 'title'));
+        $employee = $user->employee;
+        $administration = $employee ? $employee->activeAdministration : null;
+        if ($administration) {
+            $administration->load(['position.department', 'project']);
+        }
+
+        $myProfileData = [
+            'employee_id' => $employee?->id,
+            'administration_id' => $administration?->id,
+            'employee_name' => $employee?->fullname ?? $employee?->name ?? '',
+            'nik' => $administration?->nik ?? $employee?->nik ?? '',
+            'position' => $administration && $administration->position ? $administration->position->position_name : '',
+            'department' => $administration && $administration->position && $administration->position->department ? $administration->position->department->department_name : '',
+            'poh' => $administration && isset($administration->poh) ? $administration->poh : '',
+            'doh' => $administration && $administration->doh ? $administration->doh->format('d F Y') : '',
+            'project' => $administration && $administration->project ? ($administration->project->project_name ?? $administration->project->project_code) : '',
+            'phone_number' => $employee?->phone ?? $employee?->phone_number ?? '',
+            'purpose_of_travel' => '',
+            'total_travel_days' => '',
+        ];
+
+        return view('flight-requests.my-edit', compact('flightRequest', 'title', 'employee', 'administration', 'myProfileData'));
     }
 
     /**

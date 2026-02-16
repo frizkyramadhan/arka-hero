@@ -138,6 +138,10 @@
                 flex: 1;
             }
 
+            .ticket-value.text-uppercase {
+                text-transform: uppercase;
+            }
+
             .service-charge-section {
                 margin-top: 20px;
                 padding-top: 12px;
@@ -288,7 +292,11 @@
                         </div>
                         <div class="ticket-field">
                             <span class="ticket-label">NAMA PENUMPANG</span>
-                            <span class="ticket-value">: {{ strtoupper($detail->passenger_name) }}</span>
+                            @php
+                                $passengerName = $detail->resolved_passenger_name ?? '-';
+                                $passengerNameDisplay = $passengerName !== '' && $passengerName !== null ? strtoupper($passengerName) : '-';
+                            @endphp
+                            <span class="ticket-value text-uppercase">: {{ $passengerNameDisplay }}</span>
                         </div>
                         <div class="ticket-field">
                             <span class="ticket-label">TICKET PRICE</span>

@@ -1849,6 +1849,25 @@ class DashboardController extends Controller
             ->limit(5)
             ->get() : collect();
 
+        // Flight Requests Summary (pribadi: requested_by = user)
+        $flightStats = [
+            'total' => FlightRequest::where('requested_by', $user->id)->count(),
+            'draft' => FlightRequest::where('requested_by', $user->id)->where('status', 'draft')->count(),
+            'submitted' => FlightRequest::where('requested_by', $user->id)->where('status', 'submitted')->count(),
+            'approved' => FlightRequest::where('requested_by', $user->id)->whereIn('status', ['approved', 'issued', 'completed'])->count(),
+            'this_month' => FlightRequest::where('requested_by', $user->id)
+                ->whereMonth('created_at', now()->month)
+                ->whereYear('created_at', now()->year)
+                ->count(),
+        ];
+
+        // Recent Flight Requests
+        $recentFlightRequests = FlightRequest::with(['details'])
+            ->where('requested_by', $user->id)
+            ->orderBy('created_at', 'desc')
+            ->limit(5)
+            ->get();
+
         // Leave Entitlements Summary
         // Calculate taken_days from approved leave requests (considering cancellations)
         $leaveEntitlements = LeaveEntitlement::with(['leaveType'])
@@ -1905,10 +1924,12 @@ class DashboardController extends Controller
             'subtitle' => 'Personal Overview',
             'leaveStats' => $leaveStats,
             'travelStats' => $travelStats,
+            'flightStats' => $flightStats,
             'recruitmentStats' => $recruitmentStats,
             'pendingApprovals' => $pendingApprovals,
             'recentLeaveRequests' => $recentLeaveRequests,
             'recentTravels' => $recentTravels,
+            'recentFlightRequests' => $recentFlightRequests,
             'leaveEntitlements' => $leaveEntitlements,
             'profileCompleteness' => $profileCompleteness,
             'missingSections' => $missingSections,

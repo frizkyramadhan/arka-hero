@@ -9,23 +9,42 @@
     $needTicket = old($namePrefix . '.need_flight_ticket');
     $details = old($namePrefix . '.details');
 
-    if ($details === null && $existingFlightRequest && $existingFlightRequest->details && $existingFlightRequest->details->isNotEmpty()) {
-        $details = $existingFlightRequest->details->sortBy('segment_order')->values()->map(function ($d) {
-            return [
-                'segment_type' => $d->segment_type ?? 'departure',
-                'flight_date' => $d->flight_date ? $d->flight_date->format('Y-m-d') : '',
-                'departure_city' => $d->departure_city ?? '',
-                'arrival_city' => $d->arrival_city ?? '',
-                'airline' => $d->airline ?? '',
-                'flight_time' => $d->flight_time ? \Carbon\Carbon::parse($d->flight_time)->format('H:i') : '',
-            ];
-        })->toArray();
+    if (
+        $details === null &&
+        $existingFlightRequest &&
+        $existingFlightRequest->details &&
+        $existingFlightRequest->details->isNotEmpty()
+    ) {
+        $details = $existingFlightRequest->details
+            ->sortBy('segment_order')
+            ->values()
+            ->map(function ($d) {
+                return [
+                    'segment_type' => $d->segment_type ?? 'departure',
+                    'flight_date' => $d->flight_date ? $d->flight_date->format('Y-m-d') : '',
+                    'departure_city' => $d->departure_city ?? '',
+                    'arrival_city' => $d->arrival_city ?? '',
+                    'airline' => $d->airline ?? '',
+                    'flight_time' => $d->flight_time ? \Carbon\Carbon::parse($d->flight_time)->format('H:i') : '',
+                ];
+            })
+            ->toArray();
     }
 
     if ($needTicket === null) {
-        $needTicket = $existingFlightRequest && $existingFlightRequest->details && $existingFlightRequest->details->isNotEmpty();
+        $needTicket =
+            $existingFlightRequest && $existingFlightRequest->details && $existingFlightRequest->details->isNotEmpty();
     }
     $needTicket = (bool) $needTicket;
+
+    $requestedAt = old($namePrefix . '.requested_at');
+    if ($requestedAt === null && $existingFlightRequest && $existingFlightRequest->requested_at) {
+        $requestedAt = $existingFlightRequest->requested_at->format('Y-m-d H:i:s');
+    }
+    if ($requestedAt instanceof \DateTimeInterface) {
+        $requestedAt = $requestedAt->format('Y-m-d H:i:s');
+    }
+    $requestedAt = $requestedAt ?? now()->format('Y-m-d H:i:s');
 
     if (empty($details)) {
         $details = [
@@ -62,9 +81,10 @@
         </div>
 
         <div id="{{ $namePrefix }}_segments_wrap" class="mt-3" style="{{ $needTicket ? '' : 'display:none;' }}">
-            <p class="text-muted small mb-2">
+            <p class="text-muted  mb-2">
                 <i class="fas fa-info-circle"></i> Fill in flight data: date, route, airline, and time.
             </p>
+            <input type="hidden" name="{{ $namePrefix }}[requested_at]" value="{{ $requestedAt }}">
             <div id="{{ $namePrefix }}_segments_container">
                 @foreach ($details as $index => $detail)
                     @php
@@ -73,7 +93,7 @@
                     @endphp
                     <div class="border rounded p-3 mb-3 fr-segment bg-light" data-index="{{ $index }}">
                         <div class="d-flex justify-content-between align-items-center mb-3">
-                            <strong class="small">Flight {{ $index + 1 }}</strong>
+                            <strong class="">Flight {{ $index + 1 }}</strong>
                             @if ($index > 0)
                                 <button type="button" class="btn btn-sm btn-outline-danger fr-remove-segment">
                                     <i class="fas fa-times"></i> Remove
@@ -82,54 +102,52 @@
                         </div>
                         <input type="hidden" name="{{ $namePrefix }}[details][{{ $index }}][segment_type]"
                             value="{{ $segType }}">
-                        <div class="row no-gutters fr-segment-fields">
-                            <div class="col-12">
+                        <div class="row fr-segment-fields">
+                            <div class="col-md-6">
                                 <div class="form-group mb-2">
-                                    <label class="small mb-1">Date <span class="text-danger">*</span></label>
-                                    <input type="date"
-                                        name="{{ $namePrefix }}[details][{{ $index }}][flight_date]"
-                                        class="form-control form-control-sm" value="{{ $detail['flight_date'] ?? '' }}"
-                                        {{ $needTicket ? '' : 'disabled' }}>
-                                </div>
-                            </div>
-                            <div class="col-12">
-                                <div class="form-group mb-2">
-                                    <label class="small mb-1">From (City/Airport) <span
-                                            class="text-danger">*</span></label>
+                                    <label class="mb-1">From (City/Airport) <span class="text-danger">*</span></label>
                                     <input type="text"
                                         name="{{ $namePrefix }}[details][{{ $index }}][departure_city]"
-                                        class="form-control form-control-sm" placeholder="e.g. CGK"
+                                        class="form-control" placeholder="e.g. CGK"
                                         value="{{ $detail['departure_city'] ?? '' }}"
                                         {{ $needTicket ? '' : 'disabled' }}>
                                 </div>
                             </div>
-                            <div class="col-12">
+                            <div class="col-md-6">
                                 <div class="form-group mb-2">
-                                    <label class="small mb-1">To (City/Airport) <span
-                                            class="text-danger">*</span></label>
+                                    <label class="mb-1">To (City/Airport) <span class="text-danger">*</span></label>
                                     <input type="text"
                                         name="{{ $namePrefix }}[details][{{ $index }}][arrival_city]"
-                                        class="form-control form-control-sm" placeholder="e.g. DPS"
+                                        class="form-control" placeholder="e.g. DPS"
                                         value="{{ $detail['arrival_city'] ?? '' }}"
                                         {{ $needTicket ? '' : 'disabled' }}>
                                 </div>
                             </div>
-                            <div class="col-12">
+                            <div class="col-md-6">
                                 <div class="form-group mb-2">
-                                    <label class="small mb-1">Airline</label>
-                                    <input type="text"
-                                        name="{{ $namePrefix }}[details][{{ $index }}][airline]"
-                                        class="form-control form-control-sm" placeholder="e.g. Garuda"
-                                        value="{{ $detail['airline'] ?? '' }}" {{ $needTicket ? '' : 'disabled' }}>
+                                    <label class="mb-1">Date <span class="text-danger">*</span></label>
+                                    <input type="date"
+                                        name="{{ $namePrefix }}[details][{{ $index }}][flight_date]"
+                                        class="form-control" value="{{ $detail['flight_date'] ?? '' }}"
+                                        {{ $needTicket ? '' : 'disabled' }}>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group mb-2">
+                                    <label class="mb-1">Time</label>
+                                    <input type="time"
+                                        name="{{ $namePrefix }}[details][{{ $index }}][flight_time]"
+                                        class="form-control" value="{{ $detail['flight_time'] ?? '' }}"
+                                        {{ $needTicket ? '' : 'disabled' }}>
                                 </div>
                             </div>
                             <div class="col-12">
                                 <div class="form-group mb-0">
-                                    <label class="small mb-1">Time</label>
-                                    <input type="time"
-                                        name="{{ $namePrefix }}[details][{{ $index }}][flight_time]"
-                                        class="form-control form-control-sm" value="{{ $detail['flight_time'] ?? '' }}"
-                                        {{ $needTicket ? '' : 'disabled' }}>
+                                    <label class="mb-1">Airline</label>
+                                    <input type="text"
+                                        name="{{ $namePrefix }}[details][{{ $index }}][airline]"
+                                        class="form-control" placeholder="e.g. Garuda"
+                                        value="{{ $detail['airline'] ?? '' }}" {{ $needTicket ? '' : 'disabled' }}>
                                 </div>
                             </div>
                         </div>
@@ -178,8 +196,11 @@
                         var segments = container.querySelectorAll('.fr-segment');
                         segments.forEach(function(seg, i) {
                             if (i === 0) {
-                                var inputs = seg.querySelectorAll('input[type="date"], input[type="text"], input[type="time"]');
-                                inputs.forEach(function(inp) { inp.value = ''; });
+                                var inputs = seg.querySelectorAll(
+                                    'input[type="date"], input[type="text"], input[type="time"]');
+                                inputs.forEach(function(inp) {
+                                    inp.value = '';
+                                });
                             } else {
                                 seg.remove();
                             }
@@ -209,27 +230,27 @@
                             var html = '<div class="border rounded p-3 mb-3 fr-segment bg-light" data-index="' +
                                 nextIndex + '">' +
                                 '<div class="d-flex justify-content-between align-items-center mb-3">' +
-                                '<strong class="small">Flight ' + (nextIndex + 1) + '</strong>' +
+                                '<strong class="">Flight ' + (nextIndex + 1) + '</strong>' +
                                 '<button type="button" class="btn btn-sm btn-outline-danger fr-remove-segment"><i class="fas fa-times"></i> Remove</button>' +
                                 '</div>' +
                                 '<input type="hidden" name="' + prefix + '[details][' + nextIndex +
                                 '][segment_type]" value="' + segType + '">' +
-                                '<div class="row no-gutters fr-segment-fields">' +
-                                '<div class="col-12"><div class="form-group mb-2"><label class="small mb-1">Date <span class="text-danger">*</span></label>' +
+                                '<div class="row fr-segment-fields">' +
+                                '<div class="col-md-6"><div class="form-group mb-2"><label class="mb-1">From (City/Airport) <span class="text-danger">*</span></label>' +
+                                '<input type="text" name="' + prefix + '[details][' + nextIndex +
+                                '][departure_city]" class="form-control" placeholder="e.g. CGK"></div></div>' +
+                                '<div class="col-md-6"><div class="form-group mb-2"><label class="mb-1">To (City/Airport) <span class="text-danger">*</span></label>' +
+                                '<input type="text" name="' + prefix + '[details][' + nextIndex +
+                                '][arrival_city]" class="form-control" placeholder="e.g. DPS"></div></div>' +
+                                '<div class="col-md-6"><div class="form-group mb-2"><label class="mb-1">Date <span class="text-danger">*</span></label>' +
                                 '<input type="date" name="' + prefix + '[details][' + nextIndex +
-                                '][flight_date]" class="form-control form-control-sm"></div></div>' +
-                                '<div class="col-12"><div class="form-group mb-2"><label class="small mb-1">From (City/Airport) <span class="text-danger">*</span></label>' +
-                                '<input type="text" name="' + prefix + '[details][' + nextIndex +
-                                '][departure_city]" class="form-control form-control-sm" placeholder="e.g. CGK"></div></div>' +
-                                '<div class="col-12"><div class="form-group mb-2"><label class="small mb-1">To (City/Airport) <span class="text-danger">*</span></label>' +
-                                '<input type="text" name="' + prefix + '[details][' + nextIndex +
-                                '][arrival_city]" class="form-control form-control-sm" placeholder="e.g. DPS"></div></div>' +
-                                '<div class="col-12"><div class="form-group mb-2"><label class="small mb-1">Airline</label>' +
-                                '<input type="text" name="' + prefix + '[details][' + nextIndex +
-                                '][airline]" class="form-control form-control-sm" placeholder="e.g. Garuda"></div></div>' +
-                                '<div class="col-12"><div class="form-group mb-0"><label class="small mb-1">Time</label>' +
+                                '][flight_date]" class="form-control"></div></div>' +
+                                '<div class="col-md-6"><div class="form-group mb-2"><label class="mb-1">Time</label>' +
                                 '<input type="time" name="' + prefix + '[details][' + nextIndex +
-                                '][flight_time]" class="form-control form-control-sm"></div></div>' +
+                                '][flight_time]" class="form-control"></div></div>' +
+                                '<div class="col-12"><div class="form-group mb-0"><label class="mb-1">Airline</label>' +
+                                '<input type="text" name="' + prefix + '[details][' + nextIndex +
+                                '][airline]" class="form-control" placeholder="e.g. Garuda"></div></div>' +
                                 '</div></div>';
                             container.insertAdjacentHTML('beforeend', html);
                             reindexSegments(prefix, container);
@@ -259,7 +280,7 @@
                         seg.querySelector('input[type="hidden"]').value = segType;
                         var inputs = seg.querySelectorAll(
                             'input[type="date"], input[type="text"], input[type="time"]');
-                        var names = ['flight_date', 'departure_city', 'arrival_city', 'airline', 'flight_time'];
+                        var names = ['departure_city', 'arrival_city', 'flight_date', 'flight_time', 'airline'];
                         inputs.forEach(function(inp, j) {
                             if (names[j]) inp.setAttribute('name', prefix + '[details][' + i + '][' + names[
                                 j] + ']');

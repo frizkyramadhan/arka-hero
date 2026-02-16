@@ -796,6 +796,8 @@ Route::group(['middleware' => ['auth']], function () {
         Route::prefix('my-requests')->name('flight-requests.')->group(function () {
             Route::get('/', [FlightRequestController::class, 'myRequests'])->name('my-requests');
             Route::get('/data', [FlightRequestController::class, 'myRequestsData'])->name('my-requests.data');
+            Route::get('/api/leave-requests', [FlightRequestController::class, 'getMyLeaveRequests'])->name('my-requests.api.leave-requests');
+            Route::get('/api/official-travels', [FlightRequestController::class, 'getMyOfficialTravels'])->name('my-requests.api.official-travels');
             Route::get('/create', [FlightRequestController::class, 'myRequestsCreate'])->name('my-requests.create');
             Route::post('/', [FlightRequestController::class, 'myRequestsStore'])->name('my-requests.store');
             Route::get('/{flightRequest}', [FlightRequestController::class, 'myRequestsShow'])->name('my-requests.show');

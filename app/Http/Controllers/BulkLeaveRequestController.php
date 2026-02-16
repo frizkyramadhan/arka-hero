@@ -15,6 +15,7 @@ use App\Models\Administration;
 use App\Models\LeaveEntitlement;
 use App\Models\Roster;
 use App\Models\RosterDetail;
+use App\Models\FlightRequest;
 use Illuminate\Support\Facades\DB;
 use App\Services\RosterLeaveService;
 use Illuminate\Support\Facades\Auth;
@@ -702,6 +703,21 @@ class BulkLeaveRequestController extends Controller
                         $request->bulk_notes
                     );
 
+                    // Create flight request from fr_data when "Need flight ticket?" was checked
+                    $frData = $empData['fr_data'] ?? null;
+                    if (is_array($frData) && !empty($frData['need_flight_ticket']) && !empty($frData['details'])) {
+                        try {
+                            FlightRequest::createFromFrDataArray($frData, $leaveRequest, Auth::id());
+                        } catch (\Exception $frEx) {
+                            Log::warning('Failed to create flight request for periodic leave', [
+                                'leave_request_id' => $leaveRequest->id,
+                                'employee_id' => $employee->id,
+                                'error' => $frEx->getMessage(),
+                            ]);
+                            // Don't fail the whole batch - flight request is optional
+                        }
+                    }
+
                     $successCount++;
                 } catch (\Exception $e) {
                     $errors[] = "Failed to create request for employee {$empData['employee_id']}: {$e->getMessage()}";
@@ -745,7 +761,8 @@ class BulkLeaveRequestController extends Controller
                 'administration.project',
                 'leaveType',
                 'approvalPlans.approver',
-                'requestedBy'
+                'requestedBy',
+                'flightRequests.details'
             ])
             ->join('administrations', 'leave_requests.administration_id', '=', 'administrations.id')
             ->join('positions', 'administrations.position_id', '=', 'positions.id')

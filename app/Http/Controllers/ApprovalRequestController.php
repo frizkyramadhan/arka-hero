@@ -49,7 +49,7 @@ class ApprovalRequestController extends Controller
                 'flightRequest.administration',
                 'flightRequestIssuance.issuedBy',
                 'flightRequestIssuance.businessPartner',
-                'flightRequestIssuance.issuanceDetails'
+                'flightRequestIssuance.issuanceDetails.employee'
             ])
                 ->where('approver_id', Auth::id())
                 ->where('is_open', true)
@@ -194,7 +194,7 @@ class ApprovalRequestController extends Controller
                             return '-';
                         }
                         $main = $issuance->issued_number . ($issuance->businessPartner ? ' - ' . $issuance->businessPartner->bp_name : '');
-                        $passengers = $issuance->issuanceDetails->pluck('passenger_name')->filter()->unique()->values();
+                        $passengers = $issuance->issuanceDetails->map(fn ($d) => $d->resolved_passenger_name)->filter()->unique()->values();
                         if ($passengers->isNotEmpty()) {
                             $main .= ' <div class="small text-muted mt-1">' . e($passengers->take(5)->join(', ')) . ($passengers->count() > 5 ? ' (+' . ($passengers->count() - 5) . ')' : '') . '</div>';
                         }
