@@ -224,7 +224,7 @@
                             </div>
                             <div class="card-body">
                                 <div id="flightDetailsContainer">
-                                    @foreach ($flightRequest->details as $index => $detail)
+                                    @foreach ($flightRequest->details->sortBy('segment_order')->values() as $index => $detail)
                                         <div class="flight-detail-item border p-3 mb-3" data-index="{{ $index }}">
                                             <div class="row">
                                                 <div class="col-md-12 mb-2">

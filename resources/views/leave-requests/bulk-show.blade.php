@@ -141,6 +141,7 @@
                                                 <th width="100">End Date</th>
                                                 <th width="60" class="text-center">Days</th>
                                                 <th width="100" class="text-center">Status</th>
+                                                <th width="120" class="text-center">Flight</th>
                                                 <th width="60" class="text-center">Action</th>
                                             </tr>
                                         </thead>
@@ -172,6 +173,38 @@
                                                             <span class="badge badge-secondary">Cancelled</span>
                                                         @elseif($request->status == 'auto_approved')
                                                             <span class="badge badge-info">Auto Approved</span>
+                                                        @endif
+                                                    </td>
+                                                    <td class="text-center">
+                                                        @if ($request->flightRequests && $request->flightRequests->isNotEmpty())
+                                                            @foreach ($request->flightRequests as $fr)
+                                                                <div class="small mb-1">
+                                                                    @if (Route::has('flight-requests.show'))
+                                                                        <a href="{{ route('flight-requests.show', $fr->id) }}" class="text-primary" title="View Flight Request" target="_blank">
+                                                                            <i class="fas fa-plane mr-1"></i>{{ $fr->form_number ?? 'FR' }}
+                                                                        </a>
+                                                                    @elseif(Route::has('flight-requests.my-requests.show'))
+                                                                        <a href="{{ route('flight-requests.my-requests.show', $fr->id) }}" class="text-primary" title="View Flight Request" target="_blank">
+                                                                            <i class="fas fa-plane mr-1"></i>{{ $fr->form_number ?? 'FR' }}
+                                                                        </a>
+                                                                    @else
+                                                                        <span><i class="fas fa-plane mr-1"></i>{{ $fr->form_number ?? 'FR' }}</span>
+                                                                    @endif
+                                                                    <span class="badge badge-{{ $fr->status === 'draft' ? 'secondary' : ($fr->status === 'approved' ? 'success' : ($fr->status === 'rejected' ? 'danger' : 'info')) }} small">{{ ucfirst($fr->status) }}</span>
+                                                                </div>
+                                                                @if ($fr->details && $fr->details->isNotEmpty())
+                                                                    <div class="text-muted" style="font-size: 0.75rem;">
+                                                                        @foreach ($fr->details->sortBy('segment_order')->take(2) as $seg)
+                                                                            <div>{{ $seg->flight_date ? $seg->flight_date->format('d M') : '-' }} {{ $seg->departure_city }} → {{ $seg->arrival_city }}</div>
+                                                                        @endforeach
+                                                                        @if ($fr->details->count() > 2)
+                                                                            <div>+{{ $fr->details->count() - 2 }} more</div>
+                                                                        @endif
+                                                                    </div>
+                                                                @endif
+                                                            @endforeach
+                                                        @else
+                                                            <span class="text-muted">-</span>
                                                         @endif
                                                     </td>
                                                     <td class="text-center">

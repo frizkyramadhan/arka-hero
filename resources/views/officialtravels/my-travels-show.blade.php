@@ -7,14 +7,20 @@
         <div class="travel-header">
             <div class="travel-header-content">
                 <div class="travel-number">{{ $officialtravel->project->project_name ?? 'No Project' }}</div>
-                <h1 class="travel-destination">{{ $officialtravel->official_travel_number }}</h1>
+                <h1 class="travel-destination">
+                    {{ $officialtravel->letter_number ? $officialtravel->official_travel_number : 'LOT Draft : ' . $officialtravel->official_travel_number }}
+                </h1>
                 <div class="travel-date">
                     <i class="far fa-calendar-alt"></i> {{ date('d F Y', strtotime($officialtravel->official_travel_date)) }}
                 </div>
                 @php
                     $statusMap = [
                         'draft' => ['label' => 'Draft', 'class' => 'badge badge-secondary', 'icon' => 'fa-edit'],
-                        'pending_hr' => ['label' => 'Menunggu Konfirmasi HR', 'class' => 'badge badge-warning', 'icon' => 'fa-clock'],
+                        'pending_hr' => [
+                            'label' => 'Menunggu Konfirmasi HR',
+                            'class' => 'badge badge-warning',
+                            'icon' => 'fa-clock',
+                        ],
                         'submitted' => [
                             'label' => 'Submitted',
                             'class' => 'badge badge-info',
@@ -36,11 +42,11 @@
                     $status = $officialtravel->status;
                     $pill = $officialtravel->isPendingHr()
                         ? $statusMap['pending_hr']
-                        : ($statusMap[$status] ?? [
-                            'label' => ucfirst($status),
-                            'class' => 'badge badge-secondary',
-                            'icon' => 'fa-question-circle',
-                        ]);
+                        : $statusMap[$status] ?? [
+                                'label' => ucfirst($status),
+                                'class' => 'badge badge-secondary',
+                                'icon' => 'fa-question-circle',
+                            ];
                 @endphp
                 <div class="travel-status-pill">
                     <span class="{{ $pill['class'] }}">
@@ -401,8 +407,12 @@
                         <a href="{{ route('officialtravels.my-travels') }}" class="btn-action back-btn">
                             <i class="fas fa-arrow-left"></i> Back to List
                         </a>
-                        @if ($officialtravel->traveler_id === auth()->user()->administration_id && $officialtravel->submitted_by_user && empty($officialtravel->letter_number_id))
-                            <a href="{{ route('officialtravels.my-travels.edit', $officialtravel->id) }}" class="btn btn-warning">
+                        @if (
+                            $officialtravel->traveler_id === auth()->user()->administration_id &&
+                                $officialtravel->submitted_by_user &&
+                                empty($officialtravel->letter_number_id))
+                            <a href="{{ route('officialtravels.my-travels.edit', $officialtravel->id) }}"
+                                class="btn btn-warning">
                                 <i class="fas fa-edit"></i> Edit
                             </a>
                         @endif
@@ -933,4 +943,3 @@
         }
     </style>
 @endsection
-

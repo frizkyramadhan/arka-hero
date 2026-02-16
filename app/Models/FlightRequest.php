@@ -196,7 +196,7 @@ class FlightRequest extends Model
                 'status' => self::STATUS_DRAFT,
                 'manual_approvers' => null,
                 'requested_by' => $userId,
-                'requested_at' => null,
+                'requested_at' => !empty($frData['requested_at']) ? \Carbon\Carbon::parse($frData['requested_at']) : null,
                 'notes' => 'Created from Leave Request submission.',
             ]);
         } elseif ($parent instanceof Officialtravel) {
@@ -222,12 +222,73 @@ class FlightRequest extends Model
                 'status' => self::STATUS_DRAFT,
                 'manual_approvers' => null,
                 'requested_by' => $userId,
-                'requested_at' => null,
+                'requested_at' => !empty($frData['requested_at']) ? \Carbon\Carbon::parse($frData['requested_at']) : null,
                 'notes' => 'Created from Official Travel (LOT) submission.',
             ]);
         } else {
             return null;
         }
+
+        foreach ($details as $index => $d) {
+            FlightRequestDetail::create([
+                'flight_request_id' => $flightRequest->id,
+                'segment_order' => $index + 1,
+                'segment_type' => $d['segment_type'] ?? ($index === 0 ? 'departure' : 'return'),
+                'flight_date' => $d['flight_date'],
+                'departure_city' => $d['departure_city'],
+                'arrival_city' => $d['arrival_city'],
+                'airline' => $d['airline'] ?? null,
+                'flight_time' => !empty($d['flight_time']) ? $d['flight_time'] : null,
+            ]);
+        }
+
+        return $flightRequest;
+    }
+
+    /**
+     * Create a flight request from fr_data array (for bulk/periodic leave).
+     * Returns the created FlightRequest or null if fr_data not present/invalid.
+     */
+    public static function createFromFrDataArray(array $frData, LeaveRequest $leaveRequest, ?int $userId = null): ?self
+    {
+        if (empty($frData['need_flight_ticket']) || empty($frData['details']) || !is_array($frData['details'])) {
+            return null;
+        }
+
+        $details = array_values(array_filter($frData['details'], function ($d) {
+            return !empty($d['flight_date']) && !empty($d['departure_city']) && !empty($d['arrival_city']);
+        }));
+        if (empty($details)) {
+            return null;
+        }
+
+        $userId = $userId ?? auth()->id();
+        $leaveRequest->load(['employee', 'administration.position.department', 'administration.project', 'leaveType']);
+        $administration = $leaveRequest->administration;
+        $employee = $leaveRequest->employee;
+        $purpose = 'Leave: ' . ($leaveRequest->leaveType->name ?? '') . ' ' . $leaveRequest->start_date?->format('d/m/Y') . ' - ' . $leaveRequest->end_date?->format('d/m/Y');
+
+        $flightRequest = self::create([
+            'form_number' => self::generateFormNumber(),
+            'request_type' => self::TYPE_LEAVE_BASED,
+            'employee_id' => $leaveRequest->employee_id,
+            'administration_id' => $leaveRequest->administration_id,
+            'employee_name' => $employee->fullname ?? null,
+            'nik' => $administration->nik ?? null,
+            'position' => $administration->position->position_name ?? null,
+            'department' => $administration->position->department->department_name ?? null,
+            'project' => $administration->project->project_name ?? null,
+            'phone_number' => null,
+            'purpose_of_travel' => $purpose,
+            'total_travel_days' => (string) ($leaveRequest->total_days ?? ''),
+            'leave_request_id' => $leaveRequest->id,
+            'official_travel_id' => null,
+            'status' => self::STATUS_DRAFT,
+            'manual_approvers' => null,
+            'requested_by' => $userId,
+            'requested_at' => !empty($frData['requested_at']) ? \Carbon\Carbon::parse($frData['requested_at']) : null,
+            'notes' => 'Created from Periodic Leave Request submission.',
+        ]);
 
         foreach ($details as $index => $d) {
             FlightRequestDetail::create([

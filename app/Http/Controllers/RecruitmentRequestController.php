@@ -157,7 +157,7 @@ class RecruitmentRequestController extends Controller
     public function create()
     {
         $title = 'Recruitment';
-        $subtitle = 'Add Recruitment Request (FPTK)';
+        $subtitle = 'Create Recruitment Request (FPTK)';
         $departments = Department::get();
         $projects = Project::where('project_status', '1')->get();
         $positions = Position::get();
@@ -452,7 +452,7 @@ class RecruitmentRequestController extends Controller
     public function edit($id)
     {
         $title = 'Recruitment Requests (FPTK)';
-        $subtitle = 'Edit Recruitment Request';
+        $subtitle = 'Edit Recruitment Request (FPTK)';
 
         $fptk = RecruitmentRequest::findOrFail($id);
 
@@ -508,6 +508,8 @@ class RecruitmentRequestController extends Controller
             'required_physical' => 'nullable|string|max:500',
             'required_mental' => 'nullable|string|max:500',
             'other_requirements' => 'nullable|string|max:1000',
+            // Letter number (HR konfirmasi saat edit)
+            'letter_number_id' => 'nullable|exists:letter_numbers,id',
             // Manual approvers
             'manual_approvers' => 'nullable|array',
             'manual_approvers.*' => 'exists:users,id',
@@ -538,7 +540,32 @@ class RecruitmentRequestController extends Controller
             // Check if manual_approvers changed
             $approversChanged = json_encode($fptk->manual_approvers ?? []) !== json_encode($manualApprovers);
 
-            $fptk->update([
+            // Letter number: HR konfirmasi/assign saat edit
+            $letterNumberId = null;
+            $letterNumberString = null;
+            $requestNumber = $fptk->request_number;
+
+            if ($request->letter_number_id) {
+                $letterNumberRecord = LetterNumber::find($request->letter_number_id);
+                if ($letterNumberRecord && in_array($letterNumberRecord->status, ['reserved', 'used'])) {
+                    $letterNumberId = $letterNumberRecord->id;
+                    $letterNumberString = $letterNumberRecord->letter_number;
+                    $project = Project::find($request->project_id);
+                    $projectCode = $project ? $project->project_code : 'HO';
+                    $romanMonth = $this->numberToRoman(now()->month);
+                    $numericPart = $letterNumberString;
+                    if (str_starts_with($letterNumberString, 'FPTK')) {
+                        $numericPart = str_replace('FPTK', '', $letterNumberString);
+                    }
+                    $numericPart = str_pad((int) $numericPart, 4, '0', STR_PAD_LEFT);
+                    $requestNumber = sprintf('%s/HCS-%s/FPTK/%s/%s', $numericPart, $projectCode, $romanMonth, now()->year);
+                    if ($letterNumberRecord->status === 'reserved') {
+                        $letterNumberRecord->markAsUsed('recruitment_request', $fptk->id);
+                    }
+                }
+            }
+
+            $updateData = [
                 'department_id' => $request->department_id,
                 'project_id' => $request->project_id,
                 'position_id' => $request->position_id,
@@ -561,11 +588,13 @@ class RecruitmentRequestController extends Controller
                 'other_requirements' => $request->other_requirements,
                 'requires_theory_test' => $request->boolean('requires_theory_test'),
                 'manual_approvers' => $manualApprovers,
-                // Approval hierarchy fields
-                // 'known_by' => $request->known_by,
-                // 'approved_by_pm' => $request->approved_by_pm,
-                // 'approved_by_director' => $request->approved_by_director,
-            ]);
+            ];
+            if ($letterNumberId !== null) {
+                $updateData['letter_number_id'] = $letterNumberId;
+                $updateData['letter_number'] = $letterNumberString;
+                $updateData['request_number'] = $requestNumber;
+            }
+            $fptk->update($updateData);
 
             // If approvers changed and there are existing approval plans, delete them
             // (They will be recreated when document is submitted)
@@ -1305,45 +1334,55 @@ class RecruitmentRequestController extends Controller
     }
 
     /**
-     * Show the form for creating a new recruitment request (self-service)
+     * Show the form for creating a new recruitment request (self-service).
+     * No letter number; no approver selection; saved as draft. HR assigns letter number later.
      */
     public function myRequestsCreate()
     {
         $this->authorize('personal.recruitment.create-own');
 
         $title = 'My Recruitment Requests';
-        $subtitle = 'Add Recruitment Request (FPTK)';
+        $subtitle = 'Create My Recruitment Request (FPTK)';
         $departments = Department::get();
         $projects = Project::where('project_status', '1')->get();
         $positions = Position::get();
         $levels = Level::get();
 
-        // Get users with approval permissions
-        // $acknowledgers = User::permission('recruitment-requests.acknowledge')->get();
-        // $approvers = User::permission('recruitment-requests.approve')->get();
+        // Preview request number (REQ00001 style); HR will assign formal FPTK number later
+        $lastRequest = RecruitmentRequest::where('request_number', 'like', 'REQ%')
+            ->where('submitted_by_user', true)
+            ->orderBy('created_at', 'desc')
+            ->first();
+        $sequence = 1;
+        if ($lastRequest && preg_match('/^REQ(\d+)$/', $lastRequest->request_number, $m)) {
+            $sequence = (int) $m[1] + 1;
+        }
+        $previewRequestNumber = 'REQ' . sprintf('%05d', $sequence);
 
-        // Travel Number will be generated based on selected letter number
-        $romanMonth = $this->numberToRoman(now()->month);
-        $recruitmentNumber = sprintf("[Letter Number]/HCS-[Project Code]/FPTK/%s/%s", $romanMonth, now()->year);
-
-        return view('recruitment.requests.create', compact('departments', 'projects', 'positions', 'levels', 'title', 'subtitle', 'recruitmentNumber'));
+        return view('recruitment.requests.my-create', compact(
+            'departments',
+            'projects',
+            'positions',
+            'levels',
+            'title',
+            'subtitle',
+            'previewRequestNumber'
+        ));
     }
 
     /**
-     * Store a newly created recruitment request (self-service)
+     * Store a newly created recruitment request (self-service).
+     * No letter number; no approver selection; always saved as draft. HR assigns letter number and approvers later.
      */
     public function myRequestsStore(Request $request)
     {
         $this->authorize('personal.recruitment.create-own');
 
-        // Use same validation as store method
         $request->validate([
             'department_id' => 'required|exists:departments,id',
             'project_id' => 'required|exists:projects,id',
             'position_id' => 'required|exists:positions,id',
             'level_id' => 'required|exists:levels,id',
-            'number_option' => 'nullable|in:existing',
-            'letter_number_id' => 'nullable|exists:letter_numbers,id',
             'required_qty' => 'required|integer|min:1|max:50',
             'required_date' => 'required|date',
             'employment_type' => 'required|in:pkwtt,pkwt,harian,magang',
@@ -1361,68 +1400,26 @@ class RecruitmentRequestController extends Controller
             'required_mental' => 'nullable|string|max:500',
             'other_requirements' => 'nullable|string|max:1000',
             'requires_theory_test' => 'nullable|boolean',
-            'manual_approvers' => 'required_if:submit_action,submit|array|min:1',
-            'manual_approvers.*' => 'exists:users,id',
-            'submit_action' => 'required|in:draft,submit',
-        ], [
-            'manual_approvers.required_if' => 'Please select at least one approver.',
-            'manual_approvers.array' => 'Approvers must be an array.',
-            'manual_approvers.min' => 'Please select at least one approver.',
-            'manual_approvers.*.exists' => 'One or more selected approvers are invalid.',
         ]);
 
         try {
             DB::beginTransaction();
 
-            // Handle letter number integration and generate FPTK number
-            $letterNumberId = null;
-            $letterNumberString = null;
-            $letterNumberRecord = null;
-            $romanMonth = $this->numberToRoman(now()->month);
-
-            if ($request->letter_number_id) {
-                $letterNumberRecord = LetterNumber::find($request->letter_number_id);
-                if ($letterNumberRecord && $letterNumberRecord->status === 'reserved') {
-                    $letterNumberId = $letterNumberRecord->id;
-                    $letterNumberString = $letterNumberRecord->letter_number;
-                } else {
-                    throw new \Exception('Selected letter number is not available or not reserved. Current status: ' . ($letterNumberRecord ? $letterNumberRecord->status : 'not found'));
-                }
+            // Generate next REQ number for user-submitted requests (no letter number)
+            $lastRequest = RecruitmentRequest::where('request_number', 'like', 'REQ%')
+                ->where('submitted_by_user', true)
+                ->orderBy('created_at', 'desc')
+                ->first();
+            $sequence = 1;
+            if ($lastRequest && preg_match('/^REQ(\d+)$/', $lastRequest->request_number, $m)) {
+                $sequence = (int) $m[1] + 1;
             }
-
-            $project = Project::find($request->project_id);
-            $projectCode = $project ? $project->project_code : 'HO';
-
-            $fptkNumber = null;
-            if ($letterNumberString) {
-                $numericPart = $letterNumberString;
-                if (str_starts_with($letterNumberString, 'FPTK')) {
-                    $numericPart = str_replace('FPTK', '', $letterNumberString);
-                }
-                $numericPart = str_pad((int) $numericPart, 4, '0', STR_PAD_LEFT);
-
-                $fptkNumber = sprintf(
-                    '%s/HCS-%s/FPTK/%s/%s',
-                    $numericPart,
-                    $projectCode,
-                    $romanMonth,
-                    now()->year
-                );
-            }
-
-            $manualApprovers = $request->manual_approvers ?? [];
-            if (!is_array($manualApprovers)) {
-                $manualApprovers = [];
-            }
-            $manualApprovers = array_values(array_filter($manualApprovers));
-
-            $status = $request->submit_action === 'submit' ? 'submitted' : 'draft';
-            $submitAt = $request->submit_action === 'submit' ? now() : null;
+            $requestNumber = 'REQ' . sprintf('%05d', $sequence);
 
             $fptk = RecruitmentRequest::create([
-                'letter_number_id' => $letterNumberId,
-                'letter_number' => $letterNumberString,
-                'request_number' => $fptkNumber,
+                'letter_number_id' => null,
+                'letter_number' => null,
+                'request_number' => $requestNumber,
                 'department_id' => $request->department_id,
                 'project_id' => $request->project_id,
                 'position_id' => $request->position_id,
@@ -1444,66 +1441,28 @@ class RecruitmentRequestController extends Controller
                 'required_mental' => $request->required_mental,
                 'other_requirements' => $request->other_requirements,
                 'requires_theory_test' => $request->boolean('requires_theory_test'),
-                'manual_approvers' => $manualApprovers,
+                'manual_approvers' => [],
                 'created_by' => Auth::id(),
-                'status' => $status,
-                'submit_at' => $submitAt,
+                'status' => 'draft',
+                'submit_at' => null,
+                'submitted_by_user' => true,
             ]);
-
-            // Mark letter number as used immediately after FPTK creation
-            // This applies to both draft and submit actions
-            if ($letterNumberRecord) {
-                $letterNumberRecord->markAsUsed('recruitment_request', $fptk->id);
-
-                // Log the letter number usage for debugging
-                Log::info('Letter Number marked as used for FPTK (My Requests)', [
-                    'letter_number_id' => $letterNumberRecord->id,
-                    'letter_number' => $letterNumberRecord->letter_number,
-                    'fptk_id' => $fptk->id,
-                    'fptk_number' => $fptk->request_number,
-                    'status' => $status,
-                    'action' => $request->submit_action
-                ]);
-            }
-
-            if ($request->submit_action === 'submit' && !empty($manualApprovers)) {
-                $response = app(ApprovalPlanController::class)->create_manual_approval_plan('recruitment_request', $fptk->id);
-                if (!$response || $response === 0) {
-                    DB::rollback();
-                    return redirect()->back()
-                        ->with('toast_error', 'Failed to create approval plans. Please ensure at least one approver is selected.')
-                        ->withInput();
-                }
-            } elseif ($request->submit_action === 'submit' && empty($manualApprovers)) {
-                DB::rollback();
-                return redirect()->back()
-                    ->with('toast_error', 'Please select at least one approver before submitting.')
-                    ->withInput();
-            }
 
             DB::commit();
 
-            $message = 'Recruitment request created successfully. Number: ' . $fptk->request_number;
-            if ($letterNumberString) {
-                $message .= ' with Letter Number: ' . $letterNumberString;
-            }
-
-            if ($request->submit_action === 'submit') {
-                $message .= ' Status: Submitted for approval.';
-            } else {
-                $message .= ' Status: Saved as draft.';
-            }
-
-            return redirect()->route('recruitment.my-requests')->with('toast_success', $message);
+            return redirect()->route('recruitment.my-requests')->with(
+                'toast_success',
+                'Recruitment request berhasil dibuat. Nomor: ' . $fptk->request_number . ' Status: Draft. Anda dapat mengedit lalu submit untuk approval.'
+            );
         } catch (Exception $e) {
             DB::rollback();
-            Log::error('Error creating recruitment request: ' . $e->getMessage(), [
+            Log::error('Error creating recruitment request (my-requests): ' . $e->getMessage(), [
                 'exception' => $e,
-                'request_data' => $request->except(['_token', 'manual_approvers']),
+                'request_data' => $request->except(['_token']),
             ]);
 
             return redirect()->back()
-                ->with('toast_error', 'Failed to create recruitment request: ' . $e->getMessage())
+                ->with('toast_error', 'Gagal membuat recruitment request: ' . $e->getMessage())
                 ->withInput();
         }
     }
@@ -1697,13 +1656,13 @@ class RecruitmentRequestController extends Controller
         }
 
         $title = 'My Recruitment Requests';
-        $subtitle = 'Edit Recruitment Request';
+        $subtitle = 'Edit My Recruitment Request (FPTK)';
         $departments = Department::get();
         $projects = Project::where('project_status', '1')->get();
         $positions = Position::get();
         $levels = Level::get();
 
-        return view('recruitment.requests.edit', compact('fptk', 'departments', 'projects', 'positions', 'levels', 'title', 'subtitle'));
+        return view('recruitment.requests.my-edit', compact('fptk', 'departments', 'projects', 'positions', 'levels', 'title', 'subtitle'));
     }
 
     /**

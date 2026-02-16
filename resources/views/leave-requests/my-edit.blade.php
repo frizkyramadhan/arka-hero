@@ -43,27 +43,27 @@
 
                             <div class="card-body">
                                 {{-- Employee Info Display --}}
-                                <div class="row mb-3">
+                                <div class="row">
                                     <div class="col-md-6">
-                                        <div class="info-box bg-light">
-                                            <span class="info-box-icon bg-info"><i class="fas fa-user"></i></span>
-                                            <div class="info-box-content">
-                                                <span class="info-box-text">Employee</span>
-                                                <span
-                                                    class="info-box-number">{{ $leaveRequest->employee->fullname ?? 'N/A' }}</span>
-                                            </div>
+                                        <div class="form-group">
+                                            <label for="employee_display">
+                                                <i class="fas fa-user mr-1"></i>
+                                                Employee
+                                            </label>
+                                            <input type="text" id="employee_display" class="form-control bg-light"
+                                                value="{{ (optional($leaveRequest->employee->administrations->first())->nik ?? 'N/A') . ' - ' . ($leaveRequest->employee->fullname ?? 'N/A') }}"
+                                                readonly>
                                         </div>
                                     </div>
                                     <div class="col-md-6">
-                                        <div class="info-box bg-light">
-                                            <span class="info-box-icon bg-primary"><i class="fas fa-building"></i></span>
-                                            <div class="info-box-content">
-                                                <span class="info-box-text">Project</span>
-                                                <span
-                                                    class="info-box-number">{{ $leaveRequest->employee->administrations->first()->project->project_code ?? 'N/A' }}
-                                                    -
-                                                    {{ $leaveRequest->employee->administrations->first()->project->project_name ?? 'N/A' }}</span>
-                                            </div>
+                                        <div class="form-group">
+                                            <label for="project_display">
+                                                <i class="fas fa-building mr-1"></i>
+                                                Project
+                                            </label>
+                                            <input type="text" id="project_display" class="form-control bg-light"
+                                                value="{{ (optional(optional($leaveRequest->employee->administrations->first())->project)->project_code ?? 'N/A') . ' - ' . (optional(optional($leaveRequest->employee->administrations->first())->project)->project_name ?? 'N/A') }}"
+                                                readonly>
                                         </div>
                                     </div>
                                 </div>
@@ -339,9 +339,10 @@
                                         </div>
                                     </div>
                                 </div>
-                            </div>
 
+                            </div>
                         </div>
+
                     </div>
 
                     <div class="col-md-4">
@@ -382,7 +383,8 @@
                             </div>
                         </div>
 
-                        <!-- Leave Balance Card -->
+                        {{-- Leave Balance Card (commented out) --}}
+                        {{--
                         <div class="card card-success card-outline elevation-3 mt-3">
                             <div class="card-header py-2">
                                 <h5 class="card-title mb-0">
@@ -399,7 +401,7 @@
                                 </div>
                             </div>
                         </div>
-
+                        --}}
                     </div>
                 </div>
             </form>

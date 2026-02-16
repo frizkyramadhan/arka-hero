@@ -158,7 +158,7 @@
                     data-toggle="collapse" data-target="#approvalRules_{{ $componentId }}" aria-expanded="false"
                     aria-controls="approvalRules_{{ $componentId }}">
                     <i class="fas fa-info-circle mr-2"></i>
-                    <strong>Informasi Rule Approval</strong>
+                    <strong>Approval Rules Information</strong>
                     <i class="fas fa-chevron-down float-right mt-1 approval-rules-icon"></i>
                 </button>
                 <div class="collapse mt-2" id="approvalRules_{{ $componentId }}">
@@ -214,17 +214,28 @@
                             </ul>
                         @elseif($documentType === 'leave_request')
                             <h6 class="text-primary mb-2">
-                                <i class="fas fa-calendar-alt mr-1"></i> Leave Request
+                                <i class="fas fa-calendar-alt mr-1"></i> Leave Request (Cuti)
                             </h6>
                             <ul class="mb-0 pl-3">
                                 <li>Approval flow ditentukan berdasarkan kombinasi <strong>Project</strong>,
-                                    <strong>Department</strong>, dan <strong>Level</strong> karyawan
+                                    <strong>Department</strong>, dan <strong>Level</strong> karyawan pemohon
                                 </li>
-                                <li>Level karyawan diambil dari administration record yang aktif</li>
+                                <li><strong>Level di bawah Manager (Non Staff, Foreman, SPV, SPT):</strong>
+                                    <ul class="mt-1">
+                                        <li>Cuti biasa: Maksimal dua level di atas pemohon (tidak melebihi level
+                                            Manager)</li>
+                                        <li>Cuti berkala (periodic): Supervisor/Superintendent kemudian Project Manager
+                                        </li>
+                                    </ul>
+                                </li>
+                                <li><strong>Level Manager:</strong> Approval dilakukan oleh <strong>Director</strong>
+                                </li>
+                                <li><strong>Level Director:</strong> Approval dilakukan oleh <strong>Director</strong>
+                                </li>
                                 <li>Approval dilakukan secara <strong>sequential</strong> sesuai urutan yang dipilih
                                 </li>
                                 <li>Approver yang dipilih harus memiliki role <strong>approver</strong></li>
-                                <li>Setiap approver akan menerima notifikasi untuk approve/reject request</li>
+                                <li>Setiap approver akan menerima notifikasi untuk approve/reject permohonan cuti</li>
                                 <li class="mt-2"><strong><i class="fas fa-exclamation-triangle text-warning"></i>
                                         Catatan:</strong> Jika approver yang diperlukan tidak tersedia dalam Approver
                                     Selection, harap menghubungi <strong>HR HO Balikpapan</strong></li>
@@ -234,6 +245,11 @@
                                 <i class="fas fa-plane-departure mr-1"></i> Official Travel (LOT)
                             </h6>
                             <ul class="mb-0 pl-3">
+                                <li>Untuk <strong>HO</strong>: Approval pertama dilakukan oleh <strong>Department
+                                        Head/Manager Divisi</strong>, Approval kedua dilakukan oleh <strong>HCS
+                                        Manager/Direktur</strong></li>
+                                <li>Untuk <strong>Site</strong>: Approval pertama dilakukan oleh <strong>HR</strong>,
+                                    Approval kedua dilakukan oleh <strong>PJO</strong></li>
                                 <li>Approval flow ditentukan berdasarkan kombinasi <strong>Project Origin</strong> dan
                                     <strong>Department</strong> traveler
                                 </li>
@@ -252,11 +268,11 @@
                                 <i class="fas fa-plane mr-1"></i> Flight Request (FRF)
                             </h6>
                             <ul class="mb-0 pl-3">
-                                <li>Untuk <strong>Site</strong>: Approval pertama dilakukan oleh <strong>HR</strong>,
-                                    Approval kedua dilakukan oleh <strong>PJO</strong></li>
                                 <li>Untuk <strong>HO</strong>: Approval pertama dilakukan oleh <strong>Department
                                         Head/Manager Divisi</strong>, Approval kedua dilakukan oleh <strong>HCS
                                         Manager/Direktur</strong></li>
+                                <li>Untuk <strong>Site</strong>: Approval pertama dilakukan oleh <strong>HR</strong>,
+                                    Approval kedua dilakukan oleh <strong>PJO</strong></li>
                                 <li>Approval dilakukan secara <strong>sequential</strong> sesuai urutan yang dipilih
                                 </li>
                                 <li>Approver yang dipilih harus memiliki role <strong>approver</strong></li>
@@ -270,8 +286,10 @@
                                 <i class="fas fa-file-invoice mr-1"></i> Flight Request Issuance (LG)
                             </h6>
                             <ul class="mb-0 pl-3">
-                                <li>Approval untuk Letter of Guarantee (LG) dilakukan oleh <strong>HCS Division Manager</strong></li>
-                                <li>Approval dilakukan secara <strong>sequential</strong> sesuai urutan yang dipilih</li>
+                                <li>Approval untuk Letter of Guarantee (LG) dilakukan oleh <strong>HCS Division
+                                        Manager</strong></li>
+                                <li>Approval dilakukan secara <strong>sequential</strong> sesuai urutan yang dipilih
+                                </li>
                                 <li>Approver yang dipilih harus memiliki role <strong>approver</strong></li>
                                 <li>Setiap approver akan menerima notifikasi untuk approve/reject issuance</li>
                                 <li class="mt-2"><strong><i class="fas fa-exclamation-triangle text-warning"></i>

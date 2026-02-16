@@ -110,7 +110,8 @@
                                             <div class="ticket-detail-card2-col ticket-detail-card2-info">
                                                 <div class="ticket-detail-card2-num">Tiket {{ $detail->ticket_order }}
                                                 </div>
-                                                <h5 class="ticket-detail-card2-name">{{ $detail->passenger_name }}
+                                                <h5 class="ticket-detail-card2-name text-uppercase">
+                                                    {{ $detail->resolved_passenger_name ?? '-' }}
                                                 </h5>
                                                 <dl class="ticket-detail-card2-dl">
                                                     <dt>Booking Code</dt>

@@ -231,14 +231,27 @@
                                                     value="{{ $detail->id }}">
                                                 <input type="hidden" name="details[{{ $index }}][ticket_order]"
                                                     value="{{ $detail->ticket_order }}">
+                                                @php
+                                                    $passengerManual = $detail->passenger_name !== null && trim($detail->passenger_name) !== '';
+                                                @endphp
                                                 <div class="col-md-6">
-                                                    <div class="form-group">
-                                                        <label><i class="fas fa-user mr-1"></i> Passenger Name <span
-                                                                class="text-danger">*</span></label>
-                                                        <input type="text"
-                                                            name="details[{{ $index }}][passenger_name]"
-                                                            class="form-control" value="{{ $detail->passenger_name }}"
-                                                            required>
+                                                    <div class="form-group passenger-name-form-group">
+                                                        <label class="d-flex align-items-center flex-wrap">
+                                                            <span><i class="fas fa-user mr-1"></i> Passenger Name <span class="text-danger">*</span></span>
+                                                            <span class="ml-2 font-weight-normal">
+                                                                <input type="checkbox" name="details[{{ $index }}][passenger_manual]" value="1" class="passenger-manual-checkbox mr-1" {{ $passengerManual ? 'checked' : '' }}>
+                                                                <small>Manual</small>
+                                                            </span>
+                                                        </label>
+                                                        <div class="passenger-name-group">
+                                                            <select name="details[{{ $index }}][employee_id]" class="form-control select2bs4 passenger-employee-select" {{ $passengerManual ? 'disabled' : 'required' }} style="{{ $passengerManual ? 'display:none;' : '' }}">
+                                                                <option value="">— Select Employee —</option>
+                                                                @foreach ($employees as $emp)
+                                                                    <option value="{{ $emp->id }}" {{ $detail->employee_id == $emp->id ? 'selected' : '' }}>{{ ($emp->activeAdministration->nik ?? '-') }} - {{ $emp->fullname }}</option>
+                                                                @endforeach
+                                                            </select>
+                                                            <input type="text" name="details[{{ $index }}][passenger_name]" class="form-control passenger-name-input" placeholder="Nama penumpang" value="{{ $detail->passenger_name ?? '' }}" {{ !$passengerManual ? 'disabled style="display:none;"' : 'required' }}>
+                                                        </div>
                                                     </div>
                                                 </div>
                                                 <div class="col-md-6">
@@ -583,6 +596,7 @@
     <script src="{{ asset('assets/js/amount-format.js') }}"></script>
     <script>
         let ticketIndex = {{ $issuance->issuanceDetails->count() }};
+        const employeesForSelect = @json($employees->map(fn($e) => ['id' => $e->id, 'nik' => $e->activeAdministration->nik ?? '-', 'fullname' => $e->fullname])->values());
 
         $(document).ready(function() {
             $('.select2bs4').select2({
@@ -592,6 +606,40 @@
 
             $('#addTicketDetail').click(function() {
                 addTicketDetail();
+            });
+
+            // Setelah Select2 init: sembunyikan input manual jika passenger dari employee (Manual tidak dicentang)
+            $('.passenger-name-form-group').each(function() {
+                var $formGroup = $(this);
+                var $group = $formGroup.find('.passenger-name-group');
+                var isManual = $formGroup.find('.passenger-manual-checkbox').prop('checked');
+                var $select = $group.find('.passenger-employee-select');
+                var $input = $group.find('.passenger-name-input');
+                if (isManual) {
+                    $select.prop('disabled', true).hide();
+                    $group.find('.select2-container').hide();
+                    $input.prop('disabled', false).show().prop('required', true);
+                } else {
+                    $select.prop('disabled', false).show();
+                    $group.find('.select2-container').show();
+                    $input.prop('disabled', true).hide().prop('required', false).val('');
+                }
+            });
+
+            $(document).on('change', '.passenger-manual-checkbox', function() {
+                var $group = $(this).closest('.form-group').find('.passenger-name-group');
+                var isManual = $(this).prop('checked');
+                var $select = $group.find('.passenger-employee-select');
+                var $input = $group.find('.passenger-name-input');
+                if (isManual) {
+                    $select.prop('disabled', true).hide();
+                    $group.find('.select2-container').hide();
+                    $input.prop('disabled', false).show().prop('required', true);
+                } else {
+                    $select.prop('disabled', false).show().prop('required', true);
+                    $group.find('.select2-container').show();
+                    $input.prop('disabled', true).hide().prop('required', false).val('');
+                }
             });
         });
 
@@ -607,9 +655,21 @@
                         </div>
                         <input type="hidden" name="details[${ticketIndex}][ticket_order]" value="${ticketIndex + 1}">
                         <div class="col-md-6">
-                            <div class="form-group">
-                                <label><i class="fas fa-user mr-1"></i> Passenger Name <span class="text-danger">*</span></label>
-                                <input type="text" name="details[${ticketIndex}][passenger_name]" class="form-control" required>
+                            <div class="form-group passenger-name-form-group">
+                                <label class="d-flex align-items-center flex-wrap">
+                                    <span><i class="fas fa-user mr-1"></i> Passenger Name <span class="text-danger">*</span></span>
+                                    <span class="ml-2 font-weight-normal">
+                                        <input type="checkbox" name="details[${ticketIndex}][passenger_manual]" value="1" class="passenger-manual-checkbox mr-1">
+                                        <small>Manual</small>
+                                    </span>
+                                </label>
+                                <div class="passenger-name-group">
+                                    <select name="details[${ticketIndex}][employee_id]" class="form-control select2bs4 passenger-employee-select" required>
+                                        <option value="">— Select Employee —</option>
+                                        ${(employeesForSelect || []).map(e => '<option value="'+e.id+'">'+(e.nik || '-')+' - '+e.fullname+'</option>').join('')}
+                                    </select>
+                                    <input type="text" name="details[${ticketIndex}][passenger_name]" class="form-control passenger-name-input" placeholder="Nama penumpang" disabled style="display:none;">
+                                </div>
                             </div>
                         </div>
                         <div class="col-md-6">
@@ -689,7 +749,9 @@
                 </div>
             `;
             $('#ticketDetailsContainer').append(html);
-            updateRowCompanyAmount($('#ticketDetailsContainer').children('.ticket-detail-item').last());
+            var $lastRow = $('#ticketDetailsContainer').children('.ticket-detail-item').last();
+            $lastRow.find('.passenger-employee-select').select2({ theme: 'bootstrap4', width: '100%' });
+            updateRowCompanyAmount($lastRow);
             ticketIndex++;
         }
 
@@ -700,6 +762,8 @@
                 $(this).find('input[name*="[ticket_order]"]').val(index + 1).attr('name',
                     `details[${index}][ticket_order]`);
                 $(this).find('input[name*="[id]"]').attr('name', `details[${index}][id]`);
+                $(this).find('input[name*="[passenger_manual]"]').attr('name', `details[${index}][passenger_manual]`);
+                $(this).find('select[name*="[employee_id]"]').attr('name', `details[${index}][employee_id]`);
                 $(this).find('input[name*="[passenger_name]"]').attr('name',
                     `details[${index}][passenger_name]`);
                 $(this).find('input[name*="[booking_code]"]').attr('name',

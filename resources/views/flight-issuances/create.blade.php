@@ -171,14 +171,42 @@
                                                     <input type="hidden"
                                                         name="details[{{ $idx }}][ticket_order]"
                                                         value="{{ $d['ticket_order'] ?? $idx + 1 }}">
+                                                    @php
+                                                        $passengerManual = !empty($d['passenger_manual']);
+                                                    @endphp
                                                     <div class="col-md-6">
-                                                        <div class="form-group">
-                                                            <label><i class="fas fa-user mr-1"></i> Passenger Name <span
-                                                                    class="text-danger">*</span></label>
-                                                            <input type="text"
-                                                                name="details[{{ $idx }}][passenger_name]"
-                                                                class="form-control" required
-                                                                value="{{ $d['passenger_name'] ?? '' }}">
+                                                        <div class="form-group passenger-name-form-group">
+                                                            <label class="d-flex align-items-center flex-wrap">
+                                                                <span><i class="fas fa-user mr-1"></i> Passenger Name <span
+                                                                        class="text-danger">*</span></span>
+                                                                <span class="ml-2 font-weight-normal">
+                                                                    <input type="checkbox"
+                                                                        name="details[{{ $idx }}][passenger_manual]"
+                                                                        value="1" class="passenger-manual-checkbox mr-1"
+                                                                        {{ $passengerManual ? 'checked' : '' }}>
+                                                                    <small>Manual</small>
+                                                                </span>
+                                                            </label>
+                                                            <div class="passenger-name-group">
+                                                                <select name="details[{{ $idx }}][employee_id]"
+                                                                    class="form-control select2bs4 passenger-employee-select"
+                                                                    {{ $passengerManual ? 'disabled' : 'required' }}
+                                                                    style="{{ $passengerManual ? 'display:none;' : '' }}">
+                                                                    <option value="">— Select Employee —</option>
+                                                                    @foreach ($employees as $emp)
+                                                                        <option value="{{ $emp->id }}"
+                                                                            {{ isset($d['employee_id']) && $d['employee_id'] == $emp->id ? 'selected' : '' }}>
+                                                                            {{ $emp->activeAdministration->nik ?? '-' }}
+                                                                            - {{ $emp->fullname }}</option>
+                                                                    @endforeach
+                                                                </select>
+                                                                <input type="text"
+                                                                    name="details[{{ $idx }}][passenger_name]"
+                                                                    class="form-control passenger-name-input"
+                                                                    placeholder="Nama penumpang"
+                                                                    value="{{ $d['passenger_name'] ?? '' }}"
+                                                                    {{ !$passengerManual ? 'disabled style="display:none;"' : 'required' }}>
+                                                            </div>
                                                         </div>
                                                     </div>
                                                     <div class="col-md-6">
@@ -270,7 +298,8 @@
                                                     <div class="col-lg-6">
                                                         <div class="form-group">
                                                             <label><i class="fas fa-building mr-1"></i> 622
-                                                                (Company)</label>
+                                                                (Company)
+                                                            </label>
                                                             <div class="input-group">
                                                                 <div class="input-group-prepend"><span
                                                                         class="input-group-text">Rp</span></div>
@@ -537,6 +566,7 @@
     <script src="{{ asset('assets/js/amount-format.js') }}"></script>
     <script>
         let ticketIndex = 0;
+        const employeesForSelect = @json($employees->map(fn($e) => ['id' => $e->id, 'nik' => $e->activeAdministration->nik ?? '-', 'fullname' => $e->fullname])->values());
 
         $(document).ready(function() {
             $('.select2bs4').select2({
@@ -550,6 +580,40 @@
             }
             $('#addTicketDetail').click(function() {
                 addTicketDetail();
+            });
+
+            // Sembunyikan input manual jika passenger dari employee (Manual tidak dicentang)
+            $('.passenger-name-form-group').each(function() {
+                var $formGroup = $(this);
+                var $group = $formGroup.find('.passenger-name-group');
+                var isManual = $formGroup.find('.passenger-manual-checkbox').prop('checked');
+                var $select = $group.find('.passenger-employee-select');
+                var $input = $group.find('.passenger-name-input');
+                if (isManual) {
+                    $select.prop('disabled', true).hide();
+                    $group.find('.select2-container').hide();
+                    $input.prop('disabled', false).show().prop('required', true);
+                } else {
+                    $select.prop('disabled', false).show();
+                    $group.find('.select2-container').show();
+                    $input.prop('disabled', true).hide().prop('required', false).val('');
+                }
+            });
+
+            $(document).on('change', '.passenger-manual-checkbox', function() {
+                var $group = $(this).closest('.form-group').find('.passenger-name-group');
+                var isManual = $(this).prop('checked');
+                var $select = $group.find('.passenger-employee-select');
+                var $input = $group.find('.passenger-name-input');
+                if (isManual) {
+                    $select.prop('disabled', true).hide();
+                    $group.find('.select2-container').hide();
+                    $input.prop('disabled', false).show().prop('required', true);
+                } else {
+                    $select.prop('disabled', false).show().prop('required', true);
+                    $group.find('.select2-container').show();
+                    $input.prop('disabled', true).hide().prop('required', false).val('');
+                }
             });
 
             // Update Issued Number when letter number or issued date changes
@@ -631,9 +695,21 @@
                         </div>
                         <input type="hidden" name="details[${ticketIndex}][ticket_order]" value="${ticketIndex + 1}">
                         <div class="col-md-6">
-                            <div class="form-group">
-                                <label><i class="fas fa-user mr-1"></i> Passenger Name <span class="text-danger">*</span></label>
-                                <input type="text" name="details[${ticketIndex}][passenger_name]" class="form-control" required>
+                            <div class="form-group passenger-name-form-group">
+                                <label class="d-flex align-items-center flex-wrap">
+                                    <span><i class="fas fa-user mr-1"></i> Passenger Name <span class="text-danger">*</span></span>
+                                    <span class="ml-2 font-weight-normal">
+                                        <input type="checkbox" name="details[${ticketIndex}][passenger_manual]" value="1" class="passenger-manual-checkbox mr-1">
+                                        <small>Manual</small>
+                                    </span>
+                                </label>
+                                <div class="passenger-name-group">
+                                    <select name="details[${ticketIndex}][employee_id]" class="form-control select2bs4 passenger-employee-select" required>
+                                        <option value="">— Select Employee —</option>
+                                        ${(employeesForSelect || []).map(e => '<option value="'+e.id+'">'+(e.nik || '-')+' - '+e.fullname+'</option>').join('')}
+                                    </select>
+                                    <input type="text" name="details[${ticketIndex}][passenger_name]" class="form-control passenger-name-input" placeholder="Nama penumpang" disabled style="display:none;">
+                                </div>
                             </div>
                         </div>
                         <div class="col-md-6">
@@ -713,7 +789,12 @@
                 </div>
             `;
             $('#ticketDetailsContainer').append(html);
-            updateRowCompanyAmount($('#ticketDetailsContainer').children('.ticket-detail-item').last());
+            var $lastRow = $('#ticketDetailsContainer').children('.ticket-detail-item').last();
+            $lastRow.find('.passenger-employee-select').select2({
+                theme: 'bootstrap4',
+                width: '100%'
+            });
+            updateRowCompanyAmount($lastRow);
             ticketIndex++;
         }
 

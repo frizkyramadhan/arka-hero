@@ -375,25 +375,39 @@
                         </div>
                         <div class="card-body">
                             <div class="actions-list">
-                                <a href="{{ route('flight-requests.index') }}" class="btn-action back-btn">
+                                @php
+                                    $fromMy = isset($fromMyRequests) && $fromMyRequests;
+                                @endphp
+                                <a href="{{ $fromMy ? route('flight-requests.my-requests') : route('flight-requests.index') }}"
+                                    class="btn-action back-btn">
                                     <i class="fas fa-arrow-left"></i> Back to List
                                 </a>
 
                                 @if ($flightRequest->status != 'cancelled')
                                     @if ($flightRequest->status == 'draft')
-                                        @can('flight-requests.edit')
-                                            <a href="{{ route('flight-requests.edit', $flightRequest->id) }}"
+                                        @if ($fromMy)
+                                            <a href="{{ route('flight-requests.my-requests.edit', $flightRequest->id) }}"
                                                 class="btn-action edit-btn">
                                                 <i class="fas fa-edit"></i> Edit
                                             </a>
-                                        @endcan
-
-                                        @can('flight-requests.delete')
-                                            <button type="button" class="btn-action delete-btn btn-dark" data-toggle="modal"
-                                                data-target="#deleteModal">
+                                            <button type="button" class="btn-action delete-btn btn-dark"
+                                                data-toggle="modal" data-target="#deleteModal">
                                                 <i class="fas fa-trash"></i> Delete
                                             </button>
-                                        @endcan
+                                        @else
+                                            @can('flight-requests.edit')
+                                                <a href="{{ route('flight-requests.edit', $flightRequest->id) }}"
+                                                    class="btn-action edit-btn">
+                                                    <i class="fas fa-edit"></i> Edit
+                                                </a>
+                                            @endcan
+                                            @can('flight-requests.delete')
+                                                <button type="button" class="btn-action delete-btn btn-dark"
+                                                    data-toggle="modal" data-target="#deleteModal">
+                                                    <i class="fas fa-trash"></i> Delete
+                                                </button>
+                                            @endcan
+                                        @endif
 
                                         <!-- Submit for Approval button -->
                                         <button type="button" class="btn-action submit-btn" data-toggle="modal"

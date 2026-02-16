@@ -35,6 +35,73 @@
                             </div>
                             <!-- /.card-header -->
                             <div class="card-body">
+                                <div class="card card-primary">
+                                    <div class="card-header">
+                                        <h4 class="card-title w-100">
+                                            <a class="d-block w-100" data-toggle="collapse" href="#collapseMyFlightFilter">
+                                                <i class="fas fa-filter"></i> Filter
+                                            </a>
+                                        </h4>
+                                    </div>
+                                    <div id="collapseMyFlightFilter" class="collapse" data-parent="#accordion">
+                                        <div class="card-body">
+                                            <div class="row">
+                                                <div class="col-md-2">
+                                                    <div class="form-group">
+                                                        <label>Status</label>
+                                                        <select class="form-control select2bs4" id="filter_status" name="status">
+                                                            <option value="">- All -</option>
+                                                            <option value="draft">Draft</option>
+                                                            <option value="submitted">Submitted</option>
+                                                            <option value="approved">Approved</option>
+                                                            <option value="issued">Issued</option>
+                                                            <option value="completed">Completed</option>
+                                                            <option value="rejected">Rejected</option>
+                                                            <option value="cancelled">Cancelled</option>
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-2">
+                                                    <div class="form-group">
+                                                        <label>Request Type</label>
+                                                        <select class="form-control select2bs4" id="filter_request_type" name="request_type">
+                                                            <option value="">- All -</option>
+                                                            <option value="standalone">Standalone</option>
+                                                            <option value="leave_based">Leave Based</option>
+                                                            <option value="travel_based">Travel Based</option>
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-2">
+                                                    <div class="form-group">
+                                                        <label>Form Number</label>
+                                                        <input type="text" class="form-control" id="filter_form_number" name="form_number" placeholder="Search...">
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-2">
+                                                    <div class="form-group">
+                                                        <label>Date From</label>
+                                                        <input type="date" class="form-control" id="filter_date_from" name="date_from">
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-2">
+                                                    <div class="form-group">
+                                                        <label>Date To</label>
+                                                        <input type="date" class="form-control" id="filter_date_to" name="date_to">
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-2">
+                                                    <div class="form-group">
+                                                        <label>&nbsp;</label>
+                                                        <button type="button" class="btn btn-secondary w-100" id="btn-reset-filter" style="margin-bottom: 6px;">
+                                                            <i class="fas fa-times"></i> Reset
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                                 <div class="table-responsive">
                                     <table id="my-requests-table" class="table table-bordered table-striped" width="100%">
                                         <thead>
@@ -63,6 +130,8 @@
     <link rel="stylesheet" href="{{ asset('assets/plugins/datatables-bs4/css/dataTables.bootstrap4.min.css') }}">
     <link rel="stylesheet" href="{{ asset('assets/plugins/datatables-responsive/css/responsive.bootstrap4.min.css') }}">
     <link rel="stylesheet" href="{{ asset('assets/plugins/datatables-buttons/css/buttons.bootstrap4.min.css') }}">
+    <link rel="stylesheet" href="{{ asset('assets/plugins/select2/css/select2.min.css') }}">
+    <link rel="stylesheet" href="{{ asset('assets/plugins/select2-bootstrap4-theme/select2-bootstrap4.min.css') }}">
 @endsection
 
 @section('scripts')
@@ -78,8 +147,14 @@
     <script src="{{ asset('assets/plugins/datatables-buttons/js/buttons.html5.min.js') }}"></script>
     <script src="{{ asset('assets/plugins/datatables-buttons/js/buttons.print.min.js') }}"></script>
     <script src="{{ asset('assets/plugins/datatables-buttons/js/buttons.colVis.min.js') }}"></script>
+    <script src="{{ asset('assets/plugins/select2/js/select2.full.min.js') }}"></script>
     <script>
         $(document).ready(function() {
+            $('.select2bs4').select2({
+                theme: 'bootstrap4',
+                width: '100%'
+            });
+
             var table = $("#my-requests-table").DataTable({
                 responsive: true,
                 autoWidth: true,
@@ -89,7 +164,11 @@
                 ajax: {
                     url: "{{ route('flight-requests.my-requests.data') }}",
                     data: function(d) {
-                        d.search = $("input[type=search][aria-controls=my-requests-table]").val()
+                        d.status = $('#filter_status').val();
+                        d.request_type = $('#filter_request_type').val();
+                        d.form_number = $('#filter_form_number').val();
+                        d.date_from = $('#filter_date_from').val();
+                        d.date_to = $('#filter_date_to').val();
                     }
                 },
                 columns: [
@@ -135,6 +214,20 @@
                     }
                 ],
                 order: [[5, 'desc']]
+            });
+
+            $('#filter_status, #filter_request_type').on('change', function() {
+                table.ajax.reload();
+            });
+
+            $('#filter_form_number, #filter_date_from, #filter_date_to').on('change keyup', function() {
+                table.ajax.reload();
+            });
+
+            $('#btn-reset-filter').on('click', function() {
+                $('#filter_status, #filter_request_type').val('').trigger('change');
+                $('#filter_form_number, #filter_date_from, #filter_date_to').val('');
+                table.ajax.reload();
             });
         });
     </script>

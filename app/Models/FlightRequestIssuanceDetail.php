@@ -26,10 +26,27 @@ class FlightRequestIssuanceDetail extends Model
         return $this->getAttribute('advance_amount');
     }
 
+    /** Resolved passenger name: from linked employee or fallback to passenger_name. */
+    public function getResolvedPassengerNameAttribute(): ?string
+    {
+        if ($this->employee_id && $this->employee) {
+            return $this->employee->fullname;
+        }
+        return $this->passenger_name;
+    }
+
     // Relationships
     public function issuance()
     {
         return $this->belongsTo(FlightRequestIssuance::class, 'flight_request_issuance_id');
+    }
+
+    /**
+     * Employee (passenger) - linked for taking name from employees joined with administration active.
+     */
+    public function employee()
+    {
+        return $this->belongsTo(Employee::class);
     }
 
     // Scopes

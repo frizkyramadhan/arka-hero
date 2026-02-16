@@ -592,7 +592,8 @@ class LeaveRequestController extends Controller
             'leaveType',
             'approvalPlans',
             'cancellations.requestedBy',
-            'cancellations.confirmedBy'
+            'cancellations.confirmedBy',
+            'flightRequests.details',
         ]);
 
         return view('leave-requests.show', compact('leaveRequest'))->with('title', 'Leave Request Details');
@@ -1749,6 +1750,7 @@ class LeaveRequestController extends Controller
         // Get all active departments for department selection (needed for JavaScript)
         $departments = Department::where('department_status', 1)->get();
 
+        $leaveRequest->load(['flightRequests.details']);
         $existingFlightRequest = $leaveRequest->flightRequests()->with('details')->first();
 
         return view('leave-requests.my-edit', compact('leaveRequest', 'leaveTypes', 'projects', 'departments', 'existingFlightRequest'))

@@ -979,7 +979,7 @@
                                                     @foreach ($document->issuanceDetails as $detail)
                                                         <tr>
                                                             <td class="text-center">{{ $detail->ticket_order }}</td>
-                                                            <td>{{ $detail->passenger_name }}</td>
+                                                            <td>{{ $detail->resolved_passenger_name ?? '-' }}</td>
                                                             <td>{{ $detail->booking_code ?? '-' }}</td>
                                                             <td>{{ $detail->detail_reservation ?? '-' }}</td>
                                                             <td class="text-right">Rp

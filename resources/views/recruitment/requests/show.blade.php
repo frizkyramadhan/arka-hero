@@ -406,50 +406,7 @@
                                         </a>
                                     @endcan
 
-                                    {{-- Delete button hidden for personal users --}}
-
-                                    <!-- Submit button -->
-                                    @can('personal.recruitment.edit-own')
-                                        <div class="mb-2">
-                                            <small class="text-muted d-block">
-                                                <i class="fas fa-info-circle"></i> 
-                                                <strong>Note:</strong> After submitting, this FPTK cannot be edited anymore.
-                                            </small>
-                                        </div>
-                                        <form action="{{ route('recruitment.my-requests.submit', $fptk->id) }}" method="post" id="submitFormMyRequests">
-                                            @csrf
-                                            <button type="button" class="btn-action submit-btn" id="submitBtnMyRequests">
-                                                <i class="fas fa-paper-plane"></i> Submit for Approval
-                                            </button>
-                                        </form>
-                                        <script>
-                                            document.getElementById('submitBtnMyRequests').addEventListener('click', function(e) {
-                                                e.preventDefault();
-                                                Swal.fire({
-                                                    title: 'Submit for Approval?',
-                                                    html: '<div class="text-left">' +
-                                                        '<p>Are you sure you want to submit this FPTK for approval?</p>' +
-                                                        '<div class="alert alert-warning mt-3 mb-0">' +
-                                                        '<i class="fas fa-exclamation-triangle"></i> <strong>Important:</strong><br>' +
-                                                        'After submitting, this FPTK <strong>cannot be edited</strong> anymore.<br>' +
-                                                        'Please make sure all information is correct before submitting.' +
-                                                        '</div>' +
-                                                        '</div>',
-                                                    icon: 'question',
-                                                    showCancelButton: true,
-                                                    confirmButtonColor: '#28a745',
-                                                    cancelButtonColor: '#6c757d',
-                                                    confirmButtonText: '<i class="fas fa-paper-plane"></i> Yes, Submit',
-                                                    cancelButtonText: '<i class="fas fa-times"></i> Cancel',
-                                                    reverseButtons: true
-                                                }).then((result) => {
-                                                    if (result.isConfirmed) {
-                                                        document.getElementById('submitFormMyRequests').submit();
-                                                    }
-                                                });
-                                            });
-                                        </script>
-                                    @endcan
+                                    {{-- Submit for Approval hidden for my-requests: user saves as draft only; HR handles submission --}}
                                 @else
                                     @can('recruitment-requests.edit')
                                         <a href="{{ route('recruitment.requests.edit', $fptk->id) }}"

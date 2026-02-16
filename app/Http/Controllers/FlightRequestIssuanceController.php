@@ -6,6 +6,7 @@ use App\Models\FlightRequest;
 use App\Models\FlightRequestIssuance;
 use App\Models\FlightRequestIssuanceDetail;
 use App\Models\BusinessPartner;
+use App\Models\Employee;
 use App\Models\LetterNumber;
 use App\Models\ApprovalPlan;
 use App\Http\Controllers\ApprovalPlanController;
@@ -13,6 +14,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\ValidationException;
 
 class FlightRequestIssuanceController extends Controller
 {
@@ -201,8 +203,12 @@ class FlightRequestIssuanceController extends Controller
             ->orWhere('status', 'available')
             ->orderBy('letter_number', 'desc')
             ->get();
+        $employees = Employee::with('activeAdministration')
+            ->whereHas('administrations', fn ($q) => $q->where('is_active', 1))
+            ->orderBy('fullname')
+            ->get();
 
-        return view('flight-issuances.create', compact('flightRequests', 'businessPartners', 'letterNumbers', 'title'));
+        return view('flight-issuances.create', compact('flightRequests', 'businessPartners', 'letterNumbers', 'employees', 'title'));
     }
 
     /**
@@ -230,13 +236,25 @@ class FlightRequestIssuanceController extends Controller
             'details.*.ticket_order' => 'required|integer|min:1',
             'details.*.booking_code' => 'nullable|string|max:50',
             'details.*.detail_reservation' => 'nullable|string',
-            'details.*.passenger_name' => 'required|string|max:255',
+            'details.*.passenger_manual' => 'nullable|in:0,1',
+            'details.*.employee_id' => 'nullable|exists:employees,id',
+            'details.*.passenger_name' => 'nullable|string|max:255',
             'details.*.ticket_price' => 'nullable|numeric|min:0',
             'details.*.service_charge' => 'nullable|numeric|min:0',
             'details.*.service_vat' => 'nullable|numeric|min:0',
             'details.*.company_amount' => 'nullable|numeric|min:0',
             'details.*.employee_amount' => 'nullable|numeric|min:0',
         ]);
+
+        foreach ($validated['details'] as $i => $d) {
+            $manual = !empty($d['passenger_manual']);
+            if ($manual && trim($d['passenger_name'] ?? '') === '') {
+                throw ValidationException::withMessages(["details.{$i}.passenger_name" => ['Passenger name is required when input is manual.']]);
+            }
+            if (!$manual && empty($d['employee_id'])) {
+                throw ValidationException::withMessages(["details.{$i}.employee_id" => ['Please select an employee when not using manual name.']]);
+            }
+        }
 
         // Get all flight requests
         $flightRequests = FlightRequest::whereIn('id', $validated['flight_request_ids'])->get();
@@ -280,12 +298,14 @@ class FlightRequestIssuanceController extends Controller
 
             // Create all ticket details (supports multiple); DB column is advance_amount (form: employee_amount)
             foreach ($validated['details'] as $detail) {
+                $manual = !empty($detail['passenger_manual']);
                 FlightRequestIssuanceDetail::create([
                     'flight_request_issuance_id' => $issuance->id,
                     'ticket_order' => $detail['ticket_order'],
                     'booking_code' => $detail['booking_code'] ?? null,
                     'detail_reservation' => $detail['detail_reservation'] ?? null,
-                    'passenger_name' => $detail['passenger_name'],
+                    'employee_id' => $manual ? null : ($detail['employee_id'] ?? null),
+                    'passenger_name' => $manual ? trim($detail['passenger_name'] ?? '') : null,
                     'ticket_price' => $detail['ticket_price'] ?? null,
                     'service_charge' => $detail['service_charge'] ?? null,
                     'service_vat' => $detail['service_vat'] ?? null,
@@ -333,7 +353,7 @@ class FlightRequestIssuanceController extends Controller
             'businessPartner',
             'issuedBy',
             'letterNumber',
-            'issuanceDetails'
+            'issuanceDetails.employee'
         ])->findOrFail($id);
 
         return view('flight-issuances.show', compact('issuance', 'title'));
@@ -359,8 +379,12 @@ class FlightRequestIssuanceController extends Controller
             ->orderBy('letter_number', 'desc')
             ->get();
         $flightRequests = $issuance->flightRequests;
+        $employees = Employee::with('activeAdministration')
+            ->whereHas('administrations', fn ($q) => $q->where('is_active', 1))
+            ->orderBy('fullname')
+            ->get();
 
-        return view('flight-issuances.edit', compact('issuance', 'businessPartners', 'letterNumbers', 'title', 'flightRequests'));
+        return view('flight-issuances.edit', compact('issuance', 'businessPartners', 'letterNumbers', 'employees', 'title', 'flightRequests'));
     }
 
     /**
@@ -383,13 +407,25 @@ class FlightRequestIssuanceController extends Controller
             'details.*.ticket_order' => 'required|integer|min:1',
             'details.*.booking_code' => 'nullable|string|max:50',
             'details.*.detail_reservation' => 'nullable|string',
-            'details.*.passenger_name' => 'required|string|max:255',
+            'details.*.passenger_manual' => 'nullable|in:0,1',
+            'details.*.employee_id' => 'nullable|exists:employees,id',
+            'details.*.passenger_name' => 'nullable|string|max:255',
             'details.*.ticket_price' => 'nullable|numeric|min:0',
             'details.*.service_charge' => 'nullable|numeric|min:0',
             'details.*.service_vat' => 'nullable|numeric|min:0',
             'details.*.company_amount' => 'nullable|numeric|min:0',
             'details.*.employee_amount' => 'nullable|numeric|min:0',
         ]);
+
+        foreach ($validated['details'] as $i => $d) {
+            $manual = !empty($d['passenger_manual']);
+            if ($manual && trim($d['passenger_name'] ?? '') === '') {
+                throw ValidationException::withMessages(["details.{$i}.passenger_name" => ['Passenger name is required when input is manual.']]);
+            }
+            if (!$manual && empty($d['employee_id'])) {
+                throw ValidationException::withMessages(["details.{$i}.employee_id" => ['Please select an employee when not using manual name.']]);
+            }
+        }
 
         DB::beginTransaction();
         try {
@@ -444,11 +480,13 @@ class FlightRequestIssuanceController extends Controller
                         ->where('flight_request_issuance_id', $issuance->id)
                         ->first();
                     if ($existingDetail) {
+                        $manual = !empty($detail['passenger_manual']);
                         $existingDetail->update([
                             'ticket_order' => $detail['ticket_order'],
                             'booking_code' => $detail['booking_code'] ?? null,
                             'detail_reservation' => $detail['detail_reservation'] ?? null,
-                            'passenger_name' => $detail['passenger_name'],
+                            'employee_id' => $manual ? null : ($detail['employee_id'] ?? null),
+                            'passenger_name' => $manual ? trim($detail['passenger_name'] ?? '') : null,
                             'ticket_price' => $detail['ticket_price'] ?? null,
                             'service_charge' => $detail['service_charge'] ?? null,
                             'service_vat' => $detail['service_vat'] ?? null,
@@ -459,13 +497,14 @@ class FlightRequestIssuanceController extends Controller
                     }
                     // If id was sent but doesn't belong to this issuance, skip (ignore tampered data)
                 } else {
-                    // Create new ticket detail and add to existingIds so it is not deleted below
+                    $manual = !empty($detail['passenger_manual']);
                     $newDetail = FlightRequestIssuanceDetail::create([
                         'flight_request_issuance_id' => $issuance->id,
                         'ticket_order' => $detail['ticket_order'],
                         'booking_code' => $detail['booking_code'] ?? null,
                         'detail_reservation' => $detail['detail_reservation'] ?? null,
-                        'passenger_name' => $detail['passenger_name'],
+                        'employee_id' => $manual ? null : ($detail['employee_id'] ?? null),
+                        'passenger_name' => $manual ? trim($detail['passenger_name'] ?? '') : null,
                         'ticket_price' => $detail['ticket_price'] ?? null,
                         'service_charge' => $detail['service_charge'] ?? null,
                         'service_vat' => $detail['service_vat'] ?? null,
@@ -579,10 +618,9 @@ class FlightRequestIssuanceController extends Controller
             'flightRequests.details',
             'businessPartner',
             'issuedBy',
-            'issuanceDetails'
+            'issuanceDetails.employee'
         ])->findOrFail($id);
 
         return view('flight-issuances.print', compact('issuance'));
     }
-
 }
