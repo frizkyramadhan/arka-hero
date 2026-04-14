@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\V1\DepartmentController;
 use App\Http\Controllers\Api\V1\EmployeeApiController;
+use App\Http\Controllers\Api\V1\EmployeeWorkforceApiController;
 use App\Http\Controllers\Api\V1\LeaveReportController;
 use App\Http\Controllers\Api\V1\LeaveTypeController;
 use App\Http\Controllers\Api\V1\LetterNumberApiController;
@@ -32,6 +33,35 @@ use Illuminate\Support\Facades\Route;
 Route::apiResource('positions', PositionController::class);
 Route::apiResource('departments', DepartmentController::class);
 Route::apiResource('projects', ProjectController::class);
+
+/*
+|--------------------------------------------------------------------------
+| Workforce — employee + administration + leave / LOT / overtime
+|--------------------------------------------------------------------------
+*/
+Route::prefix('workforce')->group(function () {
+    Route::get('employees/by-nik/{nik}/profile', [EmployeeWorkforceApiController::class, 'showFullByNik'])
+        ->name('api.workforce.employees.profile-by-nik');
+    Route::get('employees/by-nik/{nik}/activity', [EmployeeWorkforceApiController::class, 'activityTimelineByNik'])
+        ->name('api.workforce.employees.activity-by-nik');
+    Route::get('employees/by-nik/{nik}/leave-requests', [EmployeeWorkforceApiController::class, 'leaveRequestsByNik'])
+        ->name('api.workforce.employees.leave-by-nik');
+    Route::get('employees/by-nik/{nik}/official-travels', [EmployeeWorkforceApiController::class, 'officialTravelsByNik'])
+        ->name('api.workforce.employees.lot-by-nik');
+    Route::get('employees/by-nik/{nik}/overtime-requests', [EmployeeWorkforceApiController::class, 'overtimeRequestsByNik'])
+        ->name('api.workforce.employees.overtime-by-nik');
+
+    Route::get('employees/{employee}/profile', [EmployeeWorkforceApiController::class, 'showFull'])
+        ->name('api.workforce.employees.profile');
+    Route::get('employees/{employee}/activity', [EmployeeWorkforceApiController::class, 'activityTimeline'])
+        ->name('api.workforce.employees.activity');
+    Route::get('employees/{employee}/leave-requests', [EmployeeWorkforceApiController::class, 'leaveRequests'])
+        ->name('api.workforce.employees.leave-requests');
+    Route::get('employees/{employee}/official-travels', [EmployeeWorkforceApiController::class, 'officialTravels'])
+        ->name('api.workforce.employees.official-travels');
+    Route::get('employees/{employee}/overtime-requests', [EmployeeWorkforceApiController::class, 'overtimeRequests'])
+        ->name('api.workforce.employees.overtime-requests');
+});
 
 /*
 |--------------------------------------------------------------------------

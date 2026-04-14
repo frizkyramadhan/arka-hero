@@ -2,26 +2,9 @@
 
 namespace App\Models;
 
-use App\Models\User;
-use App\Models\Image;
 use App\Traits\Uuids;
-use App\Models\Course;
-use App\Models\Family;
-use App\Models\License;
-use App\Models\Emrgcall;
-use App\Models\Religion;
-use App\Models\Education;
-use App\Models\Insurance;
-use App\Models\Termination;
-use App\Models\Employeebank;
-use App\Models\Operableunit;
-use App\Models\Jobexperience;
-use App\Models\Additionaldata;
-use App\Models\Administration;
-use App\Models\Taxidentification;
-use App\Models\EmployeeBond;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 
 class Employee extends Model
 {
@@ -138,5 +121,10 @@ class Employee extends Model
     public function leaveEntitlements()
     {
         return $this->hasMany(LeaveEntitlement::class);
+    }
+
+    public function leaveRequests()
+    {
+        return $this->hasMany(LeaveRequest::class);
     }
 }
