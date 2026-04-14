@@ -67,6 +67,11 @@ class ApprovalPlan extends Model
         return $this->belongsTo(FlightRequestIssuance::class, 'document_id', 'id');
     }
 
+    public function overtimeRequest()
+    {
+        return $this->belongsTo(OvertimeRequest::class, 'document_id', 'id');
+    }
+
     /**
      * Check if this approval can be processed (hybrid sequential validation)
      *

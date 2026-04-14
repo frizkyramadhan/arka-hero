@@ -263,6 +263,21 @@
                                         Catatan:</strong> Jika approver yang diperlukan tidak tersedia dalam Approver
                                     Selection, harap menghubungi <strong>HR HO Balikpapan</strong></li>
                             </ul>
+                        @elseif($documentType === 'overtime_request')
+                            <h6 class="text-primary mb-2">
+                                <i class="fas fa-business-time mr-1"></i> Overtime Request
+                            </h6>
+                            <ul class="mb-0 pl-3">
+                                <li><strong>Approval pertama:</strong> setara <strong>Department Head / Manager</strong>
+                                </li>
+                                <li><strong>Approval kedua:</strong> setara <strong>Project Manager / Direktur</strong>
+                                </li>
+                                <li>Pilih <strong>tepat dua</strong> approver sesuai urutan tersebut (sequential)</li>
+                                <li>Approver harus memiliki role <strong>approver</strong></li>
+                                <li class="mt-2"><strong><i class="fas fa-exclamation-triangle text-warning"></i>
+                                        Catatan:</strong> Jika approver yang sesuai tidak tersedia di daftar, hubungi
+                                    <strong>HR</strong></li>
+                            </ul>
                         @elseif($documentType === 'flight_request')
                             <h6 class="text-primary mb-2">
                                 <i class="fas fa-plane mr-1"></i> Flight Request (FRF)

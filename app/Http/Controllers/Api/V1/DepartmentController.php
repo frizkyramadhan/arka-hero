@@ -1,13 +1,13 @@
 <?php
 
-namespace App\Http\Controllers\Api\v1;
+namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
-use App\Models\Project;
-use App\Http\Resources\ProjectResource;
+use App\Http\Resources\DepartmentResource;
+use App\Models\Department;
 use Illuminate\Http\Request;
 
-class ProjectController extends Controller
+class DepartmentController extends Controller
 {
     /**
      * Display a listing of the resource.
@@ -16,17 +16,17 @@ class ProjectController extends Controller
      */
     public function index()
     {
-        $projects = Project::where('project_status', 1)
-            ->orderBy('project_code', 'asc')
+        $departments = Department::with(['positions'])
+            ->where('department_status', 1)
+            ->orderBy('department_name', 'asc')
             ->get();
 
-        return ProjectResource::collection($projects);
+        return DepartmentResource::collection($departments);
     }
 
     /**
      * Store a newly created resource in storage.
      *
-     * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\Response
      */
     public function store(Request $request)
@@ -42,14 +42,14 @@ class ProjectController extends Controller
      */
     public function show($id)
     {
-        $project = Project::findOrFail($id);
-        return new ProjectResource($project);
+        $department = Department::with(['positions'])->findOrFail($id);
+
+        return new DepartmentResource($department);
     }
 
     /**
      * Update the specified resource in storage.
      *
-     * @param  \Illuminate\Http\Request  $request
      * @param  int  $id
      * @return \Illuminate\Http\Response
      */

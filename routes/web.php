@@ -1,73 +1,68 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\AccommodationController;
+use App\Http\Controllers\AdditionaldataController;
+use App\Http\Controllers\AdministrationController;
+use App\Http\Controllers\ApprovalPlanController;
+use App\Http\Controllers\ApprovalRequestController;
+use App\Http\Controllers\ApprovalStageController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BankController;
-use App\Http\Controllers\RoleController;
-use App\Http\Controllers\UserController;
-use App\Http\Controllers\DebugController;
-use App\Http\Controllers\EmailController;
-use App\Http\Controllers\GradeController;
-use App\Http\Controllers\LevelController;
+use App\Http\Controllers\BondViolationController;
+use App\Http\Controllers\BulkLeaveRequestController;
+use App\Http\Controllers\BusinessPartnerController;
 use App\Http\Controllers\CourseController;
-use App\Http\Controllers\RosterController;
-use App\Http\Controllers\FamilieController;
-use App\Http\Controllers\LicenseController;
-use App\Http\Controllers\ProfileController;
-use App\Http\Controllers\ProjectController;
-use App\Http\Controllers\EmployeeController;
-use App\Http\Controllers\EmrgcallController;
-use App\Http\Controllers\PositionController;
-use App\Http\Controllers\RegisterController;
-use App\Http\Controllers\ReligionController;
 use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\EducationController;
-use App\Http\Controllers\InsuranceController;
-use App\Http\Controllers\LeaveTypeController;
-use App\Http\Controllers\PHPMailerController;
-
+use App\Http\Controllers\DebugController;
 use App\Http\Controllers\DepartmentController;
-// Removed import for deleted controller
-use App\Http\Controllers\PermissionController;
-use App\Http\Controllers\LeaveReportController;
-use App\Http\Controllers\TerminationController;
-
-use App\Http\Controllers\ApprovalPlanController;
+use App\Http\Controllers\EducationController;
+use App\Http\Controllers\EmailController;
 use App\Http\Controllers\EmployeebankController;
 use App\Http\Controllers\EmployeeBondController;
-use App\Http\Controllers\LeaveRequestController;
-use App\Http\Controllers\BulkLeaveRequestController;
-use App\Http\Controllers\LetterNumberController;
-use App\Http\Controllers\OperableunitController;
-use App\Http\Controllers\AccommodationController;
-use App\Http\Controllers\ApprovalStageController;
-use App\Http\Controllers\BondViolationController;
-
-// Removed import for deleted controller
-use App\Http\Controllers\JobexperienceController;
-
-use App\Http\Controllers\LetterSubjectController;
-use App\Http\Controllers\AdditionaldataController;
-// Removed import for deleted controller
-use App\Http\Controllers\AdministrationController;
-use App\Http\Controllers\LetterCategoryController;
-
-// Approval System Controllers
-use App\Http\Controllers\OfficialtravelController;
-use App\Http\Controllers\TransportationController;
-use App\Http\Controllers\ApprovalRequestController;
-use App\Http\Controllers\LeaveEntitlementController;
-use App\Http\Controllers\RecruitmentReportController;
-use App\Http\Controllers\TaxidentificationController;
-use App\Http\Controllers\RecruitmentRequestController;
-use App\Http\Controllers\RecruitmentSessionController;
-use App\Http\Controllers\EmployeeRegistrationController;
-use App\Http\Controllers\RecruitmentCandidateController;
+use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\EmployeeRegistrationAdminController;
+use App\Http\Controllers\EmployeeRegistrationController;
+use App\Http\Controllers\EmrgcallController;
+use App\Http\Controllers\FamilieController;
+use App\Http\Controllers\FlightReportController;
+// Removed import for deleted controller
 use App\Http\Controllers\FlightRequestController;
 use App\Http\Controllers\FlightRequestIssuanceController;
-use App\Http\Controllers\FlightReportController;
-use App\Http\Controllers\BusinessPartnerController;
+use App\Http\Controllers\GradeController;
+use App\Http\Controllers\InsuranceController;
+use App\Http\Controllers\JobexperienceController;
+use App\Http\Controllers\LeaveEntitlementController;
+use App\Http\Controllers\LeaveReportController;
+use App\Http\Controllers\LeaveRequestController;
+use App\Http\Controllers\LeaveTypeController;
+use App\Http\Controllers\LetterCategoryController;
+use App\Http\Controllers\LetterNumberController;
+use App\Http\Controllers\LetterSubjectController;
+use App\Http\Controllers\LevelController;
+use App\Http\Controllers\LicenseController;
+// Removed import for deleted controller
+use App\Http\Controllers\OfficialtravelController;
+use App\Http\Controllers\OperableunitController;
+use App\Http\Controllers\OvertimeRequestController;
+// Removed import for deleted controller
+use App\Http\Controllers\PermissionController;
+use App\Http\Controllers\PositionController;
+// Approval System Controllers
+use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\ProjectController;
+use App\Http\Controllers\RecruitmentCandidateController;
+use App\Http\Controllers\RecruitmentReportController;
+use App\Http\Controllers\RecruitmentRequestController;
+use App\Http\Controllers\RecruitmentSessionController;
+use App\Http\Controllers\RegisterController;
+use App\Http\Controllers\ReligionController;
+use App\Http\Controllers\RoleController;
+use App\Http\Controllers\RosterController;
+use App\Http\Controllers\TaxidentificationController;
+use App\Http\Controllers\TerminationController;
+use App\Http\Controllers\TransportationController;
+use App\Http\Controllers\UserController;
+use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------
@@ -144,6 +139,9 @@ Route::group(['middleware' => ['auth']], function () {
         Route::get('/letter-administration', [DashboardController::class, 'letterAdministration'])->name('letter-administration');
         Route::get('/leave-management', [DashboardController::class, 'leaveManagement'])->name('leave-management');
         Route::get('/flight-management', [DashboardController::class, 'flightManagement'])->name('flight-management');
+        Route::get('/overtime-management', [DashboardController::class, 'overtimeManagement'])
+            ->name('overtime-management')
+            ->middleware('permission:overtime-requests.show');
         Route::get('/personal', [DashboardController::class, 'personal'])->name('personal');
     });
 
@@ -275,7 +273,6 @@ Route::group(['middleware' => ['auth']], function () {
     Route::get('officialtravels/{officialtravel}/print', [OfficialtravelController::class, 'print'])->name('officialtravels.print');
     Route::patch('officialtravels/{officialtravel}/close', [OfficialtravelController::class, 'close'])->name('officialtravels.close');
     Route::post('officialtravels/export', [OfficialtravelController::class, 'exportExcel'])->name('officialtravels.export');
-
 
     // LETTER NUMBERING SYSTEM ROUTES
     Route::prefix('letter-numbers')->name('letter-numbers.')->group(function () {
@@ -437,7 +434,7 @@ Route::group(['middleware' => ['auth']], function () {
     Route::patch('terminations/delete/{id}', [TerminationController::class, 'delete'])->name('terminations.delete');
 
     Route::resource('emails', EmailController::class)->except(['create', 'show', 'edit']);
-    Route::post("emails", [EmailController::class, "sendMail"])->name("sendMail");
+    Route::post('emails', [EmailController::class, 'sendMail'])->name('sendMail');
 
     // Recruitment Routes
     Route::prefix('recruitment')->name('recruitment.')->group(function () {
@@ -480,7 +477,6 @@ Route::group(['middleware' => ['auth']], function () {
             Route::post('/{id}/approve', [RecruitmentRequestController::class, 'approve'])->name('approve');
             Route::post('/{id}/reject', [RecruitmentRequestController::class, 'reject'])->name('reject');
             Route::post('/{id}/assign-letter-number', [RecruitmentRequestController::class, 'assignLetterNumber'])->name('assign-letter-number');
-
 
             // AJAX Routes
         });
@@ -611,6 +607,35 @@ Route::group(['middleware' => ['auth']], function () {
         });
     });
 
+    // Overtime requests (self-service + HR)
+    Route::prefix('overtime')->name('overtime.')->group(function () {
+        Route::get('/ajax/administrations-by-project/{project}', [OvertimeRequestController::class, 'administrationsByProject'])
+            ->name('ajax.administrations-by-project');
+
+        Route::get('/my-requests/data', [OvertimeRequestController::class, 'myRequestsData'])->name('my-requests.data');
+        Route::get('/my-requests/create', [OvertimeRequestController::class, 'myRequestsCreate'])->name('my-requests.create');
+        Route::post('/my-requests', [OvertimeRequestController::class, 'myRequestsStore'])->name('my-requests.store');
+        Route::get('/my-requests/{overtimeRequest}/edit', [OvertimeRequestController::class, 'myRequestsEdit'])->name('my-requests.edit');
+        Route::put('/my-requests/{overtimeRequest}', [OvertimeRequestController::class, 'myRequestsUpdate'])->name('my-requests.update');
+        Route::delete('/my-requests/{overtimeRequest}', [OvertimeRequestController::class, 'myRequestsDestroy'])->name('my-requests.destroy');
+        Route::post('/my-requests/{overtimeRequest}/submit-for-approval', [OvertimeRequestController::class, 'myRequestsSubmitForApproval'])->name('my-requests.submit-for-approval');
+        Route::get('/my-requests/{overtimeRequest}', [OvertimeRequestController::class, 'myRequestShow'])->name('my-requests.show');
+        Route::get('/my-requests', [OvertimeRequestController::class, 'myRequests'])->name('my-requests');
+
+        Route::prefix('requests')->name('requests.')->group(function () {
+            Route::get('/data', [OvertimeRequestController::class, 'data'])->name('data');
+            Route::get('/create', [OvertimeRequestController::class, 'create'])->name('create');
+            Route::post('/', [OvertimeRequestController::class, 'store'])->name('store');
+            Route::get('/{overtimeRequest}/edit', [OvertimeRequestController::class, 'edit'])->name('edit');
+            Route::put('/{overtimeRequest}', [OvertimeRequestController::class, 'update'])->name('update');
+            Route::delete('/{overtimeRequest}', [OvertimeRequestController::class, 'destroy'])->name('destroy');
+            Route::post('/{overtimeRequest}/submit-for-approval', [OvertimeRequestController::class, 'submitForApproval'])->name('submit-for-approval');
+            Route::get('/', [OvertimeRequestController::class, 'index'])->name('index');
+            Route::get('/{overtimeRequest}', [OvertimeRequestController::class, 'show'])->name('show');
+            Route::post('/{overtimeRequest}/finish', [OvertimeRequestController::class, 'markFinished'])->name('finish');
+        });
+    });
+
     // Leave Management Routes
     Route::prefix('leave')->name('leave.')->group(function () {
         // Leave Requests
@@ -628,7 +653,6 @@ Route::group(['middleware' => ['auth']], function () {
             Route::delete('/{leaveRequest}/delete-document', [LeaveRequestController::class, 'deleteDocument'])->name('delete-document');
             Route::post('/{leaveRequest}/approve', [LeaveRequestController::class, 'approve'])->name('approve');
             Route::post('/{leaveRequest}/reject', [LeaveRequestController::class, 'reject'])->name('reject');
-
 
             // Close and cancellation routes
             Route::post('/{leaveRequest}/close', [LeaveRequestController::class, 'close'])->name('close');

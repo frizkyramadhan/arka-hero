@@ -1,13 +1,13 @@
 <?php
 
-namespace App\Http\Controllers\Api\v1;
+namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
-use App\Models\Department;
-use App\Http\Resources\DepartmentResource;
+use App\Http\Resources\PositionResource;
+use App\Models\Position;
 use Illuminate\Http\Request;
 
-class DepartmentController extends Controller
+class PositionController extends Controller
 {
     /**
      * Display a listing of the resource.
@@ -16,18 +16,17 @@ class DepartmentController extends Controller
      */
     public function index()
     {
-        $departments = Department::with(['positions'])
-            ->where('department_status', 1)
-            ->orderBy('department_name', 'asc')
+        $positions = Position::with(['department'])
+            ->where('position_status', 1)
+            ->orderBy('position_name', 'asc')
             ->get();
 
-        return DepartmentResource::collection($departments);
+        return PositionResource::collection($positions);
     }
 
     /**
      * Store a newly created resource in storage.
      *
-     * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\Response
      */
     public function store(Request $request)
@@ -43,14 +42,14 @@ class DepartmentController extends Controller
      */
     public function show($id)
     {
-        $department = Department::with(['positions'])->findOrFail($id);
-        return new DepartmentResource($department);
+        $position = Position::with(['department'])->findOrFail($id);
+
+        return new PositionResource($position);
     }
 
     /**
      * Update the specified resource in storage.
      *
-     * @param  \Illuminate\Http\Request  $request
      * @param  int  $id
      * @return \Illuminate\Http\Response
      */

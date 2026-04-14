@@ -12,6 +12,7 @@ use App\Models\Officialtravel;
 use App\Models\RecruitmentRequest;
 use App\Models\FlightRequest;
 use App\Models\FlightRequestIssuance;
+use App\Models\OvertimeRequest;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
@@ -49,7 +50,10 @@ class ApprovalRequestController extends Controller
                 'flightRequest.administration',
                 'flightRequestIssuance.issuedBy',
                 'flightRequestIssuance.businessPartner',
-                'flightRequestIssuance.issuanceDetails.employee'
+                'flightRequestIssuance.issuanceDetails.employee',
+                'overtimeRequest.project',
+                'overtimeRequest.requestedBy',
+                'overtimeRequest.details.administration.employee',
             ])
                 ->where('approver_id', Auth::id())
                 ->where('is_open', true)
@@ -104,6 +108,14 @@ class ApprovalRequestController extends Controller
                         $q->where('issued_number', 'LIKE', "%$search%")
                             ->orWhere('letter_number', 'LIKE', "%$search%");
                     });
+
+                    $query->orWhereHas('overtimeRequest', function ($q) use ($search) {
+                        $q->where('remarks', 'LIKE', "%$search%")
+                            ->orWhereHas('project', function ($p) use ($search) {
+                                $p->where('project_name', 'LIKE', "%$search%")
+                                    ->orWhere('project_code', 'LIKE', "%$search%");
+                            });
+                    });
                 });
             }
 
@@ -131,6 +143,32 @@ class ApprovalRequestController extends Controller
                         return $approvalPlan->flightRequest ? ($approvalPlan->flightRequest->form_number ?? '-') : '-';
                     } elseif ($approvalPlan->document_type === 'flight_request_issuance') {
                         return $approvalPlan->flightRequestIssuance ? ($approvalPlan->flightRequestIssuance->issued_number ?? '-') : '-';
+                    } elseif ($approvalPlan->document_type === 'overtime_request') {
+                        $ot = $approvalPlan->overtimeRequest;
+                        if (! $ot) {
+                            return '-';
+                        }
+                        $ot->loadMissing('details.administration.employee', 'project');
+                        $code = e($ot->project->project_code ?? '');
+                        $dateStr = $ot->overtime_date
+                            ? e($ot->overtime_date->format('d M Y'))
+                            : '—';
+
+                        $items = [];
+                        foreach ($ot->details as $d) {
+                            $nik = e($d->administration->nik ?? '—');
+                            $fn = e(optional($d->administration->employee)->fullname ?? '—');
+                            $items[] = '<li class="mb-0">' . $nik . ' — ' . $fn . '</li>';
+                        }
+                        $list = count($items) > 0
+                            ? '<ul class="mb-0 pl-3 mt-1 text-left" style="list-style-type: disc;">' . implode('', $items) . '</ul>'
+                            : '<div class="text-muted mt-1 mb-0">—</div>';
+
+                        return '<div class="text-left overtime-doc-summary">'
+                            . '<div><strong>' . $code . '</strong></div>'
+                            . '<div class="text-muted">' . $dateStr . '</div>'
+                            . $list
+                            . '</div>';
                     }
                     return '-';
                 })
@@ -194,11 +232,22 @@ class ApprovalRequestController extends Controller
                             return '-';
                         }
                         $main = $issuance->issued_number . ($issuance->businessPartner ? ' - ' . $issuance->businessPartner->bp_name : '');
-                        $passengers = $issuance->issuanceDetails->map(fn ($d) => $d->resolved_passenger_name)->filter()->unique()->values();
+                        $passengers = $issuance->issuanceDetails->map(fn($d) => $d->resolved_passenger_name)->filter()->unique()->values();
                         if ($passengers->isNotEmpty()) {
                             $main .= ' <div class="small text-muted mt-1">' . e($passengers->take(5)->join(', ')) . ($passengers->count() > 5 ? ' (+' . ($passengers->count() - 5) . ')' : '') . '</div>';
                         }
                         return $main;
+                    } elseif ($approvalPlan->document_type === 'overtime_request') {
+                        $ot = $approvalPlan->overtimeRequest;
+                        if (! $ot) {
+                            return '-';
+                        }
+                        $r = $ot->remarks;
+                        if ($r === null || $r === '') {
+                            return '<span class="text-muted">—</span>';
+                        }
+
+                        return '<div class="text-left overtime-remarks-cell">' . nl2br(e($r)) . '</div>';
                     }
                     return '-';
                 })
@@ -218,6 +267,9 @@ class ApprovalRequestController extends Controller
                     } elseif ($approvalPlan->document_type === 'flight_request_issuance') {
                         return $approvalPlan->flightRequestIssuance && $approvalPlan->flightRequestIssuance->issuedBy ?
                             $approvalPlan->flightRequestIssuance->issuedBy->name : '-';
+                    } elseif ($approvalPlan->document_type === 'overtime_request') {
+                        return $approvalPlan->overtimeRequest && $approvalPlan->overtimeRequest->requestedBy ?
+                            $approvalPlan->overtimeRequest->requestedBy->name : '-';
                     }
                     return '-';
                 })
@@ -237,6 +289,10 @@ class ApprovalRequestController extends Controller
                     } elseif ($approvalPlan->document_type === 'flight_request_issuance') {
                         return $approvalPlan->flightRequestIssuance && $approvalPlan->flightRequestIssuance->issued_at ?
                             date('d/m/Y H:i', strtotime($approvalPlan->flightRequestIssuance->issued_at)) : ($approvalPlan->flightRequestIssuance && $approvalPlan->flightRequestIssuance->created_at ? date('d/m/Y H:i', strtotime($approvalPlan->flightRequestIssuance->created_at)) : '-');
+                    } elseif ($approvalPlan->document_type === 'overtime_request') {
+                        $ot = $approvalPlan->overtimeRequest;
+
+                        return $ot && $ot->requested_at ? $ot->requested_at->format('d/m/Y H:i') : '-';
                     }
                     return '-';
                 })
@@ -246,7 +302,7 @@ class ApprovalRequestController extends Controller
                 ->addColumn('action', function ($model) {
                     return view('approval-requests.action', compact('model'))->render();
                 })
-                ->rawColumns(['action', 'status', 'current_approval', 'remarks'])
+                ->rawColumns(['action', 'status', 'current_approval', 'remarks', 'document_number'])
                 ->toJson();
         } catch (\Exception $e) {
             Log::error('Error in getApprovalRequests: ' . $e->getMessage());
@@ -432,6 +488,10 @@ class ApprovalRequestController extends Controller
         } elseif ($approvalPlan->document_type === 'flight_request') {
             $document = FlightRequest::find($approvalPlan->document_id);
             return $document && $document->administration ? $document->administration->project_id : null;
+        } elseif ($approvalPlan->document_type === 'overtime_request') {
+            $document = OvertimeRequest::find($approvalPlan->document_id);
+
+            return $document ? $document->project_id : null;
         }
         return null;
     }
@@ -453,6 +513,8 @@ class ApprovalRequestController extends Controller
         } elseif ($approvalPlan->document_type === 'flight_request') {
             $document = FlightRequest::find($approvalPlan->document_id);
             return $document && $document->administration && $document->administration->position ? $document->administration->position->department_id : null;
+        } elseif ($approvalPlan->document_type === 'overtime_request') {
+            return null;
         }
         return null;
     }
@@ -633,6 +695,8 @@ class ApprovalRequestController extends Controller
             $document = FlightRequest::find($approvalPlan->document_id);
         } elseif ($documentType === 'flight_request_issuance') {
             $document = FlightRequestIssuance::find($approvalPlan->document_id);
+        } elseif ($documentType === 'overtime_request') {
+            $document = OvertimeRequest::find($approvalPlan->document_id);
         } else {
             return; // Invalid document type
         }
@@ -657,6 +721,12 @@ class ApprovalRequestController extends Controller
         if ($approvalPlan->status === 2) {
             if ($documentType === 'flight_request_issuance') {
                 $document->update(['approved_at' => null, 'status' => 'rejected']);
+            } elseif ($documentType === 'overtime_request') {
+                $document->update([
+                    'status' => OvertimeRequest::STATUS_REJECTED,
+                    'rejected_at' => now(),
+                    'approved_at' => null,
+                ]);
             } else {
                 $document->update([
                     'status' => 'rejected',
@@ -675,6 +745,12 @@ class ApprovalRequestController extends Controller
         if ($rejectedCount > 0) {
             if ($documentType === 'flight_request_issuance') {
                 $document->update(['approved_at' => null, 'status' => 'rejected']);
+            } elseif ($documentType === 'overtime_request') {
+                $document->update([
+                    'status' => OvertimeRequest::STATUS_REJECTED,
+                    'rejected_at' => now(),
+                    'approved_at' => null,
+                ]);
             } else {
                 $document->update(['status' => 'rejected']);
             }
@@ -684,7 +760,9 @@ class ApprovalRequestController extends Controller
 
         // Check if all sequential approvals are completed
         if ($this->areAllSequentialApprovalsCompleted($approvalPlan, $allApprovalPlans)) {
-            $updateData = ['approved_at' => now(), 'status' => 'approved'];
+            $updateData = $documentType === 'overtime_request'
+                ? ['approved_at' => now(), 'status' => OvertimeRequest::STATUS_APPROVED, 'rejected_at' => null]
+                : ['approved_at' => now(), 'status' => 'approved'];
             $document->update($updateData);
             $this->closeAllApprovalPlans($document->id, $documentType);
 

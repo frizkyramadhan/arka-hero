@@ -1,13 +1,13 @@
 <?php
 
-namespace App\Http\Controllers\Api\v1;
+namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
-use App\Models\Position;
-use App\Http\Resources\PositionResource;
+use App\Http\Resources\ProjectResource;
+use App\Models\Project;
 use Illuminate\Http\Request;
 
-class PositionController extends Controller
+class ProjectController extends Controller
 {
     /**
      * Display a listing of the resource.
@@ -16,18 +16,16 @@ class PositionController extends Controller
      */
     public function index()
     {
-        $positions = Position::with(['department'])
-            ->where('position_status', 1)
-            ->orderBy('position_name', 'asc')
+        $projects = Project::where('project_status', 1)
+            ->orderBy('project_code', 'asc')
             ->get();
 
-        return PositionResource::collection($positions);
+        return ProjectResource::collection($projects);
     }
 
     /**
      * Store a newly created resource in storage.
      *
-     * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\Response
      */
     public function store(Request $request)
@@ -43,14 +41,14 @@ class PositionController extends Controller
      */
     public function show($id)
     {
-        $position = Position::with(['department'])->findOrFail($id);
-        return new PositionResource($position);
+        $project = Project::findOrFail($id);
+
+        return new ProjectResource($project);
     }
 
     /**
      * Update the specified resource in storage.
      *
-     * @param  \Illuminate\Http\Request  $request
      * @param  int  $id
      * @return \Illuminate\Http\Response
      */

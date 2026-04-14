@@ -1,21 +1,18 @@
 <?php
 
-namespace App\Http\Controllers\Api\v1;
+namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Models\LetterNumber;
 use App\Models\LetterSubject;
-use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 
 class LetterNumberApiController extends Controller
 {
     /**
      * Request nomor surat baru dari sistem lain
-     *
-     * @param Request $request
-     * @return JsonResponse
      */
     public function requestNumber(Request $request): JsonResponse
     {
@@ -66,28 +63,24 @@ class LetterNumberApiController extends Controller
                     'status' => $letterNumber->status,
                     'letter_date' => $letterNumber->letter_date->format('Y-m-d'),
                     'subject' => $letterNumber->custom_subject,
-                ]
+                ],
             ], 201);
         } catch (ValidationException $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Validation failed',
-                'errors' => $e->errors()
+                'errors' => $e->errors(),
             ], 422);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to create letter number: ' . $e->getMessage()
+                'message' => 'Failed to create letter number: '.$e->getMessage(),
             ], 500);
         }
     }
 
     /**
      * Mark nomor surat sebagai used
-     *
-     * @param Request $request
-     * @param int $id
-     * @return JsonResponse
      */
     public function markAsUsed(Request $request, int $id): JsonResponse
     {
@@ -103,7 +96,7 @@ class LetterNumberApiController extends Controller
                 return response()->json([
                     'success' => false,
                     'message' => 'Letter number is not in reserved status',
-                    'current_status' => $letterNumber->status
+                    'current_status' => $letterNumber->status,
                 ], 400);
             }
 
@@ -123,33 +116,29 @@ class LetterNumberApiController extends Controller
                     'related_document_type' => $letterNumber->related_document_type,
                     'related_document_id' => $letterNumber->related_document_id,
                     'used_at' => $letterNumber->used_at?->format('Y-m-d H:i:s'),
-                ]
+                ],
             ]);
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Letter number not found'
+                'message' => 'Letter number not found',
             ], 404);
         } catch (ValidationException $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Validation failed',
-                'errors' => $e->errors()
+                'errors' => $e->errors(),
             ], 422);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to mark letter number as used: ' . $e->getMessage()
+                'message' => 'Failed to mark letter number as used: '.$e->getMessage(),
             ], 500);
         }
     }
 
     /**
      * Get available letter numbers untuk dropdown
-     *
-     * @param Request $request
-     * @param int $categoryId
-     * @return JsonResponse
      */
     public function getAvailableNumbers(Request $request, int $categoryId): JsonResponse
     {
@@ -183,21 +172,18 @@ class LetterNumberApiController extends Controller
                     'category_id' => $categoryId,
                     'count' => $numbers->count(),
                     'limit' => $limit,
-                ]
+                ],
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to retrieve available numbers: ' . $e->getMessage()
+                'message' => 'Failed to retrieve available numbers: '.$e->getMessage(),
             ], 500);
         }
     }
 
     /**
      * Cancel reserved letter number
-     *
-     * @param int $id
-     * @return JsonResponse
      */
     public function cancelNumber(int $id): JsonResponse
     {
@@ -208,7 +194,7 @@ class LetterNumberApiController extends Controller
                 return response()->json([
                     'success' => false,
                     'message' => 'Letter number is not in reserved status',
-                    'current_status' => $letterNumber->status
+                    'current_status' => $letterNumber->status,
                 ], 400);
             }
 
@@ -221,26 +207,23 @@ class LetterNumberApiController extends Controller
                     'id' => $letterNumber->id,
                     'letter_number' => $letterNumber->letter_number,
                     'status' => $letterNumber->status,
-                ]
+                ],
             ]);
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Letter number not found'
+                'message' => 'Letter number not found',
             ], 404);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to cancel letter number: ' . $e->getMessage()
+                'message' => 'Failed to cancel letter number: '.$e->getMessage(),
             ], 500);
         }
     }
 
     /**
      * Get letter subjects by category
-     *
-     * @param int $categoryId
-     * @return JsonResponse
      */
     public function getSubjectsByCategory(int $categoryId): JsonResponse
     {
@@ -264,21 +247,18 @@ class LetterNumberApiController extends Controller
                 'meta' => [
                     'category_id' => $categoryId,
                     'count' => $subjects->count(),
-                ]
+                ],
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to retrieve letter subjects: ' . $e->getMessage()
+                'message' => 'Failed to retrieve letter subjects: '.$e->getMessage(),
             ], 500);
         }
     }
 
     /**
      * Get letter number details
-     *
-     * @param int $id
-     * @return JsonResponse
      */
     public function getLetterNumber(int $id): JsonResponse
     {
@@ -290,7 +270,7 @@ class LetterNumberApiController extends Controller
                 'administration.project',
                 'project',
                 'reservedBy',
-                'usedBy'
+                'usedBy',
             ])->findOrFail($id);
 
             return response()->json([
@@ -321,26 +301,23 @@ class LetterNumberApiController extends Controller
                     'used_at' => $letterNumber->used_at?->format('Y-m-d H:i:s'),
                     'created_at' => $letterNumber->created_at->format('Y-m-d H:i:s'),
                     'updated_at' => $letterNumber->updated_at->format('Y-m-d H:i:s'),
-                ]
+                ],
             ]);
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Letter number not found'
+                'message' => 'Letter number not found',
             ], 404);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to retrieve letter number details: ' . $e->getMessage()
+                'message' => 'Failed to retrieve letter number details: '.$e->getMessage(),
             ], 500);
         }
     }
 
     /**
      * Preview next letter number for given category and project
-     *
-     * @param Request $request
-     * @return JsonResponse
      */
     public function previewNextNumber(Request $request): JsonResponse
     {
@@ -362,25 +339,25 @@ class LetterNumberApiController extends Controller
             // Get category details
             $category = \App\Models\LetterCategory::find($categoryId);
 
-            if (!$category) {
+            if (! $category) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Category not found'
+                    'message' => 'Category not found',
                 ], 404);
             }
 
             // Get project details
             $project = \App\Models\Project::find($projectId);
 
-            if (!$project) {
+            if (! $project) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Project not found'
+                    'message' => 'Project not found',
                 ], 404);
             }
 
             // Generate the letter number
-            $letterNumber = $category->category_code . sprintf('%04d', $nextSequence);
+            $letterNumber = $category->category_code.sprintf('%04d', $nextSequence);
 
             return response()->json([
                 'success' => true,
@@ -394,27 +371,24 @@ class LetterNumberApiController extends Controller
                     'sequence_number' => $nextSequence,
                     'year' => $year,
                     'letter_date' => $letterDate->format('Y-m-d'),
-                ]
+                ],
             ]);
         } catch (ValidationException $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Validation failed',
-                'errors' => $e->errors()
+                'errors' => $e->errors(),
             ], 422);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to preview next number: ' . $e->getMessage()
+                'message' => 'Failed to preview next number: '.$e->getMessage(),
             ], 500);
         }
     }
 
     /**
      * Check letter number availability
-     *
-     * @param Request $request
-     * @return JsonResponse
      */
     public function checkAvailability(Request $request): JsonResponse
     {
@@ -452,18 +426,18 @@ class LetterNumberApiController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Letter number availability checked successfully',
-                'data' => $stats
+                'data' => $stats,
             ]);
         } catch (ValidationException $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Validation failed',
-                'errors' => $e->errors()
+                'errors' => $e->errors(),
             ], 422);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to check availability: ' . $e->getMessage()
+                'message' => 'Failed to check availability: '.$e->getMessage(),
             ], 500);
         }
     }
