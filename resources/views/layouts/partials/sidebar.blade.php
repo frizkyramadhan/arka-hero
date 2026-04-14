@@ -51,9 +51,9 @@
 
                     {{-- My Features Dropdown --}}
                     <li
-                        class="nav-item {{ Request::is('leave/my-*') || Request::is('officialtravels/my-*') || Request::is('recruitment/my-*') || Request::is('profile/my-profile*') || Request::is('flight/my-*') ? 'menu-open' : '' }}">
+                        class="nav-item {{ Request::is('leave/my-*') || Request::is('officialtravels/my-*') || Request::is('recruitment/my-*') || Request::is('profile/my-profile*') || Request::is('flight/my-*') || Request::is('overtime/my-requests*') ? 'menu-open' : '' }}">
                         <a href="#"
-                            class="nav-link {{ Request::is('leave/my-*') || Request::is('officialtravels/my-*') || Request::is('recruitment/my-*') || Request::is('profile/my-profile*') || Request::is('flight/my-*') ? 'active' : '' }}">
+                            class="nav-link {{ Request::is('leave/my-*') || Request::is('officialtravels/my-*') || Request::is('recruitment/my-*') || Request::is('profile/my-profile*') || Request::is('flight/my-*') || Request::is('overtime/my-requests*') ? 'active' : '' }}">
                             <i class="nav-icon fas fa-folder-open"></i>
                             <p>
                                 My Features
@@ -116,6 +116,17 @@
                                     </a>
                                 </li>
                             @endcanany
+
+                            {{-- My Overtime Request --}}
+                            @canany(['personal.overtime.view-own', 'personal.overtime.create-own'])
+                                <li class="nav-item">
+                                    <a href="{{ route('overtime.my-requests') }}"
+                                        class="nav-link {{ Request::is('overtime/my-requests*') ? 'active' : '' }}">
+                                        <i class="far fa-circle nav-icon"></i>
+                                        <p>My Overtime Request</p>
+                                    </a>
+                                </li>
+                            @endcanany
                         </ul>
                     </li>
                 @endhasrole
@@ -151,7 +162,8 @@
 
                 @canany(['employees.show', 'recruitment-requests.show', 'recruitment-candidates.show',
                     'recruitment-sessions.show', 'official-travels.show', 'leave-requests.show',
-                    'periodic-leave-requests.show', 'leave-entitlements.show', 'leave-reports.show', 'roster.show'])
+                    'periodic-leave-requests.show', 'leave-entitlements.show', 'leave-reports.show', 'roster.show',
+                    'overtime-requests.show'])
                     {{-- HERO SECTION --}}
                     <li class="nav-header">HERO SECTION</li>
                 @endcanany
@@ -336,10 +348,48 @@
                                     <a href="{{ url('officialtravels') }}"
                                         class="nav-link {{ $isOfficialTravels ? 'active' : '' }}">
                                         <i class="far fa-circle nav-icon"></i>
-                                        <p>Official Travels</p>
+                                        <p>Requests</p>
                                     </a>
                                 </li>
                             @endcan
+                        </ul>
+                    </li>
+                @endcan
+
+                {{-- Overtime Management (HR) --}}
+                @can('overtime-requests.show')
+                    @php
+                        $isMyOvertimeNav = Request::is('overtime/my-requests*');
+                        $isOvertimeDashboard = Request::is('dashboard/overtime-management');
+                        $isOvertimeHr =
+                            (Request::is('overtime/requests') || Request::is('overtime/requests/*')) &&
+                            !$isMyOvertimeNav;
+                        $isOvertimeMenuOpen =
+                            $isOvertimeHr || Request::is('overtime/requests/create') || $isOvertimeDashboard;
+                    @endphp
+                    <li class="nav-item {{ $isOvertimeMenuOpen ? 'menu-open' : '' }}">
+                        <a href="#" class="nav-link {{ $isOvertimeMenuOpen ? 'active' : '' }}">
+                            <i class="nav-icon fas fa-business-time"></i>
+                            <p>
+                                Overtime Management
+                                <i class="fas fa-angle-left right"></i>
+                            </p>
+                        </a>
+                        <ul class="nav nav-treeview">
+                            <li class="nav-item">
+                                <a href="{{ route('dashboard.overtime-management') }}"
+                                    class="nav-link {{ $isOvertimeDashboard ? 'active' : '' }}">
+                                    <i class="far fa-circle nav-icon"></i>
+                                    <p>Dashboard</p>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="{{ route('overtime.requests.index') }}"
+                                    class="nav-link {{ $isOvertimeHr && !Request::is('overtime/requests/create') && !$isOvertimeDashboard ? 'active' : '' }}">
+                                    <i class="far fa-circle nav-icon"></i>
+                                    <p>Requests</p>
+                                </a>
+                            </li>
                         </ul>
                     </li>
                 @endcan

@@ -1,7 +1,8 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Api\V1;
 
+use App\Http\Controllers\Controller;
 use App\Models\Employee;
 use App\Models\LeaveEntitlement;
 use App\Models\LeaveRequest;
@@ -395,6 +396,7 @@ class LeaveReportController extends Controller
                 $query->where('employee_id', $request->employee_id);
             }
 
+            /** @var LengthAwarePaginator $autoConversions */
             $autoConversions = $query->paginate(50);
             $autoConversions->setCollection(
                 $autoConversions->getCollection()->map(function ($leaveRequest) {

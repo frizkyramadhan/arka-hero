@@ -41,6 +41,7 @@ use Illuminate\Support\Facades\Auth;
 use App\Models\LeaveRequestCancellation;
 use App\Models\FlightRequest;
 use App\Models\FlightRequestIssuance;
+use App\Models\OvertimeRequest;
 
 class DashboardController extends Controller
 {
@@ -1190,6 +1191,92 @@ class DashboardController extends Controller
             'recentFlightRequests',
             'recentIssuances',
             'issuanceByBusinessPartner'
+        ));
+    }
+
+    /**
+     * Overtime Management Dashboard (HR): counts, trends, per project, recent activity.
+     */
+    public function overtimeManagement()
+    {
+        $title = 'Overtime Management Dashboard';
+        $subtitle = 'Overtime requests overview';
+
+        $totalRequests = OvertimeRequest::count();
+        $countDraft = OvertimeRequest::where('status', OvertimeRequest::STATUS_DRAFT)->count();
+        $countPending = OvertimeRequest::where('status', OvertimeRequest::STATUS_PENDING)->count();
+        $countApproved = OvertimeRequest::where('status', OvertimeRequest::STATUS_APPROVED)->count();
+        $countRejected = OvertimeRequest::where('status', OvertimeRequest::STATUS_REJECTED)->count();
+        $countFinished = OvertimeRequest::where('status', OvertimeRequest::STATUS_FINISHED)->count();
+
+        $thisMonthCreated = OvertimeRequest::whereMonth('created_at', now()->month)
+            ->whereYear('created_at', now()->year)
+            ->count();
+        $lastMonthCreated = OvertimeRequest::whereMonth('created_at', now()->subMonth()->month)
+            ->whereYear('created_at', now()->subMonth()->year)
+            ->count();
+        $createdMonthGrowthPct = $lastMonthCreated > 0
+            ? round((($thisMonthCreated - $lastMonthCreated) / $lastMonthCreated) * 100, 1)
+            : ($thisMonthCreated > 0 ? 100.0 : 0.0);
+
+        $thisMonthOvertimeDate = OvertimeRequest::whereMonth('overtime_date', now()->month)
+            ->whereYear('overtime_date', now()->year)
+            ->count();
+
+        $approvedAwaitingHrFinish = OvertimeRequest::where('status', OvertimeRequest::STATUS_APPROVED)->count();
+
+        $pendingApprovalSteps = ApprovalPlan::query()
+            ->where('document_type', 'overtime_request')
+            ->where('is_open', true)
+            ->where('status', 0)
+            ->count();
+
+        $byProject = DB::table('overtime_requests')
+            ->join('projects', 'overtime_requests.project_id', '=', 'projects.id')
+            ->select(
+                'projects.id',
+                'projects.project_code',
+                'projects.project_name',
+                DB::raw('COUNT(*) as request_count')
+            )
+            ->groupBy('projects.id', 'projects.project_code', 'projects.project_name')
+            ->orderByDesc('request_count')
+            ->limit(10)
+            ->get();
+
+        $upcomingOvertime = OvertimeRequest::query()
+            ->with(['project', 'requestedBy'])
+            ->whereDate('overtime_date', '>=', now()->toDateString())
+            ->whereIn('status', [OvertimeRequest::STATUS_PENDING, OvertimeRequest::STATUS_APPROVED])
+            ->orderBy('overtime_date')
+            ->orderBy('created_at')
+            ->limit(12)
+            ->get();
+
+        $recentRequests = OvertimeRequest::query()
+            ->with(['project', 'requestedBy'])
+            ->orderByDesc('created_at')
+            ->limit(12)
+            ->get();
+
+        return view('dashboard.overtime-management', compact(
+            'title',
+            'subtitle',
+            'totalRequests',
+            'countDraft',
+            'countPending',
+            'countApproved',
+            'countRejected',
+            'countFinished',
+            'thisMonthCreated',
+            'lastMonthCreated',
+            'createdMonthGrowthPct',
+            'thisMonthOvertimeDate',
+            'approvedAwaitingHrFinish',
+            'pendingApprovalSteps',
+            'byProject',
+            'upcomingOvertime',
+            'recentRequests'
         ));
     }
 

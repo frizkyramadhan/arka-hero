@@ -14,6 +14,9 @@
                     @elseif($approvalPlan->document_type === 'flight_request')
                         @php $document = App\Models\FlightRequest::with(['administration.project'])->find($approvalPlan->document_id); @endphp
                         {{ $document && $document->administration && $document->administration->project ? $document->administration->project->project_name : 'N/A' }}
+                    @elseif($approvalPlan->document_type === 'overtime_request')
+                        @php $document = App\Models\OvertimeRequest::with(['project'])->find($approvalPlan->document_id); @endphp
+                        OVERTIME REQUEST
                     @elseif($approvalPlan->document_type === 'flight_request_issuance')
                         Letter of Guarantee
                     @else
@@ -32,6 +35,13 @@
                     @elseif($approvalPlan->document_type === 'flight_request')
                         @php $document = App\Models\FlightRequest::find($approvalPlan->document_id); @endphp
                         {{ $document->form_number ?? 'Flight Request' }}
+                    @elseif($approvalPlan->document_type === 'overtime_request')
+                        @php $document = App\Models\OvertimeRequest::with(['project'])->find($approvalPlan->document_id); @endphp
+                        @if ($document && $document->project)
+                            {{ trim(($document->project->project_code ? $document->project->project_code . ' — ' : '') . ($document->project->project_name ?? '—')) }}
+                        @else
+                            —
+                        @endif
                     @elseif($approvalPlan->document_type === 'flight_request_issuance')
                         @php $document = App\Models\FlightRequestIssuance::find($approvalPlan->document_id); @endphp
                         {{ $document ? $document->issued_number : 'N/A' }}
@@ -48,6 +58,12 @@
                     @elseif($approvalPlan->document_type === 'flight_request')
                         @php $document = App\Models\FlightRequest::find($approvalPlan->document_id); @endphp
                         {{ date('d F Y', strtotime($document->requested_at ?? ($document->created_at ?? now()))) }}
+                    @elseif($approvalPlan->document_type === 'overtime_request')
+                        @if ($document && $document->overtime_date)
+                            {{ $document->overtime_date->format('d F Y') }}
+                        @else
+                            {{ date('d F Y') }}
+                        @endif
                     @elseif($approvalPlan->document_type === 'flight_request_issuance')
                         @php $document = App\Models\FlightRequestIssuance::find($approvalPlan->document_id); @endphp
                         {{ $document && $document->issued_date ? date('d F Y', strtotime($document->issued_date)) : ($document && $document->created_at ? date('d F Y', strtotime($document->created_at)) : date('d F Y', strtotime(now()))) }}
@@ -214,6 +230,112 @@
                                                 </div>
                                             </div>
                                         @endforeach
+                                    </div>
+                                </div>
+                            </div>
+                        @endif
+                    @elseif($approvalPlan->document_type === 'overtime_request')
+                        @php
+                            $document = App\Models\OvertimeRequest::with([
+                                'project',
+                                'requestedBy',
+                                'details.administration.employee',
+                                'details.administration.position',
+                            ])->find($approvalPlan->document_id);
+                        @endphp
+
+                        <div class="document-card document-info-card">
+                            <div class="card-head">
+                                <h2><i class="fas fa-business-time"></i> Overtime Information</h2>
+                            </div>
+                            <div class="card-body p-0">
+                                <div class="info-grid">
+                                    <div class="info-item">
+                                        <div class="info-icon" style="background-color: #3498db;">
+                                            <i class="fas fa-project-diagram"></i>
+                                        </div>
+                                        <div class="info-content">
+                                            <div class="info-label">Project</div>
+                                            <div class="info-value">
+                                                {{ $document->project ? trim(($document->project->project_code ? $document->project->project_code . ' — ' : '') . ($document->project->project_name ?? '')) : 'N/A' }}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="info-item">
+                                        <div class="info-icon" style="background-color: #e74c3c;">
+                                            <i class="fas fa-calendar-day"></i>
+                                        </div>
+                                        <div class="info-content">
+                                            <div class="info-label">Overtime date</div>
+                                            <div class="info-value">
+                                                {{ $document->overtime_date ? $document->overtime_date->format('d F Y') : 'N/A' }}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="info-item">
+                                        <div class="info-icon" style="background-color: #9b59b6;">
+                                            <i class="fas fa-user-tie"></i>
+                                        </div>
+                                        <div class="info-content">
+                                            <div class="info-label">Created by</div>
+                                            <div class="info-value">{{ $document->requestedBy->name ?? 'N/A' }}</div>
+                                        </div>
+                                    </div>
+                                    <div class="info-item">
+                                        <div class="info-icon" style="background-color: #e67e22;">
+                                            <i class="fas fa-clock"></i>
+                                        </div>
+                                        <div class="info-content">
+                                            <div class="info-label">Created at</div>
+                                            <div class="info-value">
+                                                {{ $document->created_at ? $document->created_at->format('d M Y H:i') : 'N/A' }}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="info-item overtime-remarks-item" style="grid-column: 1 / -1;">
+                                        <div class="info-icon" style="background-color: #1abc9c;">
+                                            <i class="fas fa-comment-alt"></i>
+                                        </div>
+                                        <div class="info-content">
+                                            <div class="info-label">Remarks</div>
+                                            <div class="info-value overtime-remarks-value">{{ $document->remarks ?: '—' }}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        @if ($document->details && $document->details->isNotEmpty())
+                            <div class="document-card">
+                                <div class="card-head">
+                                    <h2><i class="fas fa-users"></i> Employee Details</h2>
+                                </div>
+                                <div class="card-body p-0">
+                                    <div class="table-responsive">
+                                        <table class="table table-bordered mb-0">
+                                            <thead class="thead-light">
+                                                <tr>
+                                                    <th>No</th>
+                                                    <th>Name</th>
+                                                    <th>NIK</th>
+                                                    <th>Time in</th>
+                                                    <th>Time out</th>
+                                                    <th>Description</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                @foreach ($document->details as $i => $line)
+                                                    <tr>
+                                                        <td>{{ $i + 1 }}</td>
+                                                        <td>{{ $line->administration->employee->fullname ?? '—' }}</td>
+                                                        <td>{{ $line->administration->nik ?? '—' }}</td>
+                                                        <td>{{ $line->time_in ? \Carbon\Carbon::parse($line->time_in)->format('H:i') : '—' }}</td>
+                                                        <td>{{ $line->time_out ? \Carbon\Carbon::parse($line->time_out)->format('H:i') : '—' }}</td>
+                                                        <td>{{ $line->work_description ?? '—' }}</td>
+                                                    </tr>
+                                                @endforeach
+                                            </tbody>
+                                        </table>
                                     </div>
                                 </div>
                             </div>
@@ -1100,6 +1222,9 @@
                                             @elseif($approvalPlan->document_type === 'flight_request_issuance')
                                                 @php $document = App\Models\FlightRequestIssuance::with('issuedBy')->find($approvalPlan->document_id); @endphp
                                                 {{ $document && $document->issuedBy ? $document->issuedBy->name : 'N/A' }}
+                                            @elseif($approvalPlan->document_type === 'overtime_request')
+                                                @php $document = App\Models\OvertimeRequest::with('requestedBy')->find($approvalPlan->document_id); @endphp
+                                                {{ $document && $document->requestedBy ? $document->requestedBy->name : 'N/A' }}
                                             @endif
                                         </div>
                                         <div class="submitter-meta">
@@ -1117,6 +1242,9 @@
                                                 @elseif($approvalPlan->document_type === 'flight_request_issuance')
                                                     @php $document = App\Models\FlightRequestIssuance::find($approvalPlan->document_id); @endphp
                                                     {{ $document && ($document->issued_at ?? $document->created_at) ? date('d M Y H:i', strtotime($document->issued_at ?? $document->created_at)) : 'N/A' }}
+                                                @elseif($approvalPlan->document_type === 'overtime_request')
+                                                    @php $document = App\Models\OvertimeRequest::find($approvalPlan->document_id); @endphp
+                                                    {{ $document && $document->requested_at ? $document->requested_at->format('d M Y H:i') : ($document && $document->created_at ? $document->created_at->format('d M Y H:i') : 'N/A') }}
                                                 @endif
                                             </span>
                                         </div>
@@ -1516,6 +1644,16 @@ if ($plan->status === 1) {
             font-size: 12px;
             color: #777;
             margin-bottom: 4px;
+        }
+
+        .overtime-remarks-item {
+            align-items: flex-start;
+        }
+
+        .overtime-remarks-value {
+            white-space: pre-wrap;
+            word-break: break-word;
+            line-height: 1.45;
         }
 
         .info-value {

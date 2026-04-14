@@ -13,6 +13,7 @@ use App\Models\FlightRequestIssuance;
 use App\Models\Officialtravel;
 use App\Models\LeaveEntitlement;
 use App\Models\RecruitmentRequest;
+use App\Models\OvertimeRequest;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
 
@@ -1235,6 +1236,8 @@ class ApprovalPlanController extends Controller
             $document = FlightRequest::findOrFail($document_id);
         } elseif ($document_type == 'flight_request_issuance') {
             $document = FlightRequestIssuance::findOrFail($document_id);
+        } elseif ($document_type == 'overtime_request') {
+            $document = OvertimeRequest::findOrFail($document_id);
         } else {
             return false; // Invalid document type
         }

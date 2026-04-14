@@ -31,4 +31,19 @@ return [
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | HTTP API (routes/api.php)
+    |--------------------------------------------------------------------------
+    |
+    | Send the same value in header "X-API-Key: ..." or "Authorization: Bearer ...".
+    | Set API_REQUIRE_KEY=false only for local development if needed.
+    |
+    */
+
+    'api' => [
+        'key' => env('API_KEY'),
+        'require_key' => env('API_REQUIRE_KEY', true),
+    ],
+
 ];
