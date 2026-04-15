@@ -1955,6 +1955,42 @@ class DashboardController extends Controller
             ->limit(5)
             ->get();
 
+        // Overtime (sama cakupan dengan My Overtime: pembuat atau pegawai di baris detail)
+        $overtimeStats = [
+            'total' => 0,
+            'pending' => 0,
+            'approved_or_finished' => 0,
+        ];
+        $recentOvertimeRequests = collect();
+
+        if ($user->can('personal.overtime.view-own')) {
+            $adminId = $user->administration?->id;
+            $overtimeBase = OvertimeRequest::query()
+                ->where(function ($q) use ($user, $adminId) {
+                    $q->where('requested_by', $user->id);
+                    if ($adminId) {
+                        $q->orWhereHas('details', function ($d) use ($adminId) {
+                            $d->where('administration_id', $adminId);
+                        });
+                    }
+                });
+
+            $overtimeStats = [
+                'total' => (clone $overtimeBase)->count(),
+                'pending' => (clone $overtimeBase)->where('status', OvertimeRequest::STATUS_PENDING)->count(),
+                'approved_or_finished' => (clone $overtimeBase)->whereIn('status', [
+                    OvertimeRequest::STATUS_APPROVED,
+                    OvertimeRequest::STATUS_FINISHED,
+                ])->count(),
+            ];
+
+            $recentOvertimeRequests = (clone $overtimeBase)
+                ->with(['project'])
+                ->orderByDesc('created_at')
+                ->limit(5)
+                ->get();
+        }
+
         // Leave Entitlements Summary
         // Calculate taken_days from approved leave requests (considering cancellations)
         $leaveEntitlements = LeaveEntitlement::with(['leaveType'])
@@ -2017,6 +2053,8 @@ class DashboardController extends Controller
             'recentLeaveRequests' => $recentLeaveRequests,
             'recentTravels' => $recentTravels,
             'recentFlightRequests' => $recentFlightRequests,
+            'overtimeStats' => $overtimeStats,
+            'recentOvertimeRequests' => $recentOvertimeRequests,
             'leaveEntitlements' => $leaveEntitlements,
             'profileCompleteness' => $profileCompleteness,
             'missingSections' => $missingSections,

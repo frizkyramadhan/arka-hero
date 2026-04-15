@@ -134,6 +134,13 @@
                                 </a>
                             </li>
                         @endcanany
+                        @can('personal.overtime.view-own')
+                            <li class="nav-item">
+                                <a class="nav-link" href="#" data-tab="overtime" role="tab">
+                                    <i class="fas fa-business-time mr-1"></i> Overtime
+                                </a>
+                            </li>
+                        @endcan
                         @if (auth()->user()->hasRole('approver'))
                             <li class="nav-item">
                                 <a class="nav-link" href="#" data-tab="approvals" role="tab">
@@ -331,6 +338,46 @@
                         </div>
                     </div>
                 </div>
+
+                @can('personal.overtime.view-own')
+                    <div class="col-lg-4 col-md-6 mb-3 dashboard-tab-content dashboard-tab-overview dashboard-tab-overtime">
+                        <div class="card card-outline card-dark shadow-sm h-100">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h6 class="text-muted text-uppercase mb-1"
+                                            style="font-size: 0.75rem; letter-spacing: 0.5px;">
+                                            Overtime
+                                        </h6>
+                                        <h2 class="mb-0 font-weight-bold">{{ $overtimeStats['total'] }}</h2>
+                                        <small class="text-muted">
+                                            <i class="fas fa-hourglass-half text-warning mr-1"></i>
+                                            {{ $overtimeStats['pending'] }} Pending
+                                            <span class="mx-1">·</span>
+                                            <i class="fas fa-check-circle text-success mr-1"></i>
+                                            {{ $overtimeStats['approved_or_finished'] }} Approved/Selesai
+                                        </small>
+                                    </div>
+                                    <div class="icon-circle bg-dark">
+                                        <i class="fas fa-business-time"></i>
+                                    </div>
+                                </div>
+                                <div class="mt-3">
+                                    <div class="progress" style="height: 6px;">
+                                        <div class="progress-bar bg-success" role="progressbar"
+                                            style="width: {{ $overtimeStats['total'] > 0 ? ($overtimeStats['approved_or_finished'] / $overtimeStats['total']) * 100 : 0 }}%"
+                                            aria-valuenow="{{ $overtimeStats['approved_or_finished'] }}" aria-valuemin="0"
+                                            aria-valuemax="{{ $overtimeStats['total'] }}">
+                                        </div>
+                                    </div>
+                                </div>
+                                <a href="{{ route('overtime.my-requests') }}" class="btn btn-sm btn-dark btn-block mt-3">
+                                    View Details <i class="fas fa-arrow-right ml-1"></i>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                @endcan
 
                 <!-- Pending Approvals (hanya untuk role approver) -->
                 @if (auth()->user()->hasRole('approver'))
@@ -810,6 +857,76 @@
                                 <div class="alert alert-success">
                                     <i class="fas fa-check-circle mr-2"></i>
                                     <strong>Congratulations!</strong> Your profile is complete.
+                                </div>
+                            @endif
+                        </div>
+                    </div>
+                </div>
+
+                <div
+                    class="col-12 col-lg-6 mb-3 mb-lg-0 dashboard-tab-content dashboard-tab-overview dashboard-tab-overtime">
+                    <div class="card card-outline card-dark shadow-sm h-100">
+                        <div class="card-header border-bottom">
+                            <h3 class="card-title mb-0">
+                                <i class="fas fa-business-time mr-2"></i>
+                                Recent Overtime Requests
+                            </h3>
+                            <div class="card-tools">
+                                <a href="{{ route('overtime.my-requests') }}" class="btn btn-sm btn-dark">
+                                    <i class="fas fa-list mr-1"></i> View All
+                                </a>
+                            </div>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="px-3 py-2 border-bottom bg-light">
+                                <p class="mb-0 small text-muted">
+                                    <strong class="text-dark">Keterangan:</strong> Pengajuan yang Anda buat sendiri
+                                    dan yang Anda ikuti sebagai karyawan di baris detail (mis. oleh admin/HR).
+                                </p>
+                            </div>
+                            @if ($recentOvertimeRequests->isEmpty())
+                                <div class="text-center py-5">
+                                    <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                                    <p class="text-muted mb-0">Belum ada permintaan lembur</p>
+                                </div>
+                            @else
+                                <div class="list-group list-group-flush">
+                                    @foreach ($recentOvertimeRequests as $ot)
+                                        <a href="{{ route('overtime.my-requests.show', $ot) }}"
+                                            class="list-group-item list-group-item-action">
+                                            <div class="d-flex justify-content-between align-items-start">
+                                                <div class="flex-grow-1">
+                                                    <h6 class="mb-1 font-weight-bold">
+                                                        {{ $ot->project->project_name ?? '—' }}
+                                                    </h6>
+                                                    <p class="mb-1 text-muted small">
+                                                        <i class="far fa-calendar mr-1"></i>
+                                                        Tanggal lembur:
+                                                        {{ $ot->overtime_date ? $ot->overtime_date->format('d M Y') : '—' }}
+                                                    </p>
+                                                    <small class="text-muted">
+                                                        <i class="far fa-clock mr-1"></i>
+                                                        {{ $ot->created_at->format('d M Y, H:i') }}
+                                                    </small>
+                                                </div>
+                                                <div class="ml-3">
+                                                    @php
+                                                        $status = $ot->status;
+                                                        $badgeClass = match ($status) {
+                                                            'draft' => 'badge-secondary',
+                                                            'pending' => 'badge-warning',
+                                                            'approved' => 'badge-success',
+                                                            'rejected' => 'badge-danger',
+                                                            'finished' => 'badge-info',
+                                                            default => 'badge-secondary',
+                                                        };
+                                                    @endphp
+                                                    <span
+                                                        class="badge badge-lg {{ $badgeClass }}">{{ strtoupper($status) }}</span>
+                                                </div>
+                                            </div>
+                                        </a>
+                                    @endforeach
                                 </div>
                             @endif
                         </div>
