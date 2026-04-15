@@ -105,12 +105,12 @@
                                         </div>
                                     </div>
                                 </div>
-                                <div class="info-item overtime-remarks-item" style="grid-column: 1 / -1;">
+                                <div class="info-item">
                                     <div class="info-icon" style="background-color: #1abc9c;"><i
                                             class="fas fa-comment-alt"></i></div>
                                     <div class="info-content">
                                         <div class="info-label">Remarks</div>
-                                        <div class="info-value overtime-remarks-value">
+                                        <div class="info-value">
                                             {{ $overtimeRequest->remarks ?: '—' }}</div>
                                     </div>
                                 </div>
@@ -214,7 +214,8 @@
                         </a>
 
                         @if ($canEdit)
-                            <a href="{{ route('overtime.my-requests.edit', $overtimeRequest) }}" class="btn-action edit-btn">
+                            <a href="{{ route('overtime.my-requests.edit', $overtimeRequest) }}"
+                                class="btn-action edit-btn">
                                 <i class="fas fa-edit"></i> Edit
                             </a>
                         @endif
