@@ -10,6 +10,7 @@ use App\Models\Project;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -318,10 +319,7 @@ class OvertimeRequestController extends Controller
         if (! $user instanceof User) {
             abort(403);
         }
-        if (! $user->can('personal.overtime.view-own')) {
-            abort(403);
-        }
-        if ((int) $overtimeRequest->requested_by !== (int) $user->id) {
+        if (! $this->userCanViewPersonalOvertime($user, $overtimeRequest)) {
             abort(403);
         }
 
@@ -341,9 +339,19 @@ class OvertimeRequestController extends Controller
 
     public function myRequestsData(Request $request)
     {
+        $user = Auth::user();
+        $adminId = $user->administration?->id;
+
         $query = OvertimeRequest::query()
             ->select('overtime_requests.*')
-            ->where('requested_by', Auth::id())
+            ->where(function (Builder $q) use ($user, $adminId) {
+                $q->where('requested_by', $user->id);
+                if ($adminId) {
+                    $q->orWhereHas('details', function (Builder $d) use ($adminId) {
+                        $d->where('administration_id', $adminId);
+                    });
+                }
+            })
             ->with(['project', 'details.administration.employee'])
             ->orderByDesc('created_at');
 
@@ -384,7 +392,9 @@ class OvertimeRequestController extends Controller
 
     public function myRequestsCreate()
     {
-        $this->ensurePersonalOvertimeLevel();
+        if ($redirect = $this->ensurePersonalOvertimeLevel(false)) {
+            return $redirect;
+        }
 
         $title = 'My Overtime Requests';
         $subtitle = 'Add overtime request';
@@ -411,7 +421,10 @@ class OvertimeRequestController extends Controller
 
     public function myRequestsStore(Request $request)
     {
-        $this->ensurePersonalOvertimeLevel();
+        if ($redirect = $this->ensurePersonalOvertimeLevel(true)) {
+            return $redirect;
+        }
+
         $data = $this->validated($request);
         $this->validateLineTimes($request);
 
@@ -470,7 +483,9 @@ class OvertimeRequestController extends Controller
 
     public function myRequestsEdit(OvertimeRequest $overtimeRequest)
     {
-        $this->ensurePersonalOvertimeLevel();
+        if ($redirect = $this->ensurePersonalOvertimeLevel(false)) {
+            return $redirect;
+        }
 
         if ((int) $overtimeRequest->requested_by !== (int) Auth::id()) {
             abort(403);
@@ -504,7 +519,9 @@ class OvertimeRequestController extends Controller
 
     public function myRequestsUpdate(Request $request, OvertimeRequest $overtimeRequest)
     {
-        $this->ensurePersonalOvertimeLevel();
+        if ($redirect = $this->ensurePersonalOvertimeLevel(true)) {
+            return $redirect;
+        }
 
         if ((int) $overtimeRequest->requested_by !== (int) Auth::id()) {
             abort(403);
@@ -641,14 +658,13 @@ class OvertimeRequestController extends Controller
         }
 
         $canHr = $user->can('overtime-requests.show');
-        $isOwner = $overtimeRequest->requested_by === $user->id
-            && $user->can('personal.overtime.view-own');
+        $canViewPersonal = $this->userCanViewPersonalOvertime($user, $overtimeRequest);
 
-        if (! $canHr && ! $isOwner) {
+        if (! $canHr && ! $canViewPersonal) {
             abort(403);
         }
 
-        if ($isOwner && ! $canHr) {
+        if ($canViewPersonal && ! $canHr) {
             return redirect()->route('overtime.my-requests.show', $overtimeRequest);
         }
 
@@ -662,7 +678,7 @@ class OvertimeRequestController extends Controller
         ]);
 
         $title = 'Overtime Request';
-        $fromPersonal = $isOwner && ! $user->can('overtime-requests.show');
+        $fromPersonal = $canViewPersonal && ! $user->can('overtime-requests.show');
 
         return view('overtime-requests.show', compact('overtimeRequest', 'title', 'fromPersonal'));
     }
@@ -1033,20 +1049,45 @@ class OvertimeRequestController extends Controller
     }
 
     /**
-     * URL detail: pemilik dengan akses personal → halaman my-show; selain itu HR show.
+     * URL detail: pembuat atau karyawan di baris detail (akses personal) → my-show; selain itu HR show.
      */
     private function overtimeDetailUrl(OvertimeRequest $ot): string
     {
         $user = Auth::user();
-        if (
-            $user instanceof User
-            && (int) $ot->requested_by === (int) $user->id
-            && $user->can('personal.overtime.view-own')
-        ) {
+        if ($user instanceof User && $this->userCanViewPersonalOvertime($user, $ot)) {
             return route('overtime.my-requests.show', $ot);
         }
 
         return route('overtime.requests.show', $ot);
+    }
+
+    /**
+     * User tercantum sebagai pegawai lembur (baris detail) untuk administrasi aktif user.
+     */
+    private function userIsInOvertimeRequestDetails(User $user, OvertimeRequest $ot): bool
+    {
+        $adminId = $user->administration?->id;
+        if (! $adminId) {
+            return false;
+        }
+
+        return $ot->details()->where('administration_id', $adminId)->exists();
+    }
+
+    /**
+     * Halaman "My Overtime": pembuat dokumen atau karyawan di detail (bukan HR).
+     */
+    private function userCanViewPersonalOvertime(User $user, OvertimeRequest $ot): bool
+    {
+        if (! $user->can('personal.overtime.view-own')) {
+            return false;
+        }
+
+        if ((int) $ot->requested_by === (int) $user->id) {
+            return true;
+        }
+
+        return $this->userIsInOvertimeRequestDetails($user, $ot);
     }
 
     private function statusBadgeHtml(string $status): string
@@ -1065,23 +1106,53 @@ class OvertimeRequestController extends Controller
 
     /**
      * Hanya untuk self-service: level Supervisor ke atas.
+     *
+     * @return RedirectResponse|null Redirect dengan toast_error (SweetAlert di layout) jika tidak lolos.
      */
-    private function ensurePersonalOvertimeLevel(): void
+    private function ensurePersonalOvertimeLevel(bool $backWithInputOnFail): ?RedirectResponse
     {
         $user = Auth::user();
         $admin = $user->administration;
         if (! $admin || ! $admin->level) {
-            abort(403, 'Administration or job level data not found.');
+            return $this->redirectPersonalOvertimeDenied(
+                $backWithInputOnFail,
+                'Data administrasi atau level jabatan tidak ditemukan. Silakan hubungi HR.',
+                'Data tidak lengkap',
+                'error'
+            );
         }
 
         $supervisor = Level::where('name', 'Supervisor')->first();
         if (! $supervisor) {
-            return;
+            return null;
         }
 
         $order = (int) ($admin->level->level_order ?? 0);
         if ($order < (int) $supervisor->level_order) {
-            abort(403, 'Only Supervisor level and above can create overtime requests.');
+            return $this->redirectPersonalOvertimeDenied(
+                $backWithInputOnFail,
+                'Hanya pegawai dengan level Supervisor ke atas yang dapat membuat permintaan lembur.',
+                'Tidak diizinkan',
+                'warning'
+            );
         }
+
+        return null;
+    }
+
+    private function redirectPersonalOvertimeDenied(
+        bool $backWithInputOnFail,
+        string $message,
+        string $alertTitle,
+        string $alertType
+    ): RedirectResponse {
+        $redirect = $backWithInputOnFail
+            ? back()->withInput()
+            : redirect()->route('overtime.my-requests');
+
+        return $redirect
+            ->with('toast_error', $message)
+            ->with('alert_title', $alertTitle)
+            ->with('alert_type', $alertType);
     }
 }
