@@ -410,8 +410,13 @@ class LetterNumber extends Model
 
     /**
      * Get estimated next numbers for all active categories
+     * Since numbering is per project, this shows aggregate across all projects or filtered projects
+     * 
+     * @param int|null $year Year to filter by
+     * @param array|null $projectIds Array of project IDs to filter by (null = all projects)
+     * @return array
      */
-    public static function getEstimatedNextNumbersForAllCategories($year = null)
+    public static function getEstimatedNextNumbersForAllCategories($year = null, $projectIds = null)
     {
         if (!$year) {
             $year = date('Y');
@@ -421,7 +426,32 @@ class LetterNumber extends Model
         $estimates = [];
 
         foreach ($categories as $category) {
-            $estimates[$category->id] = self::getEstimatedNextNumber($category->id, $year);
+            // For dashboard, show aggregate: get max sequence across all user's projects
+            // This represents the highest sequence number used across all projects
+            // If single project is selected, show for that specific project
+            $query = static::where('letter_category_id', $category->id)
+                ->where('year', $year);
+            
+            if ($projectIds !== null && !empty($projectIds)) {
+                // If single project (array with 1 element), use where for specific project
+                if (count($projectIds) === 1) {
+                    $query->where('project_id', $projectIds[0]);
+                } else {
+                    $query->whereIn('project_id', $projectIds);
+                }
+            }
+            
+            $lastNumber = $query->orderBy('sequence_number', 'desc')->first();
+            $nextSequence = $lastNumber ? $lastNumber->sequence_number + 1 : 1;
+            $formattedSequence = sprintf('%04d', $nextSequence);
+
+            $estimates[$category->id] = [
+                'next_sequence' => $nextSequence,
+                'next_letter_number' => "{$category->category_code}{$formattedSequence}",
+                'year' => $year,
+                'project_id' => (count($projectIds) === 1) ? $projectIds[0] : null, // Specific project or aggregate
+                'category_code' => $category->category_code
+            ];
         }
 
         return $estimates;
@@ -429,8 +459,15 @@ class LetterNumber extends Model
 
     /**
      * Get last few numbers for a category/year/project
+     * 
+     * @param int $categoryId
+     * @param int $limit
+     * @param int|null $year
+     * @param int|null $projectId If null, get from all projects
+     * @param array|null $projectIds Array of project IDs to filter by (for dashboard aggregate)
+     * @return \Illuminate\Support\Collection
      */
-    public static function getLastNumbersForCategory($categoryId, $limit = 5, $year = null, $projectId = null)
+    public static function getLastNumbersForCategory($categoryId, $limit = 5, $year = null, $projectId = null, $projectIds = null)
     {
         try {
             $category = LetterCategory::find($categoryId);
@@ -442,9 +479,16 @@ class LetterNumber extends Model
 
             $query = static::where('letter_category_id', $categoryId)
                 ->where('year', $year)
-                ->where('project_id', $projectId)
-                ->where('status', '!=', 'cancelled')
-                ->orderBy('sequence_number', 'desc');
+                ->where('status', '!=', 'cancelled');
+            
+            if ($projectId !== null) {
+                $query->where('project_id', $projectId);
+            } elseif ($projectIds !== null && !empty($projectIds)) {
+                // For dashboard: get from all user's projects
+                $query->whereIn('project_id', $projectIds);
+            }
+            
+            $query->orderBy('sequence_number', 'desc');
 
             return $query->limit($limit)->get();
         } catch (\Exception $e) {
@@ -455,8 +499,14 @@ class LetterNumber extends Model
 
     /**
      * Get letter count for a category/year/project
+     * 
+     * @param int $categoryId
+     * @param int|null $year
+     * @param int|null $projectId If null, count from all projects
+     * @param array|null $projectIds Array of project IDs to filter by (for dashboard aggregate)
+     * @return int
      */
-    public static function getLetterCountForCategory($categoryId, $year = null, $projectId = null)
+    public static function getLetterCountForCategory($categoryId, $year = null, $projectId = null, $projectIds = null)
     {
         try {
             $category = LetterCategory::find($categoryId);
@@ -468,8 +518,14 @@ class LetterNumber extends Model
 
             $query = static::where('letter_category_id', $categoryId)
                 ->where('year', $year)
-                ->where('project_id', $projectId)
                 ->where('status', '!=', 'cancelled');
+            
+            if ($projectId !== null) {
+                $query->where('project_id', $projectId);
+            } elseif ($projectIds !== null && !empty($projectIds)) {
+                // For dashboard: count from all user's projects
+                $query->whereIn('project_id', $projectIds);
+            }
 
             return $query->count();
         } catch (\Exception $e) {

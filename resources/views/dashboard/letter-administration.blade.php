@@ -87,17 +87,49 @@
             <!-- Estimated Next Numbers -->
             <div class="card mb-4">
                 <div class="card-header bg-gradient-info">
-                    <h3 class="card-title text-white">
-                        <i class="fas fa-calculator"></i> Estimated Next Numbers
-                        <small class="text-white-50 ml-2">Current Year: {{ date('Y') }}</small>
-                    </h3>
-                    <div class="card-tools">
-                        <button type="button" class="btn btn-tool" data-card-widget="collapse">
-                            <i class="fas fa-minus text-white"></i>
-                        </button>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h3 class="card-title text-white mb-0">
+                            <i class="fas fa-calculator"></i> Estimated Next Numbers
+                        </h3>
+                        <div class="d-flex align-items-center">
+                            <form method="GET" action="{{ route('dashboard.letter-administration') }}" class="form-inline mr-2" id="filterForm">
+                                @if($userProjects->count() > 1)
+                                    <label for="project_filter" class="text-white-50 mr-2 mb-0">Project:</label>
+                                    <select name="project_id" id="project_filter" class="form-control form-control-sm mr-2" onchange="this.form.submit()">
+                                        @foreach($userProjects as $project)
+                                            <option value="{{ $project->id }}" {{ $selectedProjectId == $project->id ? 'selected' : '' }}>
+                                                {{ $project->project_code }} - {{ $project->project_name }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                @else
+                                    <input type="hidden" name="project_id" value="{{ $selectedProjectId }}">
+                                    <span class="text-white-50 mr-2">
+                                        <i class="fas fa-building"></i> {{ $userProjects->first()->project_code ?? 'N/A' }}
+                                    </span>
+                                @endif
+                                <label for="year_filter" class="text-white-50 mr-2 mb-0">Year:</label>
+                                <select name="year" id="year_filter" class="form-control form-control-sm" onchange="this.form.submit()">
+                                    @foreach($availableYears as $year)
+                                        <option value="{{ $year }}" {{ $selectedYear == $year ? 'selected' : '' }}>
+                                            {{ $year }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </form>
+                            <button type="button" class="btn btn-tool" data-card-widget="collapse">
+                                <i class="fas fa-minus text-white"></i>
+                            </button>
+                        </div>
                     </div>
                 </div>
                 <div class="card-body">
+                    <div class="alert alert-info mb-3">
+                        <i class="fas fa-info-circle"></i> 
+                        <strong>Note:</strong> 
+                        Estimated next numbers shown for <strong>{{ $userProjects->where('id', $selectedProjectId)->first()->project_code ?? 'Selected Project' }}</strong> 
+                        for year <strong>{{ $selectedYear }}</strong>. Numbers are calculated based on the sequence used in this project.
+                    </div>
                     <!-- Category Cards Grid -->
                     <div class="row">
                         @foreach ($categories as $category)
