@@ -2,20 +2,21 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\RecruitmentRequest;
-use App\Models\Department;
-use App\Models\Project;
-use App\Models\Position;
-use App\Models\Level;
-use App\Models\LetterNumber;
-use App\Models\User;
 use App\Models\ApprovalPlan;
+use App\Models\Department;
+use App\Models\LetterNumber;
+use App\Models\Level;
+use App\Models\Position;
+use App\Models\Project;
+use App\Models\RecruitmentRequest;
+use App\Models\User;
 use App\Services\RecruitmentLetterNumberService;
+use App\Support\UserProject;
+use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Exception;
 
 class RecruitmentRequestController extends Controller
 {
@@ -66,7 +67,7 @@ class RecruitmentRequestController extends Controller
             'position',
             'level',
             'createdBy',
-            'letterNumber'
+            'letterNumber',
         ]);
 
         // Apply filters
@@ -101,6 +102,8 @@ class RecruitmentRequestController extends Controller
             $query->whereDate('created_at', '<=', $request->date_to);
         }
 
+        UserProject::scopeToAssignedProjects($query);
+
         $query->orderBy('created_at', 'desc');
 
         return datatables()->of($query)
@@ -126,8 +129,9 @@ class RecruitmentRequestController extends Controller
                     'pkwtt' => 'PKWTT',
                     'pkwt' => 'PKWT',
                     'harian' => 'Harian',
-                    'magang' => 'Magang'
+                    'magang' => 'Magang',
                 ];
+
                 return $types[$fptk->employment_type] ?? $fptk->employment_type;
             })
             ->addColumn('status', function ($fptk) {
@@ -137,9 +141,10 @@ class RecruitmentRequestController extends Controller
                     'approved' => '<span class="badge badge-success">Approved</span>',
                     'rejected' => '<span class="badge badge-danger">Rejected</span>',
                     'cancelled' => '<span class="badge badge-warning">Cancelled</span>',
-                    'closed' => '<span class="badge badge-info">Closed</span>'
+                    'closed' => '<span class="badge badge-info">Closed</span>',
                 ];
-                return $badges[$fptk->status] ?? '<span class="badge badge-light">' . ucfirst($fptk->status) . '</span>';
+
+                return $badges[$fptk->status] ?? '<span class="badge badge-light">'.ucfirst($fptk->status).'</span>';
             })
             ->addColumn('created_by', function ($fptk) {
                 return $fptk->createdBy ? $fptk->createdBy->name : '-';
@@ -159,7 +164,7 @@ class RecruitmentRequestController extends Controller
         $title = 'Recruitment';
         $subtitle = 'Create Recruitment Request (FPTK)';
         $departments = Department::get();
-        $projects = Project::where('project_status', '1')->get();
+        $projects = UserProject::projectsForSelect();
         $positions = Position::get();
         $levels = Level::get();
 
@@ -169,7 +174,7 @@ class RecruitmentRequestController extends Controller
 
         // Travel Number will be generated based on selected letter number
         $romanMonth = $this->numberToRoman(now()->month);
-        $recruitmentNumber = sprintf("[Letter Number]/HCS-[Project Code]/FPTK/%s/%s", $romanMonth, now()->year);
+        $recruitmentNumber = sprintf('[Letter Number]/HCS-[Project Code]/FPTK/%s/%s', $romanMonth, now()->year);
 
         return view('recruitment.requests.create', compact('departments', 'projects', 'positions', 'levels', 'title', 'subtitle', 'recruitmentNumber'));
     }
@@ -181,7 +186,15 @@ class RecruitmentRequestController extends Controller
     {
         $request->validate([
             'department_id' => 'required|exists:departments,id',
-            'project_id' => 'required|exists:projects,id',
+            'project_id' => [
+                'required',
+                'exists:projects,id',
+                function ($attribute, $value, $fail) {
+                    if (! UserProject::canAccessProjectId((int) $value)) {
+                        $fail('The selected project is invalid.');
+                    }
+                },
+            ],
             'position_id' => 'required|exists:positions,id',
             'level_id' => 'required|exists:levels,id',
             // Letter numbering integration fields
@@ -231,7 +244,7 @@ class RecruitmentRequestController extends Controller
                     $letterNumberId = $letterNumberRecord->id;
                     $letterNumberString = $letterNumberRecord->letter_number;
                 } else {
-                    throw new \Exception('Selected letter number is not available or not reserved. Current status: ' . ($letterNumberRecord ? $letterNumberRecord->status : 'not found'));
+                    throw new \Exception('Selected letter number is not available or not reserved. Current status: '.($letterNumberRecord ? $letterNumberRecord->status : 'not found'));
                 }
             }
 
@@ -261,7 +274,7 @@ class RecruitmentRequestController extends Controller
 
             // Normalize manual_approvers array
             $manualApprovers = $request->manual_approvers ?? [];
-            if (!is_array($manualApprovers)) {
+            if (! is_array($manualApprovers)) {
                 $manualApprovers = [];
             }
             $manualApprovers = array_values(array_filter($manualApprovers));
@@ -313,21 +326,23 @@ class RecruitmentRequestController extends Controller
                     'fptk_id' => $fptk->id,
                     'fptk_number' => $fptk->request_number,
                     'status' => $status,
-                    'action' => $request->submit_action
+                    'action' => $request->submit_action,
                 ]);
             }
 
             // If submitted, create approval plans
-            if ($request->submit_action === 'submit' && !empty($manualApprovers)) {
+            if ($request->submit_action === 'submit' && ! empty($manualApprovers)) {
                 $response = app(ApprovalPlanController::class)->create_manual_approval_plan('recruitment_request', $fptk->id);
-                if (!$response || $response === 0) {
+                if (! $response || $response === 0) {
                     DB::rollback();
+
                     return redirect()->back()
                         ->with('toast_error', 'Failed to create approval plans. Please ensure at least one approver is selected.')
                         ->withInput();
                 }
             } elseif ($request->submit_action === 'submit' && empty($manualApprovers)) {
                 DB::rollback();
+
                 return redirect()->back()
                     ->with('toast_error', 'Please select at least one approver before submitting.')
                     ->withInput();
@@ -335,9 +350,9 @@ class RecruitmentRequestController extends Controller
 
             DB::commit();
 
-            $message = 'FPTK berhasil dibuat. Nomor: ' . $fptk->request_number;
+            $message = 'FPTK berhasil dibuat. Nomor: '.$fptk->request_number;
             if ($letterNumberString) {
-                $message .= ' dengan Nomor Surat: ' . $letterNumberString;
+                $message .= ' dengan Nomor Surat: '.$letterNumberString;
             }
 
             if ($request->submit_action === 'submit') {
@@ -349,7 +364,7 @@ class RecruitmentRequestController extends Controller
             return redirect('recruitment/requests')->with('toast_success', $message);
         } catch (Exception $e) {
             DB::rollback();
-            Log::error('Error creating FPTK: ' . $e->getMessage());
+            Log::error('Error creating FPTK: '.$e->getMessage());
 
             return redirect()->back()
                 ->withInput()
@@ -380,8 +395,12 @@ class RecruitmentRequestController extends Controller
             'sessions.mcu',
             'sessions.hiring',
             'sessions.onboarding',
-            'activeSessions'
+            'activeSessions',
         ])->findOrFail($id);
+
+        if ($denied = UserProject::guardProjectInAssignmentScope((int) $fptk->project_id)) {
+            return $denied;
+        }
 
         $letterInfo = $fptk->getLetterNumberInfo();
         $sessions = $fptk->sessions; // provide sessions to the view for unified session table
@@ -397,7 +416,7 @@ class RecruitmentRequestController extends Controller
         // Check permission - support both admin and personal permissions
         /** @var \App\Models\User $user */
         $user = Auth::user();
-        if (!$user->can('recruitment-requests.show') && !$user->can('personal.recruitment.view-own')) {
+        if (! $user->can('recruitment-requests.show') && ! $user->can('personal.recruitment.view-own')) {
             abort(403, 'You do not have permission to print recruitment requests.');
         }
 
@@ -420,23 +439,29 @@ class RecruitmentRequestController extends Controller
             'sessions.mcu',
             'sessions.hiring',
             'sessions.onboarding',
-            'activeSessions'
+            'activeSessions',
         ])->findOrFail($id);
 
+        if ($user->can('recruitment-requests.show')) {
+            if ($denied = UserProject::guardProjectInAssignmentScope((int) $fptk->project_id)) {
+                return $denied;
+            }
+        }
+
         // If personal user, check access
-        if ($user->can('personal.recruitment.view-own') && !$user->can('recruitment-requests.show')) {
+        if ($user->can('personal.recruitment.view-own') && ! $user->can('recruitment-requests.show')) {
             $userProjectIds = $user->projects()->pluck('projects.id')->toArray();
             $userDepartmentIds = $user->departments()->pluck('departments.id')->toArray();
 
             $hasAccess = false;
-            if (!empty($userProjectIds) || !empty($userDepartmentIds)) {
+            if (! empty($userProjectIds) || ! empty($userDepartmentIds)) {
                 $hasAccess = in_array($fptk->project_id, $userProjectIds) ||
                     in_array($fptk->department_id, $userDepartmentIds);
             } else {
                 $hasAccess = $fptk->created_by === $user->id;
             }
 
-            if (!$hasAccess) {
+            if (! $hasAccess) {
                 abort(403, 'You do not have permission to print this recruitment request.');
             }
         }
@@ -462,8 +487,12 @@ class RecruitmentRequestController extends Controller
                 ->with('toast_error', 'FPTK hanya dapat diedit dalam status draft.');
         }
 
+        if ($denied = UserProject::guardProjectInAssignmentScope((int) $fptk->project_id)) {
+            return $denied;
+        }
+
         $departments = Department::get();
-        $projects = Project::where('project_status', '1')->get();
+        $projects = UserProject::projectsForSelect();
         $positions = Position::get();
         $levels = Level::get();
 
@@ -489,7 +518,15 @@ class RecruitmentRequestController extends Controller
 
         $request->validate([
             'department_id' => 'required|exists:departments,id',
-            'project_id' => 'required|exists:projects,id',
+            'project_id' => [
+                'required',
+                'exists:projects,id',
+                function ($attribute, $value, $fail) {
+                    if (! UserProject::canAccessProjectId((int) $value)) {
+                        $fail('The selected project is invalid.');
+                    }
+                },
+            ],
             'position_id' => 'required|exists:positions,id',
             'level_id' => 'required|exists:levels,id',
             'required_qty' => 'required|integer|min:1|max:50',
@@ -527,7 +564,7 @@ class RecruitmentRequestController extends Controller
 
             // Normalize manual_approvers array
             $manualApprovers = $request->manual_approvers ?? [];
-            if (!is_array($manualApprovers)) {
+            if (! is_array($manualApprovers)) {
                 $manualApprovers = [];
             }
             $manualApprovers = array_values(array_filter($manualApprovers));
@@ -611,7 +648,7 @@ class RecruitmentRequestController extends Controller
                 ->with('toast_success', 'FPTK berhasil diupdate.');
         } catch (Exception $e) {
             DB::rollback();
-            Log::error('Error updating FPTK: ' . $e->getMessage());
+            Log::error('Error updating FPTK: '.$e->getMessage());
 
             return redirect()->back()
                 ->withInput()
@@ -637,10 +674,10 @@ class RecruitmentRequestController extends Controller
             'user_name' => $user->name,
             'has_recruitment_requests_edit' => $hasAdminPermission,
             'has_personal_recruitment_edit_own' => $hasPersonalPermission,
-            'fptk_id' => $id
+            'fptk_id' => $id,
         ]);
 
-        if (!$hasAdminPermission && !$hasPersonalPermission) {
+        if (! $hasAdminPermission && ! $hasPersonalPermission) {
             abort(403, 'You do not have permission to submit recruitment requests.');
         }
 
@@ -648,19 +685,19 @@ class RecruitmentRequestController extends Controller
             $fptk = RecruitmentRequest::findOrFail($id);
 
             // If personal user, check access
-            if ($user->can('personal.recruitment.edit-own') && !$user->can('recruitment-requests.edit')) {
+            if ($user->can('personal.recruitment.edit-own') && ! $user->can('recruitment-requests.edit')) {
                 $userProjectIds = $user->projects()->pluck('projects.id')->toArray();
                 $userDepartmentIds = $user->departments()->pluck('departments.id')->toArray();
 
                 $hasAccess = false;
-                if (!empty($userProjectIds) || !empty($userDepartmentIds)) {
+                if (! empty($userProjectIds) || ! empty($userDepartmentIds)) {
                     $hasAccess = in_array($fptk->project_id, $userProjectIds) ||
                         in_array($fptk->department_id, $userDepartmentIds);
                 } else {
                     $hasAccess = $fptk->created_by === $user->id;
                 }
 
-                if (!$hasAccess) {
+                if (! $hasAccess) {
                     abort(403, 'You do not have permission to submit this recruitment request.');
                 }
             }
@@ -692,8 +729,9 @@ class RecruitmentRequestController extends Controller
             // Create approval plans using manual approvers
             $response = app(ApprovalPlanController::class)->create_manual_approval_plan('recruitment_request', $fptk->id);
 
-            if (!$response || $response === 0) {
+            if (! $response || $response === 0) {
                 DB::rollback();
+
                 return redirect()->back()
                     ->with('toast_error', 'Failed to create approval plans. Please ensure at least one approver is selected.');
             }
@@ -709,18 +747,19 @@ class RecruitmentRequestController extends Controller
                 : route('recruitment.requests.show', $fptk->id);
 
             return redirect($redirectRoute)
-                ->with('toast_success', 'Recruitment request has been submitted for approval. ' . $response . ' approver(s) will review your request. Note: This FPTK cannot be edited anymore after submission.');
+                ->with('toast_success', 'Recruitment request has been submitted for approval. '.$response.' approver(s) will review your request. Note: This FPTK cannot be edited anymore after submission.');
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             return redirect()->back()
                 ->with('toast_error', 'Recruitment request not found.');
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Error submitting recruitment request for approval: ' . $e->getMessage(), [
+            Log::error('Error submitting recruitment request for approval: '.$e->getMessage(), [
                 'recruitment_request_id' => $id,
-                'exception' => $e
+                'exception' => $e,
             ]);
+
             return redirect()->back()
-                ->with('toast_error', 'Failed to submit recruitment request for approval: ' . $e->getMessage());
+                ->with('toast_error', 'Failed to submit recruitment request for approval: '.$e->getMessage());
         }
     }
 
@@ -753,7 +792,7 @@ class RecruitmentRequestController extends Controller
                 ->with('toast_success', 'FPTK berhasil dihapus.');
         } catch (Exception $e) {
             DB::rollback();
-            Log::error('Error deleting FPTK: ' . $e->getMessage());
+            Log::error('Error deleting FPTK: '.$e->getMessage());
 
             return redirect()->back()
                 ->with('toast_error', 'Terjadi kesalahan saat menghapus FPTK. Silakan coba lagi.');
@@ -777,13 +816,13 @@ class RecruitmentRequestController extends Controller
 
             if ($success) {
                 return redirect()->route('recruitment.requests.show', $id)
-                    ->with('toast_success', 'Nomor surat berhasil di-assign: ' . $fptk->fresh()->getFPTKLetterNumber());
+                    ->with('toast_success', 'Nomor surat berhasil di-assign: '.$fptk->fresh()->getFPTKLetterNumber());
             } else {
                 return redirect()->back()
                     ->with('toast_error', 'Gagal assign nomor surat. Silakan coba lagi.');
             }
         } catch (Exception $e) {
-            Log::error('Error assigning letter number: ' . $e->getMessage());
+            Log::error('Error assigning letter number: '.$e->getMessage());
 
             return redirect()->back()
                 ->with('toast_error', 'Terjadi kesalahan saat assign nomor surat. Silakan coba lagi.');
@@ -799,8 +838,13 @@ class RecruitmentRequestController extends Controller
             'department',
             'project',
             'position',
-            'level'
+            'level',
         ])->findOrFail($id);
+
+        $scope = UserProject::assignmentScope();
+        if ($scope !== null && ($scope === [] || ! in_array((int) $fptk->project_id, array_map('intval', $scope), true))) {
+            return response()->json(['success' => false, 'message' => 'Access denied'], 403);
+        }
 
         return response()->json([
             'success' => true,
@@ -826,8 +870,8 @@ class RecruitmentRequestController extends Controller
                     'education' => $fptk->required_education,
                     'skills' => $fptk->required_skills,
                     'experience' => $fptk->required_experience,
-                ]
-            ]
+                ],
+            ],
         ]);
     }
 
@@ -849,7 +893,7 @@ class RecruitmentRequestController extends Controller
             'IX' => 9,
             'V' => 5,
             'IV' => 4,
-            'I' => 1
+            'I' => 1,
         ];
 
         $result = '';
@@ -859,6 +903,7 @@ class RecruitmentRequestController extends Controller
                 $number -= $value;
             }
         }
+
         return $result;
     }
 
@@ -1344,7 +1389,7 @@ class RecruitmentRequestController extends Controller
         $title = 'My Recruitment Requests';
         $subtitle = 'Create My Recruitment Request (FPTK)';
         $departments = Department::get();
-        $projects = Project::where('project_status', '1')->get();
+        $projects = UserProject::projectsForSelect();
         $positions = Position::get();
         $levels = Level::get();
 
@@ -1357,7 +1402,7 @@ class RecruitmentRequestController extends Controller
         if ($lastRequest && preg_match('/^REQ(\d+)$/', $lastRequest->request_number, $m)) {
             $sequence = (int) $m[1] + 1;
         }
-        $previewRequestNumber = 'REQ' . sprintf('%05d', $sequence);
+        $previewRequestNumber = 'REQ'.sprintf('%05d', $sequence);
 
         return view('recruitment.requests.my-create', compact(
             'departments',
@@ -1380,7 +1425,15 @@ class RecruitmentRequestController extends Controller
 
         $request->validate([
             'department_id' => 'required|exists:departments,id',
-            'project_id' => 'required|exists:projects,id',
+            'project_id' => [
+                'required',
+                'exists:projects,id',
+                function ($attribute, $value, $fail) {
+                    if (! UserProject::canAccessProjectId((int) $value)) {
+                        $fail('The selected project is invalid.');
+                    }
+                },
+            ],
             'position_id' => 'required|exists:positions,id',
             'level_id' => 'required|exists:levels,id',
             'required_qty' => 'required|integer|min:1|max:50',
@@ -1414,7 +1467,7 @@ class RecruitmentRequestController extends Controller
             if ($lastRequest && preg_match('/^REQ(\d+)$/', $lastRequest->request_number, $m)) {
                 $sequence = (int) $m[1] + 1;
             }
-            $requestNumber = 'REQ' . sprintf('%05d', $sequence);
+            $requestNumber = 'REQ'.sprintf('%05d', $sequence);
 
             $fptk = RecruitmentRequest::create([
                 'letter_number_id' => null,
@@ -1452,17 +1505,17 @@ class RecruitmentRequestController extends Controller
 
             return redirect()->route('recruitment.my-requests')->with(
                 'toast_success',
-                'Recruitment request berhasil dibuat. Nomor: ' . $fptk->request_number . ' Status: Draft. Anda dapat mengedit lalu submit untuk approval.'
+                'Recruitment request berhasil dibuat. Nomor: '.$fptk->request_number.' Status: Draft. Anda dapat mengedit lalu submit untuk approval.'
             );
         } catch (Exception $e) {
             DB::rollback();
-            Log::error('Error creating recruitment request (my-requests): ' . $e->getMessage(), [
+            Log::error('Error creating recruitment request (my-requests): '.$e->getMessage(), [
                 'exception' => $e,
                 'request_data' => $request->except(['_token']),
             ]);
 
             return redirect()->back()
-                ->with('toast_error', 'Gagal membuat recruitment request: ' . $e->getMessage())
+                ->with('toast_error', 'Gagal membuat recruitment request: '.$e->getMessage())
                 ->withInput();
         }
     }
@@ -1489,17 +1542,17 @@ class RecruitmentRequestController extends Controller
 
         // Filter by user's projects and departments
         // Show recruitment requests that match user's project AND department combination
-        if (!empty($userProjectIds) || !empty($userDepartmentIds)) {
+        if (! empty($userProjectIds) || ! empty($userDepartmentIds)) {
             $query->where(function ($q) use ($userProjectIds, $userDepartmentIds) {
-                if (!empty($userProjectIds) && !empty($userDepartmentIds)) {
+                if (! empty($userProjectIds) && ! empty($userDepartmentIds)) {
                     // If user has both projects and departments, show requests matching BOTH
                     // This ensures users only see requests for their assigned project-department combinations
                     $q->whereIn('project_id', $userProjectIds)
                         ->whereIn('department_id', $userDepartmentIds);
-                } elseif (!empty($userProjectIds)) {
+                } elseif (! empty($userProjectIds)) {
                     // If user only has projects
                     $q->whereIn('project_id', $userProjectIds);
-                } elseif (!empty($userDepartmentIds)) {
+                } elseif (! empty($userDepartmentIds)) {
                     // If user only has departments
                     $q->whereIn('department_id', $userDepartmentIds);
                 }
@@ -1550,18 +1603,19 @@ class RecruitmentRequestController extends Controller
                     'rejected' => '<span class="badge badge-danger">Rejected</span>',
                     'cancelled' => '<span class="badge badge-dark">Cancelled</span>',
                 ];
+
                 return $badges[$row->status] ?? '<span class="badge badge-secondary">Unknown</span>';
             })
             ->addColumn('requested_at', function ($row) {
                 return $row->created_at ? $row->created_at->format('Y-m-d') : 'N/A';
             })
             ->addColumn('action', function ($row) {
-                $btn = '<a href="' . route('recruitment.my-requests.show', $row->id) . '" class="btn btn-sm btn-info mr-1">
+                $btn = '<a href="'.route('recruitment.my-requests.show', $row->id).'" class="btn btn-sm btn-info mr-1">
                             <i class="fas fa-eye"></i>
                         </a>';
 
                 if ($row->status === 'draft') {
-                    $btn .= '<a href="' . route('recruitment.my-requests.edit', $row->id) . '" class="btn btn-sm btn-warning mr-1">
+                    $btn .= '<a href="'.route('recruitment.my-requests.edit', $row->id).'" class="btn btn-sm btn-warning mr-1">
                                 <i class="fas fa-edit"></i>
                             </a>';
                 }
@@ -1596,7 +1650,7 @@ class RecruitmentRequestController extends Controller
             'sessions.mcu',
             'sessions.hiring',
             'sessions.onboarding',
-            'activeSessions'
+            'activeSessions',
         ])->findOrFail($id);
 
         // Check if user has access to this recruitment request
@@ -1604,14 +1658,14 @@ class RecruitmentRequestController extends Controller
         $userDepartmentIds = $user->departments()->pluck('departments.id')->toArray();
 
         $hasAccess = false;
-        if (!empty($userProjectIds) || !empty($userDepartmentIds)) {
+        if (! empty($userProjectIds) || ! empty($userDepartmentIds)) {
             $hasAccess = in_array($fptk->project_id, $userProjectIds) ||
                 in_array($fptk->department_id, $userDepartmentIds);
         } else {
             $hasAccess = $fptk->created_by === $user->id;
         }
 
-        if (!$hasAccess) {
+        if (! $hasAccess) {
             abort(403, 'You do not have permission to view this recruitment request.');
         }
 
@@ -1638,14 +1692,14 @@ class RecruitmentRequestController extends Controller
         $userDepartmentIds = $user->departments()->pluck('departments.id')->toArray();
 
         $hasAccess = false;
-        if (!empty($userProjectIds) || !empty($userDepartmentIds)) {
+        if (! empty($userProjectIds) || ! empty($userDepartmentIds)) {
             $hasAccess = in_array($fptk->project_id, $userProjectIds) ||
                 in_array($fptk->department_id, $userDepartmentIds);
         } else {
             $hasAccess = $fptk->created_by === $user->id;
         }
 
-        if (!$hasAccess) {
+        if (! $hasAccess) {
             abort(403, 'You do not have permission to edit this recruitment request.');
         }
 
@@ -1658,7 +1712,7 @@ class RecruitmentRequestController extends Controller
         $title = 'My Recruitment Requests';
         $subtitle = 'Edit My Recruitment Request (FPTK)';
         $departments = Department::get();
-        $projects = Project::where('project_status', '1')->get();
+        $projects = UserProject::projectsForSelect();
         $positions = Position::get();
         $levels = Level::get();
 
@@ -1680,14 +1734,14 @@ class RecruitmentRequestController extends Controller
         $userDepartmentIds = $user->departments()->pluck('departments.id')->toArray();
 
         $hasAccess = false;
-        if (!empty($userProjectIds) || !empty($userDepartmentIds)) {
+        if (! empty($userProjectIds) || ! empty($userDepartmentIds)) {
             $hasAccess = in_array($fptk->project_id, $userProjectIds) ||
                 in_array($fptk->department_id, $userDepartmentIds);
         } else {
             $hasAccess = $fptk->created_by === $user->id;
         }
 
-        if (!$hasAccess) {
+        if (! $hasAccess) {
             abort(403, 'You do not have permission to update this recruitment request.');
         }
 
@@ -1700,7 +1754,15 @@ class RecruitmentRequestController extends Controller
         // Use same validation as update method
         $request->validate([
             'department_id' => 'required|exists:departments,id',
-            'project_id' => 'required|exists:projects,id',
+            'project_id' => [
+                'required',
+                'exists:projects,id',
+                function ($attribute, $value, $fail) {
+                    if (! UserProject::canAccessProjectId((int) $value)) {
+                        $fail('The selected project is invalid.');
+                    }
+                },
+            ],
             'position_id' => 'required|exists:positions,id',
             'level_id' => 'required|exists:levels,id',
             'required_qty' => 'required|integer|min:1|max:50',
@@ -1730,7 +1792,7 @@ class RecruitmentRequestController extends Controller
             DB::beginTransaction();
 
             $manualApprovers = $request->manual_approvers ?? [];
-            if (!is_array($manualApprovers)) {
+            if (! is_array($manualApprovers)) {
                 $manualApprovers = [];
             }
             $manualApprovers = array_values(array_filter($manualApprovers));
@@ -1780,13 +1842,13 @@ class RecruitmentRequestController extends Controller
                 ->with('toast_success', 'Recruitment request updated successfully.');
         } catch (Exception $e) {
             DB::rollback();
-            Log::error('Error updating recruitment request: ' . $e->getMessage(), [
+            Log::error('Error updating recruitment request: '.$e->getMessage(), [
                 'exception' => $e,
                 'request_data' => $request->except(['_token', 'manual_approvers']),
             ]);
 
             return redirect()->back()
-                ->with('toast_error', 'Failed to update recruitment request: ' . $e->getMessage())
+                ->with('toast_error', 'Failed to update recruitment request: '.$e->getMessage())
                 ->withInput();
         }
     }

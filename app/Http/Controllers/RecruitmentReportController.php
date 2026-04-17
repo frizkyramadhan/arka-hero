@@ -2,26 +2,27 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\DB;
-use Maatwebsite\Excel\Facades\Excel;
-use Maatwebsite\Excel\Concerns\FromCollection;
-use Maatwebsite\Excel\Concerns\WithHeadings;
-use Maatwebsite\Excel\Concerns\WithMapping;
-use App\Models\RecruitmentCvReview;
-use App\Models\RecruitmentInterview;
-use App\Models\RecruitmentPsikotes;
-use App\Models\RecruitmentTesTeori;
-use App\Models\RecruitmentMcu;
-use App\Models\RecruitmentOffering;
-use App\Models\RecruitmentHiring;
-use App\Models\RecruitmentOnboarding;
-use App\Models\RecruitmentRequest;
-use App\Models\RecruitmentSession;
 use App\Models\Department;
 use App\Models\Position;
 use App\Models\Project;
+use App\Models\RecruitmentCvReview;
+use App\Models\RecruitmentHiring;
+use App\Models\RecruitmentInterview;
+use App\Models\RecruitmentMcu;
+use App\Models\RecruitmentOffering;
+use App\Models\RecruitmentOnboarding;
+use App\Models\RecruitmentPsikotes;
+use App\Models\RecruitmentRequest;
+use App\Models\RecruitmentSession;
+use App\Models\RecruitmentTesTeori;
+use App\Support\UserProject;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Maatwebsite\Excel\Concerns\FromCollection;
+use Maatwebsite\Excel\Concerns\WithHeadings;
+use Maatwebsite\Excel\Concerns\WithMapping;
+use Maatwebsite\Excel\Facades\Excel;
 
 class RecruitmentReportController extends Controller
 {
@@ -64,16 +65,20 @@ class RecruitmentReportController extends Controller
         $project = $request->get('project');
         $rows = collect($this->buildFunnelData($date1, $date2, $department, $position, $project));
 
-        return Excel::download(new class($rows) implements FromCollection, WithHeadings, WithMapping {
+        return Excel::download(new class($rows) implements FromCollection, WithHeadings, WithMapping
+        {
             private $rows;
+
             public function __construct($rows)
             {
                 $this->rows = $rows;
             }
+
             public function collection()
             {
                 return $this->rows;
             }
+
             public function headings(): array
             {
                 return [
@@ -86,6 +91,7 @@ class RecruitmentReportController extends Controller
                     'Date To',
                 ];
             }
+
             public function map($row): array
             {
                 return [
@@ -98,7 +104,7 @@ class RecruitmentReportController extends Controller
                     $row['date2'] ?: '-',
                 ];
             }
-        }, 'recruitment_funnel_' . date('YmdHis') . '.xlsx');
+        }, 'recruitment_funnel_'.date('YmdHis').'.xlsx');
     }
 
     private function buildFunnelData(?string $date1, ?string $date2, ?string $department, ?string $position, ?string $project): array
@@ -108,26 +114,28 @@ class RecruitmentReportController extends Controller
             'fptk.department',
             'fptk.position',
             'fptk.project',
-            'candidate'
+            'candidate',
         ]);
 
+        UserProject::scopeRecruitmentSessionsToAssignedProjects($sessionsQuery);
+
         // Apply FPTK-based filters
-        if (!empty($department) || !empty($position) || !empty($project)) {
+        if (! empty($department) || ! empty($position) || ! empty($project)) {
             $sessionsQuery->whereHas('fptk', function ($q) use ($department, $position, $project) {
-                if (!empty($department)) {
+                if (! empty($department)) {
                     $q->where('department_id', $department);
                 }
-                if (!empty($position)) {
+                if (! empty($position)) {
                     $q->where('position_id', $position);
                 }
-                if (!empty($project)) {
+                if (! empty($project)) {
                     $q->where('project_id', $project);
                 }
             });
         }
 
         // Apply date filter
-        if (!empty($date1) && !empty($date2)) {
+        if (! empty($date1) && ! empty($date2)) {
             $sessionsQuery->whereBetween('created_at', [$date1, $date2]);
         }
 
@@ -135,7 +143,7 @@ class RecruitmentReportController extends Controller
 
         // Separate sessions by employment type
         $sessionsRegular = $sessions->filter(function ($session) {
-            return $session->fptk && !in_array($session->fptk->employment_type, ['magang', 'harian']);
+            return $session->fptk && ! in_array($session->fptk->employment_type, ['magang', 'harian']);
         });
 
         $sessionsMagangHarian = $sessions->filter(function ($session) {
@@ -148,7 +156,7 @@ class RecruitmentReportController extends Controller
         });
 
         $sessionsWithoutTheory = $sessions->filter(function ($session) {
-            return $session->fptk && !$session->fptk->requires_theory_test;
+            return $session->fptk && ! $session->fptk->requires_theory_test;
         });
 
         // Define stage progression models
@@ -172,7 +180,7 @@ class RecruitmentReportController extends Controller
             $modelClass = $stageModels[$stageName];
             $stageQuery = $modelClass::whereIn('session_id', $sessionsRegular->pluck('id'));
 
-            if (!empty($date1) && !empty($date2)) {
+            if (! empty($date1) && ! empty($date2)) {
                 $stageQuery->whereBetween('created_at', [$date1, $date2]);
             }
 
@@ -210,7 +218,7 @@ class RecruitmentReportController extends Controller
         });
 
         $tesTeoriQuery = $stageModels['Tes Teori']::whereIn('session_id', $sessionsRegularWithTheory->pluck('id'));
-        if (!empty($date1) && !empty($date2)) {
+        if (! empty($date1) && ! empty($date2)) {
             $tesTeoriQuery->whereBetween('created_at', [$date1, $date2]);
         }
         $tesTeoriRecords = $tesTeoriQuery->get();
@@ -218,7 +226,7 @@ class RecruitmentReportController extends Controller
 
         // Calculate Psikotes candidates for positions requiring theory test - REGULAR ONLY
         $psikotesWithTheoryQuery = $stageModels['Psikotes']::whereIn('session_id', $sessionsRegularWithTheory->pluck('id'));
-        if (!empty($date1) && !empty($date2)) {
+        if (! empty($date1) && ! empty($date2)) {
             $psikotesWithTheoryQuery->whereBetween('created_at', [$date1, $date2]);
         }
         $psikotesWithTheoryCandidates = $psikotesWithTheoryQuery->count();
@@ -241,7 +249,7 @@ class RecruitmentReportController extends Controller
 
         // Handle Interview stage - REGULAR ONLY
         $interviewQuery = $stageModels['Interview']::whereIn('session_id', $sessionsRegular->pluck('id'));
-        if (!empty($date1) && !empty($date2)) {
+        if (! empty($date1) && ! empty($date2)) {
             $interviewQuery->whereBetween('created_at', [$date1, $date2]);
         }
         $interviewRecords = $interviewQuery->get();
@@ -250,10 +258,10 @@ class RecruitmentReportController extends Controller
         // Calculate previous stage count for interview - REGULAR ONLY
         $interviewPreviousCount = $tesTeoriCandidates; // From technical positions
         $sessionsRegularWithoutTheory = $sessionsRegular->filter(function ($session) {
-            return $session->fptk && !$session->fptk->requires_theory_test;
+            return $session->fptk && ! $session->fptk->requires_theory_test;
         });
         $psikotesWithoutTheoryQuery = $stageModels['Psikotes']::whereIn('session_id', $sessionsRegularWithoutTheory->pluck('id'));
-        if (!empty($date1) && !empty($date2)) {
+        if (! empty($date1) && ! empty($date2)) {
             $psikotesWithoutTheoryQuery->whereBetween('created_at', [$date1, $date2]);
         }
         $psikotesWithoutTheoryCandidates = $psikotesWithoutTheoryQuery->count();
@@ -283,7 +291,7 @@ class RecruitmentReportController extends Controller
             $modelClass = $stageModels[$stageName];
             $stageQuery = $modelClass::whereIn('session_id', $sessionsRegular->pluck('id'));
 
-            if (!empty($date1) && !empty($date2)) {
+            if (! empty($date1) && ! empty($date2)) {
                 $stageQuery->whereBetween('created_at', [$date1, $date2]);
             }
 
@@ -323,7 +331,7 @@ class RecruitmentReportController extends Controller
 
             // Magang/Harian MCU (first stage - no CV Review)
             $magangMcuQuery = $stageModels['MCU']::whereIn('session_id', $sessionsMagangHarian->pluck('id'));
-            if (!empty($date1) && !empty($date2)) {
+            if (! empty($date1) && ! empty($date2)) {
                 $magangMcuQuery->whereBetween('created_at', [$date1, $date2]);
             }
             $magangMcuRecords = $magangMcuQuery->get();
@@ -342,7 +350,7 @@ class RecruitmentReportController extends Controller
 
             // Magang/Harian Hiring (final stage)
             $magangHiringQuery = $stageModels['Hiring']::whereIn('session_id', $sessionsMagangHarian->pluck('id'));
-            if (!empty($date1) && !empty($date2)) {
+            if (! empty($date1) && ! empty($date2)) {
                 $magangHiringQuery->whereBetween('created_at', [$date1, $date2]);
             }
             $magangHiringRecords = $magangHiringQuery->get();
@@ -365,7 +373,9 @@ class RecruitmentReportController extends Controller
 
     private function calculateAvgDays($stageRecords, $totalCandidates): float
     {
-        if ($totalCandidates <= 0) return 0;
+        if ($totalCandidates <= 0) {
+            return 0;
+        }
 
         $totalDays = $stageRecords->sum(function ($record) {
             if ($record->updated_at && $record->created_at) {
@@ -373,6 +383,7 @@ class RecruitmentReportController extends Controller
             } elseif ($record->created_at) {
                 return now()->diffInDays($record->created_at);
             }
+
             return 1;
         });
 
@@ -391,7 +402,7 @@ class RecruitmentReportController extends Controller
 
         return view('recruitment.reports.stage-detail', [
             'title' => 'Recruitment Reports',
-            'subtitle' => 'Stage Detail: ' . ucwords(str_replace('_', ' ', $stage)),
+            'subtitle' => 'Stage Detail: '.ucwords(str_replace('_', ' ', $stage)),
             'stage' => $stage,
             'date1' => $date1,
             'date2' => $date2,
@@ -422,7 +433,7 @@ class RecruitmentReportController extends Controller
         $actualStage = in_array($stage, ['mcu_magang_harian', 'hiring_magang_harian']) ?
             str_replace('_magang_harian', '', $stage) : $stage;
 
-        if (!isset($stageModels[$stage])) {
+        if (! isset($stageModels[$stage])) {
             return [];
         }
 
@@ -433,26 +444,28 @@ class RecruitmentReportController extends Controller
             'fptk.department',
             'fptk.position',
             'fptk.project',
-            'candidate'
+            'candidate',
         ]);
 
+        UserProject::scopeRecruitmentSessionsToAssignedProjects($sessionsQuery);
+
         // Apply FPTK-based filters
-        if (!empty($department) || !empty($position) || !empty($project)) {
+        if (! empty($department) || ! empty($position) || ! empty($project)) {
             $sessionsQuery->whereHas('fptk', function ($q) use ($department, $position, $project) {
-                if (!empty($department)) {
+                if (! empty($department)) {
                     $q->where('department_id', $department);
                 }
-                if (!empty($position)) {
+                if (! empty($position)) {
                     $q->where('position_id', $position);
                 }
-                if (!empty($project)) {
+                if (! empty($project)) {
                     $q->where('project_id', $project);
                 }
             });
         }
 
         // Apply date filter
-        if (!empty($date1) && !empty($date2)) {
+        if (! empty($date1) && ! empty($date2)) {
             $sessionsQuery->whereBetween('created_at', [$date1, $date2]);
         }
 
@@ -460,7 +473,9 @@ class RecruitmentReportController extends Controller
 
         // Filter sessions based on employment type and stage compatibility
         $filteredSessions = $sessions->filter(function ($session) use ($stage) {
-            if (!$session->fptk) return false;
+            if (! $session->fptk) {
+                return false;
+            }
 
             $employmentType = $session->fptk->employment_type ?? 'regular';
 
@@ -481,15 +496,16 @@ class RecruitmentReportController extends Controller
                 'offering' => 'Offering',
                 'mcu' => 'MCU',
                 'hiring' => 'Hiring',
-                'onboarding' => 'Onboarding'
+                'onboarding' => 'Onboarding',
             ];
 
             $stageName = $stageMapping[$stage] ?? ucfirst(str_replace('_', ' ', $stage));
 
             // For regular MCU and Hiring, exclude magang/harian
             if (in_array($stage, ['mcu', 'hiring'])) {
-                $isRegularEmployment = !in_array($employmentType, ['magang', 'harian']);
+                $isRegularEmployment = ! in_array($employmentType, ['magang', 'harian']);
                 $stageAllowed = in_array($stageName, $expectedStages);
+
                 return $isRegularEmployment && $stageAllowed;
             }
 
@@ -501,7 +517,7 @@ class RecruitmentReportController extends Controller
         $stageQuery = $modelClass::with(['session.fptk.department', 'session.fptk.position', 'session.fptk.project', 'session.candidate'])
             ->whereIn('session_id', $filteredSessions->pluck('id'));
 
-        if (!empty($date1) && !empty($date2)) {
+        if (! empty($date1) && ! empty($date2)) {
             $stageQuery->whereBetween('created_at', [$date1, $date2]);
         }
 
@@ -510,7 +526,7 @@ class RecruitmentReportController extends Controller
         $rows = [];
         foreach ($stageRecords as $record) {
             $session = $record->session;
-            if (!$session || !$session->fptk || !$session->candidate) {
+            if (! $session || ! $session->fptk || ! $session->candidate) {
                 continue;
             }
 
@@ -589,109 +605,109 @@ class RecruitmentReportController extends Controller
         switch ($stage) {
             case 'cv_review':
                 if (isset($record->decision)) {
-                    $remarks[] = "Decision: " . ucfirst($record->decision);
+                    $remarks[] = 'Decision: '.ucfirst($record->decision);
                 }
-                if (!empty($record->notes)) {
-                    $remarks[] = "Notes: " . $record->notes;
+                if (! empty($record->notes)) {
+                    $remarks[] = 'Notes: '.$record->notes;
                 }
                 break;
 
             case 'interview':
                 if (isset($record->result)) {
-                    $remarks[] = "Result: " . ucfirst($record->result);
+                    $remarks[] = 'Result: '.ucfirst($record->result);
                 }
                 if (isset($record->type)) {
-                    $remarks[] = "Type: " . ($record->type === 'hr' ? 'HR Interview' : 'User Interview');
+                    $remarks[] = 'Type: '.($record->type === 'hr' ? 'HR Interview' : 'User Interview');
                 }
-                if (!empty($record->notes)) {
-                    $remarks[] = "Notes: " . $record->notes;
+                if (! empty($record->notes)) {
+                    $remarks[] = 'Notes: '.$record->notes;
                 }
                 break;
 
             case 'psikotes':
                 $scoreDetails = [];
                 if (isset($record->online_score) && $record->online_score !== null) {
-                    $scoreDetails[] = "Online: " . number_format($record->online_score, 1);
+                    $scoreDetails[] = 'Online: '.number_format($record->online_score, 1);
                 }
                 if (isset($record->offline_score) && $record->offline_score !== null) {
-                    $scoreDetails[] = "Offline: " . number_format($record->offline_score, 1);
+                    $scoreDetails[] = 'Offline: '.number_format($record->offline_score, 1);
                 }
-                if (!empty($scoreDetails)) {
-                    $remarks[] = "Score (" . implode(', ', $scoreDetails) . ")";
+                if (! empty($scoreDetails)) {
+                    $remarks[] = 'Score ('.implode(', ', $scoreDetails).')';
                 }
                 if (isset($record->result)) {
-                    $remarks[] = "Result: " . ucfirst($record->result);
+                    $remarks[] = 'Result: '.ucfirst($record->result);
                 }
-                if (!empty($record->notes)) {
-                    $remarks[] = "Notes: " . $record->notes;
+                if (! empty($record->notes)) {
+                    $remarks[] = 'Notes: '.$record->notes;
                 }
                 break;
 
             case 'tes_teori':
                 if (isset($record->score) && $record->score !== null) {
-                    $remarks[] = "Score: " . number_format($record->score, 1);
+                    $remarks[] = 'Score: '.number_format($record->score, 1);
                 }
                 if (isset($record->result)) {
-                    $remarks[] = "Result: " . ucfirst($record->result);
+                    $remarks[] = 'Result: '.ucfirst($record->result);
                 }
-                if (!empty($record->notes)) {
-                    $remarks[] = "Notes: " . $record->notes;
+                if (! empty($record->notes)) {
+                    $remarks[] = 'Notes: '.$record->notes;
                 }
                 break;
 
             case 'mcu':
                 if (isset($record->result)) {
-                    $remarks[] = "Result: " . ucfirst(str_replace('_', ' ', $record->result));
+                    $remarks[] = 'Result: '.ucfirst(str_replace('_', ' ', $record->result));
                 }
-                if (!empty($record->notes)) {
-                    $remarks[] = "Notes: " . $record->notes;
+                if (! empty($record->notes)) {
+                    $remarks[] = 'Notes: '.$record->notes;
                 }
                 break;
 
             case 'offering':
-                if (!empty($record->offering_letter_number)) {
-                    $remarks[] = "Letter No: " . $record->offering_letter_number;
+                if (! empty($record->offering_letter_number)) {
+                    $remarks[] = 'Letter No: '.$record->offering_letter_number;
                 }
                 if (isset($record->result)) {
-                    $remarks[] = "Response: " . ucfirst($record->result);
+                    $remarks[] = 'Response: '.ucfirst($record->result);
                 }
-                if (!empty($record->notes)) {
-                    $remarks[] = "Notes: " . $record->notes;
+                if (! empty($record->notes)) {
+                    $remarks[] = 'Notes: '.$record->notes;
                 }
                 break;
 
             case 'hiring':
                 if (isset($record->agreement_type)) {
-                    $remarks[] = "Agreement: " . strtoupper($record->agreement_type);
+                    $remarks[] = 'Agreement: '.strtoupper($record->agreement_type);
                 }
-                if (!empty($record->letter_number)) {
-                    $remarks[] = "Letter No: " . $record->letter_number;
+                if (! empty($record->letter_number)) {
+                    $remarks[] = 'Letter No: '.$record->letter_number;
                 }
-                if (!empty($record->notes)) {
-                    $remarks[] = "Notes: " . $record->notes;
+                if (! empty($record->notes)) {
+                    $remarks[] = 'Notes: '.$record->notes;
                 }
                 break;
 
             case 'onboarding':
                 if (isset($record->onboarding_date) && $record->onboarding_date) {
-                    $remarks[] = "Date: " . $record->onboarding_date->format('d/m/Y');
+                    $remarks[] = 'Date: '.$record->onboarding_date->format('d/m/Y');
                 }
-                if (!empty($record->notes)) {
-                    $remarks[] = "Notes: " . $record->notes;
+                if (! empty($record->notes)) {
+                    $remarks[] = 'Notes: '.$record->notes;
                 }
                 break;
 
             default:
-                if (!empty($record->notes)) {
+                if (! empty($record->notes)) {
                     $remarks[] = $record->notes;
                 }
-                if (isset($record->remarks) && !empty($record->remarks)) {
+                if (isset($record->remarks) && ! empty($record->remarks)) {
                     $remarks[] = $record->remarks;
                 }
                 break;
         }
 
-        return !empty($remarks) ? implode(' | ', $remarks) : '-';
+        return ! empty($remarks) ? implode(' | ', $remarks) : '-';
     }
 
     public function aging(Request $request)
@@ -723,7 +739,8 @@ class RecruitmentReportController extends Controller
 
         $rows = collect($this->buildAgingData($date1, $date2, $department, $project, $status));
 
-        return Excel::download(new class($rows) implements FromCollection, WithHeadings, WithMapping {
+        return Excel::download(new class($rows) implements FromCollection, WithHeadings, WithMapping
+        {
             private $rows;
 
             public function __construct($rows)
@@ -780,7 +797,7 @@ class RecruitmentReportController extends Controller
                     // Fix Excel display issue with integer 0
                     ($row['days_to_approve'] === 0 || $row['days_to_approve'] === '0')
                         ? '0'
-                        : (is_numeric($row['days_to_approve']) ? (string)$row['days_to_approve'] : $row['days_to_approve']),
+                        : (is_numeric($row['days_to_approve']) ? (string) $row['days_to_approve'] : $row['days_to_approve']),
                     $row['sla_target'],
                     $row['sla_status'],
                     $row['sla_days_remaining'] !== null ? $row['sla_days_remaining'] : '-',
@@ -794,7 +811,7 @@ class RecruitmentReportController extends Controller
                     $row['approval_efficiency'],
                 ];
             }
-        }, 'recruitment_aging_' . date('YmdHis') . '.xlsx');
+        }, 'recruitment_aging_'.date('YmdHis').'.xlsx');
     }
 
     /**
@@ -804,7 +821,7 @@ class RecruitmentReportController extends Controller
     {
         try {
             // Check if both dates are valid and approved_at is not empty
-            if (!$requestedAt || !$approvedAt || $approvedAt === '-') {
+            if (! $requestedAt || ! $approvedAt || $approvedAt === '-') {
                 return '-';
             }
 
@@ -821,7 +838,7 @@ class RecruitmentReportController extends Controller
             \Illuminate\Support\Facades\Log::error('Error calculating days to approve', [
                 'requested_at' => $requestedAt,
                 'approved_at' => $approvedAt,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
             return '-';
@@ -833,10 +850,14 @@ class RecruitmentReportController extends Controller
      */
     private function getProjectType($projectId)
     {
-        if (!$projectId) return 'unknown';
+        if (! $projectId) {
+            return 'unknown';
+        }
 
         $project = \App\Models\Project::find($projectId);
-        if (!$project) return 'unknown';
+        if (! $project) {
+            return 'unknown';
+        }
 
         $projectName = strtoupper($project->project_name ?? $project->project_code ?? '');
 
@@ -859,6 +880,7 @@ class RecruitmentReportController extends Controller
         if (in_array($employmentType, ['magang', 'harian'])) {
             return ['MCU', 'Hiring'];
         }
+
         return ['CV Review', 'Psikotes', 'Tes Teori', 'Interview', 'Offering', 'MCU', 'Hiring'];
     }
 
@@ -876,7 +898,7 @@ class RecruitmentReportController extends Controller
                     'flow_type' => 'Single Approval',
                     'expected_approvers' => 'HCS Division Manager',
                     'sla_target' => 30, // days
-                    'approval_stages' => 1
+                    'approval_stages' => 1,
                 ];
             case 'additional':
                 if (in_array($projectType, ['HO', 'BO', 'APS'])) {
@@ -884,14 +906,14 @@ class RecruitmentReportController extends Controller
                         'flow_type' => 'Two Stage - HO/BO/APS',
                         'expected_approvers' => 'HCS DM → HCL Director',
                         'sla_target' => 60, // days
-                        'approval_stages' => 2
+                        'approval_stages' => 2,
                     ];
                 } else {
                     return [
                         'flow_type' => 'Two Stage - All Project',
                         'expected_approvers' => 'Operational GM → HCS DM',
                         'sla_target' => 45, // days
-                        'approval_stages' => 2
+                        'approval_stages' => 2,
                     ];
                 }
             default:
@@ -899,7 +921,7 @@ class RecruitmentReportController extends Controller
                     'flow_type' => 'Legacy Flow',
                     'expected_approvers' => 'Multiple Approvers',
                     'sla_target' => 90, // days
-                    'approval_stages' => 3
+                    'approval_stages' => 3,
                 ];
         }
     }
@@ -944,7 +966,7 @@ class RecruitmentReportController extends Controller
             'sla_target' => $slaTarget,
             'sla_status' => $slaStatus,
             'sla_class' => $slaClass,
-            'sla_days_remaining' => $slaDaysRemaining
+            'sla_days_remaining' => $slaDaysRemaining,
         ];
     }
 
@@ -955,20 +977,22 @@ class RecruitmentReportController extends Controller
             'position',
             'project',
             'createdBy',
-            'approval_plans.approver'
+            'approval_plans.approver',
         ]);
 
+        UserProject::scopeToAssignedProjects($query);
+
         // Apply filters
-        if (!empty($date1) && !empty($date2)) {
+        if (! empty($date1) && ! empty($date2)) {
             $query->whereBetween('created_at', [$date1, $date2]);
         }
-        if (!empty($department)) {
+        if (! empty($department)) {
             $query->where('department_id', $department);
         }
-        if (!empty($project)) {
+        if (! empty($project)) {
             $query->where('project_id', $project);
         }
-        if (!empty($status)) {
+        if (! empty($status)) {
             $query->where('status', $status);
         }
 
@@ -1060,7 +1084,7 @@ class RecruitmentReportController extends Controller
                 'approval_sla_target' => $approvalMetrics['sla_target'],
                 'actual_approvers_count' => $actualApprovers,
                 'expected_approvers_count' => $approvalMetrics['approval_stages'],
-                'approval_efficiency' => $approvalEfficiency . '%',
+                'approval_efficiency' => $approvalEfficiency.'%',
             ];
         }
 
@@ -1080,7 +1104,7 @@ class RecruitmentReportController extends Controller
 
         $departments = Department::orderBy('department_name')->get();
         $positions = Position::orderBy('position_name')->get();
-        $projects = Project::orderBy('project_code')->get();
+        $projects = UserProject::projectsForSelect();
 
         return view('recruitment.reports.time-to-hire', compact(
             'title',
@@ -1124,14 +1148,15 @@ class RecruitmentReportController extends Controller
             'fptk.project',
             'fptk.approval_plans.approver',
             'hiring',
-            'candidate'
-        ])
-            ->whereIn('status', ['in_process', 'hired'])
+            'candidate',
+        ]);
+        UserProject::scopeRecruitmentSessionsToAssignedProjects($query);
+        $query->whereIn('status', ['in_process', 'hired'])
             ->whereNotNull('fptk_id')
             ->whereNotNull('candidate_id');
 
         if ($date1 && $date2) {
-            $query->whereBetween('created_at', [$date1 . ' 00:00:00', $date2 . ' 23:59:59']);
+            $query->whereBetween('created_at', [$date1.' 00:00:00', $date2.' 23:59:59']);
         }
 
         if ($department) {
@@ -1153,7 +1178,8 @@ class RecruitmentReportController extends Controller
         $sessions = $query->get();
         $rows = $this->buildTimeToHirePerCandidateExportData($sessions);
 
-        return Excel::download(new class($rows) implements FromCollection, WithHeadings, WithMapping {
+        return Excel::download(new class($rows) implements FromCollection, WithHeadings, WithMapping
+        {
             private $rows;
 
             public function __construct($rows)
@@ -1183,7 +1209,7 @@ class RecruitmentReportController extends Controller
                     'Employment Type',
                     'Status',
                     'Latest Approval',
-                    'Approval Remarks'
+                    'Approval Remarks',
                 ];
             }
 
@@ -1204,10 +1230,10 @@ class RecruitmentReportController extends Controller
                     $row['employment_type'],
                     $row['status'],
                     $row['latest_approval'],
-                    $row['remarks']
+                    $row['remarks'],
                 ];
             }
-        }, 'time_to_hire_per_candidate_' . date('Y-m-d') . '.xlsx');
+        }, 'time_to_hire_per_candidate_'.date('Y-m-d').'.xlsx');
     }
 
     /**
@@ -1226,15 +1252,16 @@ class RecruitmentReportController extends Controller
                     ->whereNotNull('candidate_id');
             },
             'sessions.hiring',
-            'sessions.candidate'
-        ])
-            ->whereHas('sessions', function ($q) {
-                $q->whereIn('status', ['in_process', 'hired'])
-                    ->whereNotNull('candidate_id');
-            });
+            'sessions.candidate',
+        ]);
+        UserProject::scopeToAssignedProjects($query);
+        $query->whereHas('sessions', function ($q) {
+            $q->whereIn('status', ['in_process', 'hired'])
+                ->whereNotNull('candidate_id');
+        });
 
         if ($date1 && $date2) {
-            $query->whereBetween('created_at', [$date1 . ' 00:00:00', $date2 . ' 23:59:59']);
+            $query->whereBetween('created_at', [$date1.' 00:00:00', $date2.' 23:59:59']);
         }
 
         if ($department) {
@@ -1250,7 +1277,8 @@ class RecruitmentReportController extends Controller
         $fptks = $query->get();
         $rows = $this->buildTimeToFillExportData($fptks);
 
-        return Excel::download(new class($rows) implements FromCollection, WithHeadings, WithMapping {
+        return Excel::download(new class($rows) implements FromCollection, WithHeadings, WithMapping
+        {
             private $rows;
 
             public function __construct($rows)
@@ -1281,7 +1309,7 @@ class RecruitmentReportController extends Controller
                     'Employment Type',
                     'Status',
                     'Latest Approval',
-                    'Approval Remarks'
+                    'Approval Remarks',
                 ];
             }
 
@@ -1303,10 +1331,10 @@ class RecruitmentReportController extends Controller
                     $row['employment_type'],
                     $row['status'],
                     $row['latest_approval'],
-                    $row['remarks']
+                    $row['remarks'],
                 ];
             }
-        }, 'time_to_fill_per_fptk_' . date('Y-m-d') . '.xlsx');
+        }, 'time_to_fill_per_fptk_'.date('Y-m-d').'.xlsx');
     }
 
     /**
@@ -1316,7 +1344,7 @@ class RecruitmentReportController extends Controller
     {
         $rows = [];
         foreach ($sessions as $session) {
-            if (!$session->candidate || !$session->fptk) {
+            if (! $session->candidate || ! $session->fptk) {
                 continue;
             }
 
@@ -1374,6 +1402,7 @@ class RecruitmentReportController extends Controller
                 'remarks' => $latestApproval ? ($latestApproval->remarks ?: '-') : '-',
             ];
         }
+
         return $rows;
     }
 
@@ -1456,6 +1485,7 @@ class RecruitmentReportController extends Controller
                 'remarks' => $latestApproval ? ($latestApproval->remarks ?: '-') : '-',
             ];
         }
+
         return $rows;
     }
 
@@ -1471,7 +1501,7 @@ class RecruitmentReportController extends Controller
 
         $departments = Department::orderBy('department_name')->get();
         $positions = Position::orderBy('position_name')->get();
-        $projects = Project::orderBy('project_code')->get();
+        $projects = UserProject::projectsForSelect();
 
         return view('recruitment.reports.offer-acceptance-rate', compact(
             'title',
@@ -1499,12 +1529,13 @@ class RecruitmentReportController extends Controller
             'fptk.department',
             'fptk.position',
             'fptk.project',
-            'offering'
-        ])
-            ->whereHas('offering');
+            'offering',
+        ]);
+        UserProject::scopeRecruitmentSessionsToAssignedProjects($query);
+        $query->whereHas('offering');
 
         if ($date1 && $date2) {
-            $query->whereBetween('created_at', [$date1 . ' 00:00:00', $date2 . ' 23:59:59']);
+            $query->whereBetween('created_at', [$date1.' 00:00:00', $date2.' 23:59:59']);
         }
 
         if ($department) {
@@ -1526,7 +1557,8 @@ class RecruitmentReportController extends Controller
         $sessions = $query->get();
         $rows = $this->buildOfferAcceptanceData($sessions);
 
-        return Excel::download(new class($rows) implements FromCollection, WithHeadings, WithMapping {
+        return Excel::download(new class($rows) implements FromCollection, WithHeadings, WithMapping
+        {
             private $rows;
 
             public function __construct($rows)
@@ -1552,7 +1584,7 @@ class RecruitmentReportController extends Controller
                     'Response Time (Days)',
                     'Response',
                     'Offering Letter No',
-                    'Notes'
+                    'Notes',
                 ];
             }
 
@@ -1569,10 +1601,10 @@ class RecruitmentReportController extends Controller
                     $row['response_time'],
                     $row['response'],
                     $row['offering_letter_no'],
-                    $row['notes']
+                    $row['notes'],
                 ];
             }
-        }, 'offer_acceptance_rate_' . date('Y-m-d') . '.xlsx');
+        }, 'offer_acceptance_rate_'.date('Y-m-d').'.xlsx');
     }
 
     private function buildTimeToHireData($sessions)
@@ -1580,7 +1612,7 @@ class RecruitmentReportController extends Controller
         $rows = [];
         foreach ($sessions as $session) {
             // Get hiring record for this session
-            if (!$session->hiring) {
+            if (! $session->hiring) {
                 continue; // Skip if no hiring record found
             }
 
@@ -1617,7 +1649,7 @@ class RecruitmentReportController extends Controller
                 'flow_type' => 'Unknown',
                 'expected_approvers' => 'Unknown',
                 'sla_target' => 0,
-                'approval_stages' => 0
+                'approval_stages' => 0,
             ];
 
             // Calculate efficiency metrics
@@ -1650,10 +1682,11 @@ class RecruitmentReportController extends Controller
                 'approval_sla_target' => $approvalMetrics['sla_target'],
                 'actual_approvers_count' => $actualApprovers,
                 'expected_approvers_count' => $approvalMetrics['approval_stages'],
-                'approval_efficiency' => $approvalEfficiency . '%',
+                'approval_efficiency' => $approvalEfficiency.'%',
                 'approval_vs_sla' => $approvalDays <= $approvalMetrics['sla_target'] ? 'On Time' : 'Delayed',
             ];
         }
+
         return $rows;
     }
 
@@ -1661,7 +1694,7 @@ class RecruitmentReportController extends Controller
     {
         $rows = [];
         foreach ($sessions as $session) {
-            if (!$session->offering) {
+            if (! $session->offering) {
                 continue;
             }
 
@@ -1669,7 +1702,7 @@ class RecruitmentReportController extends Controller
             $fptk = $session->fptk;
             $candidate = $session->candidate;
 
-            if (!$fptk || !$candidate) {
+            if (! $fptk || ! $candidate) {
                 continue;
             }
 
@@ -1700,6 +1733,7 @@ class RecruitmentReportController extends Controller
                 'notes' => $offering->notes ?? '-',
             ];
         }
+
         return $rows;
     }
 
@@ -1715,7 +1749,7 @@ class RecruitmentReportController extends Controller
 
         $departments = Department::orderBy('department_name')->get();
         $positions = Position::orderBy('position_name')->get();
-        $projects = Project::orderBy('project_code')->get();
+        $projects = UserProject::projectsForSelect();
 
         return view('recruitment.reports.interview-assessment-analytics', compact(
             'title',
@@ -1746,14 +1780,15 @@ class RecruitmentReportController extends Controller
             'cvReview',
             'psikotes',
             'tesTeori',
-            'interviews'
-        ])
-            ->whereHas('cvReview', function ($q) {
-                $q->whereNotIn('decision', ['fail', 'rejected', 'not fit', 'declined']);
-            });
+            'interviews',
+        ]);
+        UserProject::scopeRecruitmentSessionsToAssignedProjects($query);
+        $query->whereHas('cvReview', function ($q) {
+            $q->whereNotIn('decision', ['fail', 'rejected', 'not fit', 'declined']);
+        });
 
         if ($date1 && $date2) {
-            $query->whereBetween('created_at', [$date1 . ' 00:00:00', $date2 . ' 23:59:59']);
+            $query->whereBetween('created_at', [$date1.' 00:00:00', $date2.' 23:59:59']);
         }
 
         if ($department) {
@@ -1775,7 +1810,8 @@ class RecruitmentReportController extends Controller
         $sessions = $query->get();
         $rows = $this->buildInterviewAssessmentData($sessions);
 
-        return Excel::download(new class($rows) implements FromCollection, WithHeadings, WithMapping {
+        return Excel::download(new class($rows) implements FromCollection, WithHeadings, WithMapping
+        {
             private $rows;
 
             public function __construct($rows)
@@ -1803,7 +1839,7 @@ class RecruitmentReportController extends Controller
                     'Interview Type',
                     'Interview Result',
                     'Overall Assessment',
-                    'Notes'
+                    'Notes',
                 ];
             }
 
@@ -1822,10 +1858,10 @@ class RecruitmentReportController extends Controller
                     $row['interview_type'],
                     $row['interview_result'],
                     $row['overall_assessment'],
-                    $row['notes']
+                    $row['notes'],
                 ];
             }
-        }, 'interview_assessment_analytics_' . date('Y-m-d') . '.xlsx');
+        }, 'interview_assessment_analytics_'.date('Y-m-d').'.xlsx');
     }
 
     private function buildInterviewAssessmentData($sessions)
@@ -1835,12 +1871,12 @@ class RecruitmentReportController extends Controller
             $fptk = $session->fptk;
             $candidate = $session->candidate;
 
-            if (!$fptk || !$candidate) {
+            if (! $fptk || ! $candidate) {
                 continue;
             }
 
             // Skip candidates who didn't pass CV Review
-            if (!$session->cvReview || strtolower($session->cvReview->decision ?? '') === 'fail' || strtolower($session->cvReview->decision ?? '') === 'rejected' || strtolower($session->cvReview->decision ?? '') === 'not fit' || strtolower($session->cvReview->decision ?? '') === 'declined') {
+            if (! $session->cvReview || strtolower($session->cvReview->decision ?? '') === 'fail' || strtolower($session->cvReview->decision ?? '') === 'rejected' || strtolower($session->cvReview->decision ?? '') === 'not fit' || strtolower($session->cvReview->decision ?? '') === 'declined') {
                 continue;
             }
 
@@ -1851,12 +1887,12 @@ class RecruitmentReportController extends Controller
                 $psikotesResult = ucfirst($session->psikotes->result ?? 'pending');
                 $scoreDetails = [];
                 if (isset($session->psikotes->online_score) && $session->psikotes->online_score !== null) {
-                    $scoreDetails[] = 'Online: ' . number_format($session->psikotes->online_score, 1);
+                    $scoreDetails[] = 'Online: '.number_format($session->psikotes->online_score, 1);
                 }
                 if (isset($session->psikotes->offline_score) && $session->psikotes->offline_score !== null) {
-                    $scoreDetails[] = 'Offline: ' . number_format($session->psikotes->offline_score, 1);
+                    $scoreDetails[] = 'Offline: '.number_format($session->psikotes->offline_score, 1);
                 }
-                $psikotesScore = !empty($scoreDetails) ? implode(', ', $scoreDetails) : '-';
+                $psikotesScore = ! empty($scoreDetails) ? implode(', ', $scoreDetails) : '-';
             }
 
             // Tes Teori data
@@ -1899,11 +1935,11 @@ class RecruitmentReportController extends Controller
                 }
 
                 // Build combined result for backward compatibility
-                $type = !empty($interviewTypes) ? implode(', ', array_unique($interviewTypes)) : '';
-                $result = !empty($interviewResults) ? implode(', ', array_unique($interviewResults)) : '';
+                $type = ! empty($interviewTypes) ? implode(', ', array_unique($interviewTypes)) : '';
+                $result = ! empty($interviewResults) ? implode(', ', array_unique($interviewResults)) : '';
 
                 if ($type && $result) {
-                    $interviewResult = $type . ' - ' . $result;
+                    $interviewResult = $type.' - '.$result;
                 } elseif ($type) {
                     $interviewResult = $type;
                 } elseif ($result) {
@@ -1933,9 +1969,10 @@ class RecruitmentReportController extends Controller
                 'interview_type' => $interviewResult, // Backward compatibility
                 'interview_result' => $interviewResult, // Backward compatibility
                 'overall_assessment' => $overallAssessment,
-                'notes' => $this->buildAssessmentNotes($session)
+                'notes' => $this->buildAssessmentNotes($session),
             ];
         }
+
         return $rows;
     }
 
@@ -1950,7 +1987,7 @@ class RecruitmentReportController extends Controller
         $interviewResultOnly = '';
 
         if (strpos($interviewResult, ' - ') !== false) {
-            list($interviewType, $interviewResultOnly) = explode(' - ', $interviewResult, 2);
+            [$interviewType, $interviewResultOnly] = explode(' - ', $interviewResult, 2);
         } elseif (strpos($interviewResult, 'HR') !== false || strpos($interviewResult, 'User') !== false || strpos($interviewResult, 'Trainer') !== false) {
             $interviewType = $interviewResult;
             $interviewResultOnly = '';
@@ -1986,7 +2023,7 @@ class RecruitmentReportController extends Controller
                     $trainerScore = $this->convertResultToScore($result);
                 }
             }
-        } elseif ($interviewResultOnly && !$interviewType) {
+        } elseif ($interviewResultOnly && ! $interviewType) {
             // If no type specified, assume it's a general interview result
             $hrScore = $this->convertResultToScore($interviewResultOnly);
         }
@@ -2009,15 +2046,27 @@ class RecruitmentReportController extends Controller
                 // Tes Teori pass - all interviews can be 2/1/0 independently
                 // But ensure no more than 1 interview can fail (0) for Tes Teori = 2
                 $failCount = 0;
-                if ($hrScore === 0) $failCount++;
-                if ($userScore === 0) $failCount++;
-                if ($trainerScore === 0) $failCount++;
+                if ($hrScore === 0) {
+                    $failCount++;
+                }
+                if ($userScore === 0) {
+                    $failCount++;
+                }
+                if ($trainerScore === 0) {
+                    $failCount++;
+                }
 
                 if ($failCount > 1) {
                     // If more than 1 interview fails, adjust to pending (1) to follow the rule
-                    if ($hrScore === 0 && $failCount > 1) $hrScore = 1;
-                    if ($userScore === 0 && $failCount > 1) $userScore = 1;
-                    if ($trainerScore === 0 && $failCount > 1) $trainerScore = 1;
+                    if ($hrScore === 0 && $failCount > 1) {
+                        $hrScore = 1;
+                    }
+                    if ($userScore === 0 && $failCount > 1) {
+                        $userScore = 1;
+                    }
+                    if ($trainerScore === 0 && $failCount > 1) {
+                        $trainerScore = 1;
+                    }
 
                     // Recalculate total score
                     $totalScore = $psikotesScore + $teoriScore + $hrScore + $userScore + $trainerScore;
@@ -2038,13 +2087,21 @@ class RecruitmentReportController extends Controller
                 // Tes Teori NA (-) - only HR & User required, Trainer = NA
                 // Ensure no more than 1 interview can fail (0) for Tes Teori = NA
                 $failCount = 0;
-                if ($hrScore === 0) $failCount++;
-                if ($userScore === 0) $failCount++;
+                if ($hrScore === 0) {
+                    $failCount++;
+                }
+                if ($userScore === 0) {
+                    $failCount++;
+                }
 
                 if ($failCount > 1) {
                     // If more than 1 interview fails, adjust to pending (1) to follow the rule
-                    if ($hrScore === 0 && $failCount > 1) $hrScore = 1;
-                    if ($userScore === 0 && $failCount > 1) $userScore = 1;
+                    if ($hrScore === 0 && $failCount > 1) {
+                        $hrScore = 1;
+                    }
+                    if ($userScore === 0 && $failCount > 1) {
+                        $userScore = 1;
+                    }
                 }
 
                 $hrUserScore = $hrScore + $userScore;
@@ -2084,27 +2141,25 @@ class RecruitmentReportController extends Controller
         }
     }
 
-
-
     private function buildAssessmentNotes($session)
     {
         $notes = [];
 
-        if ($session->psikotes && !empty($session->psikotes->notes)) {
-            $notes[] = 'Psikotes: ' . $session->psikotes->notes;
+        if ($session->psikotes && ! empty($session->psikotes->notes)) {
+            $notes[] = 'Psikotes: '.$session->psikotes->notes;
         }
-        if ($session->tesTeori && !empty($session->tesTeori->notes)) {
-            $notes[] = 'Teori: ' . $session->tesTeori->notes;
+        if ($session->tesTeori && ! empty($session->tesTeori->notes)) {
+            $notes[] = 'Teori: '.$session->tesTeori->notes;
         }
         if ($session->interviews && $session->interviews->count() > 0) {
             foreach ($session->interviews as $interview) {
-                if (!empty($interview->notes)) {
-                    $notes[] = 'Interview: ' . $interview->notes;
+                if (! empty($interview->notes)) {
+                    $notes[] = 'Interview: '.$interview->notes;
                 }
             }
         }
 
-        return !empty($notes) ? implode(' | ', $notes) : '-';
+        return ! empty($notes) ? implode(' | ', $notes) : '-';
     }
 
     public function staleCandidates(Request $request)
@@ -2114,7 +2169,7 @@ class RecruitmentReportController extends Controller
         // Get filter options
         $departments = Department::orderBy('department_name')->get();
         $positions = Position::orderBy('position_name')->get();
-        $projects = Project::orderBy('project_name')->get();
+        $projects = UserProject::projectsForSelect();
 
         return view('recruitment.reports.stale-candidates', compact('departments', 'positions', 'projects', 'title'));
     }
@@ -2134,9 +2189,10 @@ class RecruitmentReportController extends Controller
             'mcu',
             'hiring',
             'onboarding',
-            'candidate'
-        ])
-            ->where('status', 'in_process');
+            'candidate',
+        ]);
+        UserProject::scopeRecruitmentSessionsToAssignedProjects($query);
+        $query->where('status', 'in_process');
 
         // Apply filters
         if ($request->filled('date1') && $request->filled('date2')) {
@@ -2201,7 +2257,7 @@ class RecruitmentReportController extends Controller
             'days_since_last_activity',
             'days_in_current_stage',
             'status',
-            'notes'
+            'notes',
         ];
 
         if (isset($columns[$orderColumn])) {
@@ -2248,7 +2304,7 @@ class RecruitmentReportController extends Controller
                 'days_since_last_activity' => $daysSinceLastActivity,
                 'days_in_current_stage' => $daysInCurrentStage,
                 'status' => $isStale ? 'Stale' : 'Active',
-                'notes' => $this->buildStaleCandidatesNotes($session, $currentStage)
+                'notes' => $this->buildStaleCandidatesNotes($session, $currentStage),
             ];
         }
 
@@ -2256,7 +2312,7 @@ class RecruitmentReportController extends Controller
             'draw' => $request->input('draw'),
             'recordsTotal' => $totalRecords,
             'recordsFiltered' => $filteredRecords,
-            'data' => $data
+            'data' => $data,
         ]);
     }
 
@@ -2267,8 +2323,10 @@ class RecruitmentReportController extends Controller
             'position',
             'project',
             'createdBy',
-            'approval_plans.approver'
+            'approval_plans.approver',
         ]);
+
+        UserProject::scopeToAssignedProjects($query);
 
         // Apply filters
         if ($request->filled('date1') && $request->filled('date2')) {
@@ -2323,7 +2381,7 @@ class RecruitmentReportController extends Controller
             'latest_approval',
             'approved_at',
             'days_to_approve',
-            'remarks'
+            'remarks',
         ];
 
         if (isset($columns[$orderColumn])) {
@@ -2419,7 +2477,6 @@ class RecruitmentReportController extends Controller
                 }
             }
 
-
             $data[] = [
                 'request_id' => $recruitmentRequest->id,
                 'request_no' => $recruitmentRequest->request_number,
@@ -2445,7 +2502,7 @@ class RecruitmentReportController extends Controller
             'draw' => $request->input('draw'),
             'recordsTotal' => $totalRecords,
             'recordsFiltered' => $filteredRecords,
-            'data' => $data
+            'data' => $data,
         ]);
     }
 
@@ -2471,15 +2528,16 @@ class RecruitmentReportController extends Controller
             'fptk.project',
             'fptk.approval_plans.approver',
             'hiring',
-            'candidate'
-        ])
-            ->whereIn('status', ['in_process', 'hired'])
+            'candidate',
+        ]);
+        UserProject::scopeRecruitmentSessionsToAssignedProjects($query);
+        $query->whereIn('status', ['in_process', 'hired'])
             ->whereNotNull('fptk_id')
             ->whereNotNull('candidate_id');
 
         // Apply filters
         if ($request->filled('date1') && $request->filled('date2')) {
-            $query->whereBetween('created_at', [$request->date1 . ' 00:00:00', $request->date2 . ' 23:59:59']);
+            $query->whereBetween('created_at', [$request->date1.' 00:00:00', $request->date2.' 23:59:59']);
         }
 
         if ($request->filled('department')) {
@@ -2539,7 +2597,7 @@ class RecruitmentReportController extends Controller
             'approval_days',
             'recruitment_days',
             'employment_type',
-            'status'
+            'status',
         ];
 
         if (isset($columns[$orderColumn])) {
@@ -2580,7 +2638,7 @@ class RecruitmentReportController extends Controller
         // Build data
         $data = [];
         foreach ($sessions as $session) {
-            if (!$session->candidate || !$session->fptk) {
+            if (! $session->candidate || ! $session->fptk) {
                 continue;
             }
 
@@ -2645,7 +2703,7 @@ class RecruitmentReportController extends Controller
             'draw' => (int) $request->input('draw', 1),
             'recordsTotal' => $totalRecords,
             'recordsFiltered' => $filteredRecords,
-            'data' => $data
+            'data' => $data,
         ]);
     }
 
@@ -2665,16 +2723,17 @@ class RecruitmentReportController extends Controller
                     ->whereNotNull('candidate_id');
             },
             'sessions.hiring',
-            'sessions.candidate'
-        ])
-            ->whereHas('sessions', function ($q) {
-                $q->whereIn('status', ['in_process', 'hired'])
-                    ->whereNotNull('candidate_id');
-            });
+            'sessions.candidate',
+        ]);
+        UserProject::scopeToAssignedProjects($query);
+        $query->whereHas('sessions', function ($q) {
+            $q->whereIn('status', ['in_process', 'hired'])
+                ->whereNotNull('candidate_id');
+        });
 
         // Apply filters
         if ($request->filled('date1') && $request->filled('date2')) {
-            $query->whereBetween('created_at', [$request->date1 . ' 00:00:00', $request->date2 . ' 23:59:59']);
+            $query->whereBetween('created_at', [$request->date1.' 00:00:00', $request->date2.' 23:59:59']);
         }
 
         if ($request->filled('department')) {
@@ -2725,7 +2784,7 @@ class RecruitmentReportController extends Controller
             'required_qty',
             'fill_rate',
             'employment_type',
-            'status'
+            'status',
         ];
 
         if (isset($columns[$orderColumn])) {
@@ -2827,7 +2886,7 @@ class RecruitmentReportController extends Controller
                 'recruitment_days' => $recruitmentDays,
                 'hired_count' => $hiredCount,
                 'required_qty' => $requiredQty,
-                'fill_rate' => $fillRate . '%',
+                'fill_rate' => $fillRate.'%',
                 'employment_type' => ucfirst($fptk->employment_type ?? 'regular'),
                 'status' => ucfirst($fptk->status),
                 'latest_approval' => $latestApproval && $latestApproval->approver ? $latestApproval->approver->name : '-',
@@ -2839,7 +2898,7 @@ class RecruitmentReportController extends Controller
             'draw' => (int) $request->input('draw', 1),
             'recordsTotal' => $totalRecords,
             'recordsFiltered' => $filteredRecords,
-            'data' => $data
+            'data' => $data,
         ]);
     }
 
@@ -2849,12 +2908,13 @@ class RecruitmentReportController extends Controller
             'fptk.department',
             'fptk.position',
             'fptk.project',
-            'offering'
-        ])
-            ->whereHas('offering');
+            'offering',
+        ]);
+        UserProject::scopeRecruitmentSessionsToAssignedProjects($query);
+        $query->whereHas('offering');
 
         if ($request->filled('date1') && $request->filled('date2')) {
-            $query->whereBetween('created_at', [$request->date1 . ' 00:00:00', $request->date2 . ' 23:59:59']);
+            $query->whereBetween('created_at', [$request->date1.' 00:00:00', $request->date2.' 23:59:59']);
         }
 
         if ($request->filled('department')) {
@@ -2913,7 +2973,7 @@ class RecruitmentReportController extends Controller
             'response_time',
             'response',
             'offering_letter_no',
-            'notes'
+            'notes',
         ];
 
         if (isset($columns[$orderColumn])) {
@@ -2936,7 +2996,7 @@ class RecruitmentReportController extends Controller
         // Build data
         $data = [];
         foreach ($sessions as $session) {
-            if (!$session->offering) {
+            if (! $session->offering) {
                 continue;
             }
 
@@ -2944,7 +3004,7 @@ class RecruitmentReportController extends Controller
             $fptk = $session->fptk;
             $candidate = $session->candidate;
 
-            if (!$fptk || !$candidate) {
+            if (! $fptk || ! $candidate) {
                 continue;
             }
 
@@ -2976,7 +3036,7 @@ class RecruitmentReportController extends Controller
             'draw' => $request->input('draw'),
             'recordsTotal' => $totalRecords,
             'recordsFiltered' => $filteredRecords,
-            'data' => $data
+            'data' => $data,
         ]);
     }
 
@@ -2989,14 +3049,15 @@ class RecruitmentReportController extends Controller
             'cvReview',
             'psikotes',
             'tesTeori',
-            'interviews'
-        ])
-            ->whereHas('cvReview', function ($q) {
-                $q->whereNotIn('decision', ['fail', 'rejected', 'not fit', 'declined']);
-            });
+            'interviews',
+        ]);
+        UserProject::scopeRecruitmentSessionsToAssignedProjects($query);
+        $query->whereHas('cvReview', function ($q) {
+            $q->whereNotIn('decision', ['fail', 'rejected', 'not fit', 'declined']);
+        });
 
         if ($request->filled('date1') && $request->filled('date2')) {
-            $query->whereBetween('created_at', [$request->date1 . ' 00:00:00', $request->date2 . ' 23:59:59']);
+            $query->whereBetween('created_at', [$request->date1.' 00:00:00', $request->date2.' 23:59:59']);
         }
 
         if ($request->filled('department')) {
@@ -3054,7 +3115,7 @@ class RecruitmentReportController extends Controller
             'tes_teori_result',
             'interview_result',
             'overall_assessment',
-            'notes'
+            'notes',
         ];
 
         if (isset($columns[$orderColumn])) {
@@ -3080,11 +3141,11 @@ class RecruitmentReportController extends Controller
             $fptk = $session->fptk;
             $candidate = $session->candidate;
 
-            if (!$fptk || !$candidate) {
+            if (! $fptk || ! $candidate) {
                 continue;
             }
 
-            if (!$session->cvReview || strtolower($session->cvReview->decision ?? '') === 'fail' || strtolower($session->cvReview->decision ?? '') === 'rejected' || strtolower($session->cvReview->decision ?? '') === 'not fit' || strtolower($session->cvReview->decision ?? '') === 'declined') {
+            if (! $session->cvReview || strtolower($session->cvReview->decision ?? '') === 'fail' || strtolower($session->cvReview->decision ?? '') === 'rejected' || strtolower($session->cvReview->decision ?? '') === 'not fit' || strtolower($session->cvReview->decision ?? '') === 'declined') {
                 continue;
             }
 
@@ -3094,14 +3155,14 @@ class RecruitmentReportController extends Controller
                 $result = ucfirst($session->psikotes->result ?? 'pending');
                 $scoreDetails = [];
                 if (isset($session->psikotes->online_score) && $session->psikotes->online_score !== null) {
-                    $scoreDetails[] = 'Online: ' . number_format($session->psikotes->online_score, 1);
+                    $scoreDetails[] = 'Online: '.number_format($session->psikotes->online_score, 1);
                 }
                 if (isset($session->psikotes->offline_score) && $session->psikotes->offline_score !== null) {
-                    $scoreDetails[] = 'Offline: ' . number_format($session->psikotes->offline_score, 1);
+                    $scoreDetails[] = 'Offline: '.number_format($session->psikotes->offline_score, 1);
                 }
                 $psikotesResult = $result;
-                if (!empty($scoreDetails)) {
-                    $psikotesResult .= ' (' . implode(', ', $scoreDetails) . ')';
+                if (! empty($scoreDetails)) {
+                    $psikotesResult .= ' ('.implode(', ', $scoreDetails).')';
                 }
             }
 
@@ -3112,7 +3173,7 @@ class RecruitmentReportController extends Controller
                 $score = isset($session->tesTeori->score) ? number_format($session->tesTeori->score, 1) : null;
                 $tesTeoriResult = $result;
                 if ($score) {
-                    $tesTeoriResult .= ' (' . $score . ')';
+                    $tesTeoriResult .= ' ('.$score.')';
                 }
             }
 
@@ -3140,7 +3201,7 @@ class RecruitmentReportController extends Controller
                 }
 
                 // Build the combined interview result string for calculation
-                if (!empty($interviewData)) {
+                if (! empty($interviewData)) {
                     $types = [];
                     $results = [];
                     $displayItems = [];
@@ -3149,21 +3210,21 @@ class RecruitmentReportController extends Controller
                     if (isset($interviewData['HR'])) {
                         $types[] = 'HR';
                         $results[] = $interviewData['HR'];
-                        $displayItems[] = 'HR: ' . $interviewData['HR'];
+                        $displayItems[] = 'HR: '.$interviewData['HR'];
                     }
                     if (isset($interviewData['User'])) {
                         $types[] = 'User';
                         $results[] = $interviewData['User'];
-                        $displayItems[] = 'User: ' . $interviewData['User'];
+                        $displayItems[] = 'User: '.$interviewData['User'];
                     }
                     if (isset($interviewData['Trainer'])) {
                         $types[] = 'Trainer';
                         $results[] = $interviewData['Trainer'];
-                        $displayItems[] = 'Trainer: ' . $interviewData['Trainer'];
+                        $displayItems[] = 'Trainer: '.$interviewData['Trainer'];
                     }
 
-                    if (!empty($types) && !empty($results)) {
-                        $interviewResult = implode(', ', $types) . ' - ' . implode(', ', $results);
+                    if (! empty($types) && ! empty($results)) {
+                        $interviewResult = implode(', ', $types).' - '.implode(', ', $results);
                         $interviewDisplay = implode(' | ', $displayItems);
                     }
                 }
@@ -3184,7 +3245,7 @@ class RecruitmentReportController extends Controller
                 'tes_teori_result' => $tesTeoriResult,
                 'interview_result' => $interviewDisplay,
                 'overall_assessment' => $overallAssessment,
-                'notes' => $this->buildAssessmentNotes($session)
+                'notes' => $this->buildAssessmentNotes($session),
             ];
         }
 
@@ -3192,7 +3253,7 @@ class RecruitmentReportController extends Controller
             'draw' => $request->input('draw'),
             'recordsTotal' => $totalRecords,
             'recordsFiltered' => $filteredRecords,
-            'data' => $data
+            'data' => $data,
         ]);
     }
 
@@ -3212,7 +3273,7 @@ class RecruitmentReportController extends Controller
             'onboarding' => RecruitmentOnboarding::class,
         ];
 
-        if (!isset($stageModels[$stage])) {
+        if (! isset($stageModels[$stage])) {
             return response()->json(['error' => 'Invalid stage'], 400);
         }
 
@@ -3223,8 +3284,10 @@ class RecruitmentReportController extends Controller
             'fptk.department',
             'fptk.position',
             'fptk.project',
-            'candidate'
+            'candidate',
         ]);
+
+        UserProject::scopeRecruitmentSessionsToAssignedProjects($sessionsQuery);
 
         // Apply FPTK-based filters
         if ($request->filled('department') || $request->filled('position') || $request->filled('project')) {
@@ -3250,7 +3313,9 @@ class RecruitmentReportController extends Controller
 
         // Filter sessions based on employment type and stage compatibility
         $filteredSessions = $sessions->filter(function ($session) use ($stage) {
-            if (!$session->fptk) return false;
+            if (! $session->fptk) {
+                return false;
+            }
 
             $employmentType = $session->fptk->employment_type ?? 'regular';
 
@@ -3271,15 +3336,16 @@ class RecruitmentReportController extends Controller
                 'offering' => 'Offering',
                 'mcu' => 'MCU',
                 'hiring' => 'Hiring',
-                'onboarding' => 'Onboarding'
+                'onboarding' => 'Onboarding',
             ];
 
             $stageName = $stageMapping[$stage] ?? ucfirst(str_replace('_', ' ', $stage));
 
             // For regular MCU and Hiring, exclude magang/harian
             if (in_array($stage, ['mcu', 'hiring'])) {
-                $isRegularEmployment = !in_array($employmentType, ['magang', 'harian']);
+                $isRegularEmployment = ! in_array($employmentType, ['magang', 'harian']);
                 $stageAllowed = in_array($stageName, $expectedStages);
+
                 return $isRegularEmployment && $stageAllowed;
             }
 
@@ -3334,7 +3400,7 @@ class RecruitmentReportController extends Controller
             'stage_date',
             'days_in_stage',
             'result',
-            'remarks'
+            'remarks',
         ];
 
         if (isset($columns[$orderColumn])) {
@@ -3373,7 +3439,7 @@ class RecruitmentReportController extends Controller
         $data = [];
         foreach ($stageRecords as $record) {
             $session = $record->session;
-            if (!$session || !$session->fptk || !$session->candidate) {
+            if (! $session || ! $session->fptk || ! $session->candidate) {
                 continue;
             }
 
@@ -3447,7 +3513,7 @@ class RecruitmentReportController extends Controller
             'draw' => $request->input('draw'),
             'recordsTotal' => $totalRecords,
             'recordsFiltered' => $filteredRecords,
-            'data' => $data
+            'data' => $data,
         ]);
     }
 
@@ -3464,28 +3530,28 @@ class RecruitmentReportController extends Controller
         };
 
         // 1) TRUST session.current_stage when present
-        if (!empty($session->current_stage)) {
+        if (! empty($session->current_stage)) {
             $stage = $session->current_stage; // raw value like 'tes_teori'
             switch ($stage) {
                 case 'cv_review':
-                    if ($session->cvReview && !$isPass($session->cvReview->decision)) {
+                    if ($session->cvReview && ! $isPass($session->cvReview->decision)) {
                         return 'CV Review';
                     }
                     break;
                 case 'psikotes':
-                    if ($session->psikotes && !$isPass($session->psikotes->result)) {
+                    if ($session->psikotes && ! $isPass($session->psikotes->result)) {
                         return 'Psikotes';
                     }
                     break;
                 case 'tes_teori':
-                    if ($session->tesTeori && !$isPass($session->tesTeori->result)) {
+                    if ($session->tesTeori && ! $isPass($session->tesTeori->result)) {
                         return 'Tes Teori';
                     }
                     break;
                 case 'interview':
                     if ($session->interviews && is_object($session->interviews) && method_exists($session->interviews, 'count') && $session->interviews->count() > 0) {
                         $hasPendingOrFail = $session->interviews->contains(function ($i) use ($isPass) {
-                            return !$isPass($i->result);
+                            return ! $isPass($i->result);
                         });
                         if ($hasPendingOrFail) {
                             return 'Interview';
@@ -3498,7 +3564,7 @@ class RecruitmentReportController extends Controller
                     }
                     break;
                 case 'mcu':
-                    if ($session->mcu && !$isPass($session->mcu->result)) {
+                    if ($session->mcu && ! $isPass($session->mcu->result)) {
                         return 'MCU';
                     }
                     break;
@@ -3513,24 +3579,41 @@ class RecruitmentReportController extends Controller
                     }
                     break;
             }
+
             // If we reach here, fall back to displaying the declared current_stage text
             return ucfirst(str_replace('_', ' ', $stage));
         }
 
         // 2) Fallback: detect from highest to lowest stage
-        if ($session->onboarding && $normalize($session->onboarding->result) !== 'complete') return 'Onboarding';
-        if ($session->hiring && $normalize($session->hiring->result) !== 'hired') return 'Hiring';
-        if ($session->mcu && !$isPass($session->mcu->result)) return 'MCU';
-        if ($session->offering && $normalize($session->offering->response) !== 'accepted') return 'Offering';
+        if ($session->onboarding && $normalize($session->onboarding->result) !== 'complete') {
+            return 'Onboarding';
+        }
+        if ($session->hiring && $normalize($session->hiring->result) !== 'hired') {
+            return 'Hiring';
+        }
+        if ($session->mcu && ! $isPass($session->mcu->result)) {
+            return 'MCU';
+        }
+        if ($session->offering && $normalize($session->offering->response) !== 'accepted') {
+            return 'Offering';
+        }
         if ($session->interviews && is_object($session->interviews) && method_exists($session->interviews, 'count') && $session->interviews->count() > 0) {
             $hasPendingOrFail = $session->interviews->contains(function ($i) use ($isPass) {
-                return !$isPass($i->result);
+                return ! $isPass($i->result);
             });
-            if ($hasPendingOrFail) return 'Interview';
+            if ($hasPendingOrFail) {
+                return 'Interview';
+            }
         }
-        if ($session->tesTeori && !$isPass($session->tesTeori->result)) return 'Tes Teori';
-        if ($session->psikotes && !$isPass($session->psikotes->result)) return 'Psikotes';
-        if ($session->cvReview && !$isPass($session->cvReview->decision)) return 'CV Review';
+        if ($session->tesTeori && ! $isPass($session->tesTeori->result)) {
+            return 'Tes Teori';
+        }
+        if ($session->psikotes && ! $isPass($session->psikotes->result)) {
+            return 'Psikotes';
+        }
+        if ($session->cvReview && ! $isPass($session->cvReview->decision)) {
+            return 'CV Review';
+        }
 
         return 'Unknown';
     }
@@ -3568,7 +3651,7 @@ class RecruitmentReportController extends Controller
             $dates[] = $session->cvReview->updated_at;
         }
 
-        return !empty($dates) ? max($dates) : $session->updated_at;
+        return ! empty($dates) ? max($dates) : $session->updated_at;
     }
 
     private function getDaysInCurrentStage($session, $currentStage)
@@ -3614,39 +3697,39 @@ class RecruitmentReportController extends Controller
         switch ($currentStage) {
             case 'CV Review':
                 if ($session->cvReview) {
-                    $notes[] = "CV Review: " . ($session->cvReview->decision ?? 'No decision');
+                    $notes[] = 'CV Review: '.($session->cvReview->decision ?? 'No decision');
                 }
                 break;
             case 'Psikotes':
                 if ($session->psikotes) {
-                    $notes[] = "Psikotes: " . ($session->psikotes->result ?? 'No result');
+                    $notes[] = 'Psikotes: '.($session->psikotes->result ?? 'No result');
                 }
                 break;
             case 'Tes Teori':
                 if ($session->tesTeori) {
-                    $notes[] = "Tes Teori: " . ($session->tesTeori->result ?? 'No result');
+                    $notes[] = 'Tes Teori: '.($session->tesTeori->result ?? 'No result');
                 }
                 break;
             case 'Interview':
                 if ($session->interviews && is_object($session->interviews) && method_exists($session->interviews, 'count') && $session->interviews->count() > 0) {
                     foreach ($session->interviews as $interview) {
-                        $notes[] = "Interview " . ucfirst($interview->type) . ": " . ($interview->result ?? 'No result');
+                        $notes[] = 'Interview '.ucfirst($interview->type).': '.($interview->result ?? 'No result');
                     }
                 }
                 break;
             case 'Offering':
                 if ($session->offering) {
-                    $notes[] = "Offering: " . ($session->offering->response ?? 'No response');
+                    $notes[] = 'Offering: '.($session->offering->response ?? 'No response');
                 }
                 break;
             case 'MCU':
                 if ($session->mcu) {
-                    $notes[] = "MCU: " . ($session->mcu->result ?? 'No result');
+                    $notes[] = 'MCU: '.($session->mcu->result ?? 'No result');
                 }
                 break;
             case 'Hiring':
                 if ($session->hiring) {
-                    $notes[] = "Hiring: " . ($session->hiring->result ?? 'No result');
+                    $notes[] = 'Hiring: '.($session->hiring->result ?? 'No result');
                 }
                 break;
         }
@@ -3710,8 +3793,10 @@ class RecruitmentReportController extends Controller
             'mcu',
             'hiring',
             'onboarding',
-            'candidate'
-        ])->where('status', 'in_process');
+            'candidate',
+        ]);
+        UserProject::scopeRecruitmentSessionsToAssignedProjects($query);
+        $query->where('status', 'in_process');
 
         if ($request->filled('date1') && $request->filled('date2')) {
             $query->whereBetween('created_at', [$request->date1, $request->date2]);
@@ -3760,16 +3845,20 @@ class RecruitmentReportController extends Controller
             ];
         }
 
-        return Excel::download(new class(collect($rows)) implements FromCollection, WithHeadings, WithMapping {
+        return Excel::download(new class(collect($rows)) implements FromCollection, WithHeadings, WithMapping
+        {
             private $rows;
+
             public function __construct($rows)
             {
                 $this->rows = $rows;
             }
+
             public function collection()
             {
                 return $this->rows;
             }
+
             public function headings(): array
             {
                 return [
@@ -3783,9 +3872,10 @@ class RecruitmentReportController extends Controller
                     'Days Since Last Activity',
                     'Days in Current Stage',
                     'Status',
-                    'Notes'
+                    'Notes',
                 ];
             }
+
             public function map($row): array
             {
                 return [
@@ -3802,6 +3892,6 @@ class RecruitmentReportController extends Controller
                     $row['notes'],
                 ];
             }
-        }, 'recruitment_stale_candidates_' . date('YmdHis') . '.xlsx');
+        }, 'recruitment_stale_candidates_'.date('YmdHis').'.xlsx');
     }
 }

@@ -1,7 +1,8 @@
 {{--
     Letter Number Selector Component
 
-    Reusable component for selecting existing reserved letter numbers
+    Reusable component for selecting existing reserved letter numbers.
+    Loads options via GET /api/letter-numbers/available/{categoryCode} with header X-API-Key from API_KEY (.env).
 
     Usage:
     @include('components.smart-letter-number-selector', [
@@ -23,6 +24,9 @@
     $required = $required ?? false;
     $placeholder = $placeholder ?? 'Select Letter Number';
     $selectedValue = old($fieldName) ?? ($selectedValue ?? null);
+
+    // Same key as API_KEY in .env (config/services.php → services.api.key); required when API_REQUIRE_KEY=true
+    $letterNumbersApiKey = config('services.api.key') ?? '';
 
     // Component ID for JavaScript isolation
     $componentId = 'letter-selector-' . uniqid();
@@ -138,10 +142,16 @@
 
                 updateSelectionStatus('info', 'Loading available letter numbers...');
 
-                $.get("{{ route('api.letter-numbers.available', ['categoryCode' => ':categoryCode']) }}".replace(
-                        ':categoryCode', categoryCode))
+                $.ajax({
+                        url: "{{ route('api.letter-numbers.available', ['categoryCode' => ':categoryCode']) }}"
+                            .replace(':categoryCode', categoryCode),
+                        method: 'GET',
+                        headers: {
+                            'X-API-Key': @json($letterNumbersApiKey),
+                            'Accept': 'application/json',
+                        },
+                    })
                     .done(function(response) {
-                        console.log(response);
                         if (response.success) {
                             populateAvailableNumbers(response.data);
                             if (response.data.length > 0) {
@@ -174,9 +184,15 @@
                             month: 'long',
                             year: 'numeric'
                         }).replace(/ /g, '-') : 'No Date';
-                    // Build display text with remarks
+                    // Build display text with project_code and remarks
+                    const proj = number.project_code && String(number.project_code).trim()
+                        ? String(number.project_code).trim()
+                        : '';
                     let displayText =
                         `${number.letter_number} - ${number.subject_name || 'No Subject'} (${letterDate})`;
+                    if (proj) {
+                        displayText += ` · Project: ${proj}`;
+                    }
 
                     // Add remarks if available (limit to 40 characters)
                     if (number.remarks && number.remarks.trim()) {
@@ -191,7 +207,10 @@
                         .val(number.id)
                         .text(displayText)
                         .data('number', number)
-                        .attr('title', number.remarks ? number.remarks : ''); // Full remarks in tooltip
+                        .attr('title', [
+                            proj ? `Project: ${proj}` : '',
+                            number.remarks ? number.remarks : '',
+                        ].filter(Boolean).join(' — '));
 
                     // Pre-select if this is the old value
                     if (selectedValue && number.id == selectedValue) {

@@ -156,7 +156,7 @@ class LetterNumberApiController extends Controller
                     return [
                         'id' => $item->id,
                         'letter_number' => $item->letter_number,
-                        'subject' => $item->subject->subject_name ?? $item->custom_subject,
+                        'subject' => $item->subject?->subject_name ?? $item->custom_subject,
                         'letter_date' => $item->letter_date->format('Y-m-d'),
                         'category_name' => $item->category->category_name ?? null,
                         'sequence_number' => $item->sequence_number,

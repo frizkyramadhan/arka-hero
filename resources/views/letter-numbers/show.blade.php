@@ -412,9 +412,11 @@
                 }).then((result) => {
                     if (result.isConfirmed) {
                         $.ajax({
-                            url: '/api/v1/letter-numbers/' + id + '/cancel',
+                            url: "{{ url('api/letter-numbers') }}/" + id + "/cancel",
                             type: 'POST',
                             headers: {
+                                'X-API-Key': @json(config('services.api.key') ?? ''),
+                                'Accept': 'application/json',
                                 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
                             },
                             success: function(response) {

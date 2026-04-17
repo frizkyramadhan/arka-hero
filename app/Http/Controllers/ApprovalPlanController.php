@@ -2,20 +2,19 @@
 
 namespace App\Http\Controllers;
 
-use Carbon\Carbon;
-use App\Models\Project;
 use App\Models\ApprovalPlan;
-use App\Models\LeaveRequest;
-use Illuminate\Http\Request;
 use App\Models\ApprovalStage;
 use App\Models\FlightRequest;
 use App\Models\FlightRequestIssuance;
+use App\Models\LeaveRequest;
 use App\Models\Officialtravel;
-use App\Models\LeaveEntitlement;
-use App\Models\RecruitmentRequest;
 use App\Models\OvertimeRequest;
-use Illuminate\Support\Facades\Log;
+use App\Models\Project;
+use App\Models\RecruitmentRequest;
+use Carbon\Carbon;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 
 class ApprovalPlanController extends Controller
 {
@@ -26,8 +25,8 @@ class ApprovalPlanController extends Controller
      * It identifies the appropriate approvers from the ApprovalStage model and
      * creates an approval plan entry for each approver.
      *
-     * @param string $document_type Type of document ('officialtravel', 'recruitment_request', 'leave_request')
-     * @param int $document_id ID of the document
+     * @param  string  $document_type  Type of document ('officialtravel', 'recruitment_request', 'leave_request')
+     * @param  int  $document_id  ID of the document
      * @return int|bool Number of approvers created or false if failed
      */
     public function create_approval_plan($document_type, $document_id)
@@ -40,8 +39,9 @@ class ApprovalPlanController extends Controller
             $project = $document->official_travel_origin;
             // For official travel, use department from main traveler's position
             $traveler = $document->traveler;
-            if (!$traveler || !$traveler->position || !$traveler->position->department) {
+            if (! $traveler || ! $traveler->position || ! $traveler->position->department) {
                 Log::error("Main traveler or position/department not found for official travel {$document_id}");
+
                 return false;
             }
             $department_id = $traveler->position->department_id;
@@ -94,11 +94,11 @@ class ApprovalPlanController extends Controller
 
             if ($isPeriodicLeave) {
                 // For periodic leave, use specific hierarchical approval for roster-based leave
-                Log::info("Periodic leave detected - using periodic leave hierarchical approval logic");
+                Log::info('Periodic leave detected - using periodic leave hierarchical approval logic');
                 $approvers = $this->getPeriodicLeaveHierarchicalApprovers($document, $project, $department_id);
             } else {
                 // For regular leave, use hierarchical approval based on level
-                Log::info("Regular leave detected - using hierarchical approval based on level");
+                Log::info('Regular leave detected - using hierarchical approval based on level');
                 $approvers = $this->getHierarchicalApprovers($document, $project, $department_id);
             }
         }
@@ -126,6 +126,7 @@ class ApprovalPlanController extends Controller
 
                     if ($existing_plan) {
                         Log::warning("Approval plan already exists for document_id: {$document_id}, approver_id: {$approver->approver_id}");
+
                         continue;
                     }
 
@@ -135,6 +136,7 @@ class ApprovalPlanController extends Controller
                         Log::error($error_msg);
                         $errors[] = $error_msg;
                         $error_count++;
+
                         continue;
                     }
 
@@ -150,7 +152,7 @@ class ApprovalPlanController extends Controller
                     $created_count++;
                     Log::info("Created approval plan ID: {$approval_plan->id} for approver: {$approver->approver_id} with order: {$approver->approval_order}");
                 } catch (\Exception $e) {
-                    $error_msg = "Failed to create approval plan for approver {$approver->approver_id}: " . $e->getMessage();
+                    $error_msg = "Failed to create approval plan for approver {$approver->approver_id}: ".$e->getMessage();
                     Log::error($error_msg);
                     $errors[] = $error_msg;
                     $error_count++;
@@ -168,12 +170,12 @@ class ApprovalPlanController extends Controller
 
             // Clear cache for pending approvals count for all approvers
             foreach ($approvers as $approver) {
-                cache()->forget('pending_approvals_' . $approver->approver_id);
+                cache()->forget('pending_approvals_'.$approver->approver_id);
             }
 
             // If there were errors, log them for debugging
-            if (!empty($errors)) {
-                Log::error("Errors during approval plan creation: " . implode("; ", $errors));
+            if (! empty($errors)) {
+                Log::error('Errors during approval plan creation: '.implode('; ', $errors));
             }
 
             return $created_count; // Return number of approvers actually created
@@ -183,7 +185,7 @@ class ApprovalPlanController extends Controller
         Log::warning("No approvers found for document_type: {$document_type}, project: {$project}, department_id: {$department_id}");
 
         // Throw exception with clear message for user
-        throw new \Exception("No approval stages configured for this project and department combination. Please contact administrator to set up approval workflow.");
+        throw new \Exception('No approval stages configured for this project and department combination. Please contact administrator to set up approval workflow.');
     }
 
     /**
@@ -197,8 +199,8 @@ class ApprovalPlanController extends Controller
      * 1 = Approved
      * 2 = Reject
      *
-     * @param Request $request The HTTP request containing approval data
-     * @param int $id The ID of the approval plan to update
+     * @param  Request  $request  The HTTP request containing approval data
+     * @param  int  $id  The ID of the approval plan to update
      * @return \Illuminate\Http\RedirectResponse Redirect to appropriate page
      */
     public function update(Request $request, $id)
@@ -207,10 +209,10 @@ class ApprovalPlanController extends Controller
         $approval_plan = ApprovalPlan::findOrFail($id);
 
         // Check if approval can be processed (sequential validation)
-        if (!$approval_plan->canBeProcessed()) {
+        if (! $approval_plan->canBeProcessed()) {
             $response = [
                 'success' => false,
-                'message' => 'Previous approvals must be completed first. Please wait for earlier approvers to process their approvals.'
+                'message' => 'Previous approvals must be completed first. Please wait for earlier approvers to process their approvals.',
             ];
 
             if ($request->ajax()) {
@@ -293,11 +295,11 @@ class ApprovalPlanController extends Controller
             // }
 
             // Log the approval completion
-            Log::info("Document approved successfully", [
+            Log::info('Document approved successfully', [
                 'document_type' => $document_type,
                 'document_id' => $document->id,
                 'approved_at' => $approval_plan->updated_at,
-                'approver_id' => $approval_plan->approver_id
+                'approver_id' => $approval_plan->approver_id,
             ]);
         }
 
@@ -315,13 +317,13 @@ class ApprovalPlanController extends Controller
         if ($request->ajax()) {
             return response()->json([
                 'success' => true,
-                'message' => ucfirst($document_type) . ' has been ' . $status_text,
-                'document_type' => $document_type
+                'message' => ucfirst($document_type).' has been '.$status_text,
+                'document_type' => $document_type,
             ]);
         }
 
         // Redirect to appropriate page based on document type for non-AJAX requests
-        return redirect()->route('approvals.request.requests.index')->with('success', ucfirst($document_type) . ' has been ' . $status_text);
+        return redirect()->route('approvals.request.requests.index')->with('success', ucfirst($document_type).' has been '.$status_text);
     }
 
     /**
@@ -346,8 +348,8 @@ class ApprovalPlanController extends Controller
      * This function is called when a document is rejected or needs revision.
      * It marks all open approval plans for the document as closed (is_open = 0).
      *
-     * @param string $document_type Type of document
-     * @param int $document_id ID of the document
+     * @param  string  $document_type  Type of document
+     * @param  int  $document_id  ID of the document
      * @return void
      */
     public function closeOpenApprovalPlans($document_type, $document_id)
@@ -379,7 +381,7 @@ class ApprovalPlanController extends Controller
      *
      * This method allows approving multiple documents at once.
      *
-     * @param Request $request The HTTP request containing the IDs of documents to approve
+     * @param  Request  $request  The HTTP request containing the IDs of documents to approve
      * @return \Illuminate\Http\JsonResponse JSON response with success/error message
      */
     public function bulkApprove(Request $request)
@@ -403,12 +405,14 @@ class ApprovalPlanController extends Controller
             // Skip if not the correct document type or already processed
             if ($approval_plan->document_type !== $document_type || $approval_plan->status !== 0 || $approval_plan->is_open !== 1) {
                 $failCount++;
+
                 continue;
             }
 
             // Check sequential approval order - prevent approval of higher order steps before lower order steps
-            if (!$this->canProcessSequentialApproval($approval_plan)) {
+            if (! $this->canProcessSequentialApproval($approval_plan)) {
                 $failCount++;
+
                 continue;
             }
 
@@ -432,6 +436,7 @@ class ApprovalPlanController extends Controller
                 $document = FlightRequestIssuance::findOrFail($approval_plan->document_id);
             } else {
                 $failCount++;
+
                 continue;
             }
 
@@ -469,7 +474,7 @@ class ApprovalPlanController extends Controller
         // Return response
         if ($successCount > 0) {
             // Clear cache for pending approvals count for current user
-            cache()->forget('pending_approvals_' . Auth::id());
+            cache()->forget('pending_approvals_'.Auth::id());
 
             $documentTypeLabel = ucfirst($document_type);
             if ($document_type === 'officialtravel') {
@@ -486,7 +491,7 @@ class ApprovalPlanController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => $successCount . ' ' . $documentTypeLabel . ($successCount > 1 ? 's' : '') . ' have been approved successfully' . ($failCount > 0 ? ' (' . $failCount . ' failed)' : ''),
+                'message' => $successCount.' '.$documentTypeLabel.($successCount > 1 ? 's' : '').' have been approved successfully'.($failCount > 0 ? ' ('.$failCount.' failed)' : ''),
             ]);
         } else {
             return response()->json([
@@ -511,7 +516,7 @@ class ApprovalPlanController extends Controller
      * - Skipped: 1 → 3 → 5 (no order 2 or 4)
      * - Mixed: 1,1 → 2,2 → 3 (multiple parallel groups)
      *
-     * @param ApprovalPlan $approvalPlan The approval plan to check.
+     * @param  ApprovalPlan  $approvalPlan  The approval plan to check.
      * @return bool True if it can be processed, false otherwise.
      */
     private function canProcessSequentialApproval($approvalPlan)
@@ -557,7 +562,7 @@ class ApprovalPlanController extends Controller
             });
 
             // If any previous order group is not fully approved, cannot process
-            if (!$allApproved) {
+            if (! $allApproved) {
                 return false;
             }
         }
@@ -603,7 +608,7 @@ class ApprovalPlanController extends Controller
     {
         // Log for debugging
         Log::info("Conditional approver logic for request_reason: {$request_reason}, project_id: {$project_id}");
-        Log::info("Original approvers count: " . $approvers->count());
+        Log::info('Original approvers count: '.$approvers->count());
 
         // Return all configured approvers - they are already filtered by the main query
         // based on project_id, department_id, and request_reason matching
@@ -657,7 +662,7 @@ class ApprovalPlanController extends Controller
     {
         $project = Project::find($project_id);
 
-        if (!$project) {
+        if (! $project) {
             return 'UNKNOWN';
         }
 
@@ -742,30 +747,31 @@ class ApprovalPlanController extends Controller
     private function getHierarchicalApprovers($leaveRequest, $projectId, $departmentId)
     {
         $applicantLevel = $leaveRequest->administration->level;
-        if (!$applicantLevel) {
-            Log::warning("No level found for leave request applicant", [
+        if (! $applicantLevel) {
+            Log::warning('No level found for leave request applicant', [
                 'leave_request_id' => $leaveRequest->id,
-                'administration_id' => $leaveRequest->administration_id
+                'administration_id' => $leaveRequest->administration_id,
             ]);
+
             return collect();
         }
 
         $applicantLevelOrder = $applicantLevel->level_order;
 
-        Log::info("Getting hierarchical approvers for leave request", [
+        Log::info('Getting hierarchical approvers for leave request', [
             'leave_request_id' => $leaveRequest->id,
             'applicant_level' => $applicantLevel->name,
             'applicant_level_order' => $applicantLevelOrder,
             'project_id' => $projectId,
-            'department_id' => $departmentId
+            'department_id' => $departmentId,
         ]);
 
         // CASE 1: Director level - follow approval_stages setup
         if ($this->isDirectorLevel($applicantLevelOrder)) {
-            Log::info("Director level detected - following approval_stages setup", [
+            Log::info('Director level detected - following approval_stages setup', [
                 'applicant_level' => $applicantLevel->name,
                 'project_id' => $projectId,
-                'department_id' => $departmentId
+                'department_id' => $departmentId,
             ]);
 
             // For Director level, still follow the approval_stages configuration
@@ -788,7 +794,7 @@ class ApprovalPlanController extends Controller
             foreach ($approvalStages as $stage) {
                 $approver = $stage->approver;
 
-                if (!$approver || !$approver->employee) {
+                if (! $approver || ! $approver->employee) {
                     continue;
                 }
 
@@ -797,14 +803,14 @@ class ApprovalPlanController extends Controller
                     ->where('is_active', 1)
                     ->first();
 
-                if (!$approverAdministration || !$approverAdministration->level) {
+                if (! $approverAdministration || ! $approverAdministration->level) {
                     continue;
                 }
 
-                $approvers->push((object)[
+                $approvers->push((object) [
                     'approver_id' => $approver->id,
                     'approval_order' => $stage->approval_order,
-                    'level_id' => $approverAdministration->level->id
+                    'level_id' => $approverAdministration->level->id,
                 ]);
             }
 
@@ -815,9 +821,9 @@ class ApprovalPlanController extends Controller
 
         // CASE 2: Manager -> Director only
         if ($this->isManagerLevel($applicantLevelOrder)) {
-            Log::info("Manager level detected - getting director approvers only", [
+            Log::info('Manager level detected - getting director approvers only', [
                 'applicant_level' => $applicantLevel->name,
-                'target_level' => 'Director'
+                'target_level' => 'Director',
             ]);
 
             return $this->getDirectorApprovers($projectId, $departmentId);
@@ -834,11 +840,11 @@ class ApprovalPlanController extends Controller
             $maxApproverLevel = $managerLevel; // Changed from min($maxApproverLevel, $managerLevel)
         }
 
-        Log::info("Getting approvers for non-manager level", [
+        Log::info('Getting approvers for non-manager level', [
             'applicant_level_order' => $applicantLevelOrder,
             'min_approver_level' => $minApproverLevel,
             'max_approver_level' => $maxApproverLevel,
-            'max_difference' => $maxLevelDifference
+            'max_difference' => $maxLevelDifference,
         ]);
 
         return $this->getApproversWithinLevelRange(
@@ -864,27 +870,28 @@ class ApprovalPlanController extends Controller
     private function getPeriodicLeaveHierarchicalApprovers($leaveRequest, $projectId, $departmentId)
     {
         $applicantLevel = $leaveRequest->administration->level;
-        if (!$applicantLevel) {
-            Log::warning("No level found for periodic leave request applicant", [
+        if (! $applicantLevel) {
+            Log::warning('No level found for periodic leave request applicant', [
                 'leave_request_id' => $leaveRequest->id,
-                'administration_id' => $leaveRequest->administration_id
+                'administration_id' => $leaveRequest->administration_id,
             ]);
+
             return collect();
         }
 
         $applicantLevelOrder = $applicantLevel->level_order;
 
-        Log::info("Getting periodic leave hierarchical approvers", [
+        Log::info('Getting periodic leave hierarchical approvers', [
             'leave_request_id' => $leaveRequest->id,
             'applicant_level' => $applicantLevel->name,
             'applicant_level_order' => $applicantLevelOrder,
             'project_id' => $projectId,
-            'department_id' => $departmentId
+            'department_id' => $departmentId,
         ]);
 
         // CASE 1: Director level (6) - follow approval_stages setup
         if ($applicantLevelOrder == 6) {
-            Log::info("Director level detected - following approval_stages setup for periodic leave");
+            Log::info('Director level detected - following approval_stages setup for periodic leave');
 
             // Get approval stages filtered by project and department from approval_stage_details
             $approvalStages = ApprovalStage::where('document_type', 'leave_request')
@@ -905,7 +912,7 @@ class ApprovalPlanController extends Controller
             foreach ($approvalStages as $stage) {
                 $approver = $stage->approver;
 
-                if (!$approver || !$approver->employee) {
+                if (! $approver || ! $approver->employee) {
                     continue;
                 }
 
@@ -914,24 +921,26 @@ class ApprovalPlanController extends Controller
                     ->where('is_active', 1)
                     ->first();
 
-                if (!$approverAdministration || !$approverAdministration->level) {
+                if (! $approverAdministration || ! $approverAdministration->level) {
                     continue;
                 }
 
-                $approvers->push((object)[
+                $approvers->push((object) [
                     'approver_id' => $approver->id,
                     'approval_order' => $stage->approval_order,
-                    'level_id' => $approverAdministration->level->id
+                    'level_id' => $approverAdministration->level->id,
                 ]);
             }
 
             Log::info("Found {$approvers->count()} approvers for Director level periodic leave");
+
             return $approvers;
         }
 
         // CASE 2: Manager level (5) - Director only
         if ($applicantLevelOrder == 5) {
-            Log::info("Manager level detected - getting director approvers only for periodic leave");
+            Log::info('Manager level detected - getting director approvers only for periodic leave');
+
             return $this->getDirectorApprovers($projectId, $departmentId);
         }
 
@@ -962,22 +971,22 @@ class ApprovalPlanController extends Controller
         if ($applicantLevelOrder <= 2) {
             // Level 1-2: Try level 3 first, then level 4
             $requiredHierarchicalLevels = [3, 4];
-            Log::info("Non Staff/Foreman level - looking for SPV(3) or SPT(4)");
+            Log::info('Non Staff/Foreman level - looking for SPV(3) or SPT(4)');
         } elseif ($applicantLevelOrder == 3) {
             // Level 3: Need level 4
             $requiredHierarchicalLevels = [4];
-            Log::info("Supervisor level - looking for SPT(4)");
+            Log::info('Supervisor level - looking for SPT(4)');
         } elseif ($applicantLevelOrder == 4) {
             // Level 4: Need level 4 (can be self)
             $requiredHierarchicalLevels = [4];
-            Log::info("Superintendent level - looking for SPT(4)");
+            Log::info('Superintendent level - looking for SPT(4)');
         }
 
         // Find best hierarchical approver and manager
         foreach ($approvalStages as $stage) {
             $approver = $stage->approver;
 
-            if (!$approver || !$approver->employee) {
+            if (! $approver || ! $approver->employee) {
                 continue;
             }
 
@@ -986,38 +995,38 @@ class ApprovalPlanController extends Controller
                 ->where('is_active', 1)
                 ->first();
 
-            if (!$approverAdministration || !$approverAdministration->level) {
+            if (! $approverAdministration || ! $approverAdministration->level) {
                 continue;
             }
 
             $approverLevelOrder = $approverAdministration->level->level_order;
 
             // Look for hierarchical approver (SPV or SPT)
-            if (!$hierarchicalApprover && in_array($approverLevelOrder, $requiredHierarchicalLevels)) {
-                $hierarchicalApprover = (object)[
+            if (! $hierarchicalApprover && in_array($approverLevelOrder, $requiredHierarchicalLevels)) {
+                $hierarchicalApprover = (object) [
                     'approver_id' => $approver->id,
                     'approval_order' => 1, // First stage
                     'level_id' => $approverAdministration->level->id,
-                    'level_order' => $approverLevelOrder
+                    'level_order' => $approverLevelOrder,
                 ];
-                Log::info("Found hierarchical approver", [
+                Log::info('Found hierarchical approver', [
                     'approver_name' => $approver->name,
                     'level' => $approverAdministration->level->name,
-                    'level_order' => $approverLevelOrder
+                    'level_order' => $approverLevelOrder,
                 ]);
             }
 
             // Look for Manager (level 5)
-            if (!$managerApprover && $approverLevelOrder == 5) {
-                $managerApprover = (object)[
+            if (! $managerApprover && $approverLevelOrder == 5) {
+                $managerApprover = (object) [
                     'approver_id' => $approver->id,
                     'approval_order' => 2, // Second stage (PM always last)
                     'level_id' => $approverAdministration->level->id,
-                    'level_order' => $approverLevelOrder
+                    'level_order' => $approverLevelOrder,
                 ];
-                Log::info("Found manager approver", [
+                Log::info('Found manager approver', [
                     'approver_name' => $approver->name,
-                    'level' => $approverAdministration->level->name
+                    'level' => $approverAdministration->level->name,
                 ]);
             }
 
@@ -1038,10 +1047,10 @@ class ApprovalPlanController extends Controller
             $approvers->push($managerApprover);
         }
 
-        Log::info("Final periodic leave approvers", [
+        Log::info('Final periodic leave approvers', [
             'count' => $approvers->count(),
             'hierarchical_found' => $hierarchicalApprover ? 'Yes' : 'No',
-            'manager_found' => $managerApprover ? 'Yes' : 'No'
+            'manager_found' => $managerApprover ? 'Yes' : 'No',
         ]);
 
         return $approvers;
@@ -1074,7 +1083,7 @@ class ApprovalPlanController extends Controller
         foreach ($approvalStages as $stage) {
             $approver = $stage->approver;
 
-            if (!$approver || !$approver->employee) {
+            if (! $approver || ! $approver->employee) {
                 continue;
             }
 
@@ -1083,7 +1092,7 @@ class ApprovalPlanController extends Controller
                 ->where('is_active', 1)
                 ->first();
 
-            if (!$approverAdministration || !$approverAdministration->level) {
+            if (! $approverAdministration || ! $approverAdministration->level) {
                 continue;
             }
 
@@ -1091,23 +1100,23 @@ class ApprovalPlanController extends Controller
 
             // Only include directors
             if ($approverLevelOrder == $directorLevelOrder) {
-                $approvers->push((object)[
+                $approvers->push((object) [
                     'approver_id' => $approver->id,
                     'approval_order' => $stage->approval_order,
-                    'level_id' => $approverAdministration->level_id
+                    'level_id' => $approverAdministration->level_id,
                 ]);
 
-                Log::info("Added director approver", [
+                Log::info('Added director approver', [
                     'approver_name' => $approver->name,
                     'approver_id' => $approver->id,
                     'approver_level' => $approverAdministration->level->name,
-                    'approval_order' => $stage->approval_order
+                    'approval_order' => $stage->approval_order,
                 ]);
             }
         }
 
-        Log::info("Final director approvers", [
-            'count' => $approvers->count()
+        Log::info('Final director approvers', [
+            'count' => $approvers->count(),
         ]);
 
         return $approvers;
@@ -1133,10 +1142,10 @@ class ApprovalPlanController extends Controller
             ->orderBy('approval_order', 'asc')
             ->get();
 
-        Log::info("Found approval stages for level range", [
+        Log::info('Found approval stages for level range', [
             'count' => $approvalStages->count(),
             'min_level' => $minLevelOrder,
-            'max_level' => $maxLevelOrder
+            'max_level' => $maxLevelOrder,
         ]);
 
         $approvers = collect();
@@ -1144,11 +1153,12 @@ class ApprovalPlanController extends Controller
         foreach ($approvalStages as $stage) {
             $approver = $stage->approver;
 
-            if (!$approver || !$approver->employee) {
-                Log::warning("Approver has no employee record", [
+            if (! $approver || ! $approver->employee) {
+                Log::warning('Approver has no employee record', [
                     'approver_id' => $stage->approver_id,
-                    'approver_name' => $approver->name ?? 'Unknown'
+                    'approver_name' => $approver->name ?? 'Unknown',
                 ]);
+
                 continue;
             }
 
@@ -1157,57 +1167,58 @@ class ApprovalPlanController extends Controller
                 ->where('is_active', 1)
                 ->first();
 
-            if (!$approverAdministration || !$approverAdministration->level) {
-                Log::warning("Approver has no valid administration or level", [
+            if (! $approverAdministration || ! $approverAdministration->level) {
+                Log::warning('Approver has no valid administration or level', [
                     'approver_id' => $approver->id,
-                    'approver_name' => $approver->name
+                    'approver_name' => $approver->name,
                 ]);
+
                 continue;
             }
 
             $approverLevelOrder = $approverAdministration->level->level_order;
 
-            Log::info("Checking approver level", [
+            Log::info('Checking approver level', [
                 'approver_name' => $approver->name,
                 'approver_level' => $approverAdministration->level->name,
                 'approver_level_order' => $approverLevelOrder,
                 'min_required' => $minLevelOrder,
-                'max_allowed' => $maxLevelOrder
+                'max_allowed' => $maxLevelOrder,
             ]);
 
             // Only include approvers within the specified level range
             if ($approverLevelOrder >= $minLevelOrder && $approverLevelOrder <= $maxLevelOrder) {
-                $approvers->push((object)[
+                $approvers->push((object) [
                     'approver_id' => $approver->id,
                     'approval_order' => $stage->approval_order,
-                    'level_id' => $approverAdministration->level_id
+                    'level_id' => $approverAdministration->level_id,
                 ]);
 
-                Log::info("Added approver to hierarchical list", [
+                Log::info('Added approver to hierarchical list', [
                     'approver_name' => $approver->name,
                     'approver_id' => $approver->id,
                     'approver_level' => $approverAdministration->level->name,
                     'approver_level_order' => $approverLevelOrder,
-                    'approval_order' => $stage->approval_order
+                    'approval_order' => $stage->approval_order,
                 ]);
             } else {
-                Log::info("Skipped approver - level outside allowed range", [
+                Log::info('Skipped approver - level outside allowed range', [
                     'approver_name' => $approver->name,
                     'approver_level_order' => $approverLevelOrder,
-                    'allowed_range' => "{$minLevelOrder}-{$maxLevelOrder}"
+                    'allowed_range' => "{$minLevelOrder}-{$maxLevelOrder}",
                 ]);
             }
         }
 
-        Log::info("Final hierarchical approvers within level range", [
+        Log::info('Final hierarchical approvers within level range', [
             'count' => $approvers->count(),
             'level_range' => "{$minLevelOrder}-{$maxLevelOrder}",
             'approvers' => $approvers->map(function ($approver) {
                 return [
                     'approver_id' => $approver->approver_id,
-                    'approval_order' => $approver->approval_order
+                    'approval_order' => $approver->approval_order,
                 ];
-            })->toArray()
+            })->toArray(),
         ]);
 
         return $approvers;
@@ -1219,8 +1230,8 @@ class ApprovalPlanController extends Controller
      * This function creates approval plans for a specific document based on manually selected approvers.
      * It takes the approver IDs from the document's manual_approvers field and respects approval_orders.
      *
-     * @param string $document_type Type of document ('officialtravel', 'recruitment_request', 'leave_request')
-     * @param int $document_id ID of the document
+     * @param  string  $document_type  Type of document ('officialtravel', 'recruitment_request', 'leave_request')
+     * @param  int  $document_id  ID of the document
      * @return int|bool Number of approvers created or false if failed
      */
     public function create_manual_approval_plan($document_type, $document_id)
@@ -1245,6 +1256,7 @@ class ApprovalPlanController extends Controller
         // Check if manual approvers are set
         if (empty($document->manual_approvers)) {
             Log::info("No manual approvers set for document_type: {$document_type}, document_id: {$document_id}");
+
             return 0; // No approvers to create
         }
 
@@ -1257,7 +1269,7 @@ class ApprovalPlanController extends Controller
         $approverIds = $document->manual_approvers;
 
         // Ensure approverIds is an array
-        if (!is_array($approverIds)) {
+        if (! is_array($approverIds)) {
             $approverIds = json_decode($approverIds, true) ?? [];
         }
 
@@ -1266,6 +1278,7 @@ class ApprovalPlanController extends Controller
 
         if (empty($approverIds)) {
             Log::warning("Empty approver IDs array for document_type: {$document_type}, document_id: {$document_id}");
+
             return 0;
         }
 
@@ -1294,6 +1307,7 @@ class ApprovalPlanController extends Controller
         }
 
         Log::info("Created {$createdCount} manual approval plans for document_type: {$document_type}, document_id: {$document_id}");
+
         return $createdCount;
     }
 }

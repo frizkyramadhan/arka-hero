@@ -3,9 +3,8 @@
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
-use Spatie\Permission\Models\Role;
 use Spatie\Permission\Models\Permission;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
+use Spatie\Permission\Models\Role;
 
 class LeavePermissionSeeder extends Seeder
 {
@@ -24,6 +23,12 @@ class LeavePermissionSeeder extends Seeder
             'leave-types.create',
             'leave-types.edit',
             'leave-types.delete',
+
+            // National holidays (manual)
+            'national-holidays.show',
+            'national-holidays.create',
+            'national-holidays.edit',
+            'national-holidays.delete',
 
             // Leave Entitlements Management
             'leave-entitlements.show',
@@ -65,6 +70,10 @@ class LeavePermissionSeeder extends Seeder
                 'leave-types.show',
                 'leave-types.create',
                 'leave-types.edit',
+                'national-holidays.show',
+                'national-holidays.create',
+                'national-holidays.edit',
+                'national-holidays.delete',
                 'leave-entitlements.show',
                 'leave-entitlements.create',
                 'leave-entitlements.edit',
@@ -85,6 +94,10 @@ class LeavePermissionSeeder extends Seeder
                 'leave-types.create',
                 'leave-types.edit',
                 'leave-types.delete',
+                'national-holidays.show',
+                'national-holidays.create',
+                'national-holidays.edit',
+                'national-holidays.delete',
                 'leave-entitlements.show',
                 'leave-entitlements.create',
                 'leave-entitlements.edit',
@@ -107,6 +120,10 @@ class LeavePermissionSeeder extends Seeder
                 'leave-types.create',
                 'leave-types.edit',
                 'leave-types.delete',
+                'national-holidays.show',
+                'national-holidays.create',
+                'national-holidays.edit',
+                'national-holidays.delete',
                 'leave-entitlements.show',
                 'leave-entitlements.create',
                 'leave-entitlements.edit',

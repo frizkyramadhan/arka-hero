@@ -2,18 +2,18 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Employee;
-use Illuminate\Http\Request;
 use App\Models\Jobexperience;
+use App\Support\UserProject;
+use Illuminate\Http\Request;
 
 class JobexperienceController extends Controller
 {
-
     public function index()
     {
         $title = ' Employee Job Experience';
         $subtitle = ' Employee Job Experience';
-        $employees = Employee::orderBy('fullname', 'asc')->get();
+        $employees = UserProject::employeesForSelect();
+
         return view('jobexperience.index', compact('title', 'subtitle', 'employees'));
     }
 
@@ -22,6 +22,7 @@ class JobexperienceController extends Controller
         $jobexperiences = Jobexperience::leftJoin('employees', 'jobexperiences.employee_id', '=', 'employees.id')
             ->select('jobexperiences.*', 'employees.fullname')
             ->orderBy('jobexperiences.company_name', 'asc');
+        UserProject::scopeQueryToEmployeesLinkedViaAdministrations($jobexperiences, 'jobexperiences.employee_id');
 
         return datatables()->of($jobexperiences)
             ->addIndexColumn()
@@ -41,7 +42,7 @@ class JobexperienceController extends Controller
                 return $jobexperiences->quit_reason;
             })
             ->filter(function ($instance) use ($request) {
-                if (!empty($request->get('search'))) {
+                if (! empty($request->get('search'))) {
                     $instance->where(function ($w) use ($request) {
                         $search = $request->get('search');
                         $w->orWhere('fullname', 'LIKE', "%$search%")
@@ -53,7 +54,8 @@ class JobexperienceController extends Controller
                 }
             })
             ->addColumn('action', function ($jobexperiences) {
-                $employees = Employee::orderBy('fullname', 'asc')->get();
+                $employees = UserProject::employeesForSelect();
+
                 return view('jobexperience.action', compact('employees', 'jobexperiences'));
             })
             ->rawColumns(['job_position', 'action'])
@@ -73,11 +75,14 @@ class JobexperienceController extends Controller
     /**
      * Store a newly created resource in storage.
      *
-     * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\Response
      */
     public function store($employee_id, Request $request)
     {
+        if ($r = UserProject::guardEmployeeId($request->employee_id)) {
+            return $r;
+        }
+
         $request->validate([
             'employee_id' => 'required',
             'company_name' => 'required',
@@ -87,7 +92,7 @@ class JobexperienceController extends Controller
             'quit_reason' => 'required',
         ]);
 
-        $jobexperience = new Jobexperience();
+        $jobexperience = new Jobexperience;
         $jobexperience->employee_id = $request->employee_id;
         $jobexperience->company_name = $request->company_name;
         $jobexperience->company_address = $request->company_address;
@@ -96,13 +101,12 @@ class JobexperienceController extends Controller
         $jobexperience->quit_reason = $request->quit_reason;
         $jobexperience->save();
 
-        return redirect('employees/' . $employee_id . '#jobexp')->with('toast_success', 'Job Experience Added Successfully');
+        return redirect('employees/'.$employee_id.'#jobexp')->with('toast_success', 'Job Experience Added Successfully');
     }
 
     /**
      * Display the specified resource.
      *
-     * @param  \App\Models\Jobexperience  $jobexperience
      * @return \Illuminate\Http\Response
      */
     public function show(Jobexperience $jobexperience)
@@ -113,7 +117,6 @@ class JobexperienceController extends Controller
     /**
      * Show the form for editing the specified resource.
      *
-     * @param  \App\Models\Jobexperience  $jobexperience
      * @return \Illuminate\Http\Response
      */
     public function edit(Jobexperience $jobexperience)
@@ -124,12 +127,16 @@ class JobexperienceController extends Controller
     /**
      * Update the specified resource in storage.
      *
-     * @param  \Illuminate\Http\Request  $request
      * @param  \App\Models\Jobexperience  $jobexperience
      * @return \Illuminate\Http\Response
      */
     public function update(Request $request, $id)
     {
+        $jobexperience = Jobexperience::findOrFail($id);
+        if ($r = UserProject::guardEmployeeId($jobexperience->employee_id)) {
+            return $r;
+        }
+
         $request->validate([
             'employee_id' => 'required',
             'company_name' => 'required',
@@ -139,7 +146,10 @@ class JobexperienceController extends Controller
             'quit_reason' => 'required',
         ]);
 
-        $jobexperience = Jobexperience::find($id);
+        if ($r = UserProject::guardEmployeeId($request->employee_id)) {
+            return $r;
+        }
+
         $jobexperience->employee_id = $request->employee_id;
         $jobexperience->company_name = $request->company_name;
         $jobexperience->company_address = $request->company_address;
@@ -148,7 +158,7 @@ class JobexperienceController extends Controller
         $jobexperience->quit_reason = $request->quit_reason;
         $jobexperience->save();
 
-        return redirect('employees/' . $jobexperience->employee_id . '#jobexp')->with('toast_success', 'Job Experience Updated Successfully');
+        return redirect('employees/'.$jobexperience->employee_id.'#jobexp')->with('toast_success', 'Job Experience Updated Successfully');
     }
 
     /**
@@ -159,15 +169,26 @@ class JobexperienceController extends Controller
      */
     public function delete($employee_id, $id)
     {
-        $jobexperience = Jobexperience::find($id);
+        if ($r = UserProject::guardEmployeeId($employee_id)) {
+            return $r;
+        }
+        $jobexperience = Jobexperience::findOrFail($id);
+        if ((int) $jobexperience->employee_id !== (int) $employee_id) {
+            return UserProject::redirectAccessDenied();
+        }
         $jobexperience->delete();
 
-        return redirect('employees/' . $employee_id . '#jobexp')->with('toast_success', 'Job Experience Deleted Successfully');
+        return redirect('employees/'.$employee_id.'#jobexp')->with('toast_success', 'Job Experience Deleted Successfully');
     }
 
     public function deleteAll($employee_id)
     {
+        if ($r = UserProject::guardEmployeeId($employee_id)) {
+            return $r;
+        }
+
         Jobexperience::where('employee_id', $employee_id)->delete();
-        return redirect('employees/' . $employee_id . '#jobexp')->with('toast_success', 'Job Experience Deleted Successfully');
+
+        return redirect('employees/'.$employee_id.'#jobexp')->with('toast_success', 'Job Experience Deleted Successfully');
     }
 }

@@ -2,17 +2,17 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\User;
-use App\Models\Project;
-use App\Models\Department;
 use App\Models\ApprovalPlan;
-use Illuminate\Http\Request;
 use App\Models\ApprovalStage;
-use App\Models\Officialtravel;
-use App\Models\RecruitmentRequest;
 use App\Models\ApprovalStageDetail;
-use Yajra\DataTables\Facades\DataTables;
+use App\Models\Department;
+use App\Models\Officialtravel;
+use App\Models\Project;
+use App\Models\RecruitmentRequest;
+use App\Models\User;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Yajra\DataTables\Facades\DataTables;
 
 class ApprovalStageController extends Controller
 {
@@ -60,7 +60,7 @@ class ApprovalStageController extends Controller
             'projects' => 'required|array|min:1',
             'departments' => 'required|array|min:1',
             'request_reasons' => 'nullable|array',
-            'request_reasons.*' => 'string|in:replacement_resign,replacement_promotion,additional_workplan,other'
+            'request_reasons.*' => 'string|in:replacement_resign,replacement_promotion,additional_workplan,other',
         ]);
 
         // Check for existing combinations before creating
@@ -101,15 +101,15 @@ class ApprovalStageController extends Controller
                             'project' => $existingDetail->project,
                             'department' => $existingDetail->department,
                             'approver' => $existingDetail->approvalStage->approver,
-                            'request_reason' => $requestReason
+                            'request_reason' => $requestReason,
                         ];
                     }
                 }
             }
         }
 
-        if (!empty($duplicateDetails)) {
-            $errorMessage = "Duplicate configuration detected! The following combinations already exist:<br><ul>";
+        if (! empty($duplicateDetails)) {
+            $errorMessage = 'Duplicate configuration detected! The following combinations already exist:<br><ul>';
             foreach ($duplicateDetails as $detail) {
                 $errorMessage .= "<li><strong>Project:</strong> {$detail['project']->project_code}, ";
                 $errorMessage .= "<strong>Department:</strong> {$detail['department']->department_name}, ";
@@ -118,9 +118,9 @@ class ApprovalStageController extends Controller
                     $reasonLabel = $this->getRequestReasonLabel($detail['request_reason']);
                     $errorMessage .= ", <strong>Request Reason:</strong> {$reasonLabel}";
                 }
-                $errorMessage .= "</li>";
+                $errorMessage .= '</li>';
             }
-            $errorMessage .= "</ul>Please choose different combinations or modify the existing approval stage.";
+            $errorMessage .= '</ul>Please choose different combinations or modify the existing approval stage.';
 
             return redirect()->back()
                 ->withInput()
@@ -159,7 +159,7 @@ class ApprovalStageController extends Controller
                             'approval_stage_id' => $approvalStage->id,
                             'project_id' => $projectId,
                             'department_id' => $departmentId,
-                            'request_reason' => $requestReason
+                            'request_reason' => $requestReason,
                         ]);
                         $createdDetails++;
                     }
@@ -186,20 +186,20 @@ class ApprovalStageController extends Controller
                     ->first();
 
                 if ($existingDetail) {
-                    $errorMessage = "Duplicate configuration detected! ";
-                    $errorMessage .= "The combination of ";
+                    $errorMessage = 'Duplicate configuration detected! ';
+                    $errorMessage .= 'The combination of ';
                     $errorMessage .= "<strong>Project: {$existingDetail->project->project_code}</strong>, ";
                     $errorMessage .= "<strong>Department: {$existingDetail->department->department_name}</strong> ";
-                    $errorMessage .= "already exists for ";
+                    $errorMessage .= 'already exists for ';
                     $errorMessage .= "<strong>{$existingDetail->approvalStage->approver->name}</strong> ";
-                    $errorMessage .= "in the approval stage configuration.";
+                    $errorMessage .= 'in the approval stage configuration.';
 
                     if ($request->document_type === 'recruitment_request' && $existingDetail->request_reason) {
                         $reasonLabel = $this->getRequestReasonLabel($existingDetail->request_reason);
                         $errorMessage .= " (Request Reason: <strong>{$reasonLabel}</strong>)";
                     }
                 } else {
-                    $errorMessage = "Duplicate configuration detected! This combination of project, department, and approver already exists in the approval stage configuration.";
+                    $errorMessage = 'Duplicate configuration detected! This combination of project, department, and approver already exists in the approval stage configuration.';
                 }
 
                 return redirect()->back()
@@ -231,7 +231,7 @@ class ApprovalStageController extends Controller
 
             return view('approval-stages.edit', compact('title', 'approvalStage', 'approvers', 'projects', 'departments', 'selectedProjects', 'selectedDepartments', 'selectedRequestReasons'));
         } catch (\Exception $e) {
-            return redirect()->route('approval.stages.index')->with('toast_error', 'Approval stage not found: ' . $e->getMessage());
+            return redirect()->route('approval.stages.index')->with('toast_error', 'Approval stage not found: '.$e->getMessage());
         }
     }
 
@@ -244,7 +244,7 @@ class ApprovalStageController extends Controller
             'projects' => 'required|array|min:1',
             'departments' => 'required|array|min:1',
             'request_reasons' => 'nullable|array',
-            'request_reasons.*' => 'string|in:replacement_resign,replacement_promotion,additional_workplan,other'
+            'request_reasons.*' => 'string|in:replacement_resign,replacement_promotion,additional_workplan,other',
         ]);
 
         $approvalStage = ApprovalStage::findOrFail($id);
@@ -288,15 +288,15 @@ class ApprovalStageController extends Controller
                             'project' => $existingDetail->project,
                             'department' => $existingDetail->department,
                             'approver' => $existingDetail->approvalStage->approver,
-                            'request_reason' => $requestReason
+                            'request_reason' => $requestReason,
                         ];
                     }
                 }
             }
         }
 
-        if (!empty($duplicateDetails)) {
-            $errorMessage = "Duplicate configuration detected! The following combinations already exist:<br><ul>";
+        if (! empty($duplicateDetails)) {
+            $errorMessage = 'Duplicate configuration detected! The following combinations already exist:<br><ul>';
             foreach ($duplicateDetails as $detail) {
                 $errorMessage .= "<li><strong>Project:</strong> {$detail['project']->project_code}, ";
                 $errorMessage .= "<strong>Department:</strong> {$detail['department']->department_name}, ";
@@ -305,9 +305,9 @@ class ApprovalStageController extends Controller
                     $reasonLabel = $this->getRequestReasonLabel($detail['request_reason']);
                     $errorMessage .= ", <strong>Request Reason:</strong> {$reasonLabel}";
                 }
-                $errorMessage .= "</li>";
+                $errorMessage .= '</li>';
             }
-            $errorMessage .= "</ul>Please choose different combinations or modify the existing approval stage.";
+            $errorMessage .= '</ul>Please choose different combinations or modify the existing approval stage.';
 
             return redirect()->back()
                 ->withInput()
@@ -369,7 +369,7 @@ class ApprovalStageController extends Controller
                                 'approval_stage_id' => $approvalStage->id,
                                 'project_id' => $projectId,
                                 'department_id' => $departmentId,
-                                'request_reason' => $requestReason
+                                'request_reason' => $requestReason,
                             ]);
                             $updatedDetails++;
                         }
@@ -396,20 +396,20 @@ class ApprovalStageController extends Controller
                         ->first();
 
                     if ($existingDetail) {
-                        $errorMessage = "Duplicate configuration detected! ";
-                        $errorMessage .= "The combination of ";
+                        $errorMessage = 'Duplicate configuration detected! ';
+                        $errorMessage .= 'The combination of ';
                         $errorMessage .= "<strong>Project: {$existingDetail->project->project_code}</strong>, ";
                         $errorMessage .= "<strong>Department: {$existingDetail->department->department_name}</strong> ";
-                        $errorMessage .= "already exists for ";
+                        $errorMessage .= 'already exists for ';
                         $errorMessage .= "<strong>{$existingDetail->approvalStage->approver->name}</strong> ";
-                        $errorMessage .= "in the approval stage configuration.";
+                        $errorMessage .= 'in the approval stage configuration.';
 
                         if ($request->document_type === 'recruitment_request' && $existingDetail->request_reason) {
                             $reasonLabel = $this->getRequestReasonLabel($existingDetail->request_reason);
                             $errorMessage .= " (Request Reason: <strong>{$reasonLabel}</strong>)";
                         }
                     } else {
-                        $errorMessage = "Duplicate configuration detected! This combination of project, department, and approver already exists in the approval stage configuration.";
+                        $errorMessage = 'Duplicate configuration detected! This combination of project, department, and approver already exists in the approval stage configuration.';
                     }
 
                     return redirect()->back()
@@ -427,11 +427,11 @@ class ApprovalStageController extends Controller
         if ($stageChanged && $detailsChanged) {
             $message .= " with {$updatedDetails} project-department combinations";
         } elseif ($stageChanged) {
-            $message .= " (stage configuration updated)";
+            $message .= ' (stage configuration updated)';
         } elseif ($detailsChanged) {
             $message .= " with {$updatedDetails} project-department combinations";
         } else {
-            $message .= " (no changes detected)";
+            $message .= ' (no changes detected)';
         }
 
         return redirect()->route('approval.stages.index')
@@ -461,9 +461,10 @@ class ApprovalStageController extends Controller
                 if (request()->ajax()) {
                     return response()->json([
                         'success' => false,
-                        'message' => "Cannot delete this approval stage for {$approverName} (Order {$approvalOrder}). There are {$activeApprovalPlans} active approval plan(s) using this stage that need to be processed first."
+                        'message' => "Cannot delete this approval stage for {$approverName} (Order {$approvalOrder}). There are {$activeApprovalPlans} active approval plan(s) using this stage that need to be processed first.",
                     ], 400);
                 }
+
                 return redirect()->route('approval.stages.index')->with('toast_error', "Cannot delete this approval stage for {$approverName} (Order {$approvalOrder}). There are {$activeApprovalPlans} active approval plan(s) using this stage that need to be processed first.");
             }
 
@@ -496,9 +497,10 @@ class ApprovalStageController extends Controller
                 if (request()->ajax()) {
                     return response()->json([
                         'success' => false,
-                        'message' => "Cannot delete this approval stage. There are {$submittedDocuments} {$docTypeName} document(s) currently submitted for approval that need to be processed first."
+                        'message' => "Cannot delete this approval stage. There are {$submittedDocuments} {$docTypeName} document(s) currently submitted for approval that need to be processed first.",
                     ], 400);
                 }
+
                 return redirect()->route('approval.stages.index')->with('toast_error', "Cannot delete this approval stage. There are {$submittedDocuments} {$docTypeName} document(s) currently submitted for approval that need to be processed first.");
             }
 
@@ -512,7 +514,7 @@ class ApprovalStageController extends Controller
                 return response()->json([
                     'success' => true,
                     'message' => "Approval stage for {$approverName} (Order {$approvalOrder}, {$documentType}) has been deleted successfully. ({$detailsCount} detail records removed)",
-                    'deleted_count' => 1
+                    'deleted_count' => 1,
                 ]);
             }
 
@@ -521,10 +523,11 @@ class ApprovalStageController extends Controller
             if (request()->ajax()) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Failed to delete approval stage: ' . $e->getMessage()
+                    'message' => 'Failed to delete approval stage: '.$e->getMessage(),
                 ], 500);
             }
-            return redirect()->route('approval.stages.index')->with('toast_error', 'Failed to delete approval stage: ' . $e->getMessage());
+
+            return redirect()->route('approval.stages.index')->with('toast_error', 'Failed to delete approval stage: '.$e->getMessage());
         }
     }
 
@@ -553,7 +556,6 @@ class ApprovalStageController extends Controller
                 $q->where('department_id', $request->department_id);
             });
         }
-
 
         // Get filtered stages
         $stages = $query->orderBy('approver_id', 'asc')
@@ -596,7 +598,7 @@ class ApprovalStageController extends Controller
             });
         })->flatten(2)->sortBy(function ($item) {
             // Sort by approver name, then document_type, then approval_order
-            return $item->approver->name . '_' . $item->document_type . '_' . str_pad($item->approval_order, 3, '0', STR_PAD_LEFT);
+            return $item->approver->name.'_'.$item->document_type.'_'.str_pad($item->approval_order, 3, '0', STR_PAD_LEFT);
         });
 
         return DataTables::of($groupedData)
@@ -618,7 +620,7 @@ class ApprovalStageController extends Controller
                     default => 'badge-secondary'
                 };
 
-                $html = '<span class="badge ' . $badgeClass . '">' . $documentName . '</span>';
+                $html = '<span class="badge '.$badgeClass.'">'.$documentName.'</span>';
 
                 // Add request reason information for recruitment_request
                 if ($stage->document_type === 'recruitment_request') {
@@ -629,7 +631,7 @@ class ApprovalStageController extends Controller
                         $html .= '<ul class="mb-0 mt-1" style="padding-left: 15px;">';
                         foreach ($requestReasons as $reason) {
                             $reasonLabel = $this->getRequestReasonLabel($reason);
-                            $html .= '<li>' . $reasonLabel . '</li>';
+                            $html .= '<li>'.$reasonLabel.'</li>';
                         }
                         $html .= '</ul>';
                         $html .= '</small>';
@@ -645,8 +647,9 @@ class ApprovalStageController extends Controller
                 $projects = $stage->details->pluck('project.project_code')->unique()->sort();
                 $html = '';
                 foreach ($projects as $project) {
-                    $html .= '<span class="badge badge-info mr-1 mb-1">' . $project . '</span>';
+                    $html .= '<span class="badge badge-info mr-1 mb-1">'.$project.'</span>';
                 }
+
                 return $html;
             })
             ->addColumn('departments', function ($stage) {
@@ -654,15 +657,17 @@ class ApprovalStageController extends Controller
                 $departments = $stage->details->pluck('department.department_name')->unique()->sort();
                 $html = '';
                 foreach ($departments as $department) {
-                    $html .= '<span class="badge badge-success mr-1 mb-1">' . $department . '</span>';
+                    $html .= '<span class="badge badge-success mr-1 mb-1">'.$department.'</span>';
                 }
+
                 return $html;
             })
             ->addColumn('approval_order', function ($stage) {
                 $orderClass = 'badge-secondary'; // Default to secondary
-                $html = '<span class="badge ' . $orderClass . ' mr-1 mb-1" title="' . ucfirst(str_replace('_', ' ', $stage->document_type)) . '">';
+                $html = '<span class="badge '.$orderClass.' mr-1 mb-1" title="'.ucfirst(str_replace('_', ' ', $stage->document_type)).'">';
                 $html .= $stage->approval_order;
                 $html .= '</span>';
+
                 return $html;
             })
             ->addIndexColumn()
@@ -684,7 +689,7 @@ class ApprovalStageController extends Controller
                 'document_type' => 'required|string|in:officialtravel,recruitment_request,leave_request',
                 'department_id' => 'nullable|integer|exists:departments,id',
                 'request_reason' => 'nullable|string',
-                'level_id' => 'nullable|integer|exists:levels,id'
+                'level_id' => 'nullable|integer|exists:levels,id',
             ]);
 
             // For recruitment_request, use department_id from request
@@ -698,7 +703,7 @@ class ApprovalStageController extends Controller
                 } else {
                     return response()->json([
                         'success' => false,
-                        'message' => 'Department ID is required for recruitment request'
+                        'message' => 'Department ID is required for recruitment request',
                     ], 400);
                 }
             } elseif ($request->document_type === 'officialtravel') {
@@ -707,7 +712,7 @@ class ApprovalStageController extends Controller
                 } else {
                     return response()->json([
                         'success' => false,
-                        'message' => 'Department ID is required for official travel (main traveler department)'
+                        'message' => 'Department ID is required for official travel (main traveler department)',
                     ], 400);
                 }
             } elseif ($request->document_type === 'leave_request') {
@@ -716,17 +721,17 @@ class ApprovalStageController extends Controller
                 } else {
                     return response()->json([
                         'success' => false,
-                        'message' => 'Department ID is required for leave request (employee department)'
+                        'message' => 'Department ID is required for leave request (employee department)',
                     ], 400);
                 }
             }
 
             // Debug logging
-            Log::info("Searching for approval stages with criteria:", [
+            Log::info('Searching for approval stages with criteria:', [
                 'project_id' => $request->project_id,
                 'department_id' => $departmentId,
                 'document_type' => $request->document_type,
-                'request_reason' => $requestReason
+                'request_reason' => $requestReason,
             ]);
 
             // Get approval stages for the specified criteria with order
@@ -759,9 +764,9 @@ class ApprovalStageController extends Controller
                 ->get();
 
             // Debug logging
-            Log::info("Found approval stages:", [
+            Log::info('Found approval stages:', [
                 'count' => $approvalStages->count(),
-                'stages' => $approvalStages->toArray()
+                'stages' => $approvalStages->toArray(),
             ]);
 
             // For leave_request, filter approvers based on level hierarchy with hierarchical rules
@@ -774,10 +779,10 @@ class ApprovalStageController extends Controller
                 if ($applicantLevel) {
                     $applicantLevelOrder = $applicantLevel->level_order;
 
-                    Log::info("Filtering approvers for leave_request based on hierarchical level rules:", [
+                    Log::info('Filtering approvers for leave_request based on hierarchical level rules:', [
                         'applicant_level_id' => $levelId,
                         'applicant_level' => $applicantLevel->name,
-                        'applicant_level_order' => $applicantLevelOrder
+                        'applicant_level_order' => $applicantLevelOrder,
                     ]);
 
                     // Get dynamic level orders
@@ -788,23 +793,23 @@ class ApprovalStageController extends Controller
 
                     // CASE 1: Director level - follow approval_stages setup
                     if ($applicantLevelOrder == $directorLevelOrder) {
-                        Log::info("Director level detected - following approval_stages setup");
+                        Log::info('Director level detected - following approval_stages setup');
                         // For Director level, still follow the approval_stages configuration
                         // If no approval stages are configured, return empty collection
-                        $filteredStages = $approvalStages->filter(function ($stage) use ($request) {
+                        $filteredStages = $approvalStages->filter(function ($stage) {
                             // Include all approvers configured in approval_stages for this project/department
                             return true; // All configured approvers are valid for Director level
                         });
                     }
                     // CASE 2: Manager -> Director only
                     elseif ($applicantLevelOrder == $managerLevelOrder) {
-                        Log::info("Manager level detected - only director can approve");
+                        Log::info('Manager level detected - only director can approve');
 
                         $filteredStages = $approvalStages->filter(function ($stage) use ($directorLevelOrder, $request) {
                             $approver = $stage->approver;
                             $employee = $approver->employee;
 
-                            if (!$employee) {
+                            if (! $employee) {
                                 return false;
                             }
 
@@ -814,17 +819,17 @@ class ApprovalStageController extends Controller
                                 ->with('level')
                                 ->first();
 
-                            if (!$administration || !$administration->level) {
+                            if (! $administration || ! $administration->level) {
                                 return false;
                             }
 
                             // Only include directors
                             $isDirector = $administration->level->level_order == $directorLevelOrder;
 
-                            Log::info("Manager approver check:", [
+                            Log::info('Manager approver check:', [
                                 'approver_name' => $approver->name,
                                 'approver_level_order' => $administration->level->level_order,
-                                'is_director' => $isDirector
+                                'is_director' => $isDirector,
                             ]);
 
                             return $isDirector;
@@ -841,18 +846,18 @@ class ApprovalStageController extends Controller
                             $maxApproverLevel = $managerLevelOrder;
                         }
 
-                        Log::info("Non-manager level detected - max 2 levels above, capped at manager:", [
+                        Log::info('Non-manager level detected - max 2 levels above, capped at manager:', [
                             'applicant_level_order' => $applicantLevelOrder,
                             'min_approver_level' => $minApproverLevel,
                             'max_approver_level' => $maxApproverLevel,
-                            'manager_level_order' => $managerLevelOrder
+                            'manager_level_order' => $managerLevelOrder,
                         ]);
 
                         $filteredStages = $approvalStages->filter(function ($stage) use ($minApproverLevel, $maxApproverLevel, $request) {
                             $approver = $stage->approver;
                             $employee = $approver->employee;
 
-                            if (!$employee) {
+                            if (! $employee) {
                                 return false;
                             }
 
@@ -862,7 +867,7 @@ class ApprovalStageController extends Controller
                                 ->with('level')
                                 ->first();
 
-                            if (!$administration || !$administration->level) {
+                            if (! $administration || ! $administration->level) {
                                 return false;
                             }
 
@@ -871,12 +876,12 @@ class ApprovalStageController extends Controller
                             // Check if approver is within allowed range
                             $isWithinRange = ($approverLevelOrder >= $minApproverLevel && $approverLevelOrder <= $maxApproverLevel);
 
-                            Log::info("Non-manager approver check:", [
+                            Log::info('Non-manager approver check:', [
                                 'approver_name' => $approver->name,
                                 'approver_level' => $administration->level->name,
                                 'approver_level_order' => $approverLevelOrder,
                                 'allowed_range' => "{$minApproverLevel}-{$maxApproverLevel}",
-                                'is_within_range' => $isWithinRange
+                                'is_within_range' => $isWithinRange,
                             ]);
 
                             return $isWithinRange;
@@ -885,8 +890,8 @@ class ApprovalStageController extends Controller
 
                     $approvalStages = $filteredStages;
 
-                    Log::info("Filtered approval stages count:", [
-                        'count' => $approvalStages->count()
+                    Log::info('Filtered approval stages count:', [
+                        'count' => $approvalStages->count(),
                     ]);
                 }
             }
@@ -902,12 +907,12 @@ class ApprovalStageController extends Controller
 
             return response()->json([
                 'success' => true,
-                'approvers' => $approvers
+                'approvers' => $approvers,
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to load approval preview: ' . $e->getMessage()
+                'message' => 'Failed to load approval preview: '.$e->getMessage(),
             ], 500);
         }
     }

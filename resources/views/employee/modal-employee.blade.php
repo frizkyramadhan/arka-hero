@@ -153,21 +153,25 @@
                                     <select class="form-control  @error('marital') is-invalid @enderror"
                                         name="marital" id="marital">
                                         <option value="">Select marital status</option>
-                                        <option value="Single"
-                                            {{ old('marital', $employee->marital) == 'Single' ? 'selected' : '' }}>
-                                            Single
+                                        <option value="S-0"
+                                            {{ old('marital', $employee->marital) == 'S-0' ? 'selected' : '' }}>
+                                            S-0
                                         </option>
-                                        <option value="Married"
-                                            {{ old('marital', $employee->marital) == 'Married' ? 'selected' : '' }}>
-                                            Married
+                                        <option value="M-0"
+                                            {{ old('marital', $employee->marital) == 'M-0' ? 'selected' : '' }}>
+                                            M-0
                                         </option>
-                                        <option value="Divorced"
-                                            {{ old('marital', $employee->marital) == 'Divorced' ? 'selected' : '' }}>
-                                            Divorced
+                                        <option value="M-1"
+                                            {{ old('marital', $employee->marital) == 'M-1' ? 'selected' : '' }}>
+                                            M-1
                                         </option>
-                                        <option value="Widowed"
-                                            {{ old('marital', $employee->marital) == 'Widowed' ? 'selected' : '' }}>
-                                            Widowed
+                                        <option value="M-2"
+                                            {{ old('marital', $employee->marital) == 'M-2' ? 'selected' : '' }}>
+                                            M-2
+                                        </option>
+                                        <option value="M-3"
+                                            {{ old('marital', $employee->marital) == 'M-3' ? 'selected' : '' }}>
+                                            M-3
                                         </option>
                                     </select>
                                     @if ($errors->any('marital'))

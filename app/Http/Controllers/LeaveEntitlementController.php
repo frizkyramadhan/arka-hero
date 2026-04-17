@@ -2,19 +2,22 @@
 
 namespace App\Http\Controllers;
 
-use Carbon\Carbon;
-use App\Models\Project;
-use App\Models\Employee;
-use App\Models\LeaveType;
-use Illuminate\Http\Request;
+use App\Exports\LeaveEntitlementExport;
+use App\Imports\LeaveEntitlementImport;
 use App\Models\Administration;
+use App\Models\Employee;
 use App\Models\LeaveEntitlement;
+use App\Models\LeaveType;
+use App\Models\Project;
+use App\Models\User;
+use App\Support\UserProject;
+use Carbon\Carbon;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Maatwebsite\Excel\Facades\Excel;
 use Maatwebsite\Excel\Validators\ValidationException;
-use App\Exports\LeaveEntitlementExport;
-use App\Imports\LeaveEntitlementImport;
 
 class LeaveEntitlementController extends Controller
 {
@@ -25,25 +28,24 @@ class LeaveEntitlementController extends Controller
         // Permission check is handled inside the method - allow either permission
         $this->middleware(function ($request, $next) {
             $user = auth()->user();
-            if (!$user->can('leave-entitlements.show') && !$user->can('personal.leave.view-entitlements')) {
+            if (! $user->can('leave-entitlements.show') && ! $user->can('personal.leave.view-entitlements')) {
                 abort(403, 'Unauthorized access.');
             }
+
             return $next($request);
         })->only('showLeaveCalculationDetails');
         $this->middleware('permission:leave-entitlements.create')->only('create', 'store', 'generateProjectEntitlements', 'generateSelectedProjectEntitlements', 'importTemplate');
         $this->middleware('permission:leave-entitlements.edit')->only('edit', 'update', 'editEmployee', 'updateEmployee', 'importTemplate');
         $this->middleware('permission:leave-entitlements.delete')->only('destroy', 'clearAllEntitlements', 'deletePeriodEntitlements');
     }
+
     /**
      * Display a listing of the resource.
      */
     public function index(Request $request)
     {
         try {
-            $projects = Project::where('project_status', 1)
-                ->select('id', 'project_code', 'project_name', 'leave_type')
-                ->orderBy('project_code', 'asc')
-                ->get();
+            $projects = UserProject::projectsForSelect();
 
             $selectedProject = null;
             $showAllProjects = false;
@@ -52,6 +54,13 @@ class LeaveEntitlementController extends Controller
                 if ($request->project_id === 'all') {
                     $showAllProjects = true;
                 } else {
+                    if (! UserProject::canAccessProjectId((int) $request->project_id)) {
+                        return redirect()
+                            ->route('leave.entitlements.index')
+                            ->with('toast_error', 'Anda tidak memiliki akses ke proyek tersebut.')
+                            ->with('alert_title', 'Akses ditolak')
+                            ->with('alert_type', 'warning');
+                    }
                     $selectedProject = Project::findOrFail($request->project_id);
                 }
             }
@@ -74,12 +83,12 @@ class LeaveEntitlementController extends Controller
         try {
             $projectId = $request->get('project_id');
 
-            if (!$projectId) {
+            if (! $projectId) {
                 return response()->json([
                     'draw' => intval($request->get('draw')),
                     'recordsTotal' => 0,
                     'recordsFiltered' => 0,
-                    'data' => []
+                    'data' => [],
                 ]);
             }
 
@@ -94,10 +103,20 @@ class LeaveEntitlementController extends Controller
                 ->first();
 
             if ($projectId === 'all') {
-                // Get all employees from all active projects
+                // Employees in active administrations, limited to user_project assignment
                 $query = $this->getAllProjectsEmployeesQuery();
+                UserProject::scopeToAssignedProjects($query, 'administrations.project_id');
             } else {
                 $project = Project::findOrFail($projectId);
+                if (! UserProject::canAccessProjectId((int) $project->id)) {
+                    return response()->json([
+                        'draw' => intval($request->get('draw')),
+                        'recordsTotal' => 0,
+                        'recordsFiltered' => 0,
+                        'data' => [],
+                        'error' => 'Forbidden',
+                    ], 403);
+                }
                 $query = $this->getProjectEmployeesQuery($project);
             }
 
@@ -106,7 +125,7 @@ class LeaveEntitlementController extends Controller
 
             // Apply search filter
             $searchValue = $request->get('search')['value'] ?? '';
-            if (!empty($searchValue)) {
+            if (! empty($searchValue)) {
                 $query->where(function ($q) use ($searchValue) {
                     $q->where('administrations.nik', 'LIKE', "%{$searchValue}%")
                         ->orWhere('employees.fullname', 'LIKE', "%{$searchValue}%")
@@ -134,7 +153,7 @@ class LeaveEntitlementController extends Controller
                 7 => 'sick', // Sakit
                 8 => 'unpaid', // Ijin Tanpa Upah
                 9 => 'lsl', // LSL
-                10 => 'actions' // Actions
+                10 => 'actions', // Actions
             ];
 
             $orderColumnName = $columns[$orderColumn] ?? 'administrations.nik';
@@ -147,7 +166,7 @@ class LeaveEntitlementController extends Controller
                 $query->orderBy($orderColumnName, $orderDir);
             } else {
                 // For computed columns (paid, unpaid, annual, lsl, periodic, actions), default to NIK
-                $query->orderByRaw("CAST(administrations.nik AS UNSIGNED) asc");
+                $query->orderByRaw('CAST(administrations.nik AS UNSIGNED) asc');
             }
 
             // Apply pagination
@@ -162,7 +181,7 @@ class LeaveEntitlementController extends Controller
                 $employee = $administration->employee;
 
                 // Skip if no employee found
-                if (!$employee) {
+                if (! $employee) {
                     continue;
                 }
 
@@ -255,9 +274,9 @@ class LeaveEntitlementController extends Controller
                 $editUrl = route('leave.entitlements.employee.edit', $administration->employee_id);
                 if ($latestEntitlement) {
                     // Add period parameters as query string to edit URL for latest period
-                    $editUrl = route('leave.entitlements.employee.edit', $administration->employee_id) .
-                        '?period_start=' . $latestEntitlement->period_start->format('Y-m-d') .
-                        '&period_end=' . $latestEntitlement->period_end->format('Y-m-d');
+                    $editUrl = route('leave.entitlements.employee.edit', $administration->employee_id).
+                        '?period_start='.$latestEntitlement->period_start->format('Y-m-d').
+                        '&period_end='.$latestEntitlement->period_end->format('Y-m-d');
                 }
 
                 $row['actions'] = [
@@ -272,7 +291,7 @@ class LeaveEntitlementController extends Controller
                 'draw' => intval($request->get('draw')),
                 'recordsTotal' => $totalRecords,
                 'recordsFiltered' => $filteredRecords,
-                'data' => $data
+                'data' => $data,
             ]);
         } catch (\Exception $e) {
             return response()->json([
@@ -280,7 +299,7 @@ class LeaveEntitlementController extends Controller
                 'recordsTotal' => 0,
                 'recordsFiltered' => 0,
                 'data' => [],
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -299,7 +318,7 @@ class LeaveEntitlementController extends Controller
                 'project',
                 'employee.leaveEntitlements.leaveType' => function ($q) {
                     $q->where('is_active', true);
-                }
+                },
             ])
             ->join('employees', 'administrations.employee_id', '=', 'employees.id')
             ->leftJoin('levels', 'administrations.level_id', '=', 'levels.id')
@@ -337,7 +356,7 @@ class LeaveEntitlementController extends Controller
                 'position',
                 'employee.leaveEntitlements.leaveType' => function ($q) {
                     $q->where('is_active', true);
-                }
+                },
             ])
             ->join('employees', 'administrations.employee_id', '=', 'employees.id')
             ->leftJoin('levels', 'administrations.level_id', '=', 'levels.id')
@@ -375,18 +394,22 @@ class LeaveEntitlementController extends Controller
     {
         $employeeId = $request->get('employee_id');
 
-        if (!$employeeId) {
+        if (! $employeeId) {
             return response()->json(['leaveTypes' => []]);
         }
 
         $employee = Employee::with(['administrations.project', 'administrations.level'])->find($employeeId);
 
+        if ($employee && auth()->user() instanceof User && auth()->user()->can('leave-entitlements.show') && ! UserProject::canViewEmployee($employee)) {
+            return response()->json(['leaveTypes' => [], 'message' => 'Forbidden'], 403);
+        }
+
         $activeAdministration = $employee ? $employee->administrations->where('is_active', 1)->first() : null;
-        if (!$activeAdministration && $employee) {
+        if (! $activeAdministration && $employee) {
             $activeAdministration = $employee->administrations->first();
         }
 
-        if (!$employee || !$activeAdministration) {
+        if (! $employee || ! $activeAdministration) {
             return response()->json(['leaveTypes' => []]);
         }
 
@@ -406,7 +429,7 @@ class LeaveEntitlementController extends Controller
                     'category' => $leaveType->category,
                     'default_days' => $leaveType->default_days,
                     'is_eligible' => $isEligible,
-                    'calculated_days' => $entitlementDays
+                    'calculated_days' => $entitlementDays,
                 ];
             });
 
@@ -424,17 +447,21 @@ class LeaveEntitlementController extends Controller
             'period_start' => 'required|date',
             'period_end' => 'required|date|after:period_start',
             'entitled_days' => 'required|integer|min:0',
-            'deposit_days' => 'nullable|integer|min:0'
+            'deposit_days' => 'nullable|integer|min:0',
         ]);
+
+        $employee = Employee::findOrFail($request->employee_id);
+        if ($r = $this->guardEntitlementEmployeeForHr($employee)) {
+            return $r;
+        }
 
         DB::beginTransaction();
         try {
-            $employee = Employee::findOrFail($request->employee_id);
             $leaveType = LeaveType::findOrFail($request->leave_type_id);
 
             // Validate business rules
             $validationErrors = $this->validateEntitlementAssignment($employee, $leaveType, $request->entitled_days);
-            if (!empty($validationErrors)) {
+            if (! empty($validationErrors)) {
                 return back()->with(['toast_error' => implode('. ', $validationErrors)]);
             }
 
@@ -456,7 +483,7 @@ class LeaveEntitlementController extends Controller
                 'period_end' => $request->period_end,
                 'entitled_days' => $request->entitled_days,
                 'deposit_days' => $request->deposit_days ?? 0,
-                'taken_days' => $request->taken_days ?? 0
+                'taken_days' => $request->taken_days ?? 0,
             ]);
 
             DB::commit();
@@ -466,7 +493,8 @@ class LeaveEntitlementController extends Controller
                 ->with('toast_success', 'Leave entitlement created successfully.');
         } catch (\Exception $e) {
             DB::rollback();
-            return back()->with(['toast_error' => 'Failed to create leave entitlement: ' . $e->getMessage()]);
+
+            return back()->with(['toast_error' => 'Failed to create leave entitlement: '.$e->getMessage()]);
         }
     }
 
@@ -478,6 +506,10 @@ class LeaveEntitlementController extends Controller
     {
         // Redirect to employee entitlements page instead of root level show
         $employee = $leaveEntitlement->employee;
+        if ($r = $this->guardEntitlementEmployeeForHr($employee)) {
+            return $r;
+        }
+
         return redirect()->route('leave.entitlements.employee.show', $employee)
             ->with('toast_info', 'Redirected to employee entitlements page.');
     }
@@ -490,6 +522,10 @@ class LeaveEntitlementController extends Controller
     {
         // Redirect to employee entitlements edit page instead of root level edit
         $employee = $leaveEntitlement->employee;
+        if ($r = $this->guardEntitlementEmployeeForHr($employee)) {
+            return $r;
+        }
+
         return redirect()->route('leave.entitlements.employee.edit', $employee)
             ->with('toast_info', 'Redirected to employee entitlements edit page.');
     }
@@ -502,14 +538,19 @@ class LeaveEntitlementController extends Controller
     {
         $request->validate([
             'entitled_days' => 'required|integer|min:0',
-            'deposit_days' => 'nullable|integer|min:0'
+            'deposit_days' => 'nullable|integer|min:0',
         ]);
+
+        $employee = $leaveEntitlement->employee;
+        if ($r = $this->guardEntitlementEmployeeForHr($employee)) {
+            return $r;
+        }
 
         DB::beginTransaction();
         try {
             $leaveEntitlement->update([
                 'entitled_days' => $request->entitled_days,
-                'deposit_days' => $request->deposit_days ?? 0
+                'deposit_days' => $request->deposit_days ?? 0,
             ]);
 
             // remaining_days is now calculated via accessor, no need to recalculate
@@ -518,12 +559,13 @@ class LeaveEntitlementController extends Controller
             DB::commit();
 
             // Redirect to employee entitlements page instead of root level show
-            $employee = $leaveEntitlement->employee;
+
             return redirect()->route('leave.entitlements.employee.show', $employee)
                 ->with('toast_success', 'Leave entitlement updated successfully.');
         } catch (\Exception $e) {
             DB::rollback();
-            return back()->with(['toast_error' => 'Failed to update leave entitlement: ' . $e->getMessage()]);
+
+            return back()->with(['toast_error' => 'Failed to update leave entitlement: '.$e->getMessage()]);
         }
     }
 
@@ -532,6 +574,11 @@ class LeaveEntitlementController extends Controller
      */
     public function destroy(LeaveEntitlement $leaveEntitlement)
     {
+        $employee = $leaveEntitlement->employee;
+        if ($r = $this->guardEntitlementEmployeeForHr($employee)) {
+            return $r;
+        }
+
         // Check if there are any leave requests for this entitlement
         if ($leaveEntitlement->leaveRequests()->count() > 0) {
             return back()->with(['toast_error' => 'Cannot delete leave entitlement with existing leave requests.']);
@@ -550,8 +597,12 @@ class LeaveEntitlementController extends Controller
     {
         $request->validate([
             'period_start' => 'required|date',
-            'period_end' => 'required|date|after:period_start'
+            'period_end' => 'required|date|after:period_start',
         ]);
+
+        if ($r = $this->guardEntitlementEmployeeForHr($employee)) {
+            return $r;
+        }
 
         DB::beginTransaction();
         try {
@@ -565,7 +616,7 @@ class LeaveEntitlementController extends Controller
             // If taken_days > 0, it means the entitlement has been used and cannot be deleted
             $hasUsedEntitlements = false;
             $usedEntitlements = [];
-            
+
             foreach ($entitlements as $entitlement) {
                 if ($entitlement->taken_days > 0) {
                     $hasUsedEntitlements = true;
@@ -574,20 +625,20 @@ class LeaveEntitlementController extends Controller
                         'leave_type' => $entitlement->leaveType->name ?? 'N/A',
                         'taken_days' => $entitlement->taken_days,
                         'entitled_days' => $entitlement->entitled_days,
-                        'remaining_days' => $entitlement->remaining_days
+                        'remaining_days' => $entitlement->remaining_days,
                     ];
                 }
             }
 
             if ($hasUsedEntitlements) {
                 DB::rollBack();
-                
+
                 // Build detailed error message
                 $usedTypes = collect($usedEntitlements)->pluck('leave_type')->unique()->implode(', ');
                 $totalTaken = collect($usedEntitlements)->sum('taken_days');
-                
+
                 return back()->with([
-                    'toast_error' => "Cannot delete entitlements that have been used. Found {$totalTaken} taken day(s) in: {$usedTypes}."
+                    'toast_error' => "Cannot delete entitlements that have been used. Found {$totalTaken} taken day(s) in: {$usedTypes}.",
                 ]);
             }
 
@@ -603,12 +654,10 @@ class LeaveEntitlementController extends Controller
                 ->with('toast_success', "Successfully deleted {$deletedCount} entitlement(s) for the selected period.");
         } catch (\Exception $e) {
             DB::rollBack();
-            return back()->with(['toast_error' => 'Failed to delete entitlements: ' . $e->getMessage()]);
+
+            return back()->with(['toast_error' => 'Failed to delete entitlements: '.$e->getMessage()]);
         }
     }
-
-
-
 
     /**
      * Clear all entitlements for debugging purposes
@@ -617,24 +666,32 @@ class LeaveEntitlementController extends Controller
     {
         $request->validate([
             'project_id' => 'required',
-            'confirm' => 'required|in:yes'
+            'confirm' => 'required|in:yes',
         ]);
 
         try {
             if ($request->project_id === 'all') {
-                // Clear all entitlements for all projects
-                $deletedCount = LeaveEntitlement::count();
-                LeaveEntitlement::truncate();
+                $scope = UserProject::assignmentScope(auth()->user());
+                if ($scope === []) {
+                    return back()->with(['toast_error' => 'Tidak ada proyek yang di-assign untuk akun Anda.']);
+                }
 
-                // Reset auto increment
-                DB::statement('ALTER TABLE leave_entitlements AUTO_INCREMENT = 1');
+                $employeeIds = Employee::whereHas('administrations', function ($q) use ($scope) {
+                    $q->whereIn('project_id', $scope)->where('is_active', 1);
+                })->pluck('id');
+
+                $deletedCount = LeaveEntitlement::whereIn('employee_id', $employeeIds)->count();
+                LeaveEntitlement::whereIn('employee_id', $employeeIds)->delete();
 
                 return redirect()
                     ->route('leave.entitlements.index', ['project_id' => 'all'])
-                    ->with('toast_success', "All entitlements cleared successfully. Deleted {$deletedCount} entitlements.");
+                    ->with('toast_success', "Entitlements cleared for proyek yang Anda kelola. Deleted {$deletedCount} entitlements.");
             } else {
                 // Clear entitlements for specific project employees only
                 $project = Project::findOrFail($request->project_id);
+                if (! UserProject::canAccessProjectId((int) $project->id)) {
+                    return UserProject::redirectAccessDenied(route('leave.entitlements.index'));
+                }
                 $employees = $this->getProjectEmployees($project);
                 $employeeIds = $employees->pluck('id');
 
@@ -649,7 +706,7 @@ class LeaveEntitlementController extends Controller
                     ->with('toast_success', "Entitlements cleared successfully for {$project->project_code} project. Deleted {$deletedCount} entitlements.");
             }
         } catch (\Exception $e) {
-            return back()->with(['toast_error' => 'Failed to clear entitlements: ' . $e->getMessage()]);
+            return back()->with(['toast_error' => 'Failed to clear entitlements: '.$e->getMessage()]);
         }
     }
 
@@ -660,15 +717,15 @@ class LeaveEntitlementController extends Controller
     {
         $request->validate([
             'project_id' => 'required',
-            'year' => 'required|integer|min:2020|max:2030'
+            'year' => 'required|integer|min:2020|max:2030',
         ]);
 
         $generatedCount = 0;
         $skippedCount = 0;
 
         if ($request->project_id === 'all') {
-            // Generate entitlements for all employees in all projects
-            $projects = Project::where('project_status', 1)->get();
+            // Generate entitlements for employees in projects assigned to user
+            $projects = UserProject::projectsForSelect();
             foreach ($projects as $project) {
                 $employees = $this->getProjectEmployees($project);
                 foreach ($employees as $employee) {
@@ -683,10 +740,13 @@ class LeaveEntitlementController extends Controller
                 ->with('toast_success', "Entitlements generated successfully. Generated {$generatedCount} new entitlements, skipped {$skippedCount} existing entitlements.");
         } else {
             $request->validate([
-                'project_id' => 'exists:projects,id'
+                'project_id' => 'exists:projects,id',
             ]);
 
             $project = Project::findOrFail($request->project_id);
+            if (! UserProject::canAccessProjectId((int) $project->id)) {
+                return UserProject::redirectAccessDenied(route('leave.entitlements.index'));
+            }
             $employees = $this->getProjectEmployees($project);
 
             foreach ($employees as $employee) {
@@ -707,10 +767,13 @@ class LeaveEntitlementController extends Controller
     public function generateSelectedProjectEntitlements(Request $request)
     {
         $request->validate([
-            'project_id' => 'required|exists:projects,id'
+            'project_id' => 'required|exists:projects,id',
         ]);
 
         $project = Project::findOrFail($request->project_id);
+        if (! UserProject::canAccessProjectId((int) $project->id)) {
+            return UserProject::redirectAccessDenied(route('leave.entitlements.index'));
+        }
         $currentYear = now()->year;
         $employees = $this->getProjectEmployees($project);
 
@@ -721,11 +784,12 @@ class LeaveEntitlementController extends Controller
         try {
             foreach ($employees as $employee) {
                 $administration = $employee->administrations->where('is_active', 1)->first();
-                if (!$administration) {
+                if (! $administration) {
                     $administration = $employee->administrations->first();
                 }
-                if (!$administration) {
+                if (! $administration) {
                     $skippedCount++;
+
                     continue;
                 }
 
@@ -759,7 +823,7 @@ class LeaveEntitlementController extends Controller
                                 }
                             } else {
                                 // For Non-Staff employees: show only "Cuti Panjang - Non Staff"
-                                if ($hasStaffInName && !$hasNonStaffInName) {
+                                if ($hasStaffInName && ! $hasNonStaffInName) {
                                     continue;
                                 }
                             }
@@ -769,7 +833,7 @@ class LeaveEntitlementController extends Controller
 
                         // Special validation for LSL in Group 2 projects
                         if ($category === 'lsl' && $project->leave_type === 'roster') {
-                            if (!$this->validateLSLForGroup2($employee, $currentYear)) {
+                            if (! $this->validateLSLForGroup2($employee, $currentYear)) {
                                 continue; // Skip LSL if special rules not met
                             }
                         }
@@ -790,7 +854,7 @@ class LeaveEntitlementController extends Controller
                                 ->whereDate('period_end', $periodDates['end']->format('Y-m-d'))
                                 ->first();
 
-                            if (!$existingEntitlement) {
+                            if (! $existingEntitlement) {
                                 LeaveEntitlement::create([
                                     'employee_id' => $employee->id,
                                     'leave_type_id' => $leaveType->id,
@@ -798,7 +862,7 @@ class LeaveEntitlementController extends Controller
                                     'period_end' => $periodDates['end'],
                                     'entitled_days' => $entitlementDays,
                                     'deposit_days' => $leaveType->getDepositDays(),
-                                    'taken_days' => 0
+                                    'taken_days' => 0,
                                 ]);
 
                                 $generatedCount++;
@@ -813,7 +877,7 @@ class LeaveEntitlementController extends Controller
             DB::commit();
 
             $message = "Entitlements generated successfully for {$project->project_code} project. ";
-            $message .= "Generated {$generatedCount} entitlements for " . $employees->count() . " employees.";
+            $message .= "Generated {$generatedCount} entitlements for ".$employees->count().' employees.';
             if ($skippedCount > 0) {
                 $message .= " Skipped {$skippedCount} duplicate entitlements.";
             }
@@ -827,27 +891,31 @@ class LeaveEntitlementController extends Controller
                 'project_id' => $project->id,
                 'project_code' => $project->project_code,
                 'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
-            return back()->with(['toast_error' => 'Failed to generate entitlements: ' . $e->getMessage()]);
+
+            return back()->with(['toast_error' => 'Failed to generate entitlements: '.$e->getMessage()]);
         }
     }
-
 
     /**
      * Show individual employee entitlements
      */
     public function showEmployee(Employee $employee)
     {
+        if ($r = $this->guardEntitlementEmployeeForHr($employee)) {
+            return $r;
+        }
+
         $employee->load([
             'administrations.project',
             'administrations.level',
             'administrations.position',
-            'leaveEntitlements.leaveType'
+            'leaveEntitlements.leaveType',
         ]);
 
         return view('leave-entitlements.show', compact('employee'))
-            ->with('title', 'Employee Leave Entitlements - ' . $employee->fullname);
+            ->with('title', 'Employee Leave Entitlements - '.$employee->fullname);
     }
 
     /**
@@ -857,16 +925,20 @@ class LeaveEntitlementController extends Controller
     {
         // Check if user is accessing their own data or has admin permission
         $user = auth()->user();
-        $isPersonalUser = $user->can('personal.leave.view-entitlements') && !$user->can('leave-entitlements.show');
+        $isPersonalUser = $user->can('personal.leave.view-entitlements') && ! $user->can('leave-entitlements.show');
 
         if ($isPersonalUser && $user->employee_id !== $employee->id) {
             return back()->with(['toast_error' => 'You can only view your own leave calculation details.']);
         }
 
+        if ($user->can('leave-entitlements.show') && ! UserProject::canViewEmployee($employee)) {
+            return UserProject::redirectAccessDenied();
+        }
+
         $request->validate([
             'leave_type_id' => 'required|exists:leave_types,id',
             'period_start' => 'nullable|date',
-            'period_end' => 'nullable|date|after:period_start'
+            'period_end' => 'nullable|date|after:period_start',
         ]);
 
         $leaveTypeId = $request->leave_type_id;
@@ -881,7 +953,7 @@ class LeaveEntitlementController extends Controller
             $periodEnd
         );
 
-        if (!$calculationDetails) {
+        if (! $calculationDetails) {
             return back()->with(['toast_error' => 'No leave entitlement found for this employee and leave type.']);
         }
 
@@ -893,7 +965,7 @@ class LeaveEntitlementController extends Controller
             'employee',
             'leaveType',
             'calculationDetails'
-        ))->with('title', 'Leave Calculation Details - ' . $employee->fullname);
+        ))->with('title', 'Leave Calculation Details - '.$employee->fullname);
     }
 
     /**
@@ -905,8 +977,16 @@ class LeaveEntitlementController extends Controller
             'employee_id' => 'required|exists:employees,id',
             'leave_type_id' => 'required|exists:leave_types,id',
             'period_start' => 'nullable|date',
-            'period_end' => 'nullable|date|after:period_start'
+            'period_end' => 'nullable|date|after:period_start',
         ]);
+
+        $empForScope = Employee::find($request->employee_id);
+        if ($empForScope && auth()->user() instanceof User && auth()->user()->can('leave-entitlements.show') && ! UserProject::canViewEmployee($empForScope)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Forbidden',
+            ], 403);
+        }
 
         try {
             $calculationDetails = LeaveEntitlement::getEmployeeLeaveDetails(
@@ -916,21 +996,21 @@ class LeaveEntitlementController extends Controller
                 $request->period_end
             );
 
-            if (!$calculationDetails) {
+            if (! $calculationDetails) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'No leave entitlement found for this employee and leave type.'
+                    'message' => 'No leave entitlement found for this employee and leave type.',
                 ], 404);
             }
 
             return response()->json([
                 'success' => true,
-                'data' => $calculationDetails
+                'data' => $calculationDetails,
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to get leave calculation details: ' . $e->getMessage()
+                'message' => 'Failed to get leave calculation details: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -940,6 +1020,10 @@ class LeaveEntitlementController extends Controller
      */
     public function editEmployee(Employee $employee, Request $request)
     {
+        if ($r = $this->guardEntitlementEmployeeForHr($employee)) {
+            return $r;
+        }
+
         // Reload employee with fresh relationships
         $employee->refresh();
 
@@ -949,7 +1033,7 @@ class LeaveEntitlementController extends Controller
             'administrations.position',
             'leaveEntitlements' => function ($query) {
                 $query->with('leaveType');
-            }
+            },
         ]);
 
         $leaveTypes = LeaveType::where('is_active', true)->get();
@@ -966,7 +1050,7 @@ class LeaveEntitlementController extends Controller
             // Edit mode: Use provided period dates - parse and ensure they are start/end of day
             $periodDates = [
                 'start' => Carbon::parse($request->period_start)->startOfDay(),
-                'end' => Carbon::parse($request->period_end)->endOfDay()
+                'end' => Carbon::parse($request->period_end)->endOfDay(),
             ];
             $currentYear = $periodDates['start']->year;
             $isEditMode = true; // This is edit mode - use existing entitlement values
@@ -986,16 +1070,18 @@ class LeaveEntitlementController extends Controller
             'periodDates',
             'currentYear',
             'isEditMode'
-        ))->with('title', ($isEditMode ? 'Edit' : 'Add') . ' Employee Leave Entitlements - ' . $employee->fullname);
+        ))->with('title', ($isEditMode ? 'Edit' : 'Add').' Employee Leave Entitlements - '.$employee->fullname);
     }
-
-
 
     /**
      * Update individual employee entitlements
      */
     public function updateEmployee(Request $request, Employee $employee)
     {
+        if ($r = $this->guardEntitlementEmployeeForHr($employee)) {
+            return $r;
+        }
+
         $request->validate([
             'entitlements' => 'required|array',
             'entitlements.*.leave_type_id' => 'required|exists:leave_types,id',
@@ -1003,7 +1089,7 @@ class LeaveEntitlementController extends Controller
             'entitlements.*.period_start' => 'nullable|date',
             'entitlements.*.period_end' => 'nullable|date|after:entitlements.*.period_start',
             'period_start' => 'nullable|date',
-            'period_end' => 'nullable|date|after:period_start'
+            'period_end' => 'nullable|date|after:period_start',
         ]);
 
         DB::beginTransaction();
@@ -1016,7 +1102,7 @@ class LeaveEntitlementController extends Controller
                 // Use form-level period dates (from hidden fields)
                 $periodStart = Carbon::parse($request->period_start);
                 $periodEnd = Carbon::parse($request->period_end);
-            } elseif (!empty($request->entitlements[0]['period_start']) && !empty($request->entitlements[0]['period_end'])) {
+            } elseif (! empty($request->entitlements[0]['period_start']) && ! empty($request->entitlements[0]['period_end'])) {
                 // Use period dates from first entitlement (backward compatibility)
                 $periodStart = Carbon::parse($request->entitlements[0]['period_start']);
                 $periodEnd = Carbon::parse($request->entitlements[0]['period_end']);
@@ -1037,7 +1123,7 @@ class LeaveEntitlementController extends Controller
                 $entitlementPeriodStart = $periodStart;
                 $entitlementPeriodEnd = $periodEnd;
 
-                if (!empty($entitlementData['period_start']) && !empty($entitlementData['period_end'])) {
+                if (! empty($entitlementData['period_start']) && ! empty($entitlementData['period_end'])) {
                     $entitlementPeriodStart = Carbon::parse($entitlementData['period_start']);
                     $entitlementPeriodEnd = Carbon::parse($entitlementData['period_end']);
                 }
@@ -1058,11 +1144,11 @@ class LeaveEntitlementController extends Controller
                     'employee_id' => $employee->id,
                     'leave_type_id' => $entitlementData['leave_type_id'],
                     'period_start' => $entitlementPeriodStart->format('Y-m-d'),
-                    'period_end' => $entitlementPeriodEnd->format('Y-m-d')
+                    'period_end' => $entitlementPeriodEnd->format('Y-m-d'),
                 ], [
                     'entitled_days' => $entitledDays,
                     'deposit_days' => $leaveType->getDepositDays(),
-                    'taken_days' => $takenDays
+                    'taken_days' => $takenDays,
                 ]);
             }
 
@@ -1071,15 +1157,16 @@ class LeaveEntitlementController extends Controller
             // Redirect back to show page with period parameter if available
             $redirectUrl = route('leave.entitlements.employee.show', $employee);
             if ($periodStart && $periodEnd) {
-                $periodKey = $periodStart->format('Y-m-d') . '-' . $periodEnd->format('Y-m-d');
-                $redirectUrl .= '?period=' . urlencode($periodKey);
+                $periodKey = $periodStart->format('Y-m-d').'-'.$periodEnd->format('Y-m-d');
+                $redirectUrl .= '?period='.urlencode($periodKey);
             }
 
             return redirect($redirectUrl)
                 ->with('toast_success', 'Employee entitlements updated successfully.');
         } catch (\Exception $e) {
             DB::rollback();
-            return back()->with(['toast_error' => 'Failed to update employee entitlements: ' . $e->getMessage()]);
+
+            return back()->with(['toast_error' => 'Failed to update employee entitlements: '.$e->getMessage()]);
         }
     }
 
@@ -1101,7 +1188,7 @@ class LeaveEntitlementController extends Controller
                 'administrations.level',
                 'leaveEntitlements.leaveType' => function ($q) {
                     $q->where('is_active', true);
-                }
+                },
             ])
             ->join('administrations', 'employees.id', '=', 'administrations.employee_id')
             ->where('administrations.project_id', $project->id)
@@ -1118,7 +1205,7 @@ class LeaveEntitlementController extends Controller
     private function generateEmployeeEntitlements($employee, $year)
     {
         $administration = $employee->administrations->where('is_active', 1)->first();
-        if (!$administration) {
+        if (! $administration) {
             $administration = $employee->administrations->first();
         }
         $project = $administration->project;
@@ -1151,7 +1238,7 @@ class LeaveEntitlementController extends Controller
                         }
                     } else {
                         // For Non-Staff employees: show only "Cuti Panjang - Non Staff"
-                        if ($hasStaffInName && !$hasNonStaffInName) {
+                        if ($hasStaffInName && ! $hasNonStaffInName) {
                             continue;
                         }
                     }
@@ -1161,7 +1248,7 @@ class LeaveEntitlementController extends Controller
 
                 // Special validation for LSL in Group 2 projects
                 if ($category === 'lsl' && $project->leave_type === 'roster') {
-                    if (!$this->validateLSLForGroup2($employee, $year)) {
+                    if (! $this->validateLSLForGroup2($employee, $year)) {
                         continue; // Skip LSL if special rules not met
                     }
                 }
@@ -1182,7 +1269,7 @@ class LeaveEntitlementController extends Controller
                         ->whereDate('period_end', $periodDates['end']->format('Y-m-d'))
                         ->first();
 
-                    if (!$existingEntitlement) {
+                    if (! $existingEntitlement) {
                         LeaveEntitlement::create([
                             'employee_id' => $employee->id,
                             'leave_type_id' => $leaveType->id,
@@ -1190,7 +1277,7 @@ class LeaveEntitlementController extends Controller
                             'period_end' => $periodDates['end'],
                             'entitled_days' => $entitlementDays,
                             'deposit_days' => $leaveType->getDepositDays(),
-                            'taken_days' => 0
+                            'taken_days' => 0,
                         ]);
                         $generated++;
                     } else {
@@ -1202,7 +1289,7 @@ class LeaveEntitlementController extends Controller
 
         return [
             'generated' => $generated,
-            'skipped' => $skipped
+            'skipped' => $skipped,
         ];
     }
 
@@ -1277,7 +1364,7 @@ class LeaveEntitlementController extends Controller
     private function calculatePeriodDates($employee, $year)
     {
         $administration = $employee->administrations->where('is_active', 1)->first();
-        if (!$administration) {
+        if (! $administration) {
             $administration = $employee->administrations->first();
         }
         $project = $administration->project;
@@ -1290,7 +1377,7 @@ class LeaveEntitlementController extends Controller
             // Group 2 (Roster): Calendar year (1 Jan - 31 Dec)
             return [
                 'start' => Carbon::create($year, 1, 1),
-                'end' => Carbon::create($year, 12, 31)
+                'end' => Carbon::create($year, 12, 31),
             ];
         } else {
             // Group 1 (Non-roster): DOH-based period
@@ -1307,11 +1394,10 @@ class LeaveEntitlementController extends Controller
 
             return [
                 'start' => $periodStart,
-                'end' => $periodEnd
+                'end' => $periodEnd,
             ];
         }
     }
-
 
     /**
      * Validate business rules for manual entitlement assignment
@@ -1319,7 +1405,7 @@ class LeaveEntitlementController extends Controller
     private function validateEntitlementAssignment($employee, $leaveType, $entitledDays)
     {
         $administration = $employee->administrations->where('is_active', 1)->first();
-        if (!$administration) {
+        if (! $administration) {
             $administration = $employee->administrations->first();
         }
         $project = $administration->project;
@@ -1337,19 +1423,19 @@ class LeaveEntitlementController extends Controller
             case 'annual':
                 // Only for Group 1 projects
                 if ($project->leave_type !== 'non_roster') {
-                    $errors[] = "Annual leave is only available for Group 1 projects (000H, 001H, APS, 021C, 025C)";
+                    $errors[] = 'Annual leave is only available for Group 1 projects (000H, 001H, APS, 021C, 025C)';
                 }
 
                 // Must have 12+ months service
                 if ($monthsOfService < 12) {
-                    $errors[] = "Employee must have at least 12 months of service for annual leave";
+                    $errors[] = 'Employee must have at least 12 months of service for annual leave';
                 }
                 break;
 
             case 'periodic':
                 // Only for Group 2 projects
                 if ($project->leave_type !== 'roster') {
-                    $errors[] = "Periodic leave is only available for Group 2 projects (017C, 022C)";
+                    $errors[] = 'Periodic leave is only available for Group 2 projects (017C, 022C)';
                 }
                 break;
 
@@ -1372,7 +1458,7 @@ class LeaveEntitlementController extends Controller
     private function calculateEntitlementDays($leaveType, $employee)
     {
         $administration = $employee->administrations->where('is_active', 1)->first();
-        if (!$administration) {
+        if (! $administration) {
             $administration = $employee->administrations->first();
         }
         $project = $administration->project;
@@ -1408,6 +1494,7 @@ class LeaveEntitlementController extends Controller
 
                 // Periodic leave based on level Roster Cycle
                 $levelName = $level ? $level->name : '';
+
                 return $this->calculatePeriodicDays($levelName);
 
             case 'lsl':
@@ -1446,7 +1533,7 @@ class LeaveEntitlementController extends Controller
             'Project Manager',
             'SPT',
             'SPV',
-            'FM'
+            'FM',
         ];
 
         return in_array($levelName, $staffLevels);
@@ -1469,7 +1556,7 @@ class LeaveEntitlementController extends Controller
     private function validateLSLForGroup2($employee, $year)
     {
         $administration = $employee->administrations->where('is_active', 1)->first();
-        if (!$administration) {
+        if (! $administration) {
             $administration = $employee->administrations->first();
         }
         $project = $administration->project;
@@ -1534,7 +1621,7 @@ class LeaveEntitlementController extends Controller
 
         if ($periodicEntitlement) {
             $periodicEntitlement->update([
-                'taken_days' => $periodicEntitlement->taken_days + 10
+                'taken_days' => $periodicEntitlement->taken_days + 10,
             ]);
             // remaining_days is now calculated via accessor, no need to update manually
         }
@@ -1546,11 +1633,11 @@ class LeaveEntitlementController extends Controller
     private function getEmployeeBusinessRules($employee)
     {
         $administration = $employee->administrations->where('is_active', 1)->first();
-        if (!$administration) {
+        if (! $administration) {
             $administration = $employee->administrations->first();
         }
 
-        if (!$administration || !$administration->project) {
+        if (! $administration || ! $administration->project) {
             return null;
         }
 
@@ -1596,7 +1683,7 @@ class LeaveEntitlementController extends Controller
                     } else {
                         // For Non-Staff employees: show only "Cuti Panjang - Non Staff"
                         // Skip if it only has "Staff" but not "Non Staff"
-                        if ($hasStaffInName && !$hasNonStaffInName) {
+                        if ($hasStaffInName && ! $hasNonStaffInName) {
                             continue;
                         }
                     }
@@ -1606,7 +1693,7 @@ class LeaveEntitlementController extends Controller
 
                 // Special validation for LSL in Group 2 projects
                 if ($category === 'lsl' && $project->leave_type === 'roster') {
-                    if (!$this->validateLSLForGroup2($employee, now()->year)) {
+                    if (! $this->validateLSLForGroup2($employee, now()->year)) {
                         continue; // Skip LSL if special rules not met
                     }
                 }
@@ -1626,7 +1713,7 @@ class LeaveEntitlementController extends Controller
                         'default_days' => $leaveType->default_days,
                         'calculated_days' => $calculatedDays,
                         'is_eligible' => $isEligible,
-                        'eligibility_reason' => $eligibilityReason
+                        'eligibility_reason' => $eligibilityReason,
                     ];
                 }
             }
@@ -1642,7 +1729,7 @@ class LeaveEntitlementController extends Controller
         }
 
         if ($monthsOfService < 12 && $project->leave_type !== 'roster') {
-            $specialNotes[] = "Annual leave will be available after 12 months of service";
+            $specialNotes[] = 'Annual leave will be available after 12 months of service';
         }
 
         $lslThreshold = $isStaff ? 60 : 72;
@@ -1661,7 +1748,7 @@ class LeaveEntitlementController extends Controller
             'months_of_service' => $monthsOfService,
             'years_of_service' => $yearsOfService,
             'eligible_leaves' => $eligibleLeaves,
-            'special_notes' => $specialNotes
+            'special_notes' => $specialNotes,
         ];
     }
 
@@ -1678,20 +1765,24 @@ class LeaveEntitlementController extends Controller
                 if ($monthsOfService < 12) {
                     return 'Requires 12 months of service';
                 }
+
                 return 'Eligible - 12 days per year after 1 year service';
 
             case 'periodic':
                 if ($projectType !== 'roster') {
                     return 'Only available for roster-based projects';
                 }
+
                 return 'Eligible - Based on Roster Cycle';
 
             case 'lsl':
                 $requiredMonths = $isStaff ? 60 : 72;
                 if ($monthsOfService < $requiredMonths) {
                     $staffType = $isStaff ? 'staff' : 'non-staff';
+
                     return "Requires {$requiredMonths} months of service ({$staffType})";
                 }
+
                 return 'Eligible - 50 days LSL';
 
             case 'paid':
@@ -1721,7 +1812,7 @@ class LeaveEntitlementController extends Controller
             'Foreman/Officer' => '9 weeks on / 2 weeks off',
             'FM' => '9 weeks on / 2 weeks off',
             'Non Staff-Non Skill' => '10 weeks on / 2 weeks off',
-            'NS' => '10 weeks on / 2 weeks off'
+            'NS' => '10 weeks on / 2 weeks off',
         ];
 
         return $patterns[$levelName] ?? '10 weeks on / 2 weeks off';
@@ -1734,20 +1825,24 @@ class LeaveEntitlementController extends Controller
     {
         $includeData = $request->get('include_data', true);
         $projectId = $request->get('project_id', null);
-        
+
+        if ($projectId && $projectId !== 'all' && ! UserProject::canAccessProjectId((int) $projectId)) {
+            abort(403);
+        }
+
         // Build filename with project info if specified
-        $filename = 'leave_entitlement_' . ($includeData ? 'data_' : 'template_');
-        
+        $filename = 'leave_entitlement_'.($includeData ? 'data_' : 'template_');
+
         if ($projectId && $projectId !== 'all') {
             $project = Project::find($projectId);
             if ($project) {
-                $filename .= str_replace(' ', '_', $project->project_code) . '_';
+                $filename .= str_replace(' ', '_', $project->project_code).'_';
             }
         } elseif ($projectId === 'all') {
             $filename .= 'all_projects_';
         }
-        
-        $filename .= date('Y-m-d_His') . '.xlsx';
+
+        $filename .= date('Y-m-d_His').'.xlsx';
 
         return Excel::download(
             new LeaveEntitlementExport($includeData, $projectId),
@@ -1764,12 +1859,12 @@ class LeaveEntitlementController extends Controller
             'file' => 'required|mimes:xlsx,xls|max:10240', // 10MB max
         ], [
             'file.required' => 'Please select a file to import.',
-            'file.mimes'    => 'The file must be a file of type: xlsx, xls.',
-            'file.max'      => 'The file may not be greater than 10MB.'
+            'file.mimes' => 'The file must be a file of type: xlsx, xls.',
+            'file.max' => 'The file may not be greater than 10MB.',
         ]);
 
         try {
-            $import = new LeaveEntitlementImport();
+            $import = new LeaveEntitlementImport;
             Excel::import($import, $request->file('file'));
 
             $successCount = $import->getSuccessCount();
@@ -1784,15 +1879,16 @@ class LeaveEntitlementController extends Controller
                 $formattedFailures = collect();
                 foreach ($errors as $error) {
                     $formattedFailures->push([
-                        'sheet'     => 'Leave Entitlements',
-                        'row'       => $error['row'],
-                        'attribute' => 'NIK: ' . ($error['nik'] ?: 'N/A'),
-                        'value'     => '',
-                        'errors'    => implode(', ', $error['errors']),
+                        'sheet' => 'Leave Entitlements',
+                        'row' => $error['row'],
+                        'attribute' => 'NIK: '.($error['nik'] ?: 'N/A'),
+                        'value' => '',
+                        'errors' => implode(', ', $error['errors']),
                     ]);
                 }
 
                 $message = "Imported {$successCount} records successfully. Skipped {$skippedCount} records due to validation errors.";
+
                 return back()
                     ->with('failures', $formattedFailures)
                     ->with('toast_warning', $message);
@@ -1801,29 +1897,47 @@ class LeaveEntitlementController extends Controller
             $failures = collect();
             foreach ($e->failures() as $failure) {
                 $failures->push([
-                    'sheet'     => 'Leave Entitlements',
-                    'row'       => $failure->row(),
+                    'sheet' => 'Leave Entitlements',
+                    'row' => $failure->row(),
                     'attribute' => $failure->attribute(),
-                    'value'     => $failure->values()[$failure->attribute()] ?? null,
-                    'errors'    => implode(', ', $failure->errors()),
+                    'value' => $failure->values()[$failure->attribute()] ?? null,
+                    'errors' => implode(', ', $failure->errors()),
                 ]);
             }
+
             return back()->with('failures', $failures);
         } catch (\Throwable $e) {
-            Log::error('Leave Entitlement Import Error: ' . $e->getMessage(), [
-                'trace' => $e->getTraceAsString()
+            Log::error('Leave Entitlement Import Error: '.$e->getMessage(), [
+                'trace' => $e->getTraceAsString(),
             ]);
 
             $failures = collect([
                 [
-                    'sheet'     => 'System Error',
-                    'row'       => '-',
+                    'sheet' => 'System Error',
+                    'row' => '-',
                     'attribute' => 'Import Failed',
-                    'value'     => null,
-                    'errors'    => 'An error occurred during import: ' . $e->getMessage()
-                ]
+                    'value' => null,
+                    'errors' => 'An error occurred during import: '.$e->getMessage(),
+                ],
             ]);
+
             return back()->with('failures', $failures);
         }
+    }
+
+    /**
+     * HR: employee must have administration in at least one user-assigned project.
+     */
+    private function guardEntitlementEmployeeForHr(Employee $employee): ?RedirectResponse
+    {
+        $user = auth()->user();
+        if (! $user instanceof User || ! $user->can('leave-entitlements.show')) {
+            return null;
+        }
+        if (! UserProject::canViewEmployee($employee)) {
+            return UserProject::redirectAccessDenied(route('leave.entitlements.index'));
+        }
+
+        return null;
     }
 }

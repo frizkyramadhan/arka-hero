@@ -2,27 +2,19 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Grade;
-use App\Models\Level;
-use App\Models\Project;
-use App\Models\Employee;
-use App\Models\Position;
-use Illuminate\Http\Request;
 use App\Models\Administration;
-use Illuminate\Support\Facades\DB;
+use App\Models\Employee;
+use App\Support\UserProject;
+use Illuminate\Http\Request;
 
 class AdministrationController extends Controller
 {
-
     public function index()
     {
         $title = ' Employee Administration';
         $subtitle = ' Employee Administration';
-        $employees = Employee::join('administrations', 'employees.id', '=', 'administrations.employee_id')
-            ->where('administrations.is_active', 1)
-            ->select('employees.*', 'administrations.nik')
-            ->orderBy('employees.fullname', 'asc')
-            ->get();
+        $employees = UserProject::employeesForSelect(null, UserProject::EMPLOYEE_SELECT_ACTIVE_ADMINISTRATION);
+
         return view('administration.index', compact('title', 'subtitle', 'employees'));
     }
 
@@ -35,6 +27,10 @@ class AdministrationController extends Controller
             ->leftJoin('levels', 'administrations.level_id', '=', 'levels.id')
             ->select('administrations.*', 'fullname', 'position_name', 'project_name', 'grades.name as grade_name', 'levels.name as level_name')
             ->orderBy('nik', 'desc');
+
+        UserProject::scopeAdministrationJoinToAssignedProjects($administrations);
+
+        $employeesForAction = UserProject::employeesForSelect(null, UserProject::EMPLOYEE_SELECT_ACTIVE_ADMINISTRATION);
 
         return datatables()->of($administrations)
             ->addIndexColumn()
@@ -63,7 +59,8 @@ class AdministrationController extends Controller
                 if ($administrations->doh == null) {
                     return '-';
                 } else {
-                    $date = date("d F Y", strtotime($administrations->doh));
+                    $date = date('d F Y', strtotime($administrations->doh));
+
                     return $date;
                 }
             })
@@ -71,7 +68,8 @@ class AdministrationController extends Controller
                 if ($administrations->foc == null) {
                     return '-';
                 } else {
-                    $date = date("d F Y", strtotime($administrations->foc));
+                    $date = date('d F Y', strtotime($administrations->foc));
+
                     return $date;
                 }
             })
@@ -90,15 +88,6 @@ class AdministrationController extends Controller
             ->addColumn('poh', function ($administrations) {
                 return $administrations->poh;
             })
-            ->addColumn('basic_salary', function ($administrations) {
-                return $administrations->basic_salary;
-            })
-            ->addColumn('site_allowance', function ($administrations) {
-                return $administrations->site_allowance;
-            })
-            ->addColumn('other_allowance', function ($administrations) {
-                return $administrations->other_allowance;
-            })
             ->addColumn('is_active', function ($administrations) {
                 if ($administrations->is_active == '1') {
                     return '<span class="badge badge-success">Active</span>';
@@ -107,7 +96,7 @@ class AdministrationController extends Controller
                 }
             })
             ->filter(function ($instance) use ($request) {
-                if (!empty($request->get('search'))) {
+                if (! empty($request->get('search'))) {
                     $instance->where(function ($w) use ($request) {
                         $search = $request->get('search');
                         $w->orWhere('fullname', 'LIKE', "%$search%")
@@ -130,12 +119,9 @@ class AdministrationController extends Controller
                     });
                 }
             })
-            ->addColumn('action', function ($administrations) {
-                $employees = Employee::join('administrations', 'employees.id', '=', 'administrations.employee_id')
-                    ->where('administrations.is_active', 1)
-                    ->select('employees.*')
-                    ->orderBy('employees.fullname', 'asc')
-                    ->get();
+            ->addColumn('action', function ($administrations) use ($employeesForAction) {
+                $employees = $employeesForAction;
+
                 return view('administration.action', compact('employees', 'administrations'));
             })
             ->rawColumns(['is_active', 'action'])
@@ -144,9 +130,21 @@ class AdministrationController extends Controller
 
     public function store($employee_id, Request $request)
     {
+        $employee = Employee::findOrFail($employee_id);
+        if (! UserProject::canViewEmployee($employee)) {
+            return UserProject::redirectAccessDenied();
+        }
+
         $request->validate([
             'employee_id' => 'required',
-            'project_id' => 'required',
+            'project_id' => [
+                'required',
+                function ($attribute, $value, $fail) {
+                    if (! UserProject::canAccessProjectId((int) $value)) {
+                        $fail('The selected project is invalid.');
+                    }
+                },
+            ],
             'position_id' => 'required',
             'grade_id' => 'nullable|exists:grades,id',
             'level_id' => 'nullable|exists:levels,id',
@@ -180,24 +178,35 @@ class AdministrationController extends Controller
 
         Administration::where('employee_id', $employee_id)->where('id', '!=', $administration->id)->update(['is_active' => 0]);
 
-        return redirect('employees/' . $employee_id . '#administration')->with('toast_success', 'Administration Added Successfully');
+        return redirect('employees/'.$employee_id.'#administration')->with('toast_success', 'Administration Added Successfully');
     }
 
     public function update(Request $request, $id)
     {
+        $administration = Administration::where('id', $id)->firstOrFail();
+        $employee = Employee::findOrFail($administration->employee_id);
+        if (! UserProject::canViewEmployee($employee)) {
+            return UserProject::redirectAccessDenied();
+        }
+
         $request->validate([
             'employee_id' => 'required',
-            'project_id' => 'required',
+            'project_id' => [
+                'required',
+                function ($attribute, $value, $fail) {
+                    if (! UserProject::canAccessProjectId((int) $value)) {
+                        $fail('The selected project is invalid.');
+                    }
+                },
+            ],
             'position_id' => 'required',
             'grade_id' => 'nullable|exists:grades,id',
             'level_id' => 'nullable|exists:levels,id',
-            'nik' => 'required|unique:administrations,nik,' . $id,
+            'nik' => 'required|unique:administrations,nik,'.$id,
             'class' => 'required',
             'doh' => 'required',
             'poh' => 'required',
         ]);
-
-        $administration = Administration::where('id', $id)->first();
         $administration->employee_id = $request->employee_id;
         $administration->project_id = $request->project_id;
         $administration->position_id = $request->position_id;
@@ -219,7 +228,7 @@ class AdministrationController extends Controller
         $administration->user_id = auth()->user()->id;
         $administration->save();
 
-        return redirect('employees/' . $request->employee_id . '#administration')->with('toast_success', 'Administration Updated Successfully');
+        return redirect('employees/'.$request->employee_id.'#administration')->with('toast_success', 'Administration Updated Successfully');
     }
 
     public function terminate(Request $request, $id)
@@ -230,10 +239,10 @@ class AdministrationController extends Controller
             'coe_no' => 'nullable|string',
         ]);
 
-        $administration = Administration::where('id', $id)->first();
-
-        if (!$administration) {
-            return redirect()->back()->with('toast_error', 'Administration record not found');
+        $administration = Administration::where('id', $id)->firstOrFail();
+        $employee = Employee::findOrFail($administration->employee_id);
+        if (! UserProject::canViewEmployee($employee)) {
+            return UserProject::redirectAccessDenied();
         }
 
         $administration->termination_date = $request->termination_date;
@@ -243,26 +252,43 @@ class AdministrationController extends Controller
         $administration->user_id = auth()->user()->id;
         $administration->save();
 
-        return redirect('employees/' . $administration->employee_id . '#administration')->with('toast_success', 'Employment History Terminated Successfully');
+        return redirect('employees/'.$administration->employee_id.'#administration')->with('toast_success', 'Employment History Terminated Successfully');
     }
 
     public function delete($employee_id, $id)
     {
-        $administrations = Administration::where('id', $id)->first();
+        $employee = Employee::findOrFail($employee_id);
+        if (! UserProject::canViewEmployee($employee)) {
+            return UserProject::redirectAccessDenied();
+        }
+
+        $administrations = Administration::where('id', $id)->firstOrFail();
         $administrations->delete();
-        return redirect('employees/' . $employee_id . '#administration')->with('toast_success', 'Administration Deleted Successfully');
+
+        return redirect('employees/'.$employee_id.'#administration')->with('toast_success', 'Administration Deleted Successfully');
     }
 
     public function deleteAll($employee_id)
     {
+        $employee = Employee::findOrFail($employee_id);
+        if (! UserProject::canViewEmployee($employee)) {
+            return UserProject::redirectAccessDenied();
+        }
+
         Administration::where('employee_id', $employee_id)->delete();
-        return redirect('employees/' . $employee_id . '#administration')->with('toast_success', 'Administration Deleted Successfully');
+
+        return redirect('employees/'.$employee_id.'#administration')->with('toast_success', 'Administration Deleted Successfully');
     }
 
     // function for change is_active status
     public function changeStatus($employee_id, $id)
     {
-        $administration = Administration::find($id);
+        $employee = Employee::findOrFail($employee_id);
+        if (! UserProject::canViewEmployee($employee)) {
+            return UserProject::redirectAccessDenied();
+        }
+
+        $administration = Administration::findOrFail($id);
         $administration->is_active = 1;
 
         // Clear termination data when reactivating employment history
@@ -273,6 +299,6 @@ class AdministrationController extends Controller
         $administration->save();
         Administration::where('employee_id', $administration->employee_id)->where('id', '!=', $id)->update(['is_active' => 0]);
 
-        return redirect('employees/' . $employee_id . '#administration')->with('toast_success', 'Administration Status Changed Successfully');
+        return redirect('employees/'.$employee_id.'#administration')->with('toast_success', 'Administration Status Changed Successfully');
     }
 }

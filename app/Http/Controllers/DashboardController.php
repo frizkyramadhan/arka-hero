@@ -2,46 +2,43 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\User;
-use App\Models\License;
-use App\Models\Project;
-use App\Models\Employee;
-use App\Models\Position;
-use App\Models\Education;
-use App\Models\Employeebank;
-use App\Models\Taxidentification;
-use App\Models\Insurance;
-use App\Models\Family;
-use App\Models\Course;
-use App\Models\Jobexperience;
-use App\Models\Emrgcall;
-use App\Models\Operableunit;
 use App\Models\Additionaldata;
-use App\Models\LeaveType;
-use App\Models\Department;
-use App\Models\Permission;
-use Illuminate\Support\Str;
-use App\Models\ApprovalPlan;
-use App\Models\EmployeeBond;
-use App\Models\LeaveRequest;
-use App\Models\LetterNumber;
-use Illuminate\Http\Request;
-use App\Models\BondViolation;
-use App\Models\LetterSubject;
 use App\Models\Administration;
-use App\Models\LetterCategory;
-use App\Models\Officialtravel;
-use App\Models\LeaveEntitlement;
-use Yajra\DataTables\DataTables;
-use App\Models\RecruitmentRequest;
-use App\Models\RecruitmentSession;
-use Illuminate\Support\Facades\DB;
-use App\Models\RecruitmentCandidate;
-use Illuminate\Support\Facades\Auth;
-use App\Models\LeaveRequestCancellation;
+use App\Models\ApprovalPlan;
+use App\Models\BondViolation;
+use App\Models\Course;
+use App\Models\Department;
+use App\Models\Education;
+use App\Models\Employee;
+use App\Models\Employeebank;
+use App\Models\EmployeeBond;
+use App\Models\Emrgcall;
+use App\Models\Family;
 use App\Models\FlightRequest;
 use App\Models\FlightRequestIssuance;
+use App\Models\Insurance;
+use App\Models\Jobexperience;
+use App\Models\LeaveEntitlement;
+use App\Models\LeaveRequest;
+use App\Models\LeaveRequestCancellation;
+use App\Models\LeaveType;
+use App\Models\LetterCategory;
+use App\Models\LetterNumber;
+use App\Models\License;
+use App\Models\Officialtravel;
+use App\Models\Operableunit;
 use App\Models\OvertimeRequest;
+use App\Models\Project;
+use App\Models\RecruitmentCandidate;
+use App\Models\RecruitmentRequest;
+use App\Models\RecruitmentSession;
+use App\Models\Taxidentification;
+use App\Models\User;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
+use Yajra\DataTables\DataTables;
 
 class DashboardController extends Controller
 {
@@ -328,7 +325,7 @@ class DashboardController extends Controller
             'officialtravel' => $officialTravelLetters,
             'fptk' => $fptkLetters,
             'pkwt' => $pkwtLetters,
-            'offering' => $offeringLetters
+            'offering' => $offeringLetters,
         ];
 
         // Recent Activity
@@ -438,9 +435,10 @@ class DashboardController extends Controller
                 return $row->traveler->employee->fullname ?? 'N/A';
             })
             ->addColumn('action', function ($row) {
-                $btn = '<a href="' . route('officialtravels.showRecommendForm', $row->id) . '" class="btn btn-sm btn-warning">
+                $btn = '<a href="'.route('officialtravels.showRecommendForm', $row->id).'" class="btn btn-sm btn-warning">
                             <i class="fas fa-thumbs-up"></i> Recommend
                         </a>';
+
                 return $btn;
             })
             ->rawColumns(['action'])
@@ -474,16 +472,15 @@ class DashboardController extends Controller
                 return $row->traveler->employee->fullname ?? 'N/A';
             })
             ->addColumn('action', function ($row) {
-                $btn = '<a href="' . route('officialtravels.showApprovalForm', $row->id) . '" class="btn btn-sm btn-success">
+                $btn = '<a href="'.route('officialtravels.showApprovalForm', $row->id).'" class="btn btn-sm btn-success">
                             <i class="fas fa-check-circle"></i> Approve
                         </a>';
+
                 return $btn;
             })
             ->rawColumns(['action'])
             ->make(true);
     }
-
-
 
     /**
      * Get pending arrivals data for DataTable.
@@ -511,9 +508,10 @@ class DashboardController extends Controller
                 return $row->traveler->employee->fullname ?? 'N/A';
             })
             ->addColumn('action', function ($row) {
-                $btn = '<a href="' . route('officialtravels.showArrivalForm', $row->id) . '" class="btn btn-sm btn-info">
+                $btn = '<a href="'.route('officialtravels.showArrivalForm', $row->id).'" class="btn btn-sm btn-info">
                             <i class="fas fa-plane-arrival"></i> Stamp Arrival
                         </a>';
+
                 return $btn;
             })
             ->rawColumns(['action'])
@@ -549,9 +547,10 @@ class DashboardController extends Controller
                 return $row->traveler->employee->fullname ?? 'N/A';
             })
             ->addColumn('action', function ($row) {
-                $btn = '<a href="' . route('officialtravels.showDepartureForm', $row->id) . '" class="btn btn-sm btn-purple">
+                $btn = '<a href="'.route('officialtravels.showDepartureForm', $row->id).'" class="btn btn-sm btn-purple">
                             <i class="fas fa-plane-departure"></i> Stamp Departure
                         </a>';
+
                 return $btn;
             })
             ->rawColumns(['action'])
@@ -580,9 +579,10 @@ class DashboardController extends Controller
                 return $row->administrations_count;
             })
             ->addColumn('action', function ($row) {
-                $btn = '<a href="' . route('departments.summary', $row->id) . '" class="btn btn-sm btn-info">
+                $btn = '<a href="'.route('departments.summary', $row->id).'" class="btn btn-sm btn-info">
                             <i class="fas fa-info-circle"></i> Details
                         </a>';
+
                 return $btn;
             })
             ->rawColumns(['action'])
@@ -605,15 +605,16 @@ class DashboardController extends Controller
         return DataTables::of($query)
             ->addIndexColumn()
             ->addColumn('project', function ($row) {
-                return $row->project_code . ' - ' . $row->project_name;
+                return $row->project_code.' - '.$row->project_name;
             })
             ->addColumn('total_employees', function ($row) {
                 return $row->administrations_count;
             })
             ->addColumn('action', function ($row) {
-                $btn = '<a href="' . route('projects.summary', $row->id) . '" class="btn btn-sm btn-info">
+                $btn = '<a href="'.route('projects.summary', $row->id).'" class="btn btn-sm btn-info">
                             <i class="fas fa-info-circle"></i> Details
                         </a>';
+
                 return $btn;
             })
             ->rawColumns(['action'])
@@ -645,9 +646,10 @@ class DashboardController extends Controller
                 return date('d M Y', strtotime($row->doh));
             })
             ->addColumn('action', function ($row) {
-                $btn = '<a href="' . route('employees.show', $row->id) . '" class="btn btn-sm btn-info">
+                $btn = '<a href="'.route('employees.show', $row->id).'" class="btn btn-sm btn-info">
                             <i class="fas fa-eye"></i> Details
                         </a>';
+
                 return $btn;
             })
             ->rawColumns(['action'])
@@ -668,24 +670,24 @@ class DashboardController extends Controller
         return DataTables::of($query)
             ->addIndexColumn()
             ->addColumn('category_name', function ($row) {
-                return '<strong>' . $row->category_code . '</strong><br><small>' . $row->category_name . '</small>';
+                return '<strong>'.$row->category_code.'</strong><br><small>'.$row->category_name.'</small>';
             })
             ->addColumn('total_letters', function ($row) {
-                return '<span class="badge badge-primary">' . $row->letter_numbers_count . '</span>';
+                return '<span class="badge badge-primary">'.$row->letter_numbers_count.'</span>';
             })
             ->addColumn('status_breakdown', function ($row) {
                 $reserved = LetterNumber::where('letter_category_id', $row->id)->where('status', 'reserved')->count();
                 $used = LetterNumber::where('letter_category_id', $row->id)->where('status', 'used')->count();
                 $cancelled = LetterNumber::where('letter_category_id', $row->id)->where('status', 'cancelled')->count();
 
-                return '<small>' .
-                    '<span class="badge badge-warning">R: ' . $reserved . '</span> ' .
-                    '<span class="badge badge-success">U: ' . $used . '</span> ' .
-                    '<span class="badge badge-danger">C: ' . $cancelled . '</span>' .
+                return '<small>'.
+                    '<span class="badge badge-warning">R: '.$reserved.'</span> '.
+                    '<span class="badge badge-success">U: '.$used.'</span> '.
+                    '<span class="badge badge-danger">C: '.$cancelled.'</span>'.
                     '</small>';
             })
             ->addColumn('action', function ($row) {
-                return '<a href="' . route('letter-numbers.index') . '?letter_category_id=' . $row->id . '" class="btn btn-sm btn-info">
+                return '<a href="'.route('letter-numbers.index').'?letter_category_id='.$row->id.'" class="btn btn-sm btn-info">
                             <i class="fas fa-list"></i> View Letters
                         </a>';
             })
@@ -706,10 +708,10 @@ class DashboardController extends Controller
         return DataTables::of($query)
             ->addIndexColumn()
             ->addColumn('letter_number', function ($row) {
-                return '<strong>' . $row->letter_number . '</strong>';
+                return '<strong>'.$row->letter_number.'</strong>';
             })
             ->addColumn('category', function ($row) {
-                return '<span class="badge badge-info">' . $row->category->category_code . '</span>';
+                return '<span class="badge badge-info">'.$row->category->category_code.'</span>';
             })
             ->addColumn('subject_display', function ($row) {
                 return $row->subject ? $row->subject->subject_name : ($row->custom_subject ?? '-');
@@ -723,13 +725,14 @@ class DashboardController extends Controller
                     'used' => '<span class="badge badge-success">Used</span>',
                     'cancelled' => '<span class="badge badge-danger">Cancelled</span>',
                 ];
+
                 return $badges[$row->status] ?? '<span class="badge badge-secondary">Unknown</span>';
             })
             ->addColumn('created_date', function ($row) {
                 return $row->created_at->format('d M Y H:i');
             })
             ->addColumn('action', function ($row) {
-                return '<a href="' . route('letter-numbers.show', $row->id) . '" class="btn btn-sm btn-info">
+                return '<a href="'.route('letter-numbers.show', $row->id).'" class="btn btn-sm btn-info">
                             <i class="fas fa-eye"></i> View
                         </a>';
             })
@@ -776,7 +779,7 @@ class DashboardController extends Controller
             'leaveRequest.employee',
             'leaveRequest.leaveType',
             'leaveRequest.administration',
-            'requestedBy'
+            'requestedBy',
         ])
             ->where('status', 'pending')
             ->orderBy('requested_at', 'desc')
@@ -865,7 +868,7 @@ class DashboardController extends Controller
                     ->where('period_end', '>=', $today)
                     ->where('period_end', '<=', $thirtyDaysLater)
                     ->whereRaw('(entitled_days - taken_days) > 0'); // remaining_days is now accessor
-            }
+            },
         ])
             ->whereHas('administrations', function ($query) {
                 $query->where('is_active', '1')
@@ -892,14 +895,14 @@ class DashboardController extends Controller
             return [
                 'employee_name' => $request->employee->fullname ?? 'N/A',
                 'leave_type' => $request->leaveType->name ?? 'N/A',
-                'leave_period' => $request->start_date->format('d M Y') . ' - ' . $request->end_date->format('d M Y'),
-                'total_days' => $request->total_days . ' days',
-                'action' => '<a href="' . route('leave.requests.show', $request->id) . '" class="btn btn-xs btn-info mr-1">
+                'leave_period' => $request->start_date->format('d M Y').' - '.$request->end_date->format('d M Y'),
+                'total_days' => $request->total_days.' days',
+                'action' => '<a href="'.route('leave.requests.show', $request->id).'" class="btn btn-xs btn-info mr-1">
                             <i class="fas fa-eye"></i>
                         </a>
-                        <button class="btn btn-xs btn-success" onclick="closeLeaveRequest(\'' . $request->id . '\')">
+                        <button class="btn btn-xs btn-success" onclick="closeLeaveRequest(\''.$request->id.'\')">
                             <i class="fas fa-check"></i>
-                        </button>'
+                        </button>',
             ];
         });
 
@@ -916,17 +919,18 @@ class DashboardController extends Controller
                     $employeeNik = $activeAdmin->nik ?? 'N/A';
                 }
             }
+
             return [
                 'employee_name' => $request->employee->fullname ?? 'N/A',
                 'leave_type' => $request->leaveType->name ?? 'N/A',
-                'days_to_cancel' => $cancellation->days_to_cancel . ' days',
+                'days_to_cancel' => $cancellation->days_to_cancel.' days',
                 'reason' => Str::limit($cancellation->reason, 50),
-                'action' => '<button class="btn btn-xs btn-success mr-1" onclick="approveCancellation(\'' . $cancellation->id . '\')">
+                'action' => '<button class="btn btn-xs btn-success mr-1" onclick="approveCancellation(\''.$cancellation->id.'\')">
                             <i class="fas fa-check"></i>
                         </button>
-                        <button class="btn btn-xs btn-danger" onclick="rejectCancellation(\'' . $cancellation->id . '\')">
+                        <button class="btn btn-xs btn-danger" onclick="rejectCancellation(\''.$cancellation->id.'\')">
                             <i class="fas fa-times"></i>
-                        </button>'
+                        </button>',
             ];
         });
 
@@ -938,7 +942,7 @@ class DashboardController extends Controller
                     $days = 0;
                 }
                 $badgeClass = $days <= 3 ? 'badge-danger' : ($days <= 7 ? 'badge-warning' : 'badge-info');
-                $daysRemaining = '<span class="badge ' . $badgeClass . '">' . $days . ' days</span>';
+                $daysRemaining = '<span class="badge '.$badgeClass.'">'.$days.' days</span>';
             } else {
                 $daysRemaining = '<span class="badge badge-secondary">N/A</span>';
             }
@@ -946,21 +950,23 @@ class DashboardController extends Controller
                 'pending' => '<span class="badge badge-warning">Pending</span>',
                 'approved' => '<span class="badge badge-success">Approved</span>',
             ];
+
             return [
                 'employee_name' => $request->employee->fullname ?? 'N/A',
                 'leave_type' => $request->leaveType->name ?? 'N/A',
-                'leave_period' => $request->start_date->format('d M Y') . ' - ' . $request->end_date->format('d M Y'),
-                'total_days' => $request->total_days . ' days',
+                'leave_period' => $request->start_date->format('d M Y').' - '.$request->end_date->format('d M Y'),
+                'total_days' => $request->total_days.' days',
                 'days_remaining' => $daysRemaining,
                 'status_badge' => $statusBadge[$request->status] ?? '<span class="badge badge-secondary">Unknown</span>',
-                'action' => '<a href="' . route('leave.requests.show', $request->id) . '" class="btn btn-xs btn-info">
+                'action' => '<a href="'.route('leave.requests.show', $request->id).'" class="btn btn-xs btn-info">
                             <i class="fas fa-eye"></i>
-                        </a>'
+                        </a>',
             ];
         });
 
         $employeesWithoutEntitlementsData = $employeesWithoutEntitlements->map(function ($employee) {
             $administration = $employee->administrations->where('is_active', '1')->first();
+
             return [
                 'employee_name' => $employee->fullname ?? 'N/A',
                 'employee_nik' => $administration->nik ?? 'N/A',
@@ -968,8 +974,8 @@ class DashboardController extends Controller
                 'position' => $administration->position->position_name ?? 'N/A',
                 'department' => $administration->position->department->department_name ?? 'N/A',
                 'project' => ($administration && $administration->project) ? $administration->project->project_code : 'N/A',
-                'action' => '<a href="' . route('leave.entitlements.employee.show', $employee->id) . '" class="btn btn-xs btn-info">
-                            <i class="fas fa-eye"></i></a>'
+                'action' => '<a href="'.route('leave.entitlements.employee.show', $employee->id).'" class="btn btn-xs btn-info">
+                            <i class="fas fa-eye"></i></a>',
             ];
         });
 
@@ -985,15 +991,15 @@ class DashboardController extends Controller
             if ($expiringEntitlements->isNotEmpty()) {
                 $firstExpiring = $expiringEntitlements->sortBy('period_end')->first();
                 $daysUntilExpiry = now()->diffInDays($firstExpiring->period_end, false);
-                $expiresText = $firstExpiring->period_end->format('d M Y') . ' EXPIRES (' . $daysUntilExpiry . ' days)';
+                $expiresText = $firstExpiring->period_end->format('d M Y').' EXPIRES ('.$daysUntilExpiry.' days)';
             }
 
             return [
                 'employee_name' => $employee->fullname ?? 'N/A',
                 'employee_nik' => $administration->nik ?? 'N/A',
                 'expires' => $expiresText,
-                'action' => '<a href="' . route('leave.entitlements.employee.show', $employee->id) . '" class="btn btn-xs btn-info">
-                            <i class="fas fa-eye"></i></a>'
+                'action' => '<a href="'.route('leave.entitlements.employee.show', $employee->id).'" class="btn btn-xs btn-info">
+                            <i class="fas fa-eye"></i></a>',
             ];
         });
 
@@ -1075,6 +1081,7 @@ class DashboardController extends Controller
             ->map(function ($group, $bpId) {
                 $first = $group->first();
                 $bp = $first->businessPartner;
+
                 return [
                     'bp_code' => $bp ? $bp->bp_code : '-',
                     'bp_name' => $bp ? $bp->bp_name : 'No Vendor',
@@ -1210,7 +1217,7 @@ class DashboardController extends Controller
                 ->count();
             $monthlyTrend[] = [
                 'month' => $date->format('M Y'),
-                'count' => $count
+                'count' => $count,
             ];
         }
 
@@ -1237,11 +1244,12 @@ class DashboardController extends Controller
                     'officialtravel' => 'Official Travel',
                     'recruitment_request' => 'FPTK',
                     'recruitment_hiring' => 'PKWT',
-                    'recruitment_offering' => 'Offering'
+                    'recruitment_offering' => 'Offering',
                 ];
+
                 return [
                     'type' => $names[$item->related_document_type] ?? $item->related_document_type,
-                    'count' => $item->count
+                    'count' => $item->count,
                 ];
             });
 
@@ -1249,7 +1257,7 @@ class DashboardController extends Controller
             'monthlyTrend' => $monthlyTrend,
             'statusStats' => $statusStats,
             'categoryStats' => $categoryStats,
-            'integrationStats' => $integrationStats
+            'integrationStats' => $integrationStats,
         ]);
     }
 
@@ -1276,18 +1284,19 @@ class DashboardController extends Controller
                 return $row->leaveType->name ?? 'N/A';
             })
             ->addColumn('leave_period', function ($row) {
-                return date('d M Y', strtotime($row->start_date)) . ' - ' . date('d M Y', strtotime($row->end_date));
+                return date('d M Y', strtotime($row->start_date)).' - '.date('d M Y', strtotime($row->end_date));
             })
             ->addColumn('total_days', function ($row) {
-                return $row->total_days . ' days';
+                return $row->total_days.' days';
             })
             ->addColumn('action', function ($row) {
-                $btn = '<a href="' . route('leave.requests.show', $row->id) . '" class="btn btn-xs btn-info mr-1">
+                $btn = '<a href="'.route('leave.requests.show', $row->id).'" class="btn btn-xs btn-info mr-1">
                             <i class="fas fa-eye"></i>
                         </a>';
-                $btn .= '<button class="btn btn-xs btn-success" onclick="closeLeaveRequest(\'' . $row->id . '\')">
+                $btn .= '<button class="btn btn-xs btn-success" onclick="closeLeaveRequest(\''.$row->id.'\')">
                             <i class="fas fa-check"></i>
                         </button>';
+
                 return $btn;
             })
             ->rawColumns(['action'])
@@ -1305,7 +1314,7 @@ class DashboardController extends Controller
             'leaveRequest.employee',
             'leaveRequest.leaveType',
             'leaveRequest.administration',
-            'requestedBy'
+            'requestedBy',
         ])
             ->where('status', 'pending');
 
@@ -1323,8 +1332,10 @@ class DashboardController extends Controller
                 $employee = $row->leaveRequest->employee;
                 if ($employee) {
                     $activeAdmin = $employee->administrations->where('is_active', '1')->first();
+
                     return $activeAdmin->nik ?? 'N/A';
                 }
+
                 return 'N/A';
             })
             ->addColumn('leave_type', function ($row) {
@@ -1332,10 +1343,11 @@ class DashboardController extends Controller
             })
             ->addColumn('original_period', function ($row) {
                 $request = $row->leaveRequest;
-                return date('d M Y', strtotime($request->start_date)) . ' - ' . date('d M Y', strtotime($request->end_date));
+
+                return date('d M Y', strtotime($request->start_date)).' - '.date('d M Y', strtotime($request->end_date));
             })
             ->addColumn('days_to_cancel', function ($row) {
-                return $row->days_to_cancel . ' days';
+                return $row->days_to_cancel.' days';
             })
             ->addColumn('reason', function ($row) {
                 return Str::limit($row->reason, 50);
@@ -1347,12 +1359,13 @@ class DashboardController extends Controller
                 return $row->requested_at->format('d M Y H:i');
             })
             ->addColumn('action', function ($row) {
-                $btn = '<button class="btn btn-xs btn-success mr-1" onclick="approveCancellation(\'' . $row->id . '\')">
+                $btn = '<button class="btn btn-xs btn-success mr-1" onclick="approveCancellation(\''.$row->id.'\')">
                             <i class="fas fa-check"></i>
                         </button>';
-                $btn .= '<button class="btn btn-xs btn-danger" onclick="rejectCancellation(\'' . $row->id . '\')">
+                $btn .= '<button class="btn btn-xs btn-danger" onclick="rejectCancellation(\''.$row->id.'\')">
                             <i class="fas fa-times"></i>
                         </button>';
+
                 return $btn;
             })
             ->rawColumns(['action'])
@@ -1385,10 +1398,10 @@ class DashboardController extends Controller
                 return $row->leaveType->name ?? 'N/A';
             })
             ->addColumn('leave_period', function ($row) {
-                return date('d M Y', strtotime($row->start_date)) . ' - ' . date('d M Y', strtotime($row->end_date));
+                return date('d M Y', strtotime($row->start_date)).' - '.date('d M Y', strtotime($row->end_date));
             })
             ->addColumn('total_days', function ($row) {
-                return $row->total_days . ' days';
+                return $row->total_days.' days';
             })
             ->addColumn('days_remaining', function ($row) {
                 if ($row->auto_conversion_at) {
@@ -1398,8 +1411,10 @@ class DashboardController extends Controller
                         $days = 0;
                     }
                     $badgeClass = $days <= 3 ? 'badge-danger' : ($days <= 7 ? 'badge-warning' : 'badge-info');
-                    return '<span class="badge ' . $badgeClass . '">' . $days . ' days</span>';
+
+                    return '<span class="badge '.$badgeClass.'">'.$days.' days</span>';
                 }
+
                 return '<span class="badge badge-secondary">N/A</span>';
             })
             ->addColumn('status_badge', function ($row) {
@@ -1407,12 +1422,14 @@ class DashboardController extends Controller
                     'pending' => '<span class="badge badge-warning">Pending</span>',
                     'approved' => '<span class="badge badge-success">Approved</span>',
                 ];
+
                 return $badges[$row->status] ?? '<span class="badge badge-secondary">Unknown</span>';
             })
             ->addColumn('action', function ($row) {
-                $btn = '<a href="' . route('leave.requests.show', $row->id) . '" class="btn btn-xs btn-info mr-1">
+                $btn = '<a href="'.route('leave.requests.show', $row->id).'" class="btn btn-xs btn-info mr-1">
                             <i class="fas fa-eye"></i>
                         </a>';
+
                 return $btn;
             })
             ->rawColumns(['days_remaining', 'status_badge', 'action'])
@@ -1436,10 +1453,10 @@ class DashboardController extends Controller
                     $query->where('is_active', '1')
                         ->with(['position.department']);
                 },
-                'leaveEntitlements.leaveType'
+                'leaveEntitlements.leaveType',
             ])->find($employeeId);
 
-            if (!$employee) {
+            if (! $employee) {
                 return response()->json([]);
             }
 
@@ -1457,11 +1474,11 @@ class DashboardController extends Controller
                         'entitled_days' => $entitlement->entitled_days,
                         'remaining_days' => $entitlement->remaining_days,
                         'used_days' => $entitlement->entitled_days - $entitlement->remaining_days,
-                        'period' => $entitlement->period_start->format('M Y') . ' - ' . $entitlement->period_end->format('M Y'),
+                        'period' => $entitlement->period_start->format('M Y').' - '.$entitlement->period_end->format('M Y'),
                         'period_start' => $entitlement->period_start->format('Y-m-d'),
-                        'period_end' => $entitlement->period_end->format('Y-m-d')
+                        'period_end' => $entitlement->period_end->format('Y-m-d'),
                     ];
-                })
+                }),
             ]]);
         }
 
@@ -1475,7 +1492,7 @@ class DashboardController extends Controller
                 $query->where('is_active', '1')
                     ->with(['position.department']);
             },
-            'leaveEntitlements.leaveType'
+            'leaveEntitlements.leaveType',
         ])
             ->whereHas('administrations', function ($query) {
                 $query->where('is_active', '1');
@@ -1494,11 +1511,11 @@ class DashboardController extends Controller
             $administration = $employee->administrations->where('is_active', '1')->first();
             $results[] = [
                 'id' => $employee->id,
-                'text' => $employee->fullname . ' (' . ($administration->nik ?? 'N/A') . ')',
+                'text' => $employee->fullname.' ('.($administration->nik ?? 'N/A').')',
                 'nik' => $administration->nik ?? 'N/A',
                 'name' => $employee->fullname,
                 'position' => $administration->position->position_name ?? 'N/A',
-                'department' => $administration->position->department->department_name ?? 'N/A'
+                'department' => $administration->position->department->department_name ?? 'N/A',
             ];
         }
 
@@ -1532,18 +1549,22 @@ class DashboardController extends Controller
             })
             ->addColumn('employee_nik', function ($row) {
                 $administration = $row->administrations->where('is_active', '1')->first();
+
                 return $administration->nik ?? 'N/A';
             })
             ->addColumn('doh', function ($row) {
                 $administration = $row->administrations->where('is_active', '1')->first();
+
                 return $administration->doh ? $administration->doh->format('d M Y') : 'N/A';
             })
             ->addColumn('position', function ($row) {
                 $administration = $row->administrations->where('is_active', '1')->first();
+
                 return $administration->position->position_name ?? 'N/A';
             })
             ->addColumn('department', function ($row) {
                 $administration = $row->administrations->where('is_active', '1')->first();
+
                 return $administration->position->department->department_name ?? 'N/A';
             })
             ->addColumn('project', function ($row) {
@@ -1551,11 +1572,13 @@ class DashboardController extends Controller
                 if ($administration && $administration->project) {
                     return $administration->project->project_code;
                 }
+
                 return 'N/A';
             })
             ->addColumn('action', function ($row) {
-                $btn = '<a href="' . route('leave.entitlements.employee.show', $row->id) . '" class="btn btn-xs btn-info">
+                $btn = '<a href="'.route('leave.entitlements.employee.show', $row->id).'" class="btn btn-xs btn-info">
                             <i class="fas fa-eye"></i></a>';
+
                 return $btn;
             })
             ->rawColumns(['action'])
@@ -1595,7 +1618,7 @@ class DashboardController extends Controller
                         $q->where('period_end', '>=', $thirtyDaysAgo)
                             ->where('period_end', '<', $today);
                     });
-            }
+            },
         ])
             ->whereHas('administrations', function ($query) {
                 $query->where('is_active', '1')
@@ -1633,6 +1656,7 @@ class DashboardController extends Controller
             })
             ->addColumn('employee_nik', function ($row) {
                 $administration = $row->administrations->where('is_active', '1')->first();
+
                 return $administration->nik ?? 'N/A';
             })
             ->addColumn('expires', function ($row) use ($today) {
@@ -1656,7 +1680,7 @@ class DashboardController extends Controller
                         ->exists();
 
                     // Only keep if no new period exists
-                    return !$hasNewPeriod;
+                    return ! $hasNewPeriod;
                 });
 
                 if ($filteredEntitlements->isEmpty()) {
@@ -1672,7 +1696,7 @@ class DashboardController extends Controller
                     // Sudah lewat
                     $badgeClass = 'badge-dark';
                     $statusText = 'EXPIRED';
-                    $daysText = abs($daysUntilExpiry) . ' days ago';
+                    $daysText = abs($daysUntilExpiry).' days ago';
                 } elseif ($daysUntilExpiry == 0) {
                     // Hari ini habis
                     $badgeClass = 'badge-danger';
@@ -1682,27 +1706,28 @@ class DashboardController extends Controller
                     // Akan habis dalam 7 hari
                     $badgeClass = 'badge-danger';
                     $statusText = 'EXPIRES SOON';
-                    $daysText = $daysUntilExpiry . ' days';
+                    $daysText = $daysUntilExpiry.' days';
                 } elseif ($daysUntilExpiry <= 15) {
                     // Akan habis dalam 15 hari
                     $badgeClass = 'badge-warning';
                     $statusText = 'EXPIRES SOON';
-                    $daysText = $daysUntilExpiry . ' days';
+                    $daysText = $daysUntilExpiry.' days';
                 } else {
                     // Masih lama
                     $badgeClass = 'badge-info';
                     $statusText = 'EXPIRES';
-                    $daysText = $daysUntilExpiry . ' days';
+                    $daysText = $daysUntilExpiry.' days';
                 }
 
-                return '<span class="badge ' . $badgeClass . '">' .
-                    $nearestExpiry->period_end->format('d M Y') .
-                    '<br><small>' . $statusText . '</small>' .
-                    '<br><small>(' . $daysText . ')</small></span>';
+                return '<span class="badge '.$badgeClass.'">'.
+                    $nearestExpiry->period_end->format('d M Y').
+                    '<br><small>'.$statusText.'</small>'.
+                    '<br><small>('.$daysText.')</small></span>';
             })
             ->addColumn('action', function ($row) {
-                $btn = '<a href="' . route('leave.entitlements.employee.show', $row->id) . '" class="btn btn-xs btn-info">
+                $btn = '<a href="'.route('leave.entitlements.employee.show', $row->id).'" class="btn btn-xs btn-info">
                             <i class="fas fa-eye"></i></a>';
+
                 return $btn;
             })
             ->rawColumns(['expires', 'action'])
@@ -1725,7 +1750,7 @@ class DashboardController extends Controller
                 ->count();
             $monthlyTrend[] = [
                 'month' => $date->format('M Y'),
-                'count' => $count
+                'count' => $count,
             ];
         }
 
@@ -1758,7 +1783,7 @@ class DashboardController extends Controller
             'monthlyTrend' => $monthlyTrend,
             'statusStats' => $statusStats,
             'leaveTypeStats' => $leaveTypeStats,
-            'departmentStats' => $departmentStats
+            'departmentStats' => $departmentStats,
         ]);
     }
 
@@ -1951,7 +1976,7 @@ class DashboardController extends Controller
         ];
 
         $missingSections = collect($profileCompleteness)->filter(function ($exists) {
-            return !$exists;
+            return ! $exists;
         })->keys()->toArray();
 
         $completenessPercentage = round((count($profileCompleteness) - count($missingSections)) / count($profileCompleteness) * 100);

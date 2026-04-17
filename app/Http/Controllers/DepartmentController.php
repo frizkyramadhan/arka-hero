@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Imports\DepartmentImport;
 use App\Models\Department;
 use Illuminate\Http\Request;
-use App\Imports\DepartmentImport;
 use Maatwebsite\Excel\Facades\Excel;
 
 class DepartmentController extends Controller
@@ -13,6 +13,7 @@ class DepartmentController extends Controller
     {
         $title = 'Departments';
         $subtitle = 'List of Department';
+
         return view('department.index', compact('title', 'subtitle'));
     }
 
@@ -36,7 +37,7 @@ class DepartmentController extends Controller
                 }
             })
             ->filter(function ($instance) use ($request) {
-                if (!empty($request->get('search'))) {
+                if (! empty($request->get('search'))) {
                     $instance->where(function ($w) use ($request) {
                         $search = $request->get('search');
                         $w->orWhere('department_name', 'LIKE', "%$search%")
@@ -75,6 +76,7 @@ class DepartmentController extends Controller
     public function edit($slug)
     {
         $department = Department::where('slug', $slug)->first();
+
         return view('department.edit', compact('department'));
     }
 
@@ -103,13 +105,14 @@ class DepartmentController extends Controller
     {
         $department = Department::where('id', $id)->first();
         $department->delete();
+
         return redirect('departments')->with('toast_success', 'Department delete successfully');
     }
 
     public function import(Request $request)
     {
         $this->validate($request, [
-            'file' => 'required|mimes:xls,xlsx'
+            'file' => 'required|mimes:xls,xlsx',
         ]);
 
         Excel::import(new DepartmentImport, request()->file('file'));

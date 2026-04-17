@@ -2,19 +2,18 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Employee;
 use App\Models\Emrgcall;
+use App\Support\UserProject;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 
 class EmrgcallController extends Controller
 {
-
     public function index()
     {
         $title = ' Employee Emergency Call';
         $subtitle = 'Employee Emergency Call';
-        $employees = Employee::orderBy('fullname', 'asc')->get();
+        $employees = UserProject::employeesForSelect();
+
         return view('emrgcall.index', compact('title', 'subtitle', 'employees'));
     }
 
@@ -23,6 +22,7 @@ class EmrgcallController extends Controller
         $emrgcalls = Emrgcall::leftJoin('employees', 'emrgcalls.employee_id', '=', 'employees.id')
             ->select('emrgcalls.*', 'employees.fullname')
             ->orderBy('emrgcalls.emrg_call_name', 'asc');
+        UserProject::scopeQueryToEmployeesLinkedViaAdministrations($emrgcalls, 'emrgcalls.employee_id');
 
         return datatables()->of($emrgcalls)
             ->addIndexColumn()
@@ -42,7 +42,7 @@ class EmrgcallController extends Controller
                 return $emrgcalls->emrg_call_address;
             })
             ->filter(function ($instance) use ($request) {
-                if (!empty($request->get('search'))) {
+                if (! empty($request->get('search'))) {
                     $instance->where(function ($w) use ($request) {
                         $search = $request->get('search');
                         $w->orWhere('fullname', 'LIKE', "%$search%")
@@ -54,7 +54,8 @@ class EmrgcallController extends Controller
                 }
             })
             ->addColumn('action', function ($emrgcalls) {
-                $employees = Employee::orderBy('fullname', 'asc')->get();
+                $employees = UserProject::employeesForSelect();
+
                 return view('emrgcall.action', compact('employees', 'emrgcalls'));
             })
             ->rawColumns(['emrg_call_name', 'action'])
@@ -64,6 +65,10 @@ class EmrgcallController extends Controller
 
     public function store($employee_id, Request $request)
     {
+        if ($r = UserProject::guardEmployeeId($request->employee_id)) {
+            return $r;
+        }
+
         $request->validate([
             'employee_id' => 'required',
             'emrg_call_name' => 'required',
@@ -73,11 +78,17 @@ class EmrgcallController extends Controller
 
         ]);
         Emrgcall::create($request->all());
-        return redirect('employees/' . $employee_id . '#emergency')->with('toast_success', 'Emergency Call Added Successfully');
+
+        return redirect('employees/'.$employee_id.'#emergency')->with('toast_success', 'Emergency Call Added Successfully');
     }
 
     public function update(Request $request, $id)
     {
+        $emrgcalls = Emrgcall::where('id', $id)->firstOrFail();
+        if ($r = UserProject::guardEmployeeId($emrgcalls->employee_id)) {
+            return $r;
+        }
+
         $request->validate([
             'employee_id' => 'required',
             'emrg_call_name' => 'required',
@@ -86,22 +97,37 @@ class EmrgcallController extends Controller
             'emrg_call_address' => 'required',
         ]);
 
-        $emrgcalls = Emrgcall::where('id', $id)->first();
+        if ($r = UserProject::guardEmployeeId($request->employee_id)) {
+            return $r;
+        }
+
         $emrgcalls->update($request->all());
 
-        return redirect('employees/' . $request->employee_id . '#emergency')->with('toast_success', 'Emergency Call Updated Successfully');
+        return redirect('employees/'.$request->employee_id.'#emergency')->with('toast_success', 'Emergency Call Updated Successfully');
     }
 
     public function delete($employee_id, $id)
     {
-        $emrgcalls = Emrgcall::where('id', $id)->first();
+        if ($r = UserProject::guardEmployeeId($employee_id)) {
+            return $r;
+        }
+        $emrgcalls = Emrgcall::where('id', $id)->firstOrFail();
+        if ((int) $emrgcalls->employee_id !== (int) $employee_id) {
+            return UserProject::redirectAccessDenied();
+        }
         $emrgcalls->delete();
-        return redirect('employees/' . $employee_id . '#emergency')->with('toast_success', 'Emergency Call Deleted Successfully');
+
+        return redirect('employees/'.$employee_id.'#emergency')->with('toast_success', 'Emergency Call Deleted Successfully');
     }
 
     public function deleteAll($employee_id)
     {
+        if ($r = UserProject::guardEmployeeId($employee_id)) {
+            return $r;
+        }
+
         Emrgcall::where('employee_id', $employee_id)->delete();
-        return redirect('employees/' . $employee_id . '#emergency')->with('toast_success', 'Emergency Call Deleted Successfully');
+
+        return redirect('employees/'.$employee_id.'#emergency')->with('toast_success', 'Emergency Call Deleted Successfully');
     }
 }

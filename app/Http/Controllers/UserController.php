@@ -2,18 +2,17 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\User;
+use App\Models\Department;
 use App\Models\Employee;
 use App\Models\Project;
-use App\Models\Department;
-use Illuminate\Support\Arr;
-use Illuminate\Http\Request;
+use App\Models\User;
 use Illuminate\Http\JsonResponse;
-use App\Http\Controllers\Controller;
-use Illuminate\Support\Facades\Hash;
-use Spatie\Permission\Models\Role;
+use Illuminate\Http\Request;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Spatie\Permission\Models\Permission;
+use Spatie\Permission\Models\Role;
 
 class UserController extends Controller
 {
@@ -49,7 +48,7 @@ class UserController extends Controller
      */
     private function validateAdministratorRoleAssignment($requestedRoles)
     {
-        if (!$this->isAdministrator()) {
+        if (! $this->isAdministrator()) {
             foreach ($requestedRoles as $roleName) {
                 if ($this->isProtectedRole($roleName)) {
                     throw new \Exception('Only administrators can assign administrator roles to users.');
@@ -78,6 +77,7 @@ class UserController extends Controller
         ];
         $rolesSummary = Role::withCount('users', 'permissions')->orderBy('name', 'asc')->get();
         $permissionsSummary = Permission::withCount('roles')->orderBy('name', 'asc')->get();
+
         return view('users.index', compact('title', 'subtitle', 'roles', 'projects', 'departments', 'employees', 'stats', 'rolesSummary', 'permissionsSummary'));
     }
 
@@ -115,9 +115,10 @@ class UserController extends Controller
                 $html = '<div class="d-flex flex-column">';
                 foreach ($roles as $role) {
                     $badgeClass = in_array($role, ['administrator']) ? 'badge-danger' : 'badge-primary';
-                    $html .= '<span class="badge ' . $badgeClass . ' mb-1 d-inline-block" style="width: fit-content;">' . $role . '</span>';
+                    $html .= '<span class="badge '.$badgeClass.' mb-1 d-inline-block" style="width: fit-content;">'.$role.'</span>';
                 }
                 $html .= '</div>';
+
                 return $html;
             })
             ->addColumn('projects', function ($model) {
@@ -127,9 +128,10 @@ class UserController extends Controller
                 }
                 $html = '<div class="d-flex flex-column">';
                 foreach ($projects as $projectCode => $projectName) {
-                    $html .= '<span class="badge badge-info mb-1 d-inline-block" style="width: fit-content;">' . $projectCode . ' : ' . $projectName . '</span>';
+                    $html .= '<span class="badge badge-info mb-1 d-inline-block" style="width: fit-content;">'.$projectCode.' : '.$projectName.'</span>';
                 }
                 $html .= '</div>';
+
                 return $html;
             })
             ->addColumn('departments', function ($model) {
@@ -139,35 +141,38 @@ class UserController extends Controller
                 }
                 $html = '<div class="d-flex flex-column">';
                 foreach ($departments as $department) {
-                    $html .= '<span class="badge badge-warning mb-1 d-inline-block" style="width: fit-content;">' . $department . '</span>';
+                    $html .= '<span class="badge badge-warning mb-1 d-inline-block" style="width: fit-content;">'.$department.'</span>';
                 }
                 $html .= '</div>';
+
                 return $html;
             })
             ->addColumn('employee', function ($model) {
                 if ($model->employee) {
-                    return '<span class="badge badge-success">' . $model->employee->fullname . '</span>';
+                    return '<span class="badge badge-success">'.$model->employee->fullname.'</span>';
                 }
+
                 return '<span class="badge badge-secondary">No Employee</span>';
             })
             ->addColumn('user_status', function ($model) {
                 $statusClass = $model->user_status == '1' ? 'badge-success' : 'badge-danger';
                 $statusText = $model->user_status == '1' ? 'Active' : 'Inactive';
-                return '<span class="badge ' . $statusClass . '">' . $statusText . '</span>';
+
+                return '<span class="badge '.$statusClass.'">'.$statusText.'</span>';
             })
             ->filter(function ($instance) use ($request) {
                 // General search (from DataTables search box)
                 $searchValue = null;
                 if ($request->has('search')) {
                     $search = $request->get('search');
-                    if (is_array($search) && !empty($search['value'])) {
+                    if (is_array($search) && ! empty($search['value'])) {
                         $searchValue = $search['value'];
-                    } elseif (is_string($search) && !empty($search)) {
+                    } elseif (is_string($search) && ! empty($search)) {
                         $searchValue = $search;
                     }
                 }
 
-                if (!empty($searchValue)) {
+                if (! empty($searchValue)) {
                     $instance->where(function ($w) use ($searchValue) {
                         $w->orWhere('name', 'LIKE', "%$searchValue%")
                             ->orWhere('email', 'LIKE', "%$searchValue%")
@@ -186,38 +191,38 @@ class UserController extends Controller
                 }
 
                 // Filter by name
-                if (!empty($request->get('filter_name'))) {
-                    $instance->where('name', 'LIKE', '%' . $request->get('filter_name') . '%');
+                if (! empty($request->get('filter_name'))) {
+                    $instance->where('name', 'LIKE', '%'.$request->get('filter_name').'%');
                 }
 
                 // Filter by email
-                if (!empty($request->get('filter_email'))) {
-                    $instance->where('email', 'LIKE', '%' . $request->get('filter_email') . '%');
+                if (! empty($request->get('filter_email'))) {
+                    $instance->where('email', 'LIKE', '%'.$request->get('filter_email').'%');
                 }
 
                 // Filter by employee
-                if (!empty($request->get('filter_employee'))) {
+                if (! empty($request->get('filter_employee'))) {
                     $instance->whereHas('employee', function ($q) use ($request) {
-                        $q->where('fullname', 'LIKE', '%' . $request->get('filter_employee') . '%');
+                        $q->where('fullname', 'LIKE', '%'.$request->get('filter_employee').'%');
                     });
                 }
 
                 // Filter by project
-                if (!empty($request->get('filter_project'))) {
+                if (! empty($request->get('filter_project'))) {
                     $instance->whereHas('projects', function ($q) use ($request) {
                         $q->where('projects.id', $request->get('filter_project'));
                     });
                 }
 
                 // Filter by department
-                if (!empty($request->get('filter_department'))) {
+                if (! empty($request->get('filter_department'))) {
                     $instance->whereHas('departments', function ($q) use ($request) {
                         $q->where('departments.id', $request->get('filter_department'));
                     });
                 }
 
                 // Filter by role
-                if (!empty($request->get('filter_role'))) {
+                if (! empty($request->get('filter_role'))) {
                     $instance->whereHas('roles', function ($q) use ($request) {
                         $q->where('roles.id', $request->get('filter_role'));
                     });
@@ -252,13 +257,13 @@ class UserController extends Controller
             ->orderBy('administrations.nik', 'asc')
             ->get();
         $title = 'Create User';
+
         return view('users.create', compact('roles', 'projects', 'departments', 'employees', 'title'));
     }
 
     /**
      * Store a newly created resource in storage.
      *
-     * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\Response
      */
     public function store(Request $request)
@@ -288,7 +293,7 @@ class UserController extends Controller
                 'employee_id.exists' => 'Selected employee does not exist',
                 'employee_id.unique' => 'This employee already has a user account',
                 'roles.required' => 'Please select at least one role',
-                'roles.min' => 'Please select at least one role'
+                'roles.min' => 'Please select at least one role',
             ]);
 
             // Validate administrator role assignment
@@ -308,7 +313,7 @@ class UserController extends Controller
                 'email' => $request->email,
                 'password' => Hash::make($request->password),
                 'employee_id' => $request->employee_id,
-                'user_status' => $request->user_status
+                'user_status' => $request->user_status,
             ]);
 
             // Ensure 'user' role is always assigned
@@ -325,7 +330,7 @@ class UserController extends Controller
             }
 
             // Add user role if not already present
-            if (!$hasUserRole) {
+            if (! $hasUserRole) {
                 // Check if roles array contains IDs or names
                 if (is_numeric($roles[0] ?? null)) {
                     $roles[] = $userRole->id;
@@ -354,6 +359,7 @@ class UserController extends Controller
                 ->withInput();
         } catch (\Exception $e) {
             DB::rollback();
+
             return redirect()->back()
                 ->with('toast_error', 'Failed to add user. Please try again.')
                 ->withInput();
@@ -375,6 +381,7 @@ class UserController extends Controller
         // Permissions yang didapat user (dari role dan direct)
         $permissions = $user->getAllPermissions();
         $title = 'User Details';
+
         return view('users.show', compact('user', 'roles', 'projects', 'departments', 'permissions', 'title'));
     }
 
@@ -401,13 +408,13 @@ class UserController extends Controller
         $userProjectIds = $user->projects->pluck('id')->toArray();
         $userDepartmentIds = $user->departments->pluck('id')->toArray();
         $title = 'Edit User';
+
         return view('users.edit', compact('user', 'roles', 'projects', 'departments', 'employees', 'userRoleNames', 'userProjectIds', 'userDepartmentIds', 'title'));
     }
 
     /**
      * Update the specified resource in storage.
      *
-     * @param  \Illuminate\Http\Request  $request
      * @param  int  $id
      * @return \Illuminate\Http\Response
      */
@@ -416,9 +423,9 @@ class UserController extends Controller
         try {
             $this->validate($request, [
                 'name' => 'required',
-                'username' => 'required|alpha_dash|min:3|max:255|unique:users,username,' . $id,
-                'email' => 'nullable|email:dns|ends_with:@arka.co.id|unique:users,email,' . $id,
-                'employee_id' => 'nullable|exists:employees,id|unique:users,employee_id,' . $id,
+                'username' => 'required|alpha_dash|min:3|max:255|unique:users,username,'.$id,
+                'email' => 'nullable|email:dns|ends_with:@arka.co.id|unique:users,email,'.$id,
+                'employee_id' => 'nullable|exists:employees,id|unique:users,employee_id,'.$id,
                 'user_status' => 'required',
                 'roles' => 'required|array|min:1',
                 'user_status' => 'required',
@@ -436,7 +443,7 @@ class UserController extends Controller
                 'employee_id.exists' => 'Selected employee does not exist',
                 'employee_id.unique' => 'This employee already has a user account',
                 'roles.required' => 'Please select at least one role',
-                'roles.min' => 'Please select at least one role'
+                'roles.min' => 'Please select at least one role',
             ]);
 
             // Validate administrator role assignment
@@ -453,15 +460,15 @@ class UserController extends Controller
             $input = $request->all();
             $user = User::findOrFail($id);
 
-            if (!empty($input['password'])) {
+            if (! empty($input['password'])) {
                 $this->validate($request, [
-                    'password' => 'required|min:5'
+                    'password' => 'required|min:5',
                 ], [
-                    'password.min' => 'Password must be at least 5 characters'
+                    'password.min' => 'Password must be at least 5 characters',
                 ]);
                 $input['password'] = Hash::make($input['password']);
             } else {
-                $input = Arr::except($input, array('password'));
+                $input = Arr::except($input, ['password']);
             }
 
             $user->update($input);
@@ -493,6 +500,7 @@ class UserController extends Controller
                 ->withInput();
         } catch (\Exception $e) {
             DB::rollback();
+
             return redirect()->back()
                 ->with('toast_error', 'Failed to update user. Please try again.')
                 ->withInput();
@@ -513,7 +521,7 @@ class UserController extends Controller
             $user = User::findOrFail($id);
 
             // Check if trying to delete a user with administrator role
-            if ($user->hasRole('administrator') && !$this->isAdministrator()) {
+            if ($user->hasRole('administrator') && ! $this->isAdministrator()) {
                 return redirect()->back()
                     ->with('toast_error', 'Only administrators can delete users with administrator roles.');
             }
@@ -529,6 +537,7 @@ class UserController extends Controller
                 ->with('toast_error', 'User not found.');
         } catch (\Exception $e) {
             DB::rollback();
+
             return redirect()->back()
                 ->with('toast_error', 'Failed to delete user. Please try again.');
         }
@@ -548,18 +557,18 @@ class UserController extends Controller
                     return [
                         'id' => $user->id,
                         'name' => $user->name,
-                        'email' => $user->email
+                        'email' => $user->email,
                     ];
                 });
 
             return response()->json([
                 'success' => true,
-                'users' => $users
+                'users' => $users,
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to load users'
+                'message' => 'Failed to load users',
             ], 500);
         }
     }

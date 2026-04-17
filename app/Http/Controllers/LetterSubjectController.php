@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\LetterSubject;
 use App\Models\LetterCategory;
+use App\Models\LetterSubject;
 use Illuminate\Http\Request;
 
 class LetterSubjectController extends Controller
@@ -23,7 +23,7 @@ class LetterSubjectController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'error' => 'Failed to load subjects',
-                'message' => $e->getMessage()
+                'message' => $e->getMessage(),
             ], 500);
         }
     }
@@ -44,13 +44,13 @@ class LetterSubjectController extends Controller
                 'data' => $subjects,
                 'count' => $subjects->count(),
                 'document_type' => $documentType,
-                'category_id' => $categoryId
+                'category_id' => $categoryId,
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
                 'error' => 'Failed to load subjects',
-                'message' => $e->getMessage()
+                'message' => $e->getMessage(),
             ], 500);
         }
     }
@@ -106,7 +106,7 @@ class LetterSubjectController extends Controller
                 ->with('toast_success', 'Perihal surat berhasil ditambahkan');
         } catch (\Exception $e) {
             return redirect()->back()
-                ->with('toast_error', 'Gagal menambahkan perihal surat: ' . $e->getMessage())
+                ->with('toast_error', 'Gagal menambahkan perihal surat: '.$e->getMessage())
                 ->withInput();
         }
     }
@@ -160,7 +160,7 @@ class LetterSubjectController extends Controller
                 ->with('toast_success', 'Perihal surat berhasil diupdate');
         } catch (\Exception $e) {
             return redirect()->back()
-                ->with('toast_error', 'Gagal mengupdate perihal surat: ' . $e->getMessage())
+                ->with('toast_error', 'Gagal mengupdate perihal surat: '.$e->getMessage())
                 ->withInput();
         }
     }
@@ -177,7 +177,7 @@ class LetterSubjectController extends Controller
             if ($letterSubject->letterNumbers()->count() > 0) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Cannot delete subject because it is still being used in letter numbers'
+                    'message' => 'Cannot delete subject because it is still being used in letter numbers',
                 ], 400);
             }
 
@@ -185,12 +185,12 @@ class LetterSubjectController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Letter subject deleted successfully'
+                'message' => 'Letter subject deleted successfully',
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to delete letter subject: ' . $e->getMessage()
+                'message' => 'Failed to delete letter subject: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -201,8 +201,8 @@ class LetterSubjectController extends Controller
     public function indexByCategory($categoryId)
     {
         $category = LetterCategory::findOrFail($categoryId);
-        $title = 'Letter Subjects - ' . $category->category_name;
-        $subtitle = 'Manage subjects for ' . $category->category_name . ' (' . $category->category_code . ')';
+        $title = 'Letter Subjects - '.$category->category_name;
+        $subtitle = 'Manage subjects for '.$category->category_name.' ('.$category->category_code.')';
 
         return view('letter-subjects.index-by-category', compact('title', 'subtitle', 'category'));
     }
@@ -235,7 +235,7 @@ class LetterSubjectController extends Controller
                 return $subject->created_at ? $subject->created_at->format('d/m/Y H:i') : '-';
             })
             ->filter(function ($instance) use ($request) {
-                if (!empty($request->get('search'))) {
+                if (! empty($request->get('search'))) {
                     $instance->where(function ($w) use ($request) {
                         $search = $request->get('search');
                         $w->orWhere('subject_name', 'LIKE', "%$search%");
@@ -269,7 +269,7 @@ class LetterSubjectController extends Controller
 
             return response()->json(['success' => true, 'message' => 'Subject added successfully.']);
         } catch (\Exception $e) {
-            return response()->json(['success' => false, 'message' => 'Failed to add subject: ' . $e->getMessage()], 500);
+            return response()->json(['success' => false, 'message' => 'Failed to add subject: '.$e->getMessage()], 500);
         }
     }
 
@@ -297,7 +297,7 @@ class LetterSubjectController extends Controller
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             return response()->json(['success' => false, 'message' => 'Subject not found.'], 404);
         } catch (\Exception $e) {
-            return response()->json(['success' => false, 'message' => 'Failed to update subject: ' . $e->getMessage()], 500);
+            return response()->json(['success' => false, 'message' => 'Failed to update subject: '.$e->getMessage()], 500);
         }
     }
 }

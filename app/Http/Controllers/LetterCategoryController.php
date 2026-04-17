@@ -11,6 +11,7 @@ class LetterCategoryController extends Controller
     {
         $title = 'Letter Categories';
         $subtitle = 'List of Letter Categories';
+
         return view('letter-categories.index', compact('title', 'subtitle'));
     }
 
@@ -21,7 +22,7 @@ class LetterCategoryController extends Controller
         return datatables()->of($categories)
             ->addIndexColumn()
             ->addColumn('category_code', function ($category) {
-                return '<span class="badge badge-primary">' . $category->category_code . '</span>';
+                return '<span class="badge badge-primary">'.$category->category_code.'</span>';
             })
             ->addColumn('category_name', function ($category) {
                 return $category->category_name;
@@ -35,10 +36,11 @@ class LetterCategoryController extends Controller
                 } elseif ($category->numbering_behavior == 'continuous') {
                     return '<span class="badge badge-success">Continuous</span>';
                 }
+
                 return '<span class="badge badge-secondary">Not Set</span>';
             })
             ->addColumn('subjects_count', function ($category) {
-                return '<span class="badge badge-info">' . $category->subjects_count . ' subjects</span>';
+                return '<span class="badge badge-info">'.$category->subjects_count.' subjects</span>';
             })
             ->addColumn('is_active', function ($category) {
                 if ($category->is_active == '1') {
@@ -48,7 +50,7 @@ class LetterCategoryController extends Controller
                 }
             })
             ->filter(function ($instance) use ($request) {
-                if (!empty($request->get('search'))) {
+                if (! empty($request->get('search'))) {
                     $instance->where(function ($w) use ($request) {
                         $search = $request->get('search');
                         $w->orWhere('category_code', 'LIKE', "%$search%")
@@ -73,7 +75,7 @@ class LetterCategoryController extends Controller
         ], [
             'category_code.required' => 'Category Code is required',
             'category_code.unique' => 'Category Code already exists',
-            'category_name.required' => 'Category Name is required'
+            'category_name.required' => 'Category Name is required',
         ]);
 
         $validatedData['user_id'] = auth()->id();
@@ -86,7 +88,7 @@ class LetterCategoryController extends Controller
     public function update(Request $request, $id)
     {
         $this->validate($request, [
-            'category_code' => 'required|max:10|unique:letter_categories,category_code,' . $id,
+            'category_code' => 'required|max:10|unique:letter_categories,category_code,'.$id,
             'category_name' => 'required|max:100',
             'description' => 'nullable',
             'numbering_behavior' => 'required|in:annual_reset,continuous',
@@ -118,9 +120,10 @@ class LetterCategoryController extends Controller
                 if (request()->expectsJson()) {
                     return response()->json([
                         'success' => false,
-                        'message' => 'Cannot delete category that has letter numbers!'
+                        'message' => 'Cannot delete category that has letter numbers!',
                     ], 400);
                 }
+
                 return redirect('letter-categories')->with('toast_error', 'Cannot delete category that has letter numbers!');
             }
 
@@ -129,7 +132,7 @@ class LetterCategoryController extends Controller
             if (request()->expectsJson()) {
                 return response()->json([
                     'success' => true,
-                    'message' => 'Letter Category deleted successfully!'
+                    'message' => 'Letter Category deleted successfully!',
                 ]);
             }
 
@@ -138,9 +141,10 @@ class LetterCategoryController extends Controller
             if (request()->expectsJson()) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'An error occurred while deleting the category'
+                    'message' => 'An error occurred while deleting the category',
                 ], 500);
             }
+
             return redirect('letter-categories')->with('toast_error', 'Failed to delete category');
         }
     }

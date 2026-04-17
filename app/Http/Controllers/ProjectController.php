@@ -11,6 +11,7 @@ class ProjectController extends Controller
     {
         $title = 'Projects';
         $subtitle = 'List of Project';
+
         return view('project.index', compact('title', 'subtitle'));
     }
 
@@ -49,7 +50,7 @@ class ProjectController extends Controller
                 }
             })
             ->filter(function ($instance) use ($request) {
-                if (!empty($request->get('search'))) {
+                if (! empty($request->get('search'))) {
                     $instance->where(function ($w) use ($request) {
                         $search = $request->get('search');
                         $w->orWhere('project_code', 'LIKE', "%$search%")
@@ -98,6 +99,7 @@ class ProjectController extends Controller
     public function edit($slug)
     {
         $project = Project::where('slug', $slug)->first();
+
         return view('project.edit', compact('project'));
     }
 
@@ -136,6 +138,7 @@ class ProjectController extends Controller
     {
         $project = Project::where('id', $id)->first();
         $project->delete();
+
         return redirect('projects')->with('toast_success', 'Project delete successfully');
     }
 }

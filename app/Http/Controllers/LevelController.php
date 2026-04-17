@@ -16,6 +16,7 @@ class LevelController extends Controller
     {
         $title = 'Levels';
         $subtitle = 'List of Levels';
+
         return view('levels.index', compact('title', 'subtitle'));
     }
 
@@ -29,11 +30,11 @@ class LevelController extends Controller
                 return $level->name;
             })
             ->addColumn('level_order', function ($level) {
-                return '<span class="badge badge-info">' . $level->level_order . '</span>';
+                return '<span class="badge badge-info">'.$level->level_order.'</span>';
             })
             ->addColumn('roster_config', function ($level) {
                 if ($level->hasRosterConfig()) {
-                    return '<span class="badge badge-info">' . $level->getRosterPattern() . '</span>';
+                    return '<span class="badge badge-info">'.$level->getRosterPattern().'</span>';
                 } else {
                     return '<span class="badge badge-secondary">No Roster</span>';
                 }
@@ -46,7 +47,7 @@ class LevelController extends Controller
                 }
             })
             ->filter(function ($instance) use ($request) {
-                if (!empty($request->get('search'))) {
+                if (! empty($request->get('search'))) {
                     $instance->where(function ($w) use ($request) {
                         $search = $request->get('search');
                         $w->orWhere('name', 'LIKE', "%$search%");
@@ -67,13 +68,13 @@ class LevelController extends Controller
     {
         $title = 'Levels';
         $subtitle = 'Add Level';
+
         return view('levels.create', compact('title', 'subtitle'));
     }
 
     /**
      * Store a newly created resource in storage.
      *
-     * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\Response
      */
     public function store(Request $request)
@@ -101,7 +102,6 @@ class LevelController extends Controller
     /**
      * Display the specified resource.
      *
-     * @param  \App\Models\Level  $level
      * @return \Illuminate\Http\Response
      */
     public function show(Level $level)
@@ -112,28 +112,26 @@ class LevelController extends Controller
     /**
      * Show the form for editing the specified resource.
      *
-     * @param  \App\Models\Level  $level
      * @return \Illuminate\Http\Response
      */
     public function edit(Level $level)
     {
         $title = 'Levels';
         $subtitle = 'Edit Level';
+
         return view('levels.edit', compact('title', 'subtitle', 'level'));
     }
 
     /**
      * Update the specified resource in storage.
      *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  \App\Models\Level  $level
      * @return \Illuminate\Http\Response
      */
     public function update(Request $request, Level $level)
     {
         $request->validate([
-            'name' => 'required|unique:levels,name,' . $level->id,
-            'level_order' => 'required|integer|min:1|unique:levels,level_order,' . $level->id,
+            'name' => 'required|unique:levels,name,'.$level->id,
+            'level_order' => 'required|integer|min:1|unique:levels,level_order,'.$level->id,
             'off_days' => 'nullable|integer|min:0|max:30',
             'work_days' => 'nullable|integer|min:0|max:100',
             'cycle_length' => 'nullable|integer|min:0|max:150',
@@ -154,7 +152,6 @@ class LevelController extends Controller
     /**
      * Remove the specified resource from storage.
      *
-     * @param  \App\Models\Level  $level
      * @return \Illuminate\Http\Response
      */
     public function destroy(Level $level)
@@ -163,6 +160,7 @@ class LevelController extends Controller
             return redirect()->route('levels.index')->with('toast_error', 'Level cannot be deleted as it is in use.');
         }
         $level->delete();
+
         return redirect()->route('levels.index')->with('toast_success', 'Level deleted successfully');
     }
 
@@ -175,7 +173,8 @@ class LevelController extends Controller
     public function changeStatus($id)
     {
         $level = Level::findOrFail($id);
-        $level->update(['is_active' => !$level->is_active]);
+        $level->update(['is_active' => ! $level->is_active]);
+
         return back()->with('toast_success', 'Level status changed successfully.');
     }
 }

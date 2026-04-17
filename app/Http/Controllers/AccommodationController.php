@@ -42,7 +42,7 @@ class AccommodationController extends Controller
                 return $accommodation->accommodation_status;
             })
             ->filter(function ($instance) use ($request) {
-                if (!empty($request->get('search'))) {
+                if (! empty($request->get('search'))) {
                     $instance->where(function ($w) use ($request) {
                         $search = $request->get('search');
                         $w->orWhere('accommodation_name', 'LIKE', "%$search%");
@@ -72,7 +72,6 @@ class AccommodationController extends Controller
     /**
      * Store a newly created resource in storage.
      *
-     * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\Response
      */
     public function store(Request $request)
@@ -98,6 +97,7 @@ class AccommodationController extends Controller
                 ->withInput();
         } catch (\Exception $e) {
             DB::rollback();
+
             return redirect()->back()
                 ->with('toast_error', 'Failed to add accommodation. Please try again.')
                 ->withInput();
@@ -107,7 +107,6 @@ class AccommodationController extends Controller
     /**
      * Display the specified resource.
      *
-     * @param  \App\Models\Accommodation  $accommodation
      * @return \Illuminate\Http\Response
      */
     public function show(Accommodation $accommodation)
@@ -121,7 +120,6 @@ class AccommodationController extends Controller
     /**
      * Show the form for editing the specified resource.
      *
-     * @param  \App\Models\Accommodation  $accommodation
      * @return \Illuminate\Http\Response
      */
     public function edit(Accommodation $accommodation)
@@ -135,15 +133,13 @@ class AccommodationController extends Controller
     /**
      * Update the specified resource in storage.
      *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  \App\Models\Accommodation  $accommodation
      * @return \Illuminate\Http\Response
      */
     public function update(Request $request, Accommodation $accommodation)
     {
         try {
             $this->validate($request, [
-                'accommodation_name' => 'required|unique:accommodations,accommodation_name,' . $accommodation->id,
+                'accommodation_name' => 'required|unique:accommodations,accommodation_name,'.$accommodation->id,
             ], [
                 'accommodation_name.required' => 'Name is required',
                 'accommodation_name.unique' => 'Name already exists',
@@ -166,6 +162,7 @@ class AccommodationController extends Controller
                 ->withInput();
         } catch (\Exception $e) {
             DB::rollback();
+
             return redirect()->back()
                 ->with('toast_error', 'Failed to update accommodation. Please try again.')
                 ->withInput();
@@ -175,7 +172,6 @@ class AccommodationController extends Controller
     /**
      * Remove the specified resource from storage.
      *
-     * @param  \App\Models\Accommodation  $accommodation
      * @return \Illuminate\Http\Response
      */
     public function destroy(Accommodation $accommodation)
@@ -193,6 +189,7 @@ class AccommodationController extends Controller
                 ->with('toast_error', 'Accommodation not found.');
         } catch (\Exception $e) {
             DB::rollback();
+
             return redirect()->back()
                 ->with('toast_error', 'Failed to delete accommodation. Please try again.');
         }

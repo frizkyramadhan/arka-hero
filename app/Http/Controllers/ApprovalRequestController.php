@@ -2,20 +2,20 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\User;
 use App\Models\ApprovalPlan;
-use App\Models\LeaveRequest;
-use App\Models\LeaveEntitlement;
-use Illuminate\Http\Request;
 use App\Models\ApprovalStage;
-use App\Models\Officialtravel;
-use App\Models\RecruitmentRequest;
 use App\Models\FlightRequest;
 use App\Models\FlightRequestIssuance;
+use App\Models\LeaveEntitlement;
+use App\Models\LeaveRequest;
+use App\Models\Officialtravel;
 use App\Models\OvertimeRequest;
+use App\Models\RecruitmentRequest;
+use App\Models\User;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Auth;
 
 class ApprovalRequestController extends Controller
 {
@@ -60,20 +60,20 @@ class ApprovalRequestController extends Controller
                 ->where('status', 0); // pending
 
             // Filter by document type
-            if (!empty($request->get('document_type'))) {
+            if (! empty($request->get('document_type'))) {
                 $approvalPlans->where('document_type', $request->get('document_type'));
             }
 
             // Filter by date range
-            if (!empty($request->get('date1')) && !empty($request->get('date2'))) {
+            if (! empty($request->get('date1')) && ! empty($request->get('date2'))) {
                 $approvalPlans->whereBetween('created_at', [
                     $request->get('date1'),
-                    $request->get('date2')
+                    $request->get('date2'),
                 ]);
             }
 
             // Global search
-            if (!empty($request->get('search'))) {
+            if (! empty($request->get('search'))) {
                 $search = $request->get('search');
                 $approvalPlans->where(function ($query) use ($search) {
                     // Search in approval plans table
@@ -127,6 +127,7 @@ class ApprovalRequestController extends Controller
                     if ($approvalPlan->document_type === 'flight_request_issuance') {
                         return 'Letter of Guarantee (LG)';
                     }
+
                     return ucfirst(str_replace('_', ' ', $approvalPlan->document_type));
                 })
                 ->addColumn('document_number', function ($approvalPlan) {
@@ -136,8 +137,9 @@ class ApprovalRequestController extends Controller
                         return $approvalPlan->recruitmentRequest && $approvalPlan->recruitmentRequest->request_number ? $approvalPlan->recruitmentRequest->request_number : '-';
                     } elseif ($approvalPlan->document_type === 'leave_request') {
                         if ($approvalPlan->leaveRequest && $approvalPlan->leaveRequest->leaveType) {
-                            return $approvalPlan->leaveRequest->leaveType->name . ' (' . date('d M Y', strtotime($approvalPlan->leaveRequest->start_date)) . ' - ' . date('d M Y', strtotime($approvalPlan->leaveRequest->end_date)) . ')';
+                            return $approvalPlan->leaveRequest->leaveType->name.' ('.date('d M Y', strtotime($approvalPlan->leaveRequest->start_date)).' - '.date('d M Y', strtotime($approvalPlan->leaveRequest->end_date)).')';
                         }
+
                         return '-';
                     } elseif ($approvalPlan->document_type === 'flight_request') {
                         return $approvalPlan->flightRequest ? ($approvalPlan->flightRequest->form_number ?? '-') : '-';
@@ -158,24 +160,25 @@ class ApprovalRequestController extends Controller
                         foreach ($ot->details as $d) {
                             $nik = e($d->administration->nik ?? '—');
                             $fn = e(optional($d->administration->employee)->fullname ?? '—');
-                            $items[] = '<li class="mb-0">' . $nik . ' — ' . $fn . '</li>';
+                            $items[] = '<li class="mb-0">'.$nik.' — '.$fn.'</li>';
                         }
                         $list = count($items) > 0
-                            ? '<ul class="mb-0 pl-3 mt-1 text-left" style="list-style-type: disc;">' . implode('', $items) . '</ul>'
+                            ? '<ul class="mb-0 pl-3 mt-1 text-left" style="list-style-type: disc;">'.implode('', $items).'</ul>'
                             : '<div class="text-muted mt-1 mb-0">—</div>';
 
                         return '<div class="text-left overtime-doc-summary">'
-                            . '<div><strong>' . $code . '</strong></div>'
-                            . '<div class="text-muted">' . $dateStr . '</div>'
-                            . $list
-                            . '</div>';
+                            .'<div><strong>'.$code.'</strong></div>'
+                            .'<div class="text-muted">'.$dateStr.'</div>'
+                            .$list
+                            .'</div>';
                     }
+
                     return '-';
                 })
                 ->addColumn('current_approval', function ($approvalPlan) {
                     $currentInfo = $this->getCurrentApprovalInfo($approvalPlan->document_id, $approvalPlan->document_type);
 
-                    if (!$currentInfo) {
+                    if (! $currentInfo) {
                         return '<span class="badge badge-secondary">No Info</span>';
                     }
 
@@ -203,39 +206,46 @@ class ApprovalRequestController extends Controller
                 ->addColumn('remarks', function ($approvalPlan) {
                     if ($approvalPlan->document_type === 'officialtravel') {
                         return $approvalPlan->officialtravel && $approvalPlan->officialtravel->traveler
-                            ? ($approvalPlan->officialtravel->traveler->nik . ' - ' . ($approvalPlan->officialtravel->traveler->employee->fullname ?? '-'))
+                            ? ($approvalPlan->officialtravel->traveler->nik.' - '.($approvalPlan->officialtravel->traveler->employee->fullname ?? '-'))
                             : '-';
                     } elseif ($approvalPlan->document_type === 'recruitment_request') {
                         if ($approvalPlan->recruitmentRequest && $approvalPlan->recruitmentRequest->position) {
                             $positionName = $approvalPlan->recruitmentRequest->position->position_name ?? '-';
                             $projectName = $approvalPlan->recruitmentRequest->project->project_name ?? '-';
-                            return $positionName . ' - ' . $projectName;
+
+                            return $positionName.' - '.$projectName;
                         }
+
                         return '-';
                     } elseif ($approvalPlan->document_type === 'leave_request') {
                         if ($approvalPlan->leaveRequest && $approvalPlan->leaveRequest->administration) {
                             $nik = $approvalPlan->leaveRequest->administration->nik ?? '-';
                             $fullname = $approvalPlan->leaveRequest->administration->employee->fullname ?? '-';
-                            return $nik . ' - ' . $fullname;
+
+                            return $nik.' - '.$fullname;
                         }
+
                         return '-';
                     } elseif ($approvalPlan->document_type === 'flight_request') {
                         if ($approvalPlan->flightRequest) {
                             $nik = $approvalPlan->flightRequest->nik ?? '-';
                             $name = $approvalPlan->flightRequest->employee_name ?? ($approvalPlan->flightRequest->employee ? $approvalPlan->flightRequest->employee->fullname : '-');
-                            return $nik . ' - ' . $name;
+
+                            return $nik.' - '.$name;
                         }
+
                         return '-';
                     } elseif ($approvalPlan->document_type === 'flight_request_issuance') {
                         $issuance = $approvalPlan->flightRequestIssuance;
-                        if (!$issuance) {
+                        if (! $issuance) {
                             return '-';
                         }
-                        $main = $issuance->issued_number . ($issuance->businessPartner ? ' - ' . $issuance->businessPartner->bp_name : '');
-                        $passengers = $issuance->issuanceDetails->map(fn($d) => $d->resolved_passenger_name)->filter()->unique()->values();
+                        $main = $issuance->issued_number.($issuance->businessPartner ? ' - '.$issuance->businessPartner->bp_name : '');
+                        $passengers = $issuance->issuanceDetails->map(fn ($d) => $d->resolved_passenger_name)->filter()->unique()->values();
                         if ($passengers->isNotEmpty()) {
-                            $main .= ' <div class="small text-muted mt-1">' . e($passengers->take(5)->join(', ')) . ($passengers->count() > 5 ? ' (+' . ($passengers->count() - 5) . ')' : '') . '</div>';
+                            $main .= ' <div class="small text-muted mt-1">'.e($passengers->take(5)->join(', ')).($passengers->count() > 5 ? ' (+'.($passengers->count() - 5).')' : '').'</div>';
                         }
+
                         return $main;
                     } elseif ($approvalPlan->document_type === 'overtime_request') {
                         $ot = $approvalPlan->overtimeRequest;
@@ -247,8 +257,9 @@ class ApprovalRequestController extends Controller
                             return '<span class="text-muted">—</span>';
                         }
 
-                        return '<div class="text-left overtime-remarks-cell">' . nl2br(e($r)) . '</div>';
+                        return '<div class="text-left overtime-remarks-cell">'.nl2br(e($r)).'</div>';
                     }
+
                     return '-';
                 })
                 ->addColumn('submitted_by', function ($approvalPlan) {
@@ -271,6 +282,7 @@ class ApprovalRequestController extends Controller
                         return $approvalPlan->overtimeRequest && $approvalPlan->overtimeRequest->requestedBy ?
                             $approvalPlan->overtimeRequest->requestedBy->name : '-';
                     }
+
                     return '-';
                 })
                 ->addColumn('submitted_at', function ($approvalPlan) {
@@ -294,6 +306,7 @@ class ApprovalRequestController extends Controller
 
                         return $ot && $ot->requested_at ? $ot->requested_at->format('d/m/Y H:i') : '-';
                     }
+
                     return '-';
                 })
                 ->addColumn('status', function ($approvalPlan) {
@@ -305,9 +318,10 @@ class ApprovalRequestController extends Controller
                 ->rawColumns(['action', 'status', 'current_approval', 'remarks', 'document_number'])
                 ->toJson();
         } catch (\Exception $e) {
-            Log::error('Error in getApprovalRequests: ' . $e->getMessage());
+            Log::error('Error in getApprovalRequests: '.$e->getMessage());
+
             return response()->json([
-                'error' => 'Failed to load approval requests: ' . $e->getMessage()
+                'error' => 'Failed to load approval requests: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -318,7 +332,7 @@ class ApprovalRequestController extends Controller
     public function show($id)
     {
         $approvalPlan = ApprovalPlan::with([
-            'approver'
+            'approver',
         ])->findOrFail($id);
 
         // Check if current user is the approver
@@ -359,7 +373,7 @@ class ApprovalRequestController extends Controller
             }
 
             // Check sequential approval order
-            if (!$this->canProcessApproval($approvalPlan)) {
+            if (! $this->canProcessApproval($approvalPlan)) {
                 return redirect()->back()->with('toast_error', 'Previous approvals must be completed first. Please wait for earlier approvers to process their approvals.');
             }
 
@@ -391,7 +405,7 @@ class ApprovalRequestController extends Controller
                 ->with('toast_success', "Request has been {$statusText} successfully.");
         } catch (\Exception $e) {
             return redirect()->back()
-                ->with('toast_error', 'Failed to process approval. ' . $e->getMessage())
+                ->with('toast_error', 'Failed to process approval. '.$e->getMessage())
                 ->withInput();
         }
     }
@@ -401,7 +415,7 @@ class ApprovalRequestController extends Controller
      */
     private function clearPendingApprovalsCache()
     {
-        cache()->forget('pending_approvals_' . Auth::id());
+        cache()->forget('pending_approvals_'.Auth::id());
     }
 
     /**
@@ -462,7 +476,7 @@ class ApprovalRequestController extends Controller
             });
 
             // If any previous order group is not fully approved, cannot process
-            if (!$allApproved) {
+            if (! $allApproved) {
                 return false;
             }
         }
@@ -478,21 +492,26 @@ class ApprovalRequestController extends Controller
     {
         if ($approvalPlan->document_type === 'officialtravel') {
             $document = Officialtravel::find($approvalPlan->document_id);
+
             return $document ? $document->project_id : null;
         } elseif ($approvalPlan->document_type === 'recruitment_request') {
             $document = RecruitmentRequest::find($approvalPlan->document_id);
+
             return $document ? $document->project_id : null;
         } elseif ($approvalPlan->document_type === 'leave_request') {
             $document = LeaveRequest::find($approvalPlan->document_id);
+
             return $document ? $document->administration->project_id : null;
         } elseif ($approvalPlan->document_type === 'flight_request') {
             $document = FlightRequest::find($approvalPlan->document_id);
+
             return $document && $document->administration ? $document->administration->project_id : null;
         } elseif ($approvalPlan->document_type === 'overtime_request') {
             $document = OvertimeRequest::find($approvalPlan->document_id);
 
             return $document ? $document->project_id : null;
         }
+
         return null;
     }
 
@@ -503,19 +522,24 @@ class ApprovalRequestController extends Controller
     {
         if ($approvalPlan->document_type === 'officialtravel') {
             $document = Officialtravel::find($approvalPlan->document_id);
+
             return $document ? $document->department_id : null;
         } elseif ($approvalPlan->document_type === 'recruitment_request') {
             $document = RecruitmentRequest::find($approvalPlan->document_id);
+
             return $document ? $document->department_id : null;
         } elseif ($approvalPlan->document_type === 'leave_request') {
             $document = LeaveRequest::find($approvalPlan->document_id);
+
             return $document ? $document->administration->position->department_id : null;
         } elseif ($approvalPlan->document_type === 'flight_request') {
             $document = FlightRequest::find($approvalPlan->document_id);
+
             return $document && $document->administration && $document->administration->position ? $document->administration->position->department_id : null;
         } elseif ($approvalPlan->document_type === 'overtime_request') {
             return null;
         }
+
         return null;
     }
 
@@ -539,6 +563,7 @@ class ApprovalRequestController extends Controller
         $rejectedApprovals = $allApprovalPlans->where('status', 2);
         if ($rejectedApprovals->isNotEmpty()) {
             $firstRejection = $rejectedApprovals->first();
+
             return [
                 'status' => 'rejected',
                 'current_approver' => $firstRejection->approver->name,
@@ -546,7 +571,7 @@ class ApprovalRequestController extends Controller
                 'total_orders' => $allApprovalPlans->count(),
                 'completed_orders' => $allApprovalPlans->where('status', 1)->count(),
                 'rejected_orders' => $allApprovalPlans->where('status', 2)->count(),
-                'message' => 'Document rejected'
+                'message' => 'Document rejected',
             ];
         }
 
@@ -556,6 +581,7 @@ class ApprovalRequestController extends Controller
         if ($pendingApprovals->isEmpty()) {
             // All approvals are completed
             $lastApproval = $allApprovalPlans->where('status', 1)->last();
+
             return [
                 'status' => 'completed',
                 'current_approver' => $lastApproval ? $lastApproval->approver->name : 'Unknown',
@@ -563,7 +589,7 @@ class ApprovalRequestController extends Controller
                 'total_orders' => $allApprovalPlans->count(),
                 'completed_orders' => $allApprovalPlans->where('status', 1)->count(),
                 'rejected_orders' => $allApprovalPlans->where('status', 2)->count(),
-                'message' => 'All approvals completed'
+                'message' => 'All approvals completed',
             ];
         }
 
@@ -580,8 +606,8 @@ class ApprovalRequestController extends Controller
         if ($isParallel) {
             // Multiple approvers for the same order (parallel)
             $approverNames = $currentOrderApprovals->pluck('approver.name')->toArray();
-            $approversList = implode(', ', array_slice($approverNames, 0, -1)) .
-                (count($approverNames) > 1 ? ' and ' . end($approverNames) : $approverNames[0]);
+            $approversList = implode(', ', array_slice($approverNames, 0, -1)).
+                (count($approverNames) > 1 ? ' and '.end($approverNames) : $approverNames[0]);
 
             $message = "Waiting for {$approversList} (Step {$currentOrder} - Parallel)";
             $currentApprover = $approversList;
@@ -599,10 +625,10 @@ class ApprovalRequestController extends Controller
             'total_orders' => $allApprovalPlans->count(),
             'completed_orders' => $allApprovalPlans->where('status', 1)->count(),
             'rejected_orders' => 0,
-            'is_sequential' => !$isParallel,
+            'is_sequential' => ! $isParallel,
             'is_parallel' => $isParallel,
             'parallel_approvers_count' => $currentOrderApprovals->count(),
-            'message' => $message
+            'message' => $message,
         ];
     }
 
@@ -624,6 +650,7 @@ class ApprovalRequestController extends Controller
         // Check if all approvals are completed
         $approvedCount = $allApprovalPlans->where('status', 1)->count();
         $pendingCount = $allApprovalPlans->where('status', 0)->count();
+
         return $approvedCount === $allApprovalPlans->count() && $pendingCount === 0;
 
         // For sequential approval, check if all previous orders are approved
@@ -632,7 +659,7 @@ class ApprovalRequestController extends Controller
         for ($order = 1; $order <= $maxOrder; $order++) {
             $approvalAtOrder = $allApprovalPlans->where('approval_order', $order)->first();
 
-            if (!$approvalAtOrder || $approvalAtOrder->status !== 1) {
+            if (! $approvalAtOrder || $approvalAtOrder->status !== 1) {
                 return false; // This order is not approved yet
             }
         }
@@ -669,7 +696,7 @@ class ApprovalRequestController extends Controller
         for ($order = 1; $order < $currentOrder; $order++) {
             $previousApproval = $allApprovalPlans->where('approval_order', $order)->first();
 
-            if (!$previousApproval || $previousApproval->status !== 1) {
+            if (! $previousApproval || $previousApproval->status !== 1) {
                 return false; // Previous order is not approved yet
             }
         }
@@ -701,7 +728,7 @@ class ApprovalRequestController extends Controller
             return; // Invalid document type
         }
 
-        if (!$document) {
+        if (! $document) {
             return; // Document not found
         }
 
@@ -738,6 +765,7 @@ class ApprovalRequestController extends Controller
             $this->closeAllApprovalPlans($document->id, $documentType);
 
             Log::info("Document {$documentType} ID: {$document->id} rejected by approver {$approvalPlan->approver_id}. All approval plans closed.");
+
             return;
         }
 
@@ -755,6 +783,7 @@ class ApprovalRequestController extends Controller
                 $document->update(['status' => 'rejected']);
             }
             $this->closeAllApprovalPlans($document->id, $documentType);
+
             return;
         }
 
@@ -806,12 +835,12 @@ class ApprovalRequestController extends Controller
 
             return response()->json([
                 'success' => true,
-                'data' => $approvalPlans
+                'data' => $approvalPlans,
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to filter requests: ' . $e->getMessage()
+                'message' => 'Failed to filter requests: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -844,19 +873,22 @@ class ApprovalRequestController extends Controller
                         if ($approvalPlan->approver_id !== Auth::id()) {
                             $errors[] = "Request ID {$id}: You are not authorized to approve this request.";
                             $failCount++;
+
                             continue;
                         }
 
                         if ($approvalPlan->status !== 0) {
                             $errors[] = "Request ID {$id}: Request has already been processed.";
                             $failCount++;
+
                             continue;
                         }
 
                         // Check sequential approval order for bulk approve
-                        if (!$this->canProcessApproval($approvalPlan)) {
+                        if (! $this->canProcessApproval($approvalPlan)) {
                             $errors[] = "Request ID {$id}: Previous approvals must be completed first.";
                             $failCount++;
+
                             continue;
                         }
 
@@ -874,20 +906,22 @@ class ApprovalRequestController extends Controller
                         $successCount++;
 
                         // Log successful approval
-                        Log::info("Bulk approval successful", [
+                        Log::info('Bulk approval successful', [
                             'approval_plan_id' => $approvalPlan->id,
                             'document_type' => $approvalPlan->document_type,
                             'document_id' => $approvalPlan->document_id,
                             'approver_id' => Auth::id(),
-                            'remarks' => $request->remarks
+                            'remarks' => $request->remarks,
                         ]);
                     } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
                         $errors[] = "Request ID {$id}: Request not found.";
                         $failCount++;
+
                         continue;
                     } catch (\Exception $e) {
-                        $errors[] = "Request ID {$id}: " . $e->getMessage();
+                        $errors[] = "Request ID {$id}: ".$e->getMessage();
                         $failCount++;
+
                         continue;
                     }
                 }
@@ -908,24 +942,24 @@ class ApprovalRequestController extends Controller
                         'success' => true,
                         'message' => $message,
                         'successCount' => $successCount,
-                        'failCount' => $failCount
+                        'failCount' => $failCount,
                     ]);
                 } else {
                     // No successful approvals, rollback transaction
                     DB::rollBack();
 
                     $errorMessage = 'No requests could be approved.';
-                    if (!empty($errors)) {
-                        $errorMessage .= ' ' . implode(' ', array_slice($errors, 0, 3));
+                    if (! empty($errors)) {
+                        $errorMessage .= ' '.implode(' ', array_slice($errors, 0, 3));
                         if (count($errors) > 3) {
-                            $errorMessage .= ' and ' . (count($errors) - 3) . ' more errors.';
+                            $errorMessage .= ' and '.(count($errors) - 3).' more errors.';
                         }
                     }
 
                     return response()->json([
                         'success' => false,
                         'message' => $errorMessage,
-                        'errors' => $errors
+                        'errors' => $errors,
                     ], 400);
                 }
             } catch (\Exception $e) {
@@ -936,20 +970,20 @@ class ApprovalRequestController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Validation failed. Please check your input.',
-                'errors' => $e->validator->errors()
+                'errors' => $e->validator->errors(),
             ], 422);
         } catch (\Exception $e) {
-            Log::error('Bulk approval failed: ' . $e->getMessage(), [
+            Log::error('Bulk approval failed: '.$e->getMessage(), [
                 'user_id' => Auth::id(),
                 'request_ids' => $request->ids ?? [],
                 'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
 
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to process bulk approval. Please try again.',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -961,17 +995,17 @@ class ApprovalRequestController extends Controller
      * It only affects leave_request documents and updates the taken_days and remaining_days
      * in the leave_entitlements table.
      *
-     * @param LeaveRequest $leaveRequest The approved leave request
+     * @param  LeaveRequest  $leaveRequest  The approved leave request
      * @return void
      */
     private function updateLeaveEntitlements($leaveRequest)
     {
         try {
-            Log::info("Updating leave entitlements for approved leave request", [
+            Log::info('Updating leave entitlements for approved leave request', [
                 'leave_request_id' => $leaveRequest->id,
                 'employee_id' => $leaveRequest->employee_id,
                 'leave_type_id' => $leaveRequest->leave_type_id,
-                'total_days' => $leaveRequest->total_days
+                'total_days' => $leaveRequest->total_days,
             ]);
 
             // Find the matching entitlement for this employee and leave type
@@ -991,7 +1025,7 @@ class ApprovalRequestController extends Controller
 
                 $entitlement->save();
 
-                Log::info("Successfully updated leave entitlements", [
+                Log::info('Successfully updated leave entitlements', [
                     'leave_request_id' => $leaveRequest->id,
                     'employee_id' => $leaveRequest->employee_id,
                     'leave_type_id' => $leaveRequest->leave_type_id,
@@ -999,24 +1033,24 @@ class ApprovalRequestController extends Controller
                     'old_taken_days' => $oldTakenDays,
                     'new_taken_days' => $entitlement->taken_days,
                     'remaining_days' => $entitlement->remaining_days,
-                    'entitled_days' => $entitlement->entitled_days
+                    'entitled_days' => $entitlement->entitled_days,
                 ]);
             } else {
-                Log::warning("No entitlement found for approved leave request", [
+                Log::warning('No entitlement found for approved leave request', [
                     'leave_request_id' => $leaveRequest->id,
                     'employee_id' => $leaveRequest->employee_id,
                     'leave_type_id' => $leaveRequest->leave_type_id,
                     'start_date' => $leaveRequest->start_date,
-                    'end_date' => $leaveRequest->end_date
+                    'end_date' => $leaveRequest->end_date,
                 ]);
             }
         } catch (\Exception $e) {
-            Log::error("Error updating leave entitlements: " . $e->getMessage(), [
+            Log::error('Error updating leave entitlements: '.$e->getMessage(), [
                 'leave_request_id' => $leaveRequest->id,
                 'employee_id' => $leaveRequest->employee_id,
                 'leave_type_id' => $leaveRequest->leave_type_id,
                 'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
         }
     }

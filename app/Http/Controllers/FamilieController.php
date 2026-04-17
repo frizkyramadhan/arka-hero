@@ -3,19 +3,18 @@
 namespace App\Http\Controllers;
 
 use App\Models\Familie;
-use App\Models\Employee;
 use App\Models\Family;
+use App\Support\UserProject;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 
 class FamilieController extends Controller
 {
-
     public function index()
     {
         $title = ' Employee Family';
         $subtitle = ' Employee Family';
-        $employees = Employee::orderBy('fullname', 'asc')->get();
+        $employees = UserProject::employeesForSelect();
+
         return view('familie.index', compact('title', 'subtitle', 'employees'));
     }
 
@@ -24,6 +23,8 @@ class FamilieController extends Controller
         $families = Family::leftJoin('employees', 'families.employee_id', '=', 'employees.id')
             ->select('families.*', 'employees.fullname')
             ->orderBy('families.family_birthdate', 'asc');
+        UserProject::scopeQueryToEmployeesLinkedViaAdministrations($families, 'families.employee_id');
+
         // $families = Familie::with('employees');
         return datatables()->of($families)
             ->addIndexColumn()
@@ -49,7 +50,7 @@ class FamilieController extends Controller
                 return $families->bpjsks_no;
             })
             ->filter(function ($instance) use ($request) {
-                if (!empty($request->get('search'))) {
+                if (! empty($request->get('search'))) {
                     $instance->where(function ($w) use ($request) {
                         $search = $request->get('search');
                         $w->orWhere('fullname', 'LIKE', "%$search%")
@@ -63,11 +64,13 @@ class FamilieController extends Controller
                 }
             })
             ->addColumn('action', function ($families) {
-                $employees = Employee::orderBy('fullname', 'asc')->get();
+                $employees = UserProject::employeesForSelect();
+
                 return view('familie.action', compact('employees', 'families'));
             })
             ->addColumn('family_birthdate', function ($families) {
-                $date = date("d F Y", strtotime($families->family_birthdate));
+                $date = date('d F Y', strtotime($families->family_birthdate));
+
                 return $date;
             })
             ->rawColumns(['fullname', 'action'])
@@ -78,13 +81,17 @@ class FamilieController extends Controller
     public function addFamilie()
     {
         $title = 'Add Family';
-        $employee = Employee::orderBy('id', 'asc')->get();
+        $employee = UserProject::employeesForSelect();
+
         return view('familie.create', compact('employee', 'title'));
     }
 
-
     public function store($employee_id, Request $request)
     {
+        if ($r = UserProject::guardEmployeeId($request->employee_id)) {
+            return $r;
+        }
+
         $request->validate([
             'employee_id' => 'required',
             'family_name' => 'required',
@@ -94,7 +101,7 @@ class FamilieController extends Controller
             'family_remarks' => 'required',
         ]);
 
-        $families = new Family();
+        $families = new Family;
         $families->employee_id = $request->employee_id;
         $families->family_name = $request->family_name;
         $families->family_relationship = $request->family_relationship;
@@ -104,11 +111,16 @@ class FamilieController extends Controller
         $families->bpjsks_no = $request->bpjsks_no;
         $families->save();
 
-        return redirect('employees/' . $employee_id . '#family')->with('toast_success', 'Family Employee Add Successfully');
+        return redirect('employees/'.$employee_id.'#family')->with('toast_success', 'Family Employee Add Successfully');
     }
 
     public function update(Request $request, $id)
     {
+        $family = Family::findOrFail($id);
+        if ($r = UserProject::guardEmployeeId($family->employee_id)) {
+            return $r;
+        }
+
         $request->validate([
             'employee_id' => 'required',
             'family_name' => 'required',
@@ -118,7 +130,10 @@ class FamilieController extends Controller
             'family_remarks' => 'required',
         ]);
 
-        $family = Family::find($id);
+        if ($r = UserProject::guardEmployeeId($request->employee_id)) {
+            return $r;
+        }
+
         $family->employee_id = $request->employee_id;
         $family->family_name = $request->family_name;
         $family->family_relationship = $request->family_relationship;
@@ -128,19 +143,31 @@ class FamilieController extends Controller
         $family->bpjsks_no = $request->bpjsks_no;
         $family->save();
 
-        return redirect('employees/' . $request->employee_id . '#family')->with('toast_success', 'Family Employee Update Successfully');
+        return redirect('employees/'.$request->employee_id.'#family')->with('toast_success', 'Family Employee Update Successfully');
     }
 
     public function delete($employee_id, $id)
     {
-        $families = Family::where('id', $id)->first();
+        if ($r = UserProject::guardEmployeeId($employee_id)) {
+            return $r;
+        }
+        $families = Family::where('id', $id)->firstOrFail();
+        if ((int) $families->employee_id !== (int) $employee_id) {
+            return UserProject::redirectAccessDenied();
+        }
         $families->delete();
-        return redirect('employees/' . $employee_id . '#family')->with('toast_success', 'Family Employee Delete Successfully');
+
+        return redirect('employees/'.$employee_id.'#family')->with('toast_success', 'Family Employee Delete Successfully');
     }
 
     public function deleteAll($employee_id)
     {
+        if ($r = UserProject::guardEmployeeId($employee_id)) {
+            return $r;
+        }
+
         Family::where('employee_id', $employee_id)->delete();
-        return redirect('employees/' . $employee_id . '#family')->with('toast_success', 'Family Employee Delete Successfully');
+
+        return redirect('employees/'.$employee_id.'#family')->with('toast_success', 'Family Employee Delete Successfully');
     }
 }

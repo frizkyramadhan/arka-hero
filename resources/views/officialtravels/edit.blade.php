@@ -373,6 +373,9 @@
                             </div>
                         </div>
 
+                        {{-- Flight Request (Tiket Pesawat) - optional --}}
+                        <x-flight-request-fields name-prefix="fr_data" :allow-return-segment="true" :existing-flight-request="$existingFlightRequest ?? null" />
+
                         <!-- Manual Approver Selection Card -->
                         <div class="card card-info card-outline elevation-2">
                             <div class="card-header py-2">

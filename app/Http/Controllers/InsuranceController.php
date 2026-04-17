@@ -2,20 +2,18 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Employee;
 use App\Models\Insurance;
+use App\Support\UserProject;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 
 class InsuranceController extends Controller
 {
-
-
     public function index()
     {
         $title = ' Employee Insurance';
         $subtitle = ' Employee Insurance';
-        $employees = Employee::orderBy('fullname', 'asc')->get();
+        $employees = UserProject::employeesForSelect();
+
         return view('insurance.index', compact('title', 'subtitle', 'employees'));
     }
 
@@ -24,6 +22,7 @@ class InsuranceController extends Controller
         $insurances = Insurance::leftJoin('employees', 'insurances.employee_id', '=', 'employees.id')
             ->select('insurances.*', 'employees.fullname')
             ->orderBy('insurances.health_insurance_no', 'asc');
+        UserProject::scopeQueryToEmployeesLinkedViaAdministrations($insurances, 'insurances.employee_id');
 
         return datatables()->of($insurances)
             ->addIndexColumn()
@@ -43,7 +42,7 @@ class InsuranceController extends Controller
                 return $insurances->health_insurance_remarks;
             })
             ->filter(function ($instance) use ($request) {
-                if (!empty($request->get('search'))) {
+                if (! empty($request->get('search'))) {
                     $instance->where(function ($w) use ($request) {
                         $search = $request->get('search');
                         $w->orWhere('fullname', 'LIKE', "%$search%")
@@ -54,7 +53,8 @@ class InsuranceController extends Controller
                 }
             })
             ->addColumn('action', function ($insurances) {
-                $employees = Employee::orderBy('fullname', 'asc')->get();
+                $employees = UserProject::employeesForSelect();
+
                 return view('insurance.action', compact('employees', 'insurances'));
             })
             ->rawColumns(['health_insurance_no', 'action'])
@@ -63,13 +63,17 @@ class InsuranceController extends Controller
 
     public function store($employee_id, Request $request)
     {
+        if ($r = UserProject::guardEmployeeId($request->employee_id)) {
+            return $r;
+        }
+
         $request->validate([
             'employee_id' => 'required',
             'health_insurance_type' => 'required',
             'health_insurance_no' => 'required|unique:insurances|',
         ]);
 
-        $insurances = new Insurance();
+        $insurances = new Insurance;
         $insurances->employee_id = $request->employee_id;
         $insurances->health_insurance_type = $request->health_insurance_type;
         $insurances->health_insurance_no = $request->health_insurance_no;
@@ -77,12 +81,16 @@ class InsuranceController extends Controller
         $insurances->health_insurance_remarks = $request->health_insurance_remarks;
         $insurances->save();
 
-        return redirect('employees/' . $employee_id . '#insurance')->with('status', 'Insurance Employee Add Successfully');
+        return redirect('employees/'.$employee_id.'#insurance')->with('status', 'Insurance Employee Add Successfully');
     }
 
     public function update(Request $request, $id)
     {
-        $insurances = Insurance::where('id', $id)->first();
+        $insurances = Insurance::where('id', $id)->firstOrFail();
+        if ($r = UserProject::guardEmployeeId($insurances->employee_id)) {
+            return $r;
+        }
+
         $rules = [
             'employee_id' => 'required',
             'health_insurance_type' => 'required',
@@ -96,21 +104,37 @@ class InsuranceController extends Controller
         }
 
         $validatedData = $request->validate($rules);
+        if ($r = UserProject::guardEmployeeId($request->employee_id)) {
+            return $r;
+        }
+
         Insurance::where('id', $id)->update($validatedData);
 
-        return redirect('employees/' . $request->employee_id . '#insurance')->with('toast_success', 'Insurance Employee Update Successfully');
+        return redirect('employees/'.$request->employee_id.'#insurance')->with('toast_success', 'Insurance Employee Update Successfully');
     }
 
     public function delete($employee_id, $id)
     {
-        $insurances = Insurance::where('id', $id)->first();
+        if ($r = UserProject::guardEmployeeId($employee_id)) {
+            return $r;
+        }
+        $insurances = Insurance::where('id', $id)->firstOrFail();
+        if ((int) $insurances->employee_id !== (int) $employee_id) {
+            return UserProject::redirectAccessDenied();
+        }
         $insurances->delete();
-        return redirect('employees/' . $employee_id . '#insurance')->with('toast_success', 'Insurance Delete Successfully');
+
+        return redirect('employees/'.$employee_id.'#insurance')->with('toast_success', 'Insurance Delete Successfully');
     }
 
     public function deleteAll($employee_id)
     {
+        if ($r = UserProject::guardEmployeeId($employee_id)) {
+            return $r;
+        }
+
         Insurance::where('employee_id', $employee_id)->delete();
-        return redirect('employees/' . $employee_id . '#insurance')->with('toast_success', 'Insurance Delete Successfully');
+
+        return redirect('employees/'.$employee_id.'#insurance')->with('toast_success', 'Insurance Delete Successfully');
     }
 }

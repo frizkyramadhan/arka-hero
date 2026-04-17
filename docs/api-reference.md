@@ -20,6 +20,7 @@ Dokumen ini menjelaskan endpoint HTTP JSON yang didefinisikan di `routes/api.php
 10. [Workforce — profil & aktivitas karyawan](#10-workforce--profil--aktivitas-karyawan) · [Tutorial Postman](#104-tutorial-postman-workforce)
 11. [Catatan teknis](#11-catatan-teknis)
 12. [Endpoint lain (bukan `routes/api.php`)](#12-endpoint-lain-bukan-routesapiphp)
+13. [Changelog dokumen](#13-changelog-dokumen) · [Revisi terbaru](#131-revisi-terbaru)
 
 ---
 
@@ -332,7 +333,18 @@ Base path: **`/api/workforce`**
 
 Controller: `App\Http\Controllers\Api\V1\EmployeeWorkforceApiController`.
 
-Data **cuti** diambil dari `leave_requests` (overlap tanggal dengan periode). **Perjalanan dinas** dari `officialtravels` dengan `traveler` = administrasi karyawan; filter utama tanggal **`official_travel_date`** dalam rentang. **Lembur** dari `overtime_requests` yang punya baris di `overtime_request_details` dengan `administration_id` milik karyawan tersebut.
+**Sumber data, filter status, dan sumbu tanggal** (parameter `year` / `month` / `from` / `to` serta default 90 hari memakai **batas inklusif** pada datetime `00:00:00`–`23:59:59` setempat):
+
+| Jenis | Filter rentang (sumbu waktu) | Status yang dikembalikan |
+| ----- | ---------------------------- | ------------------------ |
+| **Cuti** | Kolom **`approved_at`** jatuh dalam periode (wajib **not null**) | `approved`, `auto_approved`, `closed`, `cancelled`. Setiap item ringkas dapat menyertakan array **`cancellations`** (pengajuan pembatalan partial/full: `days_to_cancel`, `reason`, `status`, dll.). |
+| **Perjalanan dinas (LOT)** | Kolom **`approved_at`** dalam periode; `traveler` = administrasi karyawan (wajib **not null**) | Hanya **`approved`** dan **`closed`**. |
+| **Lembur** | Kolom **`finished_at`** dalam periode; ada baris `overtime_request_details` dengan `administration_id` milik karyawan (wajib **not null**) | Hanya **`finished`**. |
+
+Baris dengan `approved_at` / `finished_at` kosong tidak muncul di hasil workforce meskipun statusnya cocok.
+
+**Objek `employee` (karyawan) di semua respons workforce** memakai **`WorkforceEmployeeResource`**: hanya field `id`, `fullname`, `emp_pob`, `emp_dob` (tanggal `Y-m-d` jika tersedia), `gender`, `address`, `phone`.  
+Ini berlaku untuk `data.employee` (profil & aktivitas) dan untuk nested `traveler.employee` / `follower.employee` pada **`WorkforceOfficialtravelResource`** (LOT workforce). Endpoint `/api/official-travels/...` lain tetap memakai `OfficialtravelResource` penuh untuk nested employee.
 
 ### 10.1 Profil lengkap (employee + administrations)
 
@@ -341,7 +353,9 @@ Data **cuti** diambil dari `leave_requests` (overlap tanggal dengan periode). **
 | `GET`  | `/api/workforce/employees/{employee}/profile`   | `api.workforce.employees.profile`        | `{employee}` = UUID `employees.id`                          |
 | `GET`  | `/api/workforce/employees/by-nik/{nik}/profile` | `api.workforce.employees.profile-by-nik` | `{nik}` = NIK pada tabel `administrations` (contoh `13100`) |
 
-**Respons:** `success`, `data.employee` (`EmployeeResource`), `data.administrations` (`AdministrationResource` collection).
+**Query (opsional):** `year` (integer `2000`–`2100`), `month` (`1`–`12`, hanya bersama `year`). Tidak memfilter isi profil; jika `year` ada, respons dapat menyertakan blok **`period`** (`year`, `month`, `from`, `to`) untuk konsistensi dengan endpoint lain.
+
+**Respons:** `success`, `data.employee` (`WorkforceEmployeeResource`), `data.administrations` (`AdministrationResource` collection).
 
 ### 10.2 Timeline aktivitas (cuti + LOT + lembur per bulan/tahun)
 
@@ -357,15 +371,24 @@ Data **cuti** diambil dari `leave_requests` (overlap tanggal dengan periode). **
 | `year`    | **Wajib** (integer, mis. `2026`)                                                           |
 | `month`   | Opsional (`1`–`12`). Jika diisi → hanya bulan tersebut; jika tidak → seluruh tahun `year`. |
 
-**Respons:** `period` (`from`/`to`), `employee`, `administrations`, `summary` (jumlah per jenis dokumen), `leave_requests` (ringkas), `official_travels` (`OfficialtravelResource`), `overtime_requests` (ringkas + detail baris lembur).
+**Respons:** `period` (`year`, `month`, `from`, `to`), `employee` (`WorkforceEmployeeResource`), `administrations`, `summary` (jumlah per jenis dokumen), `leave_requests` (ringkas + **`cancellations`** bila ada), `official_travels` (`WorkforceOfficialtravelResource`), `overtime_requests` (ringkas + detail baris lembur). Isi dokumen memakai filter status dan sumbu tanggal seperti tabel di atas (`approved_at` / `finished_at`).
 
 **Contoh (Maret, NIK 13100):**  
 `GET /api/workforce/employees/by-nik/13100/activity?year=2026&month=3`
 
 ### 10.3 Endpoint terpisah per jenis dokumen
 
-Rentang default jika **tidak** ada `from`/`to`: **90 hari terakhir** sampai hari ini.  
-Dengan query: `from`=`Y-m-d`, `to`=`Y-m-d` (`to` ≥ `from`).
+**Rentang periode** — salah satu mode berikut:
+
+1. **`year`** (opsional sebagai pengganti rentang eksplisit): kalender penuh untuk tahun tersebut; **`month`** opsional (`1`–`12`) untuk satu bulan. Jika `month` dipakai, **`year` wajib**.
+2. **`from`** dan **`to`** (`Y-m-d`, `to` ≥ `from`).
+3. Tanpa keduanya: default **90 hari terakhir** sampai hari ini.
+
+Jika **`year`** dikirim bersamaan dengan `from`/`to`, backend memakai **`year`** (dan `month` jika ada) untuk menghitung rentang.
+
+**Makna `from` / `to` bagi tiap jenis:** sama untuk ketiga endpoint — dipetakan ke inklusi pada **`leave_requests.approved_at`**, **`officialtravels.approved_at`**, dan **`overtime_requests.finished_at`** (bukan lagi overlap tanggal cuti atau `official_travel_date` / `overtime_date`).
+
+**Respons umum (cuti / LOT / lembur):** `success`, **`period`** (`year`, `month` dapat `null`, `from`, `to`), **`range`** (`from`, `to`, sama dengan periode efektif — disalin untuk kompatibilitas klien lama), `count`, `data`.
 
 | Method | Path                                                      | Nama route                                  |
 | ------ | --------------------------------------------------------- | ------------------------------------------- |
@@ -415,6 +438,7 @@ Gunakan `{{BASE_URL}}` dari environment.
 
 - URL: `{{BASE_URL}}/api/workforce/employees/by-nik/13100/profile`
 - Method: `GET`
+- Opsional Params: `year`, `month` (hanya mencerminkan periode di respons, tidak memfilter profil).
 - Harus dapat JSON `success`, `data.employee`, `data.administrations`.
 
 **B. Aktivitas satu bulan (contoh Maret 2026)**
@@ -427,33 +451,35 @@ Gunakan `{{BASE_URL}}` dari environment.
 | `year`  | `2026` |
 | `month` | `3`    |
 
-Ini memenuhi skenario: di bulan Maret ada cuti / LOT / lembur atau tidak, plus detail di `leave_requests`, `official_travels`, `overtime_requests`, dan `summary`.
+Ini memenuhi skenario: di bulan Maret ada cuti / LOT / lembur atau tidak, plus detail di `leave_requests`, `official_travels`, `overtime_requests`, dan `summary`. Pemfilteran periode: **`approved_at`** (cuti & LOT) dan **`finished_at`** (lembur). Status: seperti tabel §10.
 
 **C. Aktivitas satu tahun penuh (tanpa bulan)**
 
 - URL: sama `/activity`, Params: hanya `year=2026` (tanpa `month`).
 
-**D. Hanya daftar cuti (rentang tanggal)**
+**D. Hanya daftar cuti (rentang tanggal atau tahun/bulan)**
 
 - URL: `{{BASE_URL}}/api/workforce/employees/by-nik/13100/leave-requests`
-- Params (opsional):
+- Params (opsional) — **salah satu** pola:
 
-| Key    | Value        |
-| ------ | ------------ |
-| `from` | `2026-03-01` |
-| `to`   | `2026-03-31` |
+| Mode | Params | Keterangan |
+| ---- | ------ | ---------- |
+| Kalender | `year=2026`, `month=3` | Satu bulan |
+| Kalender | `year=2026` (tanpa `month`) | Seluruh tahun |
+| Eksplisit | `from=2026-03-01`, `to=2026-03-31` | Rentang bebas |
+| Default | *(kosong)* | **90 hari terakhir** (dibandingkan ke **`approved_at`**) |
 
-Tanpa `from`/`to` → default **90 hari terakhir** (sesuai implementasi backend).
+Respons menyertakan `period`, `range`, dan pada tiap cuti dapat ada `cancellations` (array, bisa kosong). Hanya cuti dengan **`approved_at`** terisi dan jatuh dalam rentang.
 
 **E. Hanya perjalanan dinas (LOT)**
 
 - URL: `{{BASE_URL}}/api/workforce/employees/by-nik/13100/official-travels`
-- Params `from` / `to` opsional (sama seperti D).
+- Params: sama seperti **D** (`year`/`month` atau `from`/`to` atau default 90 hari). Filter ke **`approved_at`**. Hanya status **approved** dan **closed**.
 
 **F. Hanya lembur**
 
 - URL: `{{BASE_URL}}/api/workforce/employees/by-nik/13100/overtime-requests`
-- Params `from` / `to` opsional.
+- Params: sama seperti **D**. Filter ke **`finished_at`**. Hanya header lembur berstatus **finished**.
 
 **G. Pakai ID karyawan (UUID), bukan NIK**
 
@@ -516,10 +542,26 @@ Untuk integrasi **eksternal** server-to-server, gunakan endpoint di **§1–§10
 
 ---
 
-## Changelog dokumen
+## 13. Changelog dokumen
 
 | Tanggal    | Perubahan                                                                        |
 | ---------- | -------------------------------------------------------------------------------- |
 | 2026-04-10 | Dokumen awal berdasarkan `routes/api.php` dan controller `Api\V1`                |
 | 2026-04-10 | Bagian **Workforce** (`/api/workforce/...`) — profil, aktivitas, cuti/LOT/lembur |
 | 2026-04-10 | **§10.4** Tutorial Postman untuk Workforce                                       |
+| 2026-04-17 | **§10** Workforce: filter status (cuti, LOT, lembur); query `year`/`month` untuk profil & endpoint terpisah; respons `period` + `range`; field `cancellations` pada ringkasan cuti |
+| 2026-04-17 | **§10.4** Postman: contoh params `year`/`month` untuk leave/LOT/overtime         |
+| 2026-04-17 | **§10** Workforce: filter rentang memakai **`approved_at`** (cuti & LOT) dan **`finished_at`** (lembur); baris dengan timestamp tersebut null tidak ikut |
+| 2026-04-17 | **§10** Workforce: data karyawan dipangkas lewat **`WorkforceEmployeeResource`**; LOT workforce memakai **`WorkforceOfficialtravelResource`** |
+
+### 13.1 Revisi terbaru
+
+**2026-04-17 — Workforce API (`EmployeeWorkforceApiController`)**
+
+- **Perjalanan dinas:** hanya dikembalikan jika `status` ∈ {`approved`, `closed`}.
+- **Cuti:** hanya `approved`, `auto_approved`, `closed`, `cancelled`; setiap item memuat relasi **`cancellations`** (untuk pembatalan partial/full) di `LeaveRequestSummaryResource`.
+- **Lembur:** hanya permintaan dengan `status` = `finished`.
+- **Sumbu tanggal (filter `year`/`month`/`from`/`to` / default 90 hari):** cuti dan LOT dibandingkan ke kolom **`approved_at`** (harus terisi); lembur dibandingkan ke **`finished_at`** (harus terisi). Urutan hasil: cuti & LOT `approved_at` DESC, lembur `finished_at` DESC.
+- **Query:** endpoint profil mendukung **`year`** / **`month`** (opsional, informatif di respons). Endpoint `leave-requests`, `official-travels`, dan `overtime-requests` mendukung **`year`** + **`month`** opsional sebagai alternatif dari **`from`** / **`to`**, dengan default tetap 90 hari terakhir bila tidak ada filter.
+- **Respons** endpoint terpisah: objek **`period`** (`year`, `month`, `from`, `to`) dan **`range`** (`from`, `to`).
+- **Karyawan di workforce:** `WorkforceEmployeeResource` — hanya `id`, `fullname`, `emp_pob`, `emp_dob`, `gender`, `address`, `phone`. LOT di workforce: `WorkforceOfficialtravelResource` (subset employee pada traveler/follower sama).

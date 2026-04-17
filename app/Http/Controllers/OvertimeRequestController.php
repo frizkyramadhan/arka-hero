@@ -8,6 +8,7 @@ use App\Models\OvertimeRequest;
 use App\Models\OvertimeRequestDetail;
 use App\Models\Project;
 use App\Models\User;
+use App\Support\UserProject;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
@@ -28,7 +29,7 @@ class OvertimeRequestController extends Controller
             return [];
         }
 
-        return array_values(array_unique(array_filter(array_map(static fn($id) => (int) $id, $input))));
+        return array_values(array_unique(array_filter(array_map(static fn ($id) => (int) $id, $input))));
     }
 
     public function __construct()
@@ -65,35 +66,37 @@ class OvertimeRequestController extends Controller
             ->with(['project', 'requestedBy', 'details.administration.employee'])
             ->orderByDesc('created_at');
 
+        UserProject::scopeToAssignedProjects($query, 'project_id');
+
         $this->applyOvertimeDatatableFilters($query, $request, true);
 
         return datatables()->of($query)
             ->addIndexColumn()
-            ->addColumn('project_name', fn($row) => $row->project->project_name ?? '—')
-            ->addColumn('overtime_date_fmt', fn($row) => $row->overtime_date?->format('d/m/Y') ?? '—')
-            ->addColumn('status_badge', fn($row) => $this->statusBadgeHtml($row->status))
-            ->addColumn('requester', fn($row) => $row->requestedBy->name ?? '—')
-            ->addColumn('employees_html', fn($row) => $this->overtimeEmployeesListHtml($row))
-            ->addColumn('remarks_html', fn($row) => $this->overtimeRemarksCellHtml($row->remarks))
+            ->addColumn('project_name', fn ($row) => $row->project->project_name ?? '—')
+            ->addColumn('overtime_date_fmt', fn ($row) => $row->overtime_date?->format('d/m/Y') ?? '—')
+            ->addColumn('status_badge', fn ($row) => $this->statusBadgeHtml($row->status))
+            ->addColumn('requester', fn ($row) => $row->requestedBy->name ?? '—')
+            ->addColumn('employees_html', fn ($row) => $this->overtimeEmployeesListHtml($row))
+            ->addColumn('remarks_html', fn ($row) => $this->overtimeRemarksCellHtml($row->remarks))
             ->addColumn('actions', function ($row) {
                 $html = '<div class="btn-group">';
-                $html .= '<a href="' . route('overtime.requests.show', $row) . '" class="btn btn-sm btn-info mr-1" title="View"><i class="fas fa-eye"></i></a>';
+                $html .= '<a href="'.route('overtime.requests.show', $row).'" class="btn btn-sm btn-info mr-1" title="View"><i class="fas fa-eye"></i></a>';
                 if ($row->canBeEditedBy(Auth::user())) {
-                    $html .= '<a href="' . route('overtime.requests.edit', $row) . '" class="btn btn-sm btn-warning mr-1" title="Edit"><i class="fas fa-edit"></i></a>';
+                    $html .= '<a href="'.route('overtime.requests.edit', $row).'" class="btn btn-sm btn-warning mr-1" title="Edit"><i class="fas fa-edit"></i></a>';
                 }
                 if (
                     $row->isEditable()
                     && in_array($row->status, [OvertimeRequest::STATUS_DRAFT, OvertimeRequest::STATUS_REJECTED], true)
                     && $row->canBeEditedBy(Auth::user())
                 ) {
-                    $html .= '<form method="POST" action="' . route('overtime.requests.submit-for-approval', $row) . '" class="d-inline mr-1" onsubmit="return confirm(\'Submit this request for approval?\');">'
-                        . csrf_field()
-                        . '<button type="submit" class="btn btn-sm btn-success" title="Submit for approval"><i class="fas fa-paper-plane"></i></button></form>';
+                    $html .= '<form method="POST" action="'.route('overtime.requests.submit-for-approval', $row).'" class="d-inline mr-1" onsubmit="return confirm(\'Submit this request for approval?\');">'
+                        .csrf_field()
+                        .'<button type="submit" class="btn btn-sm btn-success" title="Submit for approval"><i class="fas fa-paper-plane"></i></button></form>';
                 }
                 if ($row->canBeDeletedBy(Auth::user())) {
-                    $html .= '<form method="POST" action="' . route('overtime.requests.destroy', $row) . '" class="d-inline" onsubmit="return confirm(\'Delete this request?\');">'
-                        . csrf_field() . method_field('DELETE')
-                        . '<button type="submit" class="btn btn-sm btn-danger" title="Delete"><i class="fas fa-trash"></i></button></form>';
+                    $html .= '<form method="POST" action="'.route('overtime.requests.destroy', $row).'" class="d-inline" onsubmit="return confirm(\'Delete this request?\');">'
+                        .csrf_field().method_field('DELETE')
+                        .'<button type="submit" class="btn btn-sm btn-danger" title="Delete"><i class="fas fa-trash"></i></button></form>';
                 }
                 $html .= '</div>';
 
@@ -132,6 +135,10 @@ class OvertimeRequestController extends Controller
     {
         $data = $this->validated($request);
         $this->validateLineTimes($request);
+
+        if ($r = UserProject::guardProjectInAssignmentScope((int) $data['project_id'])) {
+            return $r;
+        }
 
         $user = Auth::user();
         $submit = ($data['submit_action'] ?? 'draft') === 'submit';
@@ -182,7 +189,7 @@ class OvertimeRequestController extends Controller
         } catch (\Throwable $e) {
             DB::rollBack();
 
-            return back()->withInput()->with('toast_error', 'Save failed: ' . $e->getMessage());
+            return back()->withInput()->with('toast_error', 'Save failed: '.$e->getMessage());
         }
     }
 
@@ -190,6 +197,10 @@ class OvertimeRequestController extends Controller
     {
         if (! $overtimeRequest->canBeEditedBy(Auth::user())) {
             abort(403);
+        }
+
+        if ($r = UserProject::guardProjectInAssignmentScope((int) $overtimeRequest->project_id)) {
+            return $r;
         }
 
         $title = 'Overtime Requests';
@@ -220,8 +231,16 @@ class OvertimeRequestController extends Controller
             abort(403);
         }
 
+        if ($r = UserProject::guardProjectInAssignmentScope((int) $overtimeRequest->project_id)) {
+            return $r;
+        }
+
         $data = $this->validated($request);
         $this->validateLineTimes($request);
+
+        if ($r = UserProject::guardProjectInAssignmentScope((int) $data['project_id'])) {
+            return $r;
+        }
 
         $submit = ($data['submit_action'] ?? 'draft') === 'submit';
         $status = $submit
@@ -273,7 +292,7 @@ class OvertimeRequestController extends Controller
         } catch (\Throwable $e) {
             DB::rollBack();
 
-            return back()->withInput()->with('toast_error', 'Update failed: ' . $e->getMessage());
+            return back()->withInput()->with('toast_error', 'Update failed: '.$e->getMessage());
         }
     }
 
@@ -281,6 +300,10 @@ class OvertimeRequestController extends Controller
     {
         if (! $overtimeRequest->canBeDeletedBy(Auth::user())) {
             abort(403);
+        }
+
+        if ($r = UserProject::guardProjectInAssignmentScope((int) $overtimeRequest->project_id)) {
+            return $r;
         }
 
         DB::beginTransaction();
@@ -295,7 +318,7 @@ class OvertimeRequestController extends Controller
         } catch (\Throwable $e) {
             DB::rollBack();
 
-            return back()->with('toast_error', 'Delete failed: ' . $e->getMessage());
+            return back()->with('toast_error', 'Delete failed: '.$e->getMessage());
         }
     }
 
@@ -359,29 +382,29 @@ class OvertimeRequestController extends Controller
 
         return datatables()->of($query)
             ->addIndexColumn()
-            ->addColumn('project_name', fn($row) => $row->project->project_name ?? '—')
-            ->addColumn('overtime_date_fmt', fn($row) => $row->overtime_date?->format('d/m/Y') ?? '—')
-            ->addColumn('status_badge', fn($row) => $this->statusBadgeHtml($row->status))
-            ->addColumn('employees_html', fn($row) => $this->overtimeEmployeesListHtml($row))
-            ->addColumn('remarks_html', fn($row) => $this->overtimeRemarksCellHtml($row->remarks))
+            ->addColumn('project_name', fn ($row) => $row->project->project_name ?? '—')
+            ->addColumn('overtime_date_fmt', fn ($row) => $row->overtime_date?->format('d/m/Y') ?? '—')
+            ->addColumn('status_badge', fn ($row) => $this->statusBadgeHtml($row->status))
+            ->addColumn('employees_html', fn ($row) => $this->overtimeEmployeesListHtml($row))
+            ->addColumn('remarks_html', fn ($row) => $this->overtimeRemarksCellHtml($row->remarks))
             ->addColumn('actions', function ($row) {
-                $html = '<a href="' . route('overtime.my-requests.show', $row) . '" class="btn btn-sm btn-info"><i class="fas fa-eye"></i></a>';
+                $html = '<a href="'.route('overtime.my-requests.show', $row).'" class="btn btn-sm btn-info"><i class="fas fa-eye"></i></a>';
                 if ($row->canBeEditedBy(Auth::user())) {
-                    $html .= ' <a href="' . route('overtime.my-requests.edit', $row) . '" class="btn btn-sm btn-warning"><i class="fas fa-edit"></i></a>';
+                    $html .= ' <a href="'.route('overtime.my-requests.edit', $row).'" class="btn btn-sm btn-warning"><i class="fas fa-edit"></i></a>';
                 }
                 if (
                     $row->isEditable()
                     && in_array($row->status, [OvertimeRequest::STATUS_DRAFT, OvertimeRequest::STATUS_REJECTED], true)
                     && $row->canBeEditedBy(Auth::user())
                 ) {
-                    $html .= ' <form method="POST" action="' . route('overtime.my-requests.submit-for-approval', $row) . '" class="d-inline" onsubmit="return confirm(\'Submit this request for approval?\');">'
-                        . csrf_field()
-                        . '<button type="submit" class="btn btn-sm btn-success" title="Submit for approval"><i class="fas fa-paper-plane"></i></button></form>';
+                    $html .= ' <form method="POST" action="'.route('overtime.my-requests.submit-for-approval', $row).'" class="d-inline" onsubmit="return confirm(\'Submit this request for approval?\');">'
+                        .csrf_field()
+                        .'<button type="submit" class="btn btn-sm btn-success" title="Submit for approval"><i class="fas fa-paper-plane"></i></button></form>';
                 }
                 if ($row->canBeDeletedBy(Auth::user())) {
-                    $html .= ' <form method="POST" action="' . route('overtime.my-requests.destroy', $row) . '" class="d-inline" onsubmit="return confirm(\'Delete this request?\');">'
-                        . csrf_field() . method_field('DELETE')
-                        . '<button type="submit" class="btn btn-sm btn-danger"><i class="fas fa-trash"></i></button></form>';
+                    $html .= ' <form method="POST" action="'.route('overtime.my-requests.destroy', $row).'" class="d-inline" onsubmit="return confirm(\'Delete this request?\');">'
+                        .csrf_field().method_field('DELETE')
+                        .'<button type="submit" class="btn btn-sm btn-danger"><i class="fas fa-trash"></i></button></form>';
                 }
 
                 return $html;
@@ -427,6 +450,10 @@ class OvertimeRequestController extends Controller
 
         $data = $this->validated($request);
         $this->validateLineTimes($request);
+
+        if ($r = UserProject::guardProjectInAssignmentScope((int) $data['project_id'])) {
+            return $r;
+        }
 
         $user = Auth::user();
         $submit = ($data['submit_action'] ?? 'draft') === 'submit';
@@ -477,7 +504,7 @@ class OvertimeRequestController extends Controller
         } catch (\Throwable $e) {
             DB::rollBack();
 
-            return back()->withInput()->with('toast_error', 'Save failed: ' . $e->getMessage());
+            return back()->withInput()->with('toast_error', 'Save failed: '.$e->getMessage());
         }
     }
 
@@ -495,8 +522,12 @@ class OvertimeRequestController extends Controller
             abort(403);
         }
 
+        if ($r = UserProject::guardProjectInAssignmentScope((int) $overtimeRequest->project_id)) {
+            return $r;
+        }
+
         $title = 'My Overtime Requests';
-        $subtitle = 'Edit overtime request #' . $overtimeRequest->id;
+        $subtitle = 'Edit overtime request #'.$overtimeRequest->id;
         $projects = $this->activeProjects();
         $details = $this->detailsForEditForm($overtimeRequest);
         $formAction = route('overtime.my-requests.update', $overtimeRequest);
@@ -531,8 +562,16 @@ class OvertimeRequestController extends Controller
             abort(403);
         }
 
+        if ($r = UserProject::guardProjectInAssignmentScope((int) $overtimeRequest->project_id)) {
+            return $r;
+        }
+
         $data = $this->validated($request);
         $this->validateLineTimes($request);
+
+        if ($r = UserProject::guardProjectInAssignmentScope((int) $data['project_id'])) {
+            return $r;
+        }
 
         $submit = ($data['submit_action'] ?? 'draft') === 'submit';
         $status = $submit
@@ -584,7 +623,7 @@ class OvertimeRequestController extends Controller
         } catch (\Throwable $e) {
             DB::rollBack();
 
-            return back()->withInput()->with('toast_error', 'Update failed: ' . $e->getMessage());
+            return back()->withInput()->with('toast_error', 'Update failed: '.$e->getMessage());
         }
     }
 
@@ -596,6 +635,10 @@ class OvertimeRequestController extends Controller
 
         if (! $overtimeRequest->canBeDeletedBy(Auth::user())) {
             abort(403);
+        }
+
+        if ($r = UserProject::guardProjectInAssignmentScope((int) $overtimeRequest->project_id)) {
+            return $r;
         }
 
         DB::beginTransaction();
@@ -610,7 +653,7 @@ class OvertimeRequestController extends Controller
         } catch (\Throwable $e) {
             DB::rollBack();
 
-            return back()->with('toast_error', 'Delete failed: ' . $e->getMessage());
+            return back()->with('toast_error', 'Delete failed: '.$e->getMessage());
         }
     }
 
@@ -629,6 +672,10 @@ class OvertimeRequestController extends Controller
             abort(403);
         }
 
+        if (! UserProject::canAccessProjectId((int) $project->id)) {
+            abort(403);
+        }
+
         $rows = \App\Models\Administration::query()
             ->where('project_id', $project->id)
             ->where('is_active', 1)
@@ -640,7 +687,7 @@ class OvertimeRequestController extends Controller
 
                 return [
                     'id' => $a->id,
-                    'label' => ($a->nik ?? '') . ' - ' . $name,
+                    'label' => ($a->nik ?? '').' - '.$name,
                 ];
             });
 
@@ -668,6 +715,12 @@ class OvertimeRequestController extends Controller
             return redirect()->route('overtime.my-requests.show', $overtimeRequest);
         }
 
+        if ($canHr) {
+            if ($r = UserProject::guardProjectInAssignmentScope((int) $overtimeRequest->project_id)) {
+                return $r;
+            }
+        }
+
         $overtimeRequest->load([
             'project',
             'requestedBy',
@@ -688,6 +741,10 @@ class OvertimeRequestController extends Controller
         $user = Auth::user();
         if (! $user instanceof User || ! $user->can('overtime-requests.finish')) {
             abort(403);
+        }
+
+        if ($r = UserProject::guardProjectInAssignmentScope((int) $overtimeRequest->project_id)) {
+            return $r;
         }
 
         if (! $overtimeRequest->canBeMarkedFinishedByHr()) {
@@ -733,6 +790,10 @@ class OvertimeRequestController extends Controller
         $user = Auth::user();
         if (! $overtimeRequest->canBeEditedBy($user)) {
             abort(403);
+        }
+
+        if ($r = UserProject::guardProjectInAssignmentScope((int) $overtimeRequest->project_id)) {
+            return $r;
         }
 
         if (! $overtimeRequest->isEditable()) {
@@ -783,7 +844,7 @@ class OvertimeRequestController extends Controller
 
             return redirect()
                 ->to($this->overtimeDetailUrl($overtimeRequest))
-                ->with('toast_error', 'Submit failed: ' . $e->getMessage());
+                ->with('toast_error', 'Submit failed: '.$e->getMessage());
         }
     }
 
@@ -805,7 +866,7 @@ class OvertimeRequestController extends Controller
             $in = Carbon::parse($line->time_in);
             $out = Carbon::parse($line->time_out);
             if ($out->lte($in)) {
-                return 'End time must be after start time (line ' . ($i + 1) . ').';
+                return 'End time must be after start time (line '.($i + 1).').';
             }
 
             $adminOk = Administration::query()
@@ -823,7 +884,7 @@ class OvertimeRequestController extends Controller
 
     private function activeProjects()
     {
-        return Project::where('project_status', 1)->orderBy('project_code')->get();
+        return UserProject::projectsForSelect();
     }
 
     private function defaultDetails(): array
@@ -916,7 +977,7 @@ class OvertimeRequestController extends Controller
             'details' => 'required|array|min:1',
             'details.*.administration_id' => [
                 'required',
-                Rule::exists('administrations', 'id')->where(fn($q) => $q->where('project_id', $request->project_id)),
+                Rule::exists('administrations', 'id')->where(fn ($q) => $q->where('project_id', $request->project_id)),
             ],
             'details.*.time_in' => 'required|date_format:H:i',
             'details.*.time_out' => 'required|date_format:H:i',
@@ -998,14 +1059,14 @@ class OvertimeRequestController extends Controller
 
         if ($includeRequesterFilter && $request->filled('requester_q')) {
             $term = $this->sqlLikePattern($request->input('requester_q'));
-            $query->whereHas('requestedBy', fn(Builder $q) => $q->where('name', 'like', $term));
+            $query->whereHas('requestedBy', fn (Builder $q) => $q->where('name', 'like', $term));
         }
 
         if ($request->filled('employee_q')) {
             $term = $this->sqlLikePattern($request->input('employee_q'));
             $query->where(function (Builder $q) use ($term) {
-                $q->whereHas('details.administration', fn(Builder $q2) => $q2->where('nik', 'like', $term))
-                    ->orWhereHas('details.administration.employee', fn(Builder $q3) => $q3->where('fullname', 'like', $term));
+                $q->whereHas('details.administration', fn (Builder $q2) => $q2->where('nik', 'like', $term))
+                    ->orWhereHas('details.administration.employee', fn (Builder $q3) => $q3->where('fullname', 'like', $term));
             });
         }
 
@@ -1019,7 +1080,7 @@ class OvertimeRequestController extends Controller
     {
         $s = trim($raw);
 
-        return '%' . addcslashes($s, '%_\\') . '%';
+        return '%'.addcslashes($s, '%_\\').'%';
     }
 
     private function overtimeEmployeesListHtml(OvertimeRequest $row): string
@@ -1028,7 +1089,7 @@ class OvertimeRequestController extends Controller
         foreach ($row->details as $d) {
             $nik = e($d->administration->nik ?? '—');
             $name = e(optional($d->administration->employee)->fullname ?? '—');
-            $lines[] = '<li class="mb-0">' . $nik . ' — ' . $name . '</li>';
+            $lines[] = '<li class="mb-0">'.$nik.' — '.$name.'</li>';
         }
 
         if ($lines === []) {
@@ -1036,7 +1097,7 @@ class OvertimeRequestController extends Controller
         }
 
         return '<ul class="mb-0 pl-3 text-left overtime-dt-employees">'
-            . implode('', $lines) . '</ul>';
+            .implode('', $lines).'</ul>';
     }
 
     private function overtimeRemarksCellHtml(?string $remarks): string
@@ -1045,7 +1106,7 @@ class OvertimeRequestController extends Controller
             return '<span class="text-muted">—</span>';
         }
 
-        return '<div class="text-left text-break overtime-dt-remarks">' . nl2br(e($remarks)) . '</div>';
+        return '<div class="text-left text-break overtime-dt-remarks">'.nl2br(e($remarks)).'</div>';
     }
 
     /**
@@ -1101,7 +1162,7 @@ class OvertimeRequestController extends Controller
         ];
         $c = $map[$status] ?? 'secondary';
 
-        return '<span class="badge badge-' . $c . '">' . strtoupper(e($status)) . '</span>';
+        return '<span class="badge badge-'.$c.'">'.strtoupper(e($status)).'</span>';
     }
 
     /**

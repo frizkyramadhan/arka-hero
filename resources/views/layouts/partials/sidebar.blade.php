@@ -586,12 +586,12 @@
                 @endcan
 
                 {{-- MASTER DATA --}}
-                @canany(['master-data.show', 'business-partners.show'])
+                @canany(['master-data.show', 'business-partners.show', 'national-holidays.show'])
                     {{-- Master Data Dropdown --}}
                     <li
-                        class="nav-item {{ Request::is('banks*') || Request::is('religions*') || Request::is('positions*') || Request::is('departments*') || Request::is('projects*') || Request::is('grades*') || Request::is('levels*') || Request::is('transportations*') || Request::is('accommodations*') || Request::is('letter-categories*') || Request::is('leave/types*') || Request::is('business-partners*') ? 'menu-open' : '' }}">
+                        class="nav-item {{ Request::is('banks*') || Request::is('religions*') || Request::is('positions*') || Request::is('departments*') || Request::is('projects*') || Request::is('grades*') || Request::is('levels*') || Request::is('transportations*') || Request::is('accommodations*') || Request::is('letter-categories*') || Request::is('leave/types*') || Request::is('leave/national-holidays*') || Request::is('business-partners*') ? 'menu-open' : '' }}">
                         <a href="#"
-                            class="nav-link {{ Request::is('banks*') || Request::is('religions*') || Request::is('positions*') || Request::is('departments*') || Request::is('projects*') || Request::is('grades*') || Request::is('levels*') || Request::is('transportations*') || Request::is('accommodations*') || Request::is('letter-categories*') || Request::is('leave/types*') || Request::is('business-partners*') ? 'active' : '' }}">
+                            class="nav-link {{ Request::is('banks*') || Request::is('religions*') || Request::is('positions*') || Request::is('departments*') || Request::is('projects*') || Request::is('grades*') || Request::is('levels*') || Request::is('transportations*') || Request::is('accommodations*') || Request::is('letter-categories*') || Request::is('leave/types*') || Request::is('leave/national-holidays*') || Request::is('business-partners*') ? 'active' : '' }}">
                             <i class="nav-icon fas fa-database"></i>
                             <p>
                                 Master Data
@@ -699,6 +699,15 @@
                                     <p>Leave Types</p>
                                 </a>
                             </li>
+                            @can('national-holidays.show')
+                                <li class="nav-item">
+                                    <a href="{{ route('leave.national-holidays.index') }}"
+                                        class="nav-link {{ Request::is('leave/national-holidays*') ? 'active' : '' }}">
+                                        <i class="far fa-circle nav-icon"></i>
+                                        <p>National Holidays</p>
+                                    </a>
+                                </li>
+                            @endcan
 
                             {{-- Flight Management Data Group --}}
                             <li class="nav-header"

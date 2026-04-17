@@ -2,19 +2,18 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Employee;
 use App\Models\Education;
+use App\Support\UserProject;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 
 class EducationController extends Controller
 {
-
     public function index()
     {
         $title = ' Employee Education';
         $subtitle = ' Employee Education';
-        $employees = Employee::orderBy('fullname', 'asc')->get();
+        $employees = UserProject::employeesForSelect();
+
         return view('education.index', compact('title', 'subtitle', 'employees'));
     }
 
@@ -23,6 +22,7 @@ class EducationController extends Controller
         $educations = Education::leftJoin('employees', 'educations.employee_id', '=', 'employees.id')
             ->select('educations.*', 'employees.fullname')
             ->orderBy('fullname', 'asc');
+        UserProject::scopeQueryToEmployeesLinkedViaAdministrations($educations, 'educations.employee_id');
 
         return datatables()->of($educations)
             ->addIndexColumn()
@@ -42,7 +42,7 @@ class EducationController extends Controller
                 return $educations->education_remarks;
             })
             ->filter(function ($instance) use ($request) {
-                if (!empty($request->get('search'))) {
+                if (! empty($request->get('search'))) {
                     $instance->where(function ($w) use ($request) {
                         $search = $request->get('search');
                         $w->orWhere('fullname', 'LIKE', "%$search%")
@@ -54,7 +54,8 @@ class EducationController extends Controller
                 }
             })
             ->addColumn('action', function ($educations) {
-                $employees = Employee::orderBy('fullname', 'asc')->get();
+                $employees = UserProject::employeesForSelect();
+
                 return view('education.action', compact('employees', 'educations'));
             })
             ->rawColumns(['education_name', 'action'])
@@ -64,6 +65,10 @@ class EducationController extends Controller
 
     public function store($employee_id, Request $request)
     {
+        if ($r = UserProject::guardEmployeeId($request->employee_id)) {
+            return $r;
+        }
+
         $request->validate([
             'employee_id' => 'required',
             'education_name' => 'required',
@@ -73,11 +78,17 @@ class EducationController extends Controller
 
         ]);
         Education::create($request->all());
-        return redirect('employees/' . $employee_id . '#education')->with('toast_success', 'Education Employee Add Successfully');
+
+        return redirect('employees/'.$employee_id.'#education')->with('toast_success', 'Education Employee Add Successfully');
     }
 
     public function update(Request $request, $id)
     {
+        $row = Education::findOrFail($id);
+        if ($r = UserProject::guardEmployeeId($row->employee_id)) {
+            return $r;
+        }
+
         $rules = [
             'employee_id' => 'required',
             'education_name' => 'required',
@@ -86,21 +97,37 @@ class EducationController extends Controller
             'education_remarks' => 'required',
         ];
         $validatedData = $request->validate($rules);
+        if ($r = UserProject::guardEmployeeId($request->employee_id)) {
+            return $r;
+        }
+
         Education::where('id', $id)->update($validatedData);
 
-        return redirect('employees/' . $request->employee_id . '#education')->with('toast_success', 'Education Employee Update Successfully');
+        return redirect('employees/'.$request->employee_id.'#education')->with('toast_success', 'Education Employee Update Successfully');
     }
 
     public function delete($employee_id, $id)
     {
-        $educations = Education::where('id', $id)->first();
+        if ($r = UserProject::guardEmployeeId($employee_id)) {
+            return $r;
+        }
+        $educations = Education::where('id', $id)->firstOrFail();
+        if ((int) $educations->employee_id !== (int) $employee_id) {
+            return UserProject::redirectAccessDenied();
+        }
         $educations->delete();
-        return redirect('employees/' . $employee_id . '#education')->with('toast_success', 'Education Employee Delete Successfully');
+
+        return redirect('employees/'.$employee_id.'#education')->with('toast_success', 'Education Employee Delete Successfully');
     }
 
     public function deleteAll($employee_id)
     {
+        if ($r = UserProject::guardEmployeeId($employee_id)) {
+            return $r;
+        }
+
         Education::where('employee_id', $employee_id)->delete();
-        return redirect('employees/' . $employee_id . '#education')->with('toast_success', 'Education Employee Delete Successfully');
+
+        return redirect('employees/'.$employee_id.'#education')->with('toast_success', 'Education Employee Delete Successfully');
     }
 }

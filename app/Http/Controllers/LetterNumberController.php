@@ -2,16 +2,15 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Project;
-use App\Models\LetterNumber;
-use Illuminate\Http\Request;
-use App\Models\LetterSubject;
-use App\Models\Administration;
-use App\Models\LetterCategory;
-use Maatwebsite\Excel\Facades\Excel;
 use App\Exports\LetterAdministrationExport;
 use App\Imports\LetterAdministrationImport;
-use App\Imports\Sheets\InternalSheetImport;
+use App\Models\Administration;
+use App\Models\LetterCategory;
+use App\Models\LetterNumber;
+use App\Models\LetterSubject;
+use App\Models\Project;
+use Illuminate\Http\Request;
+use Maatwebsite\Excel\Facades\Excel;
 use Maatwebsite\Excel\Validators\ValidationException;
 
 class LetterNumberController extends Controller
@@ -43,7 +42,7 @@ class LetterNumberController extends Controller
         $query = LetterCategory::where('is_active', 1);
 
         // If user doesn't have access to project 000H, exclude restricted categories
-        if (!$this->hasAccessToProject000H()) {
+        if (! $this->hasAccessToProject000H()) {
             $query->whereNotIn('category_code', ['CRTE', 'PKWT', 'SKPK']);
         }
 
@@ -55,7 +54,7 @@ class LetterNumberController extends Controller
      */
     private function validateCategoryAccess($categoryCode)
     {
-        if (in_array($categoryCode, ['CRTE', 'PKWT', 'SKPK']) && !$this->hasAccessToProject000H()) {
+        if (in_array($categoryCode, ['CRTE', 'PKWT', 'SKPK']) && ! $this->hasAccessToProject000H()) {
             abort(403, 'You do not have permission to use this letter category.');
         }
     }
@@ -82,11 +81,11 @@ class LetterNumberController extends Controller
             'project',
             'user',
             'reservedBy',
-            'usedBy'
+            'usedBy',
         ])
             ->whereIn('project_id', $userProjects)
             ->when($request->letter_number, function ($query, $letterNumber) {
-                return $query->where('letter_number', 'like', '%' . $letterNumber . '%');
+                return $query->where('letter_number', 'like', '%'.$letterNumber.'%');
             })
             ->when($request->letter_category_id, function ($query, $category) {
                 return $query->where('letter_category_id', $category);
@@ -101,10 +100,10 @@ class LetterNumberController extends Controller
                 return $query->where('letter_date', '<=', $date);
             })
             ->when($request->destination, function ($query, $destination) {
-                return $query->where('destination', 'like', '%' . $destination . '%');
+                return $query->where('destination', 'like', '%'.$destination.'%');
             })
             ->when($request->remarks, function ($query, $remarks) {
-                return $query->where('remarks', 'like', '%' . $remarks . '%');
+                return $query->where('remarks', 'like', '%'.$remarks.'%');
             })
             ->orderBy('created_at', 'desc')
             ->orderBy('sequence_number', 'desc');
@@ -122,8 +121,8 @@ class LetterNumberController extends Controller
             })
             ->addColumn('destination', function ($row) {
                 return $row->destination ?
-                    '<span title="' . htmlspecialchars($row->destination) . '">' .
-                    (strlen($row->destination) > 30 ? substr($row->destination, 0, 27) . '...' : $row->destination) . '</span>' : '-';
+                    '<span title="'.htmlspecialchars($row->destination).'">'.
+                    (strlen($row->destination) > 30 ? substr($row->destination, 0, 27).'...' : $row->destination).'</span>' : '-';
             })
             // ->addColumn('employee_display', function ($row) {
             //     if ($row->administration && $row->administration->employee) {
@@ -137,6 +136,7 @@ class LetterNumberController extends Controller
                 if ($row->project) {
                     return $row->project->project_code;
                 }
+
                 return $row->project_code ?? '-';
             })
             ->addColumn('status_badge', function ($row) {
@@ -145,12 +145,13 @@ class LetterNumberController extends Controller
                     'used' => '<span class="badge badge-success">Used</span>',
                     'cancelled' => '<span class="badge badge-danger">Cancelled</span>',
                 ];
+
                 return $badges[$row->status] ?? '<span class="badge badge-secondary">Unknown</span>';
             })
             ->addColumn('remarks', function ($row) {
                 return $row->remarks ?
-                    '<span title="' . htmlspecialchars($row->remarks) . '">' .
-                    (strlen($row->remarks) > 50 ? substr($row->remarks, 0, 47) . '...' : $row->remarks) . '</span>' : '-';
+                    '<span title="'.htmlspecialchars($row->remarks).'">'.
+                    (strlen($row->remarks) > 50 ? substr($row->remarks, 0, 47).'...' : $row->remarks).'</span>' : '-';
             })
             ->addColumn('action', function ($row) {
                 return view('letter-numbers.action', compact('row'));
@@ -260,7 +261,7 @@ class LetterNumberController extends Controller
 
         $request->validate($rules);
 
-        $letterNumber = new LetterNumber();
+        $letterNumber = new LetterNumber;
         $letterNumber->fill($request->all());
 
         // Set project_id: priority from administration, then from request
@@ -271,7 +272,7 @@ class LetterNumberController extends Controller
             }
         }
         // If project_id not set from administration, use from request (or null)
-        if (!$letterNumber->project_id && $request->project_id) {
+        if (! $letterNumber->project_id && $request->project_id) {
             $letterNumber->project_id = $request->project_id;
         }
 
@@ -279,7 +280,7 @@ class LetterNumberController extends Controller
         $letterNumber->save();
 
         return redirect()->route('letter-numbers.index')
-            ->with('toast_success', 'Letter number created successfully: ' . $letterNumber->letter_number);
+            ->with('toast_success', 'Letter number created successfully: '.$letterNumber->letter_number);
     }
 
     public function show($id)
@@ -291,7 +292,7 @@ class LetterNumberController extends Controller
             'administration.project',
             'project',
             'reservedBy',
-            'usedBy'
+            'usedBy',
         ])
             ->findOrFail($id);
 
@@ -398,14 +399,14 @@ class LetterNumberController extends Controller
             }
         }
         // If project_id not set from administration, use from request (or keep existing)
-        if (!$letterNumber->project_id && $request->project_id) {
+        if (! $letterNumber->project_id && $request->project_id) {
             $letterNumber->project_id = $request->project_id;
         }
 
         $letterNumber->save();
 
         return redirect()->route('letter-numbers.index')
-            ->with('toast_success', 'Letter number updated successfully: ' . $letterNumber->letter_number);
+            ->with('toast_success', 'Letter number updated successfully: '.$letterNumber->letter_number);
     }
 
     public function destroy($id)
@@ -417,14 +418,14 @@ class LetterNumberController extends Controller
             if ($letterNumber->status !== 'reserved') {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Letter number cannot be deleted because it has been used or cancelled'
+                    'message' => 'Letter number cannot be deleted because it has been used or cancelled',
                 ], 400);
             }
 
             if ($letterNumber->related_document_id) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Letter number cannot be deleted because it is linked to a document'
+                    'message' => 'Letter number cannot be deleted because it is linked to a document',
                 ], 400);
             }
 
@@ -432,12 +433,12 @@ class LetterNumberController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Letter number deleted successfully'
+                'message' => 'Letter number deleted successfully',
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'An error occurred while deleting the letter number'
+                'message' => 'An error occurred while deleting the letter number',
             ], 500);
         }
     }
@@ -451,7 +452,7 @@ class LetterNumberController extends Controller
             if ($letterNumber->status !== 'reserved') {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Letter number cannot be cancelled because it has been used or already cancelled'
+                    'message' => 'Letter number cannot be cancelled because it has been used or already cancelled',
                 ], 400);
             }
 
@@ -459,12 +460,12 @@ class LetterNumberController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Letter number cancelled successfully'
+                'message' => 'Letter number cancelled successfully',
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'An error occurred while cancelling the letter number'
+                'message' => 'An error occurred while cancelling the letter number',
             ], 500);
         }
     }
@@ -544,26 +545,26 @@ class LetterNumberController extends Controller
                 ->with('toast_success', 'Letter number has been manually marked as used.');
         } catch (\Exception $e) {
             return redirect()->route('letter-numbers.show', $id)
-                ->with('toast_error', 'An error occurred: ' . $e->getMessage());
+                ->with('toast_error', 'An error occurred: '.$e->getMessage());
         }
     }
 
     public function export()
     {
-        return Excel::download(new LetterAdministrationExport, 'letter-numbers-' . date('Y-m-d') . '.xlsx');
+        return Excel::download(new LetterAdministrationExport, 'letter-numbers-'.date('Y-m-d').'.xlsx');
     }
 
     public function import(Request $request)
     {
         $request->validate([
-            'file' => 'required|mimes:xls,xlsx'
+            'file' => 'required|mimes:xls,xlsx',
         ], [
             'file.required' => 'Please select a file to import.',
-            'file.mimes'    => 'The file must be a file of type: xls, xlsx.'
+            'file.mimes' => 'The file must be a file of type: xls, xlsx.',
         ]);
 
         try {
-            $import = new LetterAdministrationImport();
+            $import = new LetterAdministrationImport;
             Excel::import($import, $request->file('file'));
 
             $failures = $import->failures();
@@ -576,13 +577,14 @@ class LetterNumberController extends Controller
                     $attribute = $failure->attribute();
                     $value = is_array($values) && array_key_exists($attribute, $values) ? $values[$attribute] : null;
                     $formattedFailures->push([
-                        'sheet'     => 'Letter Import',
-                        'row'       => $failure->row(),
+                        'sheet' => 'Letter Import',
+                        'row' => $failure->row(),
                         'attribute' => $attribute,
-                        'value'     => $value,
-                        'errors'    => implode(', ', $failure->errors()),
+                        'value' => $value,
+                        'errors' => implode(', ', $failure->errors()),
                     ]);
                 }
+
                 return back()->with('failures', $formattedFailures);
             }
 
@@ -595,24 +597,26 @@ class LetterNumberController extends Controller
                 $attribute = $failure->attribute();
                 $value = is_array($values) && array_key_exists($attribute, $values) ? $values[$attribute] : null;
                 $failures->push([
-                    'sheet'     => 'Letter Import',
-                    'row'       => $failure->row(),
+                    'sheet' => 'Letter Import',
+                    'row' => $failure->row(),
                     'attribute' => $attribute,
-                    'value'     => $value,
-                    'errors'    => implode(', ', $failure->errors()),
+                    'value' => $value,
+                    'errors' => implode(', ', $failure->errors()),
                 ]);
             }
+
             return back()->with('failures', $failures);
         } catch (\Throwable $e) {
             $failures = collect([
                 [
-                    'sheet'     => 'System Error',
-                    'row'       => '-',
+                    'sheet' => 'System Error',
+                    'row' => '-',
                     'attribute' => 'General Error',
-                    'value'     => null,
-                    'errors'    => 'An error occurred during import: ' . $e->getMessage()
-                ]
+                    'value' => null,
+                    'errors' => 'An error occurred during import: '.$e->getMessage(),
+                ],
             ]);
+
             return back()->with('failures', $failures);
         }
     }

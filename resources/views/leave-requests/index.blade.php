@@ -115,6 +115,7 @@
                                             <tr>
                                                 <th class="align-middle">No</th>
                                                 <th class="align-middle">Employee</th>
+                                                <th class="align-middle">Project</th>
                                                 <th class="align-middle">Leave Type</th>
                                                 <th class="align-middle">Start Date</th>
                                                 <th class="align-middle">End Date</th>
@@ -212,6 +213,12 @@
                         data: 'employee',
                         name: 'employee',
                         orderable: false
+                    },
+                    {
+                        data: 'project',
+                        name: 'project',
+                        orderable: false,
+                        className: 'text-center'
                     },
                     {
                         data: 'leave_type',

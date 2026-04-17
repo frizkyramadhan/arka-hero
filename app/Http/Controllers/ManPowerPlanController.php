@@ -4,13 +4,13 @@ namespace App\Http\Controllers;
 
 use App\Models\ManPowerPlan;
 use App\Models\ManPowerPlanDetail;
-use App\Models\Project;
 use App\Models\Position;
+use App\Support\UserProject;
+use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Exception;
 
 class ManPowerPlanController extends Controller
 {
@@ -27,7 +27,7 @@ class ManPowerPlanController extends Controller
      */
     public function index(Request $request)
     {
-        $projects = Project::all();
+        $projects = UserProject::projectsForSelect();
         $years = range(date('Y'), date('Y') - 5);
 
         $title = 'Man Power Plan (MPP)';
@@ -68,6 +68,8 @@ class ManPowerPlanController extends Controller
             $query->whereDate('created_at', '<=', $request->date_to);
         }
 
+        UserProject::scopeToAssignedProjects($query);
+
         $query->orderBy('created_at', 'desc');
 
         return datatables()->of($query)
@@ -90,20 +92,23 @@ class ManPowerPlanController extends Controller
             ->addColumn('total_diff', function ($mpp) {
                 $diff = $mpp->getTotalDiff();
                 $class = $diff > 0 ? 'text-danger' : ($diff < 0 ? 'text-success' : 'text-muted');
-                return '<span class="' . $class . '">' . ($diff > 0 ? '+' : '') . $diff . '</span>';
+
+                return '<span class="'.$class.'">'.($diff > 0 ? '+' : '').$diff.'</span>';
             })
             ->addColumn('completion', function ($mpp) {
                 $percentage = $mpp->getCompletionPercentage();
                 $class = $percentage >= 100 ? 'bg-success' : ($percentage >= 50 ? 'bg-warning' : 'bg-danger');
+
                 return '<div class="progress">
-                    <div class="progress-bar ' . $class . '" role="progressbar" style="width: ' . $percentage . '%">
-                        ' . $percentage . '%
+                    <div class="progress-bar '.$class.'" role="progressbar" style="width: '.$percentage.'%">
+                        '.$percentage.'%
                     </div>
                 </div>';
             })
             ->addColumn('status', function ($mpp) {
                 $class = $mpp->status === 'active' ? 'badge-success' : 'badge-secondary';
-                return '<span class="badge ' . $class . '">' . ucfirst($mpp->status) . '</span>';
+
+                return '<span class="badge '.$class.'">'.ucfirst($mpp->status).'</span>';
             })
             ->addColumn('action', function ($mpp) {
                 $viewUrl = route('recruitment.mpp.show', $mpp->id);
@@ -111,13 +116,13 @@ class ManPowerPlanController extends Controller
                 $deleteUrl = route('recruitment.mpp.destroy', $mpp->id);
 
                 $btn = '<div class="btn-group">';
-                $btn .= '<a href="' . $viewUrl . '" class="btn btn-sm btn-info mr-1" title="View"><i class="fas fa-eye"></i></a>';
+                $btn .= '<a href="'.$viewUrl.'" class="btn btn-sm btn-info mr-1" title="View"><i class="fas fa-eye"></i></a>';
 
                 if ($mpp->status === 'active') {
-                    $btn .= '<a href="' . $editUrl . '" class="btn btn-sm btn-primary mr-1" title="Edit"><i class="fas fa-edit"></i></a>';
+                    $btn .= '<a href="'.$editUrl.'" class="btn btn-sm btn-primary mr-1" title="Edit"><i class="fas fa-edit"></i></a>';
                 }
 
-                $btn .= '<button type="button" class="btn btn-sm btn-danger btn-delete" data-url="' . $deleteUrl . '" title="Delete"><i class="fas fa-trash"></i></button>';
+                $btn .= '<button type="button" class="btn btn-sm btn-danger btn-delete" data-url="'.$deleteUrl.'" title="Delete"><i class="fas fa-trash"></i></button>';
                 $btn .= '</div>';
 
                 return $btn;
@@ -131,7 +136,7 @@ class ManPowerPlanController extends Controller
      */
     public function create()
     {
-        $projects = Project::all();
+        $projects = UserProject::projectsForSelect();
         // Order positions by department name ASC, then position name ASC (same as detail view)
         $positions = Position::with('department')
             ->where('position_status', 1)
@@ -153,7 +158,15 @@ class ManPowerPlanController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'project_id' => 'required|exists:projects,id',
+            'project_id' => [
+                'required',
+                'exists:projects,id',
+                function ($attribute, $value, $fail) {
+                    if (! UserProject::canAccessProjectId((int) $value)) {
+                        $fail('The selected project is invalid.');
+                    }
+                },
+            ],
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
             'details' => 'required|array|min:1',
@@ -199,13 +212,14 @@ class ManPowerPlanController extends Controller
             return redirect()->route('recruitment.mpp.show', $mpp->id)->with('toast_success', 'MPP created successfully');
         } catch (Exception $e) {
             DB::rollBack();
-            Log::error('Error creating MPP: ' . $e->getMessage(), [
+            Log::error('Error creating MPP: '.$e->getMessage(), [
                 'trace' => $e->getTraceAsString(),
-                'request_data' => $request->all()
+                'request_data' => $request->all(),
             ]);
+
             return redirect()->back()
                 ->withInput()
-                ->with('toast_error', 'Failed to create MPP: ' . $e->getMessage());
+                ->with('toast_error', 'Failed to create MPP: '.$e->getMessage());
         }
     }
 
@@ -222,13 +236,18 @@ class ManPowerPlanController extends Controller
             'details.sessions.fptk',
         ])->findOrFail($id);
 
+        if ($denied = UserProject::guardProjectInAssignmentScope((int) $mpp->project_id)) {
+            return $denied;
+        }
+
         // Sort details by department name ASC, then position name ASC
         $mpp->details = $mpp->details->sortBy(function ($detail) {
             $deptName = $detail->position && $detail->position->department
                 ? $detail->position->department->department_name
                 : '';
             $positionName = $detail->position ? $detail->position->position_name : '';
-            return $deptName . '|' . $positionName;
+
+            return $deptName.'|'.$positionName;
         })->values();
 
         $title = 'MPP Details';
@@ -244,11 +263,15 @@ class ManPowerPlanController extends Controller
     {
         $mpp = ManPowerPlan::with([
             'details.position.department',
-            'details.sessions'
+            'details.sessions',
         ])->findOrFail($id);
 
         if ($mpp->status === ManPowerPlan::STATUS_CLOSED) {
             return redirect()->route('recruitment.mpp.show', $id)->with('toast_warning', 'Cannot edit closed MPP');
+        }
+
+        if ($denied = UserProject::guardProjectInAssignmentScope((int) $mpp->project_id)) {
+            return $denied;
         }
 
         // Sort details by department name ASC, then position name ASC (same as show method)
@@ -257,10 +280,11 @@ class ManPowerPlanController extends Controller
                 ? $detail->position->department->department_name
                 : '';
             $positionName = $detail->position ? $detail->position->position_name : '';
-            return $deptName . '|' . $positionName;
+
+            return $deptName.'|'.$positionName;
         })->values();
 
-        $projects = Project::all();
+        $projects = UserProject::projectsForSelect();
         // Order positions by department name ASC, then position name ASC (same as detail view)
         $positions = Position::with('department')
             ->where('position_status', 1)
@@ -283,6 +307,10 @@ class ManPowerPlanController extends Controller
     {
         $mpp = ManPowerPlan::findOrFail($id);
 
+        if ($denied = UserProject::guardProjectInAssignmentScope((int) $mpp->project_id)) {
+            return $denied;
+        }
+
         if ($mpp->status === ManPowerPlan::STATUS_CLOSED) {
             return redirect()->route('recruitment.mpp.show', $id)->with('toast_warning', 'Cannot update closed MPP');
         }
@@ -291,7 +319,7 @@ class ManPowerPlanController extends Controller
         // Only keep details that have position_id (required field)
         $details = $request->input('details', []);
         $filteredDetails = array_filter($details, function ($detail) {
-            return !empty($detail['position_id']);
+            return ! empty($detail['position_id']);
         });
 
         // Re-index array to ensure sequential keys (0, 1, 2, ...)
@@ -301,7 +329,15 @@ class ManPowerPlanController extends Controller
         $request->merge(['details' => $filteredDetails]);
 
         $validated = $request->validate([
-            'project_id' => 'required|exists:projects,id',
+            'project_id' => [
+                'required',
+                'exists:projects,id',
+                function ($attribute, $value, $fail) {
+                    if (! UserProject::canAccessProjectId((int) $value)) {
+                        $fail('The selected project is invalid.');
+                    }
+                },
+            ],
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
             'details' => 'required|array|min:1',
@@ -331,7 +367,7 @@ class ManPowerPlanController extends Controller
 
             // Update or create details
             foreach ($validated['details'] as $detail) {
-                if (!empty($detail['id'])) {
+                if (! empty($detail['id'])) {
                     // Update existing detail
                     $mppDetail = ManPowerPlanDetail::findOrFail($detail['id']);
                     $mppDetail->update([
@@ -374,14 +410,15 @@ class ManPowerPlanController extends Controller
             return redirect()->route('recruitment.mpp.show', $mpp->id)->with('toast_success', 'MPP updated successfully');
         } catch (Exception $e) {
             DB::rollBack();
-            Log::error('Error updating MPP: ' . $e->getMessage(), [
+            Log::error('Error updating MPP: '.$e->getMessage(), [
                 'trace' => $e->getTraceAsString(),
                 'request_data' => $request->all(),
-                'mpp_id' => $id
+                'mpp_id' => $id,
             ]);
+
             return redirect()->back()
                 ->withInput()
-                ->with('toast_error', 'Failed to update MPP: ' . $e->getMessage());
+                ->with('toast_error', 'Failed to update MPP: '.$e->getMessage());
         }
     }
 
@@ -393,6 +430,10 @@ class ManPowerPlanController extends Controller
         try {
             $mpp = ManPowerPlan::findOrFail($id);
 
+            if ($denied = UserProject::guardProjectInAssignmentScope((int) $mpp->project_id)) {
+                return $denied;
+            }
+
             // Check if any detail has sessions
             $hasSessions = $mpp->details()->has('sessions')->exists();
             if ($hasSessions) {
@@ -403,7 +444,8 @@ class ManPowerPlanController extends Controller
 
             return redirect()->route('recruitment.mpp.index')->with('toast_success', 'MPP deleted successfully');
         } catch (Exception $e) {
-            Log::error('Error deleting MPP: ' . $e->getMessage());
+            Log::error('Error deleting MPP: '.$e->getMessage());
+
             return redirect()->back()->with('toast_error', 'Failed to delete MPP');
         }
     }
@@ -416,6 +458,10 @@ class ManPowerPlanController extends Controller
         try {
             $mpp = ManPowerPlan::findOrFail($id);
 
+            if ($denied = UserProject::guardProjectInAssignmentScope((int) $mpp->project_id)) {
+                return $denied;
+            }
+
             if ($mpp->status === ManPowerPlan::STATUS_CLOSED) {
                 return redirect()->route('recruitment.mpp.show', $id)->with('toast_warning', 'MPP is already closed');
             }
@@ -424,7 +470,8 @@ class ManPowerPlanController extends Controller
 
             return redirect()->route('recruitment.mpp.show', $id)->with('toast_success', 'MPP closed successfully');
         } catch (Exception $e) {
-            Log::error('Error closing MPP: ' . $e->getMessage());
+            Log::error('Error closing MPP: '.$e->getMessage());
+
             return redirect()->back()->with('toast_error', 'Failed to close MPP');
         }
     }

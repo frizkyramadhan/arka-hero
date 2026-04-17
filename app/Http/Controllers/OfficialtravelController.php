@@ -2,28 +2,24 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\User;
-use App\Models\Project;
-use App\Models\ApprovalPlan;
-use App\Models\LetterNumber;
-use Illuminate\Http\Request;
 use App\Models\Accommodation;
-use App\Models\ApprovalStage;
 use App\Models\Administration;
-use App\Models\Officialtravel;
+use App\Models\ApprovalPlan;
 use App\Models\FlightRequest;
-use App\Models\Transportation;
+use App\Models\LetterNumber;
+use App\Models\Officialtravel;
+use App\Models\Officialtravel_detail;
 use App\Models\OfficialtravelStop;
+use App\Models\Transportation;
+use App\Support\UserProject;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Str;
-use Maatwebsite\Excel\Facades\Excel;
-use App\Models\Officialtravel_detail;
-use Maatwebsite\Excel\Concerns\WithMapping;
-use Spatie\Activitylog\Facades\LogActivity;
-use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\FromCollection;
+use Maatwebsite\Excel\Concerns\WithHeadings;
+use Maatwebsite\Excel\Concerns\WithMapping;
+use Maatwebsite\Excel\Facades\Excel;
 
 class OfficialtravelController extends Controller
 {
@@ -54,7 +50,7 @@ class OfficialtravelController extends Controller
     {
         $title = 'Official Travels';
         $subtitle = 'List of Official Travels';
-        $projects = Project::where('project_status', 1)->orderBy('project_code', 'asc')->get();
+        $projects = UserProject::projectsForSelect();
 
         return view('officialtravels.index', compact('title', 'subtitle', 'projects'));
     }
@@ -70,48 +66,50 @@ class OfficialtravelController extends Controller
             'transportation',
             'accommodation',
             'details.follower.employee',
-            'creator'
+            'creator',
         ]);
 
+        UserProject::scopeToAssignedProjects($officialtravels, 'official_travel_origin');
+
         // Filter by date range
-        if (!empty($request->get('date1')) && !empty($request->get('date2'))) {
+        if (! empty($request->get('date1')) && ! empty($request->get('date2'))) {
             $officialtravels->whereBetween('official_travel_date', [
                 $request->get('date1'),
-                $request->get('date2')
+                $request->get('date2'),
             ]);
         }
 
         // Filter by travel number
-        if (!empty($request->get('travel_number'))) {
-            $officialtravels->where('official_travel_number', 'LIKE', '%' . $request->get('travel_number') . '%');
+        if (! empty($request->get('travel_number'))) {
+            $officialtravels->where('official_travel_number', 'LIKE', '%'.$request->get('travel_number').'%');
         }
 
         // Filter by destination
-        if (!empty($request->get('destination'))) {
-            $officialtravels->where('destination', 'LIKE', '%' . $request->get('destination') . '%');
+        if (! empty($request->get('destination'))) {
+            $officialtravels->where('destination', 'LIKE', '%'.$request->get('destination').'%');
         }
 
         // Filter by NIK
-        if (!empty($request->get('nik'))) {
+        if (! empty($request->get('nik'))) {
             $officialtravels->whereHas('traveler', function ($query) use ($request) {
-                $query->where('nik', 'LIKE', '%' . $request->get('nik') . '%');
+                $query->where('nik', 'LIKE', '%'.$request->get('nik').'%');
             });
         }
 
         // Filter by Traveler Name
-        if (!empty($request->get('fullname'))) {
+        if (! empty($request->get('fullname'))) {
             $officialtravels->whereHas('traveler.employee', function ($query) use ($request) {
-                $query->where('fullname', 'LIKE', '%' . $request->get('fullname') . '%');
+                $query->where('fullname', 'LIKE', '%'.$request->get('fullname').'%');
             });
         }
 
         // Filter by project
-        if (!empty($request->get('project'))) {
+        if (! empty($request->get('project'))) {
             $officialtravels->where('official_travel_origin', $request->get('project'));
         }
 
         // Filter by status
-        if (!empty($request->get('status'))) {
+        if (! empty($request->get('status'))) {
             if ($request->get('status') === 'pending_hr') {
                 $officialtravels->where('submitted_by_user', true)->whereNull('letter_number_id');
             } else {
@@ -120,7 +118,7 @@ class OfficialtravelController extends Controller
         }
 
         // Global search
-        if (!empty($request->get('search'))) {
+        if (! empty($request->get('search'))) {
             $search = $request->get('search');
             $officialtravels->where(function ($query) use ($search) {
                 $query->where('official_travel_number', 'LIKE', "%$search%")
@@ -149,8 +147,9 @@ class OfficialtravelController extends Controller
             ->addColumn('traveler', function ($officialtravel) {
                 $traveler = $officialtravel->traveler;
                 if ($traveler && $traveler->employee) {
-                    return $traveler->nik . ' - ' . $traveler->employee->fullname;
+                    return $traveler->nik.' - '.$traveler->employee->fullname;
                 }
+
                 return '-';
             })
             ->addColumn('project', function ($officialtravel) {
@@ -177,11 +176,12 @@ class OfficialtravelController extends Controller
                     case 'closed':
                         return '<span class="badge badge-secondary">Closed</span>';
                     default:
-                        return '<span class="badge badge-light">' . ucfirst($officialtravel->status) . '</span>';
+                        return '<span class="badge badge-light">'.ucfirst($officialtravel->status).'</span>';
                 }
             })
             ->addColumn('created_by', function ($officialtravel) {
-                $creator = '<small>' . $officialtravel->creator->name . '</small>';
+                $creator = '<small>'.$officialtravel->creator->name.'</small>';
+
                 return $creator;
             })
             ->addColumn('action', function ($model) {
@@ -202,36 +202,28 @@ class OfficialtravelController extends Controller
         $title = 'Official Travels';
         $subtitle = 'Add Official Travel (LOT)';
 
-        $user = Auth::user()->load(['projects', 'departments']);
-        $projects = Project::whereIn('id', $user->projects->pluck('id'))->where('project_status', 1)->get();
+        $projects = UserProject::projectsForSelect();
         $accommodations = Accommodation::where('accommodation_status', 1)->get();
         $transportations = Transportation::where('transportation_status', 1)->get();
 
         // Travel Number will be generated based on selected letter number
         $romanMonth = $this->numberToRoman(now()->month);
-        $travelNumber = sprintf("ARKA/[Letter Number]/HR/%s/%s", $romanMonth, now()->year);
+        $travelNumber = sprintf('ARKA/[Letter Number]/HR/%s/%s', $romanMonth, now()->year);
 
         // Load employees with their relationships
-        $employees = Administration::with([
-            'employee',
-            'position.department',
-            'project'
-        ])
-            ->where('is_active', 1)
-            ->orderBy('nik', 'asc')->get()->map(function ($employee) {
-                return [
-                    'id' => $employee->id,
-                    'nik' => $employee->nik,
-                    'fullname' => $employee->employee->fullname ?? 'Unknown',
-                    'position' => $employee->position->position_name ?? '-',
-                    'project' => $employee->project->project_name ?? '-',
-                    'department' => $employee->position->department->department_name ?? '-',
-                    'position_id' => $employee->position_id,
-                    'project_id' => $employee->project_id,
-                    'department_id' => $employee->position->department_id
-                ];
-            });
-
+        $employees = $this->administrationsForOfficialTravelSelectQuery()->get()->map(function ($employee) {
+            return [
+                'id' => $employee->id,
+                'nik' => $employee->nik,
+                'fullname' => $employee->employee->fullname ?? 'Unknown',
+                'position' => $employee->position->position_name ?? '-',
+                'project' => $employee->project->project_name ?? '-',
+                'department' => $employee->position->department->department_name ?? '-',
+                'position_id' => $employee->position_id,
+                'project_id' => $employee->project_id,
+                'department_id' => $employee->position->department_id ?? null,
+            ];
+        });
 
         return view('officialtravels.create', compact(
             'title',
@@ -248,7 +240,6 @@ class OfficialtravelController extends Controller
     /**
      * Get approver selector component with different display modes
      *
-     * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\Response
      */
     public function getApproverSelector(Request $request)
@@ -262,14 +253,13 @@ class OfficialtravelController extends Controller
             'multiple' => true,
             'placeholder' => 'Pilih approver untuk menyetujui perjalanan dinas ini',
             'helpText' => 'Pilih minimal 1 approver dengan role approver',
-            'displayMode' => $displayMode
+            'displayMode' => $displayMode,
         ])->header('Content-Type', 'text/html');
     }
 
     /**
      * Store a newly created resource in storage.
      *
-     * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\Response
      */
     public function store(Request $request)
@@ -331,6 +321,10 @@ class OfficialtravelController extends Controller
                 'submit_action.in' => 'Invalid submit action.',
             ]);
 
+            if ($r = $this->guardOfficialtravelRequestOrigin($request)) {
+                return $r;
+            }
+
             DB::beginTransaction();
 
             // Handle letter number integration and generate LOT number
@@ -347,9 +341,9 @@ class OfficialtravelController extends Controller
                     $letterNumberString = $letterNumberRecord->letter_number;
 
                     // Generate LOT number using selected letter number
-                    $travelNumber = sprintf("ARKA/%s/HR/%s/%s", $letterNumberString, $romanMonth, now()->year);
+                    $travelNumber = sprintf('ARKA/%s/HR/%s/%s', $letterNumberString, $romanMonth, now()->year);
                 } else {
-                    throw new \Exception('Selected letter number is not available or not reserved. Current status: ' . ($letterNumberRecord ? $letterNumberRecord->status : 'not found'));
+                    throw new \Exception('Selected letter number is not available or not reserved. Current status: '.($letterNumberRecord ? $letterNumberRecord->status : 'not found'));
                 }
             } else {
                 // Generate LOT number with auto sequence if no letter number selected
@@ -357,14 +351,14 @@ class OfficialtravelController extends Controller
                     ->orderBy('created_at', 'desc')
                     ->first();
 
-                $sequence = $lastTravel ? (int)substr($lastTravel->official_travel_number, 6, 4) + 1 : 1;
-                $travelNumber = sprintf("ARKA/B%04d/HR/%s/%s", $sequence, $romanMonth, now()->year);
+                $sequence = $lastTravel ? (int) substr($lastTravel->official_travel_number, 6, 4) + 1 : 1;
+                $travelNumber = sprintf('ARKA/B%04d/HR/%s/%s', $sequence, $romanMonth, now()->year);
             }
 
             // Check if generated travel number already exists
             $exists = Officialtravel::where('official_travel_number', $travelNumber)->exists();
             if ($exists) {
-                throw new \Exception('Generated LOT number already exists: ' . $travelNumber . '. Please try again or select a different letter number.');
+                throw new \Exception('Generated LOT number already exists: '.$travelNumber.'. Please try again or select a different letter number.');
             }
 
             // Determine status based on submit action
@@ -373,7 +367,7 @@ class OfficialtravelController extends Controller
 
             // Ensure manual_approvers is an array and preserve order
             $manualApprovers = $request->manual_approvers ?? [];
-            if (!is_array($manualApprovers)) {
+            if (! is_array($manualApprovers)) {
                 $manualApprovers = [];
             }
             // Ensure array values are preserved in order (array_values to reset keys)
@@ -409,7 +403,7 @@ class OfficialtravelController extends Controller
                     'letter_number_id' => $letterNumberRecord->id,
                     'letter_number' => $letterNumberRecord->letter_number,
                     'officialtravel_id' => $officialtravel->id,
-                    'official_travel_number' => $officialtravel->official_travel_number
+                    'official_travel_number' => $officialtravel->official_travel_number,
                 ]);
             }
 
@@ -418,22 +412,27 @@ class OfficialtravelController extends Controller
                 foreach ($request->followers as $followerId) {
                     Officialtravel_detail::create([
                         'official_travel_id' => $officialtravel->id,
-                        'follower_id' => $followerId
+                        'follower_id' => $followerId,
                     ]);
                 }
             }
 
+            // Optional flight request (fr_data) — sama seperti pengajuan my-travels
+            FlightRequest::createFromFrData($request, $officialtravel);
+
             // If submitted, create approval plans using manual approvers
-            if ($request->submit_action === 'submit' && !empty($manualApprovers)) {
+            if ($request->submit_action === 'submit' && ! empty($manualApprovers)) {
                 $response = app(ApprovalPlanController::class)->create_manual_approval_plan('officialtravel', $officialtravel->id);
-                if (!$response || $response === 0) {
+                if (! $response || $response === 0) {
                     DB::rollback();
+
                     return redirect()->back()
                         ->with('toast_error', 'Failed to create approval plans. Please ensure at least one approver is selected.')
                         ->withInput();
                 }
             } elseif ($request->submit_action === 'submit' && empty($manualApprovers)) {
                 DB::rollback();
+
                 return redirect()->back()
                     ->with('toast_error', 'Please select at least one approver before submitting.')
                     ->withInput();
@@ -443,9 +442,9 @@ class OfficialtravelController extends Controller
 
             $message = 'Official Travel created successfully!';
             if ($letterNumberString) {
-                $message .= ' Letter Number: ' . $letterNumberString . ' (Status changed to Used)';
+                $message .= ' Letter Number: '.$letterNumberString.' (Status changed to Used)';
             }
-            $message .= ' LOT Number: ' . $travelNumber;
+            $message .= ' LOT Number: '.$travelNumber;
 
             if ($request->submit_action === 'submit') {
                 $message .= ' Status: Submitted for approval.';
@@ -460,8 +459,9 @@ class OfficialtravelController extends Controller
                 ->withInput();
         } catch (\Exception $e) {
             DB::rollback();
+
             return redirect()->back()
-                ->with('toast_error', 'Failed to create Official Travel. ' . $e->getMessage())
+                ->with('toast_error', 'Failed to create Official Travel. '.$e->getMessage())
                 ->withInput();
         }
     }
@@ -483,10 +483,15 @@ class OfficialtravelController extends Controller
             'transportation',
             'accommodation',
             'details.follower.employee',
+            'flightRequests.details',
             'stops.arrivalChecker',
             'stops.departureChecker',
-            'latestStop'
+            'latestStop',
         ])->findOrFail($id);
+
+        if ($r = $this->guardOfficialtravelProject($officialtravel)) {
+            return $r;
+        }
 
         return view('officialtravels.show', compact('title', 'subtitle', 'officialtravel'));
     }
@@ -494,16 +499,18 @@ class OfficialtravelController extends Controller
     /**
      * Show the form for editing the specified resource.
      *
-     * @param  \App\Models\Officialtravel  $officialtravel
      * @return \Illuminate\Http\Response
      */
     public function edit(Officialtravel $officialtravel)
     {
+        if ($r = $this->guardOfficialtravelProject($officialtravel)) {
+            return $r;
+        }
+
         $title = 'Official Travels';
         $subtitle = 'Edit Official Travel';
 
-        $user = Auth::user()->load(['projects', 'departments']);
-        $projects = Project::whereIn('id', $user->projects->pluck('id'))->where('project_status', 1)->get();
+        $projects = UserProject::projectsForSelect();
         $accommodations = Accommodation::where('accommodation_status', 1)->get();
         $transportations = Transportation::where('transportation_status', 1)->get();
 
@@ -513,15 +520,11 @@ class OfficialtravelController extends Controller
             'details.follower.project',
             'traveler.position.department',
             'traveler.project',
-            'project'
+            'project',
         ]);
 
         // Load employees with their relationships
-        $employees = Administration::with([
-            'employee',
-            'position.department',
-            'project'
-        ])->get()->map(function ($employee) {
+        $employees = $this->administrationsForOfficialTravelSelectQuery()->get()->map(function ($employee) {
             $position = $employee->position;
             $department = $position ? ($position->department ?? null) : null;
 
@@ -534,12 +537,14 @@ class OfficialtravelController extends Controller
                 'department' => $department ? ($department->department_name ?? '-') : '-',
                 'position_id' => $employee->position_id,
                 'project_id' => $employee->project_id,
-                'department_id' => $position ? ($position->department_id ?? ($department ? $department->id : null)) : null
+                'department_id' => $position ? ($position->department_id ?? ($department ? $department->id : null)) : null,
             ];
         });
 
         // Get selected followers
         $selectedFollowers = $officialtravel->details->pluck('follower_id')->toArray();
+
+        $existingFlightRequest = $officialtravel->flightRequests()->with('details')->first();
 
         return view('officialtravels.edit', compact(
             'title',
@@ -550,18 +555,21 @@ class OfficialtravelController extends Controller
             'transportations',
             'employees',
             'selectedFollowers',
+            'existingFlightRequest',
         ));
     }
 
     /**
      * Update the specified resource in storage.
      *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  \App\Models\Officialtravel  $officialtravel
      * @return \Illuminate\Http\Response
      */
     public function update(Request $request, Officialtravel $officialtravel)
     {
+        if ($r = $this->guardOfficialtravelProject($officialtravel)) {
+            return $r;
+        }
+
         try {
             $isPendingHr = $officialtravel->isPendingHr();
 
@@ -587,7 +595,7 @@ class OfficialtravelController extends Controller
                 ]);
             } else {
                 $this->validate($request, [
-                    'official_travel_number' => 'required|unique:officialtravels,official_travel_number,' . $officialtravel->id,
+                    'official_travel_number' => 'required|unique:officialtravels,official_travel_number,'.$officialtravel->id,
                     'official_travel_date' => 'required|date',
                     'official_travel_origin' => 'required',
                     'traveler_id' => 'required',
@@ -607,6 +615,10 @@ class OfficialtravelController extends Controller
                 ]);
             }
 
+            if ($r = $this->guardOfficialtravelRequestOrigin($request)) {
+                return $r;
+            }
+
             DB::beginTransaction();
 
             if ($officialtravel->status !== 'draft') {
@@ -615,7 +627,7 @@ class OfficialtravelController extends Controller
 
             // Ensure manual_approvers is an array and preserve order
             $manualApprovers = $request->manual_approvers ?? [];
-            if (!is_array($manualApprovers)) {
+            if (! is_array($manualApprovers)) {
                 $manualApprovers = [];
             }
             $manualApprovers = array_values(array_filter($manualApprovers));
@@ -625,13 +637,13 @@ class OfficialtravelController extends Controller
             if ($isPendingHr && $request->letter_number_id) {
                 // Assign letter number (HR confirmation for user submission)
                 $letterNumberRecord = LetterNumber::find($request->letter_number_id);
-                if (!$letterNumberRecord || $letterNumberRecord->status !== 'reserved') {
-                    throw new \Exception('Nomor surat tidak tersedia atau belum di-reserve. Status: ' . ($letterNumberRecord ? $letterNumberRecord->status : 'not found'));
+                if (! $letterNumberRecord || $letterNumberRecord->status !== 'reserved') {
+                    throw new \Exception('Nomor surat tidak tersedia atau belum di-reserve. Status: '.($letterNumberRecord ? $letterNumberRecord->status : 'not found'));
                 }
                 $romanMonth = $this->numberToRoman(now()->month);
-                $travelNumber = sprintf("ARKA/%s/HR/%s/%s", $letterNumberRecord->letter_number, $romanMonth, now()->year);
+                $travelNumber = sprintf('ARKA/%s/HR/%s/%s', $letterNumberRecord->letter_number, $romanMonth, now()->year);
                 if (Officialtravel::where('official_travel_number', $travelNumber)->where('id', '!=', $officialtravel->id)->exists()) {
-                    throw new \Exception('Nomor LOT dari surat ini sudah digunakan: ' . $travelNumber);
+                    throw new \Exception('Nomor LOT dari surat ini sudah digunakan: '.$travelNumber);
                 }
 
                 $officialtravel->update([
@@ -685,26 +697,35 @@ class OfficialtravelController extends Controller
                 foreach ($request->followers as $followerId) {
                     Officialtravel_detail::create([
                         'official_travel_id' => $officialtravel->id,
-                        'follower_id' => $followerId
+                        'follower_id' => $followerId,
                     ]);
                 }
             }
+
+            // Flight request: sync dari fr_data (sama seperti my-travels update)
+            $officialtravel->flightRequests()->each(function ($fr) {
+                $fr->delete();
+            });
+            FlightRequest::createFromFrData($request, $officialtravel);
 
             DB::commit();
 
             $message = $isPendingHr
                 ? 'Pengajuan LOT telah dikonfirmasi. Nomor surat dan nomor LOT telah diisi. Status: Draft.'
                 : 'Official Travel updated successfully!';
-            return redirect('officialtravels/' . $officialtravel->id)->with('toast_success', $message);
+
+            return redirect('officialtravels/'.$officialtravel->id)->with('toast_success', $message);
         } catch (\Illuminate\Validation\ValidationException $e) {
             DB::rollback();
+
             return redirect()->back()
                 ->withErrors($e->validator)
                 ->withInput();
         } catch (\Exception $e) {
             DB::rollback();
+
             return redirect()->back()
-                ->with('toast_error', 'Failed to update Official Travel. ' . $e->getMessage())
+                ->with('toast_error', 'Failed to update Official Travel. '.$e->getMessage())
                 ->withInput();
         }
     }
@@ -712,11 +733,14 @@ class OfficialtravelController extends Controller
     /**
      * Remove the specified resource from storage.
      *
-     * @param  \App\Models\Officialtravel  $officialtravel
      * @return \Illuminate\Http\Response
      */
     public function destroy(Officialtravel $officialtravel)
     {
+        if ($r = $this->guardOfficialtravelProject($officialtravel)) {
+            return $r;
+        }
+
         try {
             DB::beginTransaction();
 
@@ -736,8 +760,9 @@ class OfficialtravelController extends Controller
             return redirect('officialtravels')->with('toast_success', 'Official Travel deleted successfully!');
         } catch (\Exception $e) {
             DB::rollback();
+
             return redirect()->back()
-                ->with('toast_error', 'Failed to delete Official Travel. ' . $e->getMessage());
+                ->with('toast_error', 'Failed to delete Official Travel. '.$e->getMessage());
         }
     }
 
@@ -748,6 +773,10 @@ class OfficialtravelController extends Controller
     {
         try {
             $officialtravel = Officialtravel::findOrFail($id);
+
+            if ($r = $this->guardOfficialtravelProject($officialtravel)) {
+                return $r;
+            }
 
             // Check if already submitted
             if ($officialtravel->status === 'submitted') {
@@ -776,8 +805,9 @@ class OfficialtravelController extends Controller
             // Create approval plans using manual approvers
             $response = app(ApprovalPlanController::class)->create_manual_approval_plan('officialtravel', $officialtravel->id);
 
-            if (!$response || $response === 0) {
+            if (! $response || $response === 0) {
                 DB::rollback();
+
                 return redirect()->back()
                     ->with('toast_error', 'Failed to create approval plans. Please ensure at least one approver is selected.');
             }
@@ -785,18 +815,19 @@ class OfficialtravelController extends Controller
             DB::commit();
 
             return redirect()->route('officialtravels.show', $officialtravel->id)
-                ->with('toast_success', 'Official travel has been submitted for approval. ' . $response . ' approver(s) will review your request.');
+                ->with('toast_success', 'Official travel has been submitted for approval. '.$response.' approver(s) will review your request.');
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             return redirect()->back()
                 ->with('toast_error', 'Official travel not found.');
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Error submitting official travel for approval: ' . $e->getMessage(), [
+            Log::error('Error submitting official travel for approval: '.$e->getMessage(), [
                 'officialtravel_id' => $id,
-                'exception' => $e
+                'exception' => $e,
             ]);
+
             return redirect()->back()
-                ->with('toast_error', 'Failed to submit official travel for approval: ' . $e->getMessage());
+                ->with('toast_error', 'Failed to submit official travel for approval: '.$e->getMessage());
         }
     }
 
@@ -811,11 +842,15 @@ class OfficialtravelController extends Controller
             'transportation',
             'accommodation',
             'details.follower.employee',
-            'latestStop'
+            'latestStop',
         ])->findOrFail($id);
 
+        if ($r = $this->guardOfficialtravelProject($officialtravel)) {
+            return $r;
+        }
+
         // Cek apakah bisa record arrival
-        if (!$officialtravel->canRecordArrival()) {
+        if (! $officialtravel->canRecordArrival()) {
             return redirect()->back()->with('toast_error', 'Cannot record arrival at this time. Please check the current status.');
         }
 
@@ -831,8 +866,12 @@ class OfficialtravelController extends Controller
     public function arrivalStamp(Request $request, Officialtravel $officialtravel)
     {
         try {
+            if ($r = $this->guardOfficialtravelProject($officialtravel)) {
+                return $r;
+            }
+
             // Cek apakah bisa record arrival
-            if (!$officialtravel->canRecordArrival()) {
+            if (! $officialtravel->canRecordArrival()) {
                 return redirect()->back()->with('toast_error', 'Cannot record arrival at this time. Please check the current status.');
             }
 
@@ -845,7 +884,7 @@ class OfficialtravelController extends Controller
 
             // Get or create latest stop
             $latestStop = $officialtravel->latestStop;
-            if (!$latestStop || $latestStop->isComplete()) {
+            if (! $latestStop || $latestStop->isComplete()) {
                 // Create new stop
                 $latestStop = OfficialtravelStop::create([
                     'official_travel_id' => $officialtravel->id,
@@ -866,16 +905,18 @@ class OfficialtravelController extends Controller
 
             DB::commit();
 
-            return redirect('officialtravels/' . $officialtravel->id)->with('toast_success', 'Arrival recorded successfully!');
+            return redirect('officialtravels/'.$officialtravel->id)->with('toast_success', 'Arrival recorded successfully!');
         } catch (\Illuminate\Validation\ValidationException $e) {
             DB::rollback();
+
             return redirect()->back()
                 ->withErrors($e->validator)
                 ->withInput();
         } catch (\Exception $e) {
             DB::rollback();
+
             return redirect()->back()
-                ->with('toast_error', 'Failed to record arrival. ' . $e->getMessage())
+                ->with('toast_error', 'Failed to record arrival. '.$e->getMessage())
                 ->withInput();
         }
     }
@@ -891,11 +932,15 @@ class OfficialtravelController extends Controller
             'transportation',
             'accommodation',
             'details.follower.employee',
-            'latestStop'
+            'latestStop',
         ])->findOrFail($id);
 
+        if ($r = $this->guardOfficialtravelProject($officialtravel)) {
+            return $r;
+        }
+
         // Cek apakah bisa record departure
-        if (!$officialtravel->canRecordDeparture()) {
+        if (! $officialtravel->canRecordDeparture()) {
             return redirect()->back()->with('toast_error', 'Cannot record departure at this time. Please check the current status.');
         }
 
@@ -917,17 +962,21 @@ class OfficialtravelController extends Controller
                 'transportation',
                 'accommodation',
                 'details.follower.employee',
-                'latestStop'
+                'latestStop',
             ])->findOrFail($id);
 
+            if ($r = $this->guardOfficialtravelProject($officialtravel)) {
+                return $r;
+            }
+
             // Cek apakah bisa record departure
-            if (!$officialtravel->canRecordDeparture()) {
+            if (! $officialtravel->canRecordDeparture()) {
                 return redirect()->back()->with('toast_error', 'Cannot record departure at this time. Please check the current status.');
             }
 
             $request->validate([
                 'departure_from_destination' => 'required|date',
-                'departure_remark' => 'required|string'
+                'departure_remark' => 'required|string',
             ]);
 
             DB::beginTransaction();
@@ -938,7 +987,7 @@ class OfficialtravelController extends Controller
                 'departure_from_destination' => $request->departure_from_destination,
                 'departure_check_by' => auth()->id(),
                 'departure_remark' => $request->departure_remark,
-                'departure_timestamps' => now()
+                'departure_timestamps' => now(),
             ]);
 
             DB::commit();
@@ -948,13 +997,15 @@ class OfficialtravelController extends Controller
                 ->with('toast_success', 'Departure recorded successfully!');
         } catch (\Illuminate\Validation\ValidationException $e) {
             DB::rollBack();
+
             return redirect()->back()
                 ->withErrors($e->validator)
                 ->withInput();
         } catch (\Exception $e) {
             DB::rollBack();
+
             return redirect()->back()
-                ->with('toast_error', 'Failed to record departure. ' . $e->getMessage())
+                ->with('toast_error', 'Failed to record departure. '.$e->getMessage())
                 ->withInput();
         }
     }
@@ -970,28 +1021,35 @@ class OfficialtravelController extends Controller
             'accommodation',
             'details.follower.employee',
             'stops.arrivalChecker',
-            'stops.departureChecker'
+            'stops.departureChecker',
         ])->findOrFail($id);
+
+        if ($r = $this->guardOfficialtravelProject($officialtravel)) {
+            return $r;
+        }
 
         return view('officialtravels.print', compact('title', 'subtitle', 'officialtravel'));
     }
-
 
     /**
      * Close the official travel
      */
     public function close(Officialtravel $officialtravel)
     {
+        if ($r = $this->guardOfficialtravelProject($officialtravel)) {
+            return $r;
+        }
+
         try {
             // Cek apakah bisa close
-            if (!$officialtravel->canClose()) {
+            if (! $officialtravel->canClose()) {
                 return redirect()->back()->with('toast_error', 'Cannot close official travel. Please ensure at least one complete stop (arrival + departure) is recorded.');
             }
 
             DB::beginTransaction();
 
             $officialtravel->update([
-                'status' => 'closed'
+                'status' => 'closed',
             ]);
 
             DB::commit();
@@ -1000,9 +1058,44 @@ class OfficialtravelController extends Controller
                 ->with('toast_success', 'Official travel has been closed successfully');
         } catch (\Exception $e) {
             DB::rollBack();
+
             return redirect()->back()
-                ->with('toast_error', 'Failed to close official travel. ' . $e->getMessage());
+                ->with('toast_error', 'Failed to close official travel. '.$e->getMessage());
         }
+    }
+
+    /**
+     * @return \Illuminate\Http\RedirectResponse|null
+     */
+    protected function guardOfficialtravelProject(Officialtravel $officialtravel)
+    {
+        return UserProject::guardProjectInAssignmentScope((int) $officialtravel->official_travel_origin);
+    }
+
+    /**
+     * LOT origin project must be in the user's assigned projects (main traveler / followers are not scoped by user_project).
+     *
+     * @return \Illuminate\Http\RedirectResponse|null
+     */
+    protected function guardOfficialtravelRequestOrigin(Request $request)
+    {
+        return UserProject::guardProjectInAssignmentScope((int) $request->official_travel_origin);
+    }
+
+    /**
+     * Administrations for traveler/follower pickers: all active rows (not filtered by user_project).
+     *
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    protected function administrationsForOfficialTravelSelectQuery()
+    {
+        return Administration::with([
+            'employee',
+            'position.department',
+            'project',
+        ])
+            ->where('is_active', 1)
+            ->orderBy('nik', 'asc');
     }
 
     /**
@@ -1023,7 +1116,7 @@ class OfficialtravelController extends Controller
             'IX' => 9,
             'V' => 5,
             'IV' => 4,
-            'I' => 1
+            'I' => 1,
         ];
 
         $result = '';
@@ -1033,6 +1126,7 @@ class OfficialtravelController extends Controller
                 $number -= $value;
             }
         }
+
         return $result;
     }
 
@@ -1051,42 +1145,44 @@ class OfficialtravelController extends Controller
                 'stops.arrivalChecker',
                 'stops.departureChecker',
                 'approval_plans.approver',
-                'creator'
+                'creator',
             ]);
 
+            UserProject::scopeToAssignedProjects($query, 'official_travel_origin');
+
             // Apply the same filters as getOfficialtravels
-            if (!empty($request->get('date1')) && !empty($request->get('date2'))) {
+            if (! empty($request->get('date1')) && ! empty($request->get('date2'))) {
                 $query->whereBetween('official_travel_date', [
                     $request->get('date1'),
-                    $request->get('date2')
+                    $request->get('date2'),
                 ]);
             }
 
-            if (!empty($request->get('travel_number'))) {
-                $query->where('official_travel_number', 'LIKE', '%' . $request->get('travel_number') . '%');
+            if (! empty($request->get('travel_number'))) {
+                $query->where('official_travel_number', 'LIKE', '%'.$request->get('travel_number').'%');
             }
 
-            if (!empty($request->get('destination'))) {
-                $query->where('destination', 'LIKE', '%' . $request->get('destination') . '%');
+            if (! empty($request->get('destination'))) {
+                $query->where('destination', 'LIKE', '%'.$request->get('destination').'%');
             }
 
-            if (!empty($request->get('nik'))) {
+            if (! empty($request->get('nik'))) {
                 $query->whereHas('traveler', function ($q) use ($request) {
-                    $q->where('nik', 'LIKE', '%' . $request->get('nik') . '%');
+                    $q->where('nik', 'LIKE', '%'.$request->get('nik').'%');
                 });
             }
 
-            if (!empty($request->get('fullname'))) {
+            if (! empty($request->get('fullname'))) {
                 $query->whereHas('traveler.employee', function ($q) use ($request) {
-                    $q->where('fullname', 'LIKE', '%' . $request->get('fullname') . '%');
+                    $q->where('fullname', 'LIKE', '%'.$request->get('fullname').'%');
                 });
             }
 
-            if (!empty($request->get('project'))) {
+            if (! empty($request->get('project'))) {
                 $query->where('official_travel_origin', $request->get('project'));
             }
 
-            if (!empty($request->get('status'))) {
+            if (! empty($request->get('status'))) {
                 if ($request->get('status') === 'pending_hr') {
                     $query->where('submitted_by_user', true)->whereNull('letter_number_id');
                 } else {
@@ -1094,7 +1190,7 @@ class OfficialtravelController extends Controller
                 }
             }
 
-            if (!empty($request->get('search'))) {
+            if (! empty($request->get('search'))) {
                 $search = $request->get('search');
                 $query->where(function ($q) use ($search) {
                     $q->where('official_travel_number', 'LIKE', "%$search%")
@@ -1112,7 +1208,8 @@ class OfficialtravelController extends Controller
 
             $officialtravels = $query->orderBy('created_at', 'desc')->get();
 
-            return Excel::download(new class($officialtravels) implements FromCollection, WithHeadings, WithMapping {
+            return Excel::download(new class($officialtravels) implements FromCollection, WithHeadings, WithMapping
+            {
                 private $officialtravels;
 
                 public function __construct($officialtravels)
@@ -1144,7 +1241,7 @@ class OfficialtravelController extends Controller
                         'Departure Date',
                         'Departure Remarks',
                         'Created By',
-                        'Created At'
+                        'Created At',
                     ];
                 }
 
@@ -1152,7 +1249,7 @@ class OfficialtravelController extends Controller
                 {
                     $traveler = $officialtravel->traveler;
                     $travelerName = $traveler && $traveler->employee ?
-                        $traveler->nik . ' - ' . $traveler->employee->fullname : '-';
+                        $traveler->nik.' - '.$traveler->employee->fullname : '-';
 
                     $project = $officialtravel->project ? $officialtravel->project->project_code : '-';
 
@@ -1214,13 +1311,13 @@ class OfficialtravelController extends Controller
                         $departureDate,
                         $departureRemarks,
                         $officialtravel->creator->name ?? '-',
-                        $officialtravel->created_at->format('d/m/Y H:i')
+                        $officialtravel->created_at->format('d/m/Y H:i'),
                     ];
                 }
-            }, 'official_travels_' . date('YmdHis') . '.xlsx');
+            }, 'official_travels_'.date('YmdHis').'.xlsx');
         } catch (\Exception $e) {
             return redirect()->back()
-                ->with('toast_error', 'Failed to export data: ' . $e->getMessage());
+                ->with('toast_error', 'Failed to export data: '.$e->getMessage());
         }
     }
 
@@ -1251,7 +1348,7 @@ class OfficialtravelController extends Controller
         $administrationId = $user->administration_id;
 
         // Return empty result if user has no active administration
-        if (!$administrationId) {
+        if (! $administrationId) {
             return datatables()->of(collect())
                 ->make(true);
         }
@@ -1270,7 +1367,7 @@ class OfficialtravelController extends Controller
 
         // Apply travel number filter
         if ($request->filled('travel_number')) {
-            $query->where('official_travel_number', 'like', '%' . $request->travel_number . '%');
+            $query->where('official_travel_number', 'like', '%'.$request->travel_number.'%');
         }
 
         // Apply status filter
@@ -1295,13 +1392,13 @@ class OfficialtravelController extends Controller
 
         // Apply destination filter
         if ($request->filled('destination')) {
-            $query->where('destination', 'like', '%' . $request->destination . '%');
+            $query->where('destination', 'like', '%'.$request->destination.'%');
         }
 
         // Apply traveler filter
         if ($request->filled('traveler')) {
             $query->whereHas('traveler.employee', function ($q) use ($request) {
-                $q->where('fullname', 'like', '%' . $request->traveler . '%');
+                $q->where('fullname', 'like', '%'.$request->traveler.'%');
             });
         }
 
@@ -1341,21 +1438,23 @@ class OfficialtravelController extends Controller
                     'rejected' => '<span class="badge badge-danger">Rejected</span>',
                     'closed' => '<span class="badge badge-dark">Closed</span>',
                 ];
+
                 return $badges[$row->status] ?? '<span class="badge badge-secondary">Unknown</span>';
             })
             ->addColumn('created_by', function ($row) {
-                return $row->creator ? '<small>' . e($row->creator->name) . '</small>' : '-';
+                return $row->creator ? '<small>'.e($row->creator->name).'</small>' : '-';
             })
             ->addColumn('action', function ($row) {
-                $btn = '<a href="' . route('officialtravels.my-travels.show', $row->id) . '" class="btn btn-sm btn-info mr-1" title="View">
+                $btn = '<a href="'.route('officialtravels.my-travels.show', $row->id).'" class="btn btn-sm btn-info mr-1" title="View">
                             <i class="fas fa-eye"></i>
                         </a>';
                 $canEdit = $row->submitted_by_user && empty($row->letter_number_id);
                 if ($canEdit) {
-                    $btn .= '<a href="' . route('officialtravels.my-travels.edit', $row->id) . '" class="btn btn-sm btn-warning mr-1" title="Edit">
+                    $btn .= '<a href="'.route('officialtravels.my-travels.edit', $row->id).'" class="btn btn-sm btn-warning mr-1" title="Edit">
                             <i class="fas fa-edit"></i>
                         </a>';
                 }
+
                 return $btn;
             })
             ->rawColumns(['status_badge', 'created_by', 'action'])
@@ -1380,14 +1479,15 @@ class OfficialtravelController extends Controller
             'transportation',
             'accommodation',
             'details.follower.employee',
+            'flightRequests.details',
             'stops.arrivalChecker',
             'stops.departureChecker',
-            'latestStop'
+            'latestStop',
         ])->findOrFail($id);
 
         // Ensure user can only view their own official travels
         $administrationId = $user->administration_id;
-        if (!$administrationId) {
+        if (! $administrationId) {
             abort(403, 'You do not have an active administration record. Please contact HR.');
         }
 
@@ -1396,7 +1496,7 @@ class OfficialtravelController extends Controller
             return $detail->follower_id === $administrationId;
         });
 
-        if (!$isMainTraveler && !$isFollower) {
+        if (! $isMainTraveler && ! $isFollower) {
             abort(403, 'You can only view your own official travels.');
         }
 
@@ -1415,7 +1515,7 @@ class OfficialtravelController extends Controller
 
         $user = Auth::user();
         $administrationId = $user->administration_id;
-        if (!$administrationId) {
+        if (! $administrationId) {
             return redirect()->route('officialtravels.my-travels')
                 ->with('toast_error', 'Anda tidak memiliki data administrasi aktif. Silakan hubungi HR.');
         }
@@ -1434,7 +1534,7 @@ class OfficialtravelController extends Controller
         if ($officialtravel->traveler_id !== $administrationId) {
             abort(403, 'Anda hanya dapat mengedit pengajuan LOT Anda sendiri.');
         }
-        if (!$officialtravel->submitted_by_user || $officialtravel->letter_number_id) {
+        if (! $officialtravel->submitted_by_user || $officialtravel->letter_number_id) {
             return redirect()->route('officialtravels.my-travels.show', $id)
                 ->with('toast_error', 'Pengajuan ini sudah dikonfirmasi HR atau bukan pengajuan dari user. Tidak dapat diedit.');
         }
@@ -1442,30 +1542,23 @@ class OfficialtravelController extends Controller
         $title = 'My LOT Request';
         $subtitle = 'Edit LOT Request';
 
-        $user = User::with(['projects', 'departments'])->find($user->id);
-        $projects = Project::whereIn('id', $user->projects->pluck('id'))->where('project_status', 1)->get();
+        $projects = UserProject::projectsForSelect();
         $accommodations = Accommodation::where('accommodation_status', 1)->get();
         $transportations = Transportation::where('transportation_status', 1)->get();
 
-        $employees = Administration::with([
-            'employee',
-            'position.department',
-            'project'
-        ])
-            ->where('is_active', 1)
-            ->orderBy('nik', 'asc')->get()->map(function ($employee) {
-                return [
-                    'id' => $employee->id,
-                    'nik' => $employee->nik,
-                    'fullname' => $employee->employee->fullname ?? 'Unknown',
-                    'position' => $employee->position->position_name ?? '-',
-                    'project' => $employee->project->project_name ?? '-',
-                    'department' => $employee->position->department->department_name ?? '-',
-                    'position_id' => $employee->position_id,
-                    'project_id' => $employee->project_id,
-                    'department_id' => $employee->position->department_id ?? null,
-                ];
-            });
+        $employees = $this->administrationsForOfficialTravelSelectQuery()->get()->map(function ($employee) {
+            return [
+                'id' => $employee->id,
+                'nik' => $employee->nik,
+                'fullname' => $employee->employee->fullname ?? 'Unknown',
+                'position' => $employee->position->position_name ?? '-',
+                'project' => $employee->project->project_name ?? '-',
+                'department' => $employee->position->department->department_name ?? '-',
+                'position_id' => $employee->position_id,
+                'project_id' => $employee->project_id,
+                'department_id' => $employee->position->department_id ?? null,
+            ];
+        });
 
         $myAdministration = Administration::with(['employee', 'position.department', 'project'])->find($administrationId);
 
@@ -1493,7 +1586,7 @@ class OfficialtravelController extends Controller
 
         $user = Auth::user();
         $administrationId = $user->administration_id;
-        if (!$administrationId) {
+        if (! $administrationId) {
             return redirect()->route('officialtravels.my-travels')
                 ->with('toast_error', 'Anda tidak memiliki data administrasi aktif. Silakan hubungi HR.');
         }
@@ -1502,7 +1595,7 @@ class OfficialtravelController extends Controller
         if ($officialtravel->traveler_id !== $administrationId) {
             abort(403, 'Anda hanya dapat mengedit pengajuan LOT Anda sendiri.');
         }
-        if (!$officialtravel->submitted_by_user || $officialtravel->letter_number_id) {
+        if (! $officialtravel->submitted_by_user || $officialtravel->letter_number_id) {
             return redirect()->route('officialtravels.my-travels.show', $id)
                 ->with('toast_error', 'Pengajuan ini sudah dikonfirmasi HR. Tidak dapat diedit.');
         }
@@ -1528,6 +1621,10 @@ class OfficialtravelController extends Controller
                 'transportation_id.required' => 'Transportasi wajib dipilih.',
                 'accommodation_id.required' => 'Akomodasi wajib dipilih.',
             ]);
+
+            if ($r = $this->guardOfficialtravelRequestOrigin($request)) {
+                return $r;
+            }
 
             DB::beginTransaction();
 
@@ -1572,8 +1669,9 @@ class OfficialtravelController extends Controller
                 ->withInput();
         } catch (\Exception $e) {
             DB::rollBack();
+
             return redirect()->back()
-                ->with('toast_error', 'Gagal memperbarui: ' . $e->getMessage())
+                ->with('toast_error', 'Gagal memperbarui: '.$e->getMessage())
                 ->withInput();
         }
     }
@@ -1587,7 +1685,7 @@ class OfficialtravelController extends Controller
 
         $user = Auth::user();
         $administrationId = $user->administration_id;
-        if (!$administrationId) {
+        if (! $administrationId) {
             return redirect()->route('officialtravels.my-travels')
                 ->with('toast_error', 'Anda tidak memiliki data administrasi aktif. Silakan hubungi HR.');
         }
@@ -1595,30 +1693,23 @@ class OfficialtravelController extends Controller
         $title = 'My LOT Request';
         $subtitle = 'Submit LOT Request';
 
-        $user->load(['projects', 'departments']);
-        $projects = Project::whereIn('id', $user->projects->pluck('id'))->where('project_status', 1)->get();
+        $projects = UserProject::projectsForSelect();
         $accommodations = Accommodation::where('accommodation_status', 1)->get();
         $transportations = Transportation::where('transportation_status', 1)->get();
 
-        $employees = Administration::with([
-            'employee',
-            'position.department',
-            'project'
-        ])
-            ->where('is_active', 1)
-            ->orderBy('nik', 'asc')->get()->map(function ($employee) {
-                return [
-                    'id' => $employee->id,
-                    'nik' => $employee->nik,
-                    'fullname' => $employee->employee->fullname ?? 'Unknown',
-                    'position' => $employee->position->position_name ?? '-',
-                    'project' => $employee->project->project_name ?? '-',
-                    'department' => $employee->position->department->department_name ?? '-',
-                    'position_id' => $employee->position_id,
-                    'project_id' => $employee->project_id,
-                    'department_id' => $employee->position->department_id ?? null,
-                ];
-            });
+        $employees = $this->administrationsForOfficialTravelSelectQuery()->get()->map(function ($employee) {
+            return [
+                'id' => $employee->id,
+                'nik' => $employee->nik,
+                'fullname' => $employee->employee->fullname ?? 'Unknown',
+                'position' => $employee->position->position_name ?? '-',
+                'project' => $employee->project->project_name ?? '-',
+                'department' => $employee->position->department->department_name ?? '-',
+                'position_id' => $employee->position_id,
+                'project_id' => $employee->project_id,
+                'department_id' => $employee->position->department_id ?? null,
+            ];
+        });
 
         $myAdministration = Administration::with(['employee', 'position.department', 'project'])->find($administrationId);
 
@@ -1631,7 +1722,7 @@ class OfficialtravelController extends Controller
         if ($lastTravel && preg_match('/^REQ(\d+)$/', $lastTravel->official_travel_number, $m)) {
             $sequence = (int) $m[1] + 1;
         }
-        $previewTravelNumber = 'REQ' . sprintf('%05d', $sequence);
+        $previewTravelNumber = 'REQ'.sprintf('%05d', $sequence);
 
         return view('officialtravels.my-travels-create', compact(
             'title',
@@ -1654,7 +1745,7 @@ class OfficialtravelController extends Controller
 
         $user = Auth::user();
         $administrationId = $user->administration_id;
-        if (!$administrationId) {
+        if (! $administrationId) {
             return redirect()->route('officialtravels.my-travels')
                 ->with('toast_error', 'Anda tidak memiliki data administrasi aktif. Silakan hubungi HR.');
         }
@@ -1681,6 +1772,10 @@ class OfficialtravelController extends Controller
                 'accommodation_id.required' => 'Akomodasi wajib dipilih.',
             ]);
 
+            if ($r = $this->guardOfficialtravelRequestOrigin($request)) {
+                return $r;
+            }
+
             DB::beginTransaction();
 
             // Nomor pengajuan my-travels: REQ00001 saja (tanpa format nomor surat resmi)
@@ -1698,12 +1793,13 @@ class OfficialtravelController extends Controller
             $attempt = 0;
 
             while ($attempt < $maxAttempts) {
-                $travelNumber = 'REQ' . sprintf('%05d', $sequence);
+                $travelNumber = 'REQ'.sprintf('%05d', $sequence);
 
                 // Pengecekan nomor: pastikan belum dipakai (termasuk input bersamaan)
                 if (Officialtravel::where('official_travel_number', $travelNumber)->exists()) {
                     $sequence++;
                     $attempt++;
+
                     continue;
                 }
 
@@ -1736,13 +1832,14 @@ class OfficialtravelController extends Controller
                     if ($isDuplicate) {
                         $sequence++;
                         $attempt++;
+
                         continue;
                     }
                     throw $e;
                 }
             }
 
-            if (!$officialtravel) {
+            if (! $officialtravel) {
                 DB::rollBack();
                 throw new \Exception('Tidak dapat menghasilkan nomor LOT unik. Silakan coba lagi.');
             }
@@ -1772,8 +1869,9 @@ class OfficialtravelController extends Controller
                 ->withInput();
         } catch (\Exception $e) {
             DB::rollBack();
+
             return redirect()->back()
-                ->with('toast_error', 'Gagal mengajukan: ' . $e->getMessage())
+                ->with('toast_error', 'Gagal mengajukan: '.$e->getMessage())
                 ->withInput();
         }
     }

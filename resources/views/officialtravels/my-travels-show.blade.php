@@ -402,6 +402,8 @@
                         </div>
                     @endif
 
+                    @include('officialtravels.partials.flight-request-info')
+
                     <!-- Action Buttons -->
                     <div class="travel-action-buttons">
                         <a href="{{ route('officialtravels.my-travels') }}" class="btn-action back-btn">

@@ -3,22 +3,17 @@
 namespace App\Http\Controllers;
 
 use App\Models\License;
-use App\Models\Employee;
+use App\Support\UserProject;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 
 class LicenseController extends Controller
 {
-
     public function index()
     {
         $title = 'Driver Licensee';
         $subtitle = 'Driver Licensee';
-        $employees = Employee::join('administrations', 'employees.id', '=', 'administrations.employee_id')
-            ->where('administrations.is_active', 1)
-            ->select('employees.*', 'administrations.nik')
-            ->orderBy('employees.fullname', 'asc')
-            ->get();
+        $employees = UserProject::employeesForSelect(null, UserProject::EMPLOYEE_SELECT_ACTIVE_ADMINISTRATION);
+
         return view('license.index', compact('title', 'subtitle', 'employees'));
     }
 
@@ -27,6 +22,7 @@ class LicenseController extends Controller
         $license = License::leftJoin('employees', 'licenses.employee_id', '=', 'employees.id')
             ->select('licenses.*', 'employees.fullname')
             ->orderBy('licenses.driver_license_no', 'asc');
+        UserProject::scopeQueryToEmployeesLinkedViaAdministrations($license, 'licenses.employee_id');
 
         return datatables()->of($license)
             ->addIndexColumn()
@@ -44,7 +40,7 @@ class LicenseController extends Controller
             })
 
             ->filter(function ($instance) use ($request) {
-                if (!empty($request->get('search'))) {
+                if (! empty($request->get('search'))) {
                     $instance->where(function ($w) use ($request) {
                         $search = $request->get('search');
                         $w->orWhere('driver_license_no', 'LIKE', "%$search%")
@@ -55,16 +51,14 @@ class LicenseController extends Controller
                 }
             })
             ->addColumn('action', function ($license) {
-                $employees = Employee::join('administrations', 'employees.id', '=', 'administrations.employee_id')
-                    ->where('administrations.is_active', 1)
-                    ->select('employees.*')
-                    ->orderBy('employees.fullname', 'asc')
-                    ->get();
+                $employees = UserProject::employeesForSelect(null, UserProject::EMPLOYEE_SELECT_ACTIVE_ADMINISTRATION);
+
                 return view('license.action', compact('employees', 'license'));
             })
 
             ->addColumn('driver_license_exp', function ($license) {
-                $date = date("d F Y", strtotime($license->driver_license_exp));
+                $date = date('d F Y', strtotime($license->driver_license_exp));
+
                 return $date;
             })
             ->rawColumns(['fullname', 'action'])
@@ -73,12 +67,17 @@ class LicenseController extends Controller
 
     public function addLicense()
     {
-        $employee = Employee::orderBy('id', 'asc')->get();
+        $employee = UserProject::employeesForSelect(null, UserProject::EMPLOYEE_SELECT_ACTIVE_ADMINISTRATION);
+
         return view('license.create', compact('employee'));
     }
 
     public function store($employee_id, Request $request)
     {
+        if ($r = UserProject::guardEmployeeId($request->employee_id)) {
+            return $r;
+        }
+
         $request->validate([
             'employee_id' => 'required',
             'driver_license_no' => 'required',
@@ -86,26 +85,35 @@ class LicenseController extends Controller
             'driver_license_exp' => 'required',
         ]);
 
-        $licenses = new License();
+        $licenses = new License;
         $licenses->employee_id = $request->employee_id;
         $licenses->driver_license_no = $request->driver_license_no;
         $licenses->driver_license_type = $request->driver_license_type;
         $licenses->driver_license_exp = $request->driver_license_exp;
         $licenses->save();
 
-        return redirect('employees/' . $employee_id . '#license')->with('toast_success', 'Driver License Added Successfully');
+        return redirect('employees/'.$employee_id.'#license')->with('toast_success', 'Driver License Added Successfully');
     }
 
     public function edit($id)
     {
-        $licenses = License::where('id', $id)->first();
-        $employee = Employee::orderBy('id', 'asc')->get();
+        $licenses = License::where('id', $id)->firstOrFail();
+        if ($r = UserProject::guardEmployeeId($licenses->employee_id)) {
+            return $r;
+        }
+
+        $employee = UserProject::employeesForSelect(null, UserProject::EMPLOYEE_SELECT_ACTIVE_ADMINISTRATION);
 
         return view('license.edit', compact('licenses', 'employee'));
     }
 
     public function update(Request $request, $id)
     {
+        $licenses = License::findOrFail($id);
+        if ($r = UserProject::guardEmployeeId($licenses->employee_id)) {
+            return $r;
+        }
+
         $request->validate([
             'employee_id' => 'required',
             'driver_license_no' => 'required',
@@ -113,26 +121,41 @@ class LicenseController extends Controller
             'driver_license_exp' => 'required',
         ]);
 
-        $licenses = License::find($id);
+        if ($r = UserProject::guardEmployeeId($request->employee_id)) {
+            return $r;
+        }
+
         $licenses->employee_id = $request->employee_id;
         $licenses->driver_license_no = $request->driver_license_no;
         $licenses->driver_license_type = $request->driver_license_type;
         $licenses->driver_license_exp = $request->driver_license_exp;
         $licenses->save();
 
-        return redirect('employees/' . $request->employee_id . '#license')->with('toast_success', 'Driver License Update Successfully');
+        return redirect('employees/'.$request->employee_id.'#license')->with('toast_success', 'Driver License Update Successfully');
     }
 
     public function delete($employee_id, $id)
     {
-        $licenses = License::find($id);
+        if ($r = UserProject::guardEmployeeId($employee_id)) {
+            return $r;
+        }
+        $licenses = License::findOrFail($id);
+        if ((int) $licenses->employee_id !== (int) $employee_id) {
+            return UserProject::redirectAccessDenied();
+        }
         $licenses->delete();
-        return redirect('employees/' . $employee_id . '#license')->with('toast_success', 'Driver License Delete Successfully');
+
+        return redirect('employees/'.$employee_id.'#license')->with('toast_success', 'Driver License Delete Successfully');
     }
 
     public function deleteAll($employee_id)
     {
+        if ($r = UserProject::guardEmployeeId($employee_id)) {
+            return $r;
+        }
+
         License::where('employee_id', $employee_id)->delete();
-        return redirect('employees/' . $employee_id . '#license')->with('toast_success', 'Driver License Delete Successfully');
+
+        return redirect('employees/'.$employee_id.'#license')->with('toast_success', 'Driver License Delete Successfully');
     }
 }

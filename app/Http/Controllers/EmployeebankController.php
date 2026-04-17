@@ -3,19 +3,19 @@
 namespace App\Http\Controllers;
 
 use App\Models\Bank;
-use App\Models\Employee;
 use App\Models\Employeebank;
+use App\Support\UserProject;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class EmployeebankController extends Controller
 {
-
     public function index()
     {
         $title = ' Employee Bank';
         $subtitle = ' Employee Bank';
-        $employees = Employee::orderBy('fullname', 'asc')->get();
+        $employees = UserProject::employeesForSelect();
+
         return view('employeebank.index', compact('title', 'subtitle', 'employees'));
     }
 
@@ -29,6 +29,8 @@ class EmployeebankController extends Controller
             ->join('banks', 'employeebanks.bank_id', '=', 'banks.id')
             ->select('employeebanks.*', 'fullname', 'bank_name')
             ->orderBy('fullname', 'asc');
+        UserProject::scopeQueryToEmployeesLinkedViaAdministrations($employeebanks, 'employeebanks.employee_id');
+
         return datatables()->of($employeebanks)
             ->addIndexColumn()
             ->addColumn('fullname', function ($employeebanks) {
@@ -54,7 +56,7 @@ class EmployeebankController extends Controller
             //     }
             // })
             ->filter(function ($instance) use ($request) {
-                if (!empty($request->get('search'))) {
+                if (! empty($request->get('search'))) {
                     $instance->where(function ($w) use ($request) {
                         $search = $request->get('search');
                         $w->orWhere('fullname', 'LIKE', "%$search%")
@@ -66,7 +68,8 @@ class EmployeebankController extends Controller
                 }
             })
             ->addColumn('action', function ($employeebanks) {
-                $employees = Employee::orderBy('fullname', 'asc')->get();
+                $employees = UserProject::employeesForSelect();
+
                 return view('employeebank.action', compact('employees', 'employeebanks'));
             })
             ->rawColumns(['bank_account_no', 'action'])
@@ -75,6 +78,10 @@ class EmployeebankController extends Controller
 
     public function store(Request $request)
     {
+        if ($r = UserProject::guardEmployeeId($request->employee_id)) {
+            return $r;
+        }
+
         $request->validate([
             'employee_id' => 'required',
             'bank_id' => 'required',
@@ -84,9 +91,9 @@ class EmployeebankController extends Controller
 
         ]);
         Employeebank::create($request->all());
-        return redirect('employees/' . $request->employee_id . '#bank')->with('toast_success', 'Bank Added Successfully');
-    }
 
+        return redirect('employees/'.$request->employee_id.'#bank')->with('toast_success', 'Bank Added Successfully');
+    }
 
     // public function editEmployeebank($slug)
     // {
@@ -96,9 +103,13 @@ class EmployeebankController extends Controller
     //     return view('employeebank.edit', compact('employeebanks','employee','banks'));
     // }
 
-
     public function update(Request $request, $id)
     {
+        $existing = Employeebank::findOrFail($id);
+        if ($r = UserProject::guardEmployeeId($existing->employee_id)) {
+            return $r;
+        }
+
         $rules = $request->validate([
             'employee_id' => 'required',
             'bank_id' => 'required',
@@ -113,14 +124,26 @@ class EmployeebankController extends Controller
             'bank_account_branch.required' => 'Bank Account Branch is required',
         ]);
 
+        if ($r = UserProject::guardEmployeeId($request->employee_id)) {
+            return $r;
+        }
+
         Employeebank::where('id', $id)->update($rules);
 
-        return redirect('employees/' . $request->employee_id . '#bank')->with('toast_success', 'Bank Account Update Successfully');
+        return redirect('employees/'.$request->employee_id.'#bank')->with('toast_success', 'Bank Account Update Successfully');
     }
 
     public function delete($employee_id, $id)
     {
+        if ($r = UserProject::guardEmployeeId($employee_id)) {
+            return $r;
+        }
+        $row = Employeebank::where('id', $id)->firstOrFail();
+        if ((int) $row->employee_id !== (int) $employee_id) {
+            return UserProject::redirectAccessDenied();
+        }
         Employeebank::where('id', $id)->delete();
-        return redirect('employees/' . $employee_id . '#bank')->with('toast_success', 'Bank Account Delete Successfully');
+
+        return redirect('employees/'.$employee_id.'#bank')->with('toast_success', 'Bank Account Delete Successfully');
     }
 }

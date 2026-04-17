@@ -569,10 +569,14 @@
                     return;
                 }
 
-                // Make AJAX request to preview next number
+                // Make AJAX request to preview next number (requires API_KEY; routes/api.php has no v1 segment)
                 $.ajax({
-                    url: "{{ url('api/v1/letter-numbers/preview-next-number') }}",
+                    url: "{{ url('api/letter-numbers/preview-next-number') }}",
                     method: 'POST',
+                    headers: {
+                        'X-API-Key': @json(config('services.api.key') ?? ''),
+                        'Accept': 'application/json',
+                    },
                     data: {
                         letter_category_id: categoryId,
                         project_id: projectId,
@@ -610,7 +614,14 @@
                     var url = "{{ route('api.letter-subjects.by-category', ['categoryId' => ':id']) }}";
                     url = url.replace(':id', categoryId);
 
-                    $.get(url, function(data) {
+                    $.ajax({
+                        url: url,
+                        method: 'GET',
+                        headers: {
+                            'X-API-Key': @json(config('services.api.key') ?? ''),
+                            'Accept': 'application/json',
+                        },
+                    }).done(function(data) {
                         if (data) {
                             data.forEach(function(subject) {
                                 subjectSelect.append($('<option>', {

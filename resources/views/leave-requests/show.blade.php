@@ -388,8 +388,8 @@
                                     <div class="border rounded p-3 mb-2 bg-light">
                                         <div class="d-flex justify-content-between align-items-center mb-2">
                                             <strong class="small">{{ $fr->form_number ?? 'FR-' . $fr->id }}</strong>
-                                            @if (Route::has('flight-requests.my-requests.show'))
-                                                <a href="{{ route('flight-requests.my-requests.show', $fr->id) }}"
+                                            @if (Route::has('flight-requests.show'))
+                                                <a href="{{ route('flight-requests.show', $fr) }}"
                                                     class="btn btn-sm btn-outline-primary" target="_blank">
                                                     <i class="fas fa-external-link-alt"></i> View
                                                 </a>
