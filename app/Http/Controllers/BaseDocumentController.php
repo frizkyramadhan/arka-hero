@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Models\LetterNumber;
 use App\Models\LetterSubject;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 abstract class BaseDocumentController extends Controller
@@ -13,32 +12,25 @@ abstract class BaseDocumentController extends Controller
     /**
      * Get document type identifier
      * Must be implemented by child classes
-     *
-     * @return string
      */
     abstract protected function getDocumentType(): string;
 
     /**
      * Get default letter category for this document type
      * Must be implemented by child classes
-     *
-     * @return string
      */
     abstract protected function getDefaultCategory(): string;
 
     /**
      * Get model class name for this document
      * Must be implemented by child classes
-     *
-     * @return string
      */
     abstract protected function getModelClass(): string;
 
     /**
      * Handle letter number integration saat create/update document
      *
-     * @param Request $request
-     * @param \Illuminate\Database\Eloquent\Model $document
+     * @param  \Illuminate\Database\Eloquent\Model  $document
      * @return int|null
      */
     protected function handleLetterNumberIntegration(Request $request, $document)
@@ -56,7 +48,7 @@ abstract class BaseDocumentController extends Controller
 
                 // Validate letter number exists and is reserved
                 $letterNumber = LetterNumber::find($letterNumberId);
-                if (!$letterNumber || $letterNumber->status !== 'reserved') {
+                if (! $letterNumber || $letterNumber->status !== 'reserved') {
                     throw new \Exception('Selected letter number is not available');
                 }
             } elseif ($request->number_option === 'new') {
@@ -68,14 +60,14 @@ abstract class BaseDocumentController extends Controller
             // Assign letter number to document if available
             if ($letterNumberId && method_exists($document, 'assignLetterNumber')) {
                 $success = $document->assignLetterNumber($letterNumberId);
-                if (!$success) {
+                if (! $success) {
                     throw new \Exception('Failed to assign letter number to document');
                 }
             }
 
             return $letterNumberId;
         } catch (\Exception $e) {
-            Log::error('Letter number integration failed: ' . $e->getMessage());
+            Log::error('Letter number integration failed: '.$e->getMessage());
             throw $e;
         }
     }
@@ -100,9 +92,9 @@ abstract class BaseDocumentController extends Controller
     /**
      * Auto-assign letter number from subject configuration
      *
-     * @param LetterSubject $subject
-     * @param \Illuminate\Database\Eloquent\Model $document
-     * @param Request $request
+     * @param  LetterSubject  $subject
+     * @param  \Illuminate\Database\Eloquent\Model  $document
+     * @param  Request  $request
      * @return int|null
      */
     protected function autoAssignFromSubject($subject, $document, $request)
@@ -132,7 +124,7 @@ abstract class BaseDocumentController extends Controller
 
             throw new \Exception('Failed to create letter number from subject');
         } catch (\Exception $e) {
-            Log::error('Auto-assign letter number failed: ' . $e->getMessage());
+            Log::error('Auto-assign letter number failed: '.$e->getMessage());
             throw $e;
         }
     }
@@ -157,7 +149,6 @@ abstract class BaseDocumentController extends Controller
     /**
      * Create new letter number untuk document
      *
-     * @param Request $request
      * @return LetterNumber
      */
     protected function createNewLetterNumber(Request $request)
@@ -184,13 +175,13 @@ abstract class BaseDocumentController extends Controller
     /**
      * Get or create letter subject
      *
-     * @param string|null $subjectName
-     * @param string $categoryCode
+     * @param  string|null  $subjectName
+     * @param  string  $categoryCode
      * @return int|null
      */
     protected function getOrCreateSubject($subjectName, $categoryCode)
     {
-        if (!$subjectName) {
+        if (! $subjectName) {
             return null;
         }
 
@@ -198,7 +189,7 @@ abstract class BaseDocumentController extends Controller
             ->where('subject_name', $subjectName)
             ->first();
 
-        if (!$subject) {
+        if (! $subject) {
             $subject = LetterSubject::create([
                 'subject_name' => $subjectName,
                 'category_code' => $categoryCode,
@@ -212,7 +203,7 @@ abstract class BaseDocumentController extends Controller
     /**
      * Load available letter numbers untuk create form
      *
-     * @param string|null $categoryCode
+     * @param  string|null  $categoryCode
      * @return \Illuminate\Database\Eloquent\Collection
      */
     protected function loadAvailableLetterNumbers($categoryCode = null)
@@ -248,7 +239,6 @@ abstract class BaseDocumentController extends Controller
     /**
      * Get administration ID dari request untuk letter number
      *
-     * @param Request $request
      * @return int|null
      */
     abstract protected function getAdministrationId(Request $request);
@@ -256,7 +246,6 @@ abstract class BaseDocumentController extends Controller
     /**
      * Get project ID dari request untuk letter number
      *
-     * @param Request $request
      * @return int|null
      */
     protected function getProjectId(Request $request)
@@ -267,7 +256,6 @@ abstract class BaseDocumentController extends Controller
     /**
      * Get purpose dari request untuk letter number
      *
-     * @param Request $request
      * @return string
      */
     abstract protected function getPurpose(Request $request);
@@ -275,7 +263,6 @@ abstract class BaseDocumentController extends Controller
     /**
      * Get destination dari request untuk letter number
      *
-     * @param Request $request
      * @return string|null
      */
     protected function getDestination(Request $request)
@@ -286,7 +273,6 @@ abstract class BaseDocumentController extends Controller
     /**
      * Get letter date dari request untuk letter number
      *
-     * @param Request $request
      * @return string
      */
     abstract protected function getLetterDate(Request $request);
@@ -294,7 +280,6 @@ abstract class BaseDocumentController extends Controller
     /**
      * Get start date dari request untuk letter number
      *
-     * @param Request $request
      * @return string|null
      */
     protected function getStartDate(Request $request)
@@ -305,7 +290,6 @@ abstract class BaseDocumentController extends Controller
     /**
      * Get end date dari request untuk letter number
      *
-     * @param Request $request
      * @return string|null
      */
     protected function getEndDate(Request $request)
@@ -316,7 +300,6 @@ abstract class BaseDocumentController extends Controller
     /**
      * Get remarks dari request untuk letter number
      *
-     * @param Request $request
      * @return string
      */
     protected function getRemarks(Request $request)
@@ -327,8 +310,8 @@ abstract class BaseDocumentController extends Controller
     /**
      * Helper method untuk response success dengan SweetAlert
      *
-     * @param string $message
-     * @param string $route
+     * @param  string  $message
+     * @param  string  $route
      * @return \Illuminate\Http\RedirectResponse
      */
     protected function successResponse($message, $route)
@@ -340,7 +323,7 @@ abstract class BaseDocumentController extends Controller
     /**
      * Helper method untuk response error dengan SweetAlert
      *
-     * @param string $message
+     * @param  string  $message
      * @return \Illuminate\Http\RedirectResponse
      */
     protected function errorResponse($message)

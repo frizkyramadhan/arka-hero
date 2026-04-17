@@ -2,21 +2,19 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Employee;
-use Illuminate\Support\Str;
-use App\Models\ApprovalPlan;
-use App\Models\LeaveRequest;
-use Illuminate\Http\Request;
-use App\Models\FlightRequest;
 use App\Models\Administration;
-use App\Models\Officialtravel;
+use App\Models\ApprovalPlan;
 use App\Models\BusinessPartner;
-use Illuminate\Support\Facades\DB;
+use App\Models\Employee;
+use App\Models\FlightRequest;
 use App\Models\FlightRequestDetail;
-use Illuminate\Support\Facades\Log;
+use App\Models\LeaveRequest;
+use App\Models\Officialtravel;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use App\Models\FlightRequestIssuance;
-use App\Http\Controllers\ApprovalPlanController;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 class FlightRequestController extends Controller
 {
@@ -102,10 +100,10 @@ class FlightRequestController extends Controller
             $employeeNik = $request->nik ?? ($request->employee->nik ?? 'N/A');
 
             $actions = '<div class="btn-group">';
-            $actions .= '<a href="' . route('flight-requests.show', $request->id) . '" class="btn btn-sm btn-info mr-1" title="View"><i class="fas fa-eye"></i></a>';
+            $actions .= '<a href="'.route('flight-requests.show', $request->id).'" class="btn btn-sm btn-info mr-1" title="View"><i class="fas fa-eye"></i></a>';
 
             if (in_array($request->status, [FlightRequest::STATUS_DRAFT, FlightRequest::STATUS_SUBMITTED])) {
-                $actions .= '<a href="' . route('flight-requests.edit', $request->id) . '" class="btn btn-sm btn-warning" title="Edit"><i class="fas fa-edit"></i></a>';
+                $actions .= '<a href="'.route('flight-requests.edit', $request->id).'" class="btn btn-sm btn-warning" title="Edit"><i class="fas fa-edit"></i></a>';
             }
 
             $actions .= '</div>';
@@ -151,7 +149,7 @@ class FlightRequestController extends Controller
         $leaveRequests = LeaveRequest::with([
             'employee',
             'administration.position.department',
-            'administration.project'
+            'administration.project',
         ])
             ->whereIn('status', ['pending', 'approved'])
             ->orderBy('start_date', 'desc')
@@ -181,8 +179,8 @@ class FlightRequestController extends Controller
                         'project' => ($admin && $admin->project) ? $admin->project->project_name : '',
                         'phone_number' => $employee ? ($employee->phone ?? '') : '',
                         'purpose_of_travel' => $leave->reason ?? '',
-                        'total_travel_days' => $leave->total_days ?? ''
-                    ]
+                        'total_travel_days' => $leave->total_days ?? '',
+                    ],
                 ];
             });
 
@@ -199,7 +197,7 @@ class FlightRequestController extends Controller
             'traveler.position.department',
             'traveler.project',
             'details.follower.employee',
-            'details.follower.position'
+            'details.follower.position',
         ])
             ->whereIn('status', ['submitted', 'approved'])
             ->orderBy('departure_from', 'desc')
@@ -212,10 +210,11 @@ class FlightRequestController extends Controller
                 $followers = $travel->details->map(function ($detail) {
                     $follower = $detail->follower;
                     $followerEmployee = $follower ? $follower->employee : null;
+
                     return [
                         'name' => $followerEmployee ? $followerEmployee->fullname : 'N/A',
                         'nik' => $follower ? $follower->nik : 'N/A',
-                        'position' => ($follower && $follower->position) ? $follower->position->position_name : 'N/A'
+                        'position' => ($follower && $follower->position) ? $follower->position->position_name : 'N/A',
                     ];
                 })->toArray();
 
@@ -239,9 +238,9 @@ class FlightRequestController extends Controller
                         'project' => ($traveler && $traveler->project) ? $traveler->project->project_name : '',
                         'phone_number' => $employee ? ($employee->phone ?? '') : '',
                         'purpose_of_travel' => $travel->purpose ?? '',
-                        'total_travel_days' => $travel->duration ?? ''
+                        'total_travel_days' => $travel->duration ?? '',
                     ],
-                    'followers' => $followers
+                    'followers' => $followers,
                 ];
             });
 
@@ -256,14 +255,14 @@ class FlightRequestController extends Controller
     {
         $user = Auth::user();
         $employee = $user->employee;
-        if (!$employee) {
+        if (! $employee) {
             return response()->json([]);
         }
 
         $leaveRequests = LeaveRequest::with([
             'employee',
             'administration.position.department',
-            'administration.project'
+            'administration.project',
         ])
             ->where('employee_id', $employee->id)
             ->whereIn('status', ['pending', 'approved'])
@@ -294,8 +293,8 @@ class FlightRequestController extends Controller
                         'project' => ($admin && $admin->project) ? $admin->project->project_name : '',
                         'phone_number' => $emp ? ($emp->phone ?? '') : '',
                         'purpose_of_travel' => $leave->reason ?? '',
-                        'total_travel_days' => $leave->total_days ?? ''
-                    ]
+                        'total_travel_days' => $leave->total_days ?? '',
+                    ],
                 ];
             });
 
@@ -310,7 +309,7 @@ class FlightRequestController extends Controller
     {
         $user = Auth::user();
         $employee = $user->employee;
-        if (!$employee) {
+        if (! $employee) {
             return response()->json([]);
         }
 
@@ -319,7 +318,7 @@ class FlightRequestController extends Controller
             'traveler.position.department',
             'traveler.project',
             'details.follower.employee',
-            'details.follower.position'
+            'details.follower.position',
         ])
             ->whereHas('traveler', function ($q) use ($employee) {
                 $q->where('employee_id', $employee->id);
@@ -334,10 +333,11 @@ class FlightRequestController extends Controller
                 $followers = $travel->details->map(function ($detail) {
                     $follower = $detail->follower;
                     $followerEmployee = $follower ? $follower->employee : null;
+
                     return [
                         'name' => $followerEmployee ? $followerEmployee->fullname : 'N/A',
                         'nik' => $follower ? $follower->nik : 'N/A',
-                        'position' => ($follower && $follower->position) ? $follower->position->position_name : 'N/A'
+                        'position' => ($follower && $follower->position) ? $follower->position->position_name : 'N/A',
                     ];
                 })->toArray();
 
@@ -361,9 +361,9 @@ class FlightRequestController extends Controller
                         'project' => ($traveler && $traveler->project) ? $traveler->project->project_name : '',
                         'phone_number' => $emp ? ($emp->phone ?? '') : '',
                         'purpose_of_travel' => $travel->purpose ?? '',
-                        'total_travel_days' => $travel->duration ?? ''
+                        'total_travel_days' => $travel->duration ?? '',
                     ],
-                    'followers' => $followers
+                    'followers' => $followers,
                 ];
             });
 
@@ -378,7 +378,7 @@ class FlightRequestController extends Controller
         $administrations = Administration::with([
             'employee',
             'position.department',
-            'project'
+            'project',
         ])
             ->where('is_active', 1)
             ->whereHas('employee') // Ensure employee exists
@@ -406,8 +406,8 @@ class FlightRequestController extends Controller
                         'poh' => $admin->poh ?? '',
                         'doh' => $admin->doh ? $admin->doh->format('d F Y') : '',
                         'project' => $admin->project ? ($admin->project->project_name ?? '') : '',
-                        'phone_number' => $employee ? ($employee->phone ?? '') : ''
-                    ]
+                        'phone_number' => $employee ? ($employee->phone ?? '') : '',
+                    ],
                 ];
             })
             ->filter(function ($item) {
@@ -463,7 +463,7 @@ class FlightRequestController extends Controller
 
             // Ensure manual_approvers is an array and preserve order
             $manualApprovers = $request->manual_approvers ?? [];
-            if (!is_array($manualApprovers)) {
+            if (! is_array($manualApprovers)) {
                 $manualApprovers = [];
             }
             // Ensure array values are preserved in order (array_values to reset keys)
@@ -486,7 +486,7 @@ class FlightRequestController extends Controller
                 'leave_request_id' => $validated['leave_request_id'] ?? null,
                 'official_travel_id' => $validated['official_travel_id'] ?? null,
                 'status' => $status,
-                'manual_approvers' => !empty($manualApprovers) ? $manualApprovers : null,
+                'manual_approvers' => ! empty($manualApprovers) ? $manualApprovers : null,
                 'requested_by' => Auth::id(),
                 'requested_at' => $requestedAt,
                 'notes' => $validated['notes'] ?? null,
@@ -510,14 +510,16 @@ class FlightRequestController extends Controller
             if ($request->submit_action === 'submit') {
                 if (empty($manualApprovers)) {
                     DB::rollBack();
+
                     return back()->withInput()
                         ->with('toast_error', 'Please select at least one approver before submitting.');
                 }
 
                 $response = app(ApprovalPlanController::class)->create_manual_approval_plan('flight_request', $flightRequest->id);
 
-                if (!$response || $response === 0) {
+                if (! $response || $response === 0) {
                     DB::rollBack();
+
                     return back()->withInput()
                         ->with('toast_error', 'Failed to create approval plans. Please ensure at least one approver is selected.');
                 }
@@ -536,14 +538,15 @@ class FlightRequestController extends Controller
                 return redirect()->route('flight-requests.my-requests.show', $flightRequest->id)
                     ->with('toast_success', $message);
             }
+
             return redirect()->route('flight-requests.index')
                 ->with('toast_success', $message);
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Flight Request creation failed: ' . $e->getMessage());
+            Log::error('Flight Request creation failed: '.$e->getMessage());
 
             return back()->withInput()
-                ->with('toast_error', 'Failed to create Flight Request: ' . $e->getMessage());
+                ->with('toast_error', 'Failed to create Flight Request: '.$e->getMessage());
         }
     }
 
@@ -565,7 +568,7 @@ class FlightRequestController extends Controller
             'issuances.issuedBy',
             'requestedBy',
             'cancelledBy',
-            'approvalPlans.approver'
+            'approvalPlans.approver',
         ])->findOrFail($id);
 
         return view('flight-requests.show', compact('flightRequest', 'title'));
@@ -579,7 +582,7 @@ class FlightRequestController extends Controller
         $title = 'Edit Flight Request';
         $flightRequest = FlightRequest::with(['details', 'employee', 'administration'])->findOrFail($id);
 
-        if (!in_array($flightRequest->status, [FlightRequest::STATUS_DRAFT, FlightRequest::STATUS_SUBMITTED])) {
+        if (! in_array($flightRequest->status, [FlightRequest::STATUS_DRAFT, FlightRequest::STATUS_SUBMITTED])) {
             return redirect()->route('flight-requests.show', $id)
                 ->with('toast_error', 'Cannot edit Flight Request with current status.');
         }
@@ -597,7 +600,7 @@ class FlightRequestController extends Controller
     {
         $flightRequest = FlightRequest::findOrFail($id);
 
-        if (!in_array($flightRequest->status, [FlightRequest::STATUS_DRAFT, FlightRequest::STATUS_SUBMITTED])) {
+        if (! in_array($flightRequest->status, [FlightRequest::STATUS_DRAFT, FlightRequest::STATUS_SUBMITTED])) {
             return back()->with('toast_error', 'Cannot update Flight Request with current status.');
         }
 
@@ -693,14 +696,15 @@ class FlightRequestController extends Controller
             $redirectTo = ($flightRequest->requested_by && $flightRequest->requested_by === Auth::id())
                 ? route('flight-requests.my-requests.show', $flightRequest->id)
                 : route('flight-requests.show', $flightRequest->id);
+
             return redirect($redirectTo)
                 ->with('toast_success', 'Flight Request updated successfully.');
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Flight Request update failed: ' . $e->getMessage());
+            Log::error('Flight Request update failed: '.$e->getMessage());
 
             return back()->withInput()
-                ->with('toast_error', 'Failed to update Flight Request: ' . $e->getMessage());
+                ->with('toast_error', 'Failed to update Flight Request: '.$e->getMessage());
         }
     }
 
@@ -711,7 +715,7 @@ class FlightRequestController extends Controller
     {
         $flightRequest = FlightRequest::findOrFail($id);
 
-        if (!in_array($flightRequest->status, [FlightRequest::STATUS_DRAFT])) {
+        if (! in_array($flightRequest->status, [FlightRequest::STATUS_DRAFT])) {
             return back()->with('toast_error', 'Only draft Flight Requests can be deleted.');
         }
 
@@ -723,11 +727,12 @@ class FlightRequestController extends Controller
             $redirectTo = ($flightRequest->requested_by && $flightRequest->requested_by === Auth::id())
                 ? route('flight-requests.my-requests')
                 : route('flight-requests.index');
+
             return redirect($redirectTo)
                 ->with('toast_success', 'Flight Request deleted successfully.');
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Flight Request deletion failed: ' . $e->getMessage());
+            Log::error('Flight Request deletion failed: '.$e->getMessage());
 
             return back()->with('toast_error', 'Failed to delete Flight Request.');
         }
@@ -754,14 +759,16 @@ class FlightRequestController extends Controller
             // Check if manual approvers are set
             if (empty($flightRequest->manual_approvers)) {
                 DB::rollBack();
+
                 return back()->with('toast_error', 'Please select at least one approver before submitting.');
             }
 
             // Create approval plans using manual approvers (same pattern as official travel)
             $response = app(\App\Http\Controllers\ApprovalPlanController::class)->create_manual_approval_plan('flight_request', $flightRequest->id);
 
-            if (!$response || $response === 0) {
+            if (! $response || $response === 0) {
                 DB::rollBack();
+
                 return back()->with('toast_error', 'Failed to create approval plans. Please ensure at least one approver is selected.');
             }
 
@@ -770,7 +777,7 @@ class FlightRequestController extends Controller
             return back()->with('toast_success', 'Flight Request submitted successfully.');
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Flight Request submission failed: ' . $e->getMessage());
+            Log::error('Flight Request submission failed: '.$e->getMessage());
 
             return back()->with('toast_error', 'Failed to submit Flight Request.');
         }
@@ -783,7 +790,7 @@ class FlightRequestController extends Controller
     {
         $flightRequest = FlightRequest::findOrFail($id);
 
-        if (!$flightRequest->canBeCancelled()) {
+        if (! $flightRequest->canBeCancelled()) {
             return back()->with('toast_error', 'Flight Request cannot be cancelled in current status.');
         }
 
@@ -814,7 +821,7 @@ class FlightRequestController extends Controller
             return back()->with('toast_success', 'Flight Request cancelled successfully.');
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Flight Request cancellation failed: ' . $e->getMessage());
+            Log::error('Flight Request cancellation failed: '.$e->getMessage());
 
             return back()->with('toast_error', 'Failed to cancel Flight Request.');
         }
@@ -839,7 +846,7 @@ class FlightRequestController extends Controller
 
             return back()->with('toast_success', 'Flight Request marked as completed.');
         } catch (\Exception $e) {
-            Log::error('Flight Request complete failed: ' . $e->getMessage());
+            Log::error('Flight Request complete failed: '.$e->getMessage());
 
             return back()->with('toast_error', 'Failed to complete Flight Request.');
         }
@@ -875,7 +882,7 @@ class FlightRequestController extends Controller
         }
 
         if ($request->filled('form_number')) {
-            $query->where('form_number', 'like', '%' . $request->form_number . '%');
+            $query->where('form_number', 'like', '%'.$request->form_number.'%');
         }
 
         if ($request->filled('date_from')) {
@@ -883,7 +890,7 @@ class FlightRequestController extends Controller
         }
 
         if ($request->filled('date_to')) {
-            $query->where('requested_at', '<=', $request->date_to . ' 23:59:59');
+            $query->where('requested_at', '<=', $request->date_to.' 23:59:59');
         }
 
         return datatables()->of($query)
@@ -904,10 +911,11 @@ class FlightRequestController extends Controller
                 return $row->requested_at ? $row->requested_at->format('d/m/Y H:i') : '-';
             })
             ->addColumn('actions', function ($row) {
-                $actions = '<a href="' . route('flight-requests.my-requests.show', $row->id) . '" class="btn btn-sm btn-info"><i class="fas fa-eye"></i></a>';
+                $actions = '<a href="'.route('flight-requests.my-requests.show', $row->id).'" class="btn btn-sm btn-info"><i class="fas fa-eye"></i></a>';
                 if (in_array($row->status, [FlightRequest::STATUS_DRAFT, FlightRequest::STATUS_SUBMITTED])) {
-                    $actions .= ' <a href="' . route('flight-requests.my-requests.edit', $row->id) . '" class="btn btn-sm btn-warning"><i class="fas fa-edit"></i></a>';
+                    $actions .= ' <a href="'.route('flight-requests.my-requests.edit', $row->id).'" class="btn btn-sm btn-warning"><i class="fas fa-edit"></i></a>';
                 }
+
                 return $actions;
             })
             ->rawColumns(['request_type', 'status_badge', 'actions'])
@@ -937,6 +945,7 @@ class FlightRequestController extends Controller
         ])->where('requested_by', $user->id)->findOrFail($id);
 
         $fromMyRequests = true;
+
         return view('flight-requests.my-show', compact('flightRequest', 'title', 'fromMyRequests'));
     }
 
@@ -979,7 +988,7 @@ class FlightRequestController extends Controller
         $user = Auth::user();
         $employee = $user->employee;
 
-        if (!$employee) {
+        if (! $employee) {
             return back()->with('toast_error', 'Employee not found.');
         }
 
@@ -987,7 +996,7 @@ class FlightRequestController extends Controller
         $isStandalone = $request->request_type === 'standalone';
         $hasLeave = $request->filled('leave_request_id');
         $hasTravel = $request->filled('official_travel_id');
-        if ($isStandalone || (!$hasLeave && !$hasTravel)) {
+        if ($isStandalone || (! $hasLeave && ! $hasTravel)) {
             $request->merge([
                 'employee_id' => $employee->id,
                 'administration_id' => $employee->activeAdministration->id ?? null,
@@ -1011,7 +1020,7 @@ class FlightRequestController extends Controller
             'administration.project',
         ])->where('requested_by', $user->id)->findOrFail($id);
 
-        if (!in_array($flightRequest->status, [FlightRequest::STATUS_DRAFT, FlightRequest::STATUS_SUBMITTED])) {
+        if (! in_array($flightRequest->status, [FlightRequest::STATUS_DRAFT, FlightRequest::STATUS_SUBMITTED])) {
             return redirect()->route('flight-requests.my-requests.show', $id)
                 ->with('toast_error', 'Cannot edit Flight Request with current status.');
         }
@@ -1065,7 +1074,7 @@ class FlightRequestController extends Controller
             FlightRequest::STATUS_CANCELLED => '<span class="badge badge-warning">Cancelled</span>',
         ];
 
-        return $badges[$status] ?? '<span class="badge badge-secondary">' . ucfirst($status) . '</span>';
+        return $badges[$status] ?? '<span class="badge badge-secondary">'.ucfirst($status).'</span>';
     }
 
     private function getRequestTypeBadge($type)
@@ -1076,7 +1085,7 @@ class FlightRequestController extends Controller
             FlightRequest::TYPE_TRAVEL_BASED => '<span class="badge badge-success">Travel Based</span>',
         ];
 
-        return $badges[$type] ?? '<span class="badge badge-secondary">' . ucfirst($type) . '</span>';
+        return $badges[$type] ?? '<span class="badge badge-secondary">'.ucfirst($type).'</span>';
     }
 
     private function generateFormNumber()
@@ -1111,7 +1120,7 @@ class FlightRequestController extends Controller
             'leaveRequest.administration',
             'officialTravel.traveler.employee',
             'requestedBy',
-            'approvalPlans.approver'
+            'approvalPlans.approver',
         ])->findOrFail($id);
 
         return view('flight-requests.print', compact('title', 'subtitle', 'flightRequest'));

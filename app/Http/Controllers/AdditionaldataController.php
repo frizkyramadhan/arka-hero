@@ -2,19 +2,18 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Employee;
-use Illuminate\Http\Request;
 use App\Models\Additionaldata;
-use Illuminate\Support\Facades\DB;
+use App\Support\UserProject;
+use Illuminate\Http\Request;
 
 class AdditionaldataController extends Controller
 {
-
     public function index()
     {
         $title = ' Additional Data';
         $subtitle = 'Additional Data';
-        $employees = Employee::orderBy('fullname', 'asc')->get();
+        $employees = UserProject::employeesForSelect();
+
         return view('additionaldata.index', compact('title', 'subtitle', 'employees'));
     }
 
@@ -23,6 +22,7 @@ class AdditionaldataController extends Controller
         $additionaldatas = Additionaldata::leftJoin('employees', 'additionaldatas.employee_id', '=', 'employees.id')
             ->select('additionaldatas.*', 'employees.fullname')
             ->orderBy('additionaldatas.cloth_size', 'asc');
+        UserProject::scopeQueryToEmployeesLinkedViaAdministrations($additionaldatas, 'additionaldatas.employee_id');
 
         return datatables()->of($additionaldatas)
             ->addIndexColumn()
@@ -48,7 +48,7 @@ class AdditionaldataController extends Controller
                 return $additionaldatas->glasses;
             })
             ->filter(function ($instance) use ($request) {
-                if (!empty($request->get('search'))) {
+                if (! empty($request->get('search'))) {
                     $instance->where(function ($w) use ($request) {
                         $search = $request->get('search');
                         $w->orWhere('fullname', 'LIKE', "%$search%")
@@ -61,7 +61,8 @@ class AdditionaldataController extends Controller
                 }
             })
             ->addColumn('action', function ($additionaldatas) {
-                $employees = Employee::orderBy('fullname', 'asc')->get();
+                $employees = UserProject::employeesForSelect();
+
                 return view('additionaldata.action', compact('employees', 'additionaldatas'));
             })
             ->rawColumns(['pants_size', 'action'])
@@ -71,6 +72,10 @@ class AdditionaldataController extends Controller
 
     public function store(Request $request)
     {
+        if ($r = UserProject::guardEmployeeId($request->employee_id)) {
+            return $r;
+        }
+
         $request->validate([
             'employee_id' => 'required',
             'cloth_size' => 'required',
@@ -82,11 +87,17 @@ class AdditionaldataController extends Controller
 
         ]);
         Additionaldata::create($request->all());
-        return redirect('employees/' . $request->employee_id . '#additional')->with('toast_success', 'Additional Data Added Successfully');
+
+        return redirect('employees/'.$request->employee_id.'#additional')->with('toast_success', 'Additional Data Added Successfully');
     }
 
     public function update(Request $request, $id)
     {
+        $row = Additionaldata::findOrFail($id);
+        if ($r = UserProject::guardEmployeeId($row->employee_id)) {
+            return $r;
+        }
+
         $rules = [
             'employee_id' => 'required',
             'cloth_size' => 'required',
@@ -98,14 +109,26 @@ class AdditionaldataController extends Controller
         ];
 
         $validatedData = $request->validate($rules);
+        if ($r = UserProject::guardEmployeeId($request->employee_id)) {
+            return $r;
+        }
+
         Additionaldata::where('id', $id)->update($validatedData);
 
-        return redirect('employees/' . $request->employee_id . '#additional')->with('toast_success', 'Additional Data Employee Update Successfully');
+        return redirect('employees/'.$request->employee_id.'#additional')->with('toast_success', 'Additional Data Employee Update Successfully');
     }
 
     public function delete($employee_id, $id)
     {
+        if ($r = UserProject::guardEmployeeId($employee_id)) {
+            return $r;
+        }
+        $row = Additionaldata::where('id', $id)->firstOrFail();
+        if ((int) $row->employee_id !== (int) $employee_id) {
+            return UserProject::redirectAccessDenied();
+        }
         Additionaldata::where('id', $id)->delete();
-        return redirect('employees/' . $employee_id . '#additional')->with('toast_success', 'Additional Data Employee Delete Successfully');
+
+        return redirect('employees/'.$employee_id.'#additional')->with('toast_success', 'Additional Data Employee Delete Successfully');
     }
 }

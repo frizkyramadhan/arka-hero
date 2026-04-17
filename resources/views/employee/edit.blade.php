@@ -98,8 +98,16 @@
                                     </div>
                                     <div class="col-md-3">
                                         <label for="marital" class="form-label">Marital</label>
-                                        <input type="text" value="{{ $employees->marital }}" class="form-control"
+                                        <select class="form-control @error('marital') is-invalid @enderror"
                                             id="marital" name="marital">
+                                            <option value="">Select marital status</option>
+                                            @foreach (['S-0', 'M-0', 'M-1', 'M-2', 'M-3'] as $maritalOpt)
+                                                <option value="{{ $maritalOpt }}"
+                                                    {{ old('marital', $employees->marital) == $maritalOpt ? 'selected' : '' }}>
+                                                    {{ $maritalOpt }}
+                                                </option>
+                                            @endforeach
+                                        </select>
                                         @if ($errors->any('marital'))
                                             <span class="text-danger">{{ $errors->first('marital') }}</span>
                                         @endif

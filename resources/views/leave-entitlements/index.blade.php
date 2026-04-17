@@ -98,7 +98,7 @@
                                             <select name="project_id" id="project_id" class="select2bs4 form-control"
                                                 required>
                                                 <option value="">Choose Project...</option>
-                                                <option value="all" {{ $showAllProjects ? 'selected' : '' }}>All Projects
+                                                {{-- <option value="all" {{ $showAllProjects ? 'selected' : '' }}>All Projects --}}
                                                 </option>
                                                 @foreach ($projects as $project)
                                                     <option value="{{ $project->id }}"

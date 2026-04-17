@@ -103,7 +103,8 @@ Route::prefix('letter-numbers')->group(function () {
     Route::post('/{id}/mark-as-used', [LetterNumberApiController::class, 'markAsUsed']);
     Route::post('/{id}/cancel', [LetterNumberApiController::class, 'cancelNumber']);
 
-    Route::get('/available/{categoryId}', [LetterNumberApiController::class, 'getAvailableNumbers']);
+    // Numeric category id (must not share path with /available/{categoryCode} on LetterNumberController)
+    Route::get('/available/id/{categoryId}', [LetterNumberApiController::class, 'getAvailableNumbers']);
     Route::get('/subjects/{categoryId}', [LetterNumberApiController::class, 'getSubjectsByCategory']);
     Route::get('/{id}', [LetterNumberApiController::class, 'getLetterNumber']);
 

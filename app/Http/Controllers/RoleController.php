@@ -3,9 +3,9 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use Spatie\Permission\Models\Role;
-use Spatie\Permission\Models\Permission;
 use Illuminate\Support\Facades\DB;
+use Spatie\Permission\Models\Permission;
+use Spatie\Permission\Models\Role;
 
 class RoleController extends Controller
 {
@@ -41,7 +41,7 @@ class RoleController extends Controller
      */
     private function validateAdministratorAccess($roleName, $action = 'modify')
     {
-        if ($this->isProtectedRole($roleName) && !$this->isAdministrator()) {
+        if ($this->isProtectedRole($roleName) && ! $this->isAdministrator()) {
             throw new \Exception("Only administrators can {$action} administrator roles.");
         }
     }
@@ -71,7 +71,7 @@ class RoleController extends Controller
                 $count = 0;
                 foreach ($permissions as $permission) {
                     if ($count < 5) {
-                        $html .= '<span class="badge badge-info mr-1">' . $permission . '</span>';
+                        $html .= '<span class="badge badge-info mr-1">'.$permission.'</span>';
                     }
                     $count++;
                 }
@@ -80,15 +80,15 @@ class RoleController extends Controller
                 if ($count > 5) {
                     $remaining = $permissions->slice(5);
                     $tooltip = $remaining->map(function ($permission) {
-                        return "• " . $permission;
+                        return '• '.$permission;
                     })->implode("\n");
-                    $html .= '<span class="badge badge-secondary" data-toggle="tooltip" data-html="true" title="' . e($tooltip) . '">+' . ($count - 5) . ' more</span>';
+                    $html .= '<span class="badge badge-secondary" data-toggle="tooltip" data-html="true" title="'.e($tooltip).'">+'.($count - 5).' more</span>';
                 }
 
                 return $html;
             })
             ->filter(function ($instance) use ($request) {
-                if (!empty($request->get('search'))) {
+                if (! empty($request->get('search'))) {
                     $instance->where(function ($w) use ($request) {
                         $search = $request->get('search');
                         $w->orWhere('name', 'LIKE', "%$search%")
@@ -110,9 +110,9 @@ class RoleController extends Controller
         $permissions = Permission::orderBy('name', 'asc')->get();
 
         // Filter permissions for non-administrator users
-        if (!$this->isAdministrator()) {
+        if (! $this->isAdministrator()) {
             $permissions = $permissions->filter(function ($permission) {
-                return !str_starts_with($permission->name, 'permissions.');
+                return ! str_starts_with($permission->name, 'permissions.');
             });
         }
 
@@ -128,18 +128,18 @@ class RoleController extends Controller
             ], [
                 'name.required' => 'Role name is required',
                 'name.unique' => 'Role name already exists',
-                'permissions.required' => 'Please select at least one permission'
+                'permissions.required' => 'Please select at least one permission',
             ]);
 
             // Check if trying to create administrator role
-            if ($this->isProtectedRole($request->name) && !$this->isAdministrator()) {
+            if ($this->isProtectedRole($request->name) && ! $this->isAdministrator()) {
                 return redirect()->back()
                     ->with('toast_error', 'Only administrators can create administrator roles.')
                     ->withInput();
             }
 
             // Validate permission assignments for non-administrators
-            if (!$this->isAdministrator()) {
+            if (! $this->isAdministrator()) {
                 foreach ($request->permissions as $permissionName) {
                     if (str_starts_with($permissionName, 'permissions.')) {
                         return redirect()->back()
@@ -163,6 +163,7 @@ class RoleController extends Controller
                 ->withInput();
         } catch (\Exception $e) {
             DB::rollback();
+
             return redirect()->back()
                 ->with('toast_error', 'Failed to add role. Please try again.')
                 ->withInput();
@@ -176,16 +177,16 @@ class RoleController extends Controller
         $role = Role::findOrFail($id);
 
         // Check if trying to edit administrator role
-        if ($this->isProtectedRole($role->name) && !$this->isAdministrator()) {
+        if ($this->isProtectedRole($role->name) && ! $this->isAdministrator()) {
             return redirect('roles')->with('toast_error', 'Only administrators can edit administrator roles.');
         }
 
         $permissions = Permission::orderBy('name', 'asc')->get();
 
         // Filter permissions for non-administrator users
-        if (!$this->isAdministrator()) {
+        if (! $this->isAdministrator()) {
             $permissions = $permissions->filter(function ($permission) {
-                return !str_starts_with($permission->name, 'permissions.');
+                return ! str_starts_with($permission->name, 'permissions.');
             });
         }
 
@@ -198,12 +199,12 @@ class RoleController extends Controller
     {
         try {
             $this->validate($request, [
-                'name' => 'required|unique:roles,name,' . $id,
+                'name' => 'required|unique:roles,name,'.$id,
                 'permissions' => 'required',
             ], [
                 'name.required' => 'Role name is required',
                 'name.unique' => 'Role name already exists',
-                'permissions.required' => 'Please select at least one permission'
+                'permissions.required' => 'Please select at least one permission',
             ]);
 
             DB::beginTransaction();
@@ -211,21 +212,21 @@ class RoleController extends Controller
             $role = Role::findOrFail($id);
 
             // Check if trying to modify administrator role
-            if ($this->isProtectedRole($role->name) && !$this->isAdministrator()) {
+            if ($this->isProtectedRole($role->name) && ! $this->isAdministrator()) {
                 return redirect()->back()
                     ->with('toast_error', 'Only administrators can modify administrator roles.')
                     ->withInput();
             }
 
             // Check if trying to rename to administrator role
-            if ($this->isProtectedRole($request->name) && !$this->isAdministrator()) {
+            if ($this->isProtectedRole($request->name) && ! $this->isAdministrator()) {
                 return redirect()->back()
                     ->with('toast_error', 'Only administrators can create administrator roles.')
                     ->withInput();
             }
 
             // Validate permission assignments for non-administrators
-            if (!$this->isAdministrator()) {
+            if (! $this->isAdministrator()) {
                 foreach ($request->permissions as $permissionName) {
                     if (str_starts_with($permissionName, 'permissions.')) {
                         return redirect()->back()
@@ -251,6 +252,7 @@ class RoleController extends Controller
                 ->withInput();
         } catch (\Exception $e) {
             DB::rollback();
+
             return redirect()->back()
                 ->with('toast_error', 'Failed to update role. Please try again.')
                 ->withInput();
@@ -263,7 +265,7 @@ class RoleController extends Controller
             $role = Role::findOrFail($id);
 
             // Check if trying to delete administrator role
-            if ($this->isProtectedRole($role->name) && !$this->isAdministrator()) {
+            if ($this->isProtectedRole($role->name) && ! $this->isAdministrator()) {
                 return redirect('roles')->with('toast_error', 'Only administrators can delete administrator roles.');
             }
 
@@ -273,6 +275,7 @@ class RoleController extends Controller
             }
 
             $role->delete();
+
             return redirect('roles')->with('toast_success', 'Role deleted successfully');
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             return redirect('roles')->with('toast_error', 'Role not found.');

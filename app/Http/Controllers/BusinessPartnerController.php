@@ -2,11 +2,10 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Support\Str;
-use Illuminate\Http\Request;
 use App\Models\BusinessPartner;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 class BusinessPartnerController extends Controller
 {
@@ -63,8 +62,8 @@ class BusinessPartnerController extends Controller
                 : '<span class="badge badge-secondary">Inactive</span>';
 
             $actions = '<div class="btn-group">';
-            $actions .= '<a href="' . route('business-partners.edit', $bp->id) . '" class="btn btn-sm btn-warning" title="Edit"><i class="fas fa-edit"></i></a>';
-            $actions .= '<button type="button" class="btn btn-sm btn-danger" onclick="deleteBusinessPartner(\'' . $bp->id . '\', \'' . addslashes($bp->bp_name) . '\')" title="Delete"><i class="fas fa-trash"></i></button>';
+            $actions .= '<a href="'.route('business-partners.edit', $bp->id).'" class="btn btn-sm btn-warning" title="Edit"><i class="fas fa-edit"></i></a>';
+            $actions .= '<button type="button" class="btn btn-sm btn-danger" onclick="deleteBusinessPartner(\''.$bp->id.'\', \''.addslashes($bp->bp_name).'\')" title="Delete"><i class="fas fa-trash"></i></button>';
             $actions .= '</div>';
 
             return [
@@ -116,7 +115,7 @@ class BusinessPartnerController extends Controller
             return redirect()->route('business-partners.index')
                 ->with('toast_success', 'Business Partner created successfully.');
         } catch (\Exception $e) {
-            Log::error('Business Partner creation failed: ' . $e->getMessage());
+            Log::error('Business Partner creation failed: '.$e->getMessage());
 
             return back()->withInput()
                 ->with('toast_error', 'Failed to create Business Partner.');
@@ -130,6 +129,7 @@ class BusinessPartnerController extends Controller
     {
         $title = 'Edit Business Partner';
         $businessPartner = BusinessPartner::findOrFail($id);
+
         return view('business-partners.edit', compact('businessPartner', 'title'));
     }
 
@@ -141,7 +141,7 @@ class BusinessPartnerController extends Controller
         $businessPartner = BusinessPartner::findOrFail($id);
 
         $validated = $request->validate([
-            'bp_code' => 'required|string|max:50|unique:business_partners,bp_code,' . $id,
+            'bp_code' => 'required|string|max:50|unique:business_partners,bp_code,'.$id,
             'bp_name' => 'required|string|max:255',
             'bp_address' => 'nullable|string',
             'bp_phone' => 'nullable|string|max:20',
@@ -155,7 +155,7 @@ class BusinessPartnerController extends Controller
             return redirect()->route('business-partners.index')
                 ->with('toast_success', 'Business Partner updated successfully.');
         } catch (\Exception $e) {
-            Log::error('Business Partner update failed: ' . $e->getMessage());
+            Log::error('Business Partner update failed: '.$e->getMessage());
 
             return back()->withInput()
                 ->with('toast_error', 'Failed to update Business Partner.');
@@ -174,9 +174,10 @@ class BusinessPartnerController extends Controller
             if (request()->ajax() || request()->wantsJson()) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Cannot delete Business Partner that is used in issuances.'
+                    'message' => 'Cannot delete Business Partner that is used in issuances.',
                 ], 422);
             }
+
             return back()->with('toast_error', 'Cannot delete Business Partner that is used in issuances.');
         }
 
@@ -186,19 +187,19 @@ class BusinessPartnerController extends Controller
             if (request()->ajax() || request()->wantsJson()) {
                 return response()->json([
                     'success' => true,
-                    'message' => 'Business Partner deleted successfully.'
+                    'message' => 'Business Partner deleted successfully.',
                 ]);
             }
 
             return redirect()->route('business-partners.index')
                 ->with('toast_success', 'Business Partner deleted successfully.');
         } catch (\Exception $e) {
-            Log::error('Business Partner deletion failed: ' . $e->getMessage());
+            Log::error('Business Partner deletion failed: '.$e->getMessage());
 
             if (request()->ajax() || request()->wantsJson()) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Failed to delete Business Partner.'
+                    'message' => 'Failed to delete Business Partner.',
                 ], 500);
             }
 

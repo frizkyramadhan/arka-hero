@@ -11,6 +11,7 @@ class ReligionController extends Controller
     {
         $title = 'Religions';
         $subtitle = 'List of Religion';
+
         return view('religion.index', compact('title', 'subtitle'));
     }
 
@@ -31,7 +32,7 @@ class ReligionController extends Controller
                 }
             })
             ->filter(function ($instance) use ($request) {
-                if (!empty($request->get('search'))) {
+                if (! empty($request->get('search'))) {
                     $instance->where(function ($w) use ($request) {
                         $search = $request->get('search');
                         $w->orWhere('religion_name', 'LIKE', "%$search%")
@@ -57,7 +58,6 @@ class ReligionController extends Controller
     /**
      * Store a newly created resource in storage.
      *
-     * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\Response
      */
     public function store(Request $request)
@@ -66,7 +66,7 @@ class ReligionController extends Controller
             'religion_name' => 'required',
             'religion_status' => 'required',
         ], [
-            'religion_name.required' => 'Religion Name is required'
+            'religion_name.required' => 'Religion Name is required',
         ]);
 
         Religion::create($validatedData);
@@ -99,14 +99,13 @@ class ReligionController extends Controller
     /**
      * Update the specified resource in storage.
      *
-     * @param  \Illuminate\Http\Request  $request
      * @param  int  $id
      * @return \Illuminate\Http\Response
      */
     public function update(Request $request, $id)
     {
         $this->validate($request, [
-            'religion_name' => 'required'
+            'religion_name' => 'required',
         ], [
             'religion_name.required' => 'Religion Name is required',
         ]);
@@ -129,6 +128,7 @@ class ReligionController extends Controller
     {
         $religion = Religion::where('id', $id)->first();
         $religion->delete();
+
         return redirect('religions')->with('toast_success', 'Religion delete successfully');
     }
 }

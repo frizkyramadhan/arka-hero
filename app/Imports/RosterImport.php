@@ -2,22 +2,26 @@
 
 namespace App\Imports;
 
+use App\Models\Administration;
 use App\Models\Roster;
 use App\Models\RosterDetail;
-use App\Models\Administration;
+use App\Support\UserProject;
+use Carbon\Carbon;
 use Illuminate\Support\Collection;
-use Maatwebsite\Excel\Concerns\ToCollection;
-use Maatwebsite\Excel\Concerns\WithHeadingRow;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Carbon\Carbon;
+use Maatwebsite\Excel\Concerns\ToCollection;
+use Maatwebsite\Excel\Concerns\WithHeadingRow;
 use PhpOffice\PhpSpreadsheet\Shared\Date as ExcelDate;
 
 class RosterImport implements ToCollection, WithHeadingRow
 {
     private $errors = [];
+
     private $successCount = 0;
+
     private $skippedCount = 0;
+
     private $rostersCache = [];
 
     public function collection(Collection $rows)
@@ -30,6 +34,7 @@ class RosterImport implements ToCollection, WithHeadingRow
             // Skip completely empty rows
             if ($this->isEmptyRow($rowArray)) {
                 $rowNumber++;
+
                 continue;
             }
 
@@ -47,7 +52,7 @@ class RosterImport implements ToCollection, WithHeadingRow
                     $this->errors[] = [
                         'row' => $rowNumber,
                         'nik' => $this->getColumnValue($rowArray, 'nik'),
-                        'errors' => $result['errors']
+                        'errors' => $result['errors'],
                     ];
                 }
             } catch (\Exception $e) {
@@ -56,10 +61,10 @@ class RosterImport implements ToCollection, WithHeadingRow
                 $this->errors[] = [
                     'row' => $rowNumber,
                     'nik' => $this->getColumnValue($rowArray, 'nik'),
-                    'errors' => ['System error: ' . $e->getMessage()]
+                    'errors' => ['System error: '.$e->getMessage()],
                 ];
 
-                Log::error("Roster Import error at row {$rowNumber}: " . $e->getMessage());
+                Log::error("Roster Import error at row {$rowNumber}: ".$e->getMessage());
             }
 
             $rowNumber++;
@@ -70,7 +75,7 @@ class RosterImport implements ToCollection, WithHeadingRow
             'total_rows' => $rowNumber - 2,
             'success' => $this->successCount,
             'skipped' => $this->skippedCount,
-            'errors' => count($this->errors)
+            'errors' => count($this->errors),
         ]);
     }
 
@@ -106,7 +111,7 @@ class RosterImport implements ToCollection, WithHeadingRow
             $errors[] = 'Work End is required';
         }
 
-        if (!empty($errors)) {
+        if (! empty($errors)) {
             return ['success' => false, 'errors' => $errors];
         }
 
@@ -115,12 +120,16 @@ class RosterImport implements ToCollection, WithHeadingRow
             ->where('is_active', 1)
             ->first();
 
-        if (!$administration) {
-            return ['success' => false, 'errors' => ['Administration not found for NIK: ' . $nik]];
+        if (! $administration) {
+            return ['success' => false, 'errors' => ['Administration not found for NIK: '.$nik]];
+        }
+
+        if (! UserProject::canAccessProjectId((int) $administration->project_id)) {
+            return ['success' => false, 'errors' => ['Tidak ada akses ke proyek untuk NIK: '.$nik]];
         }
 
         // Check if level has roster config
-        if (!$administration->level || !$administration->level->hasRosterConfig()) {
+        if (! $administration->level || ! $administration->level->hasRosterConfig()) {
             return ['success' => false, 'errors' => ['Level does not have roster configuration']];
         }
 
@@ -132,7 +141,7 @@ class RosterImport implements ToCollection, WithHeadingRow
             $workStartDate = $this->parseDate($workStart);
             $workEndDate = $this->parseDate($workEnd);
         } catch (\Exception $e) {
-            return ['success' => false, 'errors' => ['Invalid date format: ' . $e->getMessage()]];
+            return ['success' => false, 'errors' => ['Invalid date format: '.$e->getMessage()]];
         }
 
         if ($workEndDate->lt($workStartDate)) {
@@ -145,7 +154,7 @@ class RosterImport implements ToCollection, WithHeadingRow
         $leaveStart = $this->getColumnValue($row, 'leave_start');
         $leaveEnd = $this->getColumnValue($row, 'leave_end');
 
-        if (!empty($leaveStart)) {
+        if (! empty($leaveStart)) {
             try {
                 $leaveStartDate = $this->parseDate($leaveStart);
             } catch (\Exception $e) {
@@ -153,7 +162,7 @@ class RosterImport implements ToCollection, WithHeadingRow
             }
         }
 
-        if (!empty($leaveEnd)) {
+        if (! empty($leaveEnd)) {
             try {
                 $leaveEndDate = $this->parseDate($leaveEnd);
             } catch (\Exception $e) {
@@ -173,14 +182,14 @@ class RosterImport implements ToCollection, WithHeadingRow
         $adjustedDaysRaw = $this->getColumnValue($row, 'adjusted_days');
         $adjustedDays = 0;
         if ($adjustedDaysRaw !== null && $adjustedDaysRaw !== '' && $adjustedDaysRaw !== '0') {
-            $adjustedDays = (int)$adjustedDaysRaw;
+            $adjustedDays = (int) $adjustedDaysRaw;
         }
         $remarks = $this->getColumnValue($row, 'remarks') ?? '';
         $status = $this->getColumnValue($row, 'status') ?? 'scheduled';
 
         // Validate status
         $validStatuses = ['scheduled', 'active', 'on_leave', 'completed'];
-        if (!in_array($status, $validStatuses)) {
+        if (! in_array($status, $validStatuses)) {
             $status = 'scheduled';
         }
 
@@ -198,7 +207,7 @@ class RosterImport implements ToCollection, WithHeadingRow
                 'leave_start' => $leaveStartDate,
                 'leave_end' => $leaveEndDate,
                 'remarks' => $remarks,
-                'status' => $status
+                'status' => $status,
             ]);
 
             // Auto-update status based on dates
@@ -214,7 +223,7 @@ class RosterImport implements ToCollection, WithHeadingRow
                 'leave_start' => $leaveStartDate,
                 'leave_end' => $leaveEndDate,
                 'remarks' => $remarks,
-                'status' => $status
+                'status' => $status,
             ]);
 
             // Auto-update status based on dates
@@ -236,14 +245,15 @@ class RosterImport implements ToCollection, WithHeadingRow
             ->where('employee_id', $administration->employee_id)
             ->first();
 
-        if (!$roster) {
+        if (! $roster) {
             $roster = Roster::create([
                 'employee_id' => $administration->employee_id,
-                'administration_id' => $administration->id
+                'administration_id' => $administration->id,
             ]);
         }
 
         $this->rostersCache[$cacheKey] = $roster;
+
         return $roster;
     }
 
@@ -255,12 +265,13 @@ class RosterImport implements ToCollection, WithHeadingRow
             str_replace('_', ' ', strtolower($columnName)),
             str_replace(' ', '_', strtolower($columnName)),
             ucfirst(str_replace('_', ' ', strtolower($columnName))),
-            ucwords(str_replace('_', ' ', strtolower($columnName)))
+            ucwords(str_replace('_', ' ', strtolower($columnName))),
         ];
 
         foreach ($variations as $variation) {
             if (isset($row[$variation])) {
                 $value = $row[$variation];
+
                 return is_string($value) ? trim($value) : $value;
             }
         }
@@ -282,6 +293,7 @@ class RosterImport implements ToCollection, WithHeadingRow
         if (is_numeric($value)) {
             try {
                 $timestamp = ExcelDate::excelToTimestamp($value);
+
                 return Carbon::createFromTimestamp($timestamp);
             } catch (\Exception $e) {
                 // If not Excel date, try as regular number (Unix timestamp)
@@ -306,7 +318,7 @@ class RosterImport implements ToCollection, WithHeadingRow
                 'd M Y',
                 'd F Y',
                 'Y-m-d H:i:s',
-                'Y-m-d H:i'
+                'Y-m-d H:i',
             ];
 
             foreach ($formats as $format) {
@@ -330,13 +342,13 @@ class RosterImport implements ToCollection, WithHeadingRow
         $hasAnyValue = false;
 
         foreach ($row as $key => $value) {
-            if (!empty($value) && trim($value) !== '') {
+            if (! empty($value) && trim($value) !== '') {
                 $hasAnyValue = true;
                 break;
             }
         }
 
-        return !$hasAnyValue;
+        return ! $hasAnyValue;
     }
 
     public function getSuccessCount()

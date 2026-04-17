@@ -42,7 +42,7 @@ class TransportationController extends Controller
                 return $transportation->transportation_status;
             })
             ->filter(function ($instance) use ($request) {
-                if (!empty($request->get('search'))) {
+                if (! empty($request->get('search'))) {
                     $instance->where(function ($w) use ($request) {
                         $search = $request->get('search');
                         $w->orWhere('transportation_name', 'LIKE', "%$search%");
@@ -69,7 +69,6 @@ class TransportationController extends Controller
     /**
      * Store a newly created resource in storage.
      *
-     * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\Response
      */
     public function store(Request $request)
@@ -97,6 +96,7 @@ class TransportationController extends Controller
                 ->withInput();
         } catch (\Exception $e) {
             DB::rollback();
+
             return redirect()->back()
                 ->with('toast_error', 'Failed to add transportation. Please try again.')
                 ->withInput();
@@ -106,7 +106,6 @@ class TransportationController extends Controller
     /**
      * Display the specified resource.
      *
-     * @param  \App\Models\Transportation  $transportation
      * @return \Illuminate\Http\Response
      */
     public function show(Transportation $transportation)
@@ -120,7 +119,6 @@ class TransportationController extends Controller
     /**
      * Show the form for editing the specified resource.
      *
-     * @param  \App\Models\Transportation  $transportation
      * @return \Illuminate\Http\Response
      */
     public function edit(Transportation $transportation)
@@ -134,15 +132,13 @@ class TransportationController extends Controller
     /**
      * Update the specified resource in storage.
      *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  \App\Models\Transportation  $transportation
      * @return \Illuminate\Http\Response
      */
     public function update(Request $request, Transportation $transportation)
     {
         try {
             $this->validate($request, [
-                'transportation_name' => 'required|unique:transportations,transportation_name,' . $transportation->id,
+                'transportation_name' => 'required|unique:transportations,transportation_name,'.$transportation->id,
                 // Add more validation rules as needed
             ], [
                 'transportation_name.required' => 'Name is required',
@@ -167,6 +163,7 @@ class TransportationController extends Controller
                 ->withInput();
         } catch (\Exception $e) {
             DB::rollback();
+
             return redirect()->back()
                 ->with('toast_error', 'Failed to update transportation. Please try again.')
                 ->withInput();
@@ -176,7 +173,6 @@ class TransportationController extends Controller
     /**
      * Remove the specified resource from storage.
      *
-     * @param  \App\Models\Transportation  $transportation
      * @return \Illuminate\Http\Response
      */
     public function destroy(Transportation $transportation)
@@ -194,6 +190,7 @@ class TransportationController extends Controller
                 ->with('toast_error', 'Transportation not found.');
         } catch (\Exception $e) {
             DB::rollback();
+
             return redirect()->back()
                 ->with('toast_error', 'Failed to delete transportation. Please try again.');
         }

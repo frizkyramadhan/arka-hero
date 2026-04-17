@@ -15,6 +15,7 @@ class LeaveTypeController extends Controller
         $this->middleware('permission:leave-types.edit')->only('edit', 'update', 'toggleStatus');
         $this->middleware('permission:leave-types.delete')->only('destroy');
     }
+
     /**
      * Display a listing of the resource.
      */
@@ -31,17 +32,17 @@ class LeaveTypeController extends Controller
         $leaveTypes = LeaveType::query();
 
         // Filter by category
-        if (!empty($request->get('category'))) {
+        if (! empty($request->get('category'))) {
             $leaveTypes->where('category', $request->get('category'));
         }
 
         // Filter by status
-        if (!empty($request->get('status'))) {
+        if (! empty($request->get('status'))) {
             $leaveTypes->where('is_active', $request->get('status') === 'active');
         }
 
         // Global search
-        if (!empty($request->get('search'))) {
+        if (! empty($request->get('search'))) {
             $search = $request->get('search');
             $leaveTypes->where(function ($query) use ($search) {
                 $query->where('name', 'LIKE', "%$search%")
@@ -59,7 +60,7 @@ class LeaveTypeController extends Controller
                 return $leaveType->name;
             })
             ->addColumn('code', function ($leaveType) {
-                return '<span class="badge badge-info">' . $leaveType->code . '</span>';
+                return '<span class="badge badge-info">'.$leaveType->code.'</span>';
             })
             ->addColumn('category', function ($leaveType) {
                 switch ($leaveType->category) {
@@ -74,17 +75,17 @@ class LeaveTypeController extends Controller
                     case 'periodic':
                         return '<span class="badge badge-info">Periodic</span>';
                     default:
-                        return '<span class="badge badge-secondary">' . ucfirst($leaveType->category) . '</span>';
+                        return '<span class="badge badge-secondary">'.ucfirst($leaveType->category).'</span>';
                 }
             })
             ->addColumn('default_days', function ($leaveType) {
-                return $leaveType->default_days . ' days';
+                return $leaveType->default_days.' days';
             })
             ->addColumn('eligible_after', function ($leaveType) {
-                return $leaveType->eligible_after_years . ' years';
+                return $leaveType->eligible_after_years.' years';
             })
             ->addColumn('deposit_days', function ($leaveType) {
-                return $leaveType->deposit_days_first . ' days';
+                return $leaveType->deposit_days_first.' days';
             })
             ->addColumn('carry_over', function ($leaveType) {
                 return $leaveType->carry_over ?
@@ -98,20 +99,20 @@ class LeaveTypeController extends Controller
             })
             ->addColumn('action', function ($leaveType) {
                 $actions = '<div class="btn-group" role="group">';
-                $actions .= '<a href="' . route('leave.types.show', $leaveType) . '" class="btn btn-info btn-sm mr-1" title="View"><i class="fas fa-eye"></i></a>';
-                $actions .= '<a href="' . route('leave.types.edit', $leaveType) . '" class="btn btn-warning btn-sm mr-1" title="Edit"><i class="fas fa-edit"></i></a>';
+                $actions .= '<a href="'.route('leave.types.show', $leaveType).'" class="btn btn-info btn-sm mr-1" title="View"><i class="fas fa-eye"></i></a>';
+                $actions .= '<a href="'.route('leave.types.edit', $leaveType).'" class="btn btn-warning btn-sm mr-1" title="Edit"><i class="fas fa-edit"></i></a>';
 
                 if ($leaveType->leaveEntitlements()->count() == 0 && $leaveType->leaveRequests()->count() == 0) {
-                    $actions .= '<form method="POST" action="' . route('leave.types.destroy', $leaveType) . '" style="display: inline-block;" onsubmit="return confirm(\'Are you sure you want to delete this leave type?\')">';
+                    $actions .= '<form method="POST" action="'.route('leave.types.destroy', $leaveType).'" style="display: inline-block;" onsubmit="return confirm(\'Are you sure you want to delete this leave type?\')">';
                     $actions .= csrf_field();
                     $actions .= method_field('DELETE');
                     $actions .= '<button type="submit" class="btn btn-danger btn-sm mr-1" title="Delete"><i class="fas fa-trash"></i></button>';
                     $actions .= '</form>';
                 }
 
-                $actions .= '<form method="POST" action="' . route('leave.types.toggle-status', $leaveType) . '" style="display: inline-block;" onsubmit="return confirm(\'Are you sure you want to toggle the status of this leave type?\')">';
+                $actions .= '<form method="POST" action="'.route('leave.types.toggle-status', $leaveType).'" style="display: inline-block;" onsubmit="return confirm(\'Are you sure you want to toggle the status of this leave type?\')">';
                 $actions .= csrf_field();
-                $actions .= '<button type="submit" class="btn btn-' . ($leaveType->is_active ? 'success' : 'secondary') . ' btn-sm" title="' . ($leaveType->is_active ? 'Deactivate' : 'Activate') . '"><i class="fas fa-toggle-' . ($leaveType->is_active ? 'on' : 'off') . '"></i></button>';
+                $actions .= '<button type="submit" class="btn btn-'.($leaveType->is_active ? 'success' : 'secondary').' btn-sm" title="'.($leaveType->is_active ? 'Deactivate' : 'Activate').'"><i class="fas fa-toggle-'.($leaveType->is_active ? 'on' : 'off').'"></i></button>';
                 $actions .= '</form>';
                 $actions .= '</div>';
 
@@ -142,7 +143,7 @@ class LeaveTypeController extends Controller
             'eligible_after_years' => 'required|integer|min:0',
             'deposit_days_first' => 'nullable|integer|min:0',
             'carry_over' => 'boolean',
-            'remarks' => 'nullable|string|max:1000'
+            'remarks' => 'nullable|string|max:1000',
         ]);
 
         DB::beginTransaction();
@@ -156,7 +157,7 @@ class LeaveTypeController extends Controller
                 'deposit_days_first' => $request->deposit_days_first ?? 0,
                 'carry_over' => $request->boolean('carry_over'),
                 'remarks' => $request->remarks,
-                'is_active' => true
+                'is_active' => true,
             ]);
 
             DB::commit();
@@ -166,7 +167,8 @@ class LeaveTypeController extends Controller
                 ->with('toast_success', 'Leave type created successfully.');
         } catch (\Exception $e) {
             DB::rollback();
-            return back()->with(['toast_error' => 'Failed to create leave type: ' . $e->getMessage()]);
+
+            return back()->with(['toast_error' => 'Failed to create leave type: '.$e->getMessage()]);
         }
     }
 
@@ -195,14 +197,14 @@ class LeaveTypeController extends Controller
     {
         $request->validate([
             'name' => 'required|string|max:255',
-            'code' => 'required|string|max:255|unique:leave_types,code,' . $leaveType->id,
+            'code' => 'required|string|max:255|unique:leave_types,code,'.$leaveType->id,
             'category' => 'required|in:annual,paid,unpaid,lsl,periodic',
             'default_days' => 'required|integer|min:0',
             'eligible_after_years' => 'required|integer|min:0',
             'deposit_days_first' => 'nullable|integer|min:0',
             'carry_over' => 'boolean',
             'remarks' => 'nullable|string|max:1000',
-            'is_active' => 'boolean'
+            'is_active' => 'boolean',
         ]);
 
         DB::beginTransaction();
@@ -216,7 +218,7 @@ class LeaveTypeController extends Controller
                 'deposit_days_first' => $request->deposit_days_first ?? 0,
                 'carry_over' => $request->boolean('carry_over'),
                 'remarks' => $request->remarks,
-                'is_active' => $request->boolean('is_active')
+                'is_active' => $request->boolean('is_active'),
             ]);
 
             DB::commit();
@@ -226,7 +228,8 @@ class LeaveTypeController extends Controller
                 ->with('toast_success', 'Leave type updated successfully.');
         } catch (\Exception $e) {
             DB::rollback();
-            return back()->with(['toast_error' => 'Failed to update leave type: ' . $e->getMessage()]);
+
+            return back()->with(['toast_error' => 'Failed to update leave type: '.$e->getMessage()]);
         }
     }
 
@@ -248,7 +251,7 @@ class LeaveTypeController extends Controller
                 ->with('toast_success', 'Leave type deleted successfully.');
         } catch (\Exception $e) {
             return redirect()->route('leave.types.index')
-                ->with('toast_error', 'Failed to delete leave type: ' . $e->getMessage());
+                ->with('toast_error', 'Failed to delete leave type: '.$e->getMessage());
         }
     }
 
@@ -258,7 +261,7 @@ class LeaveTypeController extends Controller
     public function toggleStatus(LeaveType $leaveType)
     {
         try {
-            $leaveType->update(['is_active' => !$leaveType->is_active]);
+            $leaveType->update(['is_active' => ! $leaveType->is_active]);
 
             $status = $leaveType->is_active ? 'activated' : 'deactivated';
 
@@ -266,7 +269,7 @@ class LeaveTypeController extends Controller
                 ->with('toast_success', "Leave type {$status} successfully.");
         } catch (\Exception $e) {
             return redirect()->route('leave.types.index')
-                ->with('toast_error', 'Failed to update leave type status: ' . $e->getMessage());
+                ->with('toast_error', 'Failed to update leave type status: '.$e->getMessage());
         }
     }
 
@@ -298,7 +301,7 @@ class LeaveTypeController extends Controller
             'approved_requests' => $leaveType->leaveRequests()->where('status', 'approved')->count(),
             'rejected_requests' => $leaveType->leaveRequests()->where('status', 'rejected')->count(),
             'total_days_taken' => $leaveType->leaveRequests()->where('status', 'approved')->sum('total_days'),
-            'average_days_per_request' => $leaveType->leaveRequests()->where('status', 'approved')->avg('total_days')
+            'average_days_per_request' => $leaveType->leaveRequests()->where('status', 'approved')->avg('total_days'),
         ];
 
         return response()->json($stats);

@@ -399,6 +399,9 @@
                             </div>
                         </div>
 
+                        {{-- Flight Request (Tiket Pesawat) - optional; disimpan lewat fr_data saat submit --}}
+                        <x-flight-request-fields name-prefix="fr_data" :allow-return-segment="true" />
+
                         <!-- Manual Approver Selection Card -->
                         <div class="card card-info card-outline elevation-2">
                             <div class="card-header py-2">

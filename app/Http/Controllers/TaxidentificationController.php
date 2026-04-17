@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Employee;
-use Illuminate\Http\Request;
 use App\Models\Taxidentification;
+use App\Support\UserProject;
+use Illuminate\Http\Request;
 
 class TaxidentificationController extends Controller
 {
@@ -17,11 +17,8 @@ class TaxidentificationController extends Controller
     {
         $title = ' Tax Identification';
         $subtitle = ' Tax Identification';
-        $employees = Employee::join('administrations', 'employees.id', '=', 'administrations.employee_id')
-            ->where('administrations.is_active', 1)
-            ->select('employees.*', 'administrations.nik')
-            ->orderBy('employees.fullname', 'asc')
-            ->get();
+        $employees = UserProject::employeesForSelect(null, UserProject::EMPLOYEE_SELECT_ACTIVE_ADMINISTRATION);
+
         return view('taxidentification.index', compact('title', 'subtitle', 'employees'));
     }
 
@@ -30,6 +27,7 @@ class TaxidentificationController extends Controller
         $taxidentifications = Taxidentification::leftJoin('employees', 'taxidentifications.employee_id', '=', 'employees.id')
             ->select('taxidentifications.*', 'employees.fullname')
             ->orderBy('taxidentifications.tax_no', 'asc');
+        UserProject::scopeQueryToEmployeesLinkedViaAdministrations($taxidentifications, 'taxidentifications.employee_id');
 
         return datatables()->of($taxidentifications)
             ->addIndexColumn()
@@ -40,9 +38,10 @@ class TaxidentificationController extends Controller
                 return $taxidentifications->tax_no;
             })
             ->addColumn('tax_valid_date', function ($taxidentifications) {
-                if (!$taxidentifications->tax_valid_date) {
+                if (! $taxidentifications->tax_valid_date) {
                     return '-';
                 }
+
                 return $taxidentifications->tax_valid_date->format('d F Y');
             })
             // ->addColumn('position_status', function ($position) {
@@ -53,7 +52,7 @@ class TaxidentificationController extends Controller
             //     }
             // })
             ->filter(function ($instance) use ($request) {
-                if (!empty($request->get('search'))) {
+                if (! empty($request->get('search'))) {
                     $instance->where(function ($w) use ($request) {
                         $search = $request->get('search');
                         $w->orWhere('fullname', 'LIKE', "%$search%")
@@ -63,11 +62,8 @@ class TaxidentificationController extends Controller
                 }
             })
             ->addColumn('action', function ($taxidentifications) {
-                $employees = Employee::join('administrations', 'employees.id', '=', 'administrations.employee_id')
-                    ->where('administrations.is_active', 1)
-                    ->select('employees.*')
-                    ->orderBy('employees.fullname', 'asc')
-                    ->get();
+                $employees = UserProject::employeesForSelect(null, UserProject::EMPLOYEE_SELECT_ACTIVE_ADMINISTRATION);
+
                 return view('taxidentification.action', compact('employees', 'taxidentifications'));
             })
             ->rawColumns(['fullname', 'action'])
@@ -87,25 +83,28 @@ class TaxidentificationController extends Controller
     /**
      * Store a newly created resource in storage.
      *
-     * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\Response
      */
     public function store(Request $request)
     {
+        if ($r = UserProject::guardEmployeeId($request->employee_id)) {
+            return $r;
+        }
+
         $request->validate([
             'employee_id' => 'required',
             'tax_no' => 'required',
-            'tax_valid_date' => 'required'
+            'tax_valid_date' => 'required',
 
         ]);
         Taxidentification::create($request->all());
-        return redirect('employees/' . $request->employee_id . '#tax')->with('toast_success', 'Tax Identification Added Successfully');
+
+        return redirect('employees/'.$request->employee_id.'#tax')->with('toast_success', 'Tax Identification Added Successfully');
     }
 
     /**
      * Display the specified resource.
      *
-     * @param  \App\Models\Taxidentification  $taxidentification
      * @return \Illuminate\Http\Response
      */
     public function show(Taxidentification $taxidentification)
@@ -116,7 +115,6 @@ class TaxidentificationController extends Controller
     /**
      * Show the form for editing the specified resource.
      *
-     * @param  \App\Models\Taxidentification  $taxidentification
      * @return \Illuminate\Http\Response
      */
     public function edit(Taxidentification $taxidentification)
@@ -127,20 +125,27 @@ class TaxidentificationController extends Controller
     /**
      * Update the specified resource in storage.
      *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  \App\Models\Taxidentification  $taxidentification
      * @return \Illuminate\Http\Response
      */
     public function update(Request $request, Taxidentification $taxidentification)
     {
+        if ($r = UserProject::guardEmployeeId($taxidentification->employee_id)) {
+            return $r;
+        }
+
         $request->validate([
             'employee_id' => 'required',
             'tax_no' => 'required',
-            'tax_valid_date' => 'required'
+            'tax_valid_date' => 'required',
 
         ]);
+        if ($r = UserProject::guardEmployeeId($request->employee_id)) {
+            return $r;
+        }
+
         $taxidentification->update($request->all());
-        return redirect('employees/' . $request->employee_id . '#tax')->with('toast_success', 'Tax Identification Updated Successfully');
+
+        return redirect('employees/'.$request->employee_id.'#tax')->with('toast_success', 'Tax Identification Updated Successfully');
     }
 
     /**
@@ -151,7 +156,15 @@ class TaxidentificationController extends Controller
      */
     public function delete($employee_id, $id)
     {
+        if ($r = UserProject::guardEmployeeId($employee_id)) {
+            return $r;
+        }
+        $row = Taxidentification::where('id', $id)->firstOrFail();
+        if ((int) $row->employee_id !== (int) $employee_id) {
+            return UserProject::redirectAccessDenied();
+        }
         Taxidentification::where('id', $id)->delete();
-        return redirect('employees/' . $employee_id . '#tax')->with('toast_success', 'Tax Identification Deleted Successfully');
+
+        return redirect('employees/'.$employee_id.'#tax')->with('toast_success', 'Tax Identification Deleted Successfully');
     }
 }

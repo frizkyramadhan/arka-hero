@@ -481,18 +481,21 @@ class LetterNumberController extends Controller
 
             $numbers = LetterNumber::where('letter_category_id', $category->id)
                 ->where('status', 'reserved')
-                ->with('subject') // Eager load subject
+                ->with(['subject', 'project'])
                 ->orderBy('letter_date', 'desc')
                 ->get();
 
             // Format data to match what the component expects
             $formattedNumbers = $numbers->map(function ($number) {
+                $projectCode = $number->project?->project_code ?? $number->project_code;
+
                 return [
                     'id' => $number->id,
                     'letter_number' => $number->letter_number,
                     'letter_date' => $number->letter_date,
-                    'subject_name' => $number->subject->subject_name ?? $number->custom_subject,
+                    'subject_name' => $number->subject?->subject_name ?? $number->custom_subject,
                     'remarks' => $number->remarks,
+                    'project_code' => $projectCode,
                 ];
             });
 

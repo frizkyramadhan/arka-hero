@@ -43,6 +43,21 @@ class LeaveRequestSummaryResource extends JsonResource
                     'is_active' => $this->administration->is_active,
                 ];
             }),
+            'cancellations' => $this->whenLoaded('cancellations', function () {
+                return $this->cancellations->map(static function ($c) {
+                    return [
+                        'id' => $c->id,
+                        'days_to_cancel' => $c->days_to_cancel,
+                        'reason' => $c->reason,
+                        'status' => $c->status,
+                        'requested_by' => $c->requested_by,
+                        'requested_at' => $c->requested_at?->format('Y-m-d H:i:s'),
+                        'confirmed_by' => $c->confirmed_by,
+                        'confirmed_at' => $c->confirmed_at?->format('Y-m-d H:i:s'),
+                        'confirmation_notes' => $c->confirmation_notes,
+                    ];
+                })->values()->all();
+            }),
         ];
     }
 }

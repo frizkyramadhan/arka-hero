@@ -7,8 +7,8 @@ use App\Models\EmployeeRegistrationToken;
 use App\Services\EmployeeRegistrationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 
 class EmployeeRegistrationAdminController extends Controller
 {
@@ -111,7 +111,7 @@ class EmployeeRegistrationAdminController extends Controller
 
             return redirect()->back()->with('toast_error', $result['message']);
         } catch (\Exception $e) {
-            return redirect()->back()->with('toast_error', 'Failed to send invitation: ' . $e->getMessage());
+            return redirect()->back()->with('toast_error', 'Failed to send invitation: '.$e->getMessage());
         }
     }
 
@@ -143,7 +143,7 @@ class EmployeeRegistrationAdminController extends Controller
 
             return redirect()->back()->with('toast_success', $message);
         } catch (\Exception $e) {
-            return redirect()->back()->with('toast_error', 'Failed to process bulk invitations: ' . $e->getMessage());
+            return redirect()->back()->with('toast_error', 'Failed to process bulk invitations: '.$e->getMessage());
         }
     }
 
@@ -153,7 +153,7 @@ class EmployeeRegistrationAdminController extends Controller
     public function approve(Request $request, $id)
     {
         $request->validate([
-            'admin_notes' => 'nullable|string|max:1000'
+            'admin_notes' => 'nullable|string|max:1000',
         ]);
 
         try {
@@ -165,7 +165,7 @@ class EmployeeRegistrationAdminController extends Controller
                 'status' => 'approved',
                 'admin_notes' => $request->admin_notes,
                 'reviewed_by' => Auth::id(),
-                'reviewed_at' => now()
+                'reviewed_at' => now(),
             ]);
 
             // TODO: Integrate with approval system if needed
@@ -175,10 +175,12 @@ class EmployeeRegistrationAdminController extends Controller
             // $this->createEmployeeFromRegistration($registration);
 
             DB::commit();
+
             return redirect()->back()->with('toast_success', 'Registration approved successfully');
         } catch (\Exception $e) {
             DB::rollback();
-            return redirect()->back()->with('toast_error', 'Failed to approve registration: ' . $e->getMessage());
+
+            return redirect()->back()->with('toast_error', 'Failed to approve registration: '.$e->getMessage());
         }
     }
 
@@ -188,7 +190,7 @@ class EmployeeRegistrationAdminController extends Controller
     public function reject(Request $request, $id)
     {
         $request->validate([
-            'admin_notes' => 'required|string|max:1000'
+            'admin_notes' => 'required|string|max:1000',
         ]);
 
         try {
@@ -200,7 +202,7 @@ class EmployeeRegistrationAdminController extends Controller
                 'status' => 'rejected',
                 'admin_notes' => $request->admin_notes,
                 'reviewed_by' => Auth::id(),
-                'reviewed_at' => now()
+                'reviewed_at' => now(),
             ]);
 
             // TODO: Integrate with approval system if needed
@@ -211,7 +213,8 @@ class EmployeeRegistrationAdminController extends Controller
             return redirect()->back()->with('toast_success', 'Registration rejected');
         } catch (\Exception $e) {
             DB::rollback();
-            return redirect()->back()->with('toast_error', 'Failed to reject registration: ' . $e->getMessage());
+
+            return redirect()->back()->with('toast_error', 'Failed to reject registration: '.$e->getMessage());
         }
     }
 
@@ -224,13 +227,13 @@ class EmployeeRegistrationAdminController extends Controller
             $registration = EmployeeRegistration::findOrFail($registrationId);
             $document = $registration->documents()->findOrFail($documentId);
 
-            if (!Storage::disk('private')->exists($document->file_path)) {
+            if (! Storage::disk('private')->exists($document->file_path)) {
                 return redirect()->back()->with('toast_error', 'File not found');
             }
 
-            return response()->download(storage_path('app/private/' . $document->file_path), $document->original_filename);
+            return response()->download(storage_path('app/private/'.$document->file_path), $document->original_filename);
         } catch (\Exception $e) {
-            return redirect()->back()->with('toast_error', 'Failed to download document: ' . $e->getMessage());
+            return redirect()->back()->with('toast_error', 'Failed to download document: '.$e->getMessage());
         }
     }
 
@@ -257,14 +260,14 @@ class EmployeeRegistrationAdminController extends Controller
                 $actions = '';
 
                 if ($status === 'active') {
-                    $actions .= '<button class="btn btn-sm btn-warning mr-1" onclick="resendInvitation(\'' . $token->id . '\')" title="Resend Invitation">
+                    $actions .= '<button class="btn btn-sm btn-warning mr-1" onclick="resendInvitation(\''.$token->id.'\')" title="Resend Invitation">
                                     <i class="fas fa-paper-plane"></i>
                                 </button>';
                 }
 
                 // Allow deletion for all tokens except used ones
                 if ($status !== 'used') {
-                    $actions .= '<button class="btn btn-sm btn-danger" onclick="deleteToken(\'' . $token->id . '\')" title="Delete Token">
+                    $actions .= '<button class="btn btn-sm btn-danger" onclick="deleteToken(\''.$token->id.'\')" title="Delete Token">
                                     <i class="fas fa-trash"></i>
                                 </button>';
                 }
@@ -297,7 +300,7 @@ class EmployeeRegistrationAdminController extends Controller
 
             return redirect()->back()->with('toast_success', $message);
         } catch (\Exception $e) {
-            return redirect()->back()->with('toast_error', 'Failed to cleanup expired tokens: ' . $e->getMessage());
+            return redirect()->back()->with('toast_error', 'Failed to cleanup expired tokens: '.$e->getMessage());
         }
     }
 
@@ -311,7 +314,7 @@ class EmployeeRegistrationAdminController extends Controller
 
             // Check if token is still valid for resending
             if ($token->status !== 'pending') {
-                return redirect()->back()->with('toast_error', 'Cannot resend invitation for this token status: ' . $token->status);
+                return redirect()->back()->with('toast_error', 'Cannot resend invitation for this token status: '.$token->status);
             }
 
             if ($token->expires_at < now()) {
@@ -326,7 +329,7 @@ class EmployeeRegistrationAdminController extends Controller
 
             return redirect()->back()->with('toast_error', $result['message']);
         } catch (\Exception $e) {
-            return redirect()->back()->with('toast_error', 'Failed to resend invitation: ' . $e->getMessage());
+            return redirect()->back()->with('toast_error', 'Failed to resend invitation: '.$e->getMessage());
         }
     }
 
@@ -348,7 +351,7 @@ class EmployeeRegistrationAdminController extends Controller
 
             return redirect()->back()->with('toast_success', "Token for {$email} has been deleted");
         } catch (\Exception $e) {
-            return redirect()->back()->with('toast_error', 'Failed to delete token: ' . $e->getMessage());
+            return redirect()->back()->with('toast_error', 'Failed to delete token: '.$e->getMessage());
         }
     }
 

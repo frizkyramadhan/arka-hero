@@ -2,16 +2,14 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Employee;
-use App\Models\EmployeeBond;
 use App\Models\BondViolation;
+use App\Models\EmployeeBond;
 use App\Models\LetterNumber;
+use App\Support\UserProject;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Str;
-use Carbon\Carbon;
+use Illuminate\Support\Facades\Storage;
 
 class EmployeeBondController extends Controller
 {
@@ -31,11 +29,7 @@ class EmployeeBondController extends Controller
         $title = 'Employee Bonds (Ikatan Dinas Karyawan)';
         $subtitle = 'Employee Bond Management';
 
-        $employees = Employee::join('administrations', 'employees.id', '=', 'administrations.employee_id')
-            ->where('administrations.is_active', 1)
-            ->select('employees.*', 'administrations.nik')
-            ->orderBy('administrations.nik', 'asc')
-            ->get();
+        $employees = UserProject::employeesForSelect(null, UserProject::EMPLOYEE_SELECT_ACTIVE_ADMINISTRATION, 'nik');
 
         return view('employee-bonds.index', compact('title', 'subtitle', 'employees'));
     }
@@ -48,35 +42,35 @@ class EmployeeBondController extends Controller
         $bonds = EmployeeBond::with(['employee.administrations', 'letterNumber']);
 
         // Filter by status
-        if (!empty($request->get('status'))) {
+        if (! empty($request->get('status'))) {
             $bonds->where('status', $request->get('status'));
         }
 
         // Filter by employee
-        if (!empty($request->get('employee_id'))) {
+        if (! empty($request->get('employee_id'))) {
             $bonds->where('employee_id', $request->get('employee_id'));
         }
 
         // Filter by bond name
-        if (!empty($request->get('bond_name'))) {
-            $bonds->where('bond_name', 'LIKE', '%' . $request->get('bond_name') . '%');
+        if (! empty($request->get('bond_name'))) {
+            $bonds->where('bond_name', 'LIKE', '%'.$request->get('bond_name').'%');
         }
 
         // Filter by bond number
-        if (!empty($request->get('bond_number'))) {
-            $bonds->where('employee_bond_number', 'LIKE', '%' . $request->get('bond_number') . '%');
+        if (! empty($request->get('bond_number'))) {
+            $bonds->where('employee_bond_number', 'LIKE', '%'.$request->get('bond_number').'%');
         }
 
         // Filter by date range
-        if (!empty($request->get('date_from')) && !empty($request->get('date_to'))) {
+        if (! empty($request->get('date_from')) && ! empty($request->get('date_to'))) {
             $bonds->whereBetween('start_date', [
                 $request->get('date_from'),
-                $request->get('date_to')
+                $request->get('date_to'),
             ]);
         }
 
         // Global search
-        if (!empty($request->get('search'))) {
+        if (! empty($request->get('search'))) {
             $search = $request->get('search');
             $bonds->where(function ($query) use ($search) {
                 $query->where('bond_name', 'LIKE', "%$search%")
@@ -98,7 +92,8 @@ class EmployeeBondController extends Controller
             ->addColumn('employee', function ($bond) {
                 $employee = $bond->employee;
                 $nik = $employee->administrations->isNotEmpty() ? $employee->administrations->first()->nik : '-';
-                return '<strong>' . $employee->fullname . '</strong><br><small class="text-muted">' . $nik . '</small>';
+
+                return '<strong>'.$employee->fullname.'</strong><br><small class="text-muted">'.$nik.'</small>';
             })
             ->addColumn('bond_name', function ($bond) {
                 return $bond->bond_name ?? '-';
@@ -113,10 +108,10 @@ class EmployeeBondController extends Controller
                 return $bond->end_date->format('d/m/Y');
             })
             ->addColumn('duration', function ($bond) {
-                return $bond->total_bond_duration_months . ' months';
+                return $bond->total_bond_duration_months.' months';
             })
             ->addColumn('investment_value', function ($bond) {
-                return 'Rp ' . number_format($bond->total_investment_value, 0, ',', '.');
+                return 'Rp '.number_format($bond->total_investment_value, 0, ',', '.');
             })
             ->addColumn('status', function ($bond) {
                 switch ($bond->status) {
@@ -129,21 +124,23 @@ class EmployeeBondController extends Controller
                     case 'cancelled':
                         return '<span class="badge badge-secondary">Cancelled</span>';
                     default:
-                        return '<span class="badge badge-light">' . ucfirst($bond->status) . '</span>';
+                        return '<span class="badge badge-light">'.ucfirst($bond->status).'</span>';
                 }
             })
             ->addColumn('remaining_days', function ($bond) {
                 if ($bond->status == 'active') {
-                    return '<strong>' . $bond->remaining_days . '</strong> days';
+                    return '<strong>'.$bond->remaining_days.'</strong> days';
                 }
+
                 return '-';
             })
             ->addColumn('action', function ($bond) {
                 $html = '<div class="btn-group" role="group">';
-                $html .= '<a href="' . route('employee-bonds.show', $bond->id) . '" class="btn btn-sm btn-info mr-1" title="View"><i class="fas fa-eye"></i></a>';
-                $html .= '<a href="' . route('employee-bonds.edit', $bond->id) . '" class="btn btn-sm btn-warning mr-1" title="Edit"><i class="fas fa-edit"></i></a>';
-                $html .= '<button class="btn btn-sm btn-danger" onclick="deleteBond(' . $bond->id . ')" title="Delete"><i class="fas fa-trash"></i></button>';
+                $html .= '<a href="'.route('employee-bonds.show', $bond->id).'" class="btn btn-sm btn-info mr-1" title="View"><i class="fas fa-eye"></i></a>';
+                $html .= '<a href="'.route('employee-bonds.edit', $bond->id).'" class="btn btn-sm btn-warning mr-1" title="Edit"><i class="fas fa-edit"></i></a>';
+                $html .= '<button class="btn btn-sm btn-danger" onclick="deleteBond('.$bond->id.')" title="Delete"><i class="fas fa-trash"></i></button>';
                 $html .= '</div>';
+
                 return $html;
             })
             ->rawColumns(['employee', 'bond_name', 'status', 'remaining_days', 'action'])
@@ -156,11 +153,7 @@ class EmployeeBondController extends Controller
     public function create()
     {
         $title = 'Create Employee Bond';
-        $employees = Employee::join('administrations', 'employees.id', '=', 'administrations.employee_id')
-            ->where('administrations.is_active', 1)
-            ->select('employees.*', 'administrations.nik')
-            ->orderBy('administrations.nik', 'asc')
-            ->get();
+        $employees = UserProject::employeesForSelect(null, UserProject::EMPLOYEE_SELECT_ACTIVE_ADMINISTRATION, 'nik');
 
         return view('employee-bonds.create', compact('title', 'employees'));
     }
@@ -180,7 +173,7 @@ class EmployeeBondController extends Controller
             'end_date' => 'required|date|after:start_date',
             'total_bond_duration_months' => 'required|integer|min:1',
             'total_investment_value' => 'required|numeric|min:0',
-            'document' => 'nullable|file|mimes:pdf,doc,docx|max:2048'
+            'document' => 'nullable|file|mimes:pdf,doc,docx|max:2048',
         ]);
 
         DB::beginTransaction();
@@ -189,14 +182,14 @@ class EmployeeBondController extends Controller
             $letterNumberRecord = null;
             if ($request->letter_number_id) {
                 $letterNumberRecord = LetterNumber::find($request->letter_number_id);
-                if (!$letterNumberRecord || $letterNumberRecord->status !== 'reserved') {
+                if (! $letterNumberRecord || $letterNumberRecord->status !== 'reserved') {
                     return redirect()->back()
                         ->with('toast_error', 'Selected letter number is not available or already used')
                         ->withInput();
                 }
             }
 
-            $bond = new EmployeeBond();
+            $bond = new EmployeeBond;
             $bond->employee_id = $request->employee_id;
             $bond->bond_name = $request->bond_name;
             $bond->description = $request->description;
@@ -214,7 +207,7 @@ class EmployeeBondController extends Controller
                 $originalName = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
                 $extension = $file->getClientOriginalExtension();
                 $timestamp = now()->format('YmdHis');
-                $fileName = $originalName . '_' . $timestamp . '.' . $extension;
+                $fileName = $originalName.'_'.$timestamp.'.'.$extension;
                 $path = $file->storeAs('bonds', $fileName, 'private');
                 $bond->document_path = $path;
             }
@@ -230,7 +223,7 @@ class EmployeeBondController extends Controller
                     'letter_number_id' => $letterNumberRecord->id,
                     'letter_number' => $letterNumberRecord->letter_number,
                     'employee_bond_id' => $bond->id,
-                    'employee_bond_number' => $bond->employee_bond_number
+                    'employee_bond_number' => $bond->employee_bond_number,
                 ]);
             }
 
@@ -240,8 +233,9 @@ class EmployeeBondController extends Controller
                 ->with('toast_success', 'Employee bond created successfully');
         } catch (\Exception $e) {
             DB::rollback();
+
             return redirect()->back()
-                ->with('toast_error', 'Failed to create employee bond: ' . $e->getMessage())
+                ->with('toast_error', 'Failed to create employee bond: '.$e->getMessage())
                 ->withInput();
         }
     }
@@ -263,11 +257,7 @@ class EmployeeBondController extends Controller
     public function edit(EmployeeBond $employeeBond)
     {
         $title = 'Edit Employee Bond';
-        $employees = Employee::join('administrations', 'employees.id', '=', 'administrations.employee_id')
-            ->where('administrations.is_active', 1)
-            ->select('employees.*', 'administrations.nik')
-            ->orderBy('administrations.nik', 'asc')
-            ->get();
+        $employees = UserProject::employeesForSelect(null, UserProject::EMPLOYEE_SELECT_ACTIVE_ADMINISTRATION, 'nik');
 
         return view('employee-bonds.edit', compact('title', 'employeeBond', 'employees'));
     }
@@ -287,7 +277,7 @@ class EmployeeBondController extends Controller
             'total_bond_duration_months' => 'required|integer|min:1',
             'total_investment_value' => 'required|numeric|min:0',
             'status' => 'required|in:active,completed,violated,cancelled',
-            'document' => 'nullable|file|mimes:pdf,doc,docx|max:2048'
+            'document' => 'nullable|file|mimes:pdf,doc,docx|max:2048',
         ]);
 
         DB::beginTransaction();
@@ -298,7 +288,7 @@ class EmployeeBondController extends Controller
 
             if ($request->letter_number_id && $request->letter_number_id != $oldLetterNumberId) {
                 $newLetterNumberRecord = LetterNumber::find($request->letter_number_id);
-                if (!$newLetterNumberRecord || $newLetterNumberRecord->status !== 'reserved') {
+                if (! $newLetterNumberRecord || $newLetterNumberRecord->status !== 'reserved') {
                     return redirect()->back()
                         ->with('toast_error', 'Selected letter number is not available or already used')
                         ->withInput();
@@ -327,7 +317,7 @@ class EmployeeBondController extends Controller
                 $originalName = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
                 $extension = $file->getClientOriginalExtension();
                 $timestamp = now()->format('YmdHis');
-                $fileName = $originalName . '_' . $timestamp . '.' . $extension;
+                $fileName = $originalName.'_'.$timestamp.'.'.$extension;
                 $path = $file->storeAs('bonds', $fileName, 'private');
                 $employeeBond->document_path = $path;
             }
@@ -359,7 +349,7 @@ class EmployeeBondController extends Controller
                     'new_letter_number_id' => $newLetterNumberRecord->id,
                     'new_letter_number' => $newLetterNumberRecord->letter_number,
                     'employee_bond_id' => $employeeBond->id,
-                    'employee_bond_number' => $employeeBond->employee_bond_number
+                    'employee_bond_number' => $employeeBond->employee_bond_number,
                 ]);
             }
 
@@ -369,8 +359,9 @@ class EmployeeBondController extends Controller
                 ->with('toast_success', 'Employee bond updated successfully');
         } catch (\Exception $e) {
             DB::rollback();
+
             return redirect()->back()
-                ->with('toast_error', 'Failed to update employee bond: ' . $e->getMessage())
+                ->with('toast_error', 'Failed to update employee bond: '.$e->getMessage())
                 ->withInput();
         }
     }
@@ -399,7 +390,7 @@ class EmployeeBondController extends Controller
                         'letter_number_id' => $letterNumberRecord->id,
                         'letter_number' => $letterNumberRecord->letter_number,
                         'employee_bond_id' => $employeeBond->id,
-                        'employee_bond_number' => $employeeBond->employee_bond_number
+                        'employee_bond_number' => $employeeBond->employee_bond_number,
                     ]);
                 }
             }
@@ -421,8 +412,9 @@ class EmployeeBondController extends Controller
                 ->with('toast_success', 'Employee bond and all related violations deleted successfully');
         } catch (\Exception $e) {
             DB::rollback();
+
             return redirect()->back()
-                ->with('toast_error', 'Failed to delete employee bond: ' . $e->getMessage());
+                ->with('toast_error', 'Failed to delete employee bond: '.$e->getMessage());
         }
     }
 
@@ -448,7 +440,7 @@ class EmployeeBondController extends Controller
 
         return response()->json([
             'count' => $expiringBonds->count(),
-            'bonds' => $expiringBonds
+            'bonds' => $expiringBonds,
         ]);
     }
 
@@ -457,11 +449,11 @@ class EmployeeBondController extends Controller
      */
     public function downloadDocument(EmployeeBond $employeeBond)
     {
-        if (!$employeeBond->document_path || !Storage::disk('private')->exists($employeeBond->document_path)) {
+        if (! $employeeBond->document_path || ! Storage::disk('private')->exists($employeeBond->document_path)) {
             return redirect()->back()->with('toast_error', 'Document not found!');
         }
 
-        return response()->download(storage_path('app/private/' . $employeeBond->document_path));
+        return response()->download(storage_path('app/private/'.$employeeBond->document_path));
     }
 
     /**

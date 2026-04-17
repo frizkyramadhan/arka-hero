@@ -5,26 +5,33 @@ namespace App\Exports;
 use App\Models\Administration;
 use App\Models\Roster;
 use Maatwebsite\Excel\Concerns\FromCollection;
-use Maatwebsite\Excel\Concerns\WithHeadings;
-use Maatwebsite\Excel\Concerns\WithMapping;
-use Maatwebsite\Excel\Concerns\WithStyles;
 use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 use Maatwebsite\Excel\Concerns\WithColumnFormatting;
 use Maatwebsite\Excel\Concerns\WithEvents;
+use Maatwebsite\Excel\Concerns\WithHeadings;
+use Maatwebsite\Excel\Concerns\WithMapping;
+use Maatwebsite\Excel\Concerns\WithStyles;
 use Maatwebsite\Excel\Events\AfterSheet;
-use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
-use PhpOffice\PhpSpreadsheet\Style\Fill;
-use PhpOffice\PhpSpreadsheet\Style\Alignment;
-use PhpOffice\PhpSpreadsheet\Style\NumberFormat;
 use PhpOffice\PhpSpreadsheet\Cell\DataType;
+use PhpOffice\PhpSpreadsheet\Style\Alignment;
+use PhpOffice\PhpSpreadsheet\Style\Fill;
+use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
-class RosterExport implements FromCollection, WithHeadings, WithMapping, WithStyles, ShouldAutoSize, WithColumnFormatting, WithEvents
+class RosterExport implements FromCollection, ShouldAutoSize, WithColumnFormatting, WithEvents, WithHeadings, WithMapping, WithStyles
 {
     private $projectId;
 
-    public function __construct($projectId = null)
+    /**
+     * When {@see $projectId} is null, restrict rows to these project IDs (e.g. user_project assignment).
+     *
+     * @var array<int>|null
+     */
+    private ?array $scopeProjectIds;
+
+    public function __construct($projectId = null, ?array $scopeProjectIds = null)
     {
         $this->projectId = $projectId;
+        $this->scopeProjectIds = $scopeProjectIds;
     }
 
     public function collection()
@@ -37,13 +44,19 @@ class RosterExport implements FromCollection, WithHeadings, WithMapping, WithSty
             'project',
             'roster.rosterDetails' => function ($q) {
                 $q->orderBy('cycle_no');
-            }
+            },
         ])
             ->where('is_active', 1);
 
         // Filter by project if provided
         if ($this->projectId) {
             $query->where('project_id', $this->projectId);
+        } elseif (is_array($this->scopeProjectIds)) {
+            if ($this->scopeProjectIds === []) {
+                $query->whereRaw('0 = 1');
+            } else {
+                $query->whereIn('project_id', $this->scopeProjectIds);
+            }
         }
 
         $administrations = $query->orderBy('nik')->get();
@@ -60,11 +73,11 @@ class RosterExport implements FromCollection, WithHeadings, WithMapping, WithSty
                 'nik' => $administration->nik ?? '',
                 'fullname' => $employee->fullname ?? 'N/A',
                 'position' => $administration->position->position_name ?? '',
-                'level' => $level->name ?? ''
+                'level' => $level->name ?? '',
             ];
 
             // If no roster or no cycles, create one row with empty cycle data (adjusted_days empty)
-            if (!$roster || $roster->rosterDetails->count() === 0) {
+            if (! $roster || $roster->rosterDetails->count() === 0) {
                 $data[] = array_merge($baseData, [
                     'cycle_no' => '',
                     'work_start' => '',
@@ -73,7 +86,7 @@ class RosterExport implements FromCollection, WithHeadings, WithMapping, WithSty
                     'leave_start' => '',
                     'leave_end' => '',
                     'remarks' => '',
-                    'status' => ''
+                    'status' => '',
                 ]);
             } else {
                 // Create one row per cycle
@@ -83,18 +96,18 @@ class RosterExport implements FromCollection, WithHeadings, WithMapping, WithSty
                     if ($adjustedDays === null || $adjustedDays === '') {
                         $adjustedDays = 0;
                     } else {
-                        $adjustedDays = (int)$adjustedDays;
+                        $adjustedDays = (int) $adjustedDays;
                     }
 
                     $data[] = array_merge($baseData, [
-                        'cycle_no' => (int)$detail->cycle_no, // Ensure cycle_no is integer
+                        'cycle_no' => (int) $detail->cycle_no, // Ensure cycle_no is integer
                         'work_start' => $detail->work_start->format('Y-m-d'),
                         'work_end' => $detail->work_end->format('Y-m-d'),
                         'adjusted_days' => $adjustedDays,
                         'leave_start' => $detail->leave_start ? $detail->leave_start->format('Y-m-d') : '',
                         'leave_end' => $detail->leave_end ? $detail->leave_end->format('Y-m-d') : '',
                         'remarks' => $detail->remarks ?? '',
-                        'status' => $detail->status
+                        'status' => $detail->status,
                     ]);
                 }
             }
@@ -103,7 +116,7 @@ class RosterExport implements FromCollection, WithHeadings, WithMapping, WithSty
         // Sort by NIK, then Cycle No
         return collect($data)->sortBy([
             ['nik', 'asc'],
-            ['cycle_no', 'asc']
+            ['cycle_no', 'asc'],
         ])->values();
     }
 
@@ -121,7 +134,7 @@ class RosterExport implements FromCollection, WithHeadings, WithMapping, WithSty
             'Leave Start',
             'Leave End',
             'Remarks',
-            'Status'
+            'Status',
         ];
     }
 
@@ -133,12 +146,12 @@ class RosterExport implements FromCollection, WithHeadings, WithMapping, WithSty
             $adjustedDays = 0;
         }
         // Convert to int to ensure it's a number, not string
-        $adjustedDays = (int)$adjustedDays;
+        $adjustedDays = (int) $adjustedDays;
 
         // Ensure cycle_no is integer if not empty
         $cycleNo = $row['cycle_no'] ?? '';
         if ($cycleNo !== '' && $cycleNo !== null) {
-            $cycleNo = (int)$cycleNo;
+            $cycleNo = (int) $cycleNo;
         }
 
         return [
@@ -153,7 +166,7 @@ class RosterExport implements FromCollection, WithHeadings, WithMapping, WithSty
             $row['leave_start'] ?? '',
             $row['leave_end'] ?? '',
             $row['remarks'] ?? '',
-            $row['status'] ?? ''
+            $row['status'] ?? '',
         ];
     }
 
@@ -165,7 +178,7 @@ class RosterExport implements FromCollection, WithHeadings, WithMapping, WithSty
             'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
             'fill' => [
                 'fillType' => Fill::FILL_SOLID,
-                'startColor' => ['rgb' => '4472C4']
+                'startColor' => ['rgb' => '4472C4'],
             ],
             'alignment' => [
                 'horizontal' => Alignment::HORIZONTAL_CENTER,
@@ -200,14 +213,14 @@ class RosterExport implements FromCollection, WithHeadings, WithMapping, WithSty
                 // Iterate through all data rows (starting from row 2, row 1 is header)
                 for ($row = 2; $row <= $highestRow; $row++) {
                     // Format Cycle No column (E) as integer
-                    $cycleNoCell = $sheet->getCell('E' . $row);
+                    $cycleNoCell = $sheet->getCell('E'.$row);
                     $cycleNoValue = $cycleNoCell->getValue();
                     if ($cycleNoValue !== null && $cycleNoValue !== '' && trim($cycleNoValue) !== '') {
-                        $cycleNoCell->setValueExplicit((int)$cycleNoValue, DataType::TYPE_NUMERIC);
+                        $cycleNoCell->setValueExplicit((int) $cycleNoValue, DataType::TYPE_NUMERIC);
                     }
 
                     // Format Adjusted Days column (H)
-                    $cell = $sheet->getCell('H' . $row);
+                    $cell = $sheet->getCell('H'.$row);
                     $value = $cell->getValue();
 
                     // If cycle_no is empty, leave adjusted_days empty (don't set to 0)
@@ -220,7 +233,7 @@ class RosterExport implements FromCollection, WithHeadings, WithMapping, WithSty
                             $cell->setValueExplicit(0, DataType::TYPE_NUMERIC);
                         } else {
                             // Convert to integer and set as numeric type
-                            $numericValue = (int)$value;
+                            $numericValue = (int) $value;
                             $cell->setValueExplicit($numericValue, DataType::TYPE_NUMERIC);
                         }
                     }

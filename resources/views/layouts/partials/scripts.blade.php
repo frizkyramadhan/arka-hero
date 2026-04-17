@@ -105,6 +105,8 @@
     });
 </script>
 
+@stack('late-scripts')
+
 </body>
 
 </html>

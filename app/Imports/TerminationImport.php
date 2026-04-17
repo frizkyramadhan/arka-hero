@@ -2,49 +2,47 @@
 
 namespace App\Imports;
 
-use App\Models\Project;
+use App\Models\Administration;
 use App\Models\Employee;
 use App\Models\Position;
-use App\Models\Administration;
-use Maatwebsite\Excel\Concerns\ToModel;
-use PhpOffice\PhpSpreadsheet\Shared\Date;
+use App\Models\Project;
+use App\Support\UserProject;
 use Maatwebsite\Excel\Concerns\Importable;
 use Maatwebsite\Excel\Concerns\SkipsErrors;
-use Maatwebsite\Excel\Concerns\SkipsOnError;
 use Maatwebsite\Excel\Concerns\SkipsFailures;
+use Maatwebsite\Excel\Concerns\SkipsOnError;
 use Maatwebsite\Excel\Concerns\SkipsOnFailure;
-use Maatwebsite\Excel\Concerns\WithHeadingRow;
-use Maatwebsite\Excel\Concerns\WithValidation;
-use Maatwebsite\Excel\Concerns\WithEvents;
-use Maatwebsite\Excel\Events\BeforeSheet;
+use Maatwebsite\Excel\Concerns\ToModel;
 use Maatwebsite\Excel\Concerns\WithBatchInserts;
 use Maatwebsite\Excel\Concerns\WithChunkReading;
+use Maatwebsite\Excel\Concerns\WithEvents;
+use Maatwebsite\Excel\Concerns\WithHeadingRow;
+use Maatwebsite\Excel\Concerns\WithValidation;
+use Maatwebsite\Excel\Events\BeforeSheet;
 use Maatwebsite\Excel\Validators\Failure;
+use PhpOffice\PhpSpreadsheet\Shared\Date;
 
-class TerminationImport implements
-    ToModel,
-    WithHeadingRow,
-    WithValidation,
-    SkipsOnError,
-    SkipsOnFailure,
-    WithEvents,
-    WithBatchInserts,
-    WithChunkReading
+class TerminationImport implements SkipsOnError, SkipsOnFailure, ToModel, WithBatchInserts, WithChunkReading, WithEvents, WithHeadingRow, WithValidation
 {
     use Importable, SkipsErrors, SkipsFailures;
 
     private $employees;
+
     private $positions;
+
     private $projects;
+
     private $rowNumber = 0;
+
     private $sheetName;
+
     private $parent = null;
 
     public function __construct()
     {
         $this->employees = Employee::select('id', 'identity_card', 'fullname')->get();
         $this->positions = Position::select('id', 'position_name')->get();
-        $this->projects = Project::select('id', 'project_code', 'project_name')->get();
+        $this->projects = UserProject::projectsForSelect();
     }
 
     /**
@@ -53,6 +51,7 @@ class TerminationImport implements
     public function setParent($parent)
     {
         $this->parent = $parent;
+
         return $this;
     }
 
@@ -68,7 +67,7 @@ class TerminationImport implements
         return [
             BeforeSheet::class => function (BeforeSheet $event) {
                 $this->sheetName = $event->getSheet()->getTitle();
-            }
+            },
         ];
     }
 
@@ -92,7 +91,7 @@ class TerminationImport implements
             'doh' => ['nullable'],
             'department' => ['nullable', 'string'],
             'position' => ['nullable', 'string', 'exists:positions,position_name'],
-            'project_code' => ['nullable', 'string', 'exists:projects,project_code'],
+            'project_code' => ['nullable', 'string'],
             'termination_date' => ['nullable'],
             'termination_reason' => ['required', 'in:End of Contract,End of Project,Resign,Termination,Retired,Efficiency,Passed Away,Canceled'],
             'coe_no' => ['nullable', 'string'],
@@ -137,7 +136,7 @@ class TerminationImport implements
                     ->first();
 
                 // If not in database, check if it's in the pending personal rows
-                if (!$employee && !empty($pendingPersonalRows)) {
+                if (! $employee && ! empty($pendingPersonalRows)) {
                     $existsInPending = collect($pendingPersonalRows)->first(function ($pendingRow) use ($row) {
                         return ($pendingRow['full_name'] ?? null) === $row['full_name'] &&
                             ($pendingRow['identity_card_no'] ?? null) === $row['identity_card_no'];
@@ -150,11 +149,26 @@ class TerminationImport implements
                 }
 
                 // Only add error if employee doesn't exist in database or pending rows
-                if (!$employee) {
+                if (! $employee) {
                     $validator->errors()->add(
-                        $rowIndex . '.full_name',
+                        $rowIndex.'.full_name',
                         "No employee found with name '{$row['full_name']}' and Identity Card No '{$row['identity_card_no']}'. Please check the employee data in the personal sheet."
                     );
+                }
+
+                if (! empty($row['project_code'])) {
+                    $project = Project::where('project_code', $row['project_code'])->first();
+                    if (! $project) {
+                        $validator->errors()->add(
+                            $rowIndex.'.project_code',
+                            'Kode proyek tidak ditemukan.'
+                        );
+                    } elseif (! UserProject::canAccessProjectId($project->id)) {
+                        $validator->errors()->add(
+                            $rowIndex.'.project_code',
+                            'Proyek di luar penugasan akun Anda (user_project).'
+                        );
+                    }
                 }
             }
         });
@@ -177,12 +191,12 @@ class TerminationImport implements
 
             // If employee is not found in database, it might be a new one from personal sheet
             // We need to query for it again as it may have been created by now
-            if (!$employee) {
+            if (! $employee) {
                 $employee = Employee::where('fullname', $row['full_name'])
                     ->where('identity_card', $row['identity_card_no'])
                     ->first();
 
-                if (!$employee) {
+                if (! $employee) {
                     // Still not found, skip this row
                     return null;
                 }
@@ -190,13 +204,13 @@ class TerminationImport implements
 
             // Find the project by project code if provided
             $project = null;
-            if (!empty($row['project_code'])) {
+            if (! empty($row['project_code'])) {
                 $project = $this->projects->where('project_code', $row['project_code'])->first();
             }
 
             // Find the position by name if provided
             $position = null;
-            if (!empty($row['position'])) {
+            if (! empty($row['position'])) {
                 $position = $this->positions->where('position_name', $row['position'])->first();
             }
 
@@ -210,11 +224,11 @@ class TerminationImport implements
                 'is_active' => 0, // Set to 0 for termination
                 'termination_reason' => $row['termination_reason'],
                 'coe_no' => $row['coe_no'] ?? null,
-                'user_id' => auth()->user()->id
+                'user_id' => auth()->user()->id,
             ];
 
             // Process DOH (Date of Hire)
-            if (!empty($row['doh'])) {
+            if (! empty($row['doh'])) {
                 if (is_numeric($row['doh'])) {
                     $terminationData['doh'] = Date::excelToDateTimeObject($row['doh']);
                 } else {
@@ -228,7 +242,7 @@ class TerminationImport implements
             }
 
             // Process termination date
-            if (!empty($row['termination_date'])) {
+            if (! empty($row['termination_date'])) {
                 if (is_numeric($row['termination_date'])) {
                     $terminationData['termination_date'] = Date::excelToDateTimeObject($row['termination_date']);
                 } else {
@@ -240,7 +254,7 @@ class TerminationImport implements
             $administration = Administration::updateOrCreate(
                 [
                     'employee_id' => $employee->id,
-                    'nik' => $row['nik']
+                    'nik' => $row['nik'],
                 ],
                 $terminationData
             );
@@ -250,17 +264,19 @@ class TerminationImport implements
             $this->onFailure(new Failure(
                 $this->rowNumber,
                 'system_error',
-                ['Database error: ' . $e->getMessage()],
+                ['Database error: '.$e->getMessage()],
                 $row
             ));
+
             return null;
         } catch (\Exception $e) {
             $this->onFailure(new Failure(
                 $this->rowNumber,
                 'system_error',
-                ['Error: ' . $e->getMessage()],
+                ['Error: '.$e->getMessage()],
                 $row
             ));
+
             return null;
         }
     }

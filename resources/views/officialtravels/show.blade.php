@@ -413,6 +413,8 @@
                     {{-- <x-approval-status-card :documentType="'officialtravel'" :documentId="$officialtravel->id" :mode="$officialtravel->status === 'draft' ? 'preview' : 'status'" :projectId="$officialtravel->official_travel_origin"
                         :departmentId="$officialtravel->traveler->position->department_id ?? null" title="Approval Status" /> --}}
 
+                    @include('officialtravels.partials.flight-request-info')
+
                     <!-- Action Buttons -->
                     <div class="travel-action-buttons">
                         <a href="{{ route('officialtravels.index') }}" class="btn-action back-btn">

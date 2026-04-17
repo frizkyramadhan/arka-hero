@@ -2,25 +2,22 @@
 
 namespace App\Http\Controllers;
 
-use Carbon\Carbon;
-use App\Models\Project;
-use App\Models\Employee;
-use App\Models\LeaveType;
-use App\Models\Department;
-use Illuminate\Support\Str;
-use App\Models\LeaveRequest;
-use Illuminate\Http\Request;
-use App\Models\ApprovalStage;
 use App\Models\Administration;
-use App\Models\LeaveEntitlement;
+use App\Models\ApprovalStage;
+use App\Models\Department;
+use App\Models\Employee;
+use App\Models\FlightRequest;
+use App\Models\LeaveRequest;
+use App\Models\Project;
 use App\Models\Roster;
 use App\Models\RosterDetail;
-use App\Models\FlightRequest;
-use Illuminate\Support\Facades\DB;
 use App\Services\RosterLeaveService;
+use App\Support\UserProject;
+use Carbon\Carbon;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use App\Http\Controllers\ApprovalPlanController;
 
 class BulkLeaveRequestController extends Controller
 {
@@ -36,8 +33,17 @@ class BulkLeaveRequestController extends Controller
      */
     public function index()
     {
+        $scope = UserProject::assignmentScope(auth()->user());
+
         $batches = LeaveRequest::where('is_batch_request', true)
             ->whereNotNull('batch_id')
+            ->whereHas('administration', function ($q) use ($scope) {
+                if ($scope === []) {
+                    $q->whereRaw('0 = 1');
+                } else {
+                    $q->whereIn('project_id', $scope);
+                }
+            })
             ->select(
                 'batch_id',
                 'bulk_notes',
@@ -59,17 +65,18 @@ class BulkLeaveRequestController extends Controller
     {
         $user = Auth::user();
 
-        // Get roster-based projects only
-        $projects = Project::where('project_status', 1)
+        // Roster projects assigned to user (user_project)
+        $projects = UserProject::projectsQuery($user, true)
             ->where('leave_type', 'roster')
             ->whereHas('administrations', function ($q) {
                 $q->where('is_active', 1);
             })
+            ->orderBy('project_code')
             ->get();
 
         // Auto-select project if requested or if user has only one project
         $selectedProjectId = $request->get('project_id');
-        if (!$selectedProjectId && $user->employee) {
+        if (! $selectedProjectId && $user->employee) {
             $userProjects = $user->employee->administrations()
                 ->where('is_active', 1)
                 ->pluck('project_id')
@@ -85,6 +92,9 @@ class BulkLeaveRequestController extends Controller
 
         // If project is selected, get employees due for leave
         if ($selectedProjectId) {
+            if (! UserProject::canAccessProjectId((int) $selectedProjectId)) {
+                return UserProject::redirectAccessDenied(route('leave.periodic-requests.create'));
+            }
             $employeesDue = $this->rosterLeaveService->getEmployeesDueForLeave($selectedProjectId, 14);
         }
 
@@ -107,11 +117,18 @@ class BulkLeaveRequestController extends Controller
             $daysAhead = $request->get('days_ahead', 14);
             $departmentId = $request->get('department_id'); // Optional: filter by department
 
-            if (!$projectId) {
+            if (! $projectId) {
                 return response()->json([
                     'success' => false,
-                    'error' => 'Project ID is required'
+                    'error' => 'Project ID is required',
                 ], 400);
+            }
+
+            if (! UserProject::canAccessProjectId((int) $projectId)) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'Forbidden',
+                ], 403);
             }
 
             $employeesDue = $this->rosterLeaveService->getEmployeesDueForLeave($projectId, $daysAhead, $departmentId);
@@ -136,23 +153,23 @@ class BulkLeaveRequestController extends Controller
                     'off_days' => $item['off_days'] ?? 0,
                     'is_due' => $item['is_due'] ?? false,
                     'days_until_off' => $item['days_until_off'] ?? 0,
-                    'administration_id' => $administration && $administration->id ? $administration->id : null
+                    'administration_id' => $administration && $administration->id ? $administration->id : null,
                 ];
             });
 
             return response()->json([
                 'success' => true,
-                'employees' => $formattedData
+                'employees' => $formattedData,
             ]);
         } catch (\Exception $e) {
-            Log::error('Error in getEmployeesDue: ' . $e->getMessage(), [
+            Log::error('Error in getEmployeesDue: '.$e->getMessage(), [
                 'trace' => $e->getTraceAsString(),
-                'request' => $request->all()
+                'request' => $request->all(),
             ]);
 
             return response()->json([
                 'success' => false,
-                'error' => 'Failed to load employee data: ' . $e->getMessage()
+                'error' => 'Failed to load employee data: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -164,8 +181,12 @@ class BulkLeaveRequestController extends Controller
     {
         $projectId = $request->get('project_id');
 
-        if (!$projectId) {
+        if (! $projectId) {
             return response()->json(['error' => 'Project ID is required'], 400);
+        }
+
+        if (! UserProject::canAccessProjectId((int) $projectId)) {
+            return response()->json(['success' => false, 'error' => 'Forbidden'], 403);
         }
 
         $departments = Department::whereHas('positions.administrations', function ($q) use ($projectId) {
@@ -178,7 +199,7 @@ class BulkLeaveRequestController extends Controller
 
         return response()->json([
             'success' => true,
-            'departments' => $departments
+            'departments' => $departments,
         ]);
     }
 
@@ -191,7 +212,7 @@ class BulkLeaveRequestController extends Controller
         $departmentName = $request->get('department_name', 'Unknown Department');
         $selectedApprovers = $request->get('selected_approvers', []);
 
-        if (!is_array($selectedApprovers)) {
+        if (! is_array($selectedApprovers)) {
             $selectedApprovers = json_decode($selectedApprovers, true) ?? [];
         }
 
@@ -216,28 +237,35 @@ class BulkLeaveRequestController extends Controller
             $projectId = $request->get('project_id');
 
             // Validate input
-            if (empty($employeeIds) || !$projectId) {
+            if (empty($employeeIds) || ! $projectId) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Employee IDs and Project ID are required'
+                    'message' => 'Employee IDs and Project ID are required',
                 ], 400);
             }
 
             // Ensure employee_ids is an array
-            if (!is_array($employeeIds)) {
+            if (! is_array($employeeIds)) {
                 $employeeIds = [$employeeIds];
             }
 
             // Filter out empty values
             $employeeIds = array_filter($employeeIds, function ($id) {
-                return !empty($id);
+                return ! empty($id);
             });
 
             if (empty($employeeIds)) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'No valid employee IDs provided'
+                    'message' => 'No valid employee IDs provided',
                 ], 400);
+            }
+
+            if (! UserProject::canAccessProjectId((int) $projectId)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Forbidden',
+                ], 403);
             }
 
             // Get administrations with level info
@@ -251,7 +279,7 @@ class BulkLeaveRequestController extends Controller
                 return response()->json([
                     'success' => true,
                     'approval_groups' => [],
-                    'message' => 'No active administrations found for the selected employees'
+                    'message' => 'No active administrations found for the selected employees',
                 ]);
             }
 
@@ -266,7 +294,7 @@ class BulkLeaveRequestController extends Controller
                         'name' => 'Follow configured approval stages',
                         'level' => 'Various',
                         'level_order' => 0, // Special marker for Director
-                        'note' => 'Director-level requests follow standard approval flow'
+                        'note' => 'Director-level requests follow standard approval flow',
                     ];
                 } elseif ($employeeLevelOrder == 5) {
                     // Manager level - Director only
@@ -282,7 +310,7 @@ class BulkLeaveRequestController extends Controller
                                 'order' => 1,
                                 'name' => $item['approver']->name,
                                 'level' => $item['level_name'],
-                                'level_order' => $item['level_order']
+                                'level_order' => $item['level_order'],
                             ];
                             break;
                         }
@@ -302,7 +330,7 @@ class BulkLeaveRequestController extends Controller
                                 'order' => 1,
                                 'name' => $item['approver']->name,
                                 'level' => $item['level_name'],
-                                'level_order' => $item['level_order']
+                                'level_order' => $item['level_order'],
                             ];
                             break;
                         }
@@ -327,14 +355,15 @@ class BulkLeaveRequestController extends Controller
                 $signature = collect($approvers)->map(function ($a) {
                     // For Director level, use note instead of level_order
                     if (isset($a['note'])) {
-                        return $a['name'] . '|' . $a['note'];
+                        return $a['name'].'|'.$a['note'];
                     }
-                    return $a['name'] . '|' . ($a['level_order'] ?? 0);
+
+                    return $a['name'].'|'.($a['level_order'] ?? 0);
                 })->implode(',');
 
                 return [
                     'approvers' => $approvers,
-                    'signature' => $signature
+                    'signature' => $signature,
                 ];
             };
 
@@ -343,13 +372,15 @@ class BulkLeaveRequestController extends Controller
             $departmentGroups = [];
 
             foreach ($administrations as $admin) {
-                if (!$admin->position || !$admin->position->department || !$admin->level) continue;
+                if (! $admin->position || ! $admin->position->department || ! $admin->level) {
+                    continue;
+                }
 
                 $deptId = $admin->position->department_id;
                 $deptName = $admin->position->department->department_name;
 
                 // Cache approval stages per department
-                if (!isset($departmentApprovers[$deptId])) {
+                if (! isset($departmentApprovers[$deptId])) {
                     // Get approval stages filtered by project and department from approval_stage_details
                     $approvalStages = ApprovalStage::where('document_type', 'leave_request')
                         ->whereHas('details', function ($q) use ($projectId, $deptId) {
@@ -371,46 +402,50 @@ class BulkLeaveRequestController extends Controller
 
                     foreach ($approvalStages as $stage) {
                         $approver = $stage->approver;
-                        if (!$approver || !$approver->employee) continue;
+                        if (! $approver || ! $approver->employee) {
+                            continue;
+                        }
 
                         // Get level from any active administration (not limited to same project)
                         $approverAdmin = $approver->employee->administrations
                             ->where('is_active', 1)
                             ->first();
 
-                        if (!$approverAdmin || !$approverAdmin->level) continue;
+                        if (! $approverAdmin || ! $approverAdmin->level) {
+                            continue;
+                        }
 
                         $approversWithLevel[] = [
                             'approver' => $approver,
                             'admin' => $approverAdmin,
                             'level_order' => $approverAdmin->level->level_order,
                             'level_name' => $approverAdmin->level->name,
-                            'approval_order' => $stage->approval_order
+                            'approval_order' => $stage->approval_order,
                         ];
                     }
 
                     // Find SPV (level 3) first
                     foreach ($approversWithLevel as $item) {
-                        if (!$hierarchicalApprover && $item['level_order'] == 3) {
+                        if (! $hierarchicalApprover && $item['level_order'] == 3) {
                             $hierarchicalApprover = [
                                 'order' => 1,
                                 'name' => $item['approver']->name,
                                 'level' => $item['level_name'],
-                                'level_order' => $item['level_order']
+                                'level_order' => $item['level_order'],
                             ];
                             break;
                         }
                     }
 
                     // If no SPV found, look for SPT(4)
-                    if (!$hierarchicalApprover) {
+                    if (! $hierarchicalApprover) {
                         foreach ($approversWithLevel as $item) {
                             if ($item['level_order'] == 4) {
                                 $hierarchicalApprover = [
                                     'order' => 1,
                                     'name' => $item['approver']->name,
                                     'level' => $item['level_name'],
-                                    'level_order' => $item['level_order']
+                                    'level_order' => $item['level_order'],
                                 ];
                                 break;
                             }
@@ -419,12 +454,12 @@ class BulkLeaveRequestController extends Controller
 
                     // Look for Manager(5)
                     foreach ($approversWithLevel as $item) {
-                        if (!$managerApprover && $item['level_order'] == 5) {
+                        if (! $managerApprover && $item['level_order'] == 5) {
                             $managerApprover = [
                                 'order' => 2,
                                 'name' => $item['approver']->name,
                                 'level' => $item['level_name'],
-                                'level_order' => $item['level_order']
+                                'level_order' => $item['level_order'],
                             ];
                             break;
                         }
@@ -432,12 +467,12 @@ class BulkLeaveRequestController extends Controller
 
                     // Look for Director(6)
                     foreach ($approversWithLevel as $item) {
-                        if (!$directorApprover && $item['level_order'] == 6) {
+                        if (! $directorApprover && $item['level_order'] == 6) {
                             $directorApprover = [
                                 'order' => 1,
                                 'name' => $item['approver']->name,
                                 'level' => $item['level_name'],
-                                'level_order' => $item['level_order']
+                                'level_order' => $item['level_order'],
                             ];
                             break;
                         }
@@ -447,7 +482,7 @@ class BulkLeaveRequestController extends Controller
                         'approversWithLevel' => $approversWithLevel,
                         'hierarchicalApprover' => $hierarchicalApprover,
                         'managerApprover' => $managerApprover,
-                        'directorApprover' => $directorApprover
+                        'directorApprover' => $directorApprover,
                     ];
                 }
 
@@ -462,7 +497,7 @@ class BulkLeaveRequestController extends Controller
 
                 // Group by department_id only (not by approval flow signature)
                 // This ensures all employees from same department are in one group
-                if (!isset($departmentGroups[$deptId])) {
+                if (! isset($departmentGroups[$deptId])) {
                     $departmentGroups[$deptId] = [
                         'department_id' => $deptId,
                         'department_name' => $deptName,
@@ -470,12 +505,12 @@ class BulkLeaveRequestController extends Controller
                         'employees' => [],
                         'approvers' => $approvalFlow['approvers'], // Use first approval flow found
                         'level_summary' => [],
-                        'employee_ids' => [] // Store employee IDs for this group
+                        'employee_ids' => [], // Store employee IDs for this group
                     ];
                 }
 
                 // Add employee ID to this group (avoid duplicates)
-                if (!in_array($admin->employee_id, $departmentGroups[$deptId]['employee_ids'])) {
+                if (! in_array($admin->employee_id, $departmentGroups[$deptId]['employee_ids'])) {
                     $departmentGroups[$deptId]['employee_ids'][] = $admin->employee_id;
                 }
 
@@ -490,11 +525,11 @@ class BulkLeaveRequestController extends Controller
                     }
                 }
 
-                if (!$employeeExists) {
+                if (! $employeeExists) {
                     $departmentGroups[$deptId]['employees'][] = [
                         'name' => $admin->employee->fullname ?? 'Unknown',
                         'level' => $admin->level->name ?? 'Unknown',
-                        'level_order' => $admin->level->level_order ?? 0
+                        'level_order' => $admin->level->level_order ?? 0,
                     ];
                 }
             }
@@ -520,18 +555,18 @@ class BulkLeaveRequestController extends Controller
                 'success' => true,
                 'approval_groups' => $sortedGroups,
                 'total_departments' => $uniqueDepartments,
-                'total_employees' => count($employeeIds)
+                'total_employees' => count($employeeIds),
             ]);
         } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error('Error in getBulkApprovalPreview: ' . $e->getMessage(), [
+            \Illuminate\Support\Facades\Log::error('Error in getBulkApprovalPreview: '.$e->getMessage(), [
                 'trace' => $e->getTraceAsString(),
                 'employee_ids' => $employeeIds ?? [],
-                'project_id' => $projectId ?? null
+                'project_id' => $projectId ?? null,
             ]);
 
             return response()->json([
                 'success' => false,
-                'message' => 'An error occurred while processing approval preview: ' . $e->getMessage()
+                'message' => 'An error occurred while processing approval preview: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -550,6 +585,7 @@ class BulkLeaveRequestController extends Controller
                 // Handle empty string
                 if (trim($approvers) === '' || $approvers === '[]' || $approvers === 'null') {
                     $parsedDepartmentApprovers[$deptId] = [];
+
                     continue;
                 }
 
@@ -586,19 +622,28 @@ class BulkLeaveRequestController extends Controller
             'bulk_notes' => 'nullable|string|max:1000',
             'department_approvers' => 'required|array',
             'department_approvers.*' => 'required|array|min:1',
-            'department_approvers.*.*' => 'required|exists:users,id'
+            'department_approvers.*.*' => 'required|exists:users,id',
         ]);
 
         $periodicLeaveType = $this->rosterLeaveService->getPeriodicLeaveType();
 
-        if (!$periodicLeaveType) {
+        if (! $periodicLeaveType) {
             return back()->with('toast_error', 'Periodic leave type not found.');
+        }
+
+        foreach ($request->selected_employees as $empData) {
+            $administration = Administration::find($empData['administration_id'] ?? null);
+            if (! $administration || ! UserProject::canAccessProjectId((int) $administration->project_id)) {
+                return back()
+                    ->with('toast_error', 'Akses proyek ditolak untuk salah satu karyawan terpilih.')
+                    ->withInput();
+            }
         }
 
         DB::beginTransaction();
         try {
             // Generate unique batch ID
-            $batchId = 'leave_' . now()->format('YmdHis');
+            $batchId = 'leave_'.now()->format('YmdHis');
             $successCount = 0;
             $failedCount = 0;
             $errors = [];
@@ -620,9 +665,10 @@ class BulkLeaveRequestController extends Controller
                     $employee = Employee::find($empData['employee_id']);
                     $administration = Administration::find($empData['administration_id']);
 
-                    if (!$employee || !$administration) {
+                    if (! $employee || ! $administration) {
                         $errors[] = "Employee or administration not found: {$empData['employee_id']}";
                         $failedCount++;
+
                         continue;
                     }
 
@@ -654,6 +700,7 @@ class BulkLeaveRequestController extends Controller
                         $deptName = $administration->position->department->department_name ?? 'Unknown';
                         $errors[] = "No approvers selected for employee {$employee->fullname} (Department: {$deptName})";
                         $failedCount++;
+
                         continue;
                     }
 
@@ -683,14 +730,14 @@ class BulkLeaveRequestController extends Controller
                         'is_batch_request' => true,
                         'batch_id' => $batchId,
                         'bulk_notes' => $request->bulk_notes,
-                        'manual_approvers' => $approverIds // Set manual approvers
+                        'manual_approvers' => $approverIds, // Set manual approvers
                     ]);
 
                     // Create manual approval plan for this request
                     $response = app(ApprovalPlanController::class)
                         ->create_manual_approval_plan('leave_request', $leaveRequest->id);
 
-                    if (!$response || $response === 0) {
+                    if (! $response || $response === 0) {
                         throw new \Exception("Failed to create approval plan for {$employee->fullname}");
                     }
 
@@ -705,7 +752,7 @@ class BulkLeaveRequestController extends Controller
 
                     // Create flight request from fr_data when "Need flight ticket?" was checked
                     $frData = $empData['fr_data'] ?? null;
-                    if (is_array($frData) && !empty($frData['need_flight_ticket']) && !empty($frData['details'])) {
+                    if (is_array($frData) && ! empty($frData['need_flight_ticket']) && ! empty($frData['details'])) {
                         try {
                             FlightRequest::createFromFrDataArray($frData, $leaveRequest, Auth::id());
                         } catch (\Exception $frEx) {
@@ -727,8 +774,9 @@ class BulkLeaveRequestController extends Controller
 
             if ($successCount == 0) {
                 DB::rollback();
+
                 return back()
-                    ->with('toast_error', 'Failed to create any leave requests. ' . implode(', ', $errors))
+                    ->with('toast_error', 'Failed to create any leave requests. '.implode(', ', $errors))
                     ->withInput();
             }
 
@@ -743,8 +791,9 @@ class BulkLeaveRequestController extends Controller
                 ->with('toast_success', $message);
         } catch (\Exception $e) {
             DB::rollback();
+
             return back()
-                ->with('toast_error', 'Failed to create bulk leave requests: ' . $e->getMessage())
+                ->with('toast_error', 'Failed to create bulk leave requests: '.$e->getMessage())
                 ->withInput();
         }
     }
@@ -754,6 +803,11 @@ class BulkLeaveRequestController extends Controller
      */
     public function show($batchId)
     {
+        if (! LeaveRequest::where('batch_id', $batchId)->exists()) {
+            return redirect()->route('leave.periodic-requests.index')
+                ->with('toast_error', 'Batch not found');
+        }
+
         $leaveRequests = LeaveRequest::where('batch_id', $batchId)
             ->with([
                 'employee',
@@ -762,7 +816,7 @@ class BulkLeaveRequestController extends Controller
                 'leaveType',
                 'approvalPlans.approver',
                 'requestedBy',
-                'flightRequests.details'
+                'flightRequests.details',
             ])
             ->join('administrations', 'leave_requests.administration_id', '=', 'administrations.id')
             ->join('positions', 'administrations.position_id', '=', 'positions.id')
@@ -777,12 +831,18 @@ class BulkLeaveRequestController extends Controller
                 ->with('toast_error', 'Batch not found');
         }
 
+        foreach ($leaveRequests as $lr) {
+            if ($lr->employee && ! UserProject::canViewEmployee($lr->employee)) {
+                return UserProject::redirectAccessDenied(route('leave.periodic-requests.index'));
+            }
+        }
+
         $batchInfo = [
             'batch_id' => $batchId,
             'total_requests' => $leaveRequests->count(),
             'created_at' => $leaveRequests->first()->created_at,
             'bulk_notes' => $leaveRequests->first()->bulk_notes,
-            'requested_by' => $leaveRequests->first()->requestedBy
+            'requested_by' => $leaveRequests->first()->requestedBy,
         ];
 
         // Count by status
@@ -798,7 +858,7 @@ class BulkLeaveRequestController extends Controller
     public function cancelBatch(Request $request, $batchId)
     {
         $request->validate([
-            'cancellation_reason' => 'required|string|max:500'
+            'cancellation_reason' => 'required|string|max:500',
         ]);
 
         DB::beginTransaction();
@@ -811,10 +871,17 @@ class BulkLeaveRequestController extends Controller
                 return back()->with('toast_error', 'No pending requests found in this batch');
             }
 
+            foreach ($leaveRequests as $leaveRequest) {
+                $leaveRequest->loadMissing('employee');
+                if ($leaveRequest->employee && ! UserProject::canViewEmployee($leaveRequest->employee)) {
+                    return back()->with('toast_error', 'Akses ditolak untuk membatalkan batch ini.');
+                }
+            }
+
             $cancelledCount = 0;
             foreach ($leaveRequests as $leaveRequest) {
                 $leaveRequest->update([
-                    'status' => 'cancelled'
+                    'status' => 'cancelled',
                 ]);
 
                 // Clear roster notes for cancelled leave request
@@ -833,7 +900,8 @@ class BulkLeaveRequestController extends Controller
             return back()->with('toast_success', "Successfully cancelled {$cancelledCount} leave request(s)");
         } catch (\Exception $e) {
             DB::rollback();
-            return back()->with('toast_error', 'Failed to cancel batch: ' . $e->getMessage());
+
+            return back()->with('toast_error', 'Failed to cancel batch: '.$e->getMessage());
         }
     }
 
@@ -841,11 +909,11 @@ class BulkLeaveRequestController extends Controller
      * Update roster detail remarks for leave period
      * Menandai di roster_detail bahwa status cuti sudah dibuatkan leave request
      *
-     * @param int $administrationId
-     * @param Carbon $startDate
-     * @param Carbon $endDate
-     * @param string $batchId
-     * @param string|null $bulkNotes
+     * @param  int  $administrationId
+     * @param  Carbon  $startDate
+     * @param  Carbon  $endDate
+     * @param  string  $batchId
+     * @param  string|null  $bulkNotes
      * @return void
      */
     private function updateRosterNotes($administrationId, $startDate, $endDate, $batchId, $bulkNotes = null)
@@ -854,8 +922,9 @@ class BulkLeaveRequestController extends Controller
             // Find roster for this administration
             $roster = Roster::where('administration_id', $administrationId)->first();
 
-            if (!$roster) {
+            if (! $roster) {
                 Log::warning("Roster not found for administration: {$administrationId}");
+
                 return;
             }
 
@@ -874,31 +943,31 @@ class BulkLeaveRequestController extends Controller
             if ($rosterDetail) {
                 // Update remarks in roster_detail
                 $existingRemarks = $rosterDetail->remarks ?? '';
-                $newRemarks = $existingRemarks 
+                $newRemarks = $existingRemarks
                     ? "{$existingRemarks}\n{$notesText}"
                     : $notesText;
-                
+
                 $rosterDetail->update(['remarks' => $newRemarks]);
 
-                Log::info("Updated roster detail remarks", [
+                Log::info('Updated roster detail remarks', [
                     'roster_id' => $roster->id,
                     'roster_detail_id' => $rosterDetail->id,
                     'batch_id' => $batchId,
-                    'notes' => $notesText
+                    'notes' => $notesText,
                 ]);
             } else {
-                Log::warning("Roster detail not found for leave period", [
+                Log::warning('Roster detail not found for leave period', [
                     'roster_id' => $roster->id,
                     'start_date' => $startDate->format('Y-m-d'),
                     'end_date' => $endDate->format('Y-m-d'),
-                    'batch_id' => $batchId
+                    'batch_id' => $batchId,
                 ]);
             }
         } catch (\Exception $e) {
-            Log::error("Failed to update roster notes: " . $e->getMessage(), [
+            Log::error('Failed to update roster notes: '.$e->getMessage(), [
                 'administration_id' => $administrationId,
                 'batch_id' => $batchId,
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
             // Don't throw exception - this is not critical enough to fail the whole process
         }
@@ -908,10 +977,10 @@ class BulkLeaveRequestController extends Controller
      * Clear roster daily status notes for cancelled leave period
      * Menghapus penanda di roster saat leave request dibatalkan
      *
-     * @param int $administrationId
-     * @param Carbon $startDate
-     * @param Carbon $endDate
-     * @param string $batchId
+     * @param  int  $administrationId
+     * @param  Carbon  $startDate
+     * @param  Carbon  $endDate
+     * @param  string  $batchId
      * @return void
      */
     private function clearRosterNotes($administrationId, $startDate, $endDate, $batchId)
@@ -920,8 +989,9 @@ class BulkLeaveRequestController extends Controller
             // Find roster for this administration
             $roster = Roster::where('administration_id', $administrationId)->first();
 
-            if (!$roster) {
+            if (! $roster) {
                 Log::warning("Roster not found for administration: {$administrationId}");
+
                 return;
             }
 
@@ -936,20 +1006,20 @@ class BulkLeaveRequestController extends Controller
                 $remarks = $rosterDetail->remarks;
                 $remarks = preg_replace("/{$batchId}.*?\n?/", '', $remarks);
                 $remarks = trim($remarks);
-                
+
                 $rosterDetail->update(['remarks' => $remarks ?: null]);
 
-                Log::info("Cleared roster detail remarks", [
+                Log::info('Cleared roster detail remarks', [
                     'roster_id' => $roster->id,
                     'roster_detail_id' => $rosterDetail->id,
-                    'batch_id' => $batchId
+                    'batch_id' => $batchId,
                 ]);
             }
         } catch (\Exception $e) {
-            Log::error("Failed to clear roster notes: " . $e->getMessage(), [
+            Log::error('Failed to clear roster notes: '.$e->getMessage(), [
                 'administration_id' => $administrationId,
                 'batch_id' => $batchId,
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
             // Don't throw exception - this is not critical enough to fail the whole process
         }

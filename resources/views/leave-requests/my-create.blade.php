@@ -519,6 +519,8 @@
             // Project data with leave type information
             const projectData = @json($projects);
 
+            const NATIONAL_HOLIDAY_DATE_SET = new Set(@json($nationalHolidayDates ?? []));
+
             // Fixed employee and project for personal request
             const employeeId = "{{ $defaultEmployeeId }}";
             const projectId = {{ $defaultProject->id ?? 'null' }};
@@ -716,11 +718,30 @@
             // DATE PICKERS SETUP
             // ============================================================================
 
-            function setupDatePickers() {
-                // Leave date range picker - configured based on user's project
-                configureLeaveDatePicker();
+            function buildInvalidDateChecker(isNonRoster) {
+                return function(date) {
+                    if (NATIONAL_HOLIDAY_DATE_SET.has(date.format('YYYY-MM-DD'))) {
+                        return true;
+                    }
+                    if (isNonRoster) {
+                        if (date.day() === 0 || date.day() === 6) {
+                            return true;
+                        }
+                    }
+                    return false;
+                };
+            }
 
-                // Back to work date picker
+            function setupDatePickers() {
+                configureLeaveDatePicker();
+            }
+
+            function configureBackToWorkDatePicker() {
+                const selectedProjectId = $('#project_id').val() || projectId;
+                const isNonRoster = isProjectNonRoster(selectedProjectId);
+                const preserved = $('#back_to_work_date').val();
+                const preservedHidden = $('#back_to_work_date_hidden').val();
+                $('#back_to_work_date').data('daterangepicker') && $('#back_to_work_date').data('daterangepicker').remove();
                 $('#back_to_work_date').daterangepicker({
                     singleDatePicker: true,
                     autoUpdateInput: false,
@@ -729,7 +750,8 @@
                         format: 'DD/MM/YYYY'
                     },
                     minDate: moment(),
-                    opens: 'left'
+                    opens: 'left',
+                    isInvalidDate: buildInvalidDateChecker(isNonRoster),
                 }).on('apply.daterangepicker', function(ev, picker) {
                     $(this).val(picker.startDate.format('DD/MM/YYYY'));
                     $('#back_to_work_date_hidden').val(picker.startDate.format('YYYY-MM-DD'));
@@ -737,6 +759,12 @@
                     $(this).val('');
                     $('#back_to_work_date_hidden').val('');
                 });
+                if (preserved) {
+                    $('#back_to_work_date').val(preserved);
+                }
+                if (preservedHidden) {
+                    $('#back_to_work_date_hidden').val(preservedHidden);
+                }
             }
 
             function configureLeaveDatePicker() {
@@ -769,21 +797,7 @@
                     baseConfig.minDate = moment();
                 }
 
-                // Add weekend disable for non-roster projects
-                if (isNonRosterProject) {
-                    const originalIsInvalidDate = baseConfig.isInvalidDate;
-                    baseConfig.isInvalidDate = function(date) {
-                        // Disable Saturday (6) and Sunday (0)
-                        if (date.day() === 0 || date.day() === 6) {
-                            return true;
-                        }
-                        // Also check original isInvalidDate if exists
-                        if (originalIsInvalidDate) {
-                            return originalIsInvalidDate.call(this, date);
-                        }
-                        return false;
-                    };
-                }
+                baseConfig.isInvalidDate = buildInvalidDateChecker(isNonRosterProject);
 
                 // Destroy existing daterangepicker and recreate with new config
                 $('#leave_date').data('daterangepicker') && $('#leave_date').data('daterangepicker').remove();
@@ -802,6 +816,8 @@
                         $(this).val('');
                         $('#start_date, #end_date, #total_days_input, #total_days_hidden').val('');
                     });
+
+                configureBackToWorkDatePicker();
             }
 
             function isProjectNonRoster(projectId) {

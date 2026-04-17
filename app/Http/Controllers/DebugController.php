@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
@@ -25,9 +24,10 @@ class DebugController extends Controller
     {
         try {
             DB::table('employees')->truncate();
+
             return redirect()->back()->with('toast_success', 'Employees table truncated successfully');
         } catch (\Exception $e) {
-            return redirect()->back()->with('toast_error', 'Failed to truncate employees table: ' . $e->getMessage());
+            return redirect()->back()->with('toast_error', 'Failed to truncate employees table: '.$e->getMessage());
         }
     }
 
@@ -35,9 +35,10 @@ class DebugController extends Controller
     {
         try {
             DB::table('administrations')->truncate();
+
             return redirect()->back()->with('toast_success', 'Administrations table truncated successfully');
         } catch (\Exception $e) {
-            return redirect()->back()->with('toast_error', 'Failed to truncate administrations table: ' . $e->getMessage());
+            return redirect()->back()->with('toast_error', 'Failed to truncate administrations table: '.$e->getMessage());
         }
     }
 
@@ -45,9 +46,10 @@ class DebugController extends Controller
     {
         try {
             DB::table('employeebanks')->truncate();
+
             return redirect()->back()->with('toast_success', 'Employee banks table truncated successfully');
         } catch (\Exception $e) {
-            return redirect()->back()->with('toast_error', 'Failed to truncate employee banks table: ' . $e->getMessage());
+            return redirect()->back()->with('toast_error', 'Failed to truncate employee banks table: '.$e->getMessage());
         }
     }
 
@@ -55,9 +57,10 @@ class DebugController extends Controller
     {
         try {
             DB::table('taxidentifications')->truncate();
+
             return redirect()->back()->with('toast_success', 'Tax identifications table truncated successfully');
         } catch (\Exception $e) {
-            return redirect()->back()->with('toast_error', 'Failed to truncate tax identifications table: ' . $e->getMessage());
+            return redirect()->back()->with('toast_error', 'Failed to truncate tax identifications table: '.$e->getMessage());
         }
     }
 
@@ -65,9 +68,10 @@ class DebugController extends Controller
     {
         try {
             DB::table('insurances')->truncate();
+
             return redirect()->back()->with('toast_success', 'Insurances table truncated successfully');
         } catch (\Exception $e) {
-            return redirect()->back()->with('toast_error', 'Failed to truncate insurances table: ' . $e->getMessage());
+            return redirect()->back()->with('toast_error', 'Failed to truncate insurances table: '.$e->getMessage());
         }
     }
 
@@ -75,9 +79,10 @@ class DebugController extends Controller
     {
         try {
             DB::table('licenses')->truncate();
+
             return redirect()->back()->with('toast_success', 'Licenses table truncated successfully');
         } catch (\Exception $e) {
-            return redirect()->back()->with('toast_error', 'Failed to truncate licenses table: ' . $e->getMessage());
+            return redirect()->back()->with('toast_error', 'Failed to truncate licenses table: '.$e->getMessage());
         }
     }
 
@@ -85,9 +90,10 @@ class DebugController extends Controller
     {
         try {
             DB::table('families')->truncate();
+
             return redirect()->back()->with('toast_success', 'Families table truncated successfully');
         } catch (\Exception $e) {
-            return redirect()->back()->with('toast_error', 'Failed to truncate families table: ' . $e->getMessage());
+            return redirect()->back()->with('toast_error', 'Failed to truncate families table: '.$e->getMessage());
         }
     }
 
@@ -95,9 +101,10 @@ class DebugController extends Controller
     {
         try {
             DB::table('educations')->truncate();
+
             return redirect()->back()->with('toast_success', 'Educations table truncated successfully');
         } catch (\Exception $e) {
-            return redirect()->back()->with('toast_error', 'Failed to truncate educations table: ' . $e->getMessage());
+            return redirect()->back()->with('toast_error', 'Failed to truncate educations table: '.$e->getMessage());
         }
     }
 
@@ -105,9 +112,10 @@ class DebugController extends Controller
     {
         try {
             DB::table('courses')->truncate();
+
             return redirect()->back()->with('toast_success', 'Courses table truncated successfully');
         } catch (\Exception $e) {
-            return redirect()->back()->with('toast_error', 'Failed to truncate courses table: ' . $e->getMessage());
+            return redirect()->back()->with('toast_error', 'Failed to truncate courses table: '.$e->getMessage());
         }
     }
 
@@ -115,9 +123,10 @@ class DebugController extends Controller
     {
         try {
             DB::table('jobexperiences')->truncate();
+
             return redirect()->back()->with('toast_success', 'Job experiences table truncated successfully');
         } catch (\Exception $e) {
-            return redirect()->back()->with('toast_error', 'Failed to truncate job experiences table: ' . $e->getMessage());
+            return redirect()->back()->with('toast_error', 'Failed to truncate job experiences table: '.$e->getMessage());
         }
     }
 
@@ -125,9 +134,10 @@ class DebugController extends Controller
     {
         try {
             DB::table('operableunits')->truncate();
+
             return redirect()->back()->with('toast_success', 'Operable units table truncated successfully');
         } catch (\Exception $e) {
-            return redirect()->back()->with('toast_error', 'Failed to truncate operable units table: ' . $e->getMessage());
+            return redirect()->back()->with('toast_error', 'Failed to truncate operable units table: '.$e->getMessage());
         }
     }
 
@@ -135,9 +145,10 @@ class DebugController extends Controller
     {
         try {
             DB::table('emrgcalls')->truncate();
+
             return redirect()->back()->with('toast_success', 'Emergency calls table truncated successfully');
         } catch (\Exception $e) {
-            return redirect()->back()->with('toast_error', 'Failed to truncate emergency calls table: ' . $e->getMessage());
+            return redirect()->back()->with('toast_error', 'Failed to truncate emergency calls table: '.$e->getMessage());
         }
     }
 
@@ -145,9 +156,10 @@ class DebugController extends Controller
     {
         try {
             DB::table('additionaldatas')->truncate();
+
             return redirect()->back()->with('toast_success', 'Additional datas table truncated successfully');
         } catch (\Exception $e) {
-            return redirect()->back()->with('toast_error', 'Failed to truncate additional datas table: ' . $e->getMessage());
+            return redirect()->back()->with('toast_error', 'Failed to truncate additional datas table: '.$e->getMessage());
         }
     }
 
@@ -167,7 +179,8 @@ class DebugController extends Controller
         } catch (\Exception $e) {
             // Re-enable foreign key checks in case of error
             DB::statement('SET FOREIGN_KEY_CHECKS=1');
-            return redirect()->back()->with('toast_error', 'Failed to truncate recruitment requests table: ' . $e->getMessage());
+
+            return redirect()->back()->with('toast_error', 'Failed to truncate recruitment requests table: '.$e->getMessage());
         }
     }
 
@@ -187,7 +200,8 @@ class DebugController extends Controller
         } catch (\Exception $e) {
             // Re-enable foreign key checks in case of error
             DB::statement('SET FOREIGN_KEY_CHECKS=1');
-            return redirect()->back()->with('toast_error', 'Failed to truncate recruitment candidates table: ' . $e->getMessage());
+
+            return redirect()->back()->with('toast_error', 'Failed to truncate recruitment candidates table: '.$e->getMessage());
         }
     }
 
@@ -207,7 +221,8 @@ class DebugController extends Controller
         } catch (\Exception $e) {
             // Re-enable foreign key checks in case of error
             DB::statement('SET FOREIGN_KEY_CHECKS=1');
-            return redirect()->back()->with('toast_error', 'Failed to truncate recruitment sessions table: ' . $e->getMessage());
+
+            return redirect()->back()->with('toast_error', 'Failed to truncate recruitment sessions table: '.$e->getMessage());
         }
     }
 
@@ -222,7 +237,7 @@ class DebugController extends Controller
                 'recruitment_offerings',
                 'recruitment_mcu',
                 'recruitment_hiring',
-                'recruitment_onboarding'
+                'recruitment_onboarding',
             ];
 
             foreach ($stageTables as $table) {
@@ -233,7 +248,7 @@ class DebugController extends Controller
 
             return redirect()->back()->with('toast_success', 'All recruitment stage tables truncated successfully');
         } catch (\Exception $e) {
-            return redirect()->back()->with('toast_error', 'Failed to truncate recruitment stage tables: ' . $e->getMessage());
+            return redirect()->back()->with('toast_error', 'Failed to truncate recruitment stage tables: '.$e->getMessage());
         }
     }
 
@@ -258,7 +273,7 @@ class DebugController extends Controller
                 // Then parent tables
                 'recruitment_sessions',
                 'recruitment_candidates',
-                'recruitment_requests'
+                'recruitment_requests',
             ];
 
             foreach ($recruitmentTables as $table) {
@@ -274,7 +289,8 @@ class DebugController extends Controller
         } catch (\Exception $e) {
             // Re-enable foreign key checks in case of error
             DB::statement('SET FOREIGN_KEY_CHECKS=1');
-            return redirect()->back()->with('toast_error', 'Failed to truncate recruitment tables: ' . $e->getMessage());
+
+            return redirect()->back()->with('toast_error', 'Failed to truncate recruitment tables: '.$e->getMessage());
         }
     }
 
@@ -293,7 +309,8 @@ class DebugController extends Controller
         } catch (\Exception $e) {
             // Re-enable foreign key checks in case of error
             DB::statement('SET FOREIGN_KEY_CHECKS=1');
-            return redirect()->back()->with('toast_error', 'Failed to truncate letter numbers table: ' . $e->getMessage());
+
+            return redirect()->back()->with('toast_error', 'Failed to truncate letter numbers table: '.$e->getMessage());
         }
     }
 
@@ -312,7 +329,8 @@ class DebugController extends Controller
         } catch (\Exception $e) {
             // Re-enable foreign key checks in case of error
             DB::statement('SET FOREIGN_KEY_CHECKS=1');
-            return redirect()->back()->with('toast_error', 'Failed to truncate letter categories table: ' . $e->getMessage());
+
+            return redirect()->back()->with('toast_error', 'Failed to truncate letter categories table: '.$e->getMessage());
         }
     }
 
@@ -331,7 +349,8 @@ class DebugController extends Controller
         } catch (\Exception $e) {
             // Re-enable foreign key checks in case of error
             DB::statement('SET FOREIGN_KEY_CHECKS=1');
-            return redirect()->back()->with('toast_error', 'Failed to truncate letter subjects table: ' . $e->getMessage());
+
+            return redirect()->back()->with('toast_error', 'Failed to truncate letter subjects table: '.$e->getMessage());
         }
     }
 
@@ -347,7 +366,7 @@ class DebugController extends Controller
                 'letter_numbers',
                 'letter_subjects',
                 // Then parent tables
-                'letter_categories'
+                'letter_categories',
             ];
 
             foreach ($letterTables as $table) {
@@ -363,7 +382,8 @@ class DebugController extends Controller
         } catch (\Exception $e) {
             // Re-enable foreign key checks in case of error
             DB::statement('SET FOREIGN_KEY_CHECKS=1');
-            return redirect()->back()->with('toast_error', 'Failed to truncate letter tables: ' . $e->getMessage());
+
+            return redirect()->back()->with('toast_error', 'Failed to truncate letter tables: '.$e->getMessage());
         }
     }
 
@@ -383,7 +403,7 @@ class DebugController extends Controller
                 'operableunits',
                 'emrgcalls',
                 'additionaldatas',
-                'employees'
+                'employees',
             ];
 
             foreach ($tables as $table) {
@@ -394,7 +414,7 @@ class DebugController extends Controller
 
             return redirect()->back()->with('toast_success', 'All specified tables truncated successfully');
         } catch (\Exception $e) {
-            return redirect()->back()->with('toast_error', 'Failed to truncate tables: ' . $e->getMessage());
+            return redirect()->back()->with('toast_error', 'Failed to truncate tables: '.$e->getMessage());
         }
     }
 }

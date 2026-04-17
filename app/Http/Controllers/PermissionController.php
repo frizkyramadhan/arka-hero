@@ -3,8 +3,8 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use Spatie\Permission\Models\Permission;
 use Illuminate\Support\Facades\DB;
+use Spatie\Permission\Models\Permission;
 
 class PermissionController extends Controller
 {
@@ -34,7 +34,7 @@ class PermissionController extends Controller
                 return $permissions->name;
             })
             ->filter(function ($instance) use ($request) {
-                if (!empty($request->get('search'))) {
+                if (! empty($request->get('search'))) {
                     $instance->where(function ($w) use ($request) {
                         $search = $request->get('search');
                         $w->orWhere('name', 'LIKE', "%$search%");
@@ -61,7 +61,7 @@ class PermissionController extends Controller
                 'name' => 'required|unique:permissions,name',
             ], [
                 'name.required' => 'Permission name is required',
-                'name.unique' => 'Permission name already exists'
+                'name.unique' => 'Permission name already exists',
             ]);
 
             DB::beginTransaction();
@@ -77,6 +77,7 @@ class PermissionController extends Controller
                 ->withInput();
         } catch (\Exception $e) {
             DB::rollback();
+
             return redirect()->back()
                 ->with('toast_error', 'Failed to add permission. Please try again.')
                 ->withInput();
@@ -96,10 +97,10 @@ class PermissionController extends Controller
     {
         try {
             $this->validate($request, [
-                'name' => 'required|unique:permissions,name,' . $id,
+                'name' => 'required|unique:permissions,name,'.$id,
             ], [
                 'name.required' => 'Permission name is required',
-                'name.unique' => 'Permission name already exists'
+                'name.unique' => 'Permission name already exists',
             ]);
 
             DB::beginTransaction();
@@ -120,6 +121,7 @@ class PermissionController extends Controller
                 ->withInput();
         } catch (\Exception $e) {
             DB::rollback();
+
             return redirect()->back()
                 ->with('toast_error', 'Failed to update permission. Please try again.')
                 ->withInput();
@@ -130,6 +132,7 @@ class PermissionController extends Controller
     {
         $permission = Permission::findOrFail($id);
         $permission->delete();
+
         return redirect('permissions')->with('toast_success', 'Permission deleted successfully');
     }
 }

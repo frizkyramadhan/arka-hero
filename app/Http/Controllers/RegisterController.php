@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Validator;
 use Spatie\Permission\Models\Role;
 
 class RegisterController extends Controller
@@ -35,7 +34,7 @@ class RegisterController extends Controller
             'email.email' => 'Email must be a valid email address',
             'email.unique' => 'Email already exists',
             'email.ends_with' => 'Email must end with @arka.co.id',
-            'password.required' => 'Password is required'
+            'password.required' => 'Password is required',
         ]);
 
         $validatedData['password'] = Hash::make($validatedData['password']);

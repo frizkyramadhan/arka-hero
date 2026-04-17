@@ -2,30 +2,30 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\RecruitmentSession;
-use App\Models\RecruitmentRequest;
-use App\Models\RecruitmentCandidate;
-use App\Models\Employee;
 use App\Models\Administration;
 use App\Models\Department;
-use App\Models\Position;
-use App\Models\RecruitmentCvReview;
-use App\Models\RecruitmentPsikotes;
-use App\Models\RecruitmentTesTeori;
-use App\Models\RecruitmentInterview;
+use App\Models\Employee;
 use App\Models\ManPowerPlan;
 use App\Models\ManPowerPlanDetail;
+use App\Models\Position;
+use App\Models\RecruitmentCandidate;
+use App\Models\RecruitmentCvReview;
+use App\Models\RecruitmentInterview;
+use App\Models\RecruitmentPsikotes;
+use App\Models\RecruitmentRequest;
+use App\Models\RecruitmentSession;
+use App\Models\RecruitmentTesTeori;
 use App\Services\RecruitmentSessionService;
+use App\Support\UserProject;
+use Exception;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Collection;
-use Exception;
 
 class RecruitmentSessionController extends Controller
 {
     protected $sessionService;
-
 
     public function __construct(
         RecruitmentSessionService $sessionService
@@ -53,10 +53,10 @@ class RecruitmentSessionController extends Controller
             ]);
 
             // Ensure at least one source is provided
-            if (!$request->fptk_id && !$request->mpp_detail_id) {
+            if (! $request->fptk_id && ! $request->mpp_detail_id) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Either FPTK or MPP Detail must be provided'
+                    'message' => 'Either FPTK or MPP Detail must be provided',
                 ], 400);
             }
 
@@ -64,16 +64,16 @@ class RecruitmentSessionController extends Controller
             if ($request->fptk_id && $request->mpp_detail_id) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Cannot specify both FPTK and MPP Detail'
+                    'message' => 'Cannot specify both FPTK and MPP Detail',
                 ], 400);
             }
 
             // Get candidate
             $candidate = RecruitmentCandidate::find($request->candidate_id);
-            if (!$candidate) {
+            if (! $candidate) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Candidate not found'
+                    'message' => 'Candidate not found',
                 ], 404);
             }
 
@@ -84,10 +84,10 @@ class RecruitmentSessionController extends Controller
             if ($request->fptk_id) {
                 $fptk = RecruitmentRequest::find($request->fptk_id);
 
-                if (!$fptk) {
+                if (! $fptk) {
                     return response()->json([
                         'success' => false,
-                        'message' => 'FPTK not found'
+                        'message' => 'FPTK not found',
                     ], 404);
                 }
 
@@ -99,16 +99,16 @@ class RecruitmentSessionController extends Controller
                 if ($existingSession) {
                     return response()->json([
                         'success' => false,
-                        'message' => 'Candidate is already in this FPTK'
+                        'message' => 'Candidate is already in this FPTK',
                     ], 400);
                 }
 
                 // Check if FPTK status allows adding candidates
                 // Allow both 'approved' and 'draft' status
-                if (!in_array($fptk->status, ['approved', 'draft'])) {
+                if (! in_array($fptk->status, ['approved', 'draft'])) {
                     return response()->json([
                         'success' => false,
-                        'message' => 'FPTK must be approved or draft to add candidates'
+                        'message' => 'FPTK must be approved or draft to add candidates',
                     ], 400);
                 }
 
@@ -119,10 +119,10 @@ class RecruitmentSessionController extends Controller
             else {
                 $mppDetail = \App\Models\ManPowerPlanDetail::find($request->mpp_detail_id);
 
-                if (!$mppDetail) {
+                if (! $mppDetail) {
                     return response()->json([
                         'success' => false,
-                        'message' => 'MPP Detail not found'
+                        'message' => 'MPP Detail not found',
                     ], 404);
                 }
 
@@ -134,15 +134,15 @@ class RecruitmentSessionController extends Controller
                 if ($existingSession) {
                     return response()->json([
                         'success' => false,
-                        'message' => 'Candidate is already in this MPP Detail'
+                        'message' => 'Candidate is already in this MPP Detail',
                     ], 400);
                 }
 
                 // Check if MPP is active
-                if (!$mppDetail->canReceiveApplications()) {
+                if (! $mppDetail->canReceiveApplications()) {
                     return response()->json([
                         'success' => false,
-                        'message' => 'MPP must be active and not fulfilled to add candidates'
+                        'message' => 'MPP must be active and not fulfilled to add candidates',
                     ], 400);
                 }
 
@@ -172,7 +172,7 @@ class RecruitmentSessionController extends Controller
                 Log::error('Failed to create session', [
                     'error' => $createException->getMessage(),
                     'data' => $sessionData,
-                    'trace' => $createException->getTraceAsString()
+                    'trace' => $createException->getTraceAsString(),
                 ]);
                 throw $createException;
             }
@@ -195,16 +195,17 @@ class RecruitmentSessionController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => $message,
-                'session_id' => $session->id
+                'session_id' => $session->id,
             ]);
         } catch (Exception $e) {
-            Log::error('Error creating recruitment session: ' . $e->getMessage(), [
+            Log::error('Error creating recruitment session: '.$e->getMessage(), [
                 'trace' => $e->getTraceAsString(),
-                'request_data' => $request->all()
+                'request_data' => $request->all(),
             ]);
+
             return response()->json([
                 'success' => false,
-                'message' => 'Error adding candidate to FPTK: ' . $e->getMessage()
+                'message' => 'Error adding candidate to FPTK: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -231,12 +232,12 @@ class RecruitmentSessionController extends Controller
 
                     // Generate next number
                     $newNumber = $count + 1;
-                    $sessionNumber = "RSN/{$year}/{$month}/" . str_pad($newNumber, 4, '0', STR_PAD_LEFT);
+                    $sessionNumber = "RSN/{$year}/{$month}/".str_pad($newNumber, 4, '0', STR_PAD_LEFT);
 
                     // Check if this number already exists
                     while (RecruitmentSession::where('session_number', $sessionNumber)->exists()) {
                         $newNumber++;
-                        $sessionNumber = "RSN/{$year}/{$month}/" . str_pad($newNumber, 4, '0', STR_PAD_LEFT);
+                        $sessionNumber = "RSN/{$year}/{$month}/".str_pad($newNumber, 4, '0', STR_PAD_LEFT);
                     }
 
                     return $sessionNumber;
@@ -244,7 +245,7 @@ class RecruitmentSessionController extends Controller
 
                 Log::info('Generated session number', [
                     'session_number' => $sessionNumber,
-                    'attempt' => $attempt + 1
+                    'attempt' => $attempt + 1,
                 ]);
 
                 return $sessionNumber;
@@ -252,16 +253,17 @@ class RecruitmentSessionController extends Controller
                 $attempt++;
                 Log::warning('Failed to generate session number, retrying', [
                     'attempt' => $attempt,
-                    'error' => $e->getMessage()
+                    'error' => $e->getMessage(),
                 ]);
 
                 if ($attempt >= $maxRetries) {
                     // Fallback: use timestamp to ensure uniqueness
                     $timestamp = now()->format('YmdHis');
-                    $sessionNumber = "RSN/{$year}/{$month}/" . substr($timestamp, -4);
+                    $sessionNumber = "RSN/{$year}/{$month}/".substr($timestamp, -4);
                     Log::error('Using timestamp fallback for session number', [
-                        'session_number' => $sessionNumber
+                        'session_number' => $sessionNumber,
                     ]);
+
                     return $sessionNumber;
                 }
 
@@ -315,12 +317,14 @@ class RecruitmentSessionController extends Controller
             'sessions.interviews',
             'sessions.offering',
             'sessions.mcu',
-            'sessions.hiring'
+            'sessions.hiring',
         ])->whereIn('status', ['approved', 'draft']);
+
+        UserProject::scopeToAssignedProjects($fptkQuery);
 
         // Apply FPTK filters
         if ($request->filled('fptk_number')) {
-            $fptkQuery->where('request_number', 'LIKE', '%' . $request->fptk_number . '%');
+            $fptkQuery->where('request_number', 'LIKE', '%'.$request->fptk_number.'%');
         }
 
         if ($request->filled('department_id')) {
@@ -353,12 +357,14 @@ class RecruitmentSessionController extends Controller
             'details.sessions.offering',
             'details.sessions.mcu',
             'details.sessions.hiring',
-            'details.position.department'
+            'details.position.department',
         ])->where('status', 'active');
+
+        UserProject::scopeToAssignedProjects($mppQuery);
 
         // Apply MPP filters
         if ($request->filled('fptk_number')) {
-            $mppQuery->where('mpp_number', 'LIKE', '%' . $request->fptk_number . '%');
+            $mppQuery->where('mpp_number', 'LIKE', '%'.$request->fptk_number.'%');
         }
 
         if ($request->filled('position_id')) {
@@ -378,6 +384,7 @@ class RecruitmentSessionController extends Controller
                 'id' => $fptk->id,
                 'type' => 'fptk',
                 'source_number' => $fptk->request_number,
+                'project_code' => $fptk->project->project_code ?? '-',
                 'position_name' => $fptk->position->position_name ?? '-',
                 'project_name' => $fptk->project->project_name ?? '-',
                 'department_name' => $fptk->department->department_name ?? '-',
@@ -397,9 +404,10 @@ class RecruitmentSessionController extends Controller
             foreach ($mpp->details as $detail) {
                 if ($detail->sessions->count() > 0) {
                     $combinedData->push([
-                        'id' => $mpp->id . '_' . $detail->id,
+                        'id' => $mpp->id.'_'.$detail->id,
                         'type' => 'mpp',
                         'source_number' => $mpp->mpp_number,
+                        'project_code' => $mpp->project->project_code ?? '-',
                         'position_name' => $detail->position->position_name ?? 'N/A',
                         'project_name' => $mpp->project->project_name ?? '-',
                         'department_name' => '-',
@@ -423,9 +431,10 @@ class RecruitmentSessionController extends Controller
         $search = $request->input('search.value', '');
 
         // Apply search filter if provided
-        if (!empty($search)) {
+        if (! empty($search)) {
             $combinedData = $combinedData->filter(function ($item) use ($search) {
                 return stripos($item['source_number'], $search) !== false ||
+                    stripos((string) ($item['project_code'] ?? ''), $search) !== false ||
                     stripos($item['position_name'], $search) !== false ||
                     stripos($item['project_name'], $search) !== false ||
                     stripos($item['department_name'], $search) !== false;
@@ -450,10 +459,14 @@ class RecruitmentSessionController extends Controller
             ->addColumn('source_type', function ($item) {
                 $badgeClass = $item['type'] === 'fptk' ? 'badge-info' : 'badge-success';
                 $label = $item['type'] === 'fptk' ? 'FPTK' : 'MPP';
-                return '<span class="badge ' . $badgeClass . '">' . $label . '</span>';
+
+                return '<span class="badge '.$badgeClass.'">'.$label.'</span>';
             })
             ->addColumn('fptk_number', function ($item) {
                 return $item['source_number'] ?? '-';
+            })
+            ->addColumn('project_code', function ($item) {
+                return e($item['project_code'] ?? '-');
             })
             ->addColumn('position_name', function ($item) {
                 return $item['position_name'] ?? '-';
@@ -487,9 +500,9 @@ class RecruitmentSessionController extends Controller
                 $averageProgress = $activeSessions > 0 ? round($totalProgress / $activeSessions, 1) : 0;
 
                 return '<div class="progress" style="height: 20px;">
-                    <div class="progress-bar" role="progressbar" style="width: ' . $averageProgress . '%;"
-                         aria-valuenow="' . $averageProgress . '" aria-valuemin="0" aria-valuemax="100">
-                        ' . $averageProgress . '%
+                    <div class="progress-bar" role="progressbar" style="width: '.$averageProgress.'%;"
+                         aria-valuenow="'.$averageProgress.'" aria-valuemin="0" aria-valuemax="100">
+                        '.$averageProgress.'%
                     </div>
                 </div>';
             })
@@ -505,11 +518,11 @@ class RecruitmentSessionController extends Controller
                 }
 
                 if ($hiredCount > 0) {
-                    return '<span class="badge badge-success">Hired (' . $hiredCount . ')</span>';
+                    return '<span class="badge badge-success">Hired ('.$hiredCount.')</span>';
                 } elseif ($rejectedCount === $totalSessions) {
                     return '<span class="badge badge-danger">All Rejected</span>';
                 } elseif ($inProcessCount > 0) {
-                    return '<span class="badge badge-primary">In Process (' . $inProcessCount . ')</span>';
+                    return '<span class="badge badge-primary">In Process ('.$inProcessCount.')</span>';
                 } else {
                     return '<span class="badge badge-warning">Mixed Status</span>';
                 }
@@ -519,6 +532,7 @@ class RecruitmentSessionController extends Controller
                 if ($date) {
                     return is_string($date) ? date('d/m/Y', strtotime($date)) : $date->format('d/m/Y');
                 }
+
                 return '-';
             })
             ->addColumn('action', function ($item) {
@@ -526,7 +540,7 @@ class RecruitmentSessionController extends Controller
                     'item' => $item,
                     'fptk' => $item['fptk'],
                     'mpp' => $item['mpp'],
-                    'mpp_detail' => $item['mpp_detail']
+                    'mpp_detail' => $item['mpp_detail'],
                 ])->render();
             })
             ->rawColumns(['source_type', 'overall_progress', 'final_status', 'action'])
@@ -551,14 +565,14 @@ class RecruitmentSessionController extends Controller
             'sessions.offering',
             'sessions.mcu',
             'sessions.hiring',
-            'sessions.documents'
+            'sessions.documents',
         ])->find($id);
 
         if ($mppDetail) {
             // This is an MPP Detail
             $mpp = $mppDetail->mpp;
             $title = 'MPP Recruitment Sessions';
-            $subtitle = 'MPP Detail: ' . ($mppDetail->position->position_name ?? 'N/A') . ' - ' . $mpp->mpp_number;
+            $subtitle = 'MPP Detail: '.($mppDetail->position->position_name ?? 'N/A').' - '.$mpp->mpp_number;
 
             // Get all sessions for this MPP Detail
             $sessions = $mppDetail->sessions()->with([
@@ -569,7 +583,7 @@ class RecruitmentSessionController extends Controller
                 'interviews',
                 'offering',
                 'mcu',
-                'hiring'
+                'hiring',
             ])->get();
 
             return view('recruitment.sessions.show', compact('mpp', 'mppDetail', 'sessions', 'title', 'subtitle'));
@@ -590,13 +604,13 @@ class RecruitmentSessionController extends Controller
             'sessions.offering',
             'sessions.mcu',
             'sessions.hiring',
-            'sessions.documents'
+            'sessions.documents',
         ])->find($id);
 
         if ($fptk) {
             // This is an FPTK
             $title = 'FPTK Recruitment Sessions';
-            $subtitle = 'FPTK Details: ' . $fptk->request_number;
+            $subtitle = 'FPTK Details: '.$fptk->request_number;
 
             // Get all sessions for this FPTK
             $sessions = $fptk->sessions()->with([
@@ -607,8 +621,9 @@ class RecruitmentSessionController extends Controller
                 'interviews',
                 'offering',
                 'mcu',
-                'hiring'
+                'hiring',
             ])->get();
+
             return view('recruitment.sessions.show', compact('fptk', 'sessions', 'title', 'subtitle'));
         }
 
@@ -639,9 +654,9 @@ class RecruitmentSessionController extends Controller
             'offering',
             'mcu',
             'hiring',
-            'documents'
+            'documents',
         ])->findOrFail($id);
-        $subtitle = 'Session Details: ' . $session->session_number;
+        $subtitle = 'Session Details: '.$session->session_number;
 
         $timeline = $this->sessionService->getSessionTimeline($id);
         $progressPercentage = $this->sessionService->getProgressPercentage($session);
@@ -665,7 +680,7 @@ class RecruitmentSessionController extends Controller
             'interviews',
             'offering',
             'mcu',
-            'hiring'
+            'hiring',
         ])->findOrFail($id);
 
         $timeline = $this->sessionService->getSessionTimeline($id);
@@ -699,7 +714,7 @@ class RecruitmentSessionController extends Controller
                 ],
                 'assessments' => $session->getAllAssessments(),
                 'timeline' => $timeline,
-            ]
+            ],
         ]);
     }
 
@@ -729,7 +744,7 @@ class RecruitmentSessionController extends Controller
                     ],
                     'applied_date' => $session->applied_date,
                 ];
-            })
+            }),
         ]);
     }
 
@@ -759,7 +774,7 @@ class RecruitmentSessionController extends Controller
                     ],
                     'applied_date' => $session->applied_date,
                 ];
-            })
+            }),
         ]);
     }
 
@@ -777,32 +792,33 @@ class RecruitmentSessionController extends Controller
             Log::info('Attempting to delete session', [
                 'session_id' => $id,
                 'id_type' => gettype($id),
-                'id_length' => strlen($id)
+                'id_length' => strlen($id),
             ]);
 
             // Eager load both FPTK and MPP relationships
             // Try to find session - handle both UUID string and integer ID
             $session = RecruitmentSession::with(['candidate', 'fptk', 'mppDetail.mpp'])->find($id);
 
-            if (!$session) {
+            if (! $session) {
                 DB::rollBack();
                 Log::error('Session not found', [
                     'session_id' => $id,
-                    'available_sessions' => RecruitmentSession::pluck('id')->toArray()
+                    'available_sessions' => RecruitmentSession::pluck('id')->toArray(),
                 ]);
 
                 return response()->json([
                     'success' => false,
-                    'message' => 'Session not found. It may have been already deleted.'
+                    'message' => 'Session not found. It may have been already deleted.',
                 ], 404);
             }
 
             // Check if session can be deleted (not in final stages)
             if (in_array($session->status, ['hired'])) {
                 DB::rollBack();
+
                 return response()->json([
                     'success' => false,
-                    'message' => 'Cannot remove candidate from session that is already hired.'
+                    'message' => 'Cannot remove candidate from session that is already hired.',
                 ], 400);
             }
 
@@ -827,7 +843,7 @@ class RecruitmentSessionController extends Controller
                 'source_type' => $sourceType,
                 'source_number' => $sourceNumber,
                 'deleted_by' => auth()->id(),
-                'deleted_at' => now()
+                'deleted_at' => now(),
             ]);
 
             // Delete related data first (use query builder to avoid N+1)
@@ -855,30 +871,30 @@ class RecruitmentSessionController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => "Candidate {$candidateName} has been successfully removed from {$sourceType} {$sourceNumber}."
+                'message' => "Candidate {$candidateName} has been successfully removed from {$sourceType} {$sourceNumber}.",
             ]);
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             DB::rollBack();
             Log::error('Session not found when removing candidate', [
                 'session_id' => $id,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
             return response()->json([
                 'success' => false,
-                'message' => 'Session not found. It may have been already deleted.'
+                'message' => 'Session not found. It may have been already deleted.',
             ], 404);
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Error removing candidate from session', [
                 'session_id' => $id,
                 'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
 
             return response()->json([
                 'success' => false,
-                'message' => 'Error removing candidate from session. Please try again.'
+                'message' => 'Error removing candidate from session. Please try again.',
             ], 500);
         }
     }
@@ -905,7 +921,7 @@ class RecruitmentSessionController extends Controller
 
             // Check if CV review already exists
             $cvReview = $session->cvReview;
-            if (!$cvReview) {
+            if (! $cvReview) {
                 // Create new CV review
                 $cvReview = new RecruitmentCvReview([
                     'session_id' => $sessionId,
@@ -934,7 +950,7 @@ class RecruitmentSessionController extends Controller
                     'status' => 'rejected',
                     'final_decision_date' => now(),
                     'final_decision_by' => auth()->id(),
-                    'final_decision_notes' => 'CV Review: Not Recommended - ' . $request->notes,
+                    'final_decision_notes' => 'CV Review: Not Recommended - '.$request->notes,
                 ]);
 
                 // Update candidate global status
@@ -973,9 +989,10 @@ class RecruitmentSessionController extends Controller
 
                     DB::commit();
 
-                    return back()->with('toast_success', 'CV review completed successfully. Candidate recommended and advanced to ' . ucfirst($nextStage) . ' stage.');
+                    return back()->with('toast_success', 'CV review completed successfully. Candidate recommended and advanced to '.ucfirst($nextStage).' stage.');
                 } else {
                     DB::commit();
+
                     return back()->with('toast_success', 'CV review completed successfully. Candidate recommended.');
                 }
             }
@@ -984,8 +1001,9 @@ class RecruitmentSessionController extends Controller
             Log::error('Failed to update CV review', [
                 'session_id' => $sessionId,
                 'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
+
             return back()->with('toast_error', 'Failed to update CV review. Please try again.');
         }
     }
@@ -1023,7 +1041,7 @@ class RecruitmentSessionController extends Controller
             $overallResult = 'pass';
             $resultDetails = [];
 
-            if (!is_null($onlineScore)) {
+            if (! is_null($onlineScore)) {
                 if ($onlineScore >= 40) {
                     $resultDetails[] = 'Online: Pass (≥40)';
                 } else {
@@ -1032,7 +1050,7 @@ class RecruitmentSessionController extends Controller
                 }
             }
 
-            if (!is_null($offlineScore)) {
+            if (! is_null($offlineScore)) {
                 if ($offlineScore >= 8) {
                     $resultDetails[] = 'Offline: Pass (≥8)';
                 } else {
@@ -1043,7 +1061,7 @@ class RecruitmentSessionController extends Controller
 
             // Check if psikotes already exists
             $psikotes = $session->psikotes;
-            if (!$psikotes) {
+            if (! $psikotes) {
                 // Create new psikotes assessment
                 $psikotes = new RecruitmentPsikotes([
                     'session_id' => $sessionId,
@@ -1076,7 +1094,7 @@ class RecruitmentSessionController extends Controller
                     'status' => 'rejected',
                     'final_decision_date' => now(),
                     'final_decision_by' => auth()->id(),
-                    'final_decision_notes' => 'Psikotes: Failed - ' . implode(', ', $resultDetails) . ($request->notes ? ' - ' . $request->notes : ''),
+                    'final_decision_notes' => 'Psikotes: Failed - '.implode(', ', $resultDetails).($request->notes ? ' - '.$request->notes : ''),
                 ]);
 
                 // Update candidate global status
@@ -1115,9 +1133,10 @@ class RecruitmentSessionController extends Controller
 
                     DB::commit();
 
-                    return back()->with('toast_success', 'Psikotes assessment completed successfully. Candidate passed and advanced to ' . ucfirst($nextStage) . ' stage.');
+                    return back()->with('toast_success', 'Psikotes assessment completed successfully. Candidate passed and advanced to '.ucfirst($nextStage).' stage.');
                 } else {
                     DB::commit();
+
                     return back()->with('toast_success', 'Psikotes assessment completed successfully. Candidate passed.');
                 }
             }
@@ -1126,8 +1145,9 @@ class RecruitmentSessionController extends Controller
             Log::error('Failed to update psikotes assessment', [
                 'session_id' => $sessionId,
                 'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
+
             return back()->with('toast_error', 'Failed to update psikotes assessment. Please try again.');
         }
     }
@@ -1173,16 +1193,16 @@ class RecruitmentSessionController extends Controller
 
             // Prepare notes - if notes already contain category, use as is, otherwise add category
             $notes = $request->notes;
-            if (!$notes || !str_contains($notes, 'Kategori:')) {
-                $notes = 'Kategori: ' . $category;
+            if (! $notes || ! str_contains($notes, 'Kategori:')) {
+                $notes = 'Kategori: '.$category;
                 if ($request->notes) {
-                    $notes .= "\n\n" . $request->notes;
+                    $notes .= "\n\n".$request->notes;
                 }
             }
 
             // Check if tes teori already exists
             $tesTeori = $session->tesTeori;
-            if (!$tesTeori) {
+            if (! $tesTeori) {
                 // Create new tes teori assessment
                 $tesTeori = new RecruitmentTesTeori([
                     'session_id' => $sessionId,
@@ -1213,7 +1233,7 @@ class RecruitmentSessionController extends Controller
                     'status' => 'rejected',
                     'final_decision_date' => now(),
                     'final_decision_by' => auth()->id(),
-                    'final_decision_notes' => 'Tes Teori: Failed - Score: ' . $score . ' - Kategori: ' . $category . ' (Belum Kompeten)' . ($request->notes ? ' - Catatan: ' . $request->notes : ''),
+                    'final_decision_notes' => 'Tes Teori: Failed - Score: '.$score.' - Kategori: '.$category.' (Belum Kompeten)'.($request->notes ? ' - Catatan: '.$request->notes : ''),
                 ]);
 
                 // Update candidate global status
@@ -1252,9 +1272,10 @@ class RecruitmentSessionController extends Controller
 
                     DB::commit();
 
-                    return back()->with('toast_success', 'Tes Teori assessment completed successfully. Candidate passed and advanced to ' . ucfirst($nextStage) . ' stage.');
+                    return back()->with('toast_success', 'Tes Teori assessment completed successfully. Candidate passed and advanced to '.ucfirst($nextStage).' stage.');
                 } else {
                     DB::commit();
+
                     return back()->with('toast_success', 'Tes Teori assessment completed successfully. Candidate passed.');
                 }
             }
@@ -1263,8 +1284,9 @@ class RecruitmentSessionController extends Controller
             Log::error('Failed to update tes teori assessment', [
                 'session_id' => $sessionId,
                 'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
+
             return back()->with('toast_error', 'Failed to update tes teori assessment. Please try again.');
         }
     }
@@ -1304,7 +1326,7 @@ class RecruitmentSessionController extends Controller
             // Check if interview already exists - prevent duplicate interviews
             $existingInterview = $session->interviews()->where('type', $type)->first();
             if ($existingInterview) {
-                return back()->with('toast_error', ucfirst($type) . ' interview has already been completed for this session. Cannot create duplicate interviews.');
+                return back()->with('toast_error', ucfirst($type).' interview has already been completed for this session. Cannot create duplicate interviews.');
             }
 
             // Create new interview assessment
@@ -1327,7 +1349,7 @@ class RecruitmentSessionController extends Controller
                     'status' => 'rejected',
                     'final_decision_date' => now(),
                     'final_decision_by' => auth()->id(),
-                    'final_decision_notes' => ucfirst($type) . ' Interview: Not Recommended' . ($request->notes ? ' - ' . $request->notes : ''),
+                    'final_decision_notes' => ucfirst($type).' Interview: Not Recommended'.($request->notes ? ' - '.$request->notes : ''),
                 ]);
 
                 // Update candidate global status
@@ -1335,7 +1357,7 @@ class RecruitmentSessionController extends Controller
 
                 DB::commit();
 
-                return back()->with('toast_success', ucfirst($type) . ' interview completed. Candidate rejected due to not recommended interview.');
+                return back()->with('toast_success', ucfirst($type).' interview completed. Candidate rejected due to not recommended interview.');
             } else {
                 // Check if all required interviews are completed
                 $hrInterview = $session->interviews()->where('type', 'hr')->first();
@@ -1348,7 +1370,7 @@ class RecruitmentSessionController extends Controller
                 $requiredInterviews[] = $userInterview;
 
                 // Add trainer interview only if theory test is required
-                if (!$session->shouldSkipTheoryTest()) {
+                if (! $session->shouldSkipTheoryTest()) {
                     $requiredInterviews[] = $trainerInterview;
                 }
 
@@ -1375,11 +1397,13 @@ class RecruitmentSessionController extends Controller
                         DB::commit();
 
                         $interviewTypes = collect($requiredInterviews)->pluck('type')->map('ucfirst')->implode(', ');
-                        return back()->with('toast_success', 'All interviews (' . $interviewTypes . ') completed successfully. Candidate advanced to ' . ucfirst($nextStage) . ' stage.');
+
+                        return back()->with('toast_success', 'All interviews ('.$interviewTypes.') completed successfully. Candidate advanced to '.ucfirst($nextStage).' stage.');
                     } else {
                         DB::commit();
                         $interviewTypes = collect($requiredInterviews)->pluck('type')->map('ucfirst')->implode(', ');
-                        return back()->with('toast_success', 'All interviews (' . $interviewTypes . ') completed successfully.');
+
+                        return back()->with('toast_success', 'All interviews ('.$interviewTypes.') completed successfully.');
                     }
                 } else {
                     // Current interview passed, but waiting for other interviews
@@ -1392,7 +1416,8 @@ class RecruitmentSessionController extends Controller
 
                     $completedCount = collect($requiredInterviews)->filter()->count();
                     $totalCount = count($requiredInterviews);
-                    return back()->with('toast_success', ucfirst($type) . ' interview completed successfully. Progress: ' . $completedCount . '/' . $totalCount . ' interviews completed.');
+
+                    return back()->with('toast_success', ucfirst($type).' interview completed successfully. Progress: '.$completedCount.'/'.$totalCount.' interviews completed.');
                 }
             }
         } catch (\Exception $e) {
@@ -1401,8 +1426,9 @@ class RecruitmentSessionController extends Controller
                 'session_id' => $sessionId,
                 'type' => $request->type ?? 'unknown',
                 'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
+
             return back()->with('toast_error', 'Failed to update interview assessment. Please try again.');
         }
     }
@@ -1433,9 +1459,9 @@ class RecruitmentSessionController extends Controller
             // Build full formatted offering letter number for storage (matches UI)
             $romanMonths = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'];
             $now = now();
-            $romanMonth = $romanMonths[((int)$now->format('n')) - 1];
+            $romanMonth = $romanMonths[((int) $now->format('n')) - 1];
             $year = $now->format('Y');
-            $fullOfferingLetterNumber = $letterNumber->letter_number . '/ARKA-HCS/' . $romanMonth . '/' . $year;
+            $fullOfferingLetterNumber = $letterNumber->letter_number.'/ARKA-HCS/'.$romanMonth.'/'.$year;
 
             // Create or update offering record with full letter number
             $offering = $session->offering()->updateOrCreate(
@@ -1475,6 +1501,7 @@ class RecruitmentSessionController extends Controller
                 $session->candidate->updateGlobalStatus();
 
                 DB::commit();
+
                 return back()->with('toast_success', 'Offering completed. Session rejected.');
             } elseif ($request->result === 'accepted') {
                 // Reload session with fresh relationships after saving offering
@@ -1493,9 +1520,11 @@ class RecruitmentSessionController extends Controller
                     ]);
 
                     DB::commit();
-                    return back()->with('toast_success', 'Offering accepted. Advanced to ' . ucfirst($nextStage) . ' stage.');
+
+                    return back()->with('toast_success', 'Offering accepted. Advanced to '.ucfirst($nextStage).' stage.');
                 } else {
                     DB::commit();
+
                     return back()->with('toast_success', 'Offering accepted.');
                 }
             }
@@ -1504,8 +1533,9 @@ class RecruitmentSessionController extends Controller
             Log::error('Failed to update offering assessment', [
                 'session_id' => $sessionId,
                 'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
+
             return back()->with('toast_error', 'Failed to update offering assessment. Please try again.');
         }
     }
@@ -1556,6 +1586,7 @@ class RecruitmentSessionController extends Controller
                 $session->candidate->updateGlobalStatus();
 
                 DB::commit();
+
                 return back()->with('toast_success', 'MCU completed. Session rejected (Unfit).');
             }
 
@@ -1576,10 +1607,12 @@ class RecruitmentSessionController extends Controller
                     ]);
 
                     DB::commit();
-                    return back()->with('toast_success', 'MCU passed (Fit). Advanced to ' . ucfirst($nextStage) . ' stage.');
+
+                    return back()->with('toast_success', 'MCU passed (Fit). Advanced to '.ucfirst($nextStage).' stage.');
                 }
 
                 DB::commit();
+
                 return back()->with('toast_success', 'MCU passed (Fit).');
             }
 
@@ -1589,14 +1622,16 @@ class RecruitmentSessionController extends Controller
             ]);
 
             DB::commit();
+
             return back()->with('toast_success', 'MCU requires follow up. Stage remains In Progress.');
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Failed to update MCU assessment', [
                 'session_id' => $sessionId,
                 'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
+
             return back()->with('toast_error', 'Failed to update MCU assessment. Please try again.');
         }
     }
@@ -1661,11 +1696,11 @@ class RecruitmentSessionController extends Controller
             // Build full formatted letter number for PKWT hiring display and storage
             $romanMonths = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'];
             $now = now();
-            $romanMonth = $romanMonths[((int)$now->format('n')) - 1];
+            $romanMonth = $romanMonths[((int) $now->format('n')) - 1];
             $year = $now->format('Y');
             // Remove any leading alpha prefix (e.g., PKWT0001 -> 0001) to keep base as numeric for storage format
             $base = preg_replace('/^[A-Za-z]+/', '', $letterNumber->letter_number);
-            $fullLetterNumber = $base . '/ARKA-HO/PKWT-I/' . $romanMonth . '/' . $year;
+            $fullLetterNumber = $base.'/ARKA-HO/PKWT-I/'.$romanMonth.'/'.$year;
 
             // Get agreement type from FPTK or MPP Detail
             $agreementType = null;
@@ -1678,7 +1713,7 @@ class RecruitmentSessionController extends Controller
             }
 
             // Fallback to pkwt if still null
-            if (!$agreementType) {
+            if (! $agreementType) {
                 $agreementType = 'pkwt';
             }
 
@@ -1712,10 +1747,10 @@ class RecruitmentSessionController extends Controller
             // Prefill from candidate and FPTK if not provided
             $candidate = $session->candidate;
             $fptk = $session->fptk()->with(['project', 'position', 'level'])->first();
-            if (!$employeeData) {
+            if (! $employeeData) {
                 $employeeData = [];
             }
-            if (!$adminData) {
+            if (! $adminData) {
                 $adminData = [];
             }
 
@@ -1753,7 +1788,7 @@ class RecruitmentSessionController extends Controller
             // Get position to automatically determine department
             // For FPTK: use fptk->position_id, for MPP: use mppDetail->position_id
             $positionId = $adminData['position_id'] ?? null;
-            if (!$positionId) {
+            if (! $positionId) {
                 if ($session->fptk_id && $session->fptk) {
                     $positionId = $session->fptk->position_id ?? null;
                 } elseif ($session->mpp_detail_id && $session->mppDetail) {
@@ -1764,7 +1799,7 @@ class RecruitmentSessionController extends Controller
 
             // Get project_id
             $projectId = $adminData['project_id'] ?? null;
-            if (!$projectId) {
+            if (! $projectId) {
                 if ($session->fptk_id && $session->fptk) {
                     $projectId = $session->fptk->project_id ?? null;
                 } elseif ($session->mpp_detail_id && $session->mppDetail && $session->mppDetail->mpp) {
@@ -1774,7 +1809,7 @@ class RecruitmentSessionController extends Controller
 
             // Get request number (FPTK number or MPP number)
             $requestNumber = $adminData['no_fptk'] ?? null;
-            if (!$requestNumber) {
+            if (! $requestNumber) {
                 if ($session->fptk_id && $session->fptk) {
                     $requestNumber = $session->fptk->request_number ?? null;
                 } elseif ($session->mpp_detail_id && $session->mppDetail && $session->mppDetail->mpp) {
@@ -1845,19 +1880,19 @@ class RecruitmentSessionController extends Controller
             }
 
             DB::commit();
+
             return back()->with('toast_success', 'Hiring saved. Candidate hired successfully.');
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Failed to update hiring', [
                 'session_id' => $sessionId,
                 'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
+
             return back()->with('toast_error', 'Failed to update hiring. Please try again.');
         }
     }
-
-
 
     public function transitionStage(Request $request, $sessionId)
     {
@@ -1867,7 +1902,7 @@ class RecruitmentSessionController extends Controller
         $request->validate([
             'target_stage' => 'required|in:cv_review,psikotes,tes_teori,interview,offering,mcu,hire',
             'reason' => 'required|string|max:500',
-            'force_transition' => 'nullable|boolean'
+            'force_transition' => 'nullable|boolean',
         ]);
 
         try {
@@ -1886,14 +1921,14 @@ class RecruitmentSessionController extends Controller
             // Get valid stages for this session type
             $validStages = $this->getValidStagesForSession($session);
 
-            if (!in_array($targetStage, $validStages)) {
+            if (! in_array($targetStage, $validStages)) {
                 return back()->with('toast_error', 'Invalid target stage for this session type.');
             }
 
             // Validate transition logic unless force transition is enabled
-            if (!$request->force_transition) {
+            if (! $request->force_transition) {
                 $transitionValidation = $this->validateStageTransition($session, $targetStage);
-                if (!$transitionValidation['valid']) {
+                if (! $transitionValidation['valid']) {
                     return back()->with('toast_error', $transitionValidation['message']);
                 }
             }
@@ -1922,8 +1957,8 @@ class RecruitmentSessionController extends Controller
 
             DB::commit();
 
-            $message = "Stage transitioned from " . ucfirst(str_replace('_', ' ', $currentStage)) .
-                " to " . ucfirst(str_replace('_', ' ', $targetStage)) . " successfully.";
+            $message = 'Stage transitioned from '.ucfirst(str_replace('_', ' ', $currentStage)).
+                ' to '.ucfirst(str_replace('_', ' ', $targetStage)).' successfully.';
 
             return back()->with('toast_success', $message);
         } catch (\Exception $e) {
@@ -1932,8 +1967,9 @@ class RecruitmentSessionController extends Controller
                 'session_id' => $sessionId,
                 'target_stage' => $request->target_stage,
                 'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
+
             return back()->with('toast_error', 'Failed to transition stage. Please try again.');
         }
     }
@@ -1977,7 +2013,7 @@ class RecruitmentSessionController extends Controller
         if ($currentIndex === false || $targetIndex === false) {
             return [
                 'valid' => false,
-                'message' => 'Invalid stage transition.'
+                'message' => 'Invalid stage transition.',
             ];
         }
 
@@ -1994,7 +2030,7 @@ class RecruitmentSessionController extends Controller
                 if ($this->hasFailedAssessment($session, $stageToCheck)) {
                     return [
                         'valid' => false,
-                        'message' => "Cannot transition backward. Stage '" . ucfirst(str_replace('_', ' ', $stageToCheck)) . "' has failed assessment."
+                        'message' => "Cannot transition backward. Stage '".ucfirst(str_replace('_', ' ', $stageToCheck))."' has failed assessment.",
                     ];
                 }
             }
@@ -2011,14 +2047,17 @@ class RecruitmentSessionController extends Controller
         switch ($stage) {
             case 'cv_review':
                 $assessment = $session->cvReview;
+
                 return $assessment && $assessment->decision === 'not_recommended';
 
             case 'psikotes':
                 $assessment = $session->psikotes;
+
                 return $assessment && $assessment->result === 'fail';
 
             case 'tes_teori':
                 $assessment = $session->tesTeori;
+
                 return $assessment && $assessment->result === 'fail';
 
             case 'interview':
@@ -2026,10 +2065,12 @@ class RecruitmentSessionController extends Controller
 
             case 'offering':
                 $assessment = $session->offering;
+
                 return $assessment && $assessment->result === 'rejected';
 
             case 'mcu':
                 $assessment = $session->mcu;
+
                 return $assessment && $assessment->result === 'unfit';
 
             default:
@@ -2046,7 +2087,7 @@ class RecruitmentSessionController extends Controller
     {
         $validStages = $this->getValidStagesForSession($session);
 
-        if (!in_array($targetStage, $validStages)) {
+        if (! in_array($targetStage, $validStages)) {
             return 0;
         }
 
@@ -2081,7 +2122,7 @@ class RecruitmentSessionController extends Controller
                 // Try resolve as Session first
                 $session = RecruitmentSession::with('fptk')->find($sessionOrFptkId);
                 if ($session) {
-                    if (!in_array($session->status, ['hired', 'rejected', 'withdrawn', 'cancelled'])) {
+                    if (! in_array($session->status, ['hired', 'rejected', 'withdrawn', 'cancelled'])) {
                         return back()->with('toast_error', 'Recruitment request can be closed only after the session is finished.');
                     }
                     $fptk = $session->fptk;
@@ -2089,7 +2130,7 @@ class RecruitmentSessionController extends Controller
             }
 
             // If not resolved via session, treat as FPTK ID directly
-            if (!$fptk) {
+            if (! $fptk) {
                 $fptk = \App\Models\RecruitmentRequest::findOrFail($sessionOrFptkId);
             }
 
@@ -2097,6 +2138,7 @@ class RecruitmentSessionController extends Controller
             $fptk->update(['status' => \App\Models\RecruitmentRequest::STATUS_CLOSED]);
 
             DB::commit();
+
             return redirect()->route('recruitment.sessions.index')->with('toast_success', 'Recruitment request has been closed.');
         } catch (\Exception $e) {
             DB::rollBack();
@@ -2104,6 +2146,7 @@ class RecruitmentSessionController extends Controller
                 'input_id' => $sessionOrFptkId,
                 'error' => $e->getMessage(),
             ]);
+
             return redirect()->route('recruitment.sessions.index')->with('toast_error', 'Failed to close recruitment request.');
         }
     }

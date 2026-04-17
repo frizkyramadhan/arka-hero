@@ -111,6 +111,7 @@
                                         <thead>
                                             <tr>
                                                 <th class="align-middle">No</th>
+                                                <th class="align-middle">Project</th>
                                                 <th class="align-middle">Leave Type</th>
                                                 <th class="align-middle">Start Date</th>
                                                 <th class="align-middle">End Date</th>
@@ -193,6 +194,12 @@
                         name: 'DT_RowIndex',
                         orderable: false,
                         searchable: false,
+                        className: 'text-center'
+                    },
+                    {
+                        data: 'project',
+                        name: 'project',
+                        orderable: false,
                         className: 'text-center'
                     },
                     {

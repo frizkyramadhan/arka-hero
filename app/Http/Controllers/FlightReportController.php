@@ -2,13 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\BusinessPartner;
 use App\Models\FlightRequest;
 use App\Models\FlightRequestIssuanceDetail;
-use App\Models\BusinessPartner;
 use Illuminate\Http\Request;
-use Maatwebsite\Excel\Facades\Excel;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithHeadings;
+use Maatwebsite\Excel\Facades\Excel;
 
 class FlightReportController extends Controller
 {
@@ -50,7 +50,7 @@ class FlightReportController extends Controller
         $hasFilter = $request->filled('date_from') || $request->filled('date_to')
             || $request->filled('business_partner_id') || $request->filled('issued_number');
 
-        if (!$hasFilter) {
+        if (! $hasFilter) {
             return response()->json([
                 'draw' => (int) $request->input('draw'),
                 'recordsTotal' => 0,
@@ -79,7 +79,7 @@ class FlightReportController extends Controller
             $query->where('flight_request_issuances.business_partner_id', $request->business_partner_id);
         }
         if ($request->filled('issued_number')) {
-            $query->where('flight_request_issuances.issued_number', 'like', '%' . $request->issued_number . '%');
+            $query->where('flight_request_issuances.issued_number', 'like', '%'.$request->issued_number.'%');
         }
 
         $filteredRecords = $query->count();
@@ -132,7 +132,7 @@ class FlightReportController extends Controller
         $hasFilter = $request->filled('date_from') || $request->filled('date_to')
             || $request->filled('business_partner_id') || $request->filled('issued_number');
 
-        if (!$hasFilter) {
+        if (! $hasFilter) {
             return redirect()->route('flight.reports.flight-management')
                 ->with('toast_error', 'Please apply at least one filter before exporting.');
         }
@@ -157,7 +157,7 @@ class FlightReportController extends Controller
             $query->where('flight_request_issuances.business_partner_id', $request->business_partner_id);
         }
         if ($request->filled('issued_number')) {
-            $query->where('flight_request_issuances.issued_number', 'like', '%' . $request->issued_number . '%');
+            $query->where('flight_request_issuances.issued_number', 'like', '%'.$request->issued_number.'%');
         }
 
         $details = $query->get()->unique('id')->values();
@@ -175,20 +175,21 @@ class FlightReportController extends Controller
                 'Booking Code' => $row['kode_booking'],
                 'Departure' => $row['departure'],
                 'Arrival' => $row['arrival'],
-                '151 (Advance)' => $row['advance_display'] !== '-' ? 'Rp ' . $row['advance_display'] : '-',
-                '622 (Company)' => $row['company_amount'] !== '-' ? 'Rp ' . $row['company_amount'] : '-',
+                '151 (Advance)' => $row['advance_display'] !== '-' ? 'Rp '.$row['advance_display'] : '-',
+                '622 (Company)' => $row['company_amount'] !== '-' ? 'Rp '.$row['company_amount'] : '-',
                 'FR Request Date' => $row['tanggal_fr_masuk'],
                 'Issued Date' => $row['tanggal_issued'],
                 'Target' => $row['target'],
                 'No. LG' => $row['no_lg'],
                 'Vendor' => $row['vendor'],
-                'Price' => 'Rp ' . $row['harga'],
-                'Service Charge' => $row['service_charge'] !== '-' ? 'Rp ' . $row['service_charge'] : '-',
-                'Total' => 'Rp ' . $row['jumlah'],
+                'Price' => 'Rp '.$row['harga'],
+                'Service Charge' => $row['service_charge'] !== '-' ? 'Rp '.$row['service_charge'] : '-',
+                'Total' => 'Rp '.$row['jumlah'],
             ];
         });
 
-        return Excel::download(new class($exportData) implements FromCollection, WithHeadings {
+        return Excel::download(new class($exportData) implements FromCollection, WithHeadings
+        {
             private $data;
 
             public function __construct($data)
@@ -227,9 +228,9 @@ class FlightReportController extends Controller
 
             $rute = '-';
             if ($depSegment) {
-                $rute = trim($depSegment->departure_city . ' ' . $depSegment->arrival_city);
+                $rute = trim($depSegment->departure_city.' '.$depSegment->arrival_city);
                 if ($retSegment) {
-                    $rute .= ' / ' . trim($retSegment->departure_city . ' ' . $retSegment->arrival_city);
+                    $rute .= ' / '.trim($retSegment->departure_city.' '.$retSegment->arrival_city);
                 }
             }
 
@@ -291,6 +292,7 @@ class FlightReportController extends Controller
                 'jumlah' => $jumlahFormatted,
             ];
         }
+
         return $rows;
     }
 }

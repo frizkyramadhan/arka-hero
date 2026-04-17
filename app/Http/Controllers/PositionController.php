@@ -2,11 +2,11 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Position;
-use App\Models\Department;
-use Illuminate\Http\Request;
-use App\Imports\PositionImport;
 use App\Exports\PositionExport;
+use App\Imports\PositionImport;
+use App\Models\Department;
+use App\Models\Position;
+use Illuminate\Http\Request;
 use Maatwebsite\Excel\Facades\Excel;
 
 class PositionController extends Controller
@@ -16,6 +16,7 @@ class PositionController extends Controller
         $title = 'Positions';
         $subtitle = 'List of Position';
         $departments = Department::where('department_status', '1')->orderBy('department_name', 'asc')->get();
+
         return view('position.index', compact('title', 'subtitle', 'departments'));
     }
 
@@ -41,7 +42,7 @@ class PositionController extends Controller
                 }
             })
             ->filter(function ($instance) use ($request) {
-                if (!empty($request->get('search'))) {
+                if (! empty($request->get('search'))) {
                     $instance->where(function ($w) use ($request) {
                         $search = $request->get('search');
                         $w->orWhere('position_name', 'LIKE', "%$search%")
@@ -52,6 +53,7 @@ class PositionController extends Controller
             })
             ->addColumn('action', function ($position) {
                 $departments = Department::where('department_status', '1')->orderBy('department_name', 'asc')->get();
+
                 return view('position.action', compact('departments', 'position'));
             })
             ->rawColumns(['position_status', 'action'])
@@ -83,6 +85,7 @@ class PositionController extends Controller
     public function edit($slug)
     {
         $position = Position::where('slug', $slug)->first();
+
         return view('position.edit', compact('position'));
     }
 
@@ -111,20 +114,21 @@ class PositionController extends Controller
     {
         $position = Position::where('id', $id)->first();
         $position->delete();
+
         return redirect('positions')->with('toast_success', 'Position delete successfully');
     }
 
     public function import(Request $request)
     {
         $this->validate($request, [
-            'file' => 'required|mimes:xls,xlsx'
+            'file' => 'required|mimes:xls,xlsx',
         ], [
             'file.required' => 'Please select a file to import',
             'file.mimes' => 'The file must be a file of type: xls, xlsx',
         ]);
 
         try {
-            $import = new PositionImport();
+            $import = new PositionImport;
             Excel::import($import, $request->file('file'));
 
             // Check for validation failures
@@ -133,11 +137,11 @@ class PositionController extends Controller
             if (method_exists($import, 'failures')) {
                 foreach ($import->failures() as $failure) {
                     $failures->push([
-                        'sheet'     => method_exists($import, 'getSheetName') ? $import->getSheetName() : 'positions',
-                        'row'       => $failure->row(),
+                        'sheet' => method_exists($import, 'getSheetName') ? $import->getSheetName() : 'positions',
+                        'row' => $failure->row(),
                         'attribute' => $failure->attribute(),
-                        'value'     => $failure->values()[$failure->attribute()] ?? null,
-                        'errors'    => implode(', ', $failure->errors()),
+                        'value' => $failure->values()[$failure->attribute()] ?? null,
+                        'errors' => implode(', ', $failure->errors()),
                     ]);
                 }
             }
@@ -153,11 +157,11 @@ class PositionController extends Controller
 
             foreach ($e->errors() as $attribute => $errors) {
                 $failures->push([
-                    'sheet'     => $sheetName,
-                    'row'       => '-',
+                    'sheet' => $sheetName,
+                    'row' => '-',
                     'attribute' => $attribute,
-                    'value'     => null,
-                    'errors'    => implode(', ', $errors),
+                    'value' => null,
+                    'errors' => implode(', ', $errors),
                 ]);
             }
 
@@ -169,15 +173,16 @@ class PositionController extends Controller
                     'row' => '-',
                     'attribute' => 'System Error',
                     'value' => null,
-                    'errors' => 'An error occurred during import: ' . $e->getMessage()
-                ]
+                    'errors' => 'An error occurred during import: '.$e->getMessage(),
+                ],
             ]);
+
             return back()->with('failures', $failures);
         }
     }
 
     public function export()
     {
-        return (new PositionExport())->download('positions-export-' . date('Y-m-d') . '.xlsx');
+        return (new PositionExport)->download('positions-export-'.date('Y-m-d').'.xlsx');
     }
 }

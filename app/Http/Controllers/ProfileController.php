@@ -2,48 +2,37 @@
 
 namespace App\Http\Controllers;
 
-use Carbon\Carbon;
-use App\Models\Bank;
-use App\Models\User;
-use App\Models\Image;
-use App\Models\Users;
-use App\Models\Course;
-use App\Models\Family;
-use App\Models\License;
-use App\Models\Project;
-use App\Models\Employee;
-use App\Models\Emrgcall;
-use App\Models\Position;
-use App\Models\Religion;
-use App\Models\Education;
-use App\Models\Insurance;
-use App\Models\Department;
-use App\Models\Termination;
-use App\Models\Employeebank;
-use App\Models\Notification;
-use App\Models\Operableunit;
-use Illuminate\Http\Request;
-use App\Models\Jobexperience;
-use PHPMailer\PHPMailer\SMTP;
 use App\Models\Additionaldata;
 use App\Models\Administration;
-use Yajra\DataTables\DataTables;
+use App\Models\Bank;
+use App\Models\Course;
+use App\Models\Department;
+use App\Models\Education;
+use App\Models\Employee;
+use App\Models\Employeebank;
+use App\Models\Emrgcall;
+use App\Models\Family;
+use App\Models\Image;
+use App\Models\Insurance;
+use App\Models\Jobexperience;
+use App\Models\License;
+use App\Models\Operableunit;
+use App\Models\Project;
 use App\Models\Taxidentification;
-use Illuminate\Support\Facades\DB;
-use PHPMailer\PHPMailer\Exception;
-use PHPMailer\PHPMailer\PHPMailer;
-use App\Mail\NotificationSendEmail;
-use App\Http\Controllers\Controller;
+use App\Models\User;
+use Carbon\Carbon;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Yajra\DataTables\DataTables;
 
 class ProfileController extends Controller
 {
-
     public function dashboard()
     {
         $data = [
-            'title' => 'Dashboard'
+            'title' => 'Dashboard',
         ];
         $hoCount = Administration::where('project_id', '1')->where('is_active', '1')->count();
         $boCount = Administration::where('project_id', '2')->where('is_active', '1')->count();
@@ -54,7 +43,8 @@ class ProfileController extends Controller
         $apsCount = Administration::where('project_id', '7')->where('is_active', '1')->count();
         $employeeCount = Employee::count();
         $terminationCount = Administration::where('is_active', '0')->count();
-        $Contract   = Administration::whereRaw('datediff(foc, current_date) < 30')->count();
+        $Contract = Administration::whereRaw('datediff(foc, current_date) < 30')->count();
+
         return view('dashboard', $data, [
             'hoCount' => $hoCount,
             'boCount' => $boCount,
@@ -65,14 +55,14 @@ class ProfileController extends Controller
             'apsCount' => $apsCount,
             'employeeCount' => $employeeCount,
             'terminationCount' => $terminationCount,
-            'Contract' => $Contract
+            'Contract' => $Contract,
         ]);
     }
 
     /**
      * Display project employee summary page.
      *
-     * @param int $projectId
+     * @param  int  $projectId
      * @return \Illuminate\Http\Response
      */
     public function projectSummary($projectId)
@@ -80,7 +70,7 @@ class ProfileController extends Controller
         $project = Project::findOrFail($projectId);
 
         $title = 'Project Summary';
-        $subtitle = $project->project_code . ' - ' . $project->project_name;
+        $subtitle = $project->project_code.' - '.$project->project_name;
 
         // Get employee count for this project
         $employeeCount = Administration::where('project_id', $projectId)
@@ -103,8 +93,7 @@ class ProfileController extends Controller
     /**
      * Get employees data for a specific project.
      *
-     * @param Request $request
-     * @param int $projectId
+     * @param  int  $projectId
      * @return \Illuminate\Http\JsonResponse
      */
     public function getEmployeesByProject(Request $request, $projectId)
@@ -142,7 +131,7 @@ class ProfileController extends Controller
                 $query->where('administrations.class', 'like', "%{$keyword}%");
             })
             ->addColumn('action', function ($row) {
-                return '<a href="' . route('employees.show', $row->id) . '" class="btn btn-sm btn-info">
+                return '<a href="'.route('employees.show', $row->id).'" class="btn btn-sm btn-info">
                     <i class="fas fa-eye"></i> Detail
                 </a>';
             })
@@ -153,7 +142,7 @@ class ProfileController extends Controller
     /**
      * Display department employee summary page.
      *
-     * @param int $departmentId
+     * @param  int  $departmentId
      * @return \Illuminate\Http\Response
      */
     public function departmentSummary($departmentId)
@@ -190,8 +179,7 @@ class ProfileController extends Controller
     /**
      * Get employees data for a specific department.
      *
-     * @param Request $request
-     * @param int $departmentId
+     * @param  int  $departmentId
      * @return \Illuminate\Http\JsonResponse
      */
     public function getEmployeesByDepartment(Request $request, $departmentId)
@@ -230,7 +218,7 @@ class ProfileController extends Controller
                 $query->where('administrations.class', 'like', "%{$keyword}%");
             })
             ->addColumn('action', function ($row) {
-                return '<a href="' . route('employees.show', $row->id) . '" class="btn btn-sm btn-info">
+                return '<a href="'.route('employees.show', $row->id).'" class="btn btn-sm btn-info">
                     <i class="fas fa-eye"></i> Detail
                 </a>';
             })
@@ -258,7 +246,6 @@ class ProfileController extends Controller
     /**
      * Get staff/non-staff employees data.
      *
-     * @param Request $request
      * @return \Illuminate\Http\JsonResponse
      */
     public function getStaffEmployees(Request $request)
@@ -297,7 +284,7 @@ class ProfileController extends Controller
                 $query->where('positions.position_name', 'like', "%{$keyword}%");
             })
             ->addColumn('action', function ($row) {
-                return '<a href="' . route('employees.show', $row->id) . '" class="btn btn-sm btn-info">
+                return '<a href="'.route('employees.show', $row->id).'" class="btn btn-sm btn-info">
                     <i class="fas fa-eye"></i> Detail
                 </a>';
             })
@@ -325,7 +312,6 @@ class ProfileController extends Controller
     /**
      * Get permanent/contract employees data.
      *
-     * @param Request $request
      * @return \Illuminate\Http\JsonResponse
      */
     public function getEmploymentEmployees(Request $request)
@@ -372,7 +358,7 @@ class ProfileController extends Controller
                 $query->where('positions.position_name', 'like', "%{$keyword}%");
             })
             ->addColumn('action', function ($row) {
-                return '<a href="' . url('employees/' . $row->id . '#administration') . '" class="btn btn-sm btn-info">
+                return '<a href="'.url('employees/'.$row->id.'#administration').'" class="btn btn-sm btn-info">
                     <i class="fas fa-eye"></i> Detail
                 </a>';
             })
@@ -388,7 +374,7 @@ class ProfileController extends Controller
     public function birthdaySummary()
     {
         $title = 'Birthday Summary';
-        $subtitle = 'Employees with Birthday in ' . date('F');
+        $subtitle = 'Employees with Birthday in '.date('F');
 
         // Get birthday count - using proper month format with leading zero
         // $birthdayCount = Employee::with(['administration' => function ($query) {
@@ -396,7 +382,7 @@ class ProfileController extends Controller
         // }])->whereMonth('emp_dob', date('m'))->count();
 
         $birthdayCount = DB::table('employees')
-            ->join('administrations', 'employees.id', '=', 'administrations.employee_id',)
+            ->join('administrations', 'employees.id', '=', 'administrations.employee_id')
             ->join('positions', 'administrations.position_id', '=', 'positions.id')
             ->join('departments', 'positions.department_id', '=', 'departments.id')
             ->join('projects', 'administrations.project_id', '=', 'projects.id')
@@ -419,13 +405,12 @@ class ProfileController extends Controller
     /**
      * Get birthday employees data.
      *
-     * @param Request $request
      * @return \Illuminate\Http\JsonResponse
      */
     public function getBirthdayEmployees(Request $request)
     {
         $query = DB::table('employees')
-            ->join('administrations', 'employees.id', '=', 'administrations.employee_id',)
+            ->join('administrations', 'employees.id', '=', 'administrations.employee_id')
             ->join('positions', 'administrations.position_id', '=', 'positions.id')
             ->join('departments', 'positions.department_id', '=', 'departments.id')
             ->join('projects', 'administrations.project_id', '=', 'projects.id')
@@ -462,7 +447,7 @@ class ProfileController extends Controller
                 return Carbon::parse($row->emp_dob)->age;
             })
             ->addColumn('action', function ($row) {
-                return '<a href="' . route('employees.show', $row->id) . '" class="btn btn-sm btn-info">
+                return '<a href="'.route('employees.show', $row->id).'" class="btn btn-sm btn-info">
                     <i class="fas fa-eye"></i> Detail
                 </a>';
             })
@@ -513,7 +498,7 @@ class ProfileController extends Controller
                 return $employee->class;
             })
             ->filter(function ($instance) use ($request) {
-                if (!empty($request->get('search'))) {
+                if (! empty($request->get('search'))) {
                     $instance->where(function ($w) use ($request) {
                         $search = $request->get('search');
                         $w->orWhere('nik', 'LIKE', "%$search%")
@@ -574,7 +559,7 @@ class ProfileController extends Controller
                 return $employee->class;
             })
             ->filter(function ($instance) use ($request) {
-                if (!empty($request->get('search'))) {
+                if (! empty($request->get('search'))) {
                     $instance->where(function ($w) use ($request) {
                         $search = $request->get('search');
                         $w->orWhere('nik', 'LIKE', "%$search%")
@@ -635,7 +620,7 @@ class ProfileController extends Controller
                 return $employee->class;
             })
             ->filter(function ($instance) use ($request) {
-                if (!empty($request->get('search'))) {
+                if (! empty($request->get('search'))) {
                     $instance->where(function ($w) use ($request) {
                         $search = $request->get('search');
                         $w->orWhere('nik', 'LIKE', "%$search%")
@@ -696,7 +681,7 @@ class ProfileController extends Controller
                 return $employee->class;
             })
             ->filter(function ($instance) use ($request) {
-                if (!empty($request->get('search'))) {
+                if (! empty($request->get('search'))) {
                     $instance->where(function ($w) use ($request) {
                         $search = $request->get('search');
                         $w->orWhere('nik', 'LIKE', "%$search%")
@@ -758,7 +743,7 @@ class ProfileController extends Controller
             })
 
             ->filter(function ($instance) use ($request) {
-                if (!empty($request->get('search'))) {
+                if (! empty($request->get('search'))) {
                     $instance->where(function ($w) use ($request) {
                         $search = $request->get('search');
                         $w->orWhere('nik', 'LIKE', "%$search%")
@@ -821,7 +806,7 @@ class ProfileController extends Controller
             })
 
             ->filter(function ($instance) use ($request) {
-                if (!empty($request->get('search'))) {
+                if (! empty($request->get('search'))) {
                     $instance->where(function ($w) use ($request) {
                         $search = $request->get('search');
                         $w->orWhere('nik', 'LIKE', "%$search%")
@@ -884,7 +869,7 @@ class ProfileController extends Controller
             })
 
             ->filter(function ($instance) use ($request) {
-                if (!empty($request->get('search'))) {
+                if (! empty($request->get('search'))) {
                     $instance->where(function ($w) use ($request) {
                         $search = $request->get('search');
                         $w->orWhere('nik', 'LIKE', "%$search%")
@@ -949,7 +934,7 @@ class ProfileController extends Controller
             })
 
             ->filter(function ($instance) use ($request) {
-                if (!empty($request->get('search'))) {
+                if (! empty($request->get('search'))) {
                     $instance->where(function ($w) use ($request) {
                         $search = $request->get('search');
                         $w->orWhere('nik', 'LIKE', "%$search%")
@@ -994,7 +979,7 @@ class ProfileController extends Controller
                 return $termination->coe_no;
             })
             ->filter(function ($instance) use ($request) {
-                if (!empty($request->get('search'))) {
+                if (! empty($request->get('search'))) {
                     $instance->where(function ($w) use ($request) {
                         $search = $request->get('search');
                         $w->orWhere('fullname', 'LIKE', "%$search%")
@@ -1054,7 +1039,7 @@ class ProfileController extends Controller
             })
 
             ->filter(function ($instance) use ($request) {
-                if (!empty($request->get('search'))) {
+                if (! empty($request->get('search'))) {
                     $instance->where(function ($w) use ($request) {
                         $search = $request->get('search');
                         $w->orWhere('nik', 'LIKE', "%$search%")
@@ -1084,7 +1069,7 @@ class ProfileController extends Controller
 
         $user = Auth::user();
 
-        if (!$user->employee_id) {
+        if (! $user->employee_id) {
             return redirect()->route('dashboard.personal')
                 ->with('toast_error', 'Employee profile not found. Please contact HR.');
         }
@@ -1117,7 +1102,7 @@ class ProfileController extends Controller
             'position.department',
             'project',
             'grade',
-            'level'
+            'level',
         ])
             ->where('employee_id', $employee->id)
             ->where('is_active', '1')
@@ -1181,7 +1166,6 @@ class ProfileController extends Controller
     /**
      * Update the user's profile (name and/or password).
      *
-     * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\Response
      */
     public function updatePassword(Request $request)
@@ -1196,7 +1180,7 @@ class ProfileController extends Controller
         $messages['name.max'] = 'Name must not exceed 255 characters';
 
         // Always validate username
-        $rules['username'] = ['required', 'alpha_dash', 'min:3', 'max:255', 'unique:users,username,' . $user->id];
+        $rules['username'] = ['required', 'alpha_dash', 'min:3', 'max:255', 'unique:users,username,'.$user->id];
         $messages['username.required'] = 'Username is required';
         $messages['username.unique'] = 'Username already exists';
         $messages['username.alpha_dash'] = 'Username can only contain letters, numbers, dashes and underscores';
@@ -1223,7 +1207,7 @@ class ProfileController extends Controller
 
         // Update password if provided
         if ($request->filled('password')) {
-            if (!Hash::check($request->current_password, $user->password)) {
+            if (! Hash::check($request->current_password, $user->password)) {
                 return back()->withErrors(['current_password' => 'Current password is incorrect']);
             }
             $user->password = Hash::make($request->password);

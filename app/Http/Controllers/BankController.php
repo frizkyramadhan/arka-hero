@@ -11,6 +11,7 @@ class BankController extends Controller
     {
         $title = 'Bank';
         $subtitle = 'List of Banks';
+
         return view('bank.index', compact('title', 'subtitle'));
     }
 
@@ -31,7 +32,7 @@ class BankController extends Controller
                 }
             })
             ->filter(function ($instance) use ($request) {
-                if (!empty($request->get('search'))) {
+                if (! empty($request->get('search'))) {
                     $instance->where(function ($w) use ($request) {
                         $search = $request->get('search');
                         $w->orWhere('bank_name', 'LIKE', "%$search%")
@@ -55,7 +56,7 @@ class BankController extends Controller
             'bank_name' => 'required',
             'bank_status' => 'required',
         ], [
-            'bank_name.required' => 'Bank Name is required'
+            'bank_name.required' => 'Bank Name is required',
         ]);
 
         Bank::create($validatedData);
@@ -66,13 +67,14 @@ class BankController extends Controller
     public function edit($slug)
     {
         $banks = Bank::where('slug', $slug)->first();
+
         return view('bank.edit', compact('banks'));
     }
 
     public function update(Request $request, $id)
     {
         $this->validate($request, [
-            'bank_name' => 'required'
+            'bank_name' => 'required',
         ], [
             'bank_name.required' => 'Bank Name is required',
         ]);
@@ -89,6 +91,7 @@ class BankController extends Controller
     {
         $banks = Bank::where('id', $id)->first();
         $banks->delete();
+
         return redirect('banks')->with('toast_success', 'Bank delete successfully');
     }
 }

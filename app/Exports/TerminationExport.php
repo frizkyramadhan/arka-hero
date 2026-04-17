@@ -3,30 +3,22 @@
 namespace App\Exports;
 
 use App\Models\Administration;
-use Maatwebsite\Excel\Concerns\FromQuery;
-use Maatwebsite\Excel\Concerns\WithTitle;
+use App\Support\UserProject;
 use Maatwebsite\Excel\Concerns\Exportable;
-use Maatwebsite\Excel\Concerns\WithStyles;
-use Maatwebsite\Excel\Concerns\WithMapping;
-use Maatwebsite\Excel\Concerns\WithHeadings;
+use Maatwebsite\Excel\Concerns\FromQuery;
 use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 use Maatwebsite\Excel\Concerns\WithColumnFormatting;
-use PhpOffice\PhpSpreadsheet\Style\NumberFormat;
-use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
+use Maatwebsite\Excel\Concerns\WithCustomValueBinder;
+use Maatwebsite\Excel\Concerns\WithHeadings;
+use Maatwebsite\Excel\Concerns\WithMapping;
+use Maatwebsite\Excel\Concerns\WithStyles;
+use Maatwebsite\Excel\Concerns\WithTitle;
 use PhpOffice\PhpSpreadsheet\Cell\Cell;
 use PhpOffice\PhpSpreadsheet\Cell\DataType;
-use Maatwebsite\Excel\Concerns\WithCustomValueBinder;
 use PhpOffice\PhpSpreadsheet\Cell\DefaultValueBinder;
+use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
-class TerminationExport extends DefaultValueBinder implements
-    FromQuery,
-    ShouldAutoSize,
-    WithMapping,
-    WithHeadings,
-    WithTitle,
-    WithColumnFormatting,
-    WithStyles,
-    WithCustomValueBinder
+class TerminationExport extends DefaultValueBinder implements FromQuery, ShouldAutoSize, WithColumnFormatting, WithCustomValueBinder, WithHeadings, WithMapping, WithStyles, WithTitle
 {
     use Exportable;
 
@@ -45,13 +37,13 @@ class TerminationExport extends DefaultValueBinder implements
     public function columnFormats(): array
     {
         return [
-            'B' => '@'
+            'B' => '@',
         ];
     }
 
     public function query()
     {
-        return Administration::query()
+        $query = Administration::query()
             ->leftJoin('employees', 'employees.id', '=', 'administrations.employee_id')
             ->leftJoin('projects', 'projects.id', '=', 'administrations.project_id')
             ->leftJoin('positions', 'positions.id', '=', 'administrations.position_id')
@@ -59,6 +51,8 @@ class TerminationExport extends DefaultValueBinder implements
             ->select('administrations.*', 'employees.identity_card', 'employees.fullname', 'positions.position_name', 'projects.project_code', 'projects.project_name', 'departments.department_name')
             ->where('administrations.is_active', 0)
             ->orderBy('administrations.nik', 'asc');
+
+        return UserProject::scopeAdministrationJoinToAssignedProjects($query);
     }
 
     public function map($administration): array
@@ -74,7 +68,7 @@ class TerminationExport extends DefaultValueBinder implements
             $administration->project_code,
             $administration->termination_date ? date('d F Y', strtotime($administration->termination_date)) : '',
             $administration->termination_reason,
-            $administration->coe_no
+            $administration->coe_no,
         ];
     }
 
@@ -91,7 +85,7 @@ class TerminationExport extends DefaultValueBinder implements
             'Project Code',
             'Termination Date',
             'Termination Reason',
-            'COE No'
+            'COE No',
         ];
     }
 
@@ -99,6 +93,7 @@ class TerminationExport extends DefaultValueBinder implements
     {
         if ($cell->getColumn() === 'B') {
             $cell->setValueExplicit($value, DataType::TYPE_STRING);
+
             return true;
         }
 

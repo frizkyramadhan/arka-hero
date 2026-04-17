@@ -2,14 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ApprovalPlan;
+use App\Models\BusinessPartner;
+use App\Models\Employee;
 use App\Models\FlightRequest;
 use App\Models\FlightRequestIssuance;
 use App\Models\FlightRequestIssuanceDetail;
-use App\Models\BusinessPartner;
-use App\Models\Employee;
 use App\Models\LetterNumber;
-use App\Models\ApprovalPlan;
-use App\Http\Controllers\ApprovalPlanController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -32,6 +31,7 @@ class FlightRequestIssuanceController extends Controller
     public function index()
     {
         $title = 'Flight Request Issuances';
+
         return view('flight-issuances.index', compact('title'));
     }
 
@@ -113,6 +113,7 @@ class FlightRequestIssuanceController extends Controller
     public function selectFlightRequests(Request $request)
     {
         $title = 'Select Flight Requests for LG';
+
         return view('flight-issuances.select-flight-requests', compact('title'));
     }
 
@@ -123,7 +124,7 @@ class FlightRequestIssuanceController extends Controller
     {
         $flightRequestIds = $request->input('flight_request_ids', []);
 
-        if (empty($flightRequestIds) || !is_array($flightRequestIds)) {
+        if (empty($flightRequestIds) || ! is_array($flightRequestIds)) {
             return redirect()->route('flight-issuances.select-flight-requests')
                 ->with('toast_error', 'Please select at least one Flight Request.');
         }
@@ -138,11 +139,12 @@ class FlightRequestIssuanceController extends Controller
         // Validate all can be issued
         $flightRequests = FlightRequest::whereIn('id', $flightRequestIds)->get();
         $invalidRequests = $flightRequests->filter(function ($fr) {
-            return !$fr->canBeIssued();
+            return ! $fr->canBeIssued();
         });
 
         if ($invalidRequests->count() > 0) {
             $invalidNumbers = $invalidRequests->pluck('form_number')->join(', ');
+
             return redirect()->route('flight-issuances.select-flight-requests')
                 ->with('toast_error', "Flight Request(s) must be approved or issued: {$invalidNumbers}");
         }
@@ -177,7 +179,7 @@ class FlightRequestIssuanceController extends Controller
             $flightRequestIds = $request->get('flight_request_ids', []);
         }
 
-        if (empty($flightRequestIds) || !is_array($flightRequestIds)) {
+        if (empty($flightRequestIds) || ! is_array($flightRequestIds)) {
             return redirect()->route('flight-issuances.select-flight-requests')
                 ->with('toast_error', 'Please select at least one Flight Request.');
         }
@@ -189,11 +191,12 @@ class FlightRequestIssuanceController extends Controller
 
         // Validate all can be issued
         $invalidRequests = $flightRequests->filter(function ($fr) {
-            return !$fr->canBeIssued();
+            return ! $fr->canBeIssued();
         });
 
         if ($invalidRequests->count() > 0) {
             $invalidNumbers = $invalidRequests->pluck('form_number')->join(', ');
+
             return redirect()->route('flight-issuances.select-flight-requests')
                 ->with('toast_error', "Flight Request(s) must be approved: {$invalidNumbers}");
         }
@@ -247,11 +250,11 @@ class FlightRequestIssuanceController extends Controller
         ]);
 
         foreach ($validated['details'] as $i => $d) {
-            $manual = !empty($d['passenger_manual']);
+            $manual = ! empty($d['passenger_manual']);
             if ($manual && trim($d['passenger_name'] ?? '') === '') {
                 throw ValidationException::withMessages(["details.{$i}.passenger_name" => ['Passenger name is required when input is manual.']]);
             }
-            if (!$manual && empty($d['employee_id'])) {
+            if (! $manual && empty($d['employee_id'])) {
                 throw ValidationException::withMessages(["details.{$i}.employee_id" => ['Please select an employee when not using manual name.']]);
             }
         }
@@ -261,11 +264,12 @@ class FlightRequestIssuanceController extends Controller
 
         // Validate all can be issued
         $invalidRequests = $flightRequests->filter(function ($fr) {
-            return !$fr->canBeIssued();
+            return ! $fr->canBeIssued();
         });
 
         if ($invalidRequests->count() > 0) {
             $invalidNumbers = $invalidRequests->pluck('form_number')->join(', ');
+
             return back()->withInput()
                 ->with('toast_error', "Flight Request(s) must be approved: {$invalidNumbers}");
         }
@@ -298,7 +302,7 @@ class FlightRequestIssuanceController extends Controller
 
             // Create all ticket details (supports multiple); DB column is advance_amount (form: employee_amount)
             foreach ($validated['details'] as $detail) {
-                $manual = !empty($detail['passenger_manual']);
+                $manual = ! empty($detail['passenger_manual']);
                 FlightRequestIssuanceDetail::create([
                     'flight_request_issuance_id' => $issuance->id,
                     'ticket_order' => $detail['ticket_order'],
@@ -315,10 +319,10 @@ class FlightRequestIssuanceController extends Controller
             }
 
             // Create approval plans if manual approvers are set
-            if (!empty($validated['manual_approvers'])) {
+            if (! empty($validated['manual_approvers'])) {
                 $response = app(ApprovalPlanController::class)->create_manual_approval_plan('flight_request_issuance', $issuance->id);
 
-                if (!$response || $response === 0) {
+                if (! $response || $response === 0) {
                     Log::warning("Failed to create approval plans for flight_request_issuance {$issuance->id}");
                     // Don't rollback, just log warning - approval plans are optional
                 }
@@ -331,13 +335,13 @@ class FlightRequestIssuanceController extends Controller
             DB::commit();
 
             return redirect()->route('flight-issuances.show', $issuance->id)
-                ->with('toast_success', 'Letter of Guarantee issued successfully for ' . $flightRequests->count() . ' Flight Request(s).');
+                ->with('toast_success', 'Letter of Guarantee issued successfully for '.$flightRequests->count().' Flight Request(s).');
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Flight Request Issuance creation failed: ' . $e->getMessage());
+            Log::error('Flight Request Issuance creation failed: '.$e->getMessage());
 
             return back()->withInput()
-                ->with('toast_error', 'Failed to create Issuance: ' . $e->getMessage());
+                ->with('toast_error', 'Failed to create Issuance: '.$e->getMessage());
         }
     }
 
@@ -353,7 +357,7 @@ class FlightRequestIssuanceController extends Controller
             'businessPartner',
             'issuedBy',
             'letterNumber',
-            'issuanceDetails.employee'
+            'issuanceDetails.employee',
         ])->findOrFail($id);
 
         return view('flight-issuances.show', compact('issuance', 'title'));
@@ -395,7 +399,7 @@ class FlightRequestIssuanceController extends Controller
         $issuance = FlightRequestIssuance::findOrFail($id);
 
         $validated = $request->validate([
-            'issued_number' => 'required|string|max:100|unique:flight_request_issuances,issued_number,' . $id,
+            'issued_number' => 'required|string|max:100|unique:flight_request_issuances,issued_number,'.$id,
             'issued_date' => 'required|date',
             'letter_number_id' => 'nullable|exists:letter_numbers,id',
             'business_partner_id' => 'nullable|exists:business_partners,id',
@@ -418,11 +422,11 @@ class FlightRequestIssuanceController extends Controller
         ]);
 
         foreach ($validated['details'] as $i => $d) {
-            $manual = !empty($d['passenger_manual']);
+            $manual = ! empty($d['passenger_manual']);
             if ($manual && trim($d['passenger_name'] ?? '') === '') {
                 throw ValidationException::withMessages(["details.{$i}.passenger_name" => ['Passenger name is required when input is manual.']]);
             }
-            if (!$manual && empty($d['employee_id'])) {
+            if (! $manual && empty($d['employee_id'])) {
                 throw ValidationException::withMessages(["details.{$i}.employee_id" => ['Please select an employee when not using manual name.']]);
             }
         }
@@ -440,7 +444,7 @@ class FlightRequestIssuanceController extends Controller
                 'issued_date' => $validated['issued_date'],
                 'business_partner_id' => $validated['business_partner_id'] ?? null,
                 'notes' => $validated['notes'] ?? null,
-                'manual_approvers' => !empty($validated['manual_approvers']) ? $validated['manual_approvers'] : null,
+                'manual_approvers' => ! empty($validated['manual_approvers']) ? $validated['manual_approvers'] : null,
             ]);
 
             // Handle letter number change
@@ -462,10 +466,10 @@ class FlightRequestIssuanceController extends Controller
                 Log::info("Deleted existing approval plans for flight_request_issuance {$issuance->id} due to approver changes");
 
                 // Create new approval plans if manual approvers are set
-                if (!empty($validated['manual_approvers'])) {
+                if (! empty($validated['manual_approvers'])) {
                     $response = app(ApprovalPlanController::class)->create_manual_approval_plan('flight_request_issuance', $issuance->id);
 
-                    if (!$response || $response === 0) {
+                    if (! $response || $response === 0) {
                         Log::warning("Failed to create approval plans for flight_request_issuance {$issuance->id}");
                         // Don't rollback, just log warning - approval plans are optional
                     }
@@ -475,12 +479,12 @@ class FlightRequestIssuanceController extends Controller
             // Update or create details (support multiple ticket details; only trust ids that belong to this issuance)
             $existingIds = [];
             foreach ($validated['details'] as $detail) {
-                if (!empty($detail['id'])) {
+                if (! empty($detail['id'])) {
                     $existingDetail = FlightRequestIssuanceDetail::where('id', $detail['id'])
                         ->where('flight_request_issuance_id', $issuance->id)
                         ->first();
                     if ($existingDetail) {
-                        $manual = !empty($detail['passenger_manual']);
+                        $manual = ! empty($detail['passenger_manual']);
                         $existingDetail->update([
                             'ticket_order' => $detail['ticket_order'],
                             'booking_code' => $detail['booking_code'] ?? null,
@@ -497,7 +501,7 @@ class FlightRequestIssuanceController extends Controller
                     }
                     // If id was sent but doesn't belong to this issuance, skip (ignore tampered data)
                 } else {
-                    $manual = !empty($detail['passenger_manual']);
+                    $manual = ! empty($detail['passenger_manual']);
                     $newDetail = FlightRequestIssuanceDetail::create([
                         'flight_request_issuance_id' => $issuance->id,
                         'ticket_order' => $detail['ticket_order'],
@@ -526,10 +530,10 @@ class FlightRequestIssuanceController extends Controller
                 ->with('toast_success', 'Issuance updated successfully.');
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Flight Request Issuance update failed: ' . $e->getMessage());
+            Log::error('Flight Request Issuance update failed: '.$e->getMessage());
 
             return back()->withInput()
-                ->with('toast_error', 'Failed to update Issuance: ' . $e->getMessage());
+                ->with('toast_error', 'Failed to update Issuance: '.$e->getMessage());
         }
     }
 
@@ -567,7 +571,7 @@ class FlightRequestIssuanceController extends Controller
             // Jika FR yang tadinya terhubung sekarang tidak punya issuance lagi, rollback status jadi approved
             foreach ($linkedFlightRequestIds as $frId) {
                 $fr = FlightRequest::find($frId);
-                if (!$fr) {
+                if (! $fr) {
                     continue;
                 }
                 $issuanceCount = $fr->issuances()->count();
@@ -583,9 +587,9 @@ class FlightRequestIssuanceController extends Controller
                 ->with('toast_success', 'Letter of Guarantee deleted successfully.');
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Flight Request Issuance delete failed: ' . $e->getMessage());
+            Log::error('Flight Request Issuance delete failed: '.$e->getMessage());
 
-            return back()->with('toast_error', 'Failed to delete Issuance: ' . $e->getMessage());
+            return back()->with('toast_error', 'Failed to delete Issuance: '.$e->getMessage());
         }
     }
 
@@ -618,7 +622,7 @@ class FlightRequestIssuanceController extends Controller
             'flightRequests.details',
             'businessPartner',
             'issuedBy',
-            'issuanceDetails.employee'
+            'issuanceDetails.employee',
         ])->findOrFail($id);
 
         return view('flight-issuances.print', compact('issuance'));

@@ -46,9 +46,6 @@
                                                 <th class="align-middle">POH</th>
                                                 <th class="align-middle">DOH</th>
                                                 <th class="align-middle">FOC</th>
-                                                <th class="align-middle">Basic Salary</th>
-                                                <th class="align-middle">Site Allowance</th>
-                                                <th class="align-middle">Other Allowance</th>
                                                 <th class="align-middle text-center">Status</th>
                                                 <th class="align-middle text-center">Detail</th>
                                             </tr>
@@ -174,24 +171,6 @@
                 }, {
                     data: "foc",
                     name: "foc",
-                    orderable: false,
-                    searchable: false,
-                    className: "text-center",
-                }, {
-                    data: "basic_salary",
-                    name: "basic_salary",
-                    orderable: false,
-                    searchable: false,
-                    className: "text-center",
-                }, {
-                    data: "site_allowance",
-                    name: "site_allowance",
-                    orderable: false,
-                    searchable: false,
-                    className: "text-center",
-                }, {
-                    data: "other_allowance",
-                    name: "other_allowance",
                     orderable: false,
                     searchable: false,
                     className: "text-center",

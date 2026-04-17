@@ -40,6 +40,7 @@ use App\Http\Controllers\LetterNumberController;
 use App\Http\Controllers\LetterSubjectController;
 use App\Http\Controllers\LevelController;
 use App\Http\Controllers\LicenseController;
+use App\Http\Controllers\NationalHolidayController;
 // Removed import for deleted controller
 use App\Http\Controllers\OfficialtravelController;
 use App\Http\Controllers\OperableunitController;
@@ -743,6 +744,15 @@ Route::group(['middleware' => ['auth']], function () {
             Route::put('/{leaveType}', [LeaveTypeController::class, 'update'])->name('update');
             Route::delete('/{leaveType}', [LeaveTypeController::class, 'destroy'])->name('destroy');
             Route::post('/{leaveType}/toggle-status', [LeaveTypeController::class, 'toggleStatus'])->name('toggle-status');
+        });
+
+        // National holidays (manual master data)
+        Route::prefix('national-holidays')->name('national-holidays.')->group(function () {
+            Route::get('/', [NationalHolidayController::class, 'index'])->name('index');
+            Route::get('/data', [NationalHolidayController::class, 'data'])->name('data');
+            Route::post('/', [NationalHolidayController::class, 'store'])->name('store');
+            Route::put('/{nationalHoliday}', [NationalHolidayController::class, 'update'])->name('update');
+            Route::delete('/{nationalHoliday}', [NationalHolidayController::class, 'destroy'])->name('destroy');
         });
 
         // Leave Reports

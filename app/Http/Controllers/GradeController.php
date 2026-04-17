@@ -11,6 +11,7 @@ class GradeController extends Controller
     {
         $title = 'Grades';
         $subtitle = 'List of Grades';
+
         return view('grades.index', compact('title', 'subtitle'));
     }
 
@@ -31,7 +32,7 @@ class GradeController extends Controller
                 }
             })
             ->filter(function ($instance) use ($request) {
-                if (!empty($request->get('search'))) {
+                if (! empty($request->get('search'))) {
                     $instance->where(function ($w) use ($request) {
                         $search = $request->get('search');
                         $w->orWhere('name', 'LIKE', "%$search%");
@@ -47,6 +48,7 @@ class GradeController extends Controller
     {
         $title = 'Grades';
         $subtitle = 'Add Grade';
+
         return view('grades.create', compact('title', 'subtitle'));
     }
 
@@ -68,13 +70,14 @@ class GradeController extends Controller
     {
         $title = 'Grades';
         $subtitle = 'Edit Grade';
+
         return view('grades.edit', compact('title', 'subtitle', 'grade'));
     }
 
     public function update(Request $request, Grade $grade)
     {
         $request->validate([
-            'name' => 'required|unique:grades,name,' . $grade->id,
+            'name' => 'required|unique:grades,name,'.$grade->id,
         ]);
 
         $grade->update([
@@ -91,13 +94,15 @@ class GradeController extends Controller
             return redirect()->route('grades.index')->with('toast_error', 'Grade cannot be deleted as it is in use.');
         }
         $grade->delete();
+
         return redirect()->route('grades.index')->with('toast_success', 'Grade deleted successfully');
     }
 
     public function changeStatus($id)
     {
         $grade = Grade::findOrFail($id);
-        $grade->update(['is_active' => !$grade->is_active]);
+        $grade->update(['is_active' => ! $grade->is_active]);
+
         return back()->with('toast_success', 'Grade status changed successfully.');
     }
 }

@@ -3,18 +3,16 @@
 namespace App\Http\Controllers;
 
 use App\Models\Bank;
-use App\Models\Religion;
+use App\Models\Employee;
+use App\Models\EmployeeRegistration;
+use App\Models\EmployeeRegistrationToken;
 use App\Models\Position;
 use App\Models\Project;
-use App\Models\Employee;
-use App\Models\EmployeeRegistrationToken;
-use App\Models\EmployeeRegistration;
 use App\Models\RegistrationDocument;
+use App\Models\Religion;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
-use Illuminate\Validation\ValidationException;
 
 class EmployeeRegistrationController extends Controller
 {
@@ -29,10 +27,10 @@ class EmployeeRegistrationController extends Controller
             ->where('expires_at', '>', now())
             ->first();
 
-        if (!$tokenRecord) {
+        if (! $tokenRecord) {
             return view('employee.registration.expired')->with([
                 'title' => 'Registration Link Expired',
-                'message' => 'This registration link has expired or is invalid. Please contact HR for a new link.'
+                'message' => 'This registration link has expired or is invalid. Please contact HR for a new link.',
             ]);
         }
 
@@ -55,7 +53,7 @@ class EmployeeRegistrationController extends Controller
             'projects'
         ))->with([
             'title' => 'Employee Self Registration',
-            'subtitle' => 'Complete Your Employee Information'
+            'subtitle' => 'Complete Your Employee Information',
         ]);
     }
 
@@ -66,10 +64,11 @@ class EmployeeRegistrationController extends Controller
     {
         // Validate token
         $tokenRecord = $this->validateToken($token);
-        if (!$tokenRecord) {
+        if (! $tokenRecord) {
             if ($request->ajax()) {
                 return response()->json(['error' => 'Invalid or expired token'], 403);
             }
+
             return redirect()->route('employee.registration.expired');
         }
 
@@ -79,6 +78,7 @@ class EmployeeRegistrationController extends Controller
             if ($request->ajax()) {
                 return response()->json(['errors' => $validator->errors()], 422);
             }
+
             return redirect()->back()->withErrors($validator)->withInput();
         }
 
@@ -92,7 +92,7 @@ class EmployeeRegistrationController extends Controller
                 ['token_id' => $tokenRecord->id],
                 [
                     'personal_data' => $request->all(),
-                    'status' => $status
+                    'status' => $status,
                 ]
             );
 
@@ -112,7 +112,7 @@ class EmployeeRegistrationController extends Controller
                 return response()->json([
                     'success' => true,
                     'message' => 'Data saved successfully',
-                    'registration_id' => $registration->id
+                    'registration_id' => $registration->id,
                 ]);
             }
 
@@ -122,6 +122,7 @@ class EmployeeRegistrationController extends Controller
             if ($request->ajax()) {
                 return response()->json(['error' => 'Failed to save data'], 500);
             }
+
             return redirect()->back()->with('error', 'Failed to save data')->withInput();
         }
     }
@@ -132,24 +133,24 @@ class EmployeeRegistrationController extends Controller
     public function uploadDocument(Request $request, $token)
     {
         $tokenRecord = $this->validateToken($token);
-        if (!$tokenRecord) {
+        if (! $tokenRecord) {
             return response()->json(['error' => 'Invalid or expired token'], 403);
         }
 
         $request->validate([
             'document_type' => 'required|string',
-            'file' => 'required|file|mimes:pdf,jpg,jpeg,png|max:5120' // 5MB max
+            'file' => 'required|file|mimes:pdf,jpg,jpeg,png|max:5120', // 5MB max
         ]);
 
         $registration = EmployeeRegistration::where('token_id', $tokenRecord->id)->first();
-        if (!$registration) {
+        if (! $registration) {
             return response()->json(['error' => 'Registration not found'], 404);
         }
 
         try {
             // Secure file upload
             $file = $request->file('file');
-            $filename = Str::uuid() . '.' . $file->getClientOriginalExtension();
+            $filename = Str::uuid().'.'.$file->getClientOriginalExtension();
             $path = "registration-documents/{$registration->id}";
 
             // Store file securely
@@ -163,12 +164,12 @@ class EmployeeRegistrationController extends Controller
                 'stored_filename' => $filename,
                 'file_path' => $filePath,
                 'file_size' => $file->getSize(),
-                'mime_type' => $file->getMimeType()
+                'mime_type' => $file->getMimeType(),
             ]);
 
             return response()->json([
                 'success' => true,
-                'message' => 'Document uploaded successfully'
+                'message' => 'Document uploaded successfully',
             ]);
         } catch (\Exception $e) {
             return response()->json(['error' => 'Failed to upload document'], 500);
@@ -185,7 +186,7 @@ class EmployeeRegistrationController extends Controller
             ->where('status', 'used')
             ->first();
 
-        if (!$tokenRecord) {
+        if (! $tokenRecord) {
             return redirect()->route('employee.registration.expired');
         }
 
@@ -193,13 +194,13 @@ class EmployeeRegistrationController extends Controller
             ->where('status', 'submitted')
             ->first();
 
-        if (!$registration) {
+        if (! $registration) {
             return redirect()->route('employee.registration.expired');
         }
 
         return view('employee.registration.success', compact('registration'))->with([
             'title' => 'Registration Submitted Successfully',
-            'subtitle' => 'Thank you for completing your registration'
+            'subtitle' => 'Thank you for completing your registration',
         ]);
     }
 
@@ -210,7 +211,7 @@ class EmployeeRegistrationController extends Controller
     {
         return view('employee.registration.expired')->with([
             'title' => 'Registration Link Expired',
-            'subtitle' => 'This registration link has expired or is invalid'
+            'subtitle' => 'This registration link has expired or is invalid',
         ]);
     }
 

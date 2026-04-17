@@ -2,18 +2,20 @@
 
 namespace App\Http\Controllers;
 
-use Carbon\Carbon;
-use App\Models\Roster;
-use App\Models\Project;
-use App\Models\RosterDetail;
-use App\Models\LeaveRequest;
-use Illuminate\Http\Request;
+use App\Exports\RosterExport;
+use App\Imports\RosterImport;
 use App\Models\Administration;
+use App\Models\LeaveRequest;
+use App\Models\Project;
+use App\Models\Roster;
+use App\Models\RosterDetail;
+use App\Support\UserProject;
+use Carbon\Carbon;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Maatwebsite\Excel\Facades\Excel;
-use App\Exports\RosterExport;
-use App\Imports\RosterImport;
 use Maatwebsite\Excel\Validators\ValidationException;
 
 class RosterController extends Controller
@@ -25,28 +27,10 @@ class RosterController extends Controller
     {
         $title = 'Roster Management';
 
-        // Get current user
-        $user = auth()->user();
-
-        // Check if user is administrator
-        $isAdministrator = $user && $user->roles->pluck('name')->contains('administrator');
-
-        // Get roster-type projects filtered by user projects
-        $query = Project::where('leave_type', 'roster')
-            ->where('project_status', 1);
-
-        // Filter by user projects if user is not administrator
-        if ($user && !$isAdministrator) {
-            $userProjectIds = $user->projects->pluck('id')->toArray();
-            if (!empty($userProjectIds)) {
-                $query->whereIn('id', $userProjectIds);
-            } else {
-                // If user has no projects, return empty collection
-                $query->whereRaw('1 = 0');
-            }
-        }
-
-        $projects = $query->orderBy('project_code')->get();
+        $projects = UserProject::projectsQuery(null, true)
+            ->where('leave_type', 'roster')
+            ->orderBy('project_code')
+            ->get();
 
         $selectedProject = null;
         $employees = collect();
@@ -55,38 +39,33 @@ class RosterController extends Controller
         if ($request->filled('project_id')) {
             $selectedProject = Project::find($request->project_id);
 
-            // Validate that user has access to this project (unless administrator)
-            if ($selectedProject && $user && !$isAdministrator) {
-                $userProjectIds = $user->projects->pluck('id')->toArray();
-                if (!in_array($selectedProject->id, $userProjectIds)) {
-                    // User doesn't have access to this project, reset selection
-                    $selectedProject = null;
-                }
+            if ($selectedProject && ! UserProject::canAccessProjectId((int) $selectedProject->id)) {
+                return UserProject::redirectAccessDenied(route('rosters.index'));
             }
 
-            // Get employees with roster-type levels
-            $query = Administration::with([
-                'employee',
-                'position.department',
-                'level',
-                'roster' => function ($q) {
-                    $q->withCount('rosterDetails');
+            if ($selectedProject && $selectedProject->leave_type === 'roster') {
+                $query = Administration::with([
+                    'employee',
+                    'position.department',
+                    'level',
+                    'roster' => function ($q) {
+                        $q->withCount('rosterDetails');
+                    },
+                ])
+                    ->where('project_id', $selectedProject->id)
+                    ->where('is_active', 1);
+
+                if (! empty($search)) {
+                    $query->where(function ($q) use ($search) {
+                        $q->where('nik', 'like', "%{$search}%")
+                            ->orWhereHas('employee', function ($employeeQuery) use ($search) {
+                                $employeeQuery->where('fullname', 'like', "%{$search}%");
+                            });
+                    });
                 }
-            ])
-                ->where('project_id', $selectedProject->id)
-                ->where('is_active', 1);
 
-            // Apply search filter
-            if (!empty($search)) {
-                $query->where(function ($q) use ($search) {
-                    $q->where('nik', 'like', "%{$search}%")
-                        ->orWhereHas('employee', function ($employeeQuery) use ($search) {
-                            $employeeQuery->where('fullname', 'like', "%{$search}%");
-                        });
-                });
+                $employees = $query->orderBy('nik')->paginate(20)->withQueryString();
             }
-
-            $employees = $query->orderBy('nik')->paginate(20)->withQueryString();
         }
 
         return view('rosters.index', compact(
@@ -110,10 +89,14 @@ class RosterController extends Controller
             'administration.project',
             'rosterDetails' => function ($q) {
                 $q->orderBy('cycle_no');
-            }
+            },
         ])->findOrFail($rosterId);
 
-        $title = 'Roster Details - ' . ($roster->employee->fullname ?? 'N/A');
+        if (! $this->userCanAccessRoster($roster)) {
+            return UserProject::redirectAccessDenied(route('rosters.index'));
+        }
+
+        $title = 'Roster Details - '.($roster->employee->fullname ?? 'N/A');
 
         return view('rosters.show', compact('title', 'roster'));
     }
@@ -124,46 +107,54 @@ class RosterController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'administration_id' => 'required|exists:administrations,id'
+            'administration_id' => 'required|exists:administrations,id',
         ]);
 
         try {
             $administration = Administration::with('employee', 'level')->findOrFail($request->administration_id);
+
+            if (! UserProject::canAccessProjectId((int) $administration->project_id)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Forbidden',
+                ], 403);
+            }
 
             // Check if roster already exists
             $existingRoster = Roster::where('administration_id', $administration->id)->first();
             if ($existingRoster) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Roster already exists for this employee'
+                    'message' => 'Roster already exists for this employee',
                 ], 422);
             }
 
             // Check if level has roster configuration
-            if (!$administration->level || !$administration->level->hasRosterConfig()) {
+            if (! $administration->level || ! $administration->level->hasRosterConfig()) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Employee level does not have roster configuration'
+                    'message' => 'Employee level does not have roster configuration',
                 ], 422);
             }
 
             $roster = Roster::create([
                 'employee_id' => $administration->employee_id,
-                'administration_id' => $administration->id
+                'administration_id' => $administration->id,
             ]);
 
             return response()->json([
                 'success' => true,
                 'message' => 'Roster created successfully',
                 'data' => [
-                    'roster_id' => $roster->id
-                ]
+                    'roster_id' => $roster->id,
+                ],
             ]);
         } catch (\Exception $e) {
-            Log::error('Roster Create Error: ' . $e->getMessage());
+            Log::error('Roster Create Error: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to create roster: ' . $e->getMessage()
+                'message' => 'Failed to create roster: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -174,7 +165,11 @@ class RosterController extends Controller
     public function destroy($rosterId)
     {
         try {
-            $roster = Roster::with('rosterDetails')->findOrFail($rosterId);
+            $roster = Roster::with(['rosterDetails', 'administration'])->findOrFail($rosterId);
+
+            if ($r = $this->guardRosterJson($roster)) {
+                return $r;
+            }
 
             // Delete all related roster details first (should cascade automatically, but being explicit)
             $roster->rosterDetails()->delete();
@@ -184,22 +179,24 @@ class RosterController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Roster deleted successfully'
+                'message' => 'Roster deleted successfully',
             ]);
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             Log::error('Roster Delete Error: Roster not found', ['roster_id' => $rosterId]);
+
             return response()->json([
                 'success' => false,
-                'message' => 'Roster not found'
+                'message' => 'Roster not found',
             ], 404);
         } catch (\Exception $e) {
-            Log::error('Roster Delete Error: ' . $e->getMessage(), [
+            Log::error('Roster Delete Error: '.$e->getMessage(), [
                 'roster_id' => $rosterId,
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
+
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to delete roster: ' . $e->getMessage()
+                'message' => 'Failed to delete roster: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -210,7 +207,11 @@ class RosterController extends Controller
     public function getCycle($cycleId)
     {
         try {
-            $rosterDetail = RosterDetail::findOrFail($cycleId);
+            $rosterDetail = RosterDetail::with('roster.administration')->findOrFail($cycleId);
+
+            if ($r = $this->guardRosterJson($rosterDetail->roster)) {
+                return $r;
+            }
 
             return response()->json([
                 'success' => true,
@@ -223,14 +224,15 @@ class RosterController extends Controller
                     'leave_start' => $rosterDetail->leave_start ? $rosterDetail->leave_start->format('Y-m-d') : null,
                     'leave_end' => $rosterDetail->leave_end ? $rosterDetail->leave_end->format('Y-m-d') : null,
                     'remarks' => $rosterDetail->remarks,
-                    'status' => $rosterDetail->status
-                ]
+                    'status' => $rosterDetail->status,
+                ],
             ]);
         } catch (\Exception $e) {
-            Log::error('Roster Get Cycle Error: ' . $e->getMessage());
+            Log::error('Roster Get Cycle Error: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to get cycle: ' . $e->getMessage()
+                'message' => 'Failed to get cycle: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -246,11 +248,15 @@ class RosterController extends Controller
             'adjusted_days' => 'nullable|integer',
             'leave_start' => 'nullable|date|after_or_equal:work_end',
             'leave_end' => 'nullable|date|after:leave_start',
-            'remarks' => 'nullable|string|max:1000'
+            'remarks' => 'nullable|string|max:1000',
         ]);
 
         try {
-            $roster = Roster::with('rosterDetails')->findOrFail($rosterId);
+            $roster = Roster::with(['rosterDetails', 'administration'])->findOrFail($rosterId);
+
+            if ($r = $this->guardRosterJson($roster)) {
+                return $r;
+            }
 
             // Get next cycle number
             $nextCycleNo = $roster->rosterDetails()->max('cycle_no') + 1;
@@ -263,7 +269,7 @@ class RosterController extends Controller
                 'adjusted_days' => $request->adjusted_days ?? 0,
                 'leave_start' => $request->leave_start,
                 'leave_end' => $request->leave_end,
-                'remarks' => $request->remarks
+                'remarks' => $request->remarks,
             ]);
 
             // Auto-update status based on dates
@@ -272,13 +278,14 @@ class RosterController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Cycle added successfully',
-                'data' => $rosterDetail->load('roster')
+                'data' => $rosterDetail->load('roster'),
             ]);
         } catch (\Exception $e) {
-            Log::error('Roster Add Cycle Error: ' . $e->getMessage());
+            Log::error('Roster Add Cycle Error: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to add cycle: ' . $e->getMessage()
+                'message' => 'Failed to add cycle: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -294,11 +301,15 @@ class RosterController extends Controller
             'adjusted_days' => 'nullable|integer',
             'leave_start' => 'nullable|date|after_or_equal:work_end',
             'leave_end' => 'nullable|date|after:leave_start',
-            'remarks' => 'nullable|string|max:1000'
+            'remarks' => 'nullable|string|max:1000',
         ]);
 
         try {
-            $rosterDetail = RosterDetail::findOrFail($cycleId);
+            $rosterDetail = RosterDetail::with('roster.administration')->findOrFail($cycleId);
+
+            if ($r = $this->guardRosterJson($rosterDetail->roster)) {
+                return $r;
+            }
 
             $rosterDetail->update([
                 'work_start' => $request->work_start,
@@ -306,7 +317,7 @@ class RosterController extends Controller
                 'adjusted_days' => $request->adjusted_days ?? 0,
                 'leave_start' => $request->leave_start,
                 'leave_end' => $request->leave_end,
-                'remarks' => $request->remarks
+                'remarks' => $request->remarks,
             ]);
 
             // Auto-update status based on dates
@@ -315,13 +326,14 @@ class RosterController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Cycle updated successfully',
-                'data' => $rosterDetail->fresh()->load('roster')
+                'data' => $rosterDetail->fresh()->load('roster'),
             ]);
         } catch (\Exception $e) {
-            Log::error('Roster Update Cycle Error: ' . $e->getMessage());
+            Log::error('Roster Update Cycle Error: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to update cycle: ' . $e->getMessage()
+                'message' => 'Failed to update cycle: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -332,18 +344,24 @@ class RosterController extends Controller
     public function deleteCycle($cycleId)
     {
         try {
-            $rosterDetail = RosterDetail::findOrFail($cycleId);
+            $rosterDetail = RosterDetail::with('roster.administration')->findOrFail($cycleId);
+
+            if ($r = $this->guardRosterJson($rosterDetail->roster)) {
+                return $r;
+            }
+
             $rosterDetail->delete();
 
             return response()->json([
                 'success' => true,
-                'message' => 'Cycle deleted successfully'
+                'message' => 'Cycle deleted successfully',
             ]);
         } catch (\Exception $e) {
-            Log::error('Roster Delete Cycle Error: ' . $e->getMessage());
+            Log::error('Roster Delete Cycle Error: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to delete cycle: ' . $e->getMessage()
+                'message' => 'Failed to delete cycle: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -354,7 +372,11 @@ class RosterController extends Controller
     public function getStatistics($rosterId)
     {
         try {
-            $roster = Roster::with('rosterDetails')->findOrFail($rosterId);
+            $roster = Roster::with(['rosterDetails', 'administration'])->findOrFail($rosterId);
+
+            if ($r = $this->guardRosterJson($roster)) {
+                return $r;
+            }
 
             $accumulatedLeave = $roster->getTotalAccumulatedLeave();
             $leaveTaken = $roster->getTotalLeaveTaken();
@@ -371,18 +393,19 @@ class RosterController extends Controller
                 'leave_balance' => $roster->getLeaveBalance(),
                 'work_days_diff' => $workDaysDiff,
                 'fb_cycle_ratio' => $fbRatio,
-                'roster_pattern' => $roster->getRosterPatternDisplay()
+                'roster_pattern' => $roster->getRosterPatternDisplay(),
             ];
 
             return response()->json([
                 'success' => true,
-                'data' => $statistics
+                'data' => $statistics,
             ]);
         } catch (\Exception $e) {
-            Log::error('Roster Statistics Error: ' . $e->getMessage());
+            Log::error('Roster Statistics Error: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to get statistics: ' . $e->getMessage()
+                'message' => 'Failed to get statistics: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -393,9 +416,22 @@ class RosterController extends Controller
     public function export(Request $request)
     {
         $projectId = $request->get('project_id');
-        $fileName = 'roster-export-' . date('Y-m-d') . '.xlsx';
+        $fileName = 'roster-export-'.date('Y-m-d').'.xlsx';
 
-        return Excel::download(new RosterExport($projectId), $fileName);
+        if ($projectId) {
+            if (! UserProject::canAccessProjectId((int) $projectId)) {
+                abort(403);
+            }
+
+            return Excel::download(new RosterExport($projectId), $fileName);
+        }
+
+        $scope = UserProject::assignmentScope(auth()->user());
+        if ($scope === []) {
+            abort(403, 'Tidak ada proyek yang di-assign untuk akun Anda.');
+        }
+
+        return Excel::download(new RosterExport(null, $scope), $fileName);
     }
 
     /**
@@ -408,11 +444,11 @@ class RosterController extends Controller
         ], [
             'file.required' => 'Please select a file to import.',
             'file.mimes' => 'The file must be a file of type: xlsx, xls.',
-            'file.max' => 'The file may not be greater than 10MB.'
+            'file.max' => 'The file may not be greater than 10MB.',
         ]);
 
         try {
-            $import = new RosterImport();
+            $import = new RosterImport;
             Excel::import($import, $request->file('file'));
 
             $successCount = $import->getSuccessCount();
@@ -429,13 +465,14 @@ class RosterController extends Controller
                     $formattedFailures->push([
                         'sheet' => 'Roster',
                         'row' => $error['row'],
-                        'attribute' => 'NIK: ' . ($error['nik'] ?: 'N/A'),
+                        'attribute' => 'NIK: '.($error['nik'] ?: 'N/A'),
                         'value' => '',
                         'errors' => implode(', ', $error['errors']),
                     ]);
                 }
 
                 $message = "Imported {$successCount} records successfully. Skipped {$skippedCount} records due to validation errors.";
+
                 return back()
                     ->with('failures', $formattedFailures)
                     ->with('toast_warning', $message);
@@ -456,9 +493,10 @@ class RosterController extends Controller
                 ->with('failures', $failures)
                 ->with('toast_error', 'Validation errors occurred during import.');
         } catch (\Exception $e) {
-            Log::error('Roster Import Error: ' . $e->getMessage());
+            Log::error('Roster Import Error: '.$e->getMessage());
+
             return back()
-                ->with('toast_error', 'Failed to import roster: ' . $e->getMessage());
+                ->with('toast_error', 'Failed to import roster: '.$e->getMessage());
         }
     }
 
@@ -469,125 +507,130 @@ class RosterController extends Controller
     {
         $title = 'Roster Calendar View';
 
-        // Get all roster-type projects
-        $projects = Project::where('leave_type', 'roster')
-            ->where('project_status', 1)
+        $projects = UserProject::projectsQuery(null, true)
+            ->where('leave_type', 'roster')
             ->orderBy('project_code')
             ->get();
 
         $selectedProject = null;
-        $year = (int)$request->get('year', date('Y'));
-        $month = (int)$request->get('month', date('m'));
+        $year = (int) $request->get('year', date('Y'));
+        $month = (int) $request->get('month', date('m'));
         $calendarData = [];
 
         if ($request->filled('project_id')) {
             $selectedProject = Project::find($request->project_id);
 
-            // Get all administrations with rosters in the project
-            $administrations = Administration::with([
-                'employee',
-                'position',
-                'level',
-                'roster.rosterDetails' => function ($q) {
-                    $q->orderBy('cycle_no');
-                }
-            ])
-                ->where('project_id', $selectedProject->id)
-                ->where('is_active', 1)
-                ->whereHas('roster')
-                ->orderBy('nik')
-                ->get();
+            if ($selectedProject && ! UserProject::canAccessProjectId((int) $selectedProject->id)) {
+                return UserProject::redirectAccessDenied(route('rosters.calendar'));
+            }
 
-            // Get number of days in the month
-            $daysInMonth = Carbon::create($year, $month, 1)->daysInMonth;
-            $firstDay = Carbon::create($year, $month, 1);
-            $lastDay = Carbon::create($year, $month, $daysInMonth);
+            if ($selectedProject && $selectedProject->leave_type === 'roster') {
+                // Get all administrations with rosters in the project
+                $administrations = Administration::with([
+                    'employee',
+                    'position',
+                    'level',
+                    'roster.rosterDetails' => function ($q) {
+                        $q->orderBy('cycle_no');
+                    },
+                ])
+                    ->where('project_id', $selectedProject->id)
+                    ->where('is_active', 1)
+                    ->whereHas('roster')
+                    ->orderBy('nik')
+                    ->get();
 
-            // Build calendar data
-            foreach ($administrations as $administration) {
-                $roster = $administration->roster;
-                if (!$roster) {
-                    continue;
-                }
+                // Get number of days in the month
+                $daysInMonth = Carbon::create($year, $month, 1)->daysInMonth;
+                $firstDay = Carbon::create($year, $month, 1);
+                $lastDay = Carbon::create($year, $month, $daysInMonth);
 
-                $employeeData = [
-                    'roster_id' => $roster->id,
-                    'nik' => $administration->nik,
-                    'name' => $administration->employee->fullname ?? 'N/A',
-                    'position' => $administration->position->position_name ?? '',
-                    'level' => $administration->level->name ?? '',
-                    'days' => []
-                ];
-
-                // Initialize all days in month
-                for ($day = 1; $day <= $daysInMonth; $day++) {
-                    $currentDate = Carbon::create($year, $month, $day);
-                    $employeeData['days'][$day] = [
-                        'date' => $currentDate->format('Y-m-d'),
-                        'status' => 'off', // default
-                        'cycle_no' => null,
-                        'type' => null // 'work', 'leave', 'off'
-                    ];
-                }
-
-                // Process roster details
-                foreach ($roster->rosterDetails as $detail) {
-                    $workStart = Carbon::parse($detail->work_start);
-                    $workEnd = Carbon::parse($detail->work_end);
-                    $leaveStart = $detail->leave_start ? Carbon::parse($detail->leave_start) : null;
-                    $leaveEnd = $detail->leave_end ? Carbon::parse($detail->leave_end) : null;
-
-                    // Check if work period overlaps with selected month
-                    $monthStart = Carbon::create($year, $month, 1);
-                    $monthEnd = Carbon::create($year, $month, $daysInMonth)->endOfDay();
-
-                    // Mark work days - show all dates from work_start to work_end that fall within selected month
-                    if ($workEnd->gte($monthStart) && $workStart->lte($monthEnd)) {
-                        // Determine the actual start and end dates to iterate
-                        $actualWorkStart = $workStart->lt($monthStart) ? $monthStart->copy() : $workStart->copy();
-                        $actualWorkEnd = $workEnd->gt($monthEnd) ? $monthEnd->copy() : $workEnd->copy();
-
-                        $workDate = $actualWorkStart->copy();
-                        while ($workDate->lte($actualWorkEnd)) {
-                            // Only mark if the date is within the selected month
-                            if ($workDate->month == $month && $workDate->year == $year) {
-                                $day = $workDate->day;
-                                if (isset($employeeData['days'][$day])) {
-                                    $employeeData['days'][$day]['status'] = 'work';
-                                    $employeeData['days'][$day]['cycle_no'] = $detail->cycle_no;
-                                    $employeeData['days'][$day]['type'] = 'work';
-                                }
-                            }
-                            $workDate->addDay();
-                        }
+                // Build calendar data
+                foreach ($administrations as $administration) {
+                    $roster = $administration->roster;
+                    if (! $roster) {
+                        continue;
                     }
 
-                    // Mark leave days - show all dates from leave_start to leave_end that fall within selected month
-                    if ($leaveStart && $leaveEnd) {
-                        if ($leaveEnd->gte($monthStart) && $leaveStart->lte($monthEnd)) {
-                            // Determine the actual start and end dates to iterate
-                            $actualLeaveStart = $leaveStart->lt($monthStart) ? $monthStart->copy() : $leaveStart->copy();
-                            $actualLeaveEnd = $leaveEnd->gt($monthEnd) ? $monthEnd->copy() : $leaveEnd->copy();
+                    $employeeData = [
+                        'roster_id' => $roster->id,
+                        'nik' => $administration->nik,
+                        'name' => $administration->employee->fullname ?? 'N/A',
+                        'position' => $administration->position->position_name ?? '',
+                        'level' => $administration->level->name ?? '',
+                        'days' => [],
+                    ];
 
-                            $leaveDate = $actualLeaveStart->copy();
-                            while ($leaveDate->lte($actualLeaveEnd)) {
+                    // Initialize all days in month
+                    for ($day = 1; $day <= $daysInMonth; $day++) {
+                        $currentDate = Carbon::create($year, $month, $day);
+                        $employeeData['days'][$day] = [
+                            'date' => $currentDate->format('Y-m-d'),
+                            'status' => 'off', // default
+                            'cycle_no' => null,
+                            'type' => null, // 'work', 'leave', 'off'
+                        ];
+                    }
+
+                    // Process roster details
+                    foreach ($roster->rosterDetails as $detail) {
+                        $workStart = Carbon::parse($detail->work_start);
+                        $workEnd = Carbon::parse($detail->work_end);
+                        $leaveStart = $detail->leave_start ? Carbon::parse($detail->leave_start) : null;
+                        $leaveEnd = $detail->leave_end ? Carbon::parse($detail->leave_end) : null;
+
+                        // Check if work period overlaps with selected month
+                        $monthStart = Carbon::create($year, $month, 1);
+                        $monthEnd = Carbon::create($year, $month, $daysInMonth)->endOfDay();
+
+                        // Mark work days - show all dates from work_start to work_end that fall within selected month
+                        if ($workEnd->gte($monthStart) && $workStart->lte($monthEnd)) {
+                            // Determine the actual start and end dates to iterate
+                            $actualWorkStart = $workStart->lt($monthStart) ? $monthStart->copy() : $workStart->copy();
+                            $actualWorkEnd = $workEnd->gt($monthEnd) ? $monthEnd->copy() : $workEnd->copy();
+
+                            $workDate = $actualWorkStart->copy();
+                            while ($workDate->lte($actualWorkEnd)) {
                                 // Only mark if the date is within the selected month
-                                if ($leaveDate->month == $month && $leaveDate->year == $year) {
-                                    $day = $leaveDate->day;
+                                if ($workDate->month == $month && $workDate->year == $year) {
+                                    $day = $workDate->day;
                                     if (isset($employeeData['days'][$day])) {
-                                        // Leave takes priority over work if they overlap
-                                        $employeeData['days'][$day]['status'] = 'leave';
+                                        $employeeData['days'][$day]['status'] = 'work';
                                         $employeeData['days'][$day]['cycle_no'] = $detail->cycle_no;
-                                        $employeeData['days'][$day]['type'] = 'leave';
+                                        $employeeData['days'][$day]['type'] = 'work';
                                     }
                                 }
-                                $leaveDate->addDay();
+                                $workDate->addDay();
+                            }
+                        }
+
+                        // Mark leave days - show all dates from leave_start to leave_end that fall within selected month
+                        if ($leaveStart && $leaveEnd) {
+                            if ($leaveEnd->gte($monthStart) && $leaveStart->lte($monthEnd)) {
+                                // Determine the actual start and end dates to iterate
+                                $actualLeaveStart = $leaveStart->lt($monthStart) ? $monthStart->copy() : $leaveStart->copy();
+                                $actualLeaveEnd = $leaveEnd->gt($monthEnd) ? $monthEnd->copy() : $leaveEnd->copy();
+
+                                $leaveDate = $actualLeaveStart->copy();
+                                while ($leaveDate->lte($actualLeaveEnd)) {
+                                    // Only mark if the date is within the selected month
+                                    if ($leaveDate->month == $month && $leaveDate->year == $year) {
+                                        $day = $leaveDate->day;
+                                        if (isset($employeeData['days'][$day])) {
+                                            // Leave takes priority over work if they overlap
+                                            $employeeData['days'][$day]['status'] = 'leave';
+                                            $employeeData['days'][$day]['cycle_no'] = $detail->cycle_no;
+                                            $employeeData['days'][$day]['type'] = 'leave';
+                                        }
+                                    }
+                                    $leaveDate->addDay();
+                                }
                             }
                         }
                     }
-                }
 
-                $calendarData[] = $employeeData;
+                    $calendarData[] = $employeeData;
+                }
             }
         }
 
@@ -608,56 +651,95 @@ class RosterController extends Controller
     {
         $title = 'Roster & Periodic Leave Dashboard';
 
-        // Roster Statistics
-        $totalRosters = Roster::count();
-        $rostersWithCycles = Roster::whereHas('rosterDetails')->count();
-        $totalCycles = RosterDetail::count();
-        $activeCycles = RosterDetail::where('work_start', '<=', now())
-            ->where('work_end', '>=', now())
-            ->count();
-        $onLeaveCycles = RosterDetail::whereNotNull('leave_start')
-            ->whereNotNull('leave_end')
-            ->where('leave_start', '<=', now())
-            ->where('leave_end', '>=', now())
-            ->count();
+        $scope = UserProject::assignmentScope(auth()->user());
+        $rosterIds = collect();
+        if ($scope !== []) {
+            $rosterIds = Roster::whereHas('administration', function ($q) use ($scope) {
+                $q->whereIn('project_id', $scope);
+            })->pluck('id');
+        }
+
+        // Roster Statistics (scoped to user_project)
+        $totalRosters = $scope === [] ? 0 : Roster::whereHas('administration', function ($q) use ($scope) {
+            $q->whereIn('project_id', $scope);
+        })->count();
+        $rostersWithCycles = $scope === [] ? 0 : Roster::whereHas('administration', function ($q) use ($scope) {
+            $q->whereIn('project_id', $scope);
+        })->whereHas('rosterDetails')->count();
+        $totalCycles = $scope === [] || $rosterIds->isEmpty()
+            ? 0
+            : RosterDetail::whereIn('roster_id', $rosterIds)->count();
+        $activeCycles = $scope === [] || $rosterIds->isEmpty()
+            ? 0
+            : RosterDetail::whereIn('roster_id', $rosterIds)
+                ->where('work_start', '<=', now())
+                ->where('work_end', '>=', now())
+                ->count();
+        $onLeaveCycles = $scope === [] || $rosterIds->isEmpty()
+            ? 0
+            : RosterDetail::whereIn('roster_id', $rosterIds)
+                ->whereNotNull('leave_start')
+                ->whereNotNull('leave_end')
+                ->where('leave_start', '<=', now())
+                ->where('leave_end', '>=', now())
+                ->count();
+
+        $periodicBase = LeaveRequest::where('is_batch_request', true)
+            ->whereNotNull('batch_id')
+            ->whereHas('administration', function ($q) use ($scope) {
+                if ($scope === []) {
+                    $q->whereRaw('0 = 1');
+                } else {
+                    $q->whereIn('project_id', $scope);
+                }
+            });
 
         // Periodic Leave Statistics
-        $totalPeriodicRequests = LeaveRequest::where('is_batch_request', true)
-            ->whereNotNull('batch_id')
+        $totalPeriodicRequests = (clone $periodicBase)
             ->distinct('batch_id')
             ->count('batch_id');
 
-        $pendingPeriodicRequests = LeaveRequest::where('is_batch_request', true)
+        $pendingPeriodicRequests = (clone $periodicBase)
             ->where('status', 'pending')
             ->distinct('batch_id')
             ->count('batch_id');
 
-        $approvedPeriodicRequests = LeaveRequest::where('is_batch_request', true)
+        $approvedPeriodicRequests = (clone $periodicBase)
             ->where('status', 'approved')
             ->distinct('batch_id')
             ->count('batch_id');
 
-        $thisMonthPeriodicRequests = LeaveRequest::where('is_batch_request', true)
+        $thisMonthPeriodicRequests = (clone $periodicBase)
             ->whereMonth('created_at', now()->month)
             ->whereYear('created_at', now()->year)
             ->distinct('batch_id')
             ->count('batch_id');
 
         // Project Statistics
-        $rosterProjects = Project::where('leave_type', 'roster')
-            ->where('project_status', 1)
-            ->withCount([
-                'rosters',
-                'administrations' => function ($q) {
-                    $q->where('is_active', 1);
-                }
-            ])
-            ->orderBy('project_code')
-            ->get();
+        $rosterProjects = $scope === []
+            ? collect()
+            : Project::where('leave_type', 'roster')
+                ->where('project_status', 1)
+                ->whereIn('id', $scope)
+                ->withCount([
+                    'rosters',
+                    'administrations' => function ($q) {
+                        $q->where('is_active', 1);
+                    },
+                ])
+                ->orderBy('project_code')
+                ->get();
 
         // Recent Periodic Leave Requests
         $recentPeriodicRequests = LeaveRequest::where('is_batch_request', true)
             ->whereNotNull('batch_id')
+            ->whereHas('administration', function ($q) use ($scope) {
+                if ($scope === []) {
+                    $q->whereRaw('0 = 1');
+                } else {
+                    $q->whereIn('project_id', $scope);
+                }
+            })
             ->select(
                 'batch_id',
                 'bulk_notes',
@@ -676,8 +758,15 @@ class RosterController extends Controller
             'administration.employee',
             'administration.project',
             'administration.position.department',
-            'rosterDetails'
+            'rosterDetails',
         ])
+            ->whereHas('administration', function ($q) use ($scope) {
+                if ($scope === []) {
+                    $q->whereRaw('0 = 1');
+                } else {
+                    $q->whereIn('project_id', $scope);
+                }
+            })
             ->whereHas('rosterDetails')
             ->get()
             ->map(function ($roster) {
@@ -699,7 +788,7 @@ class RosterController extends Controller
                     'accumulated_leave' => round($accumulatedLeave, 2),
                     'leave_taken' => round($leaveTaken, 2),
                     'balance' => round($balance, 2),
-                    'work_days_difference' => $workDaysDifference
+                    'work_days_difference' => $workDaysDifference,
                 ];
             })
             ->filter(function ($item) {
@@ -726,19 +815,20 @@ class RosterController extends Controller
                 'leave_taken' => number_format($item['leave_taken'], 2),
                 'balance' => number_format($item['balance'], 2),
                 'work_days_difference' => number_format($item['work_days_difference'], 2),
-                'roster_id' => $roster->id
+                'roster_id' => $roster->id,
             ];
         });
 
         // Prepare recent periodic requests data
         $recentPeriodicRequestsData = $recentPeriodicRequests->map(function ($batch) {
             $statusBadge = $batch->status === 'approved' ? 'success' : ($batch->status === 'pending' ? 'warning' : 'secondary');
+
             return [
                 'batch_id' => $batch->batch_id,
                 'notes' => $batch->bulk_notes ?? '-',
                 'total' => number_format($batch->total_requests),
-                'status_badge' => '<span class="badge badge-' . $statusBadge . '">' . ucfirst($batch->status) . '</span>',
-                'batch_id_url' => route('leave.periodic-requests.show', $batch->batch_id)
+                'status_badge' => '<span class="badge badge-'.$statusBadge.'">'.ucfirst($batch->status).'</span>',
+                'batch_id_url' => route('leave.periodic-requests.show', $batch->batch_id),
             ];
         });
 
@@ -758,5 +848,28 @@ class RosterController extends Controller
             'recentPeriodicRequestsData',
             'employeesNeedingBalancingData'
         ));
+    }
+
+    private function userCanAccessRoster(Roster $roster): bool
+    {
+        $roster->loadMissing('administration');
+        $admin = $roster->administration;
+        if (! $admin) {
+            return false;
+        }
+
+        return UserProject::canAccessProjectId((int) $admin->project_id);
+    }
+
+    private function guardRosterJson(Roster $roster): ?JsonResponse
+    {
+        if (! $this->userCanAccessRoster($roster)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Forbidden',
+            ], 403);
+        }
+
+        return null;
     }
 }

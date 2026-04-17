@@ -122,13 +122,14 @@
                                             <tr>
                                                 <th class="align-middle text-center">No</th>
                                                 <th class="align-middle text-center">Source</th>
+                                                <th class="align-middle">Project</th>
                                                 <th class="align-middle">FPTK/MPP No.</th>
                                                 <th class="align-middle">Position</th>
                                                 <th class="align-middle text-center">Candidate Count</th>
                                                 <th class="align-middle text-center">Overall Progress</th>
                                                 <th class="align-middle text-center">Final Status</th>
                                                 <th class="align-middle text-center">Required Date</th>
-                                                <th class="align-middle text-center">Action</th>
+                                                <th class="align-middle text-center" width="10%">Action</th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -145,8 +146,8 @@
     </section>
 
     <!-- Add Candidate Modal -->
-    <div class="modal fade" id="addCandidateModal" tabindex="-1" role="dialog" aria-labelledby="addCandidateModalLabel"
-        aria-hidden="true">
+    <div class="modal fade" id="addCandidateModal" tabindex="-1" role="dialog"
+        aria-labelledby="addCandidateModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-lg" role="document">
             <div class="modal-content">
                 <div class="modal-header">
@@ -258,6 +259,10 @@
                     name: "source_type",
                     orderable: false,
                     className: 'text-center'
+                }, {
+                    data: "project_code",
+                    name: "project_code",
+                    orderable: false,
                 }, {
                     data: "fptk_number",
                     name: "fptk_number",

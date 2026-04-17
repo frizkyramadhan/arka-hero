@@ -2,13 +2,13 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\EmployeeBond;
 use App\Models\BondViolation;
+use App\Models\EmployeeBond;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Carbon\Carbon;
-use Yajra\DataTables\Facades\DataTables;
 use Illuminate\Support\Str;
+use Yajra\DataTables\Facades\DataTables;
 
 class BondViolationController extends Controller
 {
@@ -46,9 +46,12 @@ class BondViolationController extends Controller
             })
             ->addColumn('employee_nik', function ($violation) {
                 $employee = $violation->employeeBond->employee ?? null;
-                if (!$employee) return '-';
+                if (! $employee) {
+                    return '-';
+                }
 
                 $administrations = $employee->administrations ?? collect();
+
                 return $administrations->isNotEmpty()
                     ? ($administrations->first()->nik ?? '-')
                     : '-';
@@ -63,10 +66,10 @@ class BondViolationController extends Controller
                 return $violation->reason ? Str::limit($violation->reason, 30) : '-';
             })
             ->addColumn('days_worked', function ($violation) {
-                return $violation->days_worked . ' days';
+                return $violation->days_worked.' days';
             })
             ->addColumn('days_remaining', function ($violation) {
-                return $violation->days_remaining . ' days';
+                return $violation->days_remaining.' days';
             })
             ->addColumn('penalty_amount', function ($violation) {
                 return $violation->formatted_calculated_penalty;
@@ -86,10 +89,11 @@ class BondViolationController extends Controller
             })
             ->addColumn('actions', function ($violation) {
                 $actions = '<div class="btn-group" role="group">';
-                $actions .= '<a href="' . route('bond-violations.show', $violation->id) . '" class="btn btn-sm btn-info mr-1" title="View"><i class="fas fa-eye"></i></a>';
-                $actions .= '<a href="' . route('bond-violations.edit', $violation->id) . '" class="btn btn-sm btn-warning mr-1" title="Edit"><i class="fas fa-edit"></i></a>';
-                $actions .= '<button class="btn btn-sm btn-danger" onclick="deleteViolation(' . $violation->id . ')" title="Delete"><i class="fas fa-trash"></i></button>';
+                $actions .= '<a href="'.route('bond-violations.show', $violation->id).'" class="btn btn-sm btn-info mr-1" title="View"><i class="fas fa-eye"></i></a>';
+                $actions .= '<a href="'.route('bond-violations.edit', $violation->id).'" class="btn btn-sm btn-warning mr-1" title="Edit"><i class="fas fa-edit"></i></a>';
+                $actions .= '<button class="btn btn-sm btn-danger" onclick="deleteViolation('.$violation->id.')" title="Delete"><i class="fas fa-trash"></i></button>';
                 $actions .= '</div>';
+
                 return $actions;
             })
             ->filter(function ($query) use ($request) {
@@ -170,7 +174,7 @@ class BondViolationController extends Controller
             'employee_bond_id' => 'required|exists:employee_bonds,id',
             'violation_date' => 'required|date',
             'reason' => 'nullable|string|max:1000',
-            'payment_due_date' => 'nullable|date|after:violation_date'
+            'payment_due_date' => 'nullable|date|after:violation_date',
         ]);
 
         DB::beginTransaction();
@@ -199,8 +203,9 @@ class BondViolationController extends Controller
                 ->with('toast_success', 'Bond violation created successfully');
         } catch (\Exception $e) {
             DB::rollback();
+
             return redirect()->back()
-                ->with('toast_error', 'Failed to create bond violation: ' . $e->getMessage())
+                ->with('toast_error', 'Failed to create bond violation: '.$e->getMessage())
                 ->withInput();
         }
     }
@@ -249,14 +254,14 @@ class BondViolationController extends Controller
             $bondViolation->update([
                 'reason' => $request->reason,
                 'penalty_paid_amount' => $request->penalty_paid_amount ?? 0,
-                'payment_due_date' => $request->payment_due_date ? Carbon::parse($request->payment_due_date) : null
+                'payment_due_date' => $request->payment_due_date ? Carbon::parse($request->payment_due_date) : null,
             ]);
 
             return redirect()->route('bond-violations.index')
                 ->with('toast_success', 'Bond violation updated successfully');
         } catch (\Exception $e) {
             return redirect()->back()
-                ->with('toast_error', 'Failed to update bond violation: ' . $e->getMessage())
+                ->with('toast_error', 'Failed to update bond violation: '.$e->getMessage())
                 ->withInput();
         }
     }
@@ -287,8 +292,9 @@ class BondViolationController extends Controller
                 ->with('toast_success', 'Bond violation deleted successfully');
         } catch (\Exception $e) {
             DB::rollback();
+
             return redirect()->back()
-                ->with('toast_error', 'Failed to delete bond violation: ' . $e->getMessage());
+                ->with('toast_error', 'Failed to delete bond violation: '.$e->getMessage());
         }
     }
 
@@ -300,7 +306,7 @@ class BondViolationController extends Controller
     {
         $request->validate([
             'employee_bond_id' => 'required|exists:employee_bonds,id',
-            'violation_date' => 'required|date'
+            'violation_date' => 'required|date',
         ]);
 
         try {
@@ -315,7 +321,7 @@ class BondViolationController extends Controller
                 'is_valid' => false,
                 'message' => $e->getMessage(),
                 'penalty_amount' => 0,
-                'calculation_details' => []
+                'calculation_details' => [],
             ], 400);
         }
     }

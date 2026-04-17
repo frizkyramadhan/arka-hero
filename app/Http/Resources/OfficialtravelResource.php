@@ -7,6 +7,40 @@ use Illuminate\Http\Resources\Json\JsonResource;
 
 class OfficialtravelResource extends JsonResource
 {
+    /** Subclass workforce mengembalikan subset field pada nested `employee`. */
+    protected function useWorkforceEmployeePayload(): bool
+    {
+        return false;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function employeePayloadForResource(\App\Models\Employee $employee, Request $request): array
+    {
+        if ($this->useWorkforceEmployeePayload()) {
+            return (new WorkforceEmployeeResource($employee))->toArray($request);
+        }
+
+        return [
+            'id' => $employee->id,
+            'fullname' => $employee->fullname,
+            'emp_pob' => $employee->emp_pob,
+            'emp_dob' => $employee->emp_dob,
+            'blood_type' => $employee->blood_type,
+            'nationality' => $employee->nationality,
+            'gender' => $employee->gender,
+            'marital' => $employee->marital,
+            'address' => $employee->address,
+            'village' => $employee->village,
+            'ward' => $employee->ward,
+            'district' => $employee->district,
+            'city' => $employee->city,
+            'phone' => $employee->phone,
+            'email' => $employee->email,
+        ];
+    }
+
     /**
      * Transform the resource into an array.
      *
@@ -26,7 +60,7 @@ class OfficialtravelResource extends JsonResource
             'departure_from' => $this->departure_from,
             'is_claimed' => $this->is_claimed,
             'claimed_at' => $this->claimed_at,
-            'traveler' => $this->whenLoaded('traveler', function () {
+            'traveler' => $this->whenLoaded('traveler', function () use ($request) {
                 $traveler = [
                     'id' => $this->traveler->id,
                     'employee_id' => $this->traveler->employee_id,
@@ -38,23 +72,7 @@ class OfficialtravelResource extends JsonResource
                 ];
 
                 if ($this->traveler->relationLoaded('employee')) {
-                    $traveler['employee'] = [
-                        'id' => $this->traveler->employee->id,
-                        'fullname' => $this->traveler->employee->fullname,
-                        'emp_pob' => $this->traveler->employee->emp_pob,
-                        'emp_dob' => $this->traveler->employee->emp_dob,
-                        'blood_type' => $this->traveler->employee->blood_type,
-                        'nationality' => $this->traveler->employee->nationality,
-                        'gender' => $this->traveler->employee->gender,
-                        'marital' => $this->traveler->employee->marital,
-                        'address' => $this->traveler->employee->address,
-                        'village' => $this->traveler->employee->village,
-                        'ward' => $this->traveler->employee->ward,
-                        'district' => $this->traveler->employee->district,
-                        'city' => $this->traveler->employee->city,
-                        'phone' => $this->traveler->employee->phone,
-                        'email' => $this->traveler->employee->email,
-                    ];
+                    $traveler['employee'] = $this->employeePayloadForResource($this->traveler->employee, $request);
                 }
 
                 if ($this->traveler->relationLoaded('position')) {
@@ -107,8 +125,8 @@ class OfficialtravelResource extends JsonResource
                     'accommodation_status' => $this->accommodation->accommodation_status,
                 ];
             }),
-            'details' => $this->whenLoaded('details', function () {
-                return $this->details->map(function ($detail) {
+            'details' => $this->whenLoaded('details', function () use ($request) {
+                return $this->details->map(function ($detail) use ($request) {
                     $follower = null;
                     if ($detail->relationLoaded('follower')) {
                         $follower = [
@@ -122,23 +140,7 @@ class OfficialtravelResource extends JsonResource
                         ];
 
                         if ($detail->follower->relationLoaded('employee')) {
-                            $follower['employee'] = [
-                                'id' => $detail->follower->employee->id,
-                                'fullname' => $detail->follower->employee->fullname,
-                                'emp_pob' => $detail->follower->employee->emp_pob,
-                                'emp_dob' => $detail->follower->employee->emp_dob,
-                                'blood_type' => $detail->follower->employee->blood_type,
-                                'nationality' => $detail->follower->employee->nationality,
-                                'gender' => $detail->follower->employee->gender,
-                                'marital' => $detail->follower->employee->marital,
-                                'address' => $detail->follower->employee->address,
-                                'village' => $detail->follower->employee->village,
-                                'ward' => $detail->follower->employee->ward,
-                                'district' => $detail->follower->employee->district,
-                                'city' => $detail->follower->employee->city,
-                                'phone' => $detail->follower->employee->phone,
-                                'email' => $detail->follower->employee->email,
-                            ];
+                            $follower['employee'] = $this->employeePayloadForResource($detail->follower->employee, $request);
                         }
 
                         if ($detail->follower->relationLoaded('position')) {

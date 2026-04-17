@@ -6,12 +6,13 @@ use App\Models\RecruitmentCandidate;
 use App\Models\RecruitmentRequest;
 use App\Models\RecruitmentSession;
 use App\Services\RecruitmentSessionService;
+use App\Support\UserProject;
+use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
-use Exception;
 
 class RecruitmentCandidateController extends Controller
 {
@@ -41,21 +42,22 @@ class RecruitmentCandidateController extends Controller
             'D3',
             'S1',
             'S2',
-            'S3'
+            'S3',
         ];
         $globalStatuses = [
             'available' => 'Available',
             'in_process' => 'In Process',
             'hired' => 'Hired',
             'rejected' => 'Rejected',
-            'blacklisted' => 'Blacklisted'
+            'blacklisted' => 'Blacklisted',
         ];
         $years = range(date('Y'), date('Y') - 5);
 
         // Get available FPTKs for the apply modal
-        $availableFptks = RecruitmentRequest::with(['department', 'position'])
-            ->where('status', 'approved')
-            ->get();
+        $availableFptksQuery = RecruitmentRequest::with(['department', 'position'])
+            ->where('status', 'approved');
+        UserProject::scopeToAssignedProjects($availableFptksQuery);
+        $availableFptks = $availableFptksQuery->get();
 
         $title = 'Recruitment Candidates';
         $subtitle = 'List of Recruitment Candidates';
@@ -75,25 +77,28 @@ class RecruitmentCandidateController extends Controller
             return response()->json([
                 'success' => false,
                 'data' => [],
-                'message' => 'Please enter at least 3 characters to search'
+                'message' => 'Please enter at least 3 characters to search',
             ]);
         }
 
-        $candidates = RecruitmentCandidate::where('global_status', 'available')
+        $searchQuery = RecruitmentCandidate::where('global_status', 'available')
             ->where(function ($q) use ($query) {
                 $q->where('fullname', 'LIKE', "%{$query}%")
                     ->orWhere('email', 'LIKE', "%{$query}%")
                     ->orWhere('phone', 'LIKE', "%{$query}%")
                     ->orWhere('candidate_number', 'LIKE', "%{$query}%")
                     ->orWhere('position_applied', 'LIKE', "%{$query}%");
-            })
+            });
+        UserProject::scopeRecruitmentCandidatesToAssignedProjects($searchQuery);
+
+        $candidates = $searchQuery
             ->limit(10)
             ->get(['id', 'fullname', 'fullname as name', 'email', 'phone', 'position_applied']);
 
         return response()->json([
             'success' => true,
             'data' => $candidates,
-            'message' => $candidates->count() . ' candidates found'
+            'message' => $candidates->count().' candidates found',
         ]);
     }
 
@@ -105,7 +110,7 @@ class RecruitmentCandidateController extends Controller
         $query = RecruitmentCandidate::with([
             'sessions.fptk.department',
             'sessions.fptk.position',
-            'sessions.fptk.project'
+            'sessions.fptk.project',
         ]);
 
         // Apply filters
@@ -156,6 +161,8 @@ class RecruitmentCandidateController extends Controller
             });
         }
 
+        UserProject::scopeRecruitmentCandidatesToAssignedProjects($query);
+
         $query->orderBy('created_at', 'desc');
 
         return datatables()->of($query)
@@ -179,7 +186,7 @@ class RecruitmentCandidateController extends Controller
                 return $candidate->position_applied ?: '-';
             })
             ->addColumn('experience_years', function ($candidate) {
-                return $candidate->experience_years . ' years';
+                return $candidate->experience_years.' years';
             })
             ->addColumn('global_status', function ($candidate) {
                 $badges = [
@@ -187,19 +194,23 @@ class RecruitmentCandidateController extends Controller
                     'in_process' => '<span class="badge badge-warning">In Process</span>',
                     'hired' => '<span class="badge badge-info">Hired</span>',
                     'rejected' => '<span class="badge badge-danger">Rejected</span>',
-                    'blacklisted' => '<span class="badge badge-dark">Blacklisted</span>'
+                    'blacklisted' => '<span class="badge badge-dark">Blacklisted</span>',
                 ];
-                return $badges[$candidate->global_status] ?? '<span class="badge badge-light">' . ucfirst($candidate->global_status) . '</span>';
+
+                return $badges[$candidate->global_status] ?? '<span class="badge badge-light">'.ucfirst($candidate->global_status).'</span>';
             })
             ->addColumn('applications_count', function ($candidate) {
                 return $candidate->sessions->count();
             })
             ->addColumn('success_rate', function ($candidate) {
                 $totalSessions = $candidate->sessions->count();
-                if ($totalSessions === 0) return '0%';
+                if ($totalSessions === 0) {
+                    return '0%';
+                }
 
                 $successfulSessions = $candidate->sessions->where('status', 'hired')->count();
-                return round(($successfulSessions / $totalSessions) * 100, 1) . '%';
+
+                return round(($successfulSessions / $totalSessions) * 100, 1).'%';
             })
             ->addColumn('created_at', function ($candidate) {
                 return $candidate->created_at->format('d/m/Y H:i');
@@ -281,17 +292,17 @@ class RecruitmentCandidateController extends Controller
             if ($request->hasFile('cv_file')) {
                 $cvFile = $request->file('cv_file');
                 $fileName = $cvFile->getClientOriginalName();
-                $filePath = $cvFile->storeAs('cv_files/' . $candidate->id, $fileName, 'private');
+                $filePath = $cvFile->storeAs('cv_files/'.$candidate->id, $fileName, 'private');
                 $candidate->update(['cv_file_path' => $filePath]);
             }
 
             DB::commit();
 
             return redirect()->route('recruitment.candidates.show', $candidate->id)
-                ->with('toast_success', 'Candidate successfully created. Number: ' . $candidate->candidate_number);
+                ->with('toast_success', 'Candidate successfully created. Number: '.$candidate->candidate_number);
         } catch (Exception $e) {
             DB::rollback();
-            Log::error('Error creating candidate: ' . $e->getMessage());
+            Log::error('Error creating candidate: '.$e->getMessage());
 
             return redirect()->back()
                 ->withInput()
@@ -320,18 +331,24 @@ class RecruitmentCandidateController extends Controller
             'sessions.offering',
             'sessions.mcu',
             'sessions.hiring',
-            'sessions.onboarding'
+            'sessions.onboarding',
         ])->findOrFail($id);
 
+        if (! UserProject::canViewRecruitmentCandidate($candidate)) {
+            return UserProject::redirectAccessDenied();
+        }
+
         // Get available FPTKs for the apply modal
-        $availableFptks = RecruitmentRequest::with(['department', 'position'])
+        $availableFptksQuery = RecruitmentRequest::with(['department', 'position'])
             ->where('status', 'approved')
             ->whereNotIn('id', function ($query) use ($id) {
                 $query->select('fptk_id')
                     ->from('recruitment_sessions')
-                    ->where('candidate_id', $id);
-            })
-            ->get();
+                    ->where('candidate_id', $id)
+                    ->whereNotNull('fptk_id');
+            });
+        UserProject::scopeToAssignedProjects($availableFptksQuery);
+        $availableFptks = $availableFptksQuery->get();
 
         return view('recruitment.candidates.show', compact('candidate', 'title', 'subtitle', 'availableFptks'));
     }
@@ -346,6 +363,10 @@ class RecruitmentCandidateController extends Controller
 
         $candidate = RecruitmentCandidate::findOrFail($id);
 
+        if (! UserProject::canViewRecruitmentCandidate($candidate)) {
+            return UserProject::redirectAccessDenied();
+        }
+
         return view('recruitment.candidates.edit', compact('candidate', 'title', 'subtitle'));
     }
 
@@ -356,9 +377,13 @@ class RecruitmentCandidateController extends Controller
     {
         $candidate = RecruitmentCandidate::findOrFail($id);
 
+        if (! UserProject::canViewRecruitmentCandidate($candidate)) {
+            return UserProject::redirectAccessDenied();
+        }
+
         $request->validate([
             'fullname' => 'required|string|max:255',
-            'email' => 'required|email|unique:recruitment_candidates,email,' . $candidate->id,
+            'email' => 'required|email|unique:recruitment_candidates,email,'.$candidate->id,
             'phone' => 'required|string|max:50',
             'address' => 'required|string|max:1000',
             'date_of_birth' => 'required|date|before:today',
@@ -404,7 +429,7 @@ class RecruitmentCandidateController extends Controller
 
                 $cvFile = $request->file('cv_file');
                 $fileName = $cvFile->getClientOriginalName();
-                $filePath = $cvFile->storeAs('cv_files/' . $candidate->id, $fileName, 'private');
+                $filePath = $cvFile->storeAs('cv_files/'.$candidate->id, $fileName, 'private');
                 $candidateData['cv_file_path'] = $filePath;
             }
 
@@ -416,7 +441,7 @@ class RecruitmentCandidateController extends Controller
                 ->with('toast_success', 'Candidate successfully updated.');
         } catch (Exception $e) {
             DB::rollback();
-            Log::error('Error updating candidate: ' . $e->getMessage());
+            Log::error('Error updating candidate: '.$e->getMessage());
 
             return redirect()->back()
                 ->withInput()
@@ -438,14 +463,22 @@ class RecruitmentCandidateController extends Controller
         $candidate = RecruitmentCandidate::findOrFail($candidateId);
         $fptk = RecruitmentRequest::findOrFail($request->fptk_id);
 
+        if (! UserProject::canViewRecruitmentCandidate($candidate)) {
+            return UserProject::redirectAccessDenied();
+        }
+
+        if ($denied = UserProject::guardProjectInAssignmentScope((int) $fptk->project_id)) {
+            return $denied;
+        }
+
         // Check if candidate can apply
         if ($candidate->global_status !== 'available') {
             return redirect()->back()
-                ->with('toast_error', 'Candidate cannot submit application due to status: ' . $candidate->global_status);
+                ->with('toast_error', 'Candidate cannot submit application due to status: '.$candidate->global_status);
         }
 
         // Check if FPTK can receive applications
-        if (!$fptk->canReceiveApplications()) {
+        if (! $fptk->canReceiveApplications()) {
             return redirect()->back()
                 ->with('toast_error', 'FPTK cannot receive applications at this time.');
         }
@@ -481,15 +514,16 @@ class RecruitmentCandidateController extends Controller
                 DB::commit();
 
                 return redirect()->route('recruitment.sessions.show', $session->id)
-                    ->with('toast_success', 'Application successfully submitted. Session number: ' . $session->session_number);
+                    ->with('toast_success', 'Application successfully submitted. Session number: '.$session->session_number);
             } else {
                 DB::rollback();
+
                 return redirect()->back()
                     ->with('toast_error', 'Failed to create recruitment session. Please try again.');
             }
         } catch (Exception $e) {
             DB::rollback();
-            Log::error('Error applying to FPTK: ' . $e->getMessage());
+            Log::error('Error applying to FPTK: '.$e->getMessage());
 
             return redirect()->back()
                 ->with('toast_error', 'An error occurred while submitting the application. Please try again.');
@@ -502,10 +536,14 @@ class RecruitmentCandidateController extends Controller
     public function blacklist(Request $request, $id)
     {
         $request->validate([
-            'blacklist_reason' => 'required|string|max:2000'
+            'blacklist_reason' => 'required|string|max:2000',
         ]);
 
         $candidate = RecruitmentCandidate::findOrFail($id);
+
+        if (! UserProject::canViewRecruitmentCandidate($candidate)) {
+            return UserProject::redirectAccessDenied();
+        }
 
         try {
             $candidate->update([
@@ -518,7 +556,7 @@ class RecruitmentCandidateController extends Controller
             return redirect()->route('recruitment.candidates.show', $candidate->id)
                 ->with('toast_success', 'Candidate successfully blacklisted.');
         } catch (Exception $e) {
-            Log::error('Error blacklisting candidate: ' . $e->getMessage());
+            Log::error('Error blacklisting candidate: '.$e->getMessage());
 
             return redirect()->back()
                 ->with('toast_error', 'An error occurred while blacklisting the candidate. Please try again.');
@@ -531,6 +569,10 @@ class RecruitmentCandidateController extends Controller
     public function removeFromBlacklist($id)
     {
         $candidate = RecruitmentCandidate::findOrFail($id);
+
+        if (! UserProject::canViewRecruitmentCandidate($candidate)) {
+            return UserProject::redirectAccessDenied();
+        }
 
         if ($candidate->global_status !== 'blacklisted') {
             return redirect()->back()
@@ -547,7 +589,7 @@ class RecruitmentCandidateController extends Controller
             return redirect()->route('recruitment.candidates.show', $candidate->id)
                 ->with('toast_success', 'Candidate successfully removed from blacklist.');
         } catch (Exception $e) {
-            Log::error('Error removing candidate from blacklist: ' . $e->getMessage());
+            Log::error('Error removing candidate from blacklist: '.$e->getMessage());
 
             return redirect()->back()
                 ->with('toast_error', 'An error occurred while removing from blacklist. Please try again.');
@@ -560,6 +602,10 @@ class RecruitmentCandidateController extends Controller
     public function destroy($id)
     {
         $candidate = RecruitmentCandidate::findOrFail($id);
+
+        if (! UserProject::canViewRecruitmentCandidate($candidate)) {
+            return UserProject::redirectAccessDenied();
+        }
 
         // Only allow deletion if no active sessions
         if ($candidate->sessions()->whereIn('status', ['active', 'in_process'])->exists()) {
@@ -583,7 +629,7 @@ class RecruitmentCandidateController extends Controller
                 ->with('toast_success', 'Candidate successfully deleted.');
         } catch (Exception $e) {
             DB::rollback();
-            Log::error('Error deleting candidate: ' . $e->getMessage());
+            Log::error('Error deleting candidate: '.$e->getMessage());
 
             return redirect()->back()
                 ->with('toast_error', 'An error occurred while deleting the candidate. Please try again.');
@@ -606,8 +652,12 @@ class RecruitmentCandidateController extends Controller
             'sessions.offering',
             'sessions.mcu',
             'sessions.hiring',
-            'sessions.onboarding'
+            'sessions.onboarding',
         ])->findOrFail($id);
+
+        if (! UserProject::canViewRecruitmentCandidate($candidate)) {
+            return UserProject::redirectAccessDenied();
+        }
 
         return view('recruitment.candidates.print', compact('candidate'));
     }
@@ -619,12 +669,16 @@ class RecruitmentCandidateController extends Controller
     {
         $candidate = RecruitmentCandidate::findOrFail($id);
 
-        if (!$candidate->cv_file_path) {
+        if (! UserProject::canViewRecruitmentCandidate($candidate)) {
+            return UserProject::redirectAccessDenied();
+        }
+
+        if (! $candidate->cv_file_path) {
             return redirect()->back()
                 ->with('toast_error', 'CV file not found.');
         }
 
-        if (!Storage::disk('private')->exists($candidate->cv_file_path)) {
+        if (! Storage::disk('private')->exists($candidate->cv_file_path)) {
             return redirect()->back()
                 ->with('toast_error', 'CV file not found in storage.');
         }
@@ -639,9 +693,9 @@ class RecruitmentCandidateController extends Controller
             $extension = 'pdf'; // fallback
         }
 
-        $downloadFileName = 'CV_' . $safeName . '_' . $safeNumber . '.' . $extension;
+        $downloadFileName = 'CV_'.$safeName.'_'.$safeNumber.'.'.$extension;
 
-        return response()->download(storage_path('app/private/' . $candidate->cv_file_path), $downloadFileName);
+        return response()->download(storage_path('app/private/'.$candidate->cv_file_path), $downloadFileName);
     }
 
     /**
@@ -651,7 +705,11 @@ class RecruitmentCandidateController extends Controller
     {
         $candidate = RecruitmentCandidate::findOrFail($id);
 
-        if (!$candidate->cv_file_path) {
+        if (! UserProject::canViewRecruitmentCandidate($candidate)) {
+            return UserProject::redirectAccessDenied();
+        }
+
+        if (! $candidate->cv_file_path) {
             return redirect()->back()
                 ->with('toast_error', 'CV file not found.');
         }
@@ -671,7 +729,7 @@ class RecruitmentCandidateController extends Controller
             return redirect()->back()
                 ->with('toast_success', 'CV file successfully deleted.');
         } catch (Exception $e) {
-            Log::error('Error deleting CV file: ' . $e->getMessage());
+            Log::error('Error deleting CV file: '.$e->getMessage());
 
             return redirect()->back()
                 ->with('toast_error', 'An error occurred while deleting the CV file. Please try again.');
@@ -684,6 +742,10 @@ class RecruitmentCandidateController extends Controller
     public function getCandidateData($id = null)
     {
         $candidate = RecruitmentCandidate::with(['sessions.fptk'])->findOrFail($id);
+
+        if (! UserProject::canViewRecruitmentCandidate($candidate)) {
+            return response()->json(['success' => false, 'message' => 'Access denied'], 403);
+        }
 
         return response()->json([
             'success' => true,
@@ -701,7 +763,7 @@ class RecruitmentCandidateController extends Controller
                 'expected_salary' => $candidate->expected_salary,
                 'applications_count' => $candidate->applications_count,
                 'success_rate' => $candidate->success_rate,
-                'has_cv' => !empty($candidate->cv_file_path),
+                'has_cv' => ! empty($candidate->cv_file_path),
                 'sessions' => $candidate->sessions->map(function ($session) {
                     return [
                         'id' => $session->id,
@@ -713,7 +775,7 @@ class RecruitmentCandidateController extends Controller
                         'applied_date' => $session->applied_date,
                     ];
                 }),
-            ]
+            ],
         ]);
     }
 
@@ -724,15 +786,21 @@ class RecruitmentCandidateController extends Controller
     {
         $candidate = RecruitmentCandidate::findOrFail($candidateId);
 
+        if (! UserProject::canViewRecruitmentCandidate($candidate)) {
+            return response()->json(['success' => false, 'message' => 'Access denied'], 403);
+        }
+
         // Get FPTKs that can receive applications and candidate hasn't applied to
-        $availableFPTKs = RecruitmentRequest::with(['department', 'position', 'project'])
+        $availableFPTKsQuery = RecruitmentRequest::with(['department', 'position', 'project'])
             ->where('status', 'approved')
             ->whereNotIn('id', function ($query) use ($candidateId) {
                 $query->select('fptk_id')
                     ->from('recruitment_sessions')
-                    ->where('candidate_id', $candidateId);
-            })
-            ->get();
+                    ->where('candidate_id', $candidateId)
+                    ->whereNotNull('fptk_id');
+            });
+        UserProject::scopeToAssignedProjects($availableFPTKsQuery);
+        $availableFPTKs = $availableFPTKsQuery->get();
 
         return response()->json([
             'success' => true,
@@ -749,7 +817,7 @@ class RecruitmentCandidateController extends Controller
                     'required_date' => $fptk->required_date,
                     'employment_type' => $fptk->employment_type,
                 ];
-            })
+            }),
         ]);
     }
 }
