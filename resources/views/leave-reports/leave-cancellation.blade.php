@@ -96,6 +96,7 @@
                         <table class="table table-striped">
                             <thead>
                                 <tr>
+                                    <th>Leave Register No.</th>
                                     <th>Employee</th>
                                     <th>Leave Type</th>
                                     <th>Original Leave</th>
@@ -110,6 +111,8 @@
                             <tbody>
                                 @forelse($cancellations as $cancellation)
                                     <tr>
+                                        <td class="text-nowrap small font-monospace">
+                                            {{ $cancellation->leaveRequest->register_number ?? '—' }}</td>
                                         <td>
                                             <strong>{{ $cancellation->leaveRequest->employee->fullname }}</strong>
                                         </td>
@@ -165,7 +168,7 @@
                                     </tr>
                                     @empty
                                         <tr>
-                                            <td colspan="9" class="text-center">No cancellation requests found</td>
+                                            <td colspan="10" class="text-center">No cancellation requests found</td>
                                         </tr>
                                     @endforelse
                                 </tbody>

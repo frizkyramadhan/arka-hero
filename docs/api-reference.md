@@ -346,6 +346,8 @@ Baris dengan `approved_at` / `finished_at` kosong tidak muncul di hasil workforc
 **Objek `employee` (karyawan) di semua respons workforce** memakai **`WorkforceEmployeeResource`**: hanya field `id`, `fullname`, `emp_pob`, `emp_dob` (tanggal `Y-m-d` jika tersedia), `gender`, `address`, `phone`.  
 Ini berlaku untuk `data.employee` (profil & aktivitas) dan untuk nested `traveler.employee` / `follower.employee` pada **`WorkforceOfficialtravelResource`** (LOT workforce). Endpoint `/api/official-travels/...` lain tetap memakai `OfficialtravelResource` penuh untuk nested employee.
 
+**Nomor register cuti & lembur (workforce):** setiap item di `leave_requests` dan `overtime_requests` (serta array yang sama di `.../activity`) menyertakan **`register_number`** — format umum **`YYLV-xxxxx`** (cuti) dan **`YYOT-xxxxx`** (lembur), unik per dokumen; bisa `null` untuk data lama sebelum migrasi.
+
 ### 10.1 Profil lengkap (employee + administrations)
 
 | Method | Path                                            | Nama route                               | Keterangan                                                  |
@@ -538,6 +540,8 @@ Route berikut **bukan** bagian dari grup `api` di `RouteServiceProvider`, tetapi
 | `GET`  | `/flight/my-requests/api/leave-requests`   | `web` + `auth` |
 | `GET`  | `/flight/my-requests/api/official-travels` | `web` + `auth` |
 
+Respons **`.../api/leave-requests`** (flight): setiap elemen memuat `id`, **`register_number`**, `text` (label Select2; diawali nomor register atau fallback `id`), dan `employee_data`.
+
 Untuk integrasi **eksternal** server-to-server, gunakan endpoint di **§1–§10** dengan **API key**; endpoint flight di atas memerlukan **session/login** web, bukan sekadar `API_KEY`.
 
 ---
@@ -553,6 +557,7 @@ Untuk integrasi **eksternal** server-to-server, gunakan endpoint di **§1–§10
 | 2026-04-17 | **§10.4** Postman: contoh params `year`/`month` untuk leave/LOT/overtime         |
 | 2026-04-17 | **§10** Workforce: filter rentang memakai **`approved_at`** (cuti & LOT) dan **`finished_at`** (lembur); baris dengan timestamp tersebut null tidak ikut |
 | 2026-04-17 | **§10** Workforce: data karyawan dipangkas lewat **`WorkforceEmployeeResource`**; LOT workforce memakai **`WorkforceOfficialtravelResource`** |
+| 2026-04-20 | **`register_number`** di respons workforce (`leave_requests`, `overtime_requests`) dan di JSON flight **`/api/leave-requests`** |
 
 ### 13.1 Revisi terbaru
 
@@ -565,3 +570,4 @@ Untuk integrasi **eksternal** server-to-server, gunakan endpoint di **§1–§10
 - **Query:** endpoint profil mendukung **`year`** / **`month`** (opsional, informatif di respons). Endpoint `leave-requests`, `official-travels`, dan `overtime-requests` mendukung **`year`** + **`month`** opsional sebagai alternatif dari **`from`** / **`to`**, dengan default tetap 90 hari terakhir bila tidak ada filter.
 - **Respons** endpoint terpisah: objek **`period`** (`year`, `month`, `from`, `to`) dan **`range`** (`from`, `to`).
 - **Karyawan di workforce:** `WorkforceEmployeeResource` — hanya `id`, `fullname`, `emp_pob`, `emp_dob`, `gender`, `address`, `phone`. LOT di workforce: `WorkforceOfficialtravelResource` (subset employee pada traveler/follower sama).
+- **`register_number`:** disertakan pada objek ringkas cuti & lembur (`LeaveRequestSummaryResource`, `OvertimeRequestSummaryResource`); pada flight JSON leave list juga field `register_number` + prefix di `text`.

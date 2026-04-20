@@ -14,6 +14,7 @@ class OvertimeRequestSummaryResource extends JsonResource
     {
         return [
             'id' => $this->id,
+            'register_number' => $this->register_number,
             'status' => $this->status,
             'overtime_date' => $this->overtime_date?->format('Y-m-d'),
             'remarks' => $this->remarks,

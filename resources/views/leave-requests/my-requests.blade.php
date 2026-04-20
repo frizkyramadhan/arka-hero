@@ -82,14 +82,14 @@
                                                     <div class="form-group">
                                                         <label>Start Date</label>
                                                         <input type="date" class="form-control" id="start_date"
-                                                            name="start_date">
+                                                            name="start_date" autocomplete="off">
                                                     </div>
                                                 </div>
                                                 <div class="col-md-2">
                                                     <div class="form-group">
                                                         <label>End Date</label>
                                                         <input type="date" class="form-control" id="end_date"
-                                                            name="end_date">
+                                                            name="end_date" autocomplete="off">
                                                     </div>
                                                 </div>
                                                 <div class="col-md-2">
@@ -111,6 +111,7 @@
                                         <thead>
                                             <tr>
                                                 <th class="align-middle">No</th>
+                                                <th class="align-middle">Register No.</th>
                                                 <th class="align-middle">Project</th>
                                                 <th class="align-middle">Leave Type</th>
                                                 <th class="align-middle">Start Date</th>
@@ -195,6 +196,12 @@
                         orderable: false,
                         searchable: false,
                         className: 'text-center'
+                    },
+                    {
+                        data: 'register_number',
+                        name: 'register_number',
+                        orderable: false,
+                        className: 'text-nowrap'
                     },
                     {
                         data: 'project',

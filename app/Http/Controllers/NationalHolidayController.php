@@ -23,9 +23,30 @@ class NationalHolidayController extends Controller
     {
         $user = auth()->user();
 
+        $currentYear = (int) date('Y');
+        $years = range($currentYear - 10, $currentYear + 5);
+        rsort($years);
+
+        $months = [
+            1 => 'January',
+            2 => 'February',
+            3 => 'March',
+            4 => 'April',
+            5 => 'May',
+            6 => 'June',
+            7 => 'July',
+            8 => 'August',
+            9 => 'September',
+            10 => 'October',
+            11 => 'November',
+            12 => 'December',
+        ];
+
         return view('national-holidays.index', [
             'title' => 'National Holidays',
             'showActionColumn' => $user->can('national-holidays.edit') || $user->can('national-holidays.delete'),
+            'years' => $years,
+            'months' => $months,
         ]);
     }
 
@@ -35,6 +56,27 @@ class NationalHolidayController extends Controller
     public function data(Request $request): JsonResponse
     {
         $query = NationalHoliday::query()->select('national_holidays.*');
+
+        if ($request->filled('filter_year')) {
+            $year = (int) $request->input('filter_year');
+            if ($year > 0) {
+                $query->whereYear('holiday_date', $year);
+            }
+        }
+
+        if ($request->filled('filter_month')) {
+            $month = (int) $request->input('filter_month');
+            if ($month >= 1 && $month <= 12) {
+                $query->whereMonth('holiday_date', $month);
+            }
+        }
+
+        if ($request->filled('filter_name')) {
+            $name = trim((string) $request->input('filter_name'));
+            if ($name !== '') {
+                $query->where('name', 'like', '%'.$name.'%');
+            }
+        }
 
         $user = auth()->user();
         $canEdit = $user->can('national-holidays.edit');

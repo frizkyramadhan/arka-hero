@@ -259,6 +259,9 @@
                     <a href="{{ route('overtime.requests.index') }}" class="btn btn-primary">
                         <i class="fas fa-list mr-1"></i> Open full request list
                     </a>
+                    <a href="{{ route('overtime.reports.request-monitoring') }}" class="btn btn-outline-secondary ml-1">
+                        <i class="fas fa-file-alt mr-1"></i> Reports
+                    </a>
                     @can('overtime-requests.create')
                         <a href="{{ route('overtime.requests.create') }}" class="btn btn-outline-primary ml-1">
                             <i class="fas fa-plus mr-1"></i> New request

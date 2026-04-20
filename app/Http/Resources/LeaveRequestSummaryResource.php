@@ -14,6 +14,7 @@ class LeaveRequestSummaryResource extends JsonResource
     {
         return [
             'id' => $this->id,
+            'register_number' => $this->register_number,
             'status' => $this->status,
             'start_date' => $this->start_date?->format('Y-m-d'),
             'end_date' => $this->end_date?->format('Y-m-d'),

@@ -402,6 +402,7 @@ class LeaveReportController extends Controller
 
                     return [
                         'id' => $leaveRequest->id,
+                        'register_number' => $leaveRequest->register_number,
                         'employee_name' => $leaveRequest->employee->fullname,
                         'leave_type_name' => $leaveRequest->leaveType->name,
                         'start_date' => $leaveRequest->start_date->format('d M Y'),
@@ -412,6 +413,7 @@ class LeaveReportController extends Controller
                         'conversion_status' => $daysUntilConversion < 0 ? 'overdue' : ($daysUntilConversion <= 3 ? 'due_soon' : 'upcoming'),
                         'has_document' => ! empty($leaveRequest->supporting_document),
                         'project_name' => $leaveRequest->administration->project->project_name ?? 'Unknown',
+                        'created_at' => $leaveRequest->created_at->format('d M Y H:i'),
                     ];
                 })
             );
@@ -452,17 +454,24 @@ class LeaveReportController extends Controller
             $query->where('leave_type_id', $request->leave_type_id);
         }
 
-        $data = $query->get()->map(function ($request) {
+        if ($request->filled('project_id')) {
+            $query->whereHas('administration', function ($q) use ($request) {
+                $q->where('project_id', $request->project_id);
+            });
+        }
+
+        $data = $query->get()->map(function (LeaveRequest $leaveRequest) {
             return [
-                'Employee Name' => $request->employee->fullname,
-                'Leave Type' => $request->leaveType->name,
-                'Start Date' => $request->start_date->format('d M Y'),
-                'End Date' => $request->end_date->format('d M Y'),
-                'Total Days' => $request->total_days,
-                'Effective Days' => $request->getEffectiveDays(),
-                'Status' => ucfirst($request->status),
-                'Project' => $request->administration->project->project_name ?? 'Unknown',
-                'Requested At' => $request->created_at->format('d M Y H:i'),
+                'Register No.' => $leaveRequest->register_number ?? '—',
+                'Employee Name' => $leaveRequest->employee->fullname,
+                'Leave Type' => $leaveRequest->leaveType->name,
+                'Start Date' => $leaveRequest->start_date->format('d M Y'),
+                'End Date' => $leaveRequest->end_date->format('d M Y'),
+                'Total Days' => $leaveRequest->total_days,
+                'Effective Days' => $leaveRequest->getEffectiveDays(),
+                'Status' => ucfirst($leaveRequest->status),
+                'Project' => $leaveRequest->administration->project->project_name ?? 'Unknown',
+                'Requested At' => $leaveRequest->created_at->format('d M Y H:i'),
             ];
         });
 
@@ -483,6 +492,7 @@ class LeaveReportController extends Controller
             public function headings(): array
             {
                 return [
+                    'Register No.',
                     'Employee Name',
                     'Leave Type',
                     'Start Date',
@@ -521,6 +531,7 @@ class LeaveReportController extends Controller
 
         $data = $query->get()->map(function ($cancellation) {
             return [
+                'Leave Register No.' => $cancellation->leaveRequest->register_number ?? '—',
                 'Employee Name' => $cancellation->leaveRequest->employee->fullname,
                 'Leave Type' => $cancellation->leaveRequest->leaveType->name,
                 'Original Start Date' => $cancellation->leaveRequest->start_date->format('d M Y'),
@@ -552,6 +563,7 @@ class LeaveReportController extends Controller
             public function headings(): array
             {
                 return [
+                    'Leave Register No.',
                     'Employee Name',
                     'Leave Type',
                     'Original Start Date',

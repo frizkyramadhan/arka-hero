@@ -346,9 +346,16 @@
                             @can('official-travels.show')
                                 <li class="nav-item">
                                     <a href="{{ url('officialtravels') }}"
-                                        class="nav-link {{ $isOfficialTravels ? 'active' : '' }}">
+                                        class="nav-link {{ $isOfficialTravels && ! Request::is('officialtravels/reports*') ? 'active' : '' }}">
                                         <i class="far fa-circle nav-icon"></i>
                                         <p>Requests</p>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="{{ route('officialtravels.reports.index') }}"
+                                        class="nav-link {{ Request::is('officialtravels/reports*') ? 'active' : '' }}">
+                                        <i class="far fa-circle nav-icon"></i>
+                                        <p>Reports</p>
                                     </a>
                                 </li>
                             @endcan
@@ -360,12 +367,13 @@
                 @can('overtime-requests.show')
                     @php
                         $isMyOvertimeNav = Request::is('overtime/my-requests*');
+                        $isOvertimeReports = Request::is('overtime/reports*');
                         $isOvertimeDashboard = Request::is('dashboard/overtime-management');
                         $isOvertimeHr =
                             (Request::is('overtime/requests') || Request::is('overtime/requests/*')) &&
                             !$isMyOvertimeNav;
                         $isOvertimeMenuOpen =
-                            $isOvertimeHr || Request::is('overtime/requests/create') || $isOvertimeDashboard;
+                            $isOvertimeHr || Request::is('overtime/requests/create') || $isOvertimeDashboard || $isOvertimeReports;
                     @endphp
                     <li class="nav-item {{ $isOvertimeMenuOpen ? 'menu-open' : '' }}">
                         <a href="#" class="nav-link {{ $isOvertimeMenuOpen ? 'active' : '' }}">
@@ -385,9 +393,16 @@
                             </li>
                             <li class="nav-item">
                                 <a href="{{ route('overtime.requests.index') }}"
-                                    class="nav-link {{ $isOvertimeHr && !Request::is('overtime/requests/create') && !$isOvertimeDashboard ? 'active' : '' }}">
+                                    class="nav-link {{ $isOvertimeHr && !Request::is('overtime/requests/create') && !$isOvertimeDashboard && !$isOvertimeReports ? 'active' : '' }}">
                                     <i class="far fa-circle nav-icon"></i>
                                     <p>Requests</p>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="{{ route('overtime.reports.index') }}"
+                                    class="nav-link {{ $isOvertimeReports ? 'active' : '' }}">
+                                    <i class="far fa-circle nav-icon"></i>
+                                    <p>Reports</p>
                                 </a>
                             </li>
                         </ul>

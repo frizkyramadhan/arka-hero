@@ -128,6 +128,7 @@
                                         <thead>
                                             <tr>
                                                 <th class="align-middle text-center" width="5%">No</th>
+                                                <th class="align-middle text-nowrap">Register No.</th>
                                                 <th class="align-middle">Project</th>
                                                 <th class="align-middle">Date</th>
                                                 <th class="align-middle text-center">Status</th>
@@ -188,6 +189,12 @@
                         className: 'text-center'
                     },
                     {
+                        data: 'register_number',
+                        name: 'register_number',
+                        orderable: false,
+                        className: 'text-nowrap'
+                    },
+                    {
                         data: 'project_name',
                         name: 'project_name',
                         orderable: false
@@ -227,7 +234,7 @@
                     }
                 ],
                 order: [
-                    [2, 'desc']
+                    [3, 'desc']
                 ]
             });
 
