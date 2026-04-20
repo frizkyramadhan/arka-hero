@@ -43,7 +43,9 @@ use App\Http\Controllers\LicenseController;
 use App\Http\Controllers\NationalHolidayController;
 // Removed import for deleted controller
 use App\Http\Controllers\OfficialtravelController;
+use App\Http\Controllers\OfficialTravelReportController;
 use App\Http\Controllers\OperableunitController;
+use App\Http\Controllers\OvertimeReportController;
 use App\Http\Controllers\OvertimeRequestController;
 // Removed import for deleted controller
 use App\Http\Controllers\PermissionController;
@@ -260,6 +262,12 @@ Route::group(['middleware' => ['auth']], function () {
     Route::put('officialtravels/my-requests/{id}', [OfficialtravelController::class, 'myTravelsUpdate'])->name('officialtravels.my-travels.update');
     Route::get('officialtravels/my-requests/{id}', [OfficialtravelController::class, 'myTravelsShow'])->name('officialtravels.my-travels.show');
     Route::get('officialtravels/data', [OfficialtravelController::class, 'getOfficialtravels'])->name('officialtravels.data');
+    Route::prefix('officialtravels/reports')->name('officialtravels.reports.')->group(function () {
+        Route::get('/', [OfficialTravelReportController::class, 'index'])->name('index');
+        Route::get('/travel-requests', [OfficialTravelReportController::class, 'travelRequests'])->name('travel-requests');
+        Route::get('/travel-requests/data', [OfficialTravelReportController::class, 'travelRequestsData'])->name('travel-requests.data');
+        Route::get('/travel-requests/export', [OfficialTravelReportController::class, 'exportTravelRequests'])->name('travel-requests.export');
+    });
     // Test route for letter number integration (development only)
     Route::get('officialtravels/test-letter-integration', [OfficialtravelController::class, 'testLetterNumberIntegration'])->name('officialtravels.testLetterIntegration');
     Route::resource('officialtravels', OfficialtravelController::class);
@@ -622,6 +630,13 @@ Route::group(['middleware' => ['auth']], function () {
         Route::post('/my-requests/{overtimeRequest}/submit-for-approval', [OvertimeRequestController::class, 'myRequestsSubmitForApproval'])->name('my-requests.submit-for-approval');
         Route::get('/my-requests/{overtimeRequest}', [OvertimeRequestController::class, 'myRequestShow'])->name('my-requests.show');
         Route::get('/my-requests', [OvertimeRequestController::class, 'myRequests'])->name('my-requests');
+
+        Route::prefix('reports')->name('reports.')->group(function () {
+            Route::get('/', [OvertimeReportController::class, 'index'])->name('index');
+            Route::get('/request-monitoring', [OvertimeReportController::class, 'requestMonitoring'])->name('request-monitoring');
+            Route::get('/request-monitoring/data', [OvertimeReportController::class, 'requestMonitoringData'])->name('request-monitoring.data');
+            Route::get('/request-monitoring/export', [OvertimeReportController::class, 'exportRequestMonitoring'])->name('request-monitoring.export');
+        });
 
         Route::prefix('requests')->name('requests.')->group(function () {
             Route::get('/data', [OvertimeRequestController::class, 'data'])->name('data');

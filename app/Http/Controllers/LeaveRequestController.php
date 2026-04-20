@@ -145,7 +145,8 @@ class LeaveRequestController extends Controller
                             ->orWhere('project_name', 'like', "%{$searchValue}%");
                     })
                     ->orWhere('status', 'like', "%{$searchValue}%")
-                    ->orWhere('total_days', 'like', "%{$searchValue}%");
+                    ->orWhere('total_days', 'like', "%{$searchValue}%")
+                    ->orWhere('register_number', 'like', "%{$searchValue}%");
             });
         }
 
@@ -213,6 +214,7 @@ class LeaveRequestController extends Controller
 
             return [
                 'DT_RowIndex' => $start + $index + 1,
+                'register_number' => e($request->register_number ?? '—'),
                 'employee' => $request->employee->fullname ?? 'N/A',
                 'project' => e($request->administration?->project?->project_code ?? '—'),
                 'leave_type' => '<span class="badge badge-info">'.$leaveTypeName.'</span>'.$documentIcon.$moneyIcon,
@@ -259,8 +261,9 @@ class LeaveRequestController extends Controller
         $employees = Employee::with('administrations')->get();
 
         $nationalHolidayDates = NationalHoliday::datesForJs();
+        $nationalHolidayMap = NationalHoliday::mapDateToNameForJs();
 
-        return view('leave-requests.create', compact('leaveTypes', 'projects', 'departments', 'employees', 'nationalHolidayDates'))
+        return view('leave-requests.create', compact('leaveTypes', 'projects', 'departments', 'employees', 'nationalHolidayDates', 'nationalHolidayMap'))
             ->with('title', 'Create Leave Request');
     }
 
@@ -363,7 +366,27 @@ class LeaveRequestController extends Controller
             'manual_approvers.*.exists' => 'One or more selected approvers are invalid.',
         ]);
 
-        $this->validateLeaveDatesAgainstNationalHolidays($request->start_date, $request->end_date, $request->back_to_work_date);
+        $this->validateLeaveDatesAgainstNationalHolidays(
+            $request->start_date,
+            $request->end_date,
+            $request->back_to_work_date,
+            $this->shouldApplyNationalHolidayLeaveRestrictions($request)
+        );
+
+        if (! $isLSL) {
+            $projectForDays = $request->filled('project_id') ? Project::find($request->project_id) : null;
+            if (! $projectForDays) {
+                $adminForDays = Administration::where('employee_id', $request->employee_id)->where('is_active', 1)->first();
+                $projectForDays = $adminForDays?->project_id ? Project::find($adminForDays->project_id) : null;
+            }
+            $isNonRosterForDays = $projectForDays && $projectForDays->isNonRosterProject();
+            $computedTotal = NationalHoliday::countBillableLeaveDaysInRange(
+                \Carbon\Carbon::parse($request->start_date)->toDateString(),
+                \Carbon\Carbon::parse($request->end_date)->toDateString(),
+                $isNonRosterForDays
+            );
+            $request->merge(['total_days' => $computedTotal]);
+        }
 
         $administrationPreview = Administration::where('employee_id', $request->employee_id)
             ->where('is_active', 1)
@@ -685,8 +708,9 @@ class LeaveRequestController extends Controller
         $existingFlightRequest = $leaveRequest->flightRequests()->with('details')->first();
 
         $nationalHolidayDates = NationalHoliday::datesForJs();
+        $nationalHolidayMap = NationalHoliday::mapDateToNameForJs();
 
-        return view('leave-requests.edit', compact('leaveRequest', 'leaveTypes', 'projects', 'departments', 'existingFlightRequest', 'nationalHolidayDates'))->with('title', 'Edit Leave Request');
+        return view('leave-requests.edit', compact('leaveRequest', 'leaveTypes', 'projects', 'departments', 'existingFlightRequest', 'nationalHolidayDates', 'nationalHolidayMap'))->with('title', 'Edit Leave Request');
     }
 
     /**
@@ -798,7 +822,27 @@ class LeaveRequestController extends Controller
             'manual_approvers.*.exists' => 'One or more selected approvers are invalid.',
         ]);
 
-        $this->validateLeaveDatesAgainstNationalHolidays($request->start_date, $request->end_date, $request->back_to_work_date);
+        $this->validateLeaveDatesAgainstNationalHolidays(
+            $request->start_date,
+            $request->end_date,
+            $request->back_to_work_date,
+            $this->shouldApplyNationalHolidayLeaveRestrictions($request)
+        );
+
+        if (! $isLSL) {
+            $projectForDays = $request->filled('project_id') ? Project::find($request->project_id) : null;
+            if (! $projectForDays) {
+                $adminForDays = Administration::where('employee_id', $request->employee_id)->where('is_active', 1)->first();
+                $projectForDays = $adminForDays?->project_id ? Project::find($adminForDays->project_id) : null;
+            }
+            $isNonRosterForDays = $projectForDays && $projectForDays->isNonRosterProject();
+            $computedTotal = NationalHoliday::countBillableLeaveDaysInRange(
+                \Carbon\Carbon::parse($request->start_date)->toDateString(),
+                \Carbon\Carbon::parse($request->end_date)->toDateString(),
+                $isNonRosterForDays
+            );
+            $request->merge(['total_days' => $computedTotal]);
+        }
 
         if ($r = $this->guardLeaveRequestProjectForHrUser($leaveRequest)) {
             return $r;
@@ -1772,8 +1816,9 @@ class LeaveRequestController extends Controller
         $selectedLeaveTypeId = $request->query('leave_type');
 
         $nationalHolidayDates = NationalHoliday::datesForJs();
+        $nationalHolidayMap = NationalHoliday::mapDateToNameForJs();
 
-        return view('leave-requests.my-create', compact('leaveTypes', 'projects', 'departments', 'nationalHolidayDates'))
+        return view('leave-requests.my-create', compact('leaveTypes', 'projects', 'departments', 'nationalHolidayDates', 'nationalHolidayMap'))
             ->with('title', 'Create My Leave Request')
             ->with('defaultEmployeeId', $user->employee_id)
             ->with('defaultProject', $project)
@@ -1858,8 +1903,9 @@ class LeaveRequestController extends Controller
         $existingFlightRequest = $leaveRequest->flightRequests()->with('details')->first();
 
         $nationalHolidayDates = NationalHoliday::datesForJs();
+        $nationalHolidayMap = NationalHoliday::mapDateToNameForJs();
 
-        return view('leave-requests.my-edit', compact('leaveRequest', 'leaveTypes', 'projects', 'departments', 'existingFlightRequest', 'nationalHolidayDates'))
+        return view('leave-requests.my-edit', compact('leaveRequest', 'leaveTypes', 'projects', 'departments', 'existingFlightRequest', 'nationalHolidayDates', 'nationalHolidayMap'))
             ->with('title', 'Edit My Leave Request');
     }
 
@@ -1926,6 +1972,9 @@ class LeaveRequestController extends Controller
 
         return datatables()->of($query)
             ->addIndexColumn()
+            ->addColumn('register_number', function ($row) {
+                return e($row->register_number ?? '—');
+            })
             ->addColumn('project', function ($row) {
                 return e($row->administration?->project?->project_code ?? '—');
             })
@@ -2104,11 +2153,16 @@ class LeaveRequestController extends Controller
     }
 
     /**
-     * Block leave ranges that include manual national holidays, and back-to-work on a holiday.
+     * Non-roster: block leave ranges that include national holidays and back-to-work on a holiday.
+     * Roster: national holidays are allowed in the range and as back-to-work (counted in roster total_days).
      */
-    private function validateLeaveDatesAgainstNationalHolidays(?string $startDate, ?string $endDate, ?string $backToWorkDate): void
-    {
-        if ($startDate && $endDate) {
+    private function validateLeaveDatesAgainstNationalHolidays(
+        ?string $startDate,
+        ?string $endDate,
+        ?string $backToWorkDate,
+        bool $applyNationalHolidayRestrictions = true
+    ): void {
+        if ($applyNationalHolidayRestrictions && $startDate && $endDate) {
             $overlap = NationalHoliday::labelsOverlappingRange($startDate, $endDate);
             if ($overlap !== []) {
                 throw ValidationException::withMessages([
@@ -2117,7 +2171,7 @@ class LeaveRequestController extends Controller
             }
         }
 
-        if ($backToWorkDate) {
+        if ($applyNationalHolidayRestrictions && $backToWorkDate) {
             $ymd = \Carbon\Carbon::parse($backToWorkDate)->format('Y-m-d');
             if (NationalHoliday::isHolidayDate($ymd)) {
                 throw ValidationException::withMessages([
@@ -2125,6 +2179,24 @@ class LeaveRequestController extends Controller
                 ]);
             }
         }
+    }
+
+    /**
+     * Only non-roster projects forbid selecting national holidays in the leave range (and as back-to-work).
+     */
+    private function shouldApplyNationalHolidayLeaveRestrictions(Request $request): bool
+    {
+        $project = $request->filled('project_id') ? Project::find($request->project_id) : null;
+        if (! $project) {
+            $admin = Administration::where('employee_id', $request->employee_id)->where('is_active', 1)->first();
+            $project = $admin?->project_id ? Project::find($admin->project_id) : null;
+        }
+
+        if (! $project) {
+            return true;
+        }
+
+        return $project->isNonRosterProject();
     }
 
     /**

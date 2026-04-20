@@ -1,6 +1,6 @@
 @extends('layouts.main')
 
-@section('title', $subtitle ?? $title ?? 'Overtime')
+@section('title', $subtitle ?? ($title ?? 'Overtime'))
 
 @section('styles')
     <link rel="stylesheet" href="{{ asset('assets/plugins/select2/css/select2.min.css') }}">
@@ -23,7 +23,9 @@
 
 @section('content')
     @php
-        $details = $details ?? [['administration_id' => '', 'time_in' => '', 'time_out' => '', 'work_description' => '']];
+        $details = $details ?? [
+            ['administration_id' => '', 'time_in' => '', 'time_out' => '', 'work_description' => ''],
+        ];
     @endphp
 
     <div class="content-header">
@@ -35,8 +37,9 @@
                 <div class="col-sm-6">
                     <ol class="breadcrumb float-sm-right">
                         <li class="breadcrumb-item"><a href="{{ url('/') }}">Home</a></li>
-                        <li class="breadcrumb-item"><a href="{{ route('overtime.my-requests') }}">{{ $title }}</a></li>
-                        <li class="breadcrumb-item active">Edit #{{ $overtimeRequest->id }}</li>
+                        <li class="breadcrumb-item"><a href="{{ route('overtime.my-requests') }}">{{ $title }}</a>
+                        </li>
+                        <li class="breadcrumb-item active">Edit #{{ $overtimeRequest->register_number }}</li>
                     </ol>
                 </div>
             </div>
@@ -89,7 +92,8 @@
                                                     class="text-danger">*</span></label>
                                             <div class="input-group">
                                                 <div class="input-group-prepend">
-                                                    <span class="input-group-text"><i class="fas fa-calendar-alt"></i></span>
+                                                    <span class="input-group-text"><i
+                                                            class="fas fa-calendar-alt"></i></span>
                                                 </div>
                                                 <input type="date" name="overtime_date" id="overtime_date"
                                                     class="form-control @error('overtime_date') is-invalid @enderror"
@@ -158,7 +162,8 @@
                                                             required>
                                                     </td>
                                                     <td>
-                                                        <input type="text" name="details[{{ $idx }}][work_description]"
+                                                        <input type="text"
+                                                            name="details[{{ $idx }}][work_description]"
                                                             class="form-control form-control-sm"
                                                             value="{{ old('details.' . $idx . '.work_description', $line['work_description'] ?? '') }}"
                                                             placeholder="Description">
@@ -191,7 +196,9 @@
                             </div>
                             <div class="card-body py-2">
                                 @include('components.manual-approver-selector', [
-                                    'selectedApprovers' => old('manual_approvers', $overtimeRequest->manual_approvers ?? []),
+                                    'selectedApprovers' => old(
+                                        'manual_approvers',
+                                        $overtimeRequest->manual_approvers ?? []),
                                     'required' => true,
                                     'multiple' => true,
                                     'documentType' => 'overtime_request',

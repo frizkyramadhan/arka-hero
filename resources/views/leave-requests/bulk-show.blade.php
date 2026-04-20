@@ -133,6 +133,7 @@
                                         <thead>
                                             <tr>
                                                 <th width="40" class="text-center">#</th>
+                                                <th width="110" class="text-nowrap">Register No.</th>
                                                 <th width="100">NIK</th>
                                                 <th>Employee Name</th>
                                                 <th>Position</th>
@@ -149,6 +150,7 @@
                                             @foreach ($requests as $index => $request)
                                                 <tr>
                                                     <td class="text-center text-muted">{{ $index + 1 }}</td>
+                                                    <td><small class="text-monospace">{{ $request->register_number ?? '—' }}</small></td>
                                                     <td><strong>{{ $request->administration->nik ?? '-' }}</strong></td>
                                                     <td>{{ $request->employee->fullname ?? '-' }}</td>
                                                     <td><small>{{ $request->administration->position->position_name ?? '-' }}</small>

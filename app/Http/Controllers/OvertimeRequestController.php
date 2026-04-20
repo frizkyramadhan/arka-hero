@@ -72,6 +72,7 @@ class OvertimeRequestController extends Controller
 
         return datatables()->of($query)
             ->addIndexColumn()
+            ->addColumn('register_number', fn ($row) => e($row->register_number ?? '—'))
             ->addColumn('project_name', fn ($row) => $row->project->project_name ?? '—')
             ->addColumn('overtime_date_fmt', fn ($row) => $row->overtime_date?->format('d/m/Y') ?? '—')
             ->addColumn('status_badge', fn ($row) => $this->statusBadgeHtml($row->status))
@@ -382,6 +383,7 @@ class OvertimeRequestController extends Controller
 
         return datatables()->of($query)
             ->addIndexColumn()
+            ->addColumn('register_number', fn ($row) => e($row->register_number ?? '—'))
             ->addColumn('project_name', fn ($row) => $row->project->project_name ?? '—')
             ->addColumn('overtime_date_fmt', fn ($row) => $row->overtime_date?->format('d/m/Y') ?? '—')
             ->addColumn('status_badge', fn ($row) => $this->statusBadgeHtml($row->status))
@@ -527,7 +529,7 @@ class OvertimeRequestController extends Controller
         }
 
         $title = 'My Overtime Requests';
-        $subtitle = 'Edit overtime request #'.$overtimeRequest->id;
+        $subtitle = 'Edit overtime request #'.$overtimeRequest->register_number;
         $projects = $this->activeProjects();
         $details = $this->detailsForEditForm($overtimeRequest);
         $formAction = route('overtime.my-requests.update', $overtimeRequest);
@@ -1166,7 +1168,7 @@ class OvertimeRequestController extends Controller
     }
 
     /**
-     * Hanya untuk self-service: level Supervisor ke atas.
+     * Hanya untuk self-service: level Foreman/Officer ke atas (non Staff-Non Skill tidak boleh self-service create).
      *
      * @return RedirectResponse|null Redirect dengan toast_error (SweetAlert di layout) jika tidak lolos.
      */
@@ -1183,16 +1185,16 @@ class OvertimeRequestController extends Controller
             );
         }
 
-        $supervisor = Level::where('name', 'Supervisor')->first();
-        if (! $supervisor) {
+        $floorLevel = Level::where('name', 'Foreman/Officer')->first();
+        if (! $floorLevel) {
             return null;
         }
 
         $order = (int) ($admin->level->level_order ?? 0);
-        if ($order < (int) $supervisor->level_order) {
+        if ($order < (int) $floorLevel->level_order) {
             return $this->redirectPersonalOvertimeDenied(
                 $backWithInputOnFail,
-                'Hanya pegawai dengan level Supervisor ke atas yang dapat membuat permintaan lembur.',
+                'Hanya pegawai dengan level Foreman/Officer ke atas yang dapat membuat permintaan lembur.',
                 'Tidak diizinkan',
                 'warning'
             );

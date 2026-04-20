@@ -160,8 +160,10 @@ class FlightRequestController extends Controller
 
                 return [
                     'id' => $leave->id,
+                    'register_number' => $leave->register_number,
                     'text' => sprintf(
-                        '%s - %s (%s to %s)',
+                        '%s — %s - %s (%s to %s)',
+                        $leave->register_number ?? $leave->id,
                         $employee ? $employee->fullname : 'N/A',
                         $admin ? $admin->nik : 'N/A',
                         $leave->start_date->format('d M Y'),
@@ -274,8 +276,10 @@ class FlightRequestController extends Controller
 
                 return [
                     'id' => $leave->id,
+                    'register_number' => $leave->register_number,
                     'text' => sprintf(
-                        '%s - %s (%s to %s)',
+                        '%s — %s - %s (%s to %s)',
+                        $leave->register_number ?? $leave->id,
                         $emp ? $emp->fullname : 'N/A',
                         $admin ? $admin->nik : 'N/A',
                         $leave->start_date->format('d M Y'),

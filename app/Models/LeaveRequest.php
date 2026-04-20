@@ -2,15 +2,45 @@
 
 namespace App\Models;
 
+use App\Traits\Uuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use App\Traits\Uuids;
 
 class LeaveRequest extends Model
 {
     use HasFactory, Uuids;
 
+    protected static function booted(): void
+    {
+        static::creating(function (self $model) {
+            if (empty($model->register_number)) {
+                $model->register_number = static::generateRegisterNumber();
+            }
+        });
+    }
+
+    /**
+     * Next number for current year, format: YYLV-xxxxx (aligned with flight YYFRF-xxxxx).
+     */
+    public static function generateRegisterNumber(): string
+    {
+        $year = date('y');
+        $last = static::query()
+            ->where('register_number', 'like', "{$year}LV-%")
+            ->orderBy('register_number', 'desc')
+            ->first();
+
+        if ($last && preg_match('/\d+$/', (string) $last->register_number, $matches)) {
+            $next = (int) $matches[0] + 1;
+        } else {
+            $next = 1;
+        }
+
+        return sprintf('%sLV-%05d', $year, $next);
+    }
+
     protected $fillable = [
+        'register_number',
         'employee_id',
         'administration_id',
         'leave_type_id',
@@ -33,7 +63,7 @@ class LeaveRequest extends Model
         'batch_id',
         'is_batch_request',
         'bulk_notes',
-        'manual_approvers'
+        'manual_approvers',
     ];
 
     protected $casts = [
@@ -45,7 +75,7 @@ class LeaveRequest extends Model
         'approved_at' => 'datetime',
         'closed_at' => 'datetime',
         'is_batch_request' => 'boolean',
-        'manual_approvers' => 'array'
+        'manual_approvers' => 'array',
     ];
 
     // Relationships
@@ -64,10 +94,10 @@ class LeaveRequest extends Model
         return $this->belongsTo(LeaveType::class);
     }
 
-    public function rosterAdjustments()
-    {
-        return $this->hasMany(RosterAdjustment::class);
-    }
+    // public function rosterAdjustments()
+    // {
+    //     return $this->hasMany(RosterAdjustment::class);
+    // }
 
     public function approvalPlans()
     {
@@ -100,8 +130,10 @@ class LeaveRequest extends Model
     {
         if ($this->start_date && $this->end_date) {
             $this->total_days = $this->start_date->diffInDays($this->end_date) + 1;
+
             return $this->total_days;
         }
+
         return 0;
     }
 
@@ -173,7 +205,7 @@ class LeaveRequest extends Model
             'reason' => $reason,
             'status' => 'pending',
             'requested_by' => $requestedBy,
-            'requested_at' => now()
+            'requested_at' => now(),
         ]);
     }
 
@@ -197,7 +229,7 @@ class LeaveRequest extends Model
     {
         return $this->status === 'approved' &&
             $this->status !== 'closed' &&
-            !$this->cancellations()->where('status', 'pending')->exists();
+            ! $this->cancellations()->where('status', 'pending')->exists();
     }
 
     /**
@@ -205,7 +237,7 @@ class LeaveRequest extends Model
      */
     public function setAutoConversionDate()
     {
-        if ($this->leaveType && $this->leaveType->category === 'paid' && !$this->supporting_document) {
+        if ($this->leaveType && $this->leaveType->category === 'paid' && ! $this->supporting_document) {
             $this->auto_conversion_at = $this->created_at->addDays(12);
             $this->save();
         }
@@ -247,7 +279,7 @@ class LeaveRequest extends Model
     {
         return $this->auto_conversion_at &&
             $this->auto_conversion_at <= now() &&
-            !$this->supporting_document &&
+            ! $this->supporting_document &&
             $this->leaveType &&
             $this->leaveType->category === 'paid';
     }
@@ -259,7 +291,7 @@ class LeaveRequest extends Model
     {
         $newLeaveType = LeaveType::find($newLeaveTypeId);
 
-        if ($newLeaveType && $newLeaveType->category === 'paid' && !$this->supporting_document) {
+        if ($newLeaveType && $newLeaveType->category === 'paid' && ! $this->supporting_document) {
             // Set new auto conversion date
             $this->auto_conversion_at = $this->created_at->addDays(12);
         } else {
@@ -288,6 +320,7 @@ class LeaveRequest extends Model
         if ($this->isLSLFlexible()) {
             return $this->lsl_taken_days ?? 0;
         }
+
         return $this->total_days;
     }
 
@@ -299,6 +332,7 @@ class LeaveRequest extends Model
         if ($this->isLSLFlexible()) {
             return $this->lsl_cashout_days ?? 0;
         }
+
         return 0;
     }
 
@@ -310,6 +344,7 @@ class LeaveRequest extends Model
         if ($this->isLSLFlexible()) {
             return ($this->lsl_taken_days ?? 0) + ($this->lsl_cashout_days ?? 0);
         }
+
         return $this->total_days;
     }
 

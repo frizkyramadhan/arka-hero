@@ -3,6 +3,24 @@
 @section('title', 'Edit Leave Request')
 
 @section('content')
+    @once
+        @push('styles')
+            <style>
+                .daterangepicker td.national-holiday {
+                    background-color: #fff3cd !important;
+                    font-weight: 600;
+                    color: #856404 !important;
+                }
+
+                .form-control.leave-date-readonly[readonly],
+                .form-control.leave-date-readonly[readonly]:focus {
+                    background-color: #fff !important;
+                    opacity: 1;
+                    cursor: pointer;
+                }
+            </style>
+        @endpush
+    @endonce
     <div class="content-header">
         <div class="container-fluid">
             <div class="row mb-2">
@@ -24,7 +42,8 @@
 
     <section class="content">
         <div class="container-fluid">
-            <form method="POST" action="{{ route('leave.requests.update', $leaveRequest) }}" enctype="multipart/form-data">
+            <form method="POST" action="{{ route('leave.requests.update', $leaveRequest) }}" enctype="multipart/form-data"
+                autocomplete="off">
                 @csrf
                 @method('PUT')
                 <div class="row">
@@ -165,8 +184,9 @@
                                                         <i class="far fa-calendar-alt"></i>
                                                     </span>
                                                 </div>
-                                                <input type="text" class="form-control float-right" id="leave_date"
-                                                    placeholder="Select date range" required
+                                                <input type="text" class="form-control float-right leave-date-readonly"
+                                                    id="leave_date"
+                                                    placeholder="Select date range" required readonly autocomplete="off"
                                                     value="{{ $leaveRequest->start_date && $leaveRequest->end_date ? \Carbon\Carbon::parse($leaveRequest->start_date)->format('d/m/Y') . ' - ' . \Carbon\Carbon::parse($leaveRequest->end_date)->format('d/m/Y') : '' }}">
                                                 <input type="hidden" name="start_date" id="start_date"
                                                     value="{{ old('start_date', $leaveRequest->start_date->format('Y-m-d')) }}">
@@ -198,9 +218,9 @@
                                                     </span>
                                                 </div>
                                                 <input type="text" name="back_to_work_date" id="back_to_work_date"
-                                                    class="form-control @error('back_to_work_date') is-invalid @enderror"
+                                                    class="form-control leave-date-readonly @error('back_to_work_date') is-invalid @enderror"
                                                     value="{{ old('back_to_work_date', $leaveRequest->back_to_work_date ? $leaveRequest->back_to_work_date->format('d/m/Y') : '') }}"
-                                                    placeholder="Select back to work date">
+                                                    placeholder="Select back to work date" readonly autocomplete="off">
                                             </div>
                                             @error('back_to_work_date')
                                                 <div class="invalid-feedback">{{ $message }}</div>
@@ -514,6 +534,56 @@
             const projectData = @json($projects);
 
             const NATIONAL_HOLIDAY_DATE_SET = new Set(@json($nationalHolidayDates ?? []));
+            const NATIONAL_HOLIDAY_NAMES = @json($nationalHolidayMap ?? (object) []);
+
+            function dayCountsTowardLeave(m, isNonRoster) {
+                if (isNonRoster) {
+                    const ymd = m.format('YYYY-MM-DD');
+                    if (NATIONAL_HOLIDAY_DATE_SET.has(ymd)) {
+                        return false;
+                    }
+                    const d = m.day();
+                    if (d === 0 || d === 6) {
+                        return false;
+                    }
+                }
+                return true;
+            }
+
+            $(document).on('mouseenter', '.daterangepicker td.national-holiday', function() {
+                const $td = $(this);
+                const titleAttr = $td.attr('data-title');
+                if (!titleAttr) {
+                    return;
+                }
+                const m = titleAttr.match(/r(\d+)c(\d+)/);
+                if (!m) {
+                    return;
+                }
+                const row = parseInt(m[1], 10);
+                const col = parseInt(m[2], 10);
+                const $cal = $td.closest('.drp-calendar');
+                const $container = $td.closest('.daterangepicker');
+                let picker = null;
+                $('input').each(function() {
+                    const p = $(this).data('daterangepicker');
+                    if (p && p.container && p.container.length && p.container[0] === $container[0]) {
+                        picker = p;
+                        return false;
+                    }
+                });
+                if (!picker || !picker.leftCalendar || !picker.leftCalendar.calendar) {
+                    return;
+                }
+                const momentDate = $cal.hasClass('left') ? picker.leftCalendar.calendar[row][col] : picker
+                    .rightCalendar.calendar[row][col];
+                if (!momentDate || !momentDate.isValid()) {
+                    return;
+                }
+                const key = momentDate.format('YYYY-MM-DD');
+                const name = NATIONAL_HOLIDAY_NAMES[key] || 'National holiday';
+                $td.attr('title', name);
+            });
 
             // Store current entitlement period for date picker limits
             let currentEntitlementPeriod = {
@@ -574,7 +644,7 @@
 
             function buildInvalidDateChecker(isNonRoster) {
                 return function(date) {
-                    if (NATIONAL_HOLIDAY_DATE_SET.has(date.format('YYYY-MM-DD'))) {
+                    if (isNonRoster && NATIONAL_HOLIDAY_DATE_SET.has(date.format('YYYY-MM-DD'))) {
                         return true;
                     }
                     if (isNonRoster) {
@@ -584,6 +654,13 @@
                     }
                     return false;
                 };
+            }
+
+            function nationalHolidayCustomClass(date) {
+                if (NATIONAL_HOLIDAY_DATE_SET.has(date.format('YYYY-MM-DD'))) {
+                    return 'national-holiday';
+                }
+                return false;
             }
 
             function setupDatePickers() {
@@ -604,6 +681,7 @@
                     },
                     opens: 'left',
                     isInvalidDate: buildInvalidDateChecker(isNonRoster),
+                    isCustomDate: nationalHolidayCustomClass,
                 }).on('apply.daterangepicker', function(ev, picker) {
                     $(this).val(picker.startDate.format('DD/MM/YYYY'));
                 }).on('cancel.daterangepicker', function() {
@@ -645,6 +723,7 @@
                 }
 
                 baseConfig.isInvalidDate = buildInvalidDateChecker(isNonRosterProject);
+                baseConfig.isCustomDate = nationalHolidayCustomClass;
 
                 // Destroy existing picker and recreate with new config
                 $('#leave_date').daterangepicker('destroy');
@@ -1227,13 +1306,7 @@
                 const current = start.clone();
 
                 while (current.isSameOrBefore(end, 'day')) {
-                    // For non-roster projects, exclude weekends (Saturday=6, Sunday=0)
-                    if (isNonRosterProject) {
-                        if (current.day() !== 0 && current.day() !== 6) {
-                            activeDays++;
-                        }
-                    } else {
-                        // For roster projects, count all days
+                    if (dayCountsTowardLeave(current, isNonRosterProject)) {
                         activeDays++;
                     }
                     current.add(1, 'day');
@@ -1486,11 +1559,7 @@
                 const current = start.clone();
 
                 while (current.isSameOrBefore(end, 'day')) {
-                    if (isNonRosterProject) {
-                        if (current.day() !== 0 && current.day() !== 6) {
-                            activeDays++;
-                        }
-                    } else {
+                    if (dayCountsTowardLeave(current, isNonRosterProject)) {
                         activeDays++;
                     }
                     current.add(1, 'day');

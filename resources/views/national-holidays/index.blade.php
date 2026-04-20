@@ -22,35 +22,95 @@
     <section class="content">
         <div class="container-fluid">
             <div class="row">
-                <div class="col-lg-12">
-                    <div class="card">
-                        <div class="card-header">
-                            <h3 class="card-title"><strong>National Holidays</strong></h3>
-                            <div class="card-tools">
-                                @can('national-holidays.create')
-                                    <button type="button" class="btn btn-primary" data-toggle="modal"
-                                        data-target="#modalHolidayCreate">
-                                        <i class="fas fa-plus"></i> Add
-                                    </button>
-                                @endcan
+                <div class="col-12">
+                    <div id="accordion">
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title"><strong>National Holidays</strong></h3>
+                                <div class="card-tools">
+                                    @can('national-holidays.create')
+                                        <button type="button" class="btn btn-primary" data-toggle="modal"
+                                            data-target="#modalHolidayCreate">
+                                            <i class="fas fa-plus"></i> Add
+                                        </button>
+                                    @endcan
+                                </div>
                             </div>
-                        </div>
-                        <div class="card-body">
-                            <div class="table-responsive">
-                                <table id="national-holidays-table" class="table table-sm table-bordered table-striped"
-                                    width="100%">
-                                    <thead>
-                                        <tr>
-                                            <th class="text-center" style="width: 60px;">No</th>
-                                            <th>Date</th>
-                                            <th>Name</th>
-                                            @if ($showActionColumn)
-                                                <th class="text-center" style="width: 140px;">Actions</th>
-                                            @endif
-                                        </tr>
-                                    </thead>
-                                    <tbody></tbody>
-                                </table>
+                            <div class="card-body">
+                                <div class="card card-primary">
+                                    <div class="card-header">
+                                        <h4 class="card-title w-100">
+                                            <a class="d-block w-100" data-toggle="collapse"
+                                                href="#nationalHolidaysFilterCollapse">
+                                                <i class="fas fa-filter"></i> Filter
+                                            </a>
+                                        </h4>
+                                    </div>
+                                    <div id="nationalHolidaysFilterCollapse" class="collapse" data-parent="#accordion">
+                                        <div class="card-body">
+                                            <div class="row">
+                                                <div class="col-md-2">
+                                                    <div class="form-group">
+                                                        <label for="filter_year">Year</label>
+                                                        <select class="form-control select2bs4" id="filter_year"
+                                                            name="filter_year">
+                                                            <option value="">- All -</option>
+                                                            @foreach ($years as $year)
+                                                                <option value="{{ $year }}">{{ $year }}</option>
+                                                            @endforeach
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <div class="form-group">
+                                                        <label for="filter_month">Month</label>
+                                                        <select class="form-control select2bs4" id="filter_month"
+                                                            name="filter_month">
+                                                            <option value="">- All -</option>
+                                                            @foreach ($months as $monthNum => $monthLabel)
+                                                                <option value="{{ $monthNum }}">{{ $monthLabel }}
+                                                                </option>
+                                                            @endforeach
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <div class="form-group">
+                                                        <label for="filter_name">Name</label>
+                                                        <input type="text" class="form-control" id="filter_name"
+                                                            name="filter_name" placeholder="Search by name">
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-2">
+                                                    <div class="form-group">
+                                                        <label>&nbsp;</label>
+                                                        <button type="button" class="btn btn-secondary w-100"
+                                                            id="btn-reset-filters" style="margin-bottom: 6px;">
+                                                            <i class="fas fa-times"></i> Reset
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="table-responsive">
+                                    <table id="national-holidays-table" class="table table-bordered table-striped"
+                                        width="100%">
+                                        <thead>
+                                            <tr>
+                                                <th class="align-middle text-center" style="width: 60px;">No</th>
+                                                <th class="align-middle">Date</th>
+                                                <th class="align-middle">Name</th>
+                                                @if ($showActionColumn)
+                                                    <th class="align-middle text-center" style="width: 140px;">Actions
+                                                    </th>
+                                                @endif
+                                            </tr>
+                                        </thead>
+                                        <tbody></tbody>
+                                    </table>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -152,11 +212,17 @@
 @section('styles')
     <link rel="stylesheet" href="{{ asset('assets/plugins/datatables-bs4/css/dataTables.bootstrap4.min.css') }}">
     <link rel="stylesheet" href="{{ asset('assets/plugins/datatables-responsive/css/responsive.bootstrap4.min.css') }}">
+    <link rel="stylesheet" href="{{ asset('assets/plugins/select2/css/select2.min.css') }}">
 @endsection
 
 @push('late-scripts')
     <script>
         $(function() {
+            $('.select2bs4').select2({
+                theme: 'bootstrap4',
+                width: '100%'
+            });
+
             var showActions = @json($showActionColumn);
 
             var columns = [{
@@ -188,7 +254,7 @@
                 });
             }
 
-            $('#national-holidays-table').DataTable({
+            var holidaysTable = $('#national-holidays-table').DataTable({
                 responsive: true,
                 autoWidth: true,
                 processing: true,
@@ -196,11 +262,31 @@
                 order: [
                     [1, 'desc']
                 ],
-                dom: 'frtip',
+                dom: 'rtip',
                 ajax: {
-                    url: "{{ route('leave.national-holidays.data') }}"
+                    url: "{{ route('leave.national-holidays.data') }}",
+                    data: function(d) {
+                        d.filter_year = $('#filter_year').val();
+                        d.filter_month = $('#filter_month').val();
+                        d.filter_name = $('#filter_name').val();
+                    }
                 },
                 columns: columns
+            });
+
+            $('#filter_year, #filter_month').on('change', function() {
+                holidaysTable.draw();
+            });
+
+            $('#filter_name').on('keyup', function() {
+                holidaysTable.draw();
+            });
+
+            $('#btn-reset-filters').on('click', function() {
+                $('#filter_name').val('');
+                $('#filter_year').val('').trigger('change');
+                $('#filter_month').val('').trigger('change');
+                holidaysTable.draw();
             });
 
             @if ($errors->any() && old('_form') === 'create')

@@ -29,6 +29,11 @@
         <div class="travel-header">
             <div class="travel-header-content">
                 <div class="travel-number">OVERTIME REQUEST</div>
+                @if ($overtimeRequest->register_number)
+                    <div class="text-white-50 small mb-1" style="letter-spacing: 0.05em;">
+                        <i class="fas fa-hashtag"></i> {{ $overtimeRequest->register_number }}
+                    </div>
+                @endif
                 <div class="travel-destination">{{ $overtimeRequest->project->project_name ?? '—' }}</div>
                 <div class="travel-date">
                     <i class="far fa-calendar-alt mr-1"></i>

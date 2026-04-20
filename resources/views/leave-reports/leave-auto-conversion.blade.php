@@ -81,6 +81,7 @@
                         <table class="table table-striped">
                             <thead>
                                 <tr>
+                                    <th>Register No.</th>
                                     <th>Employee</th>
                                     <th>Leave Type</th>
                                     <th>Leave Period</th>
@@ -96,6 +97,8 @@
                                 @forelse($autoConversions as $conversion)
                                     <tr
                                         class="{{ $conversion['conversion_status'] == 'overdue' ? 'table-danger' : ($conversion['conversion_status'] == 'due_soon' ? 'table-warning' : '') }}">
+                                        <td class="text-nowrap small font-monospace">
+                                            {{ $conversion['register_number'] ?? '—' }}</td>
                                         <td>
                                             <strong>{{ $conversion['employee_name'] }}</strong>
                                         </td>

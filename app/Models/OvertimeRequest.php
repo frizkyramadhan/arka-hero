@@ -10,6 +10,36 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class OvertimeRequest extends Model
 {
     use HasUuids;
+
+    protected static function booted(): void
+    {
+        static::creating(function (self $model) {
+            if (empty($model->register_number)) {
+                $model->register_number = static::generateRegisterNumber();
+            }
+        });
+    }
+
+    /**
+     * Next number for current year, format: YYOT-xxxxx.
+     */
+    public static function generateRegisterNumber(): string
+    {
+        $year = date('y');
+        $last = static::query()
+            ->where('register_number', 'like', "{$year}OT-%")
+            ->orderBy('register_number', 'desc')
+            ->first();
+
+        if ($last && preg_match('/\d+$/', (string) $last->register_number, $matches)) {
+            $next = (int) $matches[0] + 1;
+        } else {
+            $next = 1;
+        }
+
+        return sprintf('%sOT-%05d', $year, $next);
+    }
+
     public const STATUS_DRAFT = 'draft';
 
     public const STATUS_PENDING = 'pending';
@@ -21,6 +51,7 @@ class OvertimeRequest extends Model
     public const STATUS_FINISHED = 'finished';
 
     protected $fillable = [
+        'register_number',
         'project_id',
         'overtime_date',
         'status',
