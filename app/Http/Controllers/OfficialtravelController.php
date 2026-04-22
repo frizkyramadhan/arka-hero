@@ -489,10 +489,6 @@ class OfficialtravelController extends Controller
             'latestStop',
         ])->findOrFail($id);
 
-        if ($r = $this->guardOfficialtravelProject($officialtravel)) {
-            return $r;
-        }
-
         return view('officialtravels.show', compact('title', 'subtitle', 'officialtravel'));
     }
 
@@ -503,10 +499,6 @@ class OfficialtravelController extends Controller
      */
     public function edit(Officialtravel $officialtravel)
     {
-        if ($r = $this->guardOfficialtravelProject($officialtravel)) {
-            return $r;
-        }
-
         $title = 'Official Travels';
         $subtitle = 'Edit Official Travel';
 
@@ -566,10 +558,6 @@ class OfficialtravelController extends Controller
      */
     public function update(Request $request, Officialtravel $officialtravel)
     {
-        if ($r = $this->guardOfficialtravelProject($officialtravel)) {
-            return $r;
-        }
-
         try {
             $isPendingHr = $officialtravel->isPendingHr();
 
@@ -737,10 +725,6 @@ class OfficialtravelController extends Controller
      */
     public function destroy(Officialtravel $officialtravel)
     {
-        if ($r = $this->guardOfficialtravelProject($officialtravel)) {
-            return $r;
-        }
-
         try {
             DB::beginTransaction();
 
@@ -773,10 +757,6 @@ class OfficialtravelController extends Controller
     {
         try {
             $officialtravel = Officialtravel::findOrFail($id);
-
-            if ($r = $this->guardOfficialtravelProject($officialtravel)) {
-                return $r;
-            }
 
             // Check if already submitted
             if ($officialtravel->status === 'submitted') {
@@ -845,10 +825,6 @@ class OfficialtravelController extends Controller
             'latestStop',
         ])->findOrFail($id);
 
-        if ($r = $this->guardOfficialtravelProject($officialtravel)) {
-            return $r;
-        }
-
         // Cek apakah bisa record arrival
         if (! $officialtravel->canRecordArrival()) {
             return redirect()->back()->with('toast_error', 'Cannot record arrival at this time. Please check the current status.');
@@ -866,10 +842,6 @@ class OfficialtravelController extends Controller
     public function arrivalStamp(Request $request, Officialtravel $officialtravel)
     {
         try {
-            if ($r = $this->guardOfficialtravelProject($officialtravel)) {
-                return $r;
-            }
-
             // Cek apakah bisa record arrival
             if (! $officialtravel->canRecordArrival()) {
                 return redirect()->back()->with('toast_error', 'Cannot record arrival at this time. Please check the current status.');
@@ -935,10 +907,6 @@ class OfficialtravelController extends Controller
             'latestStop',
         ])->findOrFail($id);
 
-        if ($r = $this->guardOfficialtravelProject($officialtravel)) {
-            return $r;
-        }
-
         // Cek apakah bisa record departure
         if (! $officialtravel->canRecordDeparture()) {
             return redirect()->back()->with('toast_error', 'Cannot record departure at this time. Please check the current status.');
@@ -964,10 +932,6 @@ class OfficialtravelController extends Controller
                 'details.follower.employee',
                 'latestStop',
             ])->findOrFail($id);
-
-            if ($r = $this->guardOfficialtravelProject($officialtravel)) {
-                return $r;
-            }
 
             // Cek apakah bisa record departure
             if (! $officialtravel->canRecordDeparture()) {
@@ -1024,10 +988,6 @@ class OfficialtravelController extends Controller
             'stops.departureChecker',
         ])->findOrFail($id);
 
-        if ($r = $this->guardOfficialtravelProject($officialtravel)) {
-            return $r;
-        }
-
         return view('officialtravels.print', compact('title', 'subtitle', 'officialtravel'));
     }
 
@@ -1036,10 +996,6 @@ class OfficialtravelController extends Controller
      */
     public function close(Officialtravel $officialtravel)
     {
-        if ($r = $this->guardOfficialtravelProject($officialtravel)) {
-            return $r;
-        }
-
         try {
             // Cek apakah bisa close
             if (! $officialtravel->canClose()) {
@@ -1062,14 +1018,6 @@ class OfficialtravelController extends Controller
             return redirect()->back()
                 ->with('toast_error', 'Failed to close official travel. '.$e->getMessage());
         }
-    }
-
-    /**
-     * @return \Illuminate\Http\RedirectResponse|null
-     */
-    protected function guardOfficialtravelProject(Officialtravel $officialtravel)
-    {
-        return UserProject::guardProjectInAssignmentScope((int) $officialtravel->official_travel_origin);
     }
 
     /**

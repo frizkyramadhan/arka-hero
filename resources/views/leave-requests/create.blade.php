@@ -402,6 +402,9 @@
                     </div>
 
                     <div class="col-md-4">
+                        {{-- Flight Request (optional) — HR create; disimpan lewat fr_data di store --}}
+                        <x-flight-request-fields name-prefix="fr_data" :allow-return-segment="true" />
+
                         <!-- Manual Approver Selection Card -->
                         <div class="card card-info card-outline elevation-2">
                             <div class="card-header py-2">
@@ -420,9 +423,6 @@
                                 ])
                             </div>
                         </div>
-
-                        {{-- Flight Request (optional) — HR create; disimpan lewat fr_data di store --}}
-                        <x-flight-request-fields name-prefix="fr_data" :allow-return-segment="true" />
 
                         <!-- Action Buttons Card -->
                         <div class="card card-outline elevation-2 mt-3">

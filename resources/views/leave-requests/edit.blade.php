@@ -396,6 +396,9 @@
                     </div>
 
                     <div class="col-md-4">
+                        {{-- Flight Request (optional) — HR edit; disinkronkan lewat fr_data di update --}}
+                        <x-flight-request-fields name-prefix="fr_data" :allow-return-segment="true" :existing-flight-request="$existingFlightRequest ?? null" />
+
                         <!-- Manual Approver Selection Card -->
                         <div class="card card-info card-outline elevation-2">
                             <div class="card-header py-2">
@@ -416,9 +419,6 @@
                                 ])
                             </div>
                         </div>
-
-                        {{-- Flight Request (optional) — HR edit; disinkronkan lewat fr_data di update --}}
-                        <x-flight-request-fields name-prefix="fr_data" :allow-return-segment="true" :existing-flight-request="$existingFlightRequest ?? null" />
 
                         <!-- Action Buttons Card -->
                         <div class="card card-outline elevation-2 mt-3">
