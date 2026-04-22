@@ -95,56 +95,59 @@
                     <ul class="nav nav-tabs nav-tabs-dashboard border-0" id="dashboardFeatureTabs" role="tablist">
                         <li class="nav-item">
                             <a class="nav-link active" href="#" data-tab="overview" role="tab">
-                                <i class="fas fa-th-large mr-1"></i> Overview
+                                <i class="fas fa-th-large mr-1"></i> <span style="font-size: 93%;">Overview</span>
                             </a>
                         </li>
                         @can('personal.profile.view-own')
                             <li class="nav-item">
                                 <a class="nav-link" href="#" data-tab="profile" role="tab">
-                                    <i class="fas fa-user mr-1"></i> Profile
+                                    <i class="fas fa-user mr-1"></i> <span style="font-size: 93%;">Profile</span>
                                 </a>
                             </li>
                         @endcan
-                        @canany(['personal.official-travel.view-own', 'personal.official-travel.create-own'])
-                            <li class="nav-item">
-                                <a class="nav-link" href="#" data-tab="travels" role="tab">
-                                    <i class="fas fa-route mr-1"></i> Official Travels
-                                </a>
-                            </li>
-                        @endcanany
                         @canany(['personal.leave.view-own', 'personal.leave.create-own',
                             'personal.leave.view-entitlements'])
                             <li class="nav-item">
                                 <a class="nav-link" href="#" data-tab="leave" role="tab">
-                                    <i class="fas fa-calendar-alt mr-1"></i> Leave
+                                    <i class="fas fa-calendar-alt mr-1"></i> <span style="font-size: 93%;">Leave Request</span>
+                                </a>
+                            </li>
+                        @endcanany
+                        @canany(['personal.official-travel.view-own', 'personal.official-travel.create-own'])
+                            <li class="nav-item">
+                                <a class="nav-link" href="#" data-tab="travels" role="tab">
+                                    <i class="fas fa-route mr-1"></i> <span style="font-size: 93%;">Official Travels
+                                        Request</span>
                                 </a>
                             </li>
                         @endcanany
                         @canany(['personal.flight.view-own', 'personal.flight.create-own'])
                             <li class="nav-item">
                                 <a class="nav-link" href="#" data-tab="flight" role="tab">
-                                    <i class="fas fa-plane mr-1"></i> Flight Requests
-                                </a>
-                            </li>
-                        @endcanany
-                        @canany(['personal.recruitment.view-own', 'personal.recruitment.create-own'])
-                            <li class="nav-item">
-                                <a class="nav-link" href="#" data-tab="recruitment" role="tab">
-                                    <i class="fas fa-user-tie mr-1"></i> Recruitment
+                                    <i class="fas fa-plane mr-1"></i> <span style="font-size: 93%;">Flight Request</span>
                                 </a>
                             </li>
                         @endcanany
                         @can('personal.overtime.view-own')
                             <li class="nav-item">
                                 <a class="nav-link" href="#" data-tab="overtime" role="tab">
-                                    <i class="fas fa-business-time mr-1"></i> Overtime
+                                    <i class="fas fa-business-time mr-1"></i> <span style="font-size: 93%;">Overtime
+                                        Request</span>
                                 </a>
                             </li>
                         @endcan
+                        @canany(['personal.recruitment.view-own', 'personal.recruitment.create-own'])
+                            <li class="nav-item">
+                                <a class="nav-link" href="#" data-tab="recruitment" role="tab">
+                                    <i class="fas fa-user-tie mr-1"></i> <span style="font-size: 93%;">Recruitment
+                                        Request</span>
+                                </a>
+                            </li>
+                        @endcanany
                         @if (auth()->user()->hasRole('approver'))
                             <li class="nav-item">
                                 <a class="nav-link" href="#" data-tab="approvals" role="tab">
-                                    <i class="fas fa-check-circle mr-1"></i> Approvals
+                                    <i class="fas fa-check-circle mr-1"></i> <span style="font-size: 93%;">Approvals</span>
                                 </a>
                             </li>
                         @endif

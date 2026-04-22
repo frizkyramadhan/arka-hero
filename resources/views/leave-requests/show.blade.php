@@ -365,23 +365,6 @@
 
                 <!-- Right Column -->
                 <div class="col-lg-4">
-                    <!-- Manual Approvers Card -->
-                    @if (!empty($leaveRequest->manual_approvers))
-                        <div class="leave-request-card mb-4">
-                            <div class="card-head">
-                                <h2><i class="fas fa-users"></i> Selected Approvers</h2>
-                            </div>
-                            <div class="card-body py-2">
-                                @include('components.manual-approver-selector', [
-                                    'selectedApprovers' => $leaveRequest->manual_approvers ?? [],
-                                    'mode' => 'view',
-                                    'documentType' => 'leave_request',
-                                    'documentId' => $leaveRequest->id,
-                                ])
-                            </div>
-                        </div>
-                    @endif
-
                     <!-- Flight Request (Tiket Pesawat) - if any -->
                     @if ($leaveRequest->flightRequests && $leaveRequest->flightRequests->isNotEmpty())
                         <div class="leave-request-card mb-4">
@@ -423,6 +406,23 @@
                                         @endif
                                     </div>
                                 @endforeach
+                            </div>
+                        </div>
+                    @endif
+
+                    <!-- Manual Approvers Card -->
+                    @if (!empty($leaveRequest->manual_approvers))
+                        <div class="leave-request-card mb-4">
+                            <div class="card-head">
+                                <h2><i class="fas fa-users"></i> Selected Approvers</h2>
+                            </div>
+                            <div class="card-body py-2">
+                                @include('components.manual-approver-selector', [
+                                    'selectedApprovers' => $leaveRequest->manual_approvers ?? [],
+                                    'mode' => 'view',
+                                    'documentType' => 'leave_request',
+                                    'documentId' => $leaveRequest->id,
+                                ])
                             </div>
                         </div>
                     @endif

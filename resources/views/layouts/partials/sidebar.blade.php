@@ -72,17 +72,6 @@
                                 </li>
                             @endcan
 
-                            {{-- My Travels --}}
-                            @canany(['personal.official-travel.view-own', 'personal.official-travel.create-own'])
-                                <li class="nav-item">
-                                    <a href="{{ route('officialtravels.my-travels') }}"
-                                        class="nav-link {{ Request::is('officialtravels/my-requests*') ? 'active' : '' }}">
-                                        <i class="far fa-circle nav-icon"></i>
-                                        <p>My LOT Request</p>
-                                    </a>
-                                </li>
-                            @endcanany
-
                             {{-- My Leave Request --}}
                             @canany(['personal.leave.view-own', 'personal.leave.create-own',
                                 'personal.leave.view-entitlements'])
@@ -95,6 +84,19 @@
                                 </li>
                             @endcanany
 
+                            {{-- My Travels --}}
+                            @canany(['personal.official-travel.view-own', 'personal.official-travel.create-own'])
+                                <li class="nav-item">
+                                    <a href="{{ route('officialtravels.my-travels') }}"
+                                        class="nav-link {{ Request::is('officialtravels/my-requests*') ? 'active' : '' }}">
+                                        <i class="far fa-circle nav-icon"></i>
+                                        <p><span style="font-size: 93%;">My Official Travel Request</span></p>
+                                    </a>
+                                </li>
+                            @endcanany
+
+
+
                             {{-- My Flight Requests --}}
                             @canany(['personal.flight.view-own', 'personal.flight.create-own'])
                                 <li class="nav-item">
@@ -102,6 +104,17 @@
                                         class="nav-link {{ Request::is('flight/my-requests*') ? 'active' : '' }}">
                                         <i class="far fa-circle nav-icon"></i>
                                         <p>My Flight Request</p>
+                                    </a>
+                                </li>
+                            @endcanany
+
+                            {{-- My Overtime Request --}}
+                            @canany(['personal.overtime.view-own', 'personal.overtime.create-own'])
+                                <li class="nav-item">
+                                    <a href="{{ route('overtime.my-requests') }}"
+                                        class="nav-link {{ Request::is('overtime/my-requests*') ? 'active' : '' }}">
+                                        <i class="far fa-circle nav-icon"></i>
+                                        <p>My Overtime Request</p>
                                     </a>
                                 </li>
                             @endcanany
@@ -117,16 +130,7 @@
                                 </li>
                             @endcanany
 
-                            {{-- My Overtime Request --}}
-                            @canany(['personal.overtime.view-own', 'personal.overtime.create-own'])
-                                <li class="nav-item">
-                                    <a href="{{ route('overtime.my-requests') }}"
-                                        class="nav-link {{ Request::is('overtime/my-requests*') ? 'active' : '' }}">
-                                        <i class="far fa-circle nav-icon"></i>
-                                        <p>My Overtime Request</p>
-                                    </a>
-                                </li>
-                            @endcanany
+
                         </ul>
                     </li>
                 @endhasrole
@@ -346,7 +350,7 @@
                             @can('official-travels.show')
                                 <li class="nav-item">
                                     <a href="{{ url('officialtravels') }}"
-                                        class="nav-link {{ $isOfficialTravels && ! Request::is('officialtravels/reports*') ? 'active' : '' }}">
+                                        class="nav-link {{ $isOfficialTravels && !Request::is('officialtravels/reports*') ? 'active' : '' }}">
                                         <i class="far fa-circle nav-icon"></i>
                                         <p>Requests</p>
                                     </a>
@@ -373,7 +377,10 @@
                             (Request::is('overtime/requests') || Request::is('overtime/requests/*')) &&
                             !$isMyOvertimeNav;
                         $isOvertimeMenuOpen =
-                            $isOvertimeHr || Request::is('overtime/requests/create') || $isOvertimeDashboard || $isOvertimeReports;
+                            $isOvertimeHr ||
+                            Request::is('overtime/requests/create') ||
+                            $isOvertimeDashboard ||
+                            $isOvertimeReports;
                     @endphp
                     <li class="nav-item {{ $isOvertimeMenuOpen ? 'menu-open' : '' }}">
                         <a href="#" class="nav-link {{ $isOvertimeMenuOpen ? 'active' : '' }}">
