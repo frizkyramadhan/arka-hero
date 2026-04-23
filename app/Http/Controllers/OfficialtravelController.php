@@ -12,6 +12,7 @@ use App\Models\Officialtravel_detail;
 use App\Models\OfficialtravelStop;
 use App\Models\Transportation;
 use App\Support\UserProject;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -81,25 +82,25 @@ class OfficialtravelController extends Controller
 
         // Filter by travel number
         if (! empty($request->get('travel_number'))) {
-            $officialtravels->where('official_travel_number', 'LIKE', '%'.$request->get('travel_number').'%');
+            $officialtravels->where('official_travel_number', 'LIKE', '%' . $request->get('travel_number') . '%');
         }
 
         // Filter by destination
         if (! empty($request->get('destination'))) {
-            $officialtravels->where('destination', 'LIKE', '%'.$request->get('destination').'%');
+            $officialtravels->where('destination', 'LIKE', '%' . $request->get('destination') . '%');
         }
 
         // Filter by NIK
         if (! empty($request->get('nik'))) {
             $officialtravels->whereHas('traveler', function ($query) use ($request) {
-                $query->where('nik', 'LIKE', '%'.$request->get('nik').'%');
+                $query->where('nik', 'LIKE', '%' . $request->get('nik') . '%');
             });
         }
 
         // Filter by Traveler Name
         if (! empty($request->get('fullname'))) {
             $officialtravels->whereHas('traveler.employee', function ($query) use ($request) {
-                $query->where('fullname', 'LIKE', '%'.$request->get('fullname').'%');
+                $query->where('fullname', 'LIKE', '%' . $request->get('fullname') . '%');
             });
         }
 
@@ -147,7 +148,7 @@ class OfficialtravelController extends Controller
             ->addColumn('traveler', function ($officialtravel) {
                 $traveler = $officialtravel->traveler;
                 if ($traveler && $traveler->employee) {
-                    return $traveler->nik.' - '.$traveler->employee->fullname;
+                    return $traveler->nik . ' - ' . $traveler->employee->fullname;
                 }
 
                 return '-';
@@ -176,11 +177,11 @@ class OfficialtravelController extends Controller
                     case 'closed':
                         return '<span class="badge badge-secondary">Closed</span>';
                     default:
-                        return '<span class="badge badge-light">'.ucfirst($officialtravel->status).'</span>';
+                        return '<span class="badge badge-light">' . ucfirst($officialtravel->status) . '</span>';
                 }
             })
             ->addColumn('created_by', function ($officialtravel) {
-                $creator = '<small>'.$officialtravel->creator->name.'</small>';
+                $creator = '<small>' . $officialtravel->creator->name . '</small>';
 
                 return $creator;
             })
@@ -343,7 +344,7 @@ class OfficialtravelController extends Controller
                     // Generate LOT number using selected letter number
                     $travelNumber = sprintf('ARKA/%s/HR/%s/%s', $letterNumberString, $romanMonth, now()->year);
                 } else {
-                    throw new \Exception('Selected letter number is not available or not reserved. Current status: '.($letterNumberRecord ? $letterNumberRecord->status : 'not found'));
+                    throw new \Exception('Selected letter number is not available or not reserved. Current status: ' . ($letterNumberRecord ? $letterNumberRecord->status : 'not found'));
                 }
             } else {
                 // Generate LOT number with auto sequence if no letter number selected
@@ -358,7 +359,7 @@ class OfficialtravelController extends Controller
             // Check if generated travel number already exists
             $exists = Officialtravel::where('official_travel_number', $travelNumber)->exists();
             if ($exists) {
-                throw new \Exception('Generated LOT number already exists: '.$travelNumber.'. Please try again or select a different letter number.');
+                throw new \Exception('Generated LOT number already exists: ' . $travelNumber . '. Please try again or select a different letter number.');
             }
 
             // Determine status based on submit action
@@ -442,9 +443,9 @@ class OfficialtravelController extends Controller
 
             $message = 'Official Travel created successfully!';
             if ($letterNumberString) {
-                $message .= ' Letter Number: '.$letterNumberString.' (Status changed to Used)';
+                $message .= ' Letter Number: ' . $letterNumberString . ' (Status changed to Used)';
             }
-            $message .= ' LOT Number: '.$travelNumber;
+            $message .= ' LOT Number: ' . $travelNumber;
 
             if ($request->submit_action === 'submit') {
                 $message .= ' Status: Submitted for approval.';
@@ -461,7 +462,7 @@ class OfficialtravelController extends Controller
             DB::rollback();
 
             return redirect()->back()
-                ->with('toast_error', 'Failed to create Official Travel. '.$e->getMessage())
+                ->with('toast_error', 'Failed to create Official Travel. ' . $e->getMessage())
                 ->withInput();
         }
     }
@@ -583,7 +584,7 @@ class OfficialtravelController extends Controller
                 ]);
             } else {
                 $this->validate($request, [
-                    'official_travel_number' => 'required|unique:officialtravels,official_travel_number,'.$officialtravel->id,
+                    'official_travel_number' => 'required|unique:officialtravels,official_travel_number,' . $officialtravel->id,
                     'official_travel_date' => 'required|date',
                     'official_travel_origin' => 'required',
                     'traveler_id' => 'required',
@@ -626,12 +627,12 @@ class OfficialtravelController extends Controller
                 // Assign letter number (HR confirmation for user submission)
                 $letterNumberRecord = LetterNumber::find($request->letter_number_id);
                 if (! $letterNumberRecord || $letterNumberRecord->status !== 'reserved') {
-                    throw new \Exception('Nomor surat tidak tersedia atau belum di-reserve. Status: '.($letterNumberRecord ? $letterNumberRecord->status : 'not found'));
+                    throw new \Exception('Nomor surat tidak tersedia atau belum di-reserve. Status: ' . ($letterNumberRecord ? $letterNumberRecord->status : 'not found'));
                 }
                 $romanMonth = $this->numberToRoman(now()->month);
                 $travelNumber = sprintf('ARKA/%s/HR/%s/%s', $letterNumberRecord->letter_number, $romanMonth, now()->year);
                 if (Officialtravel::where('official_travel_number', $travelNumber)->where('id', '!=', $officialtravel->id)->exists()) {
-                    throw new \Exception('Nomor LOT dari surat ini sudah digunakan: '.$travelNumber);
+                    throw new \Exception('Nomor LOT dari surat ini sudah digunakan: ' . $travelNumber);
                 }
 
                 $officialtravel->update([
@@ -702,7 +703,7 @@ class OfficialtravelController extends Controller
                 ? 'Pengajuan LOT telah dikonfirmasi. Nomor surat dan nomor LOT telah diisi. Status: Draft.'
                 : 'Official Travel updated successfully!';
 
-            return redirect('officialtravels/'.$officialtravel->id)->with('toast_success', $message);
+            return redirect('officialtravels/' . $officialtravel->id)->with('toast_success', $message);
         } catch (\Illuminate\Validation\ValidationException $e) {
             DB::rollback();
 
@@ -713,7 +714,7 @@ class OfficialtravelController extends Controller
             DB::rollback();
 
             return redirect()->back()
-                ->with('toast_error', 'Failed to update Official Travel. '.$e->getMessage())
+                ->with('toast_error', 'Failed to update Official Travel. ' . $e->getMessage())
                 ->withInput();
         }
     }
@@ -746,7 +747,7 @@ class OfficialtravelController extends Controller
             DB::rollback();
 
             return redirect()->back()
-                ->with('toast_error', 'Failed to delete Official Travel. '.$e->getMessage());
+                ->with('toast_error', 'Failed to delete Official Travel. ' . $e->getMessage());
         }
     }
 
@@ -795,19 +796,19 @@ class OfficialtravelController extends Controller
             DB::commit();
 
             return redirect()->route('officialtravels.show', $officialtravel->id)
-                ->with('toast_success', 'Official travel has been submitted for approval. '.$response.' approver(s) will review your request.');
+                ->with('toast_success', 'Official travel has been submitted for approval. ' . $response . ' approver(s) will review your request.');
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             return redirect()->back()
                 ->with('toast_error', 'Official travel not found.');
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Error submitting official travel for approval: '.$e->getMessage(), [
+            Log::error('Error submitting official travel for approval: ' . $e->getMessage(), [
                 'officialtravel_id' => $id,
                 'exception' => $e,
             ]);
 
             return redirect()->back()
-                ->with('toast_error', 'Failed to submit official travel for approval: '.$e->getMessage());
+                ->with('toast_error', 'Failed to submit official travel for approval: ' . $e->getMessage());
         }
     }
 
@@ -877,7 +878,7 @@ class OfficialtravelController extends Controller
 
             DB::commit();
 
-            return redirect('officialtravels/'.$officialtravel->id)->with('toast_success', 'Arrival recorded successfully!');
+            return redirect('officialtravels/' . $officialtravel->id)->with('toast_success', 'Arrival recorded successfully!');
         } catch (\Illuminate\Validation\ValidationException $e) {
             DB::rollback();
 
@@ -888,7 +889,7 @@ class OfficialtravelController extends Controller
             DB::rollback();
 
             return redirect()->back()
-                ->with('toast_error', 'Failed to record arrival. '.$e->getMessage())
+                ->with('toast_error', 'Failed to record arrival. ' . $e->getMessage())
                 ->withInput();
         }
     }
@@ -969,7 +970,7 @@ class OfficialtravelController extends Controller
             DB::rollBack();
 
             return redirect()->back()
-                ->with('toast_error', 'Failed to record departure. '.$e->getMessage())
+                ->with('toast_error', 'Failed to record departure. ' . $e->getMessage())
                 ->withInput();
         }
     }
@@ -1016,7 +1017,7 @@ class OfficialtravelController extends Controller
             DB::rollBack();
 
             return redirect()->back()
-                ->with('toast_error', 'Failed to close official travel. '.$e->getMessage());
+                ->with('toast_error', 'Failed to close official travel. ' . $e->getMessage());
         }
     }
 
@@ -1107,22 +1108,22 @@ class OfficialtravelController extends Controller
             }
 
             if (! empty($request->get('travel_number'))) {
-                $query->where('official_travel_number', 'LIKE', '%'.$request->get('travel_number').'%');
+                $query->where('official_travel_number', 'LIKE', '%' . $request->get('travel_number') . '%');
             }
 
             if (! empty($request->get('destination'))) {
-                $query->where('destination', 'LIKE', '%'.$request->get('destination').'%');
+                $query->where('destination', 'LIKE', '%' . $request->get('destination') . '%');
             }
 
             if (! empty($request->get('nik'))) {
                 $query->whereHas('traveler', function ($q) use ($request) {
-                    $q->where('nik', 'LIKE', '%'.$request->get('nik').'%');
+                    $q->where('nik', 'LIKE', '%' . $request->get('nik') . '%');
                 });
             }
 
             if (! empty($request->get('fullname'))) {
                 $query->whereHas('traveler.employee', function ($q) use ($request) {
-                    $q->where('fullname', 'LIKE', '%'.$request->get('fullname').'%');
+                    $q->where('fullname', 'LIKE', '%' . $request->get('fullname') . '%');
                 });
             }
 
@@ -1197,7 +1198,7 @@ class OfficialtravelController extends Controller
                 {
                     $traveler = $officialtravel->traveler;
                     $travelerName = $traveler && $traveler->employee ?
-                        $traveler->nik.' - '.$traveler->employee->fullname : '-';
+                        $traveler->nik . ' - ' . $traveler->employee->fullname : '-';
 
                     $project = $officialtravel->project ? $officialtravel->project->project_code : '-';
 
@@ -1262,10 +1263,10 @@ class OfficialtravelController extends Controller
                         $officialtravel->created_at->format('d/m/Y H:i'),
                     ];
                 }
-            }, 'official_travels_'.date('YmdHis').'.xlsx');
+            }, 'official_travels_' . date('YmdHis') . '.xlsx');
         } catch (\Exception $e) {
             return redirect()->back()
-                ->with('toast_error', 'Failed to export data: '.$e->getMessage());
+                ->with('toast_error', 'Failed to export data: ' . $e->getMessage());
         }
     }
 
@@ -1315,7 +1316,7 @@ class OfficialtravelController extends Controller
 
         // Apply travel number filter
         if ($request->filled('travel_number')) {
-            $query->where('official_travel_number', 'like', '%'.$request->travel_number.'%');
+            $query->where('official_travel_number', 'like', '%' . $request->travel_number . '%');
         }
 
         // Apply status filter
@@ -1340,13 +1341,13 @@ class OfficialtravelController extends Controller
 
         // Apply destination filter
         if ($request->filled('destination')) {
-            $query->where('destination', 'like', '%'.$request->destination.'%');
+            $query->where('destination', 'like', '%' . $request->destination . '%');
         }
 
         // Apply traveler filter
         if ($request->filled('traveler')) {
             $query->whereHas('traveler.employee', function ($q) use ($request) {
-                $q->where('fullname', 'like', '%'.$request->traveler.'%');
+                $q->where('fullname', 'like', '%' . $request->traveler . '%');
             });
         }
 
@@ -1390,15 +1391,15 @@ class OfficialtravelController extends Controller
                 return $badges[$row->status] ?? '<span class="badge badge-secondary">Unknown</span>';
             })
             ->addColumn('created_by', function ($row) {
-                return $row->creator ? '<small>'.e($row->creator->name).'</small>' : '-';
+                return $row->creator ? '<small>' . e($row->creator->name) . '</small>' : '-';
             })
             ->addColumn('action', function ($row) {
-                $btn = '<a href="'.route('officialtravels.my-travels.show', $row->id).'" class="btn btn-sm btn-info mr-1" title="View">
+                $btn = '<a href="' . route('officialtravels.my-travels.show', $row->id) . '" class="btn btn-sm btn-info mr-1" title="View">
                             <i class="fas fa-eye"></i>
                         </a>';
                 $canEdit = $row->submitted_by_user && empty($row->letter_number_id);
                 if ($canEdit) {
-                    $btn .= '<a href="'.route('officialtravels.my-travels.edit', $row->id).'" class="btn btn-sm btn-warning mr-1" title="Edit">
+                    $btn .= '<a href="' . route('officialtravels.my-travels.edit', $row->id) . '" class="btn btn-sm btn-warning mr-1" title="Edit">
                             <i class="fas fa-edit"></i>
                         </a>';
                 }
@@ -1619,9 +1620,61 @@ class OfficialtravelController extends Controller
             DB::rollBack();
 
             return redirect()->back()
-                ->with('toast_error', 'Gagal memperbarui: '.$e->getMessage())
+                ->with('toast_error', 'Gagal memperbarui: ' . $e->getMessage())
                 ->withInput();
         }
+    }
+
+    /**
+     * Highest numeric suffix among REQ* numbers for pengajuan My Official Travel (submitted_by_user).
+     */
+    private function maxSubmittedByUserReqSequence(): int
+    {
+        $maxSeq = 0;
+        $numbers = Officialtravel::where('submitted_by_user', true)
+            ->where('official_travel_number', 'like', 'REQ%')
+            ->pluck('official_travel_number');
+        foreach ($numbers as $num) {
+            if (preg_match('/^REQ(\d+)$/', (string) $num, $m)) {
+                $maxSeq = max($maxSeq, (int) $m[1]);
+            }
+        }
+
+        return $maxSeq;
+    }
+
+    /**
+     * Next REQxxxxx: max(submitted_by_user REQ) + 1, then skip any official_travel_number already used (globally).
+     */
+    private function allocateNextSubmittedByUserReqOfficialTravelNumber(): string
+    {
+        $sequence = $this->maxSubmittedByUserReqSequence() + 1;
+        for ($attempt = 0; $attempt < 100; $attempt++, $sequence++) {
+            $travelNumber = 'REQ' . sprintf('%05d', $sequence);
+            if (! Officialtravel::where('official_travel_number', $travelNumber)->exists()) {
+                return $travelNumber;
+            }
+        }
+
+        throw new \RuntimeException('Tidak dapat menghasilkan nomor REQ unik.');
+    }
+
+    private function acquireOfficialTravelReqSequenceLock(): bool
+    {
+        if (DB::connection()->getDriverName() !== 'mysql') {
+            return false;
+        }
+        $row = DB::selectOne('SELECT GET_LOCK(?, 30) AS acquired', ['officialtravel_submitted_by_user_req_seq']);
+
+        return $row && (int) $row->acquired === 1;
+    }
+
+    private function releaseOfficialTravelReqSequenceLock(): void
+    {
+        if (DB::connection()->getDriverName() !== 'mysql') {
+            return;
+        }
+        DB::selectOne('SELECT RELEASE_LOCK(?) AS released', ['officialtravel_submitted_by_user_req_seq']);
     }
 
     /**
@@ -1661,16 +1714,8 @@ class OfficialtravelController extends Controller
 
         $myAdministration = Administration::with(['employee', 'position.department', 'project'])->find($administrationId);
 
-        // Preview REQ number (format my-travels: REQ00001 saja, tanpa format nomor surat resmi)
-        $lastTravel = Officialtravel::where('official_travel_number', 'like', 'REQ%')
-            ->where('submitted_by_user', true)
-            ->orderBy('id', 'desc')
-            ->first();
-        $sequence = 1;
-        if ($lastTravel && preg_match('/^REQ(\d+)$/', $lastTravel->official_travel_number, $m)) {
-            $sequence = (int) $m[1] + 1;
-        }
-        $previewTravelNumber = 'REQ'.sprintf('%05d', $sequence);
+        // Preview REQ: berikutnya dari max semua REQ pengajuan user (bukan hanya id terakhir)
+        $previewTravelNumber = 'REQ' . sprintf('%05d', $this->maxSubmittedByUserReqSequence() + 1);
 
         return view('officialtravels.my-travels-create', compact(
             'title',
@@ -1726,87 +1771,74 @@ class OfficialtravelController extends Controller
 
             DB::beginTransaction();
 
-            // Nomor pengajuan my-travels: REQ00001 saja (tanpa format nomor surat resmi)
-            $lastTravel = Officialtravel::where('official_travel_number', 'like', 'REQ%')
-                ->where('submitted_by_user', true)
-                ->orderBy('id', 'desc')
-                ->first();
-            $sequence = 1;
-            if ($lastTravel && preg_match('/^REQ(\d+)$/', $lastTravel->official_travel_number, $m)) {
-                $sequence = (int) $m[1] + 1;
-            }
-
-            $officialtravel = null;
-            $maxAttempts = 20;
-            $attempt = 0;
-
-            while ($attempt < $maxAttempts) {
-                $travelNumber = 'REQ'.sprintf('%05d', $sequence);
-
-                // Pengecekan nomor: pastikan belum dipakai (termasuk input bersamaan)
-                if (Officialtravel::where('official_travel_number', $travelNumber)->exists()) {
-                    $sequence++;
-                    $attempt++;
-
-                    continue;
+            $lockHeld = false;
+            try {
+                $lockHeld = $this->acquireOfficialTravelReqSequenceLock();
+                if (DB::connection()->getDriverName() === 'mysql' && ! $lockHeld) {
+                    throw new \RuntimeException('Sistem sedang sibuk melayani pengajuan lain. Silakan coba lagi sebentar.');
                 }
 
-                try {
-                    $officialtravel = new Officialtravel([
-                        'letter_number_id' => null,
-                        'letter_number' => null,
-                        'official_travel_number' => $travelNumber,
-                        'official_travel_date' => $request->official_travel_date,
-                        'official_travel_origin' => $request->official_travel_origin,
-                        'status' => 'draft',
-                        'submitted_by_user' => true,
-                        'traveler_id' => $administrationId,
-                        'purpose' => $request->purpose,
-                        'destination' => $request->destination,
-                        'duration' => $request->duration,
-                        'departure_from' => $request->departure_from,
-                        'transportation_id' => $request->transportation_id,
-                        'accommodation_id' => $request->accommodation_id,
-                        'manual_approvers' => [],
-                        'created_by' => $user->id,
-                        'submit_at' => null,
-                    ]);
-                    $officialtravel->save();
-                    break;
-                } catch (\Illuminate\Database\QueryException $e) {
-                    // Duplicate entry (input bersamaan): gunakan sequence berikutnya
-                    $isDuplicate = (int) ($e->errorInfo[1] ?? 0) === 1062
-                        || str_contains($e->getMessage(), 'Duplicate entry');
-                    if ($isDuplicate) {
-                        $sequence++;
-                        $attempt++;
-
-                        continue;
-                    }
-                    throw $e;
-                }
-            }
-
-            if (! $officialtravel) {
-                DB::rollBack();
-                throw new \Exception('Tidak dapat menghasilkan nomor LOT unik. Silakan coba lagi.');
-            }
-
-            if ($request->has('followers') && is_array($request->followers)) {
-                foreach (array_filter($request->followers) as $followerId) {
-                    if ((int) $followerId !== (int) $administrationId) {
-                        Officialtravel_detail::create([
-                            'official_travel_id' => $officialtravel->id,
-                            'follower_id' => $followerId,
+                // Nomor: max(REQ dari submitted_by_user) + 1; jika sudah dipakai baris lain, +1 sampai bebas.
+                // GET_LOCK (MySQL) dipegang sampai setelah commit di bawah agar urutan tidak tabrakan.
+                $officialtravel = null;
+                $maxAttempts = 25;
+                for ($attempt = 0; $attempt < $maxAttempts; $attempt++) {
+                    $travelNumber = $this->allocateNextSubmittedByUserReqOfficialTravelNumber();
+                    try {
+                        $officialtravel = new Officialtravel([
+                            'letter_number_id' => null,
+                            'letter_number' => null,
+                            'official_travel_number' => $travelNumber,
+                            'official_travel_date' => $request->official_travel_date,
+                            'official_travel_origin' => $request->official_travel_origin,
+                            'status' => 'draft',
+                            'submitted_by_user' => true,
+                            'traveler_id' => $administrationId,
+                            'purpose' => $request->purpose,
+                            'destination' => $request->destination,
+                            'duration' => $request->duration,
+                            'departure_from' => $request->departure_from,
+                            'transportation_id' => $request->transportation_id,
+                            'accommodation_id' => $request->accommodation_id,
+                            'manual_approvers' => [],
+                            'created_by' => $user->id,
+                            'submit_at' => null,
                         ]);
+                        $officialtravel->save();
+                        break;
+                    } catch (QueryException $e) {
+                        $isDuplicate = (int) ($e->errorInfo[1] ?? 0) === 1062
+                            || str_contains($e->getMessage(), 'Duplicate entry');
+                        if (! $isDuplicate || $attempt === $maxAttempts - 1) {
+                            throw $e;
+                        }
                     }
                 }
+
+                if (! $officialtravel) {
+                    throw new \RuntimeException('Tidak dapat menghasilkan nomor LOT unik. Silakan coba lagi.');
+                }
+
+                if ($request->has('followers') && is_array($request->followers)) {
+                    foreach (array_filter($request->followers) as $followerId) {
+                        if ((int) $followerId !== (int) $administrationId) {
+                            Officialtravel_detail::create([
+                                'official_travel_id' => $officialtravel->id,
+                                'follower_id' => $followerId,
+                            ]);
+                        }
+                    }
+                }
+
+                // Create flight request from fr_data when "Need flight ticket?" was checked
+                FlightRequest::createFromFrData($request, $officialtravel);
+
+                DB::commit();
+            } finally {
+                if ($lockHeld) {
+                    $this->releaseOfficialTravelReqSequenceLock();
+                }
             }
-
-            // Create flight request from fr_data when "Need flight ticket?" was checked
-            FlightRequest::createFromFrData($request, $officialtravel);
-
-            DB::commit();
 
             return redirect()
                 ->route('officialtravels.my-travels')
@@ -1819,7 +1851,7 @@ class OfficialtravelController extends Controller
             DB::rollBack();
 
             return redirect()->back()
-                ->with('toast_error', 'Gagal mengajukan: '.$e->getMessage())
+                ->with('toast_error', 'Gagal mengajukan: ' . $e->getMessage())
                 ->withInput();
         }
     }
