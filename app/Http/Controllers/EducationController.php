@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Education;
+use App\Support\EmployeeSupportingDocumentStorage;
 use App\Support\UserProject;
 use Illuminate\Http\Request;
 
@@ -69,15 +70,26 @@ class EducationController extends Controller
             return $r;
         }
 
-        $request->validate([
+        $validated = $request->validate([
             'employee_id' => 'required',
             'education_name' => 'required',
             'education_address' => 'required',
-            'education_year' => 'required',
-            'education_remarks' => 'required',
-
+            'education_year' => 'nullable|string|max:255',
+            'education_remarks' => 'nullable|string|max:255',
+            'supporting_document' => EmployeeSupportingDocumentStorage::MIME_RULE,
         ]);
-        Education::create($request->all());
+
+        $path = null;
+        if ($request->hasFile('supporting_document')) {
+            $path = EmployeeSupportingDocumentStorage::storeForEmployee(
+                $request->file('supporting_document'),
+                $validated['employee_id'],
+                'education'
+            );
+        }
+
+        unset($validated['supporting_document']);
+        Education::create(array_merge($validated, ['diploma_document_path' => $path]));
 
         return redirect('employees/'.$employee_id.'#education')->with('toast_success', 'Education Employee Add Successfully');
     }
@@ -93,14 +105,25 @@ class EducationController extends Controller
             'employee_id' => 'required',
             'education_name' => 'required',
             'education_address' => 'required',
-            'education_year' => 'required',
-            'education_remarks' => 'required',
+            'education_year' => 'nullable|string|max:255',
+            'education_remarks' => 'nullable|string|max:255',
+            'supporting_document' => EmployeeSupportingDocumentStorage::MIME_RULE,
         ];
         $validatedData = $request->validate($rules);
         if ($r = UserProject::guardEmployeeId($request->employee_id)) {
             return $r;
         }
 
+        if ($request->hasFile('supporting_document')) {
+            EmployeeSupportingDocumentStorage::deleteIfExists($row->diploma_document_path);
+            $validatedData['diploma_document_path'] = EmployeeSupportingDocumentStorage::storeForEmployee(
+                $request->file('supporting_document'),
+                $validatedData['employee_id'],
+                'education'
+            );
+        }
+
+        unset($validatedData['supporting_document']);
         Education::where('id', $id)->update($validatedData);
 
         return redirect('employees/'.$request->employee_id.'#education')->with('toast_success', 'Education Employee Update Successfully');
@@ -115,6 +138,7 @@ class EducationController extends Controller
         if ((int) $educations->employee_id !== (int) $employee_id) {
             return UserProject::redirectAccessDenied();
         }
+        EmployeeSupportingDocumentStorage::deleteIfExists($educations->diploma_document_path);
         $educations->delete();
 
         return redirect('employees/'.$employee_id.'#education')->with('toast_success', 'Education Employee Delete Successfully');
@@ -126,8 +150,32 @@ class EducationController extends Controller
             return $r;
         }
 
+        foreach (Education::where('employee_id', $employee_id)->get() as $edu) {
+            EmployeeSupportingDocumentStorage::deleteIfExists($edu->diploma_document_path);
+        }
         Education::where('employee_id', $employee_id)->delete();
 
         return redirect('employees/'.$employee_id.'#education')->with('toast_success', 'Education Employee Delete Successfully');
+    }
+
+    public function downloadDiploma(Education $education)
+    {
+        if ($r = UserProject::guardEmployeeId($education->employee_id)) {
+            return $r;
+        }
+        $response = EmployeeSupportingDocumentStorage::downloadResponse($education->diploma_document_path);
+
+        return $response ?? redirect()->back()->with('toast_error', 'Dokumen ijazah tidak ditemukan.');
+    }
+
+    public function deleteDiplomaDocument(Education $education)
+    {
+        if ($r = UserProject::guardEmployeeId($education->employee_id)) {
+            return $r;
+        }
+        EmployeeSupportingDocumentStorage::deleteIfExists($education->diploma_document_path);
+        $education->forceFill(['diploma_document_path' => null])->save();
+
+        return redirect('employees/'.$education->employee_id.'#education')->with('toast_success', 'Dokumen ijazah berhasil dihapus.');
     }
 }

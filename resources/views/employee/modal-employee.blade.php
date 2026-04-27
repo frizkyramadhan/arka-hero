@@ -7,7 +7,7 @@
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
-            <form action="{{ url('employees/' . $employee->id) }}" method="POST">
+            <form action="{{ url('employees/' . $employee->id) }}" method="POST" enctype="multipart/form-data">
                 @csrf
                 @method('PATCH')
                 <div class="modal-body">
@@ -48,6 +48,50 @@
                                     @if ($errors->any('nationality'))
                                         <span class="text-danger">{{ $errors->first('nationality') }}</span>
                                     @endif
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label class="form-label">Upload Kartu Tanda Penduduk (KTP)</label>
+                                    <div class="custom-file">
+                                        <input type="file" name="ktp_document" class="custom-file-input"
+                                            id="ktp_document" accept=".pdf,image/*">
+                                        <label class="custom-file-label" for="ktp_document">Pilih file (PDF/JPG/PNG,
+                                            max 5MB)</label>
+                                    </div>
+                                    @if ($employee->ktp_document_path)
+                                        <div class="form-text mt-1">
+                                            <a href="{{ route('employees.documents.ktp', $employee) }}" class="text-primary"
+                                                target="_blank" rel="noopener"><i
+                                                    class="fas fa-file-download mr-1"></i>Download</a>
+                                        </div>
+                                    @endif
+                                    @error('ktp_document')
+                                        <span class="text-danger d-block">{{ $message }}</span>
+                                    @enderror
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label class="form-label">Upload Kartu Keluarga (KK)</label>
+                                    <div class="custom-file">
+                                        <input type="file" name="kk_document" class="custom-file-input"
+                                            id="kk_document" accept=".pdf,image/*">
+                                        <label class="custom-file-label" for="kk_document">Pilih file (PDF/JPG/PNG,
+                                            max 5MB)</label>
+                                    </div>
+                                    @if ($employee->kk_document_path)
+                                        <div class="form-text mt-1">
+                                            <a href="{{ route('employees.documents.kk', $employee) }}" class="text-primary"
+                                                target="_blank" rel="noopener"><i
+                                                    class="fas fa-file-download mr-1"></i>Download</a>
+                                        </div>
+                                    @endif
+                                    @error('kk_document')
+                                        <span class="text-danger d-block">{{ $message }}</span>
+                                    @enderror
                                 </div>
                             </div>
                         </div>

@@ -155,6 +155,23 @@ final class UserProject
     }
 
     /**
+     * Akses mengelola dokumen pendukung karyawan: HR sesuai proyek, atau karyawan untuk data dirinya sendiri (My Profile).
+     */
+    public static function canManageEmployeeDocuments(Employee $employee, ?User $user = null): bool
+    {
+        $user = self::resolveUser($user);
+        if ($user === null) {
+            return false;
+        }
+
+        if ($user->employee_id !== null && (string) $user->employee_id === (string) $employee->id) {
+            return $user->can('personal.profile.view-own');
+        }
+
+        return self::canViewEmployee($employee, $user);
+    }
+
+    /**
      * Listing karyawan (left join administrasi): baris tanpa administrasi tetap tampil jika perlu onboarding.
      */
     public static function scopeEmployeeListQueryToAssignedProjects(Builder $query): Builder

@@ -29,6 +29,7 @@ use App\Models\Operableunit;
 use App\Models\Position;
 use App\Models\Religion;
 use App\Models\Taxidentification;
+use App\Support\EmployeeSupportingDocumentStorage;
 use App\Support\UserProject;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
@@ -44,7 +45,7 @@ class EmployeeController extends Controller
     {
         $this->middleware('role_or_permission:employees.show')->only('index', 'show', 'getDepartment');
         $this->middleware('role_or_permission:employees.create')->only('create');
-        $this->middleware('role_or_permission:employees.edit')->only('edit');
+        $this->middleware('role_or_permission:employees.edit')->only('edit', 'deleteKtpDocument', 'deleteKkDocument');
         $this->middleware('role_or_permission:employees.delete')->only('destroy');
         $this->middleware('role_or_permission:employees.export')->only('export');
         $this->middleware('role_or_permission:employees.import')->only('import');
@@ -243,6 +244,13 @@ class EmployeeController extends Controller
             'grade_id' => 'nullable|exists:grades,id',
             'level_id' => 'nullable|exists:levels,id',
             'filename.*' => 'image|mimes:jpeg,png,jpg,gif,svg|max:2048',
+            'ktp_document' => EmployeeSupportingDocumentStorage::MIME_RULE,
+            'kk_document' => EmployeeSupportingDocumentStorage::MIME_RULE,
+            'passbook_document' => EmployeeSupportingDocumentStorage::MIME_RULE,
+            'npwp_document' => EmployeeSupportingDocumentStorage::MIME_RULE,
+            'insurance_supporting_document.*' => 'nullable|file|mimes:jpeg,jpg,png,pdf|max:5120',
+            'license_supporting_document.*' => 'nullable|file|mimes:jpeg,jpg,png,pdf|max:5120',
+            'education_supporting_document.*' => 'nullable|file|mimes:jpeg,jpg,png,pdf|max:5120',
         ], [
             'fullname.required' => 'Full Name is required',
             'identity_card.required' => 'Identity Card No is required',
@@ -280,6 +288,24 @@ class EmployeeController extends Controller
         $employee->user_id = auth()->user()->id;
         $employee->save();
 
+        if ($request->hasFile('ktp_document')) {
+            $employee->ktp_document_path = EmployeeSupportingDocumentStorage::storeForEmployee(
+                $request->file('ktp_document'),
+                $employee->id,
+                'ktp'
+            );
+        }
+        if ($request->hasFile('kk_document')) {
+            $employee->kk_document_path = EmployeeSupportingDocumentStorage::storeForEmployee(
+                $request->file('kk_document'),
+                $employee->id,
+                'kk'
+            );
+        }
+        if ($request->hasFile('ktp_document') || $request->hasFile('kk_document')) {
+            $employee->save();
+        }
+
         $checkBank = $data['bank_id'] == null ? false : true;
         if ($checkBank == true) {
             $bank = new Employeebank;
@@ -289,17 +315,35 @@ class EmployeeController extends Controller
             $bank->bank_account_name = $data['bank_account_name'];
             $bank->bank_account_branch = $data['bank_account_branch'];
             $bank->save();
+            if ($request->hasFile('passbook_document')) {
+                $bank->passbook_document_path = EmployeeSupportingDocumentStorage::storeForEmployee(
+                    $request->file('passbook_document'),
+                    $employee->id,
+                    'bank_passbook'
+                );
+                $bank->save();
+            }
         }
 
         $checkInsurance = Arr::exists($data, 'health_insurance_type');
         if ($checkInsurance == true) {
             foreach ($data['health_insurance_type'] as $insurance => $value) {
+                $docPath = null;
+                $insFile = $request->file('insurance_supporting_document.'.$insurance);
+                if ($insFile && $insFile->isValid()) {
+                    $docPath = EmployeeSupportingDocumentStorage::storeForEmployee(
+                        $insFile,
+                        $employee->id,
+                        'insurance'
+                    );
+                }
                 $insurances = [
                     'employee_id' => $employee->id,
                     'health_insurance_type' => $data['health_insurance_type'][$insurance],
                     'health_insurance_no' => $data['health_insurance_no'][$insurance],
                     'health_facility' => $data['health_facility'][$insurance],
-                    'health_insurance_remarks' => $data['health_insurance_remarks'][$insurance],
+                    'health_insurance_remarks' => $data['health_insurance_remarks'][$insurance] ?? null,
+                    'document_path' => $docPath,
                 ];
                 Insurance::create($insurances);
             }
@@ -324,12 +368,22 @@ class EmployeeController extends Controller
         $checkEducation = Arr::exists($data, 'education_name');
         if ($checkEducation == true) {
             foreach ($data['education_name'] as $education => $value) {
+                $diplomaPath = null;
+                $eduFile = $request->file('education_supporting_document.'.$education);
+                if ($eduFile && $eduFile->isValid()) {
+                    $diplomaPath = EmployeeSupportingDocumentStorage::storeForEmployee(
+                        $eduFile,
+                        $employee->id,
+                        'education'
+                    );
+                }
                 $educations = [
                     'employee_id' => $employee->id,
                     'education_name' => $data['education_name'][$education],
                     'education_address' => $data['education_address'][$education],
                     'education_year' => $data['education_year'][$education],
                     'education_remarks' => $data['education_remarks'][$education],
+                    'diploma_document_path' => $diplomaPath,
                 ];
                 Education::create($educations);
             }
@@ -380,11 +434,21 @@ class EmployeeController extends Controller
         $checkLicense = Arr::exists($data, 'driver_license_type');
         if ($checkLicense == true) {
             foreach ($data['driver_license_type'] as $license => $value) {
+                $licDocPath = null;
+                $licFile = $request->file('license_supporting_document.'.$license);
+                if ($licFile && $licFile->isValid()) {
+                    $licDocPath = EmployeeSupportingDocumentStorage::storeForEmployee(
+                        $licFile,
+                        $employee->id,
+                        'license'
+                    );
+                }
                 $licenses = [
                     'employee_id' => $employee->id,
                     'driver_license_type' => $data['driver_license_type'][$license],
                     'driver_license_no' => $data['driver_license_no'][$license],
                     'driver_license_exp' => $data['driver_license_exp'][$license],
+                    'document_path' => $licDocPath,
                 ];
                 License::create($licenses);
             }
@@ -447,8 +511,16 @@ class EmployeeController extends Controller
             $taxidentification = new Taxidentification;
             $taxidentification->employee_id = $employee->id;
             $taxidentification->tax_no = $data['tax_no'];
-            $taxidentification->tax_valid_date = $data['tax_valid_date'];
+            $taxidentification->tax_valid_date = ! empty($data['tax_valid_date']) ? $data['tax_valid_date'] : null;
             $taxidentification->save();
+            if ($request->hasFile('npwp_document')) {
+                $taxidentification->npwp_document_path = EmployeeSupportingDocumentStorage::storeForEmployee(
+                    $request->file('npwp_document'),
+                    $employee->id,
+                    'npwp'
+                );
+                $taxidentification->save();
+            }
         }
 
         if ($request->hasfile('filename')) {
@@ -559,6 +631,8 @@ class EmployeeController extends Controller
             'identity_card' => 'required|unique:employees,identity_card,'.$id,
             'emp_pob' => 'required',
             'emp_dob' => 'required',
+            'ktp_document' => EmployeeSupportingDocumentStorage::MIME_RULE,
+            'kk_document' => EmployeeSupportingDocumentStorage::MIME_RULE,
         ], [
             'fullname.required' => 'Full Name is required',
             'identity_card.required' => 'Identity Card No is required',
@@ -589,9 +663,71 @@ class EmployeeController extends Controller
         $employee->email = $request->email;
         $employee->identity_card = $request->identity_card;
         $employee->user_id = auth()->user()->id;
+
+        if ($request->hasFile('ktp_document')) {
+            EmployeeSupportingDocumentStorage::deleteIfExists($employee->ktp_document_path);
+            $employee->ktp_document_path = EmployeeSupportingDocumentStorage::storeForEmployee(
+                $request->file('ktp_document'),
+                $employee->id,
+                'ktp'
+            );
+        }
+        if ($request->hasFile('kk_document')) {
+            EmployeeSupportingDocumentStorage::deleteIfExists($employee->kk_document_path);
+            $employee->kk_document_path = EmployeeSupportingDocumentStorage::storeForEmployee(
+                $request->file('kk_document'),
+                $employee->id,
+                'kk'
+            );
+        }
+
         $employee->save();
 
         return redirect('employees/'.$id)->with('toast_success', 'Employee edited successfully');
+    }
+
+    public function downloadKtpDocument(Employee $employee)
+    {
+        if (! UserProject::canViewEmployee($employee)) {
+            return UserProject::redirectAccessDenied();
+        }
+        $response = EmployeeSupportingDocumentStorage::downloadResponse($employee->ktp_document_path);
+
+        return $response ?? redirect()->back()->with('toast_error', 'Dokumen KTP tidak ditemukan.');
+    }
+
+    public function downloadKkDocument(Employee $employee)
+    {
+        if (! UserProject::canViewEmployee($employee)) {
+            return UserProject::redirectAccessDenied();
+        }
+        $response = EmployeeSupportingDocumentStorage::downloadResponse($employee->kk_document_path);
+
+        return $response ?? redirect()->back()->with('toast_error', 'Dokumen KK tidak ditemukan.');
+    }
+
+    public function deleteKtpDocument(Employee $employee)
+    {
+        if (! UserProject::canViewEmployee($employee)) {
+            return UserProject::redirectAccessDenied();
+        }
+
+        EmployeeSupportingDocumentStorage::deleteIfExists($employee->ktp_document_path);
+        $employee->forceFill(['ktp_document_path' => null])->save();
+
+        return redirect('employees/'.$employee->id.'#personal')->with('toast_success', 'Dokumen KTP berhasil dihapus.');
+    }
+
+    public function deleteKkDocument(Employee $employee)
+    {
+        if (! UserProject::canViewEmployee($employee)) {
+            return UserProject::redirectAccessDenied();
+        }
+
+        EmployeeSupportingDocumentStorage::deleteIfExists($employee->kk_document_path);
+        $employee->forceFill(['kk_document_path' => null])->save();
+
+        return redirect('employees/'.$employee->id.'#personal')->with('toast_success', 'Dokumen KK berhasil dihapus.');
     }
 
     public function destroy($employee_id)
@@ -599,6 +735,24 @@ class EmployeeController extends Controller
         $employee = Employee::findOrFail($employee_id);
         if (! UserProject::canViewEmployee($employee)) {
             return UserProject::redirectAccessDenied();
+        }
+
+        EmployeeSupportingDocumentStorage::deleteIfExists($employee->ktp_document_path);
+        EmployeeSupportingDocumentStorage::deleteIfExists($employee->kk_document_path);
+        foreach (Employeebank::where('employee_id', $employee_id)->get() as $eb) {
+            EmployeeSupportingDocumentStorage::deleteIfExists($eb->passbook_document_path);
+        }
+        foreach (Taxidentification::where('employee_id', $employee_id)->get() as $tx) {
+            EmployeeSupportingDocumentStorage::deleteIfExists($tx->npwp_document_path);
+        }
+        foreach (Insurance::where('employee_id', $employee_id)->get() as $ins) {
+            EmployeeSupportingDocumentStorage::deleteIfExists($ins->document_path);
+        }
+        foreach (License::where('employee_id', $employee_id)->get() as $lic) {
+            EmployeeSupportingDocumentStorage::deleteIfExists($lic->document_path);
+        }
+        foreach (Education::where('employee_id', $employee_id)->get() as $edu) {
+            EmployeeSupportingDocumentStorage::deleteIfExists($edu->diploma_document_path);
         }
 
         $images = Image::where('employee_id', $employee_id)->get();

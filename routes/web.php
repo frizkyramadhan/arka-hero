@@ -344,6 +344,10 @@ Route::group(['middleware' => ['auth']], function () {
     Route::get('employees/getDepartment', [EmployeeController::class, 'getDepartment'])->name('employees.getDepartment');
     Route::get('employees/getPersonals', [EmployeeController::class, 'getPersonals'])->name('employees.getPersonals');
     Route::get('employees/export', [EmployeeController::class, 'export'])->name('employees.export');
+    Route::get('employees/{employee}/documents/ktp', [EmployeeController::class, 'downloadKtpDocument'])->name('employees.documents.ktp');
+    Route::get('employees/{employee}/documents/kk', [EmployeeController::class, 'downloadKkDocument'])->name('employees.documents.kk');
+    Route::delete('employees/{employee}/documents/ktp', [EmployeeController::class, 'deleteKtpDocument'])->name('employees.documents.ktp.delete');
+    Route::delete('employees/{employee}/documents/kk', [EmployeeController::class, 'deleteKkDocument'])->name('employees.documents.kk.delete');
     Route::resource('employees', EmployeeController::class);
     Route::post('employees/addImages/{id}', [EmployeeController::class, 'addImages'])->name('employees.addImages');
     Route::get('employees/setProfile/{employee_id}/{id}', [EmployeeController::class, 'setProfile'])->name('employees.setProfile');
@@ -369,12 +373,16 @@ Route::group(['middleware' => ['auth']], function () {
     Route::get('personals', [EmployeeController::class, 'personal'])->name('employees.personal');
 
     Route::get('licenses/getLicenses', [LicenseController::class, 'getLicenses'])->name('licenses.list');
+    Route::get('licenses/{license}/download-document', [LicenseController::class, 'downloadDocument'])->name('licenses.download-document');
+    Route::delete('licenses/{license}/documents/supporting', [LicenseController::class, 'deleteSupportingDocument'])->name('licenses.documents.supporting.delete');
     Route::resource('licenses', LicenseController::class)->except(['store', 'show', 'create', 'edit', 'destroy']);
     Route::post('licenses/{employee_id}', [LicenseController::class, 'store'])->name('licenses.store');
     Route::delete('licenses/{employee_id}/{id}', [LicenseController::class, 'delete'])->name('licenses.delete');
     Route::delete('licenses/{employee_id}', [LicenseController::class, 'deleteAll'])->name('licenses.deleteAll');
 
     Route::get('insurances/getInsurances', [InsuranceController::class, 'getInsurances'])->name('insurances.list');
+    Route::get('insurances/{insurance}/download-document', [InsuranceController::class, 'downloadDocument'])->name('insurances.download-document');
+    Route::delete('insurances/{insurance}/documents/supporting', [InsuranceController::class, 'deleteSupportingDocument'])->name('insurances.documents.supporting.delete');
     Route::resource('insurances', InsuranceController::class)->except(['store', 'show', 'create', 'edit', 'destroy']);
     Route::post('insurances/{employee_id}', [InsuranceController::class, 'store'])->name('insurances.store');
     Route::delete('insurances/{employee_id}/{id}', [InsuranceController::class, 'delete'])->name('insurances.delete');
@@ -402,6 +410,8 @@ Route::group(['middleware' => ['auth']], function () {
     Route::resource('additionaldatas', AdditionaldataController::class)->except(['show', 'create', 'edit', 'destroy']);
     Route::delete('additionaldatas/{employee_id}/{id}', [AdditionaldataController::class, 'delete'])->name('additionaldatas.delete');
 
+    Route::get('employeebanks/{employeebank}/download-passbook', [EmployeebankController::class, 'downloadPassbook'])->name('employeebanks.download-passbook');
+    Route::delete('employeebanks/{employeebank}/documents/passbook', [EmployeebankController::class, 'deletePassbookDocument'])->name('employeebanks.documents.passbook.delete');
     Route::resource('employeebanks', EmployeebankController::class)->except(['show', 'create', 'edit', 'destroy']);
     Route::get('employeebanks/getEmployeebank', [EmployeebankController::class, 'getEmployeebank'])->name('employeebanks.list');
     Route::delete('employeebanks/{employee_id}/{id}', [EmployeebankController::class, 'delete'])->name('employeebanks.delete');
@@ -415,6 +425,8 @@ Route::group(['middleware' => ['auth']], function () {
     Route::patch('administrations/changeStatus/{employee_id}/{id}', [AdministrationController::class, 'changeStatus'])->name('administrations.changeStatus');
 
     Route::get('educations/getEducation', [EducationController::class, 'getEducation'])->name('educations.list');
+    Route::get('educations/{education}/download-diploma', [EducationController::class, 'downloadDiploma'])->name('educations.download-diploma');
+    Route::delete('educations/{education}/documents/diploma', [EducationController::class, 'deleteDiplomaDocument'])->name('educations.documents.diploma.delete');
     Route::resource('educations', EducationController::class)->except(['store', 'show', 'create', 'edit', 'destroy']);
     Route::post('educations/{employee_id}', [EducationController::class, 'store'])->name('educations.store');
     Route::delete('educations/{employee_id}/{id}', [EducationController::class, 'delete'])->name('educations.delete');
@@ -433,6 +445,8 @@ Route::group(['middleware' => ['auth']], function () {
     Route::delete('operableunits/{employee_id}', [OperableunitController::class, 'deleteAll'])->name('operableunits.deleteAll');
 
     Route::get('taxidentifications/getTaxidentifications', [TaxidentificationController::class, 'getTaxidentifications'])->name('taxidentifications.list');
+    Route::get('taxidentifications/{taxidentification}/download-npwp', [TaxidentificationController::class, 'downloadNpwp'])->name('taxidentifications.download-npwp');
+    Route::delete('taxidentifications/{taxidentification}/documents/npwp', [TaxidentificationController::class, 'deleteNpwpDocument'])->name('taxidentifications.documents.npwp.delete');
     Route::resource('taxidentifications', TaxidentificationController::class)->except(['show', 'create', 'edit', 'destroy']);
     Route::delete('taxidentifications/{employee_id}/{id}', [TaxidentificationController::class, 'delete'])->name('taxidentifications.delete');
 

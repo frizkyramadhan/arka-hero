@@ -34,6 +34,7 @@
                     <th>Insurance No</th>
                     <th>Health Facility</th>
                     <th>Remarks</th>
+                    <th>Document</th>
                     <th class="text-center">Action</th>
                 </tr>
             </thead>
@@ -45,6 +46,19 @@
                         <td>{{ $insurance->health_insurance_no }}</td>
                         <td>{{ $insurance->health_facility }}</td>
                         <td>{{ $insurance->health_insurance_remarks }}</td>
+                        <td>
+                            @if (!empty($insurance->document_path))
+                                <a href="{{ route('insurances.download-document', $insurance) }}" class="text-primary"
+                                    target="_blank" rel="noopener"><i class="fas fa-file-download mr-1"></i>Download</a>
+                                <button type="submit" class="btn btn-sm btn-outline-danger btn-action" title="Delete"
+                                    form="insurance-delete-doc-{{ $insurance->id }}"
+                                    onclick="return confirm('Delete supporting insurance document? This action cannot be undone.')">
+                                    <i class="fas fa-trash-alt"></i> Delete
+                                </button>
+                            @else
+                                —
+                            @endif
+                        </td>
                         <td class="action-buttons">
                             <button class="btn btn-primary btn-action" data-toggle="modal"
                                 data-target="#modal-insurance-{{ $insurance->id }}">
@@ -55,7 +69,7 @@
                                 class="d-inline">
                                 @method('delete')
                                 @csrf
-                                <button class="btn btn-danger btn-action">
+                                <button class="btn btn-danger btn-action" title="Hapus data">
                                     <i class="fas fa-times"></i>
                                 </button>
                             </form>
@@ -63,7 +77,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="5">
+                        <td colspan="6">
                             <div class="empty-state">
                                 <i class="fas fa-exclamation-circle"></i>
                                 <h6>No Data Available</h6>
@@ -75,6 +89,16 @@
             </tbody>
         </table>
     </div>
+    @foreach ($insurances as $insurance)
+        @if (!empty($insurance->document_path))
+            <form id="insurance-delete-doc-{{ $insurance->id }}"
+                action="{{ route('insurances.documents.supporting.delete', $insurance) }}" method="POST"
+                class="d-none">
+                @csrf
+                @method('DELETE')
+            </form>
+        @endif
+    @endforeach
 </div>
 
 <style>

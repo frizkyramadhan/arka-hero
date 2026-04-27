@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\License;
+use App\Support\EmployeeSupportingDocumentStorage;
 use App\Support\UserProject;
 use Illuminate\Http\Request;
 
@@ -83,6 +84,7 @@ class LicenseController extends Controller
             'driver_license_no' => 'required',
             'driver_license_type' => 'required',
             'driver_license_exp' => 'required',
+            'supporting_document' => EmployeeSupportingDocumentStorage::MIME_RULE,
         ]);
 
         $licenses = new License;
@@ -90,6 +92,13 @@ class LicenseController extends Controller
         $licenses->driver_license_no = $request->driver_license_no;
         $licenses->driver_license_type = $request->driver_license_type;
         $licenses->driver_license_exp = $request->driver_license_exp;
+        if ($request->hasFile('supporting_document')) {
+            $licenses->document_path = EmployeeSupportingDocumentStorage::storeForEmployee(
+                $request->file('supporting_document'),
+                $request->employee_id,
+                'license'
+            );
+        }
         $licenses->save();
 
         return redirect('employees/'.$employee_id.'#license')->with('toast_success', 'Driver License Added Successfully');
@@ -119,6 +128,7 @@ class LicenseController extends Controller
             'driver_license_no' => 'required',
             'driver_license_type' => 'required',
             'driver_license_exp' => 'required',
+            'supporting_document' => EmployeeSupportingDocumentStorage::MIME_RULE,
         ]);
 
         if ($r = UserProject::guardEmployeeId($request->employee_id)) {
@@ -129,6 +139,14 @@ class LicenseController extends Controller
         $licenses->driver_license_no = $request->driver_license_no;
         $licenses->driver_license_type = $request->driver_license_type;
         $licenses->driver_license_exp = $request->driver_license_exp;
+        if ($request->hasFile('supporting_document')) {
+            EmployeeSupportingDocumentStorage::deleteIfExists($licenses->document_path);
+            $licenses->document_path = EmployeeSupportingDocumentStorage::storeForEmployee(
+                $request->file('supporting_document'),
+                $request->employee_id,
+                'license'
+            );
+        }
         $licenses->save();
 
         return redirect('employees/'.$request->employee_id.'#license')->with('toast_success', 'Driver License Update Successfully');
@@ -143,6 +161,7 @@ class LicenseController extends Controller
         if ((int) $licenses->employee_id !== (int) $employee_id) {
             return UserProject::redirectAccessDenied();
         }
+        EmployeeSupportingDocumentStorage::deleteIfExists($licenses->document_path);
         $licenses->delete();
 
         return redirect('employees/'.$employee_id.'#license')->with('toast_success', 'Driver License Delete Successfully');
@@ -154,8 +173,32 @@ class LicenseController extends Controller
             return $r;
         }
 
+        foreach (License::where('employee_id', $employee_id)->get() as $row) {
+            EmployeeSupportingDocumentStorage::deleteIfExists($row->document_path);
+        }
         License::where('employee_id', $employee_id)->delete();
 
         return redirect('employees/'.$employee_id.'#license')->with('toast_success', 'Driver License Delete Successfully');
+    }
+
+    public function downloadDocument(License $license)
+    {
+        if ($r = UserProject::guardEmployeeId($license->employee_id)) {
+            return $r;
+        }
+        $response = EmployeeSupportingDocumentStorage::downloadResponse($license->document_path);
+
+        return $response ?? redirect()->back()->with('toast_error', 'Dokumen SIM tidak ditemukan.');
+    }
+
+    public function deleteSupportingDocument(License $license)
+    {
+        if ($r = UserProject::guardEmployeeId($license->employee_id)) {
+            return $r;
+        }
+        EmployeeSupportingDocumentStorage::deleteIfExists($license->document_path);
+        $license->forceFill(['document_path' => null])->save();
+
+        return redirect('employees/'.$license->employee_id.'#license')->with('toast_success', 'Dokumen SIM berhasil dihapus.');
     }
 }

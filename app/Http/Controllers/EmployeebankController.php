@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Bank;
 use App\Models\Employeebank;
+use App\Support\EmployeeSupportingDocumentStorage;
 use App\Support\UserProject;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -82,15 +83,26 @@ class EmployeebankController extends Controller
             return $r;
         }
 
-        $request->validate([
+        $validated = $request->validate([
             'employee_id' => 'required',
             'bank_id' => 'required',
             'bank_account_no' => 'required',
             'bank_account_name' => 'required',
-            'bank_account_branch' => 'required',
-
+            'bank_account_branch' => 'nullable|string|max:255',
+            'passbook_document' => EmployeeSupportingDocumentStorage::MIME_RULE,
         ]);
-        Employeebank::create($request->all());
+
+        $path = null;
+        if ($request->hasFile('passbook_document')) {
+            $path = EmployeeSupportingDocumentStorage::storeForEmployee(
+                $request->file('passbook_document'),
+                $validated['employee_id'],
+                'bank_passbook'
+            );
+        }
+
+        unset($validated['passbook_document']);
+        Employeebank::create(array_merge($validated, ['passbook_document_path' => $path]));
 
         return redirect('employees/'.$request->employee_id.'#bank')->with('toast_success', 'Bank Added Successfully');
     }
@@ -115,19 +127,29 @@ class EmployeebankController extends Controller
             'bank_id' => 'required',
             'bank_account_no' => 'required',
             'bank_account_name' => 'required',
-            'bank_account_branch' => 'required',
+            'bank_account_branch' => 'nullable|string|max:255',
+            'passbook_document' => EmployeeSupportingDocumentStorage::MIME_RULE,
         ], [
             'employee_id.required' => 'Employee Name is required',
             'bank_id.required' => 'Bank Name is required',
             'bank_account_no.required' => 'Bank Account No is required',
             'bank_account_name.required' => 'Bank Account Name is required',
-            'bank_account_branch.required' => 'Bank Account Branch is required',
         ]);
 
         if ($r = UserProject::guardEmployeeId($request->employee_id)) {
             return $r;
         }
 
+        if ($request->hasFile('passbook_document')) {
+            EmployeeSupportingDocumentStorage::deleteIfExists($existing->passbook_document_path);
+            $rules['passbook_document_path'] = EmployeeSupportingDocumentStorage::storeForEmployee(
+                $request->file('passbook_document'),
+                $rules['employee_id'],
+                'bank_passbook'
+            );
+        }
+
+        unset($rules['passbook_document']);
         Employeebank::where('id', $id)->update($rules);
 
         return redirect('employees/'.$request->employee_id.'#bank')->with('toast_success', 'Bank Account Update Successfully');
@@ -142,8 +164,30 @@ class EmployeebankController extends Controller
         if ((int) $row->employee_id !== (int) $employee_id) {
             return UserProject::redirectAccessDenied();
         }
+        EmployeeSupportingDocumentStorage::deleteIfExists($row->passbook_document_path);
         Employeebank::where('id', $id)->delete();
 
         return redirect('employees/'.$employee_id.'#bank')->with('toast_success', 'Bank Account Delete Successfully');
+    }
+
+    public function downloadPassbook(Employeebank $employeebank)
+    {
+        if ($r = UserProject::guardEmployeeId($employeebank->employee_id)) {
+            return $r;
+        }
+        $response = EmployeeSupportingDocumentStorage::downloadResponse($employeebank->passbook_document_path);
+
+        return $response ?? redirect()->back()->with('toast_error', 'Dokumen buku tabungan tidak ditemukan.');
+    }
+
+    public function deletePassbookDocument(Employeebank $employeebank)
+    {
+        if ($r = UserProject::guardEmployeeId($employeebank->employee_id)) {
+            return $r;
+        }
+        EmployeeSupportingDocumentStorage::deleteIfExists($employeebank->passbook_document_path);
+        $employeebank->forceFill(['passbook_document_path' => null])->save();
+
+        return redirect('employees/'.$employeebank->employee_id.'#bank')->with('toast_success', 'Dokumen buku tabungan berhasil dihapus.');
     }
 }

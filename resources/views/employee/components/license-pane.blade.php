@@ -33,6 +33,7 @@
                     <th>License Type</th>
                     <th>License No</th>
                     <th>Expiration Date</th>
+                    <th>Document</th>
                     <th class="text-center">Action</th>
                 </tr>
             </thead>
@@ -43,6 +44,19 @@
                         <td>{{ $license->driver_license_no }}</td>
                         <td>{{ $license->driver_license_exp ? date('d M Y', strtotime($license->driver_license_exp)) : '-' }}
                         </td>
+                        <td>
+                            @if (!empty($license->document_path))
+                                <a href="{{ route('licenses.download-document', $license) }}" class="text-primary"
+                                    target="_blank" rel="noopener"><i class="fas fa-file-download mr-1"></i>Download</a>
+                                <button type="submit" class="btn btn-sm btn-outline-danger btn-action" title="Delete"
+                                    form="license-delete-doc-{{ $license->id }}"
+                                    onclick="return confirm('Delete SIM document? This action cannot be undone.')">
+                                    <i class="fas fa-trash-alt"></i> Delete
+                                </button>
+                            @else
+                                —
+                            @endif
+                        </td>
                         <td class="action-buttons">
                             <button class="btn btn-primary btn-action" data-toggle="modal"
                                 data-target="#modal-license-{{ $license->id }}">
@@ -52,7 +66,7 @@
                                 onsubmit="return confirm('Are you sure want to delete this record?')" class="d-inline">
                                 @method('delete')
                                 @csrf
-                                <button class="btn btn-danger btn-action">
+                                <button class="btn btn-danger btn-action" title="Hapus data">
                                     <i class="fas fa-times"></i>
                                 </button>
                             </form>
@@ -60,7 +74,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="4">
+                        <td colspan="5">
                             <div class="empty-state">
                                 <i class="fas fa-exclamation-circle"></i>
                                 <h6>No Data Available</h6>
@@ -72,6 +86,15 @@
             </tbody>
         </table>
     </div>
+    @foreach ($licenses as $license)
+        @if (!empty($license->document_path))
+            <form id="license-delete-doc-{{ $license->id }}"
+                action="{{ route('licenses.documents.supporting.delete', $license) }}" method="POST" class="d-none">
+                @csrf
+                @method('DELETE')
+            </form>
+        @endif
+    @endforeach
 </div>
 
 <style>

@@ -8,50 +8,50 @@
                         <span aria-hidden="true">&times;</span>
                     </button>
                 </div>
-                <form action="{{ url('taxidentifications') }}" method="POST">
+                <form action="{{ url('taxidentifications') }}" method="POST" enctype="multipart/form-data">
                     <input type="hidden" name="employee_id" value="{{ old('employee_id', $employee->id) }}">
                     @csrf
                     <div class="modal-body">
                         <h5 class="mb-3 border-bottom pb-2">Tax Information</h5>
-                        <div class="row">
-                            <div class="col-md-8">
-                                <div class="form-group">
-                                    <label for="tax_no" class="form-label">Tax Identification Number (NPWP)</label>
-                                    <div class="input-group">
-                                        <div class="input-group-prepend">
-                                            <span class="input-group-text"><i class="fas fa-file-invoice"></i></span>
-                                        </div>
-                                        <input type="text" class="form-control @error('tax_no') is-invalid @enderror"
-                                            id="tax_no" name="tax_no" value="{{ old('tax_no') }}"
-                                            placeholder="Enter tax number">
-                                    </div>
-                                    @error('tax_no')
-                                        <span class="text-danger">{{ $message }}</span>
-                                    @enderror
-                                    <small class="form-text text-muted">Format: 00.000.000.0-000.000</small>
+                        <div class="form-group">
+                            <label for="tax_no" class="form-label">Tax Identification Number (NPWP)</label>
+                            <div class="input-group">
+                                <div class="input-group-prepend">
+                                    <span class="input-group-text"><i class="fas fa-file-invoice"></i></span>
                                 </div>
+                                <input type="text" class="form-control @error('tax_no') is-invalid @enderror"
+                                    id="tax_no" name="tax_no" value="{{ old('tax_no') }}"
+                                    placeholder="Enter tax number">
                             </div>
+                            @error('tax_no')
+                                <span class="text-danger">{{ $message }}</span>
+                            @enderror
+                            <small class="form-text text-muted">Format: 00.000.000.0-000.000</small>
                         </div>
-                        <div class="row">
-                            <div class="col-md-8">
-                                <div class="form-group">
-                                    <label for="tax_valid_date" class="form-label">Tax Registration Date</label>
-                                    <div class="input-group date">
-                                        <div class="input-group-prepend">
-                                            <span class="input-group-text"><i class="fas fa-calendar-alt"></i></span>
-                                        </div>
-                                        <input type="date"
-                                            class="form-control @error('tax_valid_date') is-invalid @enderror"
-                                            id="tax_valid_date" name="tax_valid_date"
-                                            value="{{ old('tax_valid_date') }}">
-                                    </div>
-                                    @error('tax_valid_date')
-                                        <span class="text-danger">{{ $message }}</span>
-                                    @enderror
+                        <div class="form-group">
+                            <label for="tax_valid_date" class="form-label">Tax Registration Date</label>
+                            <div class="input-group date">
+                                <div class="input-group-prepend">
+                                    <span class="input-group-text"><i class="fas fa-calendar-alt"></i></span>
                                 </div>
+                                <input type="date"
+                                    class="form-control @error('tax_valid_date') is-invalid @enderror"
+                                    id="tax_valid_date" name="tax_valid_date"
+                                    value="{{ old('tax_valid_date') }}">
                             </div>
+                            @error('tax_valid_date')
+                                <span class="text-danger">{{ $message }}</span>
+                            @enderror
                         </div>
-                        <div class="alert alert-warning mt-3">
+                        <div class="form-group">
+                            <label class="form-label">Upload kartu / surat NPWP</label>
+                            <input type="file" name="npwp_document" class="form-control-file"
+                                accept=".pdf,image/*">
+                            @error('npwp_document')
+                                <span class="text-danger">{{ $message }}</span>
+                            @enderror
+                        </div>
+                        <div class="alert alert-warning mt-3 mb-0">
                             <i class="fas fa-exclamation-triangle mr-2"></i>
                             Tax information is required for payroll tax deductions and annual tax reporting.
                         </div>
@@ -74,51 +74,57 @@
                         <span aria-hidden="true">&times;</span>
                     </button>
                 </div>
-                <form action="{{ url('taxidentifications/' . $tax->id) }}" method="POST">
+                <form action="{{ url('taxidentifications/' . $tax->id) }}" method="POST" enctype="multipart/form-data">
                     <input type="hidden" name="employee_id" value="{{ old('employee_id', $tax->employee_id) }}">
                     @csrf
                     @method('PATCH')
                     <div class="modal-body">
                         <h5 class="mb-3 border-bottom pb-2">Tax Information</h5>
-                        <div class="row">
-                            <div class="col-md-8">
-                                <div class="form-group">
-                                    <label for="tax_no" class="form-label">Tax Identification Number (NPWP)</label>
-                                    <div class="input-group">
-                                        <div class="input-group-prepend">
-                                            <span class="input-group-text"><i class="fas fa-file-invoice"></i></span>
-                                        </div>
-                                        <input type="text" class="form-control @error('tax_no') is-invalid @enderror"
-                                            id="tax_no" name="tax_no" value="{{ old('tax_no', $tax->tax_no) }}"
-                                            placeholder="Enter tax number">
-                                    </div>
-                                    @error('tax_no')
-                                        <span class="text-danger">{{ $message }}</span>
-                                    @enderror
-                                    <small class="form-text text-muted">Format: 00.000.000.0-000.000</small>
+                        <div class="form-group">
+                            <label for="tax_no" class="form-label">Tax Identification Number (NPWP)</label>
+                            <div class="input-group">
+                                <div class="input-group-prepend">
+                                    <span class="input-group-text"><i class="fas fa-file-invoice"></i></span>
                                 </div>
+                                <input type="text" class="form-control @error('tax_no') is-invalid @enderror"
+                                    id="tax_no" name="tax_no" value="{{ old('tax_no', $tax->tax_no) }}"
+                                    placeholder="Enter tax number">
                             </div>
+                            @error('tax_no')
+                                <span class="text-danger">{{ $message }}</span>
+                            @enderror
+                            <small class="form-text text-muted">Format: 00.000.000.0-000.000</small>
                         </div>
-                        <div class="row">
-                            <div class="col-md-8">
-                                <div class="form-group">
-                                    <label for="tax_valid_date" class="form-label">Tax Registration Date</label>
-                                    <div class="input-group date">
-                                        <div class="input-group-prepend">
-                                            <span class="input-group-text"><i class="fas fa-calendar-alt"></i></span>
-                                        </div>
-                                        <input type="date"
-                                            class="form-control @error('tax_valid_date') is-invalid @enderror"
-                                            id="tax_valid_date" name="tax_valid_date"
-                                            value="{{ old('tax_valid_date', $tax->tax_valid_date) }}">
-                                    </div>
-                                    @error('tax_valid_date')
-                                        <span class="text-danger">{{ $message }}</span>
-                                    @enderror
+                        <div class="form-group">
+                            <label for="tax_valid_date" class="form-label">Tax Registration Date</label>
+                            <div class="input-group date">
+                                <div class="input-group-prepend">
+                                    <span class="input-group-text"><i class="fas fa-calendar-alt"></i></span>
                                 </div>
+                                <input type="date"
+                                    class="form-control @error('tax_valid_date') is-invalid @enderror"
+                                    id="tax_valid_date" name="tax_valid_date"
+                                    value="{{ old('tax_valid_date', $tax->tax_valid_date) }}">
                             </div>
+                            @error('tax_valid_date')
+                                <span class="text-danger">{{ $message }}</span>
+                            @enderror
                         </div>
-                        <div class="alert alert-warning mt-3">
+                        <div class="form-group">
+                            <label class="form-label">Upload kartu / surat NPWP</label>
+                            <input type="file" name="npwp_document" class="form-control-file"
+                                accept=".pdf,image/*">
+                            @if ($tax->npwp_document_path)
+                                <small class="form-text d-block"><a
+                                        href="{{ route('taxidentifications.download-npwp', $tax) }}"
+                                        class="text-primary" target="_blank" rel="noopener"><i
+                                            class="fas fa-file-download mr-1"></i>Download</a></small>
+                            @endif
+                            @error('npwp_document')
+                                <span class="text-danger">{{ $message }}</span>
+                            @enderror
+                        </div>
+                        <div class="alert alert-warning mt-3 mb-0">
                             <i class="fas fa-exclamation-triangle mr-2"></i>
                             Tax information is required for payroll tax deductions and annual tax reporting.
                         </div>

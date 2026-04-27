@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Taxidentification;
+use App\Support\EmployeeSupportingDocumentStorage;
 use App\Support\UserProject;
 use Illuminate\Http\Request;
 
@@ -91,13 +92,24 @@ class TaxidentificationController extends Controller
             return $r;
         }
 
-        $request->validate([
+        $validated = $request->validate([
             'employee_id' => 'required',
             'tax_no' => 'required',
-            'tax_valid_date' => 'required',
-
+            'tax_valid_date' => 'nullable|date',
+            'npwp_document' => EmployeeSupportingDocumentStorage::MIME_RULE,
         ]);
-        Taxidentification::create($request->all());
+
+        $path = null;
+        if ($request->hasFile('npwp_document')) {
+            $path = EmployeeSupportingDocumentStorage::storeForEmployee(
+                $request->file('npwp_document'),
+                $validated['employee_id'],
+                'npwp'
+            );
+        }
+
+        unset($validated['npwp_document']);
+        Taxidentification::create(array_merge($validated, ['npwp_document_path' => $path]));
 
         return redirect('employees/'.$request->employee_id.'#tax')->with('toast_success', 'Tax Identification Added Successfully');
     }
@@ -133,17 +145,27 @@ class TaxidentificationController extends Controller
             return $r;
         }
 
-        $request->validate([
+        $validated = $request->validate([
             'employee_id' => 'required',
             'tax_no' => 'required',
-            'tax_valid_date' => 'required',
-
+            'tax_valid_date' => 'nullable|date',
+            'npwp_document' => EmployeeSupportingDocumentStorage::MIME_RULE,
         ]);
         if ($r = UserProject::guardEmployeeId($request->employee_id)) {
             return $r;
         }
 
-        $taxidentification->update($request->all());
+        if ($request->hasFile('npwp_document')) {
+            EmployeeSupportingDocumentStorage::deleteIfExists($taxidentification->npwp_document_path);
+            $validated['npwp_document_path'] = EmployeeSupportingDocumentStorage::storeForEmployee(
+                $request->file('npwp_document'),
+                $validated['employee_id'],
+                'npwp'
+            );
+        }
+
+        unset($validated['npwp_document']);
+        $taxidentification->update($validated);
 
         return redirect('employees/'.$request->employee_id.'#tax')->with('toast_success', 'Tax Identification Updated Successfully');
     }
@@ -163,8 +185,30 @@ class TaxidentificationController extends Controller
         if ((int) $row->employee_id !== (int) $employee_id) {
             return UserProject::redirectAccessDenied();
         }
+        EmployeeSupportingDocumentStorage::deleteIfExists($row->npwp_document_path);
         Taxidentification::where('id', $id)->delete();
 
         return redirect('employees/'.$employee_id.'#tax')->with('toast_success', 'Tax Identification Deleted Successfully');
+    }
+
+    public function downloadNpwp(Taxidentification $taxidentification)
+    {
+        if ($r = UserProject::guardEmployeeId($taxidentification->employee_id)) {
+            return $r;
+        }
+        $response = EmployeeSupportingDocumentStorage::downloadResponse($taxidentification->npwp_document_path);
+
+        return $response ?? redirect()->back()->with('toast_error', 'Dokumen NPWP tidak ditemukan.');
+    }
+
+    public function deleteNpwpDocument(Taxidentification $taxidentification)
+    {
+        if ($r = UserProject::guardEmployeeId($taxidentification->employee_id)) {
+            return $r;
+        }
+        EmployeeSupportingDocumentStorage::deleteIfExists($taxidentification->npwp_document_path);
+        $taxidentification->forceFill(['npwp_document_path' => null])->save();
+
+        return redirect('employees/'.$taxidentification->employee_id.'#tax')->with('toast_success', 'Dokumen NPWP berhasil dihapus.');
     }
 }

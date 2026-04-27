@@ -8,7 +8,7 @@
                         <span aria-hidden="true">&times;</span>
                     </button>
                 </div>
-                <form action="{{ url('employeebanks') }}" method="POST">
+                <form action="{{ url('employeebanks') }}" method="POST" enctype="multipart/form-data">
                     <input type="hidden" name="employee_id" value="{{ old('employee_id', $employee->id) }}">
                     @csrf
                     <div class="modal-body">
@@ -97,6 +97,19 @@
                                     </div>
                                 </div>
                             </div>
+
+                            <div class="row">
+                                <div class="col-md-8">
+                                    <div class="form-group">
+                                        <label class="form-label">Buku tabungan / rekening koran</label>
+                                        <input type="file" name="passbook_document" class="form-control-file"
+                                            accept=".pdf,image/*">
+                                        @error('passbook_document')
+                                            <span class="text-danger">{{ $message }}</span>
+                                        @enderror
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                     <div class="modal-footer justify-content-between">
@@ -117,7 +130,7 @@
                         <span aria-hidden="true">&times;</span>
                     </button>
                 </div>
-                <form action="{{ url('employeebanks/' . $bank->id) }}" method="POST">
+                <form action="{{ url('employeebanks/' . $bank->id) }}" method="POST" enctype="multipart/form-data">
                     <input type="hidden" name="employee_id" value="{{ old('employee_id', $bank->employee_id) }}">
                     @csrf
                     @method('PATCH')
@@ -204,6 +217,26 @@
                                                 placeholder="Enter branch name">
                                         </div>
                                         @error('bank_account_branch')
+                                            <span class="text-danger">{{ $message }}</span>
+                                        @enderror
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-8">
+                                    <div class="form-group">
+                                        <label class="form-label">Buku tabungan / rekening koran</label>
+                                        <input type="file" name="passbook_document" class="form-control-file"
+                                            accept=".pdf,image/*">
+                                        @if ($bank->passbook_document_path)
+                                            <div class="form-text d-flex flex-wrap align-items-center mt-1">
+                                                <a href="{{ route('employeebanks.download-passbook', $bank) }}"
+                                                    class="text-primary" target="_blank" rel="noopener"><i
+                                                        class="fas fa-file-download mr-1"></i>Download</a>
+                                            </div>
+                                        @endif
+                                        @error('passbook_document')
                                             <span class="text-danger">{{ $message }}</span>
                                         @enderror
                                     </div>

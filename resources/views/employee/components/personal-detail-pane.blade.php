@@ -47,6 +47,38 @@
                 </dd>
                 <dt class="col-sm-4">Marital</dt>
                 <dd class="col-sm-8">{{ $employee->marital ?? '-' }}</dd>
+                <dt class="col-sm-4">Kartu Tanda Penduduk (KTP)</dt>
+                <dd class="col-sm-8">
+                    @if (!empty($employee->ktp_document_path))
+                        <div class="d-flex flex-wrap align-items-center">
+                            <a href="{{ route('employees.documents.ktp', $employee) }}" class="text-primary mr-2"
+                                target="_blank" rel="noopener"><i class="fas fa-file-download mr-1"></i>Download</a>
+                            <button type="submit" class="btn btn-sm btn-outline-danger"
+                                form="employee-delete-ktp-doc-{{ $employee->id }}"
+                                onclick="return confirm('Delete KTP document? This action cannot be undone.')">
+                                <i class="fas fa-trash-alt mr-1"></i>Delete
+                            </button>
+                        </div>
+                    @else
+                        —
+                    @endif
+                </dd>
+                <dt class="col-sm-4">Kartu Keluarga (KK)</dt>
+                <dd class="col-sm-8">
+                    @if (!empty($employee->kk_document_path))
+                        <div class="d-flex flex-wrap align-items-center">
+                            <a href="{{ route('employees.documents.kk', $employee) }}" class="text-primary mr-2"
+                                target="_blank" rel="noopener"><i class="fas fa-file-download mr-1"></i>Download</a>
+                            <button type="submit" class="btn btn-sm btn-outline-danger"
+                                form="employee-delete-kk-doc-{{ $employee->id }}"
+                                onclick="return confirm('Delete KK document? This action cannot be undone.')">
+                                <i class="fas fa-trash-alt mr-1"></i>Delete
+                            </button>
+                        </div>
+                    @else
+                        —
+                    @endif
+                </dd>
             </dl>
             <h6 class="mt-4 mb-3 text-muted border-top pt-3">Address & Contact</h6>
             <dl class="row">
@@ -67,6 +99,16 @@
             </dl>
         </div>
     </div>
+    <form id="employee-delete-ktp-doc-{{ $employee->id }}"
+        action="{{ route('employees.documents.ktp.delete', $employee) }}" method="POST" class="d-none">
+        @csrf
+        @method('DELETE')
+    </form>
+    <form id="employee-delete-kk-doc-{{ $employee->id }}"
+        action="{{ route('employees.documents.kk.delete', $employee) }}" method="POST" class="d-none">
+        @csrf
+        @method('DELETE')
+    </form>
 </div>
 
 <style>
