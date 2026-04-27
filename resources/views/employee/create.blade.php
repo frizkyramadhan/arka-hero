@@ -197,6 +197,36 @@
                                             </div>
                                         </div>
                                     </div>
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="form-group">
+                                                <label class="form-label">Upload Kartu Tanda Penduduk (KTP)</label>
+                                                <div class="custom-file">
+                                                    <input type="file" name="ktp_document" class="custom-file-input"
+                                                        id="ktp_document" accept=".pdf,image/*">
+                                                    <label class="custom-file-label" for="ktp_document">PDF/JPG/PNG (max
+                                                        5MB)</label>
+                                                </div>
+                                                @error('ktp_document')
+                                                    <span class="text-danger">{{ $message }}</span>
+                                                @enderror
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="form-group">
+                                                <label class="form-label">Upload Kartu Keluarga (KK)</label>
+                                                <div class="custom-file">
+                                                    <input type="file" name="kk_document" class="custom-file-input"
+                                                        id="kk_document" accept=".pdf,image/*">
+                                                    <label class="custom-file-label" for="kk_document">PDF/JPG/PNG (max
+                                                        5MB)</label>
+                                                </div>
+                                                @error('kk_document')
+                                                    <span class="text-danger">{{ $message }}</span>
+                                                @enderror
+                                            </div>
+                                        </div>
+                                    </div>
 
                                     <h5 class="mt-2 mb-3">Birth Information</h5>
                                     <div class="row">
@@ -698,7 +728,7 @@
                                         </div>
                                     </div>
 
-                                    <h5 class="mt-2 mb-3">Compensation</h5>
+                                    {{-- <h5 class="mt-2 mb-3">Compensation</h5>
                                     <div class="row">
                                         <div class="col-md-4">
                                             <div class="form-group">
@@ -751,7 +781,7 @@
                                                 @endif
                                             </div>
                                         </div>
-                                    </div>
+                                    </div> --}}
                                     <div class="d-flex justify-content-between mt-4">
                                         <button type="button" class="btn btn-secondary btn-previous"><i
                                                 class="fas fa-arrow-left mr-1"></i>
@@ -858,6 +888,23 @@
                                             </div>
                                         </div>
                                     </div>
+                                    <div class="row">
+                                        <div class="col-md-8">
+                                            <div class="form-group">
+                                                <label class="form-label">Upload buku tabungan / rekening koran</label>
+                                                <div class="custom-file">
+                                                    <input type="file" name="passbook_document"
+                                                        class="custom-file-input" id="passbook_document"
+                                                        accept=".pdf,image/*">
+                                                    <label class="custom-file-label" for="passbook_document">PDF/JPG/PNG
+                                                        (max 5MB)</label>
+                                                </div>
+                                                @error('passbook_document')
+                                                    <span class="text-danger">{{ $message }}</span>
+                                                @enderror
+                                            </div>
+                                        </div>
+                                    </div>
                                     <div class="d-flex justify-content-between mt-4">
                                         <button type="button" class="btn btn-secondary btn-previous"><i
                                                 class="fas fa-arrow-left mr-1"></i>
@@ -920,6 +967,22 @@
                                             </div>
                                         </div>
                                     </div>
+                                    <div class="row">
+                                        <div class="col-md-8">
+                                            <div class="form-group">
+                                                <label class="form-label">Upload kartu / surat NPWP</label>
+                                                <div class="custom-file">
+                                                    <input type="file" name="npwp_document" class="custom-file-input"
+                                                        id="npwp_document" accept=".pdf,image/*">
+                                                    <label class="custom-file-label" for="npwp_document">PDF/JPG/PNG
+                                                        (max 5MB)</label>
+                                                </div>
+                                                @error('npwp_document')
+                                                    <span class="text-danger">{{ $message }}</span>
+                                                @enderror
+                                            </div>
+                                        </div>
+                                    </div>
                                     <div class="d-flex justify-content-between mt-4">
                                         <button type="button" class="btn btn-secondary btn-previous"><i
                                                 class="fas fa-arrow-left mr-1"></i>
@@ -951,10 +1014,11 @@
                                         <table class="table table-bordered table-hover" id="table-insurance">
                                             <thead class="thead-light">
                                                 <tr>
-                                                    <th width="25%">Insurance Type</th>
-                                                    <th width="20%">Insurance No</th>
-                                                    <th width="25%">Health Facility</th>
-                                                    <th width="20%">Remarks</th>
+                                                    <th width="20%">Insurance Type</th>
+                                                    <th width="18%">Insurance No</th>
+                                                    <th width="20%">Health Facility</th>
+                                                    <th width="15%">Remarks</th>
+                                                    <th width="17%">Dokumen</th>
                                                     <th width="10%" class="text-center">Action</th>
                                                 </tr>
                                             </thead>
@@ -998,9 +1062,10 @@
                                         <table class="table table-bordered table-hover" id="table-license">
                                             <thead class="thead-light">
                                                 <tr>
-                                                    <th width="30%">License Type</th>
-                                                    <th width="30%">License Number</th>
-                                                    <th width="30%">Expiration Date</th>
+                                                    <th width="22%">License Type</th>
+                                                    <th width="22%">License Number</th>
+                                                    <th width="22%">Expiration Date</th>
+                                                    <th width="24%">Dokumen (SIM)</th>
                                                     <th width="10%" class="text-center">Action</th>
                                                 </tr>
                                             </thead>
@@ -1094,10 +1159,11 @@
                                         <table class="table table-bordered table-hover" id="table-education">
                                             <thead class="thead-light">
                                                 <tr>
-                                                    <th width="30%">Institution Name</th>
-                                                    <th width="30%">Address</th>
-                                                    <th width="15%">Year</th>
-                                                    <th width="15%">Remarks</th>
+                                                    <th width="22%">Institution Name</th>
+                                                    <th width="20%">Address</th>
+                                                    <th width="12%">Year</th>
+                                                    <th width="16%">Remarks</th>
+                                                    <th width="20%">Ijazah</th>
                                                     <th width="10%" class="text-center">Action</th>
                                                 </tr>
                                             </thead>
@@ -1921,6 +1987,7 @@
                     <td><input type="text" class="form-control" name="health_insurance_no[]" placeholder="Insurance No" required></td>
                     <td><input type="text" class="form-control" name="health_facility[]" placeholder="Health Facility" required></td>
                     <td><input type="text" class="form-control" name="health_insurance_remarks[]" placeholder="Remarks"></td>
+                    <td><input type="file" class="form-control-file" name="insurance_supporting_document[]" accept=".pdf,image/*"></td>
                     <td class="text-center"><button type="button" class="btn btn-outline-danger remove-input-field"><i class="fas fa-trash-alt"></i></button></td>
             </tr>`;
                 addDynamicRow('table-insurance', rowHtml);
@@ -1980,6 +2047,7 @@
                     <td><input type="text" class="form-control" name="education_address[]" placeholder="City/Address"></td>
                     <td><input type="text" class="form-control" name="education_year[]" placeholder="Year Graduated"></td>
                     <td><input type="text" class="form-control" name="education_remarks[]" placeholder="Major/Degree/Remarks"></td>
+                    <td><input type="file" class="form-control-file" name="education_supporting_document[]" accept=".pdf,image/*"></td>
                     <td class="text-center"><button type="button" class="btn btn-outline-danger remove-input-field"><i class="fas fa-trash-alt"></i></button></td>
                 </tr>`;
                 addDynamicRow('table-education', rowHtml);
@@ -2016,6 +2084,7 @@
                     <td><input type="text" class="form-control" name="driver_license_type[]" placeholder="License/Certification Type" required></td>
                     <td><input type="text" class="form-control" name="driver_license_no[]" placeholder="License Number"></td>
                     <td><input type="date" class="form-control" name="driver_license_exp[]"></td>
+                    <td><input type="file" class="form-control-file" name="license_supporting_document[]" accept=".pdf,image/*"></td>
                     <td class="text-center"><button type="button" class="btn btn-outline-danger remove-input-field"><i class="fas fa-trash-alt"></i></button></td>
             </tr>`;
                 addDynamicRow('table-license', rowHtml);

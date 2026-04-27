@@ -64,10 +64,29 @@
                                     class="info-box-number">{{ $tax ? ($tax->tax_valid_date ? date('d M Y', strtotime($tax->tax_valid_date)) : '-') : '-' }}</span>
                             </div>
                         </div>
+                        @if (!empty($tax->npwp_document_path))
+                            <div class="mt-2 d-flex flex-wrap align-items-center">
+                                <a href="{{ route('taxidentifications.download-npwp', $tax) }}"
+                                    class="text-primary mr-2" target="_blank" rel="noopener"><i
+                                        class="fas fa-file-download mr-1"></i>Download</a>
+                                <button type="submit" class="btn btn-sm btn-outline-danger"
+                                    form="tax-delete-npwp-doc-{{ $tax->id }}"
+                                    onclick="return confirm('Delete NPWP document? This action cannot be undone.')">
+                                    <i class="fas fa-trash-alt mr-1"></i>Delete
+                                </button>
+                            </div>
+                        @endif
                     </div>
                 </div>
             </div>
         </div>
+    @endif
+    @if ($tax && !empty($tax->npwp_document_path))
+        <form id="tax-delete-npwp-doc-{{ $tax->id }}"
+            action="{{ route('taxidentifications.documents.npwp.delete', $tax) }}" method="POST" class="d-none">
+            @csrf
+            @method('DELETE')
+        </form>
     @endif
 </div>
 

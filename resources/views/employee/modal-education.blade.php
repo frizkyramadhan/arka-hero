@@ -7,7 +7,7 @@
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
-            <form action="{{ url('educations/' . $employee->id) }}" method="POST">
+            <form action="{{ url('educations/' . $employee->id) }}" method="POST" enctype="multipart/form-data">
                 <input type="hidden" name="employee_id" value="{{ old('employee_id', $employee->id) }}">
                 @csrf
                 <div class="modal-body">
@@ -62,6 +62,16 @@
                                 @enderror
                             </div>
                         </div>
+                        <div class="form-group row">
+                            <label class="col-sm-2 col-form-label">Ijazah</label>
+                            <div class="col-sm-10">
+                                <input type="file" name="supporting_document" class="form-control-file"
+                                    accept=".pdf,image/*">
+                                @error('supporting_document')
+                                    <div class="text-danger small">{{ $message }}</div>
+                                @enderror
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <div class="modal-footer justify-content-between">
@@ -86,7 +96,7 @@
                         <span aria-hidden="true">&times;</span>
                     </button>
                 </div>
-                <form action="{{ url('educations/' . $education->id) }}" method="POST">
+                <form action="{{ url('educations/' . $education->id) }}" method="POST" enctype="multipart/form-data">
                     <input type="hidden" name="employee_id" value="{{ old('employee_id', $education->employee_id) }}">
                     @csrf
                     @method('PATCH')
@@ -145,6 +155,22 @@
                                         <div class="invalid-feedback">
                                             {{ $message }}
                                         </div>
+                                    @enderror
+                                </div>
+                            </div>
+                            <div class="form-group row">
+                                <label class="col-sm-2 col-form-label">Ijazah</label>
+                                <div class="col-sm-10">
+                                    <input type="file" name="supporting_document" class="form-control-file"
+                                        accept=".pdf,image/*">
+                                    @if ($education->diploma_document_path)
+                                        <small class="form-text d-block"><a
+                                                href="{{ route('educations.download-diploma', $education) }}"
+                                                class="text-primary" target="_blank" rel="noopener"><i
+                                                    class="fas fa-file-download mr-1"></i>Download</a></small>
+                                    @endif
+                                    @error('supporting_document')
+                                        <div class="text-danger small">{{ $message }}</div>
                                     @enderror
                                 </div>
                             </div>

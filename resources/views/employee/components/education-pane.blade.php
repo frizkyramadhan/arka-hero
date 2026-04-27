@@ -34,6 +34,7 @@
                     <th>Address</th>
                     <th>Year</th>
                     <th>Remarks</th>
+                    <th>Ijazah</th>
                     <th class="text-center">Action</th>
                 </tr>
             </thead>
@@ -44,6 +45,19 @@
                         <td>{{ $education->education_address }}</td>
                         <td>{{ $education->education_year }}</td>
                         <td>{{ $education->education_remarks }}</td>
+                        <td>
+                            @if (!empty($education->diploma_document_path))
+                                <a href="{{ route('educations.download-diploma', $education) }}" class="text-primary"
+                                    target="_blank" rel="noopener"><i class="fas fa-file-download mr-1"></i>Download</a>
+                                <button type="submit" class="btn btn-sm btn-outline-danger btn-action" title="Delete"
+                                    form="education-delete-doc-{{ $education->id }}"
+                                    onclick="return confirm('Delete diploma document? This action cannot be undone.')">
+                                    <i class="fas fa-trash-alt"></i> Delete
+                                </button>
+                            @else
+                                —
+                            @endif
+                        </td>
                         <td class="action-buttons">
                             <button class="btn btn-primary btn-action" data-toggle="modal"
                                 data-target="#modal-education-{{ $education->id }}">
@@ -54,7 +68,7 @@
                                 class="d-inline">
                                 @method('delete')
                                 @csrf
-                                <button class="btn btn-danger btn-action">
+                                <button class="btn btn-danger btn-action" title="Hapus data">
                                     <i class="fas fa-times"></i>
                                 </button>
                             </form>
@@ -62,7 +76,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="5">
+                        <td colspan="6">
                             <div class="empty-state">
                                 <i class="fas fa-exclamation-circle"></i>
                                 <h6>No Data Available</h6>
@@ -74,6 +88,15 @@
             </tbody>
         </table>
     </div>
+    @foreach ($educations as $education)
+        @if (!empty($education->diploma_document_path))
+            <form id="education-delete-doc-{{ $education->id }}"
+                action="{{ route('educations.documents.diploma.delete', $education) }}" method="POST" class="d-none">
+                @csrf
+                @method('DELETE')
+            </form>
+        @endif
+    @endforeach
 </div>
 
 <style>

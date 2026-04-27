@@ -188,6 +188,26 @@
                                             </dd>
                                             <dt class="col-sm-4">Marital</dt>
                                             <dd class="col-sm-8">{{ $employee->marital ?? '-' }}</dd>
+                                            <dt class="col-sm-4">Kartu Tanda Penduduk (KTP)</dt>
+                                            <dd class="col-sm-8">
+                                                @if (! empty($employee->ktp_document_path))
+                                                    <a href="{{ route('employees.documents.ktp', $employee) }}"
+                                                        class="text-primary" target="_blank" rel="noopener"><i
+                                                            class="fas fa-file-download mr-1"></i>Download</a>
+                                                @else
+                                                    —
+                                                @endif
+                                            </dd>
+                                            <dt class="col-sm-4">Kartu Keluarga (KK)</dt>
+                                            <dd class="col-sm-8">
+                                                @if (! empty($employee->kk_document_path))
+                                                    <a href="{{ route('employees.documents.kk', $employee) }}"
+                                                        class="text-primary" target="_blank" rel="noopener"><i
+                                                            class="fas fa-file-download mr-1"></i>Download</a>
+                                                @else
+                                                    —
+                                                @endif
+                                            </dd>
                                         </dl>
                                         <h6 class="mt-4 mb-3 text-muted border-top pt-3">Address & Contact</h6>
                                         <dl class="row">
@@ -311,6 +331,16 @@
                                             <dt class="col-sm-4">Branch</dt>
                                             <dd class="col-sm-8">{{ $bank->bank_account_branch ?? '-' }}</dd>
                                         @endif
+                                        <dt class="col-sm-4">Passbook / statement</dt>
+                                        <dd class="col-sm-8">
+                                            @if (! empty($bank->passbook_document_path))
+                                                <a href="{{ route('employeebanks.download-passbook', $bank) }}"
+                                                    class="text-primary" target="_blank" rel="noopener"><i
+                                                        class="fas fa-file-download mr-1"></i>Download</a>
+                                            @else
+                                                —
+                                            @endif
+                                        </dd>
                                     </dl>
                                 @else
                                     <div class="empty-state-container">
@@ -337,6 +367,16 @@
                                         <dt class="col-sm-4">Registration Date</dt>
                                         <dd class="col-sm-8">
                                             {{ $tax->tax_valid_date ? date('d M Y', strtotime($tax->tax_valid_date)) : '-' }}
+                                        </dd>
+                                        <dt class="col-sm-4">NPWP document</dt>
+                                        <dd class="col-sm-8">
+                                            @if (! empty($tax->npwp_document_path))
+                                                <a href="{{ route('taxidentifications.download-npwp', $tax) }}"
+                                                    class="text-primary" target="_blank" rel="noopener"><i
+                                                        class="fas fa-file-download mr-1"></i>Download</a>
+                                            @else
+                                                —
+                                            @endif
                                         </dd>
                                     </dl>
                                 @else
@@ -366,6 +406,7 @@
                                                     <th>Insurance Number</th>
                                                     <th>Health Facility</th>
                                                     <th>Remarks</th>
+                                                    <th>Document</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -376,6 +417,16 @@
                                                         <td>{{ $insurance->health_insurance_no ?? '-' }}</td>
                                                         <td>{{ $insurance->health_facility ?? '-' }}</td>
                                                         <td>{{ $insurance->health_insurance_remarks ?? '-' }}</td>
+                                                        <td>
+                                                            @if (! empty($insurance->document_path))
+                                                                <a href="{{ route('insurances.download-document', $insurance) }}"
+                                                                    class="text-primary" target="_blank"
+                                                                    rel="noopener"><i
+                                                                        class="fas fa-file-download mr-1"></i>Download</a>
+                                                            @else
+                                                                —
+                                                            @endif
+                                                        </td>
                                                     </tr>
                                                 @endforeach
                                             </tbody>
@@ -407,6 +458,7 @@
                                                     <th>License Type</th>
                                                     <th>License Number</th>
                                                     <th>Expiry Date</th>
+                                                    <th>Document</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -415,6 +467,16 @@
                                                         <td>{{ $license->driver_license_type ?? '-' }}</td>
                                                         <td>{{ $license->driver_license_no ?? '-' }}</td>
                                                         <td>{{ $license->driver_license_exp ? date('d M Y', strtotime($license->driver_license_exp)) : '-' }}
+                                                        </td>
+                                                        <td>
+                                                            @if (! empty($license->document_path))
+                                                                <a href="{{ route('licenses.download-document', $license) }}"
+                                                                    class="text-primary" target="_blank"
+                                                                    rel="noopener"><i
+                                                                        class="fas fa-file-download mr-1"></i>Download</a>
+                                                            @else
+                                                                —
+                                                            @endif
                                                         </td>
                                                     </tr>
                                                 @endforeach
@@ -494,6 +556,7 @@
                                                     <th>Address</th>
                                                     <th>Year</th>
                                                     <th>Remarks</th>
+                                                    <th>Ijazah</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -503,6 +566,16 @@
                                                         <td>{{ $education->education_address ?? '-' }}</td>
                                                         <td>{{ $education->education_year ?? '-' }}</td>
                                                         <td>{{ $education->education_remarks ?? '-' }}</td>
+                                                        <td>
+                                                            @if (! empty($education->diploma_document_path))
+                                                                <a href="{{ route('educations.download-diploma', $education) }}"
+                                                                    class="text-primary" target="_blank"
+                                                                    rel="noopener"><i
+                                                                        class="fas fa-file-download mr-1"></i>Download</a>
+                                                            @else
+                                                                —
+                                                            @endif
+                                                        </td>
                                                     </tr>
                                                 @endforeach
                                             </tbody>

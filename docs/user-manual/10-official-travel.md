@@ -22,7 +22,13 @@ Panduan ini menjelaskan **Letter of Travel (LOT)** / perjalanan dinas resmi di A
 
 1. **Login** ke ARKA HERO.
 2. Di sidebar, buka grup **Official Travel Management**, lalu klik **Dashboard**.
-3. Baca ringkasan: **Total Travels**, **Active Travels**, **Pending Arrivals**, **This Month**; bagian **Travel Status Overview** (misalnya **Draft**, **Submitted**, **Approved**, **Rejected**); dan tabel **Open Official Travels** yaitu ringkasan LOT dengan status Open, berisi **Travel Number**, **Traveler**, **Destination**, **Date**, **Status**, **Action**.
+3. Baca ringkasan di layar (masing-masing memberi gambaran cepat tentang keadaan LOT):
+    - **Total Travels** — jumlah seluruh LOT dari awal pencatatan (acuan “semua waktu”).
+    - **Active Travels** — LOT yang statusnya masih berjalan / belum ditutup (secara umum perjalanan “masih aktif” menurut definisi sistem).
+    - **Pending Arrivals** — banyaknya LOT yang sudah disetujui tetapi belum ada pencatatan **stempel kedatangan** (perlu tindakan **Arrival Check**).
+    - **This Month** — jumlah LOT yang tercatat pada bulan berjalan (berguna melihat aktivitas bulan ini).
+    - **Travel Status Overview** — kotak hitung per status alur: **Draft** (masih draf), **Submitted** (sudah diajukan), **Approved** (disetujui), **Rejected** (ditolak); angka membantu melihat kemacetan di tiap tahap.
+    - Tabel **Open Official Travels** — daftar LOT yang statusnya “terbuka” (umumnya belum **Closed**), dengan kolom **Travel Number**, **Traveler**, **Destination**, **Date**, **Status**, **Action** untuk membuka detail atau tindakan lanjutan.
 4. Di **Quick Actions** gunakan **Pending Arrivals**, **Pending Departures** (jika tersedia dan Anda berhak mencatat stempel kedatangan dan keberangkatan), **View All Travels** ke daftar, atau **New Official Travel** untuk pengajuan baru (jika tombol tampil).
 
 <p align="center">
@@ -30,10 +36,6 @@ Panduan ini menjelaskan **Letter of Travel (LOT)** / perjalanan dinas resmi di A
 </p>
 
 **Catatan:** Jumlah **Pending Arrivals** / **Pending Departures** terkait tugas pencatatan **stempel** untuk perjalanan yang sudah disetujui; tombol terkait hanya tampil jika **hak akses** akun Anda memungkinkan.
-
-### Setelah membuka dashboard
-
-Anda dapat lanjut ke **Requests** atau membuat **New Official Travel** dari kartu aksi cepat bila tersedia.
 
 ---
 
@@ -49,7 +51,7 @@ Anda dapat lanjut ke **Requests** atau membuat **New Official Travel** dari kart
 6. Pada baris data, gunakan ikon/aksi (misalnya **View** / **Edit**) sesuai tampilan untuk membuka detail atau **Edit**.
 
 <p align="center">
-<img src="images/official-travels-list.png" alt="Halaman Official Travels: judul, breadcrumb Home, tombol Export dan Add, bar Filter, tabel dengan kolom No, Travel Number, Date, Traveler, Project, Destination, Status, Creator, Action (ikon mata), serta pagination" style="max-width: 100%; width: 100%; height: auto;" />
+<img src="images/official-travels-list.png" alt="Halaman Official Travels: judul, breadcrumb Home, tombol Export dan Add, bar Filter, tabel dengan kolom No, Travel Number, Date, Traveler, Project, Destination, Status, Creator, Action (ikon mata), serta pagination" style="max-width: 80%; width: 80%; height: auto;" />
 </p>
 
 **Catatan:** Opsi **Status** di filter dapat mencakup nilai seperti **Draft**, **Menunggu Konfirmasi HR**, **Submitted**, **Approved**, **Rejected**, **Closed** — tergantung proses di perusahaan.
@@ -60,38 +62,60 @@ Anda dapat lanjut ke **Requests** atau membuat **New Official Travel** dari kart
 
 ### Langkah-langkah — buat atau ubah LOT (_Add Official Travel (LOT)_ / _Edit Official Travel_)
 
-1. Buka **Add** dari halaman **Official Travels** (lihat bagian 2), atau buka data yang sudah ada lewat **Edit** dari daftar. <a href="#add-lot">Lihat gambar</a>.
-2. **Letter Number**  
-   Pilih nomor surat lewat bagian **Letter Number** (kategori surat yang dipakai organisasi, untuk LOT kategorinya adalah (B) Surat Internal). Setelah memilih, **LOT Number** umumnya terisi otomatis; baca teks bantuan di bawah isian jika ada. Jika nomor surat belum ada, klik **Create New**. <a href="#add-letter">Lihat gambar</a>.
-3. **Travel Information**  
-   Isi **LOT Date**, **LOT Origin** (pilih project asal), **Main Traveler**, **Purpose**, **Destination**, **Departure Date**, **Duration**. Bagian **Title**, **Business Unit**, **Department** mengikuti pilihan **Main Traveler** (tampil otomatis, bukan diisi manual di sini).
-4. **Followers** (opsional)  
-   Klik **Add Follower** untuk menambah baris, pilih karyawan ikut; **Remove** baris bila perlu.
-5. **Travel Arrangements**  
-   Pilih **Transportation** dan **Accommodation** dari daftar. Daftar ini diisi dari data **Master Data** (sidebar **GENERAL SECTION** → **Master Data** → grup **Official Travel Data** → **Transportations** / **Accommodations**).
-6. **Flight Request** (opsional)  
-   Centang **Check if you need flight ticket reservation** bila butuh reservasi tiket. Isi segmen penerbangan (tanggal, kota berangkat/tujuan, maskapai, waktu) sesuai form yang tampil. Permintaan tiket pesawat akan diproses oleh HR HO Balikpapan jika LOT sudah disetujui.
-7. **Approver Selection**  
-   Cari approver (ketik nama atau email), pastikan jumlah approver memenuhi syarat di perusahaan (klik **Approval Rules Information** untuk melihat detail informasi approval). Jika approver tidak tersedia, silakan hubungi HR/IT HO Balikpapan. <a href="#approver-selection">Lihat gambar</a>.
-8. Simpan: **Save as Draft** untuk draf dan Anda dapat mengubah lewat **Edit** sampai proses persetujuan, atau **Save & Submit** untuk simpan sekaligus ajukan persetujuan ke approver yang dipilih. **Cancel** kembali ke daftar Jika tersedia, Anda juga dapat memakai opsi **Print** lewat action di detail LOT.
-9. Untuk LOT yang masih dalam bentk draf, buka rincian LOT kemudian klik Submit for Approval untuk pengajuan approval.
-10. Untuk LOT yang diajukan dari menu **My Official Travel Request** (diajukan oleh karyawan secara pribadi/personal), LOT akan terbentuk nomor dengan format **REQxxxxx**. Buka rincian LOT, lihat informasi rencana perjalanan dinas, kemudian klik tombol Konfirmasi & Isi Nomor Surat. Lalu pilih nomor surat yang tersedia (langkah ke no 2) dan tentukan approver yang sesuai (langkah ke no 7), lalu klik Update. Kemudian di halaman rincian LOT klik Submit for Approval untuk pengajuan approval.
+**1.** Buka **Add** dari halaman **Official Travels** (lihat bagian 2), atau buka data yang sudah ada lewat **Edit** dari daftar.
+**2. Letter Number**  
+Pilih nomor surat lewat bagian **Letter Number** (kategori surat yang dipakai organisasi; untuk LOT kategorinya (B) Surat Internal). Setelah memilih, **LOT Number** umumnya terisi otomatis; baca teks bantuan di bawah isian jika ada. Jika nomor surat belum ada, klik **Create New**.
 
-<p align="center" id="add-lot">
-<img src="images/official-travels-add-lot.png" alt="Formulir Add Official Travel (LOT): Letter Number, Travel Information, Followers, Travel Arrangements, Flight Request, Approver Selection, dan tombol Save as Draft, Save & Submit, Cancel" style="max-width: 80%; width: 80%; height: auto;" />
+<p align="center" id="step-02-letter-number">
+<img src="images/official-travels-step-02-letter-number.png" alt="Form LOT: bagian Letter Number, LOT Number, tombol Create New" style="max-width: 75%; width: 75%; height: auto;" />
 </p>
 
-Jika membuat nomor surat baru lewat **Create New**, tampilan **Create Letter Number** berisi **Basic Information** (pratinjau **Next Number Preview**, lalu isian **Project** yang sesuai, **Letter Category**, **Letter Date**, **Subject**, **Custom Subject**, tujuan surat, **Remarks**, dan sebagainya) seperti berikut.
+Jika membuat nomor surat lewat **Create New**, tampil form **Create Letter Number** (**Basic Information**, **Next Number Preview**, isian proyek, kategori, tanggal, subjek, dst.).
 
-<p align="center" id="add-letter">
-<img src="images/official-travels-create-letter-number.png" alt="Form Create Letter Number: Basic Information, baris Next Number Preview, isian Project, Letter Category, Letter Date, Subject, Custom Subject, Destination, Remarks" style="max-width: 70%; width: 70%; height: auto;" />
+<p align="center" id="step-02b-create-letter">
+<img src="images/official-travels-step-02b-create-letter-number.png" alt="Form Create Letter Number: Next Number Preview, Project, Letter Category, Letter Date, Subject, tujuan surat" style="max-width: 75%; width: 75%; height: auto;" />
 </p>
 
-Bagian **Approver Selection**: kolom pencarian, daftar approver terpilih (urutan 1, 2, …) dengan **X** untuk menghapus, serta **Approval Rules Information** (dapat dibuka).
+**3. Travel Information**  
+Isi **LOT Date**, **LOT Origin** (pilih project asal), **Main Traveler**, **Purpose**, **Destination**, **Departure Date**, **Duration**. **Title**, **Business Unit**, **Department** terisi otomatis dari **Main Traveler** (bukan diisi manual di sini).
 
-<p align="center" id="approver-selection">
-<img src="images/official-travels-approver-selection.png" alt="Kartu Approver Selection: pencarian approver, dua approver terpilih dengan nomor urut, email, dan baris Approval Rules Information" style="max-width: 50%; width: 50%; height: auto;" />
+<p align="center" id="step-03-travel-information">
+<img src="images/official-travels-step-03-travel-information.png" alt="Kartu Travel Information: LOT Date, Origin, Main Traveler, Purpose, Destination, Departure Date, Duration" style="max-width: 75%; width: 75%; height: auto;" />
 </p>
+
+**4. Followers** (opsional)  
+Klik **Add Follower** untuk menambah baris, pilih karyawan; **X** / **Remove** untuk menghapus baris.
+
+<p align="center" id="step-04-followers">
+<img src="images/official-travels-step-04-followers.png" alt="Kartu Followers: tabel NIK, Title, Business Unit, Department, Add Follower" style="max-width: 75%; width: 75%; height: auto;" />
+</p>
+
+**5. Travel Arrangements**  
+Pilih **Transportation** dan **Accommodation** (data dari **Master Data** → **Official Travel Data**).
+
+<p align="center" id="step-05-travel-arrangements">
+<img src="images/official-travels-step-05-travel-arrangements.png" alt="Kartu Travel Arrangements: dropdown Transportation dan Accommodation" style="max-width: 55%; width: 55%; height: auto;" />
+</p>
+
+**6. Flight Request** (opsional)  
+Centang **Check if you need flight ticket reservation**; isi segmen penerbangan sesuai form. Jika LOT disetujui, pengajuan tiket diproses HR HO Balikpapan sesuai kebijakan.
+
+<p align="center" id="step-06-flight-request">
+<img src="images/official-travels-step-06-flight-request.png" alt="Kartu Flight Request: centang Check if you need flight ticket reservation, segmen Flight 1 dengan From, To, Date, Time, Airline, tombol Add Flight Segment" style="max-width: 55%; width: 55%; height: auto;" />
+</p>
+
+**7. Approver Selection**  
+Cari approver (nama atau email), baca **Approval Rules Information** untuk mengetahui aturan pemilihan approval untuk LOT. Jika approver tidak tersedia, hubungi HR/IT HO Balikpapan.
+
+<p align="center" id="step-07-approver-selection">
+<img src="images/official-travels-step-07-approver-selection.png" alt="Kartu Approver Selection: pencarian, approver terpilih berurut, Approval Rules Information" style="max-width: 55%; width: 75%; height: auto;" />
+</p>
+
+**8.** Simpan: **Save as Draft** (bisa diubah lewat **Edit** sampai disetujui) atau **Save & Submit** (ajukan ke approver). **Cancel** kembali ke daftar. Di detail LOT, gunakan **Print** jika tersedia.
+
+**9.** Untuk LOT yang masih **Draft**, buka detail LOT lalu klik **Submit for Approval** untuk mengajukan persetujuan.
+
+**10.** Untuk LOT dari **My Official Travel Request** (nomor **REQxxxxx**), buka detail LOT, klik **Konfirmasi & Isi Nomor Surat**; pilih nomor surat (seperti langkah 2), tentukan approver (seperti langkah 7), **Update**; lalu di detail LOT klik **Submit for Approval** untuk meneruskan ke proses approval.
 
 ---
 
@@ -192,6 +216,6 @@ Hubungi **administrator** (atau **IT** / **HR**) jika: menu tidak tampil padahal
 
 **Jangan** mengirim **password** lewat obrolan atau surel. Cukup sampaikan **username**, nomor **LOT** / **Travel Number**, waktu kejadian, dan cuplikan pesan error.
 
-</div>
-
 ---
+
+</div>

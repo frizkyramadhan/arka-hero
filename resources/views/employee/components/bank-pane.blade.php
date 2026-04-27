@@ -88,10 +88,29 @@
                                 <span class="info-box-number">{{ $bank->bank_account_name ?? '-' }}</span>
                             </div>
                         </div>
+                        @if (!empty($bank->passbook_document_path))
+                            <div class="mt-2 d-flex flex-wrap align-items-center">
+                                <a href="{{ route('employeebanks.download-passbook', $bank) }}"
+                                    class="text-primary mr-2" target="_blank" rel="noopener"><i
+                                        class="fas fa-file-download mr-1"></i>Download</a>
+                                <button type="submit" class="btn btn-sm btn-outline-danger"
+                                    form="bank-delete-passbook-doc-{{ $bank->id }}"
+                                    onclick="return confirm('Delete passbook document? This action cannot be undone.')">
+                                    <i class="fas fa-trash-alt mr-1"></i>Delete
+                                </button>
+                            </div>
+                        @endif
                     </div>
                 </div>
             </div>
         </div>
+    @endif
+    @if ($bank && !empty($bank->passbook_document_path))
+        <form id="bank-delete-passbook-doc-{{ $bank->id }}"
+            action="{{ route('employeebanks.documents.passbook.delete', $bank) }}" method="POST" class="d-none">
+            @csrf
+            @method('DELETE')
+        </form>
     @endif
 </div>
 

@@ -3,8 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\Insurance;
+use App\Support\EmployeeSupportingDocumentStorage;
 use App\Support\UserProject;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class InsuranceController extends Controller
 {
@@ -70,7 +72,10 @@ class InsuranceController extends Controller
         $request->validate([
             'employee_id' => 'required',
             'health_insurance_type' => 'required',
-            'health_insurance_no' => 'required|unique:insurances|',
+            'health_insurance_no' => 'required|unique:insurances,health_insurance_no',
+            'health_facility' => 'nullable|string',
+            'health_insurance_remarks' => 'nullable|string',
+            'supporting_document' => EmployeeSupportingDocumentStorage::MIME_RULE,
         ]);
 
         $insurances = new Insurance;
@@ -79,6 +84,13 @@ class InsuranceController extends Controller
         $insurances->health_insurance_no = $request->health_insurance_no;
         $insurances->health_facility = $request->health_facility;
         $insurances->health_insurance_remarks = $request->health_insurance_remarks;
+        if ($request->hasFile('supporting_document')) {
+            $insurances->document_path = EmployeeSupportingDocumentStorage::storeForEmployee(
+                $request->file('supporting_document'),
+                $request->employee_id,
+                'insurance'
+            );
+        }
         $insurances->save();
 
         return redirect('employees/'.$employee_id.'#insurance')->with('status', 'Insurance Employee Add Successfully');
@@ -91,23 +103,31 @@ class InsuranceController extends Controller
             return $r;
         }
 
-        $rules = [
+        $validatedData = $request->validate([
             'employee_id' => 'required',
             'health_insurance_type' => 'required',
-            'health_insurance_no' => 'required',
-            'health_facility' => 'required',
-            'health_insurance_remarks' => 'required',
-        ];
-
-        if ($request->health_insurance_no != $insurances->health_insurance_no) {
-            $rules['health_insurance_no'] = 'unique:insurances';
-        }
-
-        $validatedData = $request->validate($rules);
+            'health_insurance_no' => [
+                'required',
+                Rule::unique('insurances', 'health_insurance_no')->ignore($insurances->id),
+            ],
+            'health_facility' => 'nullable|string',
+            'health_insurance_remarks' => 'nullable|string',
+            'supporting_document' => EmployeeSupportingDocumentStorage::MIME_RULE,
+        ]);
         if ($r = UserProject::guardEmployeeId($request->employee_id)) {
             return $r;
         }
 
+        if ($request->hasFile('supporting_document')) {
+            EmployeeSupportingDocumentStorage::deleteIfExists($insurances->document_path);
+            $validatedData['document_path'] = EmployeeSupportingDocumentStorage::storeForEmployee(
+                $request->file('supporting_document'),
+                $validatedData['employee_id'],
+                'insurance'
+            );
+        }
+
+        unset($validatedData['supporting_document']);
         Insurance::where('id', $id)->update($validatedData);
 
         return redirect('employees/'.$request->employee_id.'#insurance')->with('toast_success', 'Insurance Employee Update Successfully');
@@ -122,6 +142,7 @@ class InsuranceController extends Controller
         if ((int) $insurances->employee_id !== (int) $employee_id) {
             return UserProject::redirectAccessDenied();
         }
+        EmployeeSupportingDocumentStorage::deleteIfExists($insurances->document_path);
         $insurances->delete();
 
         return redirect('employees/'.$employee_id.'#insurance')->with('toast_success', 'Insurance Delete Successfully');
@@ -133,8 +154,32 @@ class InsuranceController extends Controller
             return $r;
         }
 
+        foreach (Insurance::where('employee_id', $employee_id)->get() as $row) {
+            EmployeeSupportingDocumentStorage::deleteIfExists($row->document_path);
+        }
         Insurance::where('employee_id', $employee_id)->delete();
 
         return redirect('employees/'.$employee_id.'#insurance')->with('toast_success', 'Insurance Delete Successfully');
+    }
+
+    public function downloadDocument(Insurance $insurance)
+    {
+        if ($r = UserProject::guardEmployeeId($insurance->employee_id)) {
+            return $r;
+        }
+        $response = EmployeeSupportingDocumentStorage::downloadResponse($insurance->document_path);
+
+        return $response ?? redirect()->back()->with('toast_error', 'Dokumen BPJS tidak ditemukan.');
+    }
+
+    public function deleteSupportingDocument(Insurance $insurance)
+    {
+        if ($r = UserProject::guardEmployeeId($insurance->employee_id)) {
+            return $r;
+        }
+        EmployeeSupportingDocumentStorage::deleteIfExists($insurance->document_path);
+        $insurance->forceFill(['document_path' => null])->save();
+
+        return redirect('employees/'.$insurance->employee_id.'#insurance')->with('toast_success', 'Dokumen pendukung berhasil dihapus.');
     }
 }
