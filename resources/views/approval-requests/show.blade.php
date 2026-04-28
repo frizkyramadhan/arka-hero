@@ -298,7 +298,8 @@
                                         </div>
                                         <div class="info-content">
                                             <div class="info-label">Remarks</div>
-                                            <div class="info-value overtime-remarks-value">{{ $document->remarks ?: '—' }}</div>
+                                            <div class="info-value overtime-remarks-value">{{ $document->remarks ?: '—' }}
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -329,8 +330,10 @@
                                                         <td>{{ $i + 1 }}</td>
                                                         <td>{{ $line->administration->employee->fullname ?? '—' }}</td>
                                                         <td>{{ $line->administration->nik ?? '—' }}</td>
-                                                        <td>{{ $line->time_in ? \Carbon\Carbon::parse($line->time_in)->format('H:i') : '—' }}</td>
-                                                        <td>{{ $line->time_out ? \Carbon\Carbon::parse($line->time_out)->format('H:i') : '—' }}</td>
+                                                        <td>{{ $line->time_in ? \Carbon\Carbon::parse($line->time_in)->format('H:i') : '—' }}
+                                                        </td>
+                                                        <td>{{ $line->time_out ? \Carbon\Carbon::parse($line->time_out)->format('H:i') : '—' }}
+                                                        </td>
                                                         <td>{{ $line->work_description ?? '—' }}</td>
                                                     </tr>
                                                 @endforeach
@@ -1095,7 +1098,8 @@
                                         </div>
                                         <div class="info-row">
                                             <div class="info-label"><strong>BUSINESS PARTNER:</strong></div>
-                                            <div class="info-value">{{ $document->businessPartner->bp_name ?? '-' }}</div>
+                                            <div class="info-value">{{ $document->businessPartner->bp_name ?? '-' }}
+                                            </div>
                                         </div>
                                         <div class="info-row">
                                             <div class="info-label"><strong>ISSUED BY:</strong></div>

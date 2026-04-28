@@ -332,9 +332,7 @@
                     @endif
 
                     <!-- Manual Approvers Card - sembunyikan jika FR completed/cancelled (tetap tampil saat rejected) -->
-                    @if (
-                        !empty($flightRequest->manual_approvers) &&
-                            !in_array($flightRequest->status, ['completed', 'cancelled']))
+                    @if (!empty($flightRequest->manual_approvers) && !in_array($flightRequest->status, ['completed', 'cancelled']))
                         <div class="flight-request-card mb-4">
                             <div class="card-head">
                                 <h2><i class="fas fa-users"></i> Selected Approvers</h2>
