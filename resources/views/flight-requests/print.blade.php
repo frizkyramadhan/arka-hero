@@ -103,6 +103,7 @@
             .employee-info-section .info-row {
                 display: flex;
                 align-items: center;
+                height: auto;
                 min-height: 30px;
                 padding: 4px 0;
                 margin-bottom: 2px;
@@ -131,12 +132,37 @@
 
             .employee-info-section .info-row .value {
                 flex: 1;
-                border-bottom: 1px solid #ccc;
+                min-width: 0;
+                height: auto;
                 min-height: 22px;
+                border-bottom: 1px solid #ccc;
                 display: flex;
                 align-items: center;
                 padding-left: 4px;
                 color: #222;
+            }
+
+            /* Purpose of travel: height follows content; single line matches other rows */
+            .employee-info-section .info-row.info-row--purpose {
+                align-items: flex-start;
+                min-height: 30px;
+            }
+
+            .employee-info-section .info-row.info-row--purpose .label,
+            .employee-info-section .info-row.info-row--purpose .colon {
+                padding-top: 3px;
+            }
+
+            .employee-info-section .info-row.info-row--purpose .value {
+                display: block;
+                align-items: unset;
+                white-space: pre-wrap;
+                word-wrap: break-word;
+                overflow-wrap: break-word;
+                line-height: 1.4;
+                padding-top: 3px;
+                padding-bottom: 2px;
+                overflow: visible;
             }
 
             /* Request Flight Booking - same cozy style */
@@ -492,12 +518,17 @@
                 : collect();
             $requestedByName = $flightRequest->requestedBy->name ?? $name;
             $frStatusKey = (string) ($flightRequest->status ?? '');
-            $frStatusLabel = \App\Models\FlightRequest::getStatusOptions()[$frStatusKey]
-                ?? ucfirst(str_replace('_', ' ', $frStatusKey !== '' ? $frStatusKey : '—'));
+            $frStatusLabel =
+                \App\Models\FlightRequest::getStatusOptions()[$frStatusKey] ??
+                ucfirst(str_replace('_', ' ', $frStatusKey !== '' ? $frStatusKey : '—'));
+            if ($frStatusKey === \App\Models\FlightRequest::STATUS_APPROVED) {
+                $frStatusLabel =
+                    \App\Models\FlightRequest::getStatusOptions()[\App\Models\FlightRequest::STATUS_SUBMITTED];
+            }
             $frDocStatusClass = match ($frStatusKey) {
                 \App\Models\FlightRequest::STATUS_DRAFT => 'fr-doc-draft',
                 \App\Models\FlightRequest::STATUS_SUBMITTED => 'fr-doc-submitted',
-                \App\Models\FlightRequest::STATUS_APPROVED => 'approved',
+                \App\Models\FlightRequest::STATUS_APPROVED => 'fr-doc-submitted',
                 \App\Models\FlightRequest::STATUS_ISSUED => 'fr-doc-issued',
                 \App\Models\FlightRequest::STATUS_COMPLETED => 'fr-doc-completed',
                 \App\Models\FlightRequest::STATUS_REJECTED => 'reject',
@@ -573,7 +604,7 @@
                         <span class="colon">:</span>
                         <span class="value">{{ $phoneNumber }}</span>
                     </div>
-                    <div class="info-row">
+                    <div class="info-row info-row--purpose">
                         <span class="label">Purpose of Travel</span>
                         <span class="colon">:</span>
                         <span class="value">{{ $flightRequest->purpose_of_travel ?? '-' }}</span>
@@ -668,7 +699,8 @@
                         <span class="approval-name">{{ $requestedByName }}</span>
                     </div>
                     <div class="approval-right">
-                        <span class="approval-status fr-doc-status {{ $frDocStatusClass }}">{{ $frStatusLabel }}</span>
+                        <span
+                            class="approval-status fr-doc-status {{ $frDocStatusClass }}">{{ $frStatusLabel }}</span>
                     </div>
                 </div>
                 @forelse ($sortedApprovalPlans as $idx => $plan)
