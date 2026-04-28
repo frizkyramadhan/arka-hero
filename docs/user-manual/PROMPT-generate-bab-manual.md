@@ -38,7 +38,7 @@ Anda adalah penulis dokumentasi produk internal. Hasilkan **satu file Markdown**
 
     dengan pemisah kolom `| :--- |` konsisten. Lalu `### Menghubungi administrator` (tanpa meminta **password**; cukup username, waktu, ringkasan pesan). Jika hanya admin teknis: cukup `### Jika ada masalah`.
 
-13. **Gambar (disediakan user / placeholder)** — letakkan setelah langkah yang relevan. Format:
+13. **Gambar / screenshot** — wajib memakai **cuplikan layar aplikasi yang sesuai** dengan langkah dan label UI di teks (bukan gambar generik yang tidak mencerminkan ARKA HERO). Letakkan **setelah** langkah atau subbab yang digambarkan. Format HTML:
 
 ```html
 <p align="center" id="anchor-opsional-snake-case">
@@ -50,10 +50,12 @@ Anda adalah penulis dokumentasi produk internal. Hasilkan **satu file Markdown**
 </p>
 ```
 
-- **Nama file:** snake_case, deskriptif; untuk urutan form panjang, pola seperti `modul-step-02-letter-number.png` (lihat Official Travel).
-- **Lebar umum:** dashboard / daftar / laporan lebar → `width: 100%`; form multi-bagian → sering `75%`; kartu sempit (satu panel) → `55%`–`75%` — sesuaikan agar proporsional di PDF/HTML.
+- **Nama file:** snake_case, deskriptif; untuk urutan form panjang, pola seperti `modul-step-02-letter-number.png` (lihat `10-official-travel.md`).
+- **Lokasi berkas:** simpan aset ke folder **`docs/user-manual/images/`**; di Markdown gunakan path relatif `images/nama_berkas.png` (relatif terhadap file bab `.md`).
+- **Lebar tampilan (`width` / `max-width`):** dashboard / daftar / laporan lebar → `100%`; form multi-bagian → umumnya `75%`; satu kartu/panel sempit → `55%`–`75%` — sesuaikan agar teks di PDF/HTML masih terbaca (hindari memperkecil sampai label UI tidak jelas).
 - **Tautan dari teks:** `<a href="#anchor-opsional-snake-case">Lihat gambar</a>`.
-- **Tanpa `id`** hanya bila gambar tidak pernah dirujuk tautan internal.
+- **Tanpa atribut `id`** pada `<p>` hanya bila gambar tidak pernah dirujuk tautan internal.
+- **Placeholder:** jika screenshot belum tersedia, tetap tulis blok `<img>` dengan `src` dan nama file final yang sudah disepakati; penulis manusia atau AI kemudian **mengganti berkas** di `images/` tanpa mengubah nama file. Setelah gambar diganti, **sesuaikan `alt`** agar cocok dengan isi layar terbaru.
 
 14. **Tautan internal antar bagian** — bila alur melanjutkan ke subjudul lain di **bab yang sama**, boleh memakai tautan Markdown ke heading, mis. `[Arrival Check](#langkah-langkah--record-arrival-arrival-check)` (sesuaikan slug dengan renderer yang dipakai tim).
 
@@ -67,13 +69,25 @@ Anda adalah penulis dokumentasi produk internal. Hasilkan **satu file Markdown**
 
 17. **Hindari teks “developer”** — tanpa: nama field database, nama route/controller, `@can`/`@hasrole` di teks user-facing, metode API/HTTP, kode error mesin, daftar endpoint, `PATCH`/`GET`, `403/404` kecuali sudah diterjemahkan ke bahasa pengguna. **Hak akses / izin** dijelaskan dengan kata sehari-hari.
 
-### 2) Sebelum menulis, riset di codebase (wajib jika tersedia)
+### 2) Screenshot — cara menangkap dan menyelaraskan dengan tutorial
+
+Gunakan panduan ini agar **gambar selaras dengan narasi** dan layak cetak/PDF.
+
+1. **Sumber tangkapan** — ambil dari aplikasi ARKA HERO (lingkungan dev/staging/produksi sesuai kebijakan tim). Pastikan **versi UI** dan label sama dengan yang dijelaskan di bab (setelah riset `sidebar` / view).
+2. **Isi frame** — satu screenshot utama fokus pada **satu tujuan langkah**: misalnya menu sidebar yang aktif, judul halaman, area filter/tabel/tombol yang disebut di teks. Hindari memotong bagian penting (breadcrumb, judul kartu, tombol aksi) kecuali sengaja untuk zoom panel.
+3. **Konsistensi dengan teks** — label yang disebut di langkah (mis. **Bulk Approve**, **Pending Approvals**) harus **terlihat** di gambar atau dijelaskan di `alt` jika hanya sebagian terpotong. Jika UI berubah, **perbarui teks bab** atau **ganti screenshot**.
+4. **Privasi & data** — sensor atau gunakan data contoh yang diizinkan (nama, NIK, gaji, surel) sesuai kebijakan perusahaan; jangan menyebar data nyata sensitif di manual publik.
+5. **Teknis file** — format **PNG** disarankan untuk antarmuka; hindari kompresi agresif yang membuat teks kabur. Nama berkas **snake_case**, satu adegan per berkas kecuali alur memang satu layar panjang.
+6. **Alur kerja penyisipan** — (a) tulis/revisi langkah Markdown → (b) tangkap layar yang membuktikan langkah itu → (c) simpan ke `docs/user-manual/images/` → (d) pastikan `src` di bab mengarah ke nama berkas itu → (e) isi `alt` dengan deskripsi konkret (komponen, kolom tabel, warna badge status bila relevan), bukan “screenshot” kosong.
+7. **Export PDF** — setelah mengganti gambar, generate ulang PDF bila tim memakai alur tersebut, agar bab tidak masih memuat cuplikan lama.
+
+### 3) Sebelum menulis, riset di codebase (wajib jika tersedia)
 
 - `routes/web.php`, `resources/views/layouts/partials/sidebar.blade.php` (label menu & hierarki), judul di controller / variabel `$title` / `$subtitle`, serta teks di `resources/views/…` agar **label, menu, dan alur** akurat.
 - Cek teks **tombol**, **placeholder**, **modal**, **breadcrumb**, dan nama kolom **DataTables** jika halaman memakai tabel.
 - Jangan mengarang nama menu atau label yang tidak ada di UI.
 
-### 3) Output
+### 4) Output
 
 - Keluarkan **hanya isi file `.md` lengkap** (siap disimpan), kecuali diminta sebaliknya.
 - Nama file disarankan: `NN-nama-topik.md` (nomor disepakati tim dokumentasi).
@@ -83,12 +97,18 @@ Anda adalah penulis dokumentasi produk internal. Hasilkan **satu file Markdown**
 ## Input bab (diisi manusia lalu ditempel bersama instruksi di atas)
 
 - **Nama & nomor file target:** (contoh: `08-employee-management.md`)
-- **Topik & sub-bab / alur utama:** (…)
-- **Pembaca target:** (mis. HR, semua karyawan, approver saja — sebutkan peran jika bab campuran)
-- **Menu sidebar & path (teks persis jika sudah yakin):** (grup → sub-menu)
+- **Topik & sub-bab / alur utama:** (a. Dashboard
+  b. Employee (Create, Detail, Edit, Delete) - metode input manual
+  Personal, Employment, Bank, Tax, Insurances, Licenses, Families, Educations, Courses, Experiences, Units, Emergencies, Additional, Images
+  c. Termination
+  d. Input data karyawan di poin b & c dengan metode import export
+  e. Employee Bonds (Ikatan Dinas)
+  f. Bond Violation (Pelanggaran Ikatan Dinas))
+- **Pembaca target:** (HR)
+- **Menu sidebar & path (teks persis jika sudah yakin):** (HERO SECTION -> Employee Management)
 - **Rute/URL singkat (opsional, untuk riset saja — jangan penuhi dokumen dengan URL):** (…)
-- **Screenshot / rencana penamaan file:** (daftar `images/…png` atau “placeholder dulu”)
-- **Kasus error khas (opsional):** (…)
+- **Screenshot:** untuk tiap subbab utama, sebutkan **nama file** di `images/` + **apa yang harus tampak** di layar (contoh: “halaman list dengan filter terbuka”). Tandai jika masih **placeholder**. Setelah ada berkas nyata, pastikan cuplikan **match** label di langkah.
+- **Kasus error khas (opsional):** (sebutkan error yang mungkin terjadi)
 - **Batasan kebijakan / istilah perusahaan (opsional):** (mis. nama cabang, HO, format nomor surat — agar narasi konsisten)
 - **Konsolidasi gaya khusus (opsional):** (mis. “tanpa URL sama sekali”, “satu gambar per subbab”, “bab tanpa glosarium” — hanya jika tim menyimpangi default)
 
