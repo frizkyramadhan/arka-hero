@@ -157,13 +157,14 @@ class FlightRequestController extends Controller
             ->map(function ($leave) {
                 $employee = $leave->employee;
                 $admin = $leave->administration;
+                $regLabel = filled($leave->register_number) ? $leave->register_number : '—';
 
                 return [
                     'id' => $leave->id,
                     'register_number' => $leave->register_number,
                     'text' => sprintf(
                         '%s — %s - %s (%s to %s)',
-                        $leave->register_number ?? $leave->id,
+                        $regLabel,
                         $employee ? $employee->fullname : 'N/A',
                         $admin ? $admin->nik : 'N/A',
                         $leave->start_date->format('d M Y'),
@@ -199,7 +200,8 @@ class FlightRequestController extends Controller
             'traveler.position.department',
             'traveler.project',
             'details.follower.employee',
-            'details.follower.position',
+            'details.follower.position.department',
+            'details.follower.project',
         ])
             ->whereIn('status', ['submitted', 'approved'])
             ->orderBy('departure_from', 'desc')
@@ -212,11 +214,17 @@ class FlightRequestController extends Controller
                 $followers = $travel->details->map(function ($detail) {
                     $follower = $detail->follower;
                     $followerEmployee = $follower ? $follower->employee : null;
+                    $dept = ($follower && $follower->position && $follower->position->department)
+                        ? $follower->position->department->department_name
+                        : 'No Department';
 
                     return [
                         'name' => $followerEmployee ? $followerEmployee->fullname : 'N/A',
                         'nik' => $follower ? $follower->nik : 'N/A',
                         'position' => ($follower && $follower->position) ? $follower->position->position_name : 'N/A',
+                        'department' => $dept,
+                        'project_code' => ($follower && $follower->project) ? ($follower->project->project_code ?? 'No Code') : 'No Code',
+                        'project_name' => ($follower && $follower->project) ? ($follower->project->project_name ?? 'No Project') : 'No Project',
                     ];
                 })->toArray();
 
@@ -273,13 +281,14 @@ class FlightRequestController extends Controller
             ->map(function ($leave) {
                 $emp = $leave->employee;
                 $admin = $leave->administration;
+                $regLabel = filled($leave->register_number) ? $leave->register_number : '—';
 
                 return [
                     'id' => $leave->id,
                     'register_number' => $leave->register_number,
                     'text' => sprintf(
                         '%s — %s - %s (%s to %s)',
-                        $leave->register_number ?? $leave->id,
+                        $regLabel,
                         $emp ? $emp->fullname : 'N/A',
                         $admin ? $admin->nik : 'N/A',
                         $leave->start_date->format('d M Y'),
@@ -322,7 +331,8 @@ class FlightRequestController extends Controller
             'traveler.position.department',
             'traveler.project',
             'details.follower.employee',
-            'details.follower.position',
+            'details.follower.position.department',
+            'details.follower.project',
         ])
             ->whereHas('traveler', function ($q) use ($employee) {
                 $q->where('employee_id', $employee->id);
@@ -337,11 +347,17 @@ class FlightRequestController extends Controller
                 $followers = $travel->details->map(function ($detail) {
                     $follower = $detail->follower;
                     $followerEmployee = $follower ? $follower->employee : null;
+                    $dept = ($follower && $follower->position && $follower->position->department)
+                        ? $follower->position->department->department_name
+                        : 'No Department';
 
                     return [
                         'name' => $followerEmployee ? $followerEmployee->fullname : 'N/A',
                         'nik' => $follower ? $follower->nik : 'N/A',
                         'position' => ($follower && $follower->position) ? $follower->position->position_name : 'N/A',
+                        'department' => $dept,
+                        'project_code' => ($follower && $follower->project) ? ($follower->project->project_code ?? 'No Code') : 'No Code',
+                        'project_name' => ($follower && $follower->project) ? ($follower->project->project_name ?? 'No Project') : 'No Project',
                     ];
                 })->toArray();
 

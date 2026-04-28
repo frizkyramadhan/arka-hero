@@ -187,6 +187,22 @@
                             </div>
                         </div>
 
+                        <!-- LOT followers (same info as detail; card chrome matches other create cards) -->
+                        <div id="lot_followers_card" class="card card-primary card-outline elevation-3 mb-3"
+                            style="display: none;">
+                            <div class="card-header">
+                                <h3 class="card-title">
+                                    <i class="fas fa-users mr-2"></i>
+                                    <strong>Followers</strong>
+                                    <span class="badge badge-primary align-middle ml-2"
+                                        id="lot_followers_count">0</span>
+                                </h3>
+                            </div>
+                            <div class="card-body p-0">
+                                <div class="followers-list" id="lot_followers_list"></div>
+                            </div>
+                        </div>
+
                         <!-- Flight Details -->
                         <div class="card card-info card-outline elevation-3" id="flight_details_card"
                             style="display: none;">
@@ -341,6 +357,61 @@
             width: 35%;
             background-color: #f8f9fa;
         }
+
+        /* LOT followers list body (header/shadow from AdminLTE card + elevation-3) */
+        #lot_followers_card .followers-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        #lot_followers_card .follower-item {
+            padding: 15px;
+            border-bottom: 1px solid #edf2f7;
+        }
+
+        #lot_followers_card .follower-name {
+            font-size: 16px;
+            font-weight: 500;
+            color: #2c3e50;
+            margin-bottom: 4px;
+        }
+
+        #lot_followers_card .follower-position {
+            font-size: 15px;
+            color: #64748b;
+            margin-bottom: 6px;
+        }
+
+        #lot_followers_card .follower-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            font-size: 14px;
+            color: #64748b;
+            margin-bottom: 6px;
+        }
+
+        #lot_followers_card .follower-nik,
+        #lot_followers_card .follower-department {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        #lot_followers_card .follower-project {
+            font-size: 14px;
+            color: #64748b;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        #lot_followers_card .follower-meta i,
+        #lot_followers_card .follower-project i {
+            font-size: 14px;
+            width: 16px;
+            text-align: center;
+        }
     </style>
 @endsection
 
@@ -363,6 +434,45 @@
                 officialTravels: '{{ route('flight-requests.api.official-travels') }}',
                 employees: '{{ route('flight-requests.api.employees') }}'
             };
+
+            function escapeHtml(text) {
+                if (text === undefined || text === null) return '';
+                return $('<div/>').text(text).html();
+            }
+
+            function clearLotFollowersCard() {
+                $('#lot_followers_list').empty();
+                $('#lot_followers_count').text('0');
+                $('#lot_followers_card').hide();
+            }
+
+            function renderLotFollowersCard(followers) {
+                clearLotFollowersCard();
+                if (!followers || !followers.length) return;
+                $('#lot_followers_count').text(followers.length);
+                const $list = $('#lot_followers_list');
+                followers.forEach(function(f) {
+                    const name = escapeHtml(f.name || 'Unknown Employee');
+                    const pos = escapeHtml(f.position || 'No Position');
+                    const nik = escapeHtml(f.nik || '');
+                    const dept = escapeHtml(f.department || 'No Department');
+                    const pcode = escapeHtml(f.project_code || 'No Code');
+                    const pname = escapeHtml(f.project_name || 'No Project');
+                    $list.append(
+                        '<div class="follower-item"><div class="follower-info">' +
+                        '<div class="follower-name">' + name + '</div>' +
+                        '<div class="follower-position">' + pos + '</div>' +
+                        '<div class="follower-meta">' +
+                        '<span class="follower-nik"><i class="fas fa-id-card"></i> ' + nik + '</span>' +
+                        '<span class="follower-department"><i class="fas fa-sitemap"></i> ' + dept + '</span>' +
+                        '</div>' +
+                        '<div class="follower-project"><i class="fas fa-project-diagram"></i> ' + pcode +
+                        ' : ' + pname + '</div>' +
+                        '</div></div>'
+                    );
+                });
+                $('#lot_followers_card').show();
+            }
 
             // Handle Request Type Change
             $('#request_type').on('change', function() {
@@ -448,23 +558,22 @@
                         if (requestType === 'leave_based') {
                             $('#leave_request_id').val(selectedOption.val());
                             $('#official_travel_id').val('');
-                            // Clear follower info for leave request
+                            clearLotFollowersCard();
                             clearFollowersFromNotes();
                         } else if (requestType === 'travel_based') {
                             $('#official_travel_id').val(selectedOption.val());
                             $('#leave_request_id').val('');
-                            // Add follower info to notes if available
-                            addFollowersToNotes(followers);
+                            renderLotFollowersCard(followers);
                         } else if (requestType === 'standalone') {
-                            // For standalone, set employee_id
                             $('#employee_id').val(selectedOption.val());
-                            // Clear follower info for standalone
+                            clearLotFollowersCard();
                             clearFollowersFromNotes();
                         }
                     }
                 } else {
                     clearEmployeeInfo();
                     $('#employee_info_card').hide();
+                    clearLotFollowersCard();
                     clearFollowersFromNotes();
                 }
             });
@@ -561,6 +670,7 @@
 
             // Clear Employee Information
             function clearEmployeeInfo() {
+                clearLotFollowersCard();
                 $('#employee_id').val('');
                 $('#administration_id').val('');
                 $('#employee_name').val('');
@@ -579,24 +689,7 @@
                 clearFollowersFromNotes();
             }
 
-            // Add Followers Information to Notes Textarea
-            function addFollowersToNotes(followers) {
-                // First, remove any existing follower info
-                clearFollowersFromNotes();
-
-                if (followers && followers.length > 0) {
-                    let followerText = '\n\n--- Followers ---\n';
-                    followers.forEach(function(follower) {
-                        followerText += `- ${follower.name} (${follower.nik}) - ${follower.position}\n`;
-                    });
-
-                    const currentNotes = $('#notes').val();
-                    // Add new follower info to the end
-                    $('#notes').val((currentNotes.trim() + followerText).trim());
-                }
-            }
-
-            // Clear Followers Information from Notes Textarea
+            // Clear Followers Information from Notes Textarea (legacy auto-append removed)
             function clearFollowersFromNotes() {
                 const currentNotes = $('#notes').val();
                 if (!currentNotes) return;

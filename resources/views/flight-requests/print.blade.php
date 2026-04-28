@@ -313,8 +313,8 @@
                 align-items: center;
                 justify-content: space-between;
                 margin-bottom: 10px;
-                min-height: 28px;
-                padding: 2px 0;
+                min-height: 34px;
+                padding: 3px 0;
             }
 
             .approval-section .approval-row:last-child {
@@ -361,22 +361,75 @@
             .approval-section .approval-right {
                 display: flex;
                 align-items: center;
-                gap: 8px;
+                justify-content: center;
                 flex-shrink: 0;
+                min-width: 140px;
+                text-align: center;
             }
 
-            .approval-section .signature-label {
+            /* Pill / subtle “button” — readable in print but not oversized */
+            .approval-section .approval-status {
+                display: inline-block;
                 font-weight: 600;
-                text-transform: uppercase;
-                font-size: 10pt;
-                color: #444;
-                letter-spacing: 0.3px;
+                font-size: 10.5pt;
+                letter-spacing: 0.02em;
+                text-transform: capitalize;
+                text-align: center;
+                line-height: 1.3;
+                padding: 5px 14px;
+                border-radius: 5px;
+                border: 1px solid transparent;
+                box-sizing: border-box;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
             }
 
-            .approval-section .signature-line {
-                border-bottom: 1px solid #ccc;
-                width: 250px;
-                min-height: 20px;
+            .approval-section .approval-status.pending {
+                background: #fff3cd;
+                color: #856404;
+                border-color: #e6cf7a;
+            }
+
+            .approval-section .approval-status.approved {
+                background: #d4edda;
+                color: #155724;
+                border-color: #8fce9c;
+            }
+
+            .approval-section .approval-status.reject {
+                background: #f8d7da;
+                color: #721c24;
+                border-color: #e4a8ad;
+            }
+
+            .approval-section .approval-status.fr-doc-draft {
+                background: #e9ecef;
+                color: #343a40;
+                border-color: #ced4da;
+            }
+
+            .approval-section .approval-status.fr-doc-submitted {
+                background: #fff8e6;
+                color: #856404;
+                border-color: #f0d77a;
+            }
+
+            .approval-section .approval-status.fr-doc-issued {
+                background: #cfe2ff;
+                color: #084298;
+                border-color: #9ec5fe;
+            }
+
+            .approval-section .approval-status.fr-doc-completed {
+                background: #e2e3e5;
+                color: #2b3035;
+                border-color: #c5c8cb;
+            }
+
+            .approval-section .approval-status.fr-doc-cancelled {
+                background: #fdebd0;
+                color: #533f03;
+                border-color: #e8c98f;
             }
 
             /* Footer - cozy style */
@@ -438,15 +491,29 @@
                 ? $flightRequest->details->sortBy(['segment_order', 'flight_date'])->values()
                 : collect();
             $requestedByName = $flightRequest->requestedBy->name ?? $name;
-            $approverIds = $flightRequest->manual_approvers ?? [];
-            $approvers = collect($approverIds)
-                ->map(function ($userId) {
-                    return \App\Models\User::find($userId)?->name;
+            $frStatusKey = (string) ($flightRequest->status ?? '');
+            $frStatusLabel = \App\Models\FlightRequest::getStatusOptions()[$frStatusKey]
+                ?? ucfirst(str_replace('_', ' ', $frStatusKey !== '' ? $frStatusKey : '—'));
+            $frDocStatusClass = match ($frStatusKey) {
+                \App\Models\FlightRequest::STATUS_DRAFT => 'fr-doc-draft',
+                \App\Models\FlightRequest::STATUS_SUBMITTED => 'fr-doc-submitted',
+                \App\Models\FlightRequest::STATUS_APPROVED => 'approved',
+                \App\Models\FlightRequest::STATUS_ISSUED => 'fr-doc-issued',
+                \App\Models\FlightRequest::STATUS_COMPLETED => 'fr-doc-completed',
+                \App\Models\FlightRequest::STATUS_REJECTED => 'reject',
+                \App\Models\FlightRequest::STATUS_CANCELLED => 'fr-doc-cancelled',
+                default => 'pending',
+            };
+            $sortedApprovalPlans = $flightRequest->approvalPlans
+                ->sortBy(function ($plan) {
+                    return [$plan->approval_order ?? 999999, $plan->id];
                 })
-                ->filter()
                 ->values();
-            $firstApproverName = $approvers->isNotEmpty() ? $approvers->first() : '-';
-            $lastApproverName = $approvers->isNotEmpty() ? $approvers->last() : '-';
+            $approvalStatusLabels = [
+                0 => 'Pending',
+                1 => 'Approved',
+                2 => 'Reject',
+            ];
         @endphp
 
         <div class="print-container">
@@ -590,7 +657,7 @@
                 <div class="note-box">{{ $flightRequest->notes ?? ' ' }}</div>
             </div>
 
-            <!-- Approval & Signature -->
+            <!-- Approval status -->
             <div class="approval-section">
                 <div class="approval-row">
                     <div class="approval-left">
@@ -601,36 +668,44 @@
                         <span class="approval-name">{{ $requestedByName }}</span>
                     </div>
                     <div class="approval-right">
-                        <span class="signature-label">Signature</span>
-                        <div class="signature-line"></div>
+                        <span class="approval-status fr-doc-status {{ $frDocStatusClass }}">{{ $frStatusLabel }}</span>
                     </div>
                 </div>
-                <div class="approval-row">
-                    <div class="approval-left">
-                        <span class="approval-label">Acknowledged By</span>
+                @forelse ($sortedApprovalPlans as $idx => $plan)
+                    @php
+                        $planCount = $sortedApprovalPlans->count();
+                        if ($planCount === 1) {
+                            $rowLabel = 'Acknowledged By';
+                        } elseif ($idx === 0) {
+                            $rowLabel = 'Acknowledged By';
+                        } elseif ($idx === $planCount - 1) {
+                            $rowLabel = 'Travel Approved By';
+                        } else {
+                            $rowLabel = 'Approved By';
+                        }
+                        $st = (int) ($plan->status ?? 0);
+                        $statusText = $approvalStatusLabels[$st] ?? 'Pending';
+                        $statusClass = match ($st) {
+                            1 => 'approved',
+                            2 => 'reject',
+                            default => 'pending',
+                        };
+                        $approverName = $plan->approver->name ?? '—';
+                    @endphp
+                    <div class="approval-row">
+                        <div class="approval-left">
+                            <span class="approval-label">{{ $rowLabel }}</span>
+                        </div>
+                        <div class="approval-center">
+                            <span> : </span>
+                            <span class="approval-name">{{ $approverName }}</span>
+                        </div>
+                        <div class="approval-right">
+                            <span class="approval-status {{ $statusClass }}">{{ $statusText }}</span>
+                        </div>
                     </div>
-                    <div class="approval-center">
-                        <span> : </span>
-                        <span class="approval-name">{{ $firstApproverName }}</span>
-                    </div>
-                    <div class="approval-right">
-                        <span class="signature-label">Signature</span>
-                        <div class="signature-line"></div>
-                    </div>
-                </div>
-                <div class="approval-row">
-                    <div class="approval-left">
-                        <span class="approval-label">Travel Approved By</span>
-                    </div>
-                    <div class="approval-center">
-                        <span> : </span>
-                        <span class="approval-name">{{ $lastApproverName }}</span>
-                    </div>
-                    <div class="approval-right">
-                        <span class="signature-label">Signature</span>
-                        <div class="signature-line"></div>
-                    </div>
-                </div>
+                @empty
+                @endforelse
             </div>
 
             <!-- Footer -->

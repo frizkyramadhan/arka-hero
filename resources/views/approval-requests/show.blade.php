@@ -797,6 +797,9 @@
                                 'leaveRequest.employee',
                                 'leaveRequest.administration',
                                 'officialTravel.traveler.employee',
+                                'officialTravel.details.follower.employee',
+                                'officialTravel.details.follower.position.department',
+                                'officialTravel.details.follower.project',
                             ])->find($approvalPlan->document_id);
 
                             $employee = $document->employee;
@@ -915,6 +918,46 @@
                                 </div>
                             </div>
                         </div>
+
+                        @if (
+                            $document->request_type === \App\Models\FlightRequest::TYPE_TRAVEL_BASED &&
+                                $document->officialTravel &&
+                                $document->officialTravel->details->isNotEmpty())
+                            <div class="flight-request-card followers-card flight-request-lot-followers mb-4">
+                                <div class="card-head">
+                                    <h2><i class="fas fa-users"></i> Followers <span
+                                            class="followers-count">{{ $document->officialTravel->details->count() }}</span>
+                                    </h2>
+                                </div>
+                                <div class="card-body p-0">
+                                    <div class="followers-list">
+                                        @foreach ($document->officialTravel->details as $detail)
+                                            <div class="follower-item">
+                                                <div class="follower-info">
+                                                    <div class="follower-name">
+                                                        {{ $detail->follower->employee->fullname ?? 'Unknown Employee' }}
+                                                    </div>
+                                                    <div class="follower-position">
+                                                        {{ $detail->follower->position->position_name ?? 'No Position' }}
+                                                    </div>
+                                                    <div class="follower-meta">
+                                                        <span class="follower-nik"><i class="fas fa-id-card"></i>
+                                                            {{ $detail->follower->nik }}</span>
+                                                        <span class="follower-department"><i class="fas fa-sitemap"></i>
+                                                            {{ $detail->follower->position->department->department_name ?? 'No Department' }}</span>
+                                                    </div>
+                                                    <div class="follower-project">
+                                                        <i class="fas fa-project-diagram"></i>
+                                                        {{ $detail->follower->project->project_code ?? 'No Code' }} :
+                                                        {{ $detail->follower->project->project_name ?? 'No Project' }}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        @endforeach
+                                    </div>
+                                </div>
+                            </div>
+                        @endif
 
                         <!-- Flight Details -->
                         <div class="flight-request-card flight-details-card">
@@ -2564,6 +2607,10 @@ if ($plan->status === 1) {
 
         .flight-request-card .card-body {
             padding: 20px;
+        }
+
+        .followers-card {
+            overflow: hidden;
         }
 
         /* Employee Card - Official Travel Detail Style (Compact) */
