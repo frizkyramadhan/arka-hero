@@ -523,6 +523,10 @@
             <div class="flight-booking-section" style="margin-top: 15px;">
                 <div class="section-header">Request Flight Booking</div>
                 <div class="section-body">
+                    @include('flight-requests.partials.official-travel-followers-keterangan', [
+                        'flightRequest' => $flightRequest,
+                        'forPrint' => true,
+                    ])
                     <table class="flight-table">
                         <thead>
                             <tr>

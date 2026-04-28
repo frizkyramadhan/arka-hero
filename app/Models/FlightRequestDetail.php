@@ -35,6 +35,11 @@ class FlightRequestDetail extends Model
         return $this->belongsTo(FlightRequest::class);
     }
 
+    public function passengerAdministration()
+    {
+        return $this->belongsTo(Administration::class, 'passenger_administration_id');
+    }
+
     // Scopes
     public function scopeDeparture($query)
     {

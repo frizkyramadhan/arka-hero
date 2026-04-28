@@ -184,6 +184,10 @@
                         </div>
                     </div>
 
+                    @include('flight-requests.partials.official-travel-followers-keterangan', [
+                        'flightRequest' => $flightRequest,
+                    ])
+
                     <!-- Flight Details -->
                     <div class="flight-request-card flight-details-card">
                         <div class="card-head">
