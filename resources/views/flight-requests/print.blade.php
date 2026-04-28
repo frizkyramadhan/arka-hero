@@ -523,10 +523,41 @@
             <div class="flight-booking-section" style="margin-top: 15px;">
                 <div class="section-header">Request Flight Booking</div>
                 <div class="section-body">
-                    @include('flight-requests.partials.official-travel-followers-keterangan', [
-                        'flightRequest' => $flightRequest,
-                        'forPrint' => true,
-                    ])
+                    @if (
+                        $flightRequest->request_type === \App\Models\FlightRequest::TYPE_TRAVEL_BASED &&
+                            $flightRequest->officialTravel &&
+                            $flightRequest->officialTravel->details->isNotEmpty())
+                        <div style="margin-bottom: 12px;">
+                            <div class="info-row" style="margin-bottom: 6px;">
+                                <span class="label">Follower/s</span>
+                                <span class="colon">:</span>
+                            </div>
+                            <table class="flight-table" style="margin-top: 0;">
+                                <thead>
+                                    <tr>
+                                        <th style="text-align: center; width: 8%;">No.</th>
+                                        <th style="text-align: center;">Name / NIK</th>
+                                        <th style="text-align: center;">Title</th>
+                                        <th style="text-align: center;">Business Unit</th>
+                                        <th style="text-align: center;">Department</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach ($flightRequest->officialTravel->details as $key => $detail)
+                                        <tr>
+                                            <td style="text-align: center;">{{ $key + 1 }}</td>
+                                            <td>{{ $detail->follower->employee->fullname ?? 'N/A' }} /
+                                                {{ $detail->follower->nik ?? 'N/A' }}</td>
+                                            <td>{{ $detail->follower->position->position_name ?? 'N/A' }}</td>
+                                            <td>{{ $detail->follower->project->project_name ?? 'N/A' }}</td>
+                                            <td>{{ $detail->follower->position->department->department_name ?? 'N/A' }}
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    @endif
                     <table class="flight-table">
                         <thead>
                             <tr>
