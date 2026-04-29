@@ -17,6 +17,7 @@ class Administration extends Model
         'foc' => 'date:Y-m-d',
         'start_date' => 'date',
         'end_date' => 'date',
+        'termination_date' => 'date',
     ];
 
     public function project()

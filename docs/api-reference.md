@@ -346,6 +346,13 @@ Baris dengan `approved_at` / `finished_at` kosong tidak muncul di hasil workforc
 **Objek `employee` (karyawan) di semua respons workforce** memakai **`WorkforceEmployeeResource`**: hanya field `id`, `fullname`, `emp_pob`, `emp_dob` (tanggal `Y-m-d` jika tersedia), `gender`, `address`, `phone`.  
 Ini berlaku untuk `data.employee` (profil & aktivitas) dan untuk nested `traveler.employee` / `follower.employee` pada **`WorkforceOfficialtravelResource`** (LOT workforce). Endpoint `/api/official-travels/...` lain tetap memakai `OfficialtravelResource` penuh untuk nested employee.
 
+**NIK & administrasi (`is_active`, terminasi):**
+
+- **`GET .../employees/{employee}/...`** (UUID): daftar **`administrations`** difilter seperti di bawah menggunakan **awal rentang** yang sama dengan query (`year`/`month`, `from`, atau default 90 hari untuk endpoint ber-periode; untuk **profil tanpa `year`** hanya administrasi **`is_active = 1`**).
+- **`GET .../by-nik/{nik}/...`**: administrasi dengan NIK tersebut harus **aktif** (`is_active = 1`), **atau** tidak aktif tetapi **`termination_date`** terisi dan **tanggal mulai rentang permintaan ≤ `termination_date`** (agar masih ada overlap dengan masa kerja sampai terminasi).  
+  Contoh: terminasi **2026-04-15**, rentang **2026-04-17 …** → mulai rentang &gt; terminasi → **404**. Rentang **2026** atau **2026-04-01 … 2026-04-30** → **dapat** diakses jika kondisi di atas terpenuhi.
+- **`administrations`** di respons workforce memakai **`WorkforceAdministrationResource`**: antara lain `nik`, `is_active`, **`termination_date`** (`Y-m-d`), **`termination_reason`**, serta ringkas posisi/proyek.
+
 **Nomor register cuti & lembur (workforce):** setiap item di `leave_requests` dan `overtime_requests` (serta array yang sama di `.../activity`) menyertakan **`register_number`** — format umum **`YYLV-xxxxx`** (cuti) dan **`YYOT-xxxxx`** (lembur), unik per dokumen; bisa `null` untuk data lama sebelum migrasi.
 
 ### 10.1 Profil lengkap (employee + administrations)
@@ -355,9 +362,9 @@ Ini berlaku untuk `data.employee` (profil & aktivitas) dan untuk nested `travele
 | `GET`  | `/api/workforce/employees/{employee}/profile`   | `api.workforce.employees.profile`        | `{employee}` = UUID `employees.id`                          |
 | `GET`  | `/api/workforce/employees/by-nik/{nik}/profile` | `api.workforce.employees.profile-by-nik` | `{nik}` = NIK pada tabel `administrations` (contoh `13100`) |
 
-**Query (opsional):** `year` (integer `2000`–`2100`), `month` (`1`–`12`, hanya bersama `year`). Tidak memfilter isi profil; jika `year` ada, respons dapat menyertakan blok **`period`** (`year`, `month`, `from`, `to`) untuk konsistensi dengan endpoint lain.
+**Query (opsional):** `year` (integer `2000`–`2100`), `month` (`1`–`12`, hanya bersama `year`). Tanpa **`year`**: profil hanya untuk administrasi aktif; dengan **`year`** (± **`month`**): blok **`period`** dikembalikan dan administrasi yang tidak aktif tetap dapat ditampilkan jika terminasi masih dalam konteks rentang (lihat ketentuan NIK di atas).
 
-**Respons:** `success`, `data.employee` (`WorkforceEmployeeResource`), `data.administrations` (`AdministrationResource` collection).
+**Respons:** `success`, `data.employee` (`WorkforceEmployeeResource`), `data.administrations` (`WorkforceAdministrationResource` collection).
 
 ### 10.2 Timeline aktivitas (cuti + LOT + lembur per bulan/tahun)
 
@@ -512,7 +519,7 @@ Accept: application/json
 | Gejala                | Yang dicek                                                                   |
 | --------------------- | ---------------------------------------------------------------------------- |
 | `401` + pesan API key | Header `X-API-Key` atau Bearer; `API_KEY` di `.env`; `API_REQUIRE_KEY=true`. |
-| `404` NIK             | NIK harus ada di `administrations.nik`.                                      |
+| `404` NIK             | NIK tidak ada, tidak aktif untuk periode tanpa **`termination_date`** yang mengizinkan akses, atau terminasi sebelum awal rentang permintaan. |
 | `404` employee UUID   | Pastikan UUID benar (bukan salah salin).                                     |
 | URL 404               | Path harus **`/api/workforce/...`** (ada prefix `api`).                      |
 | `429`                 | Throttle; tunggu atau sesuaikan limit di server.                             |
@@ -557,7 +564,7 @@ Untuk integrasi **eksternal** server-to-server, gunakan endpoint di **§1–§10
 | 2026-04-17 | **§10.4** Postman: contoh params `year`/`month` untuk leave/LOT/overtime         |
 | 2026-04-17 | **§10** Workforce: filter rentang memakai **`approved_at`** (cuti & LOT) dan **`finished_at`** (lembur); baris dengan timestamp tersebut null tidak ikut |
 | 2026-04-17 | **§10** Workforce: data karyawan dipangkas lewat **`WorkforceEmployeeResource`**; LOT workforce memakai **`WorkforceOfficialtravelResource`** |
-| 2026-04-20 | **`register_number`** di respons workforce (`leave_requests`, `overtime_requests`) dan di JSON flight **`/api/leave-requests`** |
+| 2026-04-20 | **§10** Workforce: gate **NIK aktif / terminasi** untuk `by-nik`; **`WorkforceAdministrationResource`** (`termination_date`, `termination_reason`) |
 
 ### 13.1 Revisi terbaru
 
@@ -571,3 +578,4 @@ Untuk integrasi **eksternal** server-to-server, gunakan endpoint di **§1–§10
 - **Respons** endpoint terpisah: objek **`period`** (`year`, `month`, `from`, `to`) dan **`range`** (`from`, `to`).
 - **Karyawan di workforce:** `WorkforceEmployeeResource` — hanya `id`, `fullname`, `emp_pob`, `emp_dob`, `gender`, `address`, `phone`. LOT di workforce: `WorkforceOfficialtravelResource` (subset employee pada traveler/follower sama).
 - **`register_number`:** disertakan pada objek ringkas cuti & lembur (`LeaveRequestSummaryResource`, `OvertimeRequestSummaryResource`); pada flight JSON leave list juga field `register_number` + prefix di `text`.
+- **Gate NIK workforce:** `by-nik` — aktif saja, atau tidak aktif jika `termination_date` terisi dan **awal rentang ≤ terminasi**; profil tanpa `year` — NIK harus aktif. Administrasi di respons: **`WorkforceAdministrationResource`** dengan terminasi.

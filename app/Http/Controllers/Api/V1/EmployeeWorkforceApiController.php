@@ -3,9 +3,9 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
-use App\Http\Resources\AdministrationResource;
 use App\Http\Resources\LeaveRequestSummaryResource;
 use App\Http\Resources\OvertimeRequestSummaryResource;
+use App\Http\Resources\WorkforceAdministrationResource;
 use App\Http\Resources\WorkforceEmployeeResource;
 use App\Http\Resources\WorkforceOfficialtravelResource;
 use App\Models\Administration;
@@ -24,25 +24,26 @@ class EmployeeWorkforceApiController extends Controller
     private const WORKFORCE_LEAVE_STATUSES = ['approved', 'auto_approved', 'closed', 'cancelled'];
 
     /**
-     * Profil karyawan + seluruh administrasi (relasi lengkap untuk integrasi).
+     * Profil karyawan + administrasi yang eligible untuk konteks workforce (filter NIK/terminasi).
      *
-     * Query: year (opsional), month (opsional 1–12; hanya bersama year). Jika diisi, dikembalikan di blok period (tidak memfilter data profil).
+     * Query: year (opsional), month (opsional 1–12; hanya bersama year).
+     * Tanpa year/month: hanya administrasi **aktif** (`is_active = 1`).
+     * Dengan year/month: administrasi aktif, atau tidak aktif bila **awal rentang ≤ termination_date** (tanggal terminasi terisi).
      */
     public function showFull(Request $request, Employee $employee): JsonResponse
     {
         $period = $this->optionalPeriodFromYearMonthQuery($request);
+        $periodFromForScope = $period !== null
+            ? Carbon::parse($period['from'])->startOfDay()
+            : null;
 
-        $employee->load([
-            'administrations' => function ($q) {
-                $q->with(['position.department', 'project']);
-            },
-        ]);
+        $this->applyWorkforceAdministrationScope($employee, $periodFromForScope);
 
         $payload = [
             'success' => true,
             'data' => [
                 'employee' => new WorkforceEmployeeResource($employee),
-                'administrations' => AdministrationResource::collection($employee->administrations),
+                'administrations' => WorkforceAdministrationResource::collection($employee->administrations),
             ],
         ];
 
@@ -55,14 +56,22 @@ class EmployeeWorkforceApiController extends Controller
 
     /**
      * Sama seperti showFull, dicari lewat NIK administrasi (mis. 13100).
+     *
+     * Tanpa query year/month: hanya NIK **aktif**.
+     * Dengan year/month: NIK tidak aktif tetap diizinkan jika **tanggal mulai rentang ≤ termination_date**.
      */
     public function showFullByNik(Request $request, string $nik): JsonResponse
     {
-        $employee = $this->employeeFromNik($nik);
+        $periodMeta = $this->optionalPeriodFromYearMonthQuery($request);
+        $periodFromForNik = $periodMeta !== null
+            ? Carbon::parse($periodMeta['from'])->startOfDay()
+            : null;
+
+        $employee = $this->employeeFromNik($nik, $periodFromForNik);
         if (! $employee) {
             return response()->json([
                 'success' => false,
-                'message' => 'No employee found for this NIK',
+                'message' => $this->workforceNikUnavailableMessage(),
             ], 404);
         }
 
@@ -89,11 +98,7 @@ class EmployeeWorkforceApiController extends Controller
 
         [$from, $to] = $this->boundsForCalendarYearMonth($year, $month);
 
-        $employee->load([
-            'administrations' => function ($q) {
-                $q->with(['position.department', 'project']);
-            },
-        ]);
+        $this->applyWorkforceAdministrationScope($employee, $from);
 
         $leaveRequests = $this->leaveRequestsBetween($employee, $from, $to);
         $officialTravels = $this->officialTravelsBetween($employee, $from, $to);
@@ -108,7 +113,7 @@ class EmployeeWorkforceApiController extends Controller
                 'to' => $to->toDateString(),
             ],
             'employee' => new WorkforceEmployeeResource($employee),
-            'administrations' => AdministrationResource::collection($employee->administrations),
+            'administrations' => WorkforceAdministrationResource::collection($employee->administrations),
             'summary' => [
                 'leave_requests_count' => $leaveRequests->count(),
                 'official_travels_count' => $officialTravels->count(),
@@ -122,11 +127,21 @@ class EmployeeWorkforceApiController extends Controller
 
     public function activityTimelineByNik(Request $request, string $nik): JsonResponse
     {
-        $employee = $this->employeeFromNik($nik);
+        $validated = $request->validate([
+            'year' => 'required|integer|min:2000|max:2100',
+            'month' => 'nullable|integer|min:1|max:12',
+        ]);
+
+        $year = (int) $validated['year'];
+        $month = isset($validated['month']) ? (int) $validated['month'] : null;
+
+        [$from, $to] = $this->boundsForCalendarYearMonth($year, $month);
+
+        $employee = $this->employeeFromNik($nik, $from);
         if (! $employee) {
             return response()->json([
                 'success' => false,
-                'message' => 'No employee found for this NIK',
+                'message' => $this->workforceNikUnavailableMessage(),
             ], 404);
         }
 
@@ -145,6 +160,8 @@ class EmployeeWorkforceApiController extends Controller
     {
         [$from, $to, $period] = $this->parseWorkforceDateRange($request);
 
+        $this->applyWorkforceAdministrationScope($employee, $from);
+
         $items = $this->leaveRequestsBetween($employee, $from, $to);
 
         return response()->json([
@@ -158,11 +175,13 @@ class EmployeeWorkforceApiController extends Controller
 
     public function leaveRequestsByNik(Request $request, string $nik): JsonResponse
     {
-        $employee = $this->employeeFromNik($nik);
+        [$from, $to] = array_slice($this->parseWorkforceDateRange($request), 0, 2);
+
+        $employee = $this->employeeFromNik($nik, $from);
         if (! $employee) {
             return response()->json([
                 'success' => false,
-                'message' => 'No employee found for this NIK',
+                'message' => $this->workforceNikUnavailableMessage(),
             ], 404);
         }
 
@@ -180,6 +199,8 @@ class EmployeeWorkforceApiController extends Controller
     {
         [$from, $to, $period] = $this->parseWorkforceDateRange($request);
 
+        $this->applyWorkforceAdministrationScope($employee, $from);
+
         $items = $this->officialTravelsBetween($employee, $from, $to);
 
         return response()->json([
@@ -193,11 +214,13 @@ class EmployeeWorkforceApiController extends Controller
 
     public function officialTravelsByNik(Request $request, string $nik): JsonResponse
     {
-        $employee = $this->employeeFromNik($nik);
+        [$from, $to] = array_slice($this->parseWorkforceDateRange($request), 0, 2);
+
+        $employee = $this->employeeFromNik($nik, $from);
         if (! $employee) {
             return response()->json([
                 'success' => false,
-                'message' => 'No employee found for this NIK',
+                'message' => $this->workforceNikUnavailableMessage(),
             ], 404);
         }
 
@@ -213,6 +236,8 @@ class EmployeeWorkforceApiController extends Controller
     {
         [$from, $to, $period] = $this->parseWorkforceDateRange($request);
 
+        $this->applyWorkforceAdministrationScope($employee, $from);
+
         $items = $this->overtimeRequestsBetween($employee, $from, $to);
 
         return response()->json([
@@ -226,22 +251,77 @@ class EmployeeWorkforceApiController extends Controller
 
     public function overtimeRequestsByNik(Request $request, string $nik): JsonResponse
     {
-        $employee = $this->employeeFromNik($nik);
+        [$from, $to] = array_slice($this->parseWorkforceDateRange($request), 0, 2);
+
+        $employee = $this->employeeFromNik($nik, $from);
         if (! $employee) {
             return response()->json([
                 'success' => false,
-                'message' => 'No employee found for this NIK',
+                'message' => $this->workforceNikUnavailableMessage(),
             ], 404);
         }
 
         return $this->overtimeRequests($request, $employee);
     }
 
-    private function employeeFromNik(string $nik): ?Employee
+    /**
+     * Resolve karyawan dari NIK untuk workforce: aktif selalu allowed; tidak aktif jika ada konteks rentang
+     * dan **mulai rentang ≤ termination_date** (terminasi terisi).
+     */
+    private function employeeFromNik(string $nik, ?Carbon $periodFrom = null): ?Employee
     {
         $administration = Administration::where('nik', $nik)->first();
 
-        return $administration?->employee;
+        if ($administration === null || $administration->employee === null) {
+            return null;
+        }
+
+        if (! $this->administrationEligibleForWorkforcePeriod($administration, $periodFrom)) {
+            return null;
+        }
+
+        return $administration->employee;
+    }
+
+    /**
+     * Aktif: eligible. Tidak aktif: eligible hanya jika ada rentang dan termination_date terisi dan
+     * tanggal mulai rentang tidak sepenuhnya setelah terminasi (overlap dengan masa kerja sampai terminasi).
+     */
+    private function administrationEligibleForWorkforcePeriod(Administration $administration, ?Carbon $periodFrom): bool
+    {
+        if ((int) $administration->is_active === 1) {
+            return true;
+        }
+
+        if ($periodFrom === null) {
+            return false;
+        }
+
+        if ($administration->termination_date === null) {
+            return false;
+        }
+
+        return $periodFrom->toDateString() <= $administration->termination_date->format('Y-m-d');
+    }
+
+    /**
+     * Batasi koleksi administrasi pada employee untuk respons/query lembur:
+     * tanpa rentang: hanya aktif; dengan rentang: aktif atau tidak aktif yang masih eligible pada rentang tersebut.
+     */
+    private function applyWorkforceAdministrationScope(Employee $employee, ?Carbon $periodFrom): void
+    {
+        $admins = $employee->administrations()
+            ->with(['position.department', 'project'])
+            ->get()
+            ->filter(fn (Administration $a) => $this->administrationEligibleForWorkforcePeriod($a, $periodFrom))
+            ->values();
+
+        $employee->setRelation('administrations', $admins);
+    }
+
+    private function workforceNikUnavailableMessage(): string
+    {
+        return 'No employee found for this NIK, or the NIK is inactive for the requested period without a matching termination date.';
     }
 
     /**
@@ -393,7 +473,7 @@ class EmployeeWorkforceApiController extends Controller
      */
     private function overtimeRequestsBetween(Employee $employee, Carbon $from, Carbon $to): Collection
     {
-        $adminIds = $employee->administrations()->pluck('id')->all();
+        $adminIds = $employee->administrations->pluck('id')->all();
 
         if ($adminIds === []) {
             return collect();
