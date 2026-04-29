@@ -96,16 +96,17 @@ Gunakan panduan ini agar **gambar selaras dengan narasi** dan layak cetak/PDF.
 
 ## Input bab (diisi manusia lalu ditempel bersama instruksi di atas)
 
-- **Nama & nomor file target:** (contoh: `08-employee-management.md`)
-- **Topik & sub-bab / alur utama:** (a. Dashboard
-  b. Employee (Create, Detail, Edit, Delete) - metode input manual
-  Personal, Employment, Bank, Tax, Insurances, Licenses, Families, Educations, Courses, Experiences, Units, Emergencies, Additional, Images
-  c. Termination
-  d. Input data karyawan di poin b & c dengan metode import export
-  e. Employee Bonds (Ikatan Dinas)
-  f. Bond Violation (Pelanggaran Ikatan Dinas))
+- **Nama & nomor file target:** (contoh: `11-leave-management.md`)
+- **Topik & sub-bab / alur utama:** (Leave Management (catatan: mengacu pada form cuti / Formulir Izin Meninggalkan Pekerjaan dan Formulir Cuti Panjang, sehingga semua aktivitas yang menggunakan form tersebut akan diakomodir oleh fitur ini)
+  a. Dashboard
+  b. Entitlement (definisi yang benar menurut role bisnis perusahaan, dan keterkaitan antara leave entitlement dengan leave request)
+  Generate Entitlement, Export, Import
+  c. Request
+  Create Leave Request, Flight Request, Approval Selection, Cancellation
+  d. Report
+  e. My Leave Request (untuk karyawan non-HR))
 - **Pembaca target:** (HR)
-- **Menu sidebar & path (teks persis jika sudah yakin):** (HERO SECTION -> Employee Management)
+- **Menu sidebar & path (teks persis jika sudah yakin):** (HERO SECTION -> Leave Management)
 - **Rute/URL singkat (opsional, untuk riset saja — jangan penuhi dokumen dengan URL):** (…)
 - **Screenshot:** untuk tiap subbab utama, sebutkan **nama file** di `images/` + **apa yang harus tampak** di layar (contoh: “halaman list dengan filter terbuka”). Tandai jika masih **placeholder**. Setelah ada berkas nyata, pastikan cuplikan **match** label di langkah.
 - **Kasus error khas (opsional):** (sebutkan error yang mungkin terjadi)

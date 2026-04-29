@@ -1548,13 +1548,29 @@ class DashboardController extends Controller
 
             $administration = $employee->administrations->where('is_active', '1')->first();
 
+            // Per leave type: keep only entitlement with the newest period (latest period_end).
+            $latestEntitlements = $employee->leaveEntitlements
+                ->groupBy('leave_type_id')
+                ->map(function ($group) {
+                    return $group->sort(function ($a, $b) {
+                        $cmp = $b->period_end <=> $a->period_end;
+
+                        return $cmp !== 0 ? $cmp : $b->period_start <=> $a->period_start;
+                    })->first();
+                })
+                ->values()
+                ->sortBy(function ($entitlement) {
+                    return optional($entitlement->leaveType)->code ?? '';
+                })
+                ->values();
+
             return response()->json([[
                 'id' => $employee->id,
                 'name' => $employee->fullname,
                 'nik' => $administration->nik ?? 'N/A',
                 'position' => $administration->position->position_name ?? 'N/A',
                 'department' => $administration->position->department->department_name ?? 'N/A',
-                'entitlements' => $employee->leaveEntitlements->map(function ($entitlement) {
+                'entitlements' => $latestEntitlements->map(function ($entitlement) {
                     return [
                         'leave_type' => $entitlement->leaveType->name,
                         'entitled_days' => $entitlement->entitled_days,
