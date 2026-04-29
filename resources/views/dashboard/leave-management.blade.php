@@ -129,6 +129,9 @@
                                     <button type="button" class="btn btn-primary" onclick="searchEmployee()">
                                         <i class="fas fa-search"></i> Search
                                     </button>
+                                    <button type="button" class="btn btn-secondary ml-1" onclick="resetQuickSearch()">
+                                        <i class="fas fa-undo"></i> Reset
+                                    </button>
                                 </div>
                             </div>
                             <div id="employeeEntitlementResult" class="mt-3" style="display: none;">
@@ -652,6 +655,11 @@
         let currentLeaveRequestId = null;
         let currentCancellationId = null;
         let currentCancellationAction = null;
+
+        function resetQuickSearch() {
+            $('#employeeSearch').val(null).trigger('change');
+            $('#employeeEntitlementResult').hide().empty();
+        }
 
         // Employee search function
         function searchEmployee() {
