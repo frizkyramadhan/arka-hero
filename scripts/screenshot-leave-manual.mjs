@@ -80,6 +80,68 @@ async function main() {
     });
     shots.push('leave_entitlements_employee_table.png');
 
+    // 3b — Detail karyawan, form tambah/ubah, konfirmasi hapus (periode)
+    try {
+        const empLink = page.locator('#employeesTable a[href*="/leave/entitlements/employee/"]').first();
+        await empLink.waitFor({ state: 'visible', timeout: 25000 });
+        await empLink.click();
+        await page.waitForLoadState('networkidle');
+        await page.waitForTimeout(1200);
+        await page.screenshot({
+            path: path.join(outDir, 'leave_entitlements_employee_detail.png'),
+            fullPage: true,
+        });
+        shots.push('leave_entitlements_employee_detail.png');
+
+        const addEnt = page.getByRole('link', { name: /Add Entitlements/i });
+        await addEnt.click();
+        await page.waitForLoadState('networkidle');
+        await page.waitForTimeout(1200);
+        await page.screenshot({
+            path: path.join(outDir, 'leave_entitlements_add_form.png'),
+            fullPage: true,
+        });
+        shots.push('leave_entitlements_add_form.png');
+
+        await page.getByRole('link', { name: /Back to Summary/i }).click();
+        await page.waitForLoadState('networkidle');
+        await page.waitForTimeout(900);
+
+        const editLink = page.locator('#periodList').getByRole('link', { name: /Edit/i }).first();
+        if (await editLink.isVisible().catch(() => false)) {
+            await editLink.click();
+            await page.waitForLoadState('networkidle');
+            await page.waitForTimeout(1200);
+            await page.screenshot({
+                path: path.join(outDir, 'leave_entitlements_edit_form.png'),
+                fullPage: true,
+            });
+            shots.push('leave_entitlements_edit_form.png');
+            await page.getByRole('link', { name: /Back to Summary/i }).click();
+            await page.waitForLoadState('networkidle');
+            await page.waitForTimeout(700);
+        }
+
+        const delBtn = page
+            .locator('button.btn-danger')
+            .filter({ hasText: /Delete/ })
+            .first();
+        if (await delBtn.isVisible().catch(() => false)) {
+            await delBtn.click();
+            await page.waitForSelector('.swal2-popup', { timeout: 15000 });
+            await page.waitForTimeout(500);
+            await page.screenshot({
+                path: path.join(outDir, 'leave_entitlements_delete_confirm.png'),
+                fullPage: false,
+            });
+            shots.push('leave_entitlements_delete_confirm.png');
+            await page.keyboard.press('Escape');
+            await page.waitForTimeout(400);
+        }
+    } catch (e) {
+        console.warn('Entitlement per-employee screenshots skipped:', e.message || e);
+    }
+
     // 4. Leave Requests list
     await page.goto(`${BASE_URL}/leave/requests`, { waitUntil: 'networkidle', timeout: 60000 });
     await page.waitForTimeout(1200);
