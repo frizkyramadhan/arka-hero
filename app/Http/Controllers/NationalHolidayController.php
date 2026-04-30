@@ -86,8 +86,9 @@ class NationalHolidayController extends Controller
             ->of($query)
             ->addIndexColumn()
             ->editColumn('holiday_date', function (NationalHoliday $row) {
-                return $row->holiday_date->format('d/m/Y');
+                return $row->holiday_date->format('d F Y');
             })
+
             ->editColumn('name', function (NationalHoliday $row) {
                 return $row->name ? e($row->name) : '—';
             });
