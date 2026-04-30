@@ -804,13 +804,18 @@
                 return false;
             }
 
+            /** Back to work: any calendar day selectable except national holidays (weekends OK for all project types). */
+            function buildBackToWorkInvalidDateChecker() {
+                return function(date) {
+                    return NATIONAL_HOLIDAY_DATE_SET.has(date.format('YYYY-MM-DD'));
+                };
+            }
+
             function setupDatePickers() {
                 configureLeaveDatePicker();
             }
 
             function configureBackToWorkDatePicker() {
-                const selectedProjectId = $('#project_id').val() || projectId;
-                const isNonRoster = isProjectNonRoster(selectedProjectId);
                 const preserved = $('#back_to_work_date').val();
                 const preservedHidden = $('#back_to_work_date_hidden').val();
                 $('#back_to_work_date').data('daterangepicker') && $('#back_to_work_date').data('daterangepicker').remove();
@@ -821,9 +826,8 @@
                         cancelLabel: 'Clear',
                         format: 'DD/MM/YYYY'
                     },
-                    minDate: moment(),
                     opens: 'left',
-                    isInvalidDate: buildInvalidDateChecker(isNonRoster),
+                    isInvalidDate: buildBackToWorkInvalidDateChecker(),
                     isCustomDate: nationalHolidayCustomClass,
                 }).on('apply.daterangepicker', function(ev, picker) {
                     $(this).val(picker.startDate.format('DD/MM/YYYY'));

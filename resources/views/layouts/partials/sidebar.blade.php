@@ -443,21 +443,21 @@
                                     </a>
                                 </li>
                             @endcanany
-                            @can('leave-requests.show')
-                                <li class="nav-item">
-                                    <a href="{{ route('leave.requests.index') }}"
-                                        class="nav-link {{ Request::is('leave/requests*') ? 'active' : '' }}">
-                                        <i class="far fa-circle nav-icon"></i>
-                                        <p>Requests</p>
-                                    </a>
-                                </li>
-                            @endcan
                             @can('leave-entitlements.show')
                                 <li class="nav-item">
                                     <a href="{{ route('leave.entitlements.index') }}"
                                         class="nav-link {{ Request::is('leave/entitlements*') ? 'active' : '' }}">
                                         <i class="far fa-circle nav-icon"></i>
                                         <p>Entitlements</p>
+                                    </a>
+                                </li>
+                            @endcan
+                            @can('leave-requests.show')
+                                <li class="nav-item">
+                                    <a href="{{ route('leave.requests.index') }}"
+                                        class="nav-link {{ Request::is('leave/requests*') ? 'active' : '' }}">
+                                        <i class="far fa-circle nav-icon"></i>
+                                        <p>Requests</p>
                                     </a>
                                 </li>
                             @endcan

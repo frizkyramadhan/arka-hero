@@ -14,7 +14,10 @@
                     <div class="col-sm-6">
                         <ol class="breadcrumb float-sm-right">
                             <li class="breadcrumb-item"><a href="{{ route('dashboard') }}">Home</a></li>
-                            @if (auth()->user()->can('leave-entitlements.show'))
+                            @if (isset($fromMyEntitlementsCalculation) && $fromMyEntitlementsCalculation)
+                                <li class="breadcrumb-item"><a href="{{ route('leave.my-entitlements') }}">My Leave
+                                        Entitlements</a></li>
+                            @elseif (auth()->user()->can('leave-entitlements.show'))
                                 <li class="breadcrumb-item"><a href="{{ route('leave.entitlements.index') }}">Leave
                                         Entitlements</a></li>
                                 <li class="breadcrumb-item"><a
@@ -34,6 +37,39 @@
         <!-- Main content -->
         <section class="content">
             <div class="container-fluid">
+                @php
+                    // Same semantics as Employee Leave Entitlements / My Entitlements Employment Details:
+                    // active administration (is_active) + service-start DOH from tenure chain / termination logic.
+                    $activeAdministrationForCalc = $employee->administrations->where('is_active', 1)->first();
+
+                    $allAdministrationsForCalc = $employee->administrations->whereNotNull('doh')->sortBy('doh')->values();
+
+                    $calcServiceStartDoh = null;
+                    $calcServiceStartNik = null;
+
+                    if ($allAdministrationsForCalc->count() > 0) {
+                        $calcServiceStartDoh = $allAdministrationsForCalc->first()->doh;
+                        $calcServiceStartNik = $allAdministrationsForCalc->first()->nik;
+
+                        foreach ($allAdministrationsForCalc as $adm) {
+                            if ($adm->termination_date && $adm->termination_reason) {
+                                $terminationReason = strtolower(trim($adm->termination_reason));
+
+                                if ($terminationReason !== 'end of contract') {
+                                    $nextAdmin = $allAdministrationsForCalc->firstWhere(function ($next) use ($adm) {
+                                        return $next->doh > $adm->termination_date;
+                                    });
+
+                                    if ($nextAdmin) {
+                                        $calcServiceStartDoh = $nextAdmin->doh;
+                                        $calcServiceStartNik = $nextAdmin->nik;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                @endphp
+
                 <!-- Employee Info Card - Compact -->
                 <div class="row">
                     <div class="col-12">
@@ -47,44 +83,54 @@
                                     <span class="badge badge-primary">{{ $leaveType->name }}</span>
                                 </div>
                             </div>
-                            <div class="card-body py-2">
+                            <div class="card-body py-3">
                                 <div class="row">
-                                    <div class="col-md-2">
-                                        <div class="text-center">
+                                    <div class="col-6 col-md-4 col-lg-2 mb-3 mb-lg-0">
+                                        <div class="text-center px-1">
                                             <div class="text-muted small">NIK</div>
-                                            <div class="font-weight-bold">
-                                                {{ $employee->administrations->first()->nik ?? 'N/A' }}</div>
+                                            <div class="font-weight-bold">{{ $activeAdministrationForCalc?->nik ?? 'N/A' }}</div>
                                         </div>
                                     </div>
-                                    <div class="col-md-2">
-                                        <div class="text-center">
+                                    <div class="col-6 col-md-4 col-lg-2 mb-3 mb-lg-0">
+                                        <div class="text-center px-1">
                                             <div class="text-muted small">Project</div>
-                                            <div class="font-weight-bold">
-                                                {{ $employee->administrations->first()->project->project_code ?? 'N/A' }}
-                                            </div>
+                                            <div class="font-weight-bold">{{ $activeAdministrationForCalc?->project?->project_code ?? 'N/A' }}</div>
                                         </div>
                                     </div>
-                                    <div class="col-md-3">
-                                        <div class="text-center">
+                                    <div class="col-md-4 col-lg-3 mb-3 mb-lg-0">
+                                        <div class="text-center px-1">
                                             <div class="text-muted small">Level</div>
-                                            <div class="font-weight-bold">
-                                                {{ $employee->administrations->first()->level->name ?? 'N/A' }}</div>
+                                            <div class="font-weight-bold">{{ $activeAdministrationForCalc?->level?->name ?? 'N/A' }}</div>
                                         </div>
                                     </div>
-                                    <div class="col-md-2">
-                                        <div class="text-center">
+                                    <div class="col-md-6 col-lg-2 mb-3 mb-lg-0">
+                                        <div class="text-center px-1">
                                             <div class="text-muted small">DOH</div>
                                             <div class="font-weight-bold">
-                                                {{ $employee->administrations->first()->doh ? $employee->administrations->first()->doh->format('d M Y') : 'N/A' }}
+                                                @if ($calcServiceStartDoh)
+                                                    {{ \Carbon\Carbon::parse($calcServiceStartDoh)->format('d F Y') }}
+                                                @else
+                                                    N/A
+                                                @endif
                                             </div>
+                                            @if (
+                                                $calcServiceStartNik &&
+                                                    $activeAdministrationForCalc &&
+                                                    $calcServiceStartNik != $activeAdministrationForCalc->nik)
+                                                <div class="text-info small mt-1 mb-0 px-1">
+                                                    <i class="fas fa-info-circle"></i> From NIK:
+                                                    {{ $calcServiceStartNik }}
+                                                </div>
+                                            @endif
                                         </div>
                                     </div>
-                                    <div class="col-md-3">
-                                        <div class="text-center">
+                                    <div class="col-md-6 col-lg-3 mb-3 mb-lg-0">
+                                        <div class="text-center px-1">
                                             <div class="text-muted small">Periode Entitlement</div>
-                                            <div class="font-weight-bold">
+                                            <div class="font-weight-bold text-wrap">
                                                 {{ $calculationDetails['entitlement_period']['start'] }} s/d
-                                                {{ $calculationDetails['entitlement_period']['end'] }}</div>
+                                                {{ $calculationDetails['entitlement_period']['end'] }}
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -297,7 +343,11 @@
                             <div class="card-body">
                                 <div class="row">
                                     <div class="col-md-6">
-                                        @if (auth()->user()->can('leave-entitlements.show'))
+                                        @if (isset($fromMyEntitlementsCalculation) && $fromMyEntitlementsCalculation)
+                                            <a href="{{ route('leave.my-entitlements') }}" class="btn btn-secondary">
+                                                <i class="fas fa-arrow-left mr-1"></i> Kembali ke My Entitlements
+                                            </a>
+                                        @elseif (auth()->user()->can('leave-entitlements.show'))
                                             <a href="{{ route('leave.entitlements.employee.show', $employee) }}"
                                                 class="btn btn-secondary">
                                                 <i class="fas fa-arrow-left mr-1"></i> Kembali ke Entitlements
