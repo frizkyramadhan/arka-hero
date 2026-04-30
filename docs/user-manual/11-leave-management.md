@@ -64,13 +64,17 @@ Sebelum tim rutin hanya menjalankan **Generate Entitlements**, pastikan fondasi 
 
 ### 2.1 Halaman **Leave Entitlement Management** — secara massal
 
-Di halaman ini Anda menyiapkan **project**, mengisi saldo dengan **Generate**, mengolah spreadsheet dengan **Export** dan **Import**, serta memantau tabel ringkasan. Untuk **setup awal**, urutan yang disarankan: **Load Employees** → **Generate Entitlements** (baseline sistem) → **Export** → edit berkas Excel → **Import** kembali. Setelah operasi rutin, biasanya cukup menjalankan **Generate Entitlements** **secara berkala** sesuai **SOP** (misalnya pergantian tahun/periode cuti); **Export**/**Import** dipakai jika perlu rekonsiliasi, audit, atau koreksi massal — tidak sebagai aktivitas mingguan wajib.
+Di halaman ini proses yang akan dilakukan adalah mengisi hak/saldo cuti dengan **Generate**, mengolah spreadsheet dengan **Export** dan **Import**, serta melihat table **Leave Entitlement** per project.
 
-Simpan salinan berkas **Export**/**Import** yang disetujui sebagai jejak audit bila kebijakan perusahaan mewajibkan.
+Untuk **setup awal**, urutan yang disarankan: **Load Employees** → **Generate Entitlements** (untuk men-generate data entitlement ter-update) → **Export** → edit berkas Excel → **Import** kembali.
+
+Setelah operasi rutin, biasanya cukup menjalankan **Generate Entitlements** **secara berkala** misal di saat akhir bulan; **Export**/**Import** dipakai jika perlu rekonsiliasi, audit, atau koreksi massal — tidak sebagai aktivitas mingguan wajib.
 
 1. **Login** ke ARKA HERO → sidebar **HERO SECTION** → **Leave Management** → **Entitlements**. Judul halaman: **Leave Entitlement Management**.
 
 2. Pada kartu **Project Filter & Generate Entitlements**, pilih **Select Project**, lalu **Load Employees**. Gunakan **Clear** jika ingin mengosongkan pilihan project.
+
+3. **Generate Entitlements** — Klik tombol **Generate Entitlements** (jika tersedia), konfirmasi sesuai dialog sistem, lalu tunggu hingga selesai. Baca ulang jendela informasi berikut bila perlu agar selaras dengan kebijakan HR.
 
 <p align="center" id="leave-entitlements-filter">
     <img
@@ -101,31 +105,21 @@ Jendela ini muncul saat Anda akan atau baru saja menjalankan **Generate Entitlem
     />
 </p>
 
-3. **Generate Entitlements** — Klik tombol **Generate Entitlements** (jika tersedia), konfirmasi sesuai dialog sistem, lalu tunggu hingga selesai. Baca ulang jendela informasi di atas bila perlu agar selaras dengan kebijakan HR.
-
 4. Setelah data termuat, tampil kartu **Employee Remaining Leave Entitlements**: ringkasan saldo per karyawan dan kolom **Actions**. Nama kolom jenis cuti mengikuti **Leave Types** (misalnya **Cuti Tahunan**, **Sakit**, **Ijin Tanpa Upah**, **Cuti Panjang**) yang dikonfigurasi di **Master Data** → **Leave Management Data** → **Leave Types**.
 
-<p align="center" id="leave-entitlements-table-list">
-    <img
-        src="images/leave_entitlements_employee_table.png"
-        alt="Tabel Employee Remaining Leave Entitlements dengan kolom saldo per jenis cuti dan Actions"
-        style="max-width: 90%; width: 90%; height: auto;"
-    />
-</p>
-
 5. **Export** — unduh berkas Excel (template beserta data, sesuai parameter **project**). Berikut **contoh** bentuk berkas yang akan Anda edit di aplikasi spreadsheet luar (nama kolom, warna header, dan jumlah kolom dapat sedikit berbeda mengikuti **Leave Types** serta **project** Anda):
+
+6. Edit nilai di Excel sesuai kebutuhan — **pertahankan struktur kolom dan format template** dari hasil **Export** agar **Import** dapat memprosesnya.
 
 <p align="center" id="leave-entitlements-export-template-excel">
     <img
         src="images/leave_entitlements_export_template_excel.png"
-        alt="Contoh template Excel entitlement: kolom Nama, NIK, Position, DOH, Project, Start Period, End Period; kolom jenis cuti berwarna (misalnya Cuti Tahunan, Karyawan sendiri kawin, Izin Tanpa Upah, Cuti Panjang Staff/Non Staff, Deposit Days)"
+        alt="Contoh template Excel entitlement: kolom identitas (Nama, NIK, Position, DOH, Project, Start Period, End Period dengan format tanggal DD-MM-YYYY); kolom jenis cuti berwarna (misalnya Cuti Tahunan, Karyawan sendiri kawin, Sakit, Izin Tanpa Upah, Cuti Panjang - Staff)"
         style="max-width: 100%; width: 100%; height: auto;"
     />
 </p>
 
-6. Edit nilai di Excel sesuai kebutuhan — **pertahankan struktur kolom dan format template** dari hasil **Export** agar **Import** dapat memprosesnya.
-
-7. **Import:** dari kartu filter yang sama, klik **Import** untuk membuka **Import Leave Entitlements**, pilih **Select Excel File** (**.xlsx** atau **.xls**, sesuai batas di layar), lalu **Import**. Jika ada kesalahan, perbaiki berdasarkan **Import Validation Errors**, lalu unggah ulang.
+7. **Import:** dari kartu filter yang sama, klik **Import** untuk membuka **Import Leave Entitlements**, pilih **Select Excel File**, lalu **Import**. Jika ada kesalahan, perbaiki berdasarkan **Import Validation Errors**, lalu unggah ulang.
 
 **Import Validation Errors — pesan yang umum muncul**
 
@@ -153,20 +147,17 @@ Tabel di layar menampilkan **Sheet**, **Row**, **Column** (sering berisi referen
 
 ### 2.2 Halaman **Leave Entitlement** — per karyawan (**Employee Leave Entitlements**)
 
-1. Pada tabel karyawan (setelah **Load Employees**), di kolom **Actions**, klik ikon **View** (tombol biru dengan ikon mata) pada baris yang ingin Anda tinjau.
-2. Anda masuk ke halaman **Employee Leave Entitlements** — judul besar sama; breadcrumb: **Home** → **Leave Entitlements** → nama karyawan.
-3. Pada kartu **Employee Information**, baca **NIK**, **Name**, **Project**, **DOH**, **Years of Service**, **Staff Type**, dan tombol **Back to List** untuk kembali ke daftar project.
+1. Di halaman Leave Entitlements (setelah **Load Employees**), di kolom **Actions**, klik ikon **View** (tombol biru dengan ikon mata) pada baris yang ingin Anda tinjau.
+2. Pada kartu **Employee Information**, baca **NIK**, **Name**, **Project**, **Level**, **Position**, **DOH**, **Years of Service**, **Status**, **Staff Type**, dan tombol **Back to List** untuk kembali ke daftar project.
+3. Jika karyawan sudah punya entitlement, pada kartu **Leave Entitlements Summary** terdapat tombol **Add Entitlements** dan daftar **Available Periods** (tiap baris = satu rentang **period_start**–**period_end**, dengan **Edit** / **Delete** per periode). Klik periode untuk melihat rincian di **Entitlement Details** di sebelah kanan — tabel per kategori (misalnya **Annual Leave**, **Paid Leave**, **Unpaid Leave**, **LSL**) dengan kolom **Leave Type**, **Entitled**, **Taken**, **Remaining**, dan **Actions** (termasuk tautan **Calculation** per jenis cuti jika tersedia).
 
 <p align="center" id="leave-entitlements-employee-detail">
     <img
         src="images/leave_entitlements_employee_detail.png"
-        alt="Employee Leave Entitlements: Employee Information dan kartu Leave Entitlements Summary dengan Available Periods serta Entitlement Details"
+        alt="Halaman Employee Leave Entitlements: kartu Employee Information (NIK, nama, project, level, jabatan, DOH, masa kerja, status, staff type, Back to List) dan Leave Entitlements Summary (Add Entitlements, sidebar Available Periods dengan periode terpilih, Entitlement Details berupa tabel saldo per jenis cuti)"
         style="max-width: 90%; width: 90%; height: auto;"
     />
 </p>
-
-4. Jika karyawan sudah punya entitlement, pada kartu **Leave Entitlements Summary** terdapat daftar **Available Periods** (tiap baris = satu rentang **period_start**–**period_end**). Klik periode untuk melihat rincian di **Entitlement Details** di sebelah kanan (termasuk tautan **Calculation** per jenis cuti jika tersedia).
-
 ---
 
 ### 2.3 Tambah entitlement — **Add Entitlements** (**Create Entitlements**)

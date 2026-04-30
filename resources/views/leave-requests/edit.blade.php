@@ -185,8 +185,8 @@
                                                     </span>
                                                 </div>
                                                 <input type="text" class="form-control float-right leave-date-readonly"
-                                                    id="leave_date"
-                                                    placeholder="Select date range" required readonly autocomplete="off"
+                                                    id="leave_date" placeholder="Select date range" required readonly
+                                                    autocomplete="off"
                                                     value="{{ $leaveRequest->start_date && $leaveRequest->end_date ? \Carbon\Carbon::parse($leaveRequest->start_date)->format('d/m/Y') . ' - ' . \Carbon\Carbon::parse($leaveRequest->end_date)->format('d/m/Y') : '' }}">
                                                 <input type="hidden" name="start_date" id="start_date"
                                                     value="{{ old('start_date', $leaveRequest->start_date->format('Y-m-d')) }}">
@@ -567,7 +567,8 @@
                 let picker = null;
                 $('input').each(function() {
                     const p = $(this).data('daterangepicker');
-                    if (p && p.container && p.container.length && p.container[0] === $container[0]) {
+                    if (p && p.container && p.container.length && p.container[0] === $container[
+                        0]) {
                         picker = p;
                         return false;
                     }
@@ -663,15 +664,21 @@
                 return false;
             }
 
+            /** Back to work: any calendar day selectable except national holidays (weekends OK for all project types). */
+            function buildBackToWorkInvalidDateChecker() {
+                return function(date) {
+                    return NATIONAL_HOLIDAY_DATE_SET.has(date.format('YYYY-MM-DD'));
+                };
+            }
+
             function setupDatePickers() {
                 configureLeaveDatePicker();
             }
 
             function configureBackToWorkDatePicker() {
-                const projectId = $('#project_id').val();
-                const isNonRoster = isProjectNonRoster(projectId);
                 const preserved = $('#back_to_work_date').val();
-                $('#back_to_work_date').data('daterangepicker') && $('#back_to_work_date').data('daterangepicker').remove();
+                $('#back_to_work_date').data('daterangepicker') && $('#back_to_work_date').data('daterangepicker')
+                    .remove();
                 $('#back_to_work_date').daterangepicker({
                     singleDatePicker: true,
                     autoUpdateInput: false,
@@ -680,7 +687,7 @@
                         format: 'DD/MM/YYYY'
                     },
                     opens: 'left',
-                    isInvalidDate: buildInvalidDateChecker(isNonRoster),
+                    isInvalidDate: buildBackToWorkInvalidDateChecker(),
                     isCustomDate: nationalHolidayCustomClass,
                 }).on('apply.daterangepicker', function(ev, picker) {
                     $(this).val(picker.startDate.format('DD/MM/YYYY'));

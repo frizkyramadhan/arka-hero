@@ -2035,6 +2035,12 @@ class LeaveRequestController extends Controller
                 ->with('toast_error', 'Employee information not found. Please contact HR to setup your leave entitlements.');
         }
 
+        $employee->load([
+            'administrations.project',
+            'administrations.level',
+            'administrations.position',
+        ]);
+
         // Recalculate taken_days from approved leave requests (considering cancellations)
         $entitlements = LeaveEntitlement::with(['leaveType'])
             ->where('employee_id', $employee->id)
@@ -2105,11 +2111,13 @@ class LeaveRequestController extends Controller
         // Load additional data for the view
         $employee->load(['administrations.project', 'administrations.level']);
         $leaveType = LeaveType::findOrFail($leaveTypeId);
+        $fromMyEntitlementsCalculation = true;
 
         return view('leave-entitlements.calculation-details', compact(
             'employee',
             'leaveType',
-            'calculationDetails'
+            'calculationDetails',
+            'fromMyEntitlementsCalculation'
         ))->with('title', 'Leave Calculation Details - '.$employee->fullname);
     }
 
@@ -2153,8 +2161,9 @@ class LeaveRequestController extends Controller
     }
 
     /**
-     * Non-roster: block leave ranges that include national holidays and back-to-work on a holiday.
-     * Roster: national holidays are allowed in the range and as back-to-work (counted in roster total_days).
+     * Non-roster: block leave ranges that include national holidays.
+     * Roster: national holidays may appear in the leave range (counted in roster total_days).
+     * Back to work: never on a national holiday (any project type).
      */
     private function validateLeaveDatesAgainstNationalHolidays(
         ?string $startDate,
@@ -2171,7 +2180,8 @@ class LeaveRequestController extends Controller
             }
         }
 
-        if ($applyNationalHolidayRestrictions && $backToWorkDate) {
+        // Back to work cannot fall on a national holiday (all project types; UI allows weekends).
+        if ($backToWorkDate) {
             $ymd = \Carbon\Carbon::parse($backToWorkDate)->format('Y-m-d');
             if (NationalHoliday::isHolidayDate($ymd)) {
                 throw ValidationException::withMessages([
@@ -2182,7 +2192,7 @@ class LeaveRequestController extends Controller
     }
 
     /**
-     * Only non-roster projects forbid selecting national holidays in the leave range (and as back-to-work).
+     * Only non-roster projects forbid national holidays inside the selected leave date range.
      */
     private function shouldApplyNationalHolidayLeaveRestrictions(Request $request): bool
     {
