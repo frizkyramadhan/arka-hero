@@ -3,22 +3,16 @@
 namespace App\Exports;
 
 use App\Models\Position;
-use Maatwebsite\Excel\Concerns\FromQuery;
-use Maatwebsite\Excel\Concerns\WithTitle;
 use Maatwebsite\Excel\Concerns\Exportable;
-use Maatwebsite\Excel\Concerns\WithStyles;
-use Maatwebsite\Excel\Concerns\WithMapping;
-use Maatwebsite\Excel\Concerns\WithHeadings;
+use Maatwebsite\Excel\Concerns\FromQuery;
 use Maatwebsite\Excel\Concerns\ShouldAutoSize;
+use Maatwebsite\Excel\Concerns\WithHeadings;
+use Maatwebsite\Excel\Concerns\WithMapping;
+use Maatwebsite\Excel\Concerns\WithStyles;
+use Maatwebsite\Excel\Concerns\WithTitle;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
-class PositionExport implements
-    FromQuery,
-    ShouldAutoSize,
-    WithMapping,
-    WithHeadings,
-    WithTitle,
-    WithStyles
+class PositionExport implements FromQuery, ShouldAutoSize, WithHeadings, WithMapping, WithStyles, WithTitle
 {
     use Exportable;
 
@@ -41,7 +35,7 @@ class PositionExport implements
     {
         return [
             // Style the first row as bold text.
-            1    => ['font' => ['bold' => true]]
+            1 => ['font' => ['bold' => true]],
         ];
     }
 

@@ -64,7 +64,10 @@ class EmployeeController extends Controller
         return view('employee.index', compact('subtitle', 'title', 'departments', 'positions', 'projects', 'grades', 'levels'));
     }
 
-    public function getEmployees(Request $request)
+    /**
+     * Base query for employee DataTable and export (same joins, ordering, project scope).
+     */
+    protected function employeeDatatableBaseQuery()
     {
         $employee = Employee::leftJoin('administrations', 'employees.id', '=', 'administrations.employee_id')
             ->leftJoin('projects', 'administrations.project_id', '=', 'projects.id')
@@ -75,7 +78,117 @@ class EmployeeController extends Controller
             ->select('employees.*', 'administrations.nik', 'administrations.poh', 'administrations.doh', 'administrations.class', 'administrations.is_active', 'projects.project_code', 'positions.position_name', 'departments.department_name', 'grades.name as grade_name', 'levels.name as level_name')
             ->orderBy('administrations.nik', 'desc');
 
-        $employee = UserProject::scopeEmployeeListQueryToAssignedProjects($employee);
+        return UserProject::scopeEmployeeListQueryToAssignedProjects($employee);
+    }
+
+    protected function applyEmployeeDatatableFilters($query, Request $request): void
+    {
+        if (! empty($request->get('date1') && ! empty($request->get('date2')))) {
+            $query->where(function ($w) use ($request) {
+                $date1 = $request->get('date1');
+                $date2 = $request->get('date2');
+                $w->whereBetween('doh', [$date1, $date2]);
+            });
+        }
+        if (! empty($request->get('nik'))) {
+            $query->where(function ($w) use ($request) {
+                $nik = $request->get('nik');
+                $w->orWhere('nik', 'LIKE', '%'.$nik.'%');
+            });
+        }
+        if (! empty($request->get('fullname'))) {
+            $query->where(function ($w) use ($request) {
+                $fullname = $request->get('fullname');
+                $w->orWhere('fullname', 'LIKE', '%'.$fullname.'%');
+            });
+        }
+        if (! empty($request->get('poh'))) {
+            $query->where(function ($w) use ($request) {
+                $poh = $request->get('poh');
+                $w->orWhere('poh', 'LIKE', '%'.$poh.'%');
+            });
+        }
+        if (! empty($request->get('department_name'))) {
+            $query->where(function ($w) use ($request) {
+                $department_name = $request->get('department_name');
+                $w->orWhere('department_name', 'LIKE', '%'.$department_name.'%');
+            });
+        }
+        if (! empty($request->get('position_name'))) {
+            $query->where(function ($w) use ($request) {
+                $position_name = $request->get('position_name');
+                $w->orWhere('position_name', 'LIKE', '%'.$position_name.'%');
+            });
+        }
+        if (! empty($request->get('grade_id'))) {
+            $query->where('administrations.grade_id', $request->get('grade_id'));
+        }
+        if (! empty($request->get('level_id'))) {
+            $query->where('administrations.level_id', $request->get('level_id'));
+        }
+        if (! empty($request->get('project_code'))) {
+            $query->where(function ($w) use ($request) {
+                $project_code = $request->get('project_code');
+                $w->orWhere('project_code', 'LIKE', '%'.$project_code.'%');
+            });
+        }
+        if (! empty($request->get('class'))) {
+            $query->where(function ($w) use ($request) {
+                $class = $request->get('class');
+                $w->orWhere('class', 'LIKE', '%'.$class.'%');
+            });
+        }
+
+        $status = $request->get('status', 'active');
+        if ($status === 'active') {
+            $query->where('administrations.is_active', 1);
+        } elseif ($status === 'inactive') {
+            $query->where('administrations.is_active', 0);
+        }
+
+        if (! empty($request->get('search'))) {
+            $query->where(function ($w) use ($request) {
+                $search = $request->get('search');
+                $w->orWhere('nik', 'LIKE', "%$search%")
+                    ->orWhere('fullname', 'LIKE', "%$search%")
+                    ->orWhere('poh', 'LIKE', "%$search%")
+                    ->orWhere('doh', 'LIKE', "%$search%")
+                    ->orWhere('department_name', 'LIKE', "%$search%")
+                    ->orWhere('position_name', 'LIKE', "%$search%")
+                    ->orWhere('grades.name', 'LIKE', "%$search%")
+                    ->orWhere('levels.name', 'LIKE', "%$search%")
+                    ->orWhere('project_code', 'LIKE', "%$search%")
+                    ->orWhere('class', 'LIKE', "%$search%")
+                    ->orWhere('employees.created_at', 'LIKE', "%$search%");
+            });
+        }
+    }
+
+    protected function employeeDatatableQuery(Request $request)
+    {
+        $query = $this->employeeDatatableBaseQuery();
+        $this->applyEmployeeDatatableFilters($query, $request);
+
+        return $query;
+    }
+
+    /**
+     * @return list<string>
+     */
+    protected function filteredEmployeeIdsForExport(Request $request): array
+    {
+        return $this->employeeDatatableQuery($request)
+            ->clone()
+            ->reorder()
+            ->select('employees.id')
+            ->distinct()
+            ->pluck('employees.id')
+            ->all();
+    }
+
+    public function getEmployees(Request $request)
+    {
+        $employee = $this->employeeDatatableQuery($request);
 
         return datatables()->of($employee)
             ->addIndexColumn()
@@ -114,93 +227,9 @@ class EmployeeController extends Controller
                 return $employee->class;
             })
             ->addColumn('status', function ($employee) {
-                if ($employee->is_active == 1) {
-                    return '<span class="badge badge-success">Active</span>';
-                } else {
-                    return '<span class="badge badge-danger">Inactive</span>';
-                }
-            })
-            ->filter(function ($instance) use ($request) {
-                if (! empty($request->get('date1') && ! empty($request->get('date2')))) {
-                    $instance->where(function ($w) use ($request) {
-                        $date1 = $request->get('date1');
-                        $date2 = $request->get('date2');
-                        $w->whereBetween('doh', [$date1, $date2]);
-                    });
-                }
-                if (! empty($request->get('nik'))) {
-                    $instance->where(function ($w) use ($request) {
-                        $nik = $request->get('nik');
-                        $w->orWhere('nik', 'LIKE', '%'.$nik.'%');
-                    });
-                }
-                if (! empty($request->get('fullname'))) {
-                    $instance->where(function ($w) use ($request) {
-                        $fullname = $request->get('fullname');
-                        $w->orWhere('fullname', 'LIKE', '%'.$fullname.'%');
-                    });
-                }
-                if (! empty($request->get('poh'))) {
-                    $instance->where(function ($w) use ($request) {
-                        $poh = $request->get('poh');
-                        $w->orWhere('poh', 'LIKE', '%'.$poh.'%');
-                    });
-                }
-                if (! empty($request->get('department_name'))) {
-                    $instance->where(function ($w) use ($request) {
-                        $department_name = $request->get('department_name');
-                        $w->orWhere('department_name', 'LIKE', '%'.$department_name.'%');
-                    });
-                }
-                if (! empty($request->get('position_name'))) {
-                    $instance->where(function ($w) use ($request) {
-                        $position_name = $request->get('position_name');
-                        $w->orWhere('position_name', 'LIKE', '%'.$position_name.'%');
-                    });
-                }
-                if (! empty($request->get('grade_id'))) {
-                    $instance->where('administrations.grade_id', $request->get('grade_id'));
-                }
-                if (! empty($request->get('level_id'))) {
-                    $instance->where('administrations.level_id', $request->get('level_id'));
-                }
-                if (! empty($request->get('project_code'))) {
-                    $instance->where(function ($w) use ($request) {
-                        $project_code = $request->get('project_code');
-                        $w->orWhere('project_code', 'LIKE', '%'.$project_code.'%');
-                    });
-                }
-                if (! empty($request->get('class'))) {
-                    $instance->where(function ($w) use ($request) {
-                        $class = $request->get('class');
-                        $w->orWhere('class', 'LIKE', '%'.$class.'%');
-                    });
-                }
-
-                // Filter status administration
-                $status = $request->get('status', 'active'); // Default to active
-                if ($status === 'active') {
-                    $instance->where('administrations.is_active', 1);
-                } elseif ($status === 'inactive') {
-                    $instance->where('administrations.is_active', 0);
-                }
-                // If status is 'all', no additional filter is applied
-                if (! empty($request->get('search'))) {
-                    $instance->where(function ($w) use ($request) {
-                        $search = $request->get('search');
-                        $w->orWhere('nik', 'LIKE', "%$search%")
-                            ->orWhere('fullname', 'LIKE', "%$search%")
-                            ->orWhere('poh', 'LIKE', "%$search%")
-                            ->orWhere('doh', 'LIKE', "%$search%")
-                            ->orWhere('department_name', 'LIKE', "%$search%")
-                            ->orWhere('position_name', 'LIKE', "%$search%")
-                            ->orWhere('grades.name', 'LIKE', "%$search%")
-                            ->orWhere('levels.name', 'LIKE', "%$search%")
-                            ->orWhere('project_code', 'LIKE', "%$search%")
-                            ->orWhere('class', 'LIKE', "%$search%")
-                            ->orWhere('employees.created_at', 'LIKE', "%$search%");
-                    });
-                }
+                return $employee->is_active == 1
+                    ? '<span class="badge badge-success">Active</span>'
+                    : '<span class="badge badge-danger">Inactive</span>';
             })
             ->addColumn('action', 'employee.action')
             ->rawColumns(['action', 'status'])
@@ -1080,9 +1109,11 @@ class EmployeeController extends Controller
             ->toJson();
     }
 
-    public function export()
+    public function export(Request $request)
     {
-        return (new MultipleSheetExport)->download('export-'.date('Y-m-d').'.xlsx');
+        $ids = $this->filteredEmployeeIdsForExport($request);
+
+        return (new MultipleSheetExport($ids))->download('export-'.date('Y-m-d').'.xlsx');
     }
 
     public function import(Request $request)

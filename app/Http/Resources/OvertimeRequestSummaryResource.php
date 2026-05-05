@@ -30,8 +30,32 @@ class OvertimeRequestSummaryResource extends JsonResource
                     'project_name' => $this->project->project_name,
                 ];
             }),
+            'employee' => $this->whenLoaded('details', function () {
+                $detail = $this->details->first();
+
+                if (
+                    $detail?->relationLoaded('administration')
+                    && $detail->administration
+                    && $detail->administration->relationLoaded('employee')
+                    && $detail->administration->employee
+                ) {
+                    return ['fullname' => $detail->administration->employee->fullname];
+                }
+
+                return null;
+            }),
             'details' => $this->whenLoaded('details', function () {
                 return $this->details->map(function ($detail) {
+                    $employeePayload = null;
+                    if (
+                        $detail->relationLoaded('administration')
+                        && $detail->administration
+                        && $detail->administration->relationLoaded('employee')
+                        && $detail->administration->employee
+                    ) {
+                        $employeePayload = ['fullname' => $detail->administration->employee->fullname];
+                    }
+
                     return [
                         'id' => $detail->id,
                         'administration_id' => $detail->administration_id,
@@ -39,6 +63,7 @@ class OvertimeRequestSummaryResource extends JsonResource
                         'time_out' => $detail->time_out,
                         'work_description' => $detail->work_description,
                         'sort_order' => $detail->sort_order,
+                        'employee' => $employeePayload,
                         'administration' => $detail->relationLoaded('administration') && $detail->administration ? [
                             'id' => $detail->administration->id,
                             'nik' => $detail->administration->nik,

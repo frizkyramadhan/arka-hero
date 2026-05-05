@@ -2,29 +2,23 @@
 
 namespace App\Models;
 
-use App\Models\User;
-use App\Models\Project;
-use App\Models\Accommodation;
-use App\Models\Administration;
-use App\Models\Transportation;
 use App\Traits\HasLetterNumber;
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 
 class Officialtravel extends Model
 {
     use HasFactory;
-    use HasUuids;
     use HasLetterNumber;
-
+    use HasUuids;
 
     protected $guarded = [];
 
     protected $casts = [
         'official_travel_date' => 'date',
         'departure_from' => 'date',
+        'approved_at' => 'datetime',
         'submitted_by_user' => 'boolean',
         // Note: arrival_at_destination and departure_from_destination have been moved to officialtravel_stops table
         'manual_approvers' => 'array',
@@ -34,11 +28,17 @@ class Officialtravel extends Model
 
     // Status enum values
     public const STATUS_DRAFT = 'draft';
+
     public const STATUS_PENDING_HR = 'pending_hr'; // User submission awaiting HR confirmation & letter number
+
     public const STATUS_SUBMITTED = 'submitted';
+
     public const STATUS_APPROVED = 'approved';
+
     public const STATUS_REJECTED = 'rejected';
+
     public const STATUS_CANCELLED = 'cancelled';
+
     public const STATUS_CLOSED = 'closed';
 
     public static function getStatusOptions()
@@ -114,15 +114,11 @@ class Officialtravel extends Model
 
     /**
      * Get document type untuk letter number tracking
-     *
-     * @return string
      */
     protected function getDocumentType(): string
     {
         return 'officialtravel';
     }
-
-
 
     // Integration dengan Letter Number System
     public function letterNumber()
@@ -157,13 +153,13 @@ class Officialtravel extends Model
         }
 
         $latestStop = $this->latestStop;
-        if (!$latestStop) {
+        if (! $latestStop) {
             return true; // No stops yet, can record arrival
         }
 
         // Can record arrival if latest stop is complete (has both arrival and departure)
         // or if latest stop has no arrival yet
-        return $latestStop->isComplete() || !$latestStop->hasArrival();
+        return $latestStop->isComplete() || ! $latestStop->hasArrival();
     }
 
     public function canRecordDeparture()
@@ -173,12 +169,12 @@ class Officialtravel extends Model
         }
 
         $latestStop = $this->latestStop;
-        if (!$latestStop) {
+        if (! $latestStop) {
             return false; // No stops yet, need arrival first
         }
 
         // Can record departure if latest stop has arrival but no departure
-        return $latestStop->hasArrival() && !$latestStop->hasDeparture();
+        return $latestStop->hasArrival() && ! $latestStop->hasDeparture();
     }
 
     public function canClose()
@@ -188,7 +184,7 @@ class Officialtravel extends Model
         }
 
         $latestStop = $this->latestStop;
-        if (!$latestStop) {
+        if (! $latestStop) {
             return false; // No stops yet
         }
 
@@ -199,7 +195,7 @@ class Officialtravel extends Model
     public function getCurrentStopStatus()
     {
         $latestStop = $this->latestStop;
-        if (!$latestStop) {
+        if (! $latestStop) {
             return 'no_stops';
         }
 
@@ -231,11 +227,11 @@ class Officialtravel extends Model
 
         static::created(function ($model) {
             // Pengajuan dari user (submitted_by_user): tidak auto-assign letter number; HR yang assign saat konfirmasi
-            if (!empty($model->submitted_by_user)) {
+            if (! empty($model->submitted_by_user)) {
                 return;
             }
             // Jika belum ada letter number, auto-assign (untuk backward compatibility)
-            if (!$model->letter_number_id && !$model->letter_number) {
+            if (! $model->letter_number_id && ! $model->letter_number) {
                 // Auto-create letter number untuk kategori B (Internal)
                 $letterNumber = LetterNumber::createWithRetry([
                     'category_code' => 'B',

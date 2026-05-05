@@ -20,7 +20,7 @@ class LetterAdministrationExport implements FromQuery, WithHeadings, WithMapping
             'administration.employee',
             'administration.project',
             'reservedBy',
-            'usedBy'
+            'usedBy',
         ])->orderBy('id', 'desc');
     }
 

@@ -33,6 +33,13 @@ class LeaveRequestSummaryResource extends JsonResource
                     'category' => $this->leaveType->category,
                 ];
             }),
+            'employee' => $this->whenLoaded('employee', function () {
+                if (! $this->employee) {
+                    return null;
+                }
+
+                return ['fullname' => $this->employee->fullname];
+            }),
             'administration' => $this->whenLoaded('administration', function () {
                 if (! $this->administration) {
                     return null;

@@ -1907,21 +1907,21 @@ class LeaveEntitlementController extends Controller
 
             return back()->with('failures', $failures);
         } catch (\Throwable $e) {
-            Log::error('Leave Entitlement Import Error: '.$e->getMessage(), [
-                'trace' => $e->getTraceAsString(),
+            Log::error('Leave Entitlement Import Error', [
+                'exception' => $e,
             ]);
 
             $failures = collect([
                 [
-                    'sheet' => 'System Error',
+                    'sheet' => 'Impor',
                     'row' => '-',
-                    'attribute' => 'Import Failed',
+                    'attribute' => '-',
                     'value' => null,
-                    'errors' => 'An error occurred during import: '.$e->getMessage(),
+                    'errors' => 'Impor tidak dapat diselesaikan karena kesalahan sistem. Periksa file (format .xlsx/.xls), lalu coba lagi. Jika masih gagal, hubungi administrator—detail teknis ada di log.',
                 ],
             ]);
 
-            return back()->with('failures', $failures);
+            return back()->with('failures', $failures)->with('toast_warning', 'Impor entitlement gagal.');
         }
     }
 

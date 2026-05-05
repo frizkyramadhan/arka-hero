@@ -3,7 +3,7 @@
 namespace App\Http\Resources;
 
 /**
- * LOT untuk workforce: objek employee di bawah traveler/follower memakai subset field saja.
+ * LOT untuk workforce: resource yang sama; nested `employee` hanya `fullname`.
  */
 class WorkforceOfficialtravelResource extends OfficialtravelResource
 {

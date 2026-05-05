@@ -2,22 +2,27 @@
 
 namespace App\Imports;
 
+use App\Models\Administration;
 use App\Models\LeaveEntitlement;
 use App\Models\LeaveType;
-use App\Models\Administration;
+use Carbon\Carbon;
+use Illuminate\Database\QueryException;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Collection;
-use Maatwebsite\Excel\Concerns\ToCollection;
-use Maatwebsite\Excel\Concerns\WithHeadingRow;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Carbon\Carbon;
+use Maatwebsite\Excel\Concerns\ToCollection;
+use Maatwebsite\Excel\Concerns\WithHeadingRow;
 use PhpOffice\PhpSpreadsheet\Shared\Date;
 
 class LeaveEntitlementImport implements ToCollection, WithHeadingRow
 {
     private $leaveTypes;
+
     private $errors = [];
+
     private $successCount = 0;
+
     private $skippedCount = 0;
 
     public function __construct()
@@ -41,7 +46,7 @@ class LeaveEntitlementImport implements ToCollection, WithHeadingRow
                     'normalized' => $this->normalizeColumnName($lt->name),
                     'category' => $lt->category,
                 ];
-            })->toArray()
+            })->toArray(),
         ]);
     }
 
@@ -55,6 +60,7 @@ class LeaveEntitlementImport implements ToCollection, WithHeadingRow
             // Skip completely empty rows
             if ($this->isEmptyRow($rowArray)) {
                 $rowNumber++;
+
                 continue;
             }
 
@@ -71,20 +77,21 @@ class LeaveEntitlementImport implements ToCollection, WithHeadingRow
                     $this->skippedCount++;
                     $this->errors[] = [
                         'row' => $rowNumber,
-                        'nik' => $this->getColumnValue($rowArray, 'nik'),
-                        'errors' => $result['errors']
+                        'nik' => $this->resolveNikFromRow($rowArray),
+                        'errors' => $result['errors'],
                     ];
                 }
-            } catch (\Exception $e) {
+            } catch (\Throwable $e) {
                 DB::rollBack();
                 $this->skippedCount++;
+                Log::error("Import error at row {$rowNumber}", [
+                    'exception' => $e,
+                ]);
                 $this->errors[] = [
                     'row' => $rowNumber,
-                    'nik' => $this->getColumnValue($rowArray, 'nik'),
-                    'errors' => ['System error: ' . $e->getMessage()]
+                    'nik' => $this->resolveNikFromRow($rowArray),
+                    'errors' => [$this->humanReadableImportError($e)],
                 ];
-
-                Log::error("Import error at row {$rowNumber}: " . $e->getMessage());
             }
 
             $rowNumber++;
@@ -95,7 +102,7 @@ class LeaveEntitlementImport implements ToCollection, WithHeadingRow
             'total_rows' => $rowNumber - 2,
             'success' => $this->successCount,
             'skipped' => $this->skippedCount,
-            'errors' => count($this->errors)
+            'errors' => count($this->errors),
         ]);
     }
 
@@ -104,8 +111,8 @@ class LeaveEntitlementImport implements ToCollection, WithHeadingRow
         $errors = [];
 
         // 1. Validate NIK (REQUIRED)
-        $nik = $this->getColumnValue($row, 'nik');
-        if (empty($nik)) {
+        $nik = $this->resolveNikFromRow($row);
+        if ($nik === null || $nik === '') {
             return ['success' => false, 'errors' => ['NIK is required']];
         }
 
@@ -114,7 +121,7 @@ class LeaveEntitlementImport implements ToCollection, WithHeadingRow
             ->where('is_active', 1)
             ->first();
 
-        if (!$administration || !$administration->employee) {
+        if (! $administration || ! $administration->employee) {
             return ['success' => false, 'errors' => ["NIK '{$nik}' not found or not active"]];
         }
 
@@ -122,7 +129,7 @@ class LeaveEntitlementImport implements ToCollection, WithHeadingRow
 
         // 3. Validate period dates (REQUIRED)
         // Try both 'start_period' and 'Start Period' (with space)
-        $startPeriod = $this->getColumnValue($row, 'start_period') 
+        $startPeriod = $this->getColumnValue($row, 'start_period')
             ?: $this->getColumnValue($row, 'start period')
             ?: $this->getColumnValue($row, 'Start Period');
         $endPeriod = $this->getColumnValue($row, 'end_period')
@@ -137,7 +144,7 @@ class LeaveEntitlementImport implements ToCollection, WithHeadingRow
         $periodStart = $this->parseDate($startPeriod);
         $periodEnd = $this->parseDate($endPeriod);
 
-        if (!$periodStart || !$periodEnd) {
+        if (! $periodStart || ! $periodEnd) {
             return ['success' => false, 'errors' => ['Invalid date format. Use YYYY-MM-DD or Excel date format']];
         }
 
@@ -175,30 +182,33 @@ class LeaveEntitlementImport implements ToCollection, WithHeadingRow
                 $isCutiPanjangNonStaff = stripos($leaveType->name, 'Non Staff') !== false;
 
                 // Skip if level doesn't match
-                if ($isStaff && !$isCutiPanjangStaff) {
-                    Log::info("Skipping Cuti Panjang mismatch for Staff", [
+                if ($isStaff && ! $isCutiPanjangStaff) {
+                    Log::info('Skipping Cuti Panjang mismatch for Staff', [
                         'nik' => $nik,
                         'leave_type' => $leaveType->name,
-                        'employee_level' => $level ? $level->name : 'N/A'
+                        'employee_level' => $level ? $level->name : 'N/A',
                     ]);
+
                     continue; // Skip "Cuti Panjang - Non Staff" for Staff employees
                 }
-                if (!$isStaff && !$isCutiPanjangNonStaff) {
-                    Log::info("Skipping Cuti Panjang mismatch for Non Staff", [
+                if (! $isStaff && ! $isCutiPanjangNonStaff) {
+                    Log::info('Skipping Cuti Panjang mismatch for Non Staff', [
                         'nik' => $nik,
                         'leave_type' => $leaveType->name,
-                        'employee_level' => $level ? $level->name : 'N/A'
+                        'employee_level' => $level ? $level->name : 'N/A',
                     ]);
+
                     continue; // Skip "Cuti Panjang - Staff" for Non Staff employees
                 }
             }
 
             // Skip if 0 and no existing record (don't create unnecessary records)
-            $existing = LeaveEntitlement::where('employee_id', $employee->id)
-                ->where('leave_type_id', $leaveType->id)
-                ->where('period_start', $periodStart->format('Y-m-d'))
-                ->where('period_end', $periodEnd->format('Y-m-d'))
-                ->first();
+            $existing = $this->findEntitlementForPeriod(
+                $employee->id,
+                (int) $leaveType->id,
+                $periodStart,
+                $periodEnd,
+            );
 
             // Preserve taken_days from existing record (taken_days is auto-updated by system)
             // taken_days should NOT be changed via import - it's calculated from approved leave requests
@@ -214,7 +224,7 @@ class LeaveEntitlementImport implements ToCollection, WithHeadingRow
             // Skip if entitled_days is 0 and no existing record
             // But process if: entitled_days > 0 OR existing record exists OR is paid/unpaid leave
             $isPaidOrUnpaid = in_array($leaveType->category, ['paid', 'unpaid']);
-            if ($entitledDays == 0 && !$existing && !$isPaidOrUnpaid) {
+            if ($entitledDays == 0 && ! $existing && ! $isPaidOrUnpaid) {
                 continue;
             }
 
@@ -229,26 +239,145 @@ class LeaveEntitlementImport implements ToCollection, WithHeadingRow
                 'calculated_remaining_days' => max(0, $entitledDays - $takenDays),
                 'deposit_days' => $finalDepositDays,
                 'existing_id' => $existing ? $existing->id : null,
-                'employee_level' => $administration->level ? $administration->level->name : 'N/A'
+                'employee_level' => $administration->level ? $administration->level->name : 'N/A',
             ]);
 
-            // Create or update entitlement
-            LeaveEntitlement::updateOrCreate(
-                [
-                    'employee_id' => $employee->id,
-                    'leave_type_id' => $leaveType->id,
-                    'period_start' => $periodStart->format('Y-m-d'),
-                    'period_end' => $periodEnd->format('Y-m-d'),
-                ],
-                [
-                    'entitled_days' => $entitledDays,
-                    'taken_days' => $takenDays, // Preserve existing taken_days
-                    'deposit_days' => $finalDepositDays,
-                ]
+            $this->saveImportedEntitlement(
+                $employee->id,
+                (int) $leaveType->id,
+                $periodStart,
+                $periodEnd,
+                $entitledDays,
+                $takenDays,
+                $finalDepositDays,
             );
         }
 
         return ['success' => true, 'errors' => []];
+    }
+
+    /**
+     * Match existing row by calendar dates. Plain where('period_start', 'Y-m-d') can miss rows
+     * stored with a time component so Eloquent would attempt INSERT and hit leave_ent_unique_period.
+     */
+    private function findEntitlementForPeriod(
+        string $employeeId,
+        int $leaveTypeId,
+        Carbon $periodStart,
+        Carbon $periodEnd,
+    ): ?LeaveEntitlement {
+        return LeaveEntitlement::query()
+            ->where('employee_id', $employeeId)
+            ->where('leave_type_id', $leaveTypeId)
+            ->whereDate('period_start', $periodStart)
+            ->whereDate('period_end', $periodEnd)
+            ->first();
+    }
+
+    private function saveImportedEntitlement(
+        string $employeeId,
+        int $leaveTypeId,
+        Carbon $periodStart,
+        Carbon $periodEnd,
+        int $entitledDays,
+        int $takenDays,
+        int $finalDepositDays,
+    ): void {
+        $model = $this->findEntitlementForPeriod($employeeId, $leaveTypeId, $periodStart, $periodEnd);
+
+        $values = [
+            'entitled_days' => $entitledDays,
+            'taken_days' => $takenDays,
+            'deposit_days' => $finalDepositDays,
+        ];
+
+        if ($model) {
+            $model->fill($values);
+            $model->save();
+
+            return;
+        }
+
+        try {
+            LeaveEntitlement::create(array_merge([
+                'employee_id' => $employeeId,
+                'leave_type_id' => $leaveTypeId,
+                'period_start' => $periodStart->toDateString(),
+                'period_end' => $periodEnd->toDateString(),
+            ], $values));
+        } catch (UniqueConstraintViolationException $e) {
+            $this->syncEntitlementAfterConflict($employeeId, $leaveTypeId, $periodStart, $periodEnd, $values, $e);
+        } catch (QueryException $e) {
+            if ($this->isUniquePeriodConstraintViolation($e)) {
+                $this->syncEntitlementAfterConflict($employeeId, $leaveTypeId, $periodStart, $periodEnd, $values, $e);
+
+                return;
+            }
+            throw $e;
+        }
+    }
+
+    /**
+     * @throws \Throwable
+     */
+    private function syncEntitlementAfterConflict(
+        string $employeeId,
+        int $leaveTypeId,
+        Carbon $periodStart,
+        Carbon $periodEnd,
+        array $values,
+        \Throwable $original,
+    ): void {
+        $retry = $this->findEntitlementForPeriod($employeeId, $leaveTypeId, $periodStart, $periodEnd);
+        if ($retry) {
+            $retry->fill($values);
+            $retry->save();
+
+            return;
+        }
+
+        throw $original;
+    }
+
+    private function isUniquePeriodConstraintViolation(QueryException $e): bool
+    {
+        $msg = $e->getMessage();
+
+        if (str_contains($msg, 'leave_ent_unique_period')) {
+            return true;
+        }
+
+        return str_contains($msg, 'leave_entitlements')
+            && (str_contains($msg, 'Duplicate entry')
+                || str_contains($msg, '1062')
+                || str_contains($msg, 'UNIQUE constraint failed'));
+    }
+
+    private function humanReadableImportError(\Throwable $e): string
+    {
+        if ($this->isThrowableUniquePeriodViolation($e)) {
+            return 'Data hak cuti untuk kombinasi karyawan (NIK), jenis cuti, dan periode tanggal tersebut sudah ada—biasanya baris ini harusnya diperbarui otomatis. '
+                .'Jika pesan ini tetap muncul, coba impor ulang; bila masih gagal, hubungi administrator. '
+                .'(Memilih project di layar entitlement tidak mempengaruhi impor file Excel.)';
+        }
+
+        return 'Gagal memproses baris impor karena kesalahan sistem. Detail teknis sudah dicatat di log aplikasi.';
+    }
+
+    private function isThrowableUniquePeriodViolation(\Throwable $e): bool
+    {
+        if ($e instanceof UniqueConstraintViolationException) {
+            return true;
+        }
+
+        if ($e instanceof QueryException && $this->isUniquePeriodConstraintViolation($e)) {
+            return true;
+        }
+
+        $msg = $e->getMessage();
+
+        return str_contains($msg, 'leave_ent_unique_period')
+            || (str_contains($msg, 'Duplicate entry') && str_contains($msg, 'leave_entitlements'));
     }
 
     /**
@@ -257,11 +386,81 @@ class LeaveEntitlementImport implements ToCollection, WithHeadingRow
     private function isEmptyRow($row)
     {
         foreach ($row as $value) {
-            if (!empty($value) && trim($value) !== '') {
+            if (! empty($value) && trim($value) !== '') {
                 return false;
             }
         }
+
         return true;
+    }
+
+    /**
+     * Resolve NIK slugs/header quirks and numeric Excel cells.
+     * Falls back to column index 1 (column B) — same order as LeaveEntitlementExport (Nama, NIK, ...).
+     */
+    private function resolveNikFromRow(array $row): ?string
+    {
+        $candidates = [
+            $this->getColumnValue($row, 'nik'),
+        ];
+
+        foreach (['NIK', 'nik'] as $key) {
+            if (isset($row[$key]) && $row[$key] !== null && $row[$key] !== '') {
+                $candidates[] = $row[$key];
+            }
+        }
+
+        foreach ($candidates as $raw) {
+            $normalized = $this->normalizeNikCellValue($raw);
+            if ($normalized !== null && $normalized !== '') {
+                return $normalized;
+            }
+        }
+
+        // Column B when slug keys are wrong (e.g. empty header cells → numeric keys in heading row)
+        $sequential = array_values($row);
+        if (isset($sequential[1])) {
+            $normalized = $this->normalizeNikCellValue($sequential[1]);
+            if ($normalized !== null && $normalized !== '') {
+                return $normalized;
+            }
+        }
+
+        return null;
+    }
+
+    private function normalizeNikCellValue(mixed $value): ?string
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        if (is_string($value)) {
+            $trimmed = trim($value);
+
+            return $trimmed === '' ? null : $trimmed;
+        }
+
+        if (is_int($value)) {
+            return (string) $value;
+        }
+
+        if (is_float($value)) {
+            $rounded = round($value, 0);
+            if (abs($value - $rounded) < 0.000001) {
+                return (string) (int) $rounded;
+            }
+
+            return trim((string) $value);
+        }
+
+        if (is_numeric($value)) {
+            return (string) $value;
+        }
+
+        $asString = trim((string) $value);
+
+        return $asString === '' ? null : $asString;
     }
 
     /**
@@ -306,9 +505,9 @@ class LeaveEntitlementImport implements ToCollection, WithHeadingRow
     {
         // Log available columns in first row for debugging
         static $loggedColumns = false;
-        if (!$loggedColumns) {
+        if (! $loggedColumns) {
             Log::info('Excel columns detected', [
-                'columns' => array_keys($row)
+                'columns' => array_keys($row),
             ]);
             $loggedColumns = true;
         }
@@ -321,11 +520,12 @@ class LeaveEntitlementImport implements ToCollection, WithHeadingRow
         $variations = $this->generateColumnVariations($leaveTypeName);
         foreach ($variations as $variation) {
             if (isset($row[$variation])) {
-                Log::debug("Column match found using variation", [
+                Log::debug('Column match found using variation', [
                     'leave_type' => $leaveTypeName,
                     'matched_column' => $variation,
-                    'value' => $row[$variation]
+                    'value' => $row[$variation],
                 ]);
+
                 return $row[$variation];
             }
         }
@@ -336,20 +536,21 @@ class LeaveEntitlementImport implements ToCollection, WithHeadingRow
         foreach (array_keys($row) as $column) {
             $cleanColumn = strtolower(preg_replace('/[^a-zA-Z0-9]/', '', $column));
             if ($cleanColumn === $cleanName) {
-                Log::debug("Column match found using alphanumeric comparison", [
+                Log::debug('Column match found using alphanumeric comparison', [
                     'leave_type' => $leaveTypeName,
                     'matched_column' => $column,
-                    'value' => $row[$column]
+                    'value' => $row[$column],
                 ]);
+
                 return $row[$column];
             }
         }
 
         // Log if not found
-        Log::warning("Column not found for leave type", [
+        Log::warning('Column not found for leave type', [
             'leave_type' => $leaveTypeName,
             'tried_variations' => $variations,
-            'available_columns' => array_keys($row)
+            'available_columns' => array_keys($row),
         ]);
 
         return null;
@@ -432,7 +633,7 @@ class LeaveEntitlementImport implements ToCollection, WithHeadingRow
 
         // Remove duplicates, empty strings, and return
         $variations = array_filter(array_unique($variations), function ($v) {
-            return !empty($v);
+            return ! empty($v);
         });
 
         return array_values($variations);
@@ -456,7 +657,7 @@ class LeaveEntitlementImport implements ToCollection, WithHeadingRow
             'Project Manager',
             'SPT',
             'SPV',
-            'FM'
+            'FM',
         ];
 
         return in_array($levelName, $staffLevels);
@@ -500,6 +701,7 @@ class LeaveEntitlementImport implements ToCollection, WithHeadingRow
         if (is_numeric($dateValue)) {
             try {
                 $dateTime = Date::excelToDateTimeObject((float) $dateValue);
+
                 return Carbon::instance($dateTime)->startOfDay();
             } catch (\Exception $e) {
                 // If it's a numeric string that looks like a date (e.g., "20240115")
@@ -524,7 +726,7 @@ class LeaveEntitlementImport implements ToCollection, WithHeadingRow
             // If first part > 12, it MUST be day (dd/mm/yyyy format)
             if ($firstPart > 12) {
                 try {
-                    $format = 'd' . $separator . 'm' . $separator . 'Y';
+                    $format = 'd'.$separator.'m'.$separator.'Y';
                     $date = Carbon::createFromFormat($format, $dateValue);
                     if ($date && $date->year >= 1900 && $date->year <= 2100) {
                         return $date->startOfDay();
@@ -536,7 +738,7 @@ class LeaveEntitlementImport implements ToCollection, WithHeadingRow
             // If second part > 12, it MUST be day (mm/dd/yyyy format)
             elseif ($secondPart > 12) {
                 try {
-                    $format = 'm' . $separator . 'd' . $separator . 'Y';
+                    $format = 'm'.$separator.'d'.$separator.'Y';
                     $date = Carbon::createFromFormat($format, $dateValue);
                     if ($date && $date->year >= 1900 && $date->year <= 2100) {
                         return $date->startOfDay();
@@ -549,7 +751,7 @@ class LeaveEntitlementImport implements ToCollection, WithHeadingRow
             else {
                 // Try dd/mm/yyyy first (priority for Indonesian format)
                 try {
-                    $format = 'd' . $separator . 'm' . $separator . 'Y';
+                    $format = 'd'.$separator.'m'.$separator.'Y';
                     $date = Carbon::createFromFormat($format, $dateValue);
                     if ($date && $date->year >= 1900 && $date->year <= 2100) {
                         // Validate: day should be <= 31, month should be <= 12
@@ -560,7 +762,7 @@ class LeaveEntitlementImport implements ToCollection, WithHeadingRow
                 } catch (\Exception $e) {
                     // Try mm/dd/yyyy as fallback
                     try {
-                        $format = 'm' . $separator . 'd' . $separator . 'Y';
+                        $format = 'm'.$separator.'d'.$separator.'Y';
                         $date = Carbon::createFromFormat($format, $dateValue);
                         if ($date && $date->year >= 1900 && $date->year <= 2100) {
                             return $date->startOfDay();
@@ -580,35 +782,35 @@ class LeaveEntitlementImport implements ToCollection, WithHeadingRow
             'd.m.Y',           // 15.01.2024 (PRIORITY)
             'd/m/Y H:i',       // 15/01/2024 10:30
             'd/m/Y H:i:s',     // 15/01/2024 10:30:45
-            
+
             // Standard formats
             'Y-m-d',           // 2024-01-15
             'Y/m/d',           // 2024/01/15
             'Y.m.d',           // 2024.01.15
             'Ymd',             // 20240115
-            
+
             // mm/dd/yyyy formats (lower priority)
             'm/d/Y',           // 01/15/2024
             'm-d-Y',           // 01-15-2024
             'm.d.Y',           // 01.15.2024
-            
+
             // Formats with leading zeros optional (dd/mm prioritized)
             'j/n/Y',           // 15/1/2024 (no leading zeros - day/month)
             'j-n-Y',           // 15-1-2024
             'n/j/Y',           // 1/15/2024 (no leading zeros - month/day)
             'n-j-Y',           // 1-15-2024
-            
+
             // Formats with 2-digit year (dd/mm prioritized)
             'd/m/y',           // 15/01/24
             'd-m-y',           // 15-01-24
             'm/d/y',           // 01/15/24
             'm-d-y',           // 01-15-24
             'y-m-d',           // 24-01-15
-            
+
             // Other formats
             'dmY',             // 15012024
             'mdY',             // 01152024
-            
+
             // Formats with month name (English)
             'd M Y',           // 15 Jan 2024
             'd F Y',           // 15 January 2024
@@ -618,13 +820,13 @@ class LeaveEntitlementImport implements ToCollection, WithHeadingRow
             'd F, Y',          // 15 January, 2024
             'Y M d',           // 2024 Jan 15
             'Y F d',           // 2024 January 15
-            
+
             // Formats with month name (abbreviated)
             'd-M-Y',           // 15-Jan-2024
             'd-F-Y',           // 15-January-2024
             'M-d-Y',           // Jan-15-2024
             'F-d-Y',           // January-15-2024
-            
+
             // Excel common formats
             'Y-m-d H:i',       // 2024-01-15 10:30
             'Y-m-d H:i:s',     // 2024-01-15 10:30:45
@@ -649,7 +851,7 @@ class LeaveEntitlementImport implements ToCollection, WithHeadingRow
                 $day = (int) $matches[1];
                 $month = (int) $matches[2];
                 $year = (int) $matches[3];
-                
+
                 // Validate ranges
                 if ($day >= 1 && $day <= 31 && $month >= 1 && $month <= 12 && $year >= 1900 && $year <= 2100) {
                     return Carbon::create($year, $month, $day)->startOfDay();
@@ -665,7 +867,7 @@ class LeaveEntitlementImport implements ToCollection, WithHeadingRow
                 $year = (int) $matches[1];
                 $month = (int) $matches[2];
                 $day = (int) $matches[3];
-                
+
                 // Validate ranges
                 if ($day >= 1 && $day <= 31 && $month >= 1 && $month <= 12 && $year >= 1900 && $year <= 2100) {
                     return Carbon::create($year, $month, $day)->startOfDay();
