@@ -38,7 +38,7 @@
                                             </a>
                                         @endcan
                                         @can('employees.export')
-                                            <a href="{{ url('employees/export/') }}" class="btn btn-primary mb-md-0 ml-1 mb-1">
+                                            <a href="#" id="btn-export-employees" class="btn btn-primary mb-md-0 ml-1 mb-1">
                                                 <i class="fas fa-download"></i> Export
                                             </a>
                                         @endcan
@@ -365,6 +365,25 @@
     <!-- Page specific script -->
     <script>
         $(function() {
+            $('#btn-export-employees').on('click', function(e) {
+                e.preventDefault();
+                var params = $.param({
+                    date1: $('#date1').val() || '',
+                    date2: $('#date2').val() || '',
+                    nik: $('#nik').val() || '',
+                    fullname: $('#fullname').val() || '',
+                    department_name: $('#department_name').val() || '',
+                    position_name: $('#position_name').val() || '',
+                    project_code: $('#project_code').val() || '',
+                    grade_id: $('#grade_id').val() || '',
+                    level_id: $('#level_id').val() || '',
+                    class: $('#class').val() || '',
+                    status: $('#status').val() || 'active',
+                    search: $('input[type=search][aria-controls=example1]').val() || ''
+                });
+                window.location.href = "{{ route('employees.export') }}?" + params;
+            });
+
             // Variable to store pending AJAX request
             var xhr = null;
             

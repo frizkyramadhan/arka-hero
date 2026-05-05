@@ -13,6 +13,7 @@ use App\Models\Employee;
 use App\Models\LeaveRequest;
 use App\Models\Officialtravel;
 use App\Models\OvertimeRequest;
+use App\Models\OvertimeRequestDetail;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -79,63 +80,187 @@ class EmployeeWorkforceApiController extends Controller
     }
 
     /**
+     * Aktivitas gabungan untuk **semua karyawan** yang memiliki minimal satu dokumen workforce (cuti, LOT,
+     * atau lembur selesai) dalam periode tersebut.
+     *
+     * Query seperti aktivitas tunggal: `year` wajib jika **`period`** tidak digunakan; **`month`** opsional;
+     * atau **`period=today`** / **`period=yesterday`** (satu hari kalender aplikasi — menggantikan `year`).
+     */
+    public function activityTimelineAll(Request $request): JsonResponse
+    {
+        [$from, $to, $periodPayload] = $this->resolveActivityPeriodBoundaries($request);
+
+        $employeeIds = $this->employeeIdsWithAnyWorkforceDocumentInPeriod($from, $to);
+
+        if ($employeeIds->isEmpty()) {
+            return response()->json([
+                'success' => true,
+                'period' => $periodPayload,
+                'count' => 0,
+                'aggregate_summary' => [
+                    'employees_with_activity' => 0,
+                    'leave_requests_total' => 0,
+                    'official_travels_total' => 0,
+                    'overtime_requests_total' => 0,
+                ],
+                'data' => [],
+            ]);
+        }
+
+        $employees = Employee::query()->whereIn('id', $employeeIds->all())->orderBy('fullname')->get();
+
+        $data = [];
+        $leaveTotal = 0;
+        $lotTotal = 0;
+        $otTotal = 0;
+
+        foreach ($employees as $employee) {
+            $body = $this->activityPayloadBody($employee, $from, $to);
+            $leaveTotal += $body['summary']['leave_requests_count'];
+            $lotTotal += $body['summary']['official_travels_count'];
+            $otTotal += $body['summary']['overtime_requests_count'];
+            $data[] = [
+                'employee_id' => (string) $employee->getKey(),
+            ] + $body;
+        }
+
+        return response()->json([
+            'success' => true,
+            'period' => $periodPayload,
+            'count' => count($data),
+            'aggregate_summary' => [
+                'employees_with_activity' => count($data),
+                'leave_requests_total' => $leaveTotal,
+                'official_travels_total' => $lotTotal,
+                'overtime_requests_total' => $otTotal,
+            ],
+            'data' => $data,
+        ]);
+    }
+
+    /**
+     * Semua cuti workforce dalam rentang (semua karyawan). Filter & sumbu tanggal sama seperti
+     * `.../employees/{employee}/leave-requests` (`approved_at`, status workforce).
+     */
+    public function leaveRequestsAll(Request $request): JsonResponse
+    {
+        [$from, $to, $period] = $this->parseWorkforceDateRange($request);
+
+        $items = LeaveRequest::query()
+            ->whereIn('status', self::WORKFORCE_LEAVE_STATUSES)
+            ->whereNotNull('approved_at')
+            ->where('approved_at', '>=', $from)
+            ->where('approved_at', '<=', $to)
+            ->with([
+                'leaveType',
+                'administration',
+                'employee',
+                'cancellations' => fn ($q) => $q->orderByDesc('requested_at'),
+            ])
+            ->orderByDesc('approved_at')
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'period' => $period,
+            'range' => ['from' => $period['from'], 'to' => $period['to']],
+            'count' => $items->count(),
+            'data' => LeaveRequestSummaryResource::collection($items),
+        ]);
+    }
+
+    /**
+     * Semua LOT workforce dalam rentang (`approved_at`, status approved/closed, traveler terpasang).
+     */
+    public function officialTravelsAll(Request $request): JsonResponse
+    {
+        [$from, $to, $period] = $this->parseWorkforceDateRange($request);
+
+        $items = Officialtravel::query()
+            ->whereIn('status', [Officialtravel::STATUS_APPROVED, Officialtravel::STATUS_CLOSED])
+            ->whereHas('traveler', fn ($q) => $q->whereNotNull('employee_id'))
+            ->whereNotNull('approved_at')
+            ->where('approved_at', '>=', $from)
+            ->where('approved_at', '<=', $to)
+            ->with([
+                'traveler.employee',
+                'traveler.position.department',
+                'traveler.project',
+                'project',
+                'transportation',
+                'accommodation',
+                'details.follower.employee',
+                'stops.arrivalChecker',
+                'stops.departureChecker',
+                'creator',
+                'approval_plans' => fn ($q) => $q->orderBy('id'),
+                'approval_plans.approver',
+            ])
+            ->orderByDesc('approved_at')
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'period' => $period,
+            'range' => ['from' => $period['from'], 'to' => $period['to']],
+            'count' => $items->count(),
+            'data' => WorkforceOfficialtravelResource::collection($items),
+        ]);
+    }
+
+    /**
+     * Semua permintaan lembur selesai dalam rentang (`finished_at`), minimal satu baris detail ber-administrasi.
+     */
+    public function overtimeRequestsAll(Request $request): JsonResponse
+    {
+        [$from, $to, $period] = $this->parseWorkforceDateRange($request);
+
+        $items = OvertimeRequest::query()
+            ->where('status', OvertimeRequest::STATUS_FINISHED)
+            ->whereNotNull('finished_at')
+            ->where('finished_at', '>=', $from)
+            ->where('finished_at', '<=', $to)
+            ->whereHas('details', fn ($q) => $q->whereNotNull('administration_id'))
+            ->with(['project', 'details' => fn ($q) => $q->orderBy('sort_order'), 'details.administration.employee'])
+            ->orderByDesc('finished_at')
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'period' => $period,
+            'range' => ['from' => $period['from'], 'to' => $period['to']],
+            'count' => $items->count(),
+            'data' => OvertimeRequestSummaryResource::collection($items),
+        ]);
+    }
+
+    /**
      * Ringkasan aktivitas: cuti, perjalanan dinas, lembur dalam periode (contoh: Maret 2026).
      *
      * Filter rentang: cuti & LOT memakai approved_at; lembur memakai finished_at.
      * Cuti: approved, auto_approved, closed, cancelled (+ cancellations). LOT: approved & closed. Lembur: finished.
      *
-     * Query: year (wajib), month (opsional 1–12). Tanpa month = seluruh tahun.
+     * Query: `year` (wajib jika **`period`** tidak digunakan), `month` (opsional); atau **`period=today`**
+     * / **`period=yesterday`**.
      */
     public function activityTimeline(Request $request, Employee $employee): JsonResponse
     {
-        $validated = $request->validate([
-            'year' => 'required|integer|min:2000|max:2100',
-            'month' => 'nullable|integer|min:1|max:12',
-        ]);
+        [$from, $to, $periodPayload] = $this->resolveActivityPeriodBoundaries($request);
 
-        $year = (int) $validated['year'];
-        $month = isset($validated['month']) ? (int) $validated['month'] : null;
-
-        [$from, $to] = $this->boundsForCalendarYearMonth($year, $month);
-
-        $this->applyWorkforceAdministrationScope($employee, $from);
-
-        $leaveRequests = $this->leaveRequestsBetween($employee, $from, $to);
-        $officialTravels = $this->officialTravelsBetween($employee, $from, $to);
-        $overtimeRequests = $this->overtimeRequestsBetween($employee, $from, $to);
+        $body = $this->activityPayloadBody($employee, $from, $to);
 
         return response()->json([
             'success' => true,
-            'period' => [
-                'year' => $year,
-                'month' => $month,
-                'from' => $from->toDateString(),
-                'to' => $to->toDateString(),
-            ],
-            'employee' => new WorkforceEmployeeResource($employee),
-            'administrations' => WorkforceAdministrationResource::collection($employee->administrations),
-            'summary' => [
-                'leave_requests_count' => $leaveRequests->count(),
-                'official_travels_count' => $officialTravels->count(),
-                'overtime_requests_count' => $overtimeRequests->count(),
-            ],
-            'leave_requests' => LeaveRequestSummaryResource::collection($leaveRequests),
-            'official_travels' => WorkforceOfficialtravelResource::collection($officialTravels),
-            'overtime_requests' => OvertimeRequestSummaryResource::collection($overtimeRequests),
-        ]);
+            'period' => $periodPayload,
+        ] + $body);
     }
 
+    /**
+     * Timeline aktivitas via NIK; query `period=today|yesterday` sama seperti `activityTimeline`.
+     */
     public function activityTimelineByNik(Request $request, string $nik): JsonResponse
     {
-        $validated = $request->validate([
-            'year' => 'required|integer|min:2000|max:2100',
-            'month' => 'nullable|integer|min:1|max:12',
-        ]);
-
-        $year = (int) $validated['year'];
-        $month = isset($validated['month']) ? (int) $validated['month'] : null;
-
-        [$from, $to] = $this->boundsForCalendarYearMonth($year, $month);
+        [$from, $to, $periodPayload] = $this->resolveActivityPeriodBoundaries($request);
 
         $employee = $this->employeeFromNik($nik, $from);
         if (! $employee) {
@@ -145,7 +270,12 @@ class EmployeeWorkforceApiController extends Controller
             ], 404);
         }
 
-        return $this->activityTimeline($request, $employee);
+        $body = $this->activityPayloadBody($employee, $from, $to);
+
+        return response()->json([
+            'success' => true,
+            'period' => $periodPayload,
+        ] + $body);
     }
 
     /**
@@ -265,6 +395,81 @@ class EmployeeWorkforceApiController extends Controller
     }
 
     /**
+     * Konten ringkas aktivitas satu karyawan (tanpa blok `period` / `employee_id`).
+     *
+     * @return array<string, mixed>
+     */
+    private function activityPayloadBody(Employee $employee, Carbon $from, Carbon $to): array
+    {
+        $this->applyWorkforceAdministrationScope($employee, $from);
+
+        $leaveRequests = $this->leaveRequestsBetween($employee, $from, $to);
+        $officialTravels = $this->officialTravelsBetween($employee, $from, $to);
+        $overtimeRequests = $this->overtimeRequestsBetween($employee, $from, $to);
+
+        return [
+            'employee' => new WorkforceEmployeeResource($employee),
+            'administrations' => WorkforceAdministrationResource::collection($employee->administrations),
+            'summary' => [
+                'leave_requests_count' => $leaveRequests->count(),
+                'official_travels_count' => $officialTravels->count(),
+                'overtime_requests_count' => $overtimeRequests->count(),
+            ],
+            'leave_requests' => LeaveRequestSummaryResource::collection($leaveRequests),
+            'official_travels' => WorkforceOfficialtravelResource::collection($officialTravels),
+            'overtime_requests' => OvertimeRequestSummaryResource::collection($overtimeRequests),
+        ];
+    }
+
+    /** ID karyawan yang punya cuti / LOT / lembur selesai dalam rentang — aturan sama seperti endpoint aktivitas tunggal. */
+    private function employeeIdsWithAnyWorkforceDocumentInPeriod(Carbon $from, Carbon $to): Collection
+    {
+        $leaveIds = LeaveRequest::query()
+            ->whereIn('status', self::WORKFORCE_LEAVE_STATUSES)
+            ->whereNotNull('approved_at')
+            ->where('approved_at', '>=', $from)
+            ->where('approved_at', '<=', $to)
+            ->distinct()
+            ->pluck('employee_id');
+
+        $travelTbl = (new Officialtravel)->getTable();
+        $admTbl = (new Administration)->getTable();
+
+        $lotIds = Officialtravel::query()
+            ->join($admTbl, "{$travelTbl}.traveler_id", '=', "{$admTbl}.id")
+            ->whereIn("{$travelTbl}.status", [
+                Officialtravel::STATUS_APPROVED,
+                Officialtravel::STATUS_CLOSED,
+            ])
+            ->whereNotNull("{$travelTbl}.approved_at")
+            ->where("{$travelTbl}.approved_at", '>=', $from)
+            ->where("{$travelTbl}.approved_at", '<=', $to)
+            ->whereNotNull("{$admTbl}.employee_id")
+            ->distinct()
+            ->pluck("{$admTbl}.employee_id");
+
+        $otTbl = (new OvertimeRequest)->getTable();
+        $detailTbl = (new OvertimeRequestDetail)->getTable();
+
+        $otIds = OvertimeRequest::query()
+            ->join($detailTbl, "{$otTbl}.id", '=', "{$detailTbl}.overtime_request_id")
+            ->join($admTbl, "{$detailTbl}.administration_id", '=', "{$admTbl}.id")
+            ->where("{$otTbl}.status", OvertimeRequest::STATUS_FINISHED)
+            ->whereNotNull("{$otTbl}.finished_at")
+            ->where("{$otTbl}.finished_at", '>=', $from)
+            ->where("{$otTbl}.finished_at", '<=', $to)
+            ->whereNotNull("{$admTbl}.employee_id")
+            ->distinct()
+            ->pluck("{$admTbl}.employee_id");
+
+        return collect([$leaveIds, $lotIds, $otIds])
+            ->flatten()
+            ->filter()
+            ->unique()
+            ->values();
+    }
+
+    /**
      * Resolve karyawan dari NIK untuk workforce: aktif selalu allowed; tidak aktif jika ada konteks rentang
      * dan **mulai rentang ≤ termination_date** (terminasi terisi).
      */
@@ -325,16 +530,84 @@ class EmployeeWorkforceApiController extends Controller
     }
 
     /**
+     * Rentang aktivitas timeline (tahun+bulan atau shortcut `period=today|yesterday`).
+     *
+     * @return array{0: Carbon, 1: Carbon, 2: array<string, mixed>}
+     */
+    private function resolveActivityPeriodBoundaries(Request $request): array
+    {
+        $validated = $request->validate([
+            'period' => 'nullable|string|in:today,yesterday',
+            'year' => 'nullable|integer|min:2000|max:2100|required_without:period',
+            'month' => 'nullable|integer|min:1|max:12',
+        ]);
+
+        if ($request->filled('period')) {
+            return $this->boundsForWorkforcePresetDay((string) $validated['period']);
+        }
+
+        $year = (int) $validated['year'];
+        $month = isset($validated['month']) ? (int) $validated['month'] : null;
+        [$from, $to] = $this->boundsForCalendarYearMonth($year, $month);
+
+        return [
+            $from,
+            $to,
+            [
+                'year' => $year,
+                'month' => $month,
+                'from' => $from->toDateString(),
+                'to' => $to->toDateString(),
+            ],
+        ];
+    }
+
+    /**
+     * Satu hari kalender aplikasi untuk `period=today|yesterday`.
+     *
+     * @return array{0: Carbon, 1: Carbon, 2: array<string, mixed>}
+     */
+    private function boundsForWorkforcePresetDay(string $preset): array
+    {
+        $day = match ($preset) {
+            'today' => Carbon::today(),
+            'yesterday' => Carbon::yesterday(),
+            default => Carbon::today(),
+        };
+        $from = $day->copy()->startOfDay();
+        $to = $day->copy()->endOfDay();
+
+        return [
+            $from,
+            $to,
+            [
+                'year' => null,
+                'month' => null,
+                'from' => $from->toDateString(),
+                'to' => $to->toDateString(),
+                'preset' => $preset,
+            ],
+        ];
+    }
+
+    /**
      * @return array{0: Carbon, 1: Carbon, 2: array{year: int|null, month: int|null, from: string, to: string}}
      */
     private function parseWorkforceDateRange(Request $request): array
     {
         $request->validate([
+            'period' => 'nullable|string|in:today,yesterday',
             'year' => 'nullable|integer|min:2000|max:2100|required_with:month',
             'month' => 'nullable|integer|min:1|max:12',
             'from' => 'nullable|date',
             'to' => 'nullable|date|after_or_equal:from',
         ]);
+
+        if ($request->filled('period')) {
+            [$from, $to, $periodMeta] = $this->boundsForWorkforcePresetDay((string) $request->input('period'));
+
+            return [$from, $to, $periodMeta];
+        }
 
         if ($request->filled('year')) {
             $year = (int) $request->input('year');
@@ -431,6 +704,7 @@ class EmployeeWorkforceApiController extends Controller
             ->with([
                 'leaveType',
                 'administration',
+                'employee',
                 'cancellations' => fn ($q) => $q->orderByDesc('requested_at'),
             ])
             ->orderByDesc('approved_at')
@@ -487,7 +761,7 @@ class EmployeeWorkforceApiController extends Controller
             ->whereHas('details', function ($q) use ($adminIds) {
                 $q->whereIn('administration_id', $adminIds);
             })
-            ->with(['project', 'details' => fn ($q) => $q->orderBy('sort_order'), 'details.administration'])
+            ->with(['project', 'details' => fn ($q) => $q->orderBy('sort_order'), 'details.administration.employee'])
             ->orderByDesc('finished_at')
             ->get();
     }

@@ -40,6 +40,14 @@ Route::apiResource('projects', ProjectController::class);
 |--------------------------------------------------------------------------
 */
 Route::prefix('workforce')->group(function () {
+    Route::get('activity', [EmployeeWorkforceApiController::class, 'activityTimelineAll'])
+        ->name('api.workforce.activity');
+    Route::get('leave-requests', [EmployeeWorkforceApiController::class, 'leaveRequestsAll'])
+        ->name('api.workforce.leave-requests');
+    Route::get('official-travels', [EmployeeWorkforceApiController::class, 'officialTravelsAll'])
+        ->name('api.workforce.official-travels');
+    Route::get('overtime-requests', [EmployeeWorkforceApiController::class, 'overtimeRequestsAll'])
+        ->name('api.workforce.overtime-requests');
     Route::get('employees/by-nik/{nik}/profile', [EmployeeWorkforceApiController::class, 'showFullByNik'])
         ->name('api.workforce.employees.profile-by-nik');
     Route::get('employees/by-nik/{nik}/activity', [EmployeeWorkforceApiController::class, 'activityTimelineByNik'])

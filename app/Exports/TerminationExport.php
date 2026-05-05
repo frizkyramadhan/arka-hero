@@ -2,6 +2,7 @@
 
 namespace App\Exports;
 
+use App\Exports\Concerns\ExportForEmployeeIds;
 use App\Models\Administration;
 use App\Support\UserProject;
 use Maatwebsite\Excel\Concerns\Exportable;
@@ -21,6 +22,7 @@ use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 class TerminationExport extends DefaultValueBinder implements FromQuery, ShouldAutoSize, WithColumnFormatting, WithCustomValueBinder, WithHeadings, WithMapping, WithStyles, WithTitle
 {
     use Exportable;
+    use ExportForEmployeeIds;
 
     public function title(): string
     {
@@ -48,9 +50,23 @@ class TerminationExport extends DefaultValueBinder implements FromQuery, ShouldA
             ->leftJoin('projects', 'projects.id', '=', 'administrations.project_id')
             ->leftJoin('positions', 'positions.id', '=', 'administrations.position_id')
             ->leftJoin('departments', 'departments.id', '=', 'positions.department_id')
-            ->select('administrations.*', 'employees.identity_card', 'employees.fullname', 'positions.position_name', 'projects.project_code', 'projects.project_name', 'departments.department_name')
+            ->leftJoin('grades', 'grades.id', '=', 'administrations.grade_id')
+            ->leftJoin('levels', 'levels.id', '=', 'administrations.level_id')
+            ->select(
+                'administrations.*',
+                'employees.identity_card',
+                'employees.fullname',
+                'positions.position_name',
+                'projects.project_code',
+                'projects.project_name',
+                'departments.department_name',
+                'grades.name as grade_name',
+                'levels.name as level_name'
+            )
             ->where('administrations.is_active', 0)
             ->orderBy('administrations.nik', 'asc');
+
+        $this->applyEmployeeIdFilter($query, 'administrations.employee_id');
 
         return UserProject::scopeAdministrationJoinToAssignedProjects($query);
     }
@@ -63,9 +79,18 @@ class TerminationExport extends DefaultValueBinder implements FromQuery, ShouldA
             $administration->nik,
             $administration->poh,
             $administration->doh ? date('d F Y', strtotime($administration->doh)) : '',
+            $administration->foc ? date('d F Y', strtotime($administration->foc)) : '',
             $administration->department_name,
             $administration->position_name,
+            $administration->grade_name,
+            $administration->level_name,
             $administration->project_code,
+            $administration->project_name,
+            $administration->class,
+            $administration->agreement,
+            $administration->company_program,
+            $administration->no_fptk,
+            $administration->no_sk_active,
             $administration->termination_date ? date('d F Y', strtotime($administration->termination_date)) : '',
             $administration->termination_reason,
             $administration->coe_no,
@@ -80,9 +105,18 @@ class TerminationExport extends DefaultValueBinder implements FromQuery, ShouldA
             'NIK',
             'POH',
             'DOH',
+            'FOC',
             'Department',
             'Position',
+            'Grade',
+            'Level',
             'Project Code',
+            'Project Name',
+            'Class',
+            'Agreement',
+            'Company Program',
+            'FPTK No.',
+            'SK Active No',
             'Termination Date',
             'Termination Reason',
             'COE No',

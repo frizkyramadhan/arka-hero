@@ -7,7 +7,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
 
 class OfficialtravelResource extends JsonResource
 {
-    /** Subclass workforce mengembalikan subset field pada nested `employee`. */
+    /** Kedua mode (workforce / non-workforce) memakai objek tersemat `{ "fullname" }` untuk relasi traveler/follower. */
     protected function useWorkforceEmployeePayload(): bool
     {
         return false;
@@ -23,21 +23,7 @@ class OfficialtravelResource extends JsonResource
         }
 
         return [
-            'id' => $employee->id,
             'fullname' => $employee->fullname,
-            'emp_pob' => $employee->emp_pob,
-            'emp_dob' => $employee->emp_dob,
-            'blood_type' => $employee->blood_type,
-            'nationality' => $employee->nationality,
-            'gender' => $employee->gender,
-            'marital' => $employee->marital,
-            'address' => $employee->address,
-            'village' => $employee->village,
-            'ward' => $employee->ward,
-            'district' => $employee->district,
-            'city' => $employee->city,
-            'phone' => $employee->phone,
-            'email' => $employee->email,
         ];
     }
 
@@ -53,6 +39,7 @@ class OfficialtravelResource extends JsonResource
             'id' => $this->id,
             'official_travel_number' => $this->official_travel_number,
             'official_travel_date' => $this->official_travel_date,
+            'approved_at' => $this->approved_at?->format('Y-m-d H:i:s'),
             'status' => $this->status,
             'purpose' => $this->purpose,
             'destination' => $this->destination,
@@ -68,7 +55,7 @@ class OfficialtravelResource extends JsonResource
                     'position_id' => $this->traveler->position_id,
                     'nik' => $this->traveler->nik,
                     'class' => $this->traveler->class,
-                    'is_active' => $this->traveler->is_active
+                    'is_active' => $this->traveler->is_active,
                 ];
 
                 if ($this->traveler->relationLoaded('employee')) {
@@ -78,13 +65,13 @@ class OfficialtravelResource extends JsonResource
                 if ($this->traveler->relationLoaded('position')) {
                     $position = [
                         'id' => $this->traveler->position->id,
-                        'position_name' => $this->traveler->position->position_name
+                        'position_name' => $this->traveler->position->position_name,
                     ];
 
                     if ($this->traveler->position->relationLoaded('department')) {
                         $position['department'] = [
                             'id' => $this->traveler->position->department->id,
-                            'department_name' => $this->traveler->position->department->department_name
+                            'department_name' => $this->traveler->position->department->department_name,
                         ];
                     }
 
@@ -95,7 +82,7 @@ class OfficialtravelResource extends JsonResource
                     $traveler['project'] = [
                         'id' => $this->traveler->project->id,
                         'project_code' => $this->traveler->project->project_code,
-                        'project_name' => $this->traveler->project->project_name
+                        'project_name' => $this->traveler->project->project_name,
                     ];
                 }
 
@@ -136,7 +123,7 @@ class OfficialtravelResource extends JsonResource
                             'position_id' => $detail->follower->position_id,
                             'nik' => $detail->follower->nik,
                             'class' => $detail->follower->class,
-                            'is_active' => $detail->follower->is_active
+                            'is_active' => $detail->follower->is_active,
                         ];
 
                         if ($detail->follower->relationLoaded('employee')) {
@@ -146,13 +133,13 @@ class OfficialtravelResource extends JsonResource
                         if ($detail->follower->relationLoaded('position')) {
                             $position = [
                                 'id' => $detail->follower->position->id,
-                                'position_name' => $detail->follower->position->position_name
+                                'position_name' => $detail->follower->position->position_name,
                             ];
 
                             if ($detail->follower->position->relationLoaded('department')) {
                                 $position['department'] = [
                                     'id' => $detail->follower->position->department->id,
-                                    'department_name' => $detail->follower->position->department->department_name
+                                    'department_name' => $detail->follower->position->department->department_name,
                                 ];
                             }
 
@@ -163,14 +150,14 @@ class OfficialtravelResource extends JsonResource
                             $follower['project'] = [
                                 'id' => $detail->follower->project->id,
                                 'project_code' => $detail->follower->project->project_code,
-                                'project_name' => $detail->follower->project->project_name
+                                'project_name' => $detail->follower->project->project_name,
                             ];
                         }
                     }
 
                     return [
                         'id' => $detail->id,
-                        'follower' => $follower
+                        'follower' => $follower,
                     ];
                 });
             }),

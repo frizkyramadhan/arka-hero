@@ -2,22 +2,24 @@
 
 namespace App\Exports;
 
+use App\Models\Administration;
 use App\Models\LeaveEntitlement;
 use App\Models\LeaveType;
-use App\Models\Administration;
 use Maatwebsite\Excel\Concerns\FromCollection;
+use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
 use Maatwebsite\Excel\Concerns\WithStyles;
-use Maatwebsite\Excel\Concerns\ShouldAutoSize;
-use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
-use PhpOffice\PhpSpreadsheet\Style\Fill;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
+use PhpOffice\PhpSpreadsheet\Style\Fill;
+use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
-class LeaveEntitlementExport implements FromCollection, WithHeadings, WithMapping, WithStyles, ShouldAutoSize
+class LeaveEntitlementExport implements FromCollection, ShouldAutoSize, WithHeadings, WithMapping, WithStyles
 {
     private $leaveTypes;
+
     private $includeData;
+
     private $projectId;
 
     public function __construct($includeData = true, $projectId = null)
@@ -53,7 +55,7 @@ class LeaveEntitlementExport implements FromCollection, WithHeadings, WithMappin
 
     public function collection()
     {
-        if (!$this->includeData) {
+        if (! $this->includeData) {
             // Return empty collection for template
             return collect([]);
         }
@@ -77,8 +79,8 @@ class LeaveEntitlementExport implements FromCollection, WithHeadings, WithMappin
         $entitlementsByEmployeePeriod = LeaveEntitlement::with(['leaveType'])
             ->get()
             ->groupBy(function ($entitlement) {
-                return $entitlement->employee_id . '_' .
-                    $entitlement->period_start->format('Y-m-d') . '_' .
+                return $entitlement->employee_id.'_'.
+                    $entitlement->period_start->format('Y-m-d').'_'.
                     $entitlement->period_end->format('Y-m-d');
             });
 
@@ -88,13 +90,13 @@ class LeaveEntitlementExport implements FromCollection, WithHeadings, WithMappin
             $employee = $administration->employee;
 
             // Skip if no employee found
-            if (!$employee) {
+            if (! $employee) {
                 continue;
             }
 
             // Get all entitlements for this employee (grouped by period)
             $employeeEntitlements = $entitlementsByEmployeePeriod->filter(function ($groupedEntitlements, $key) use ($employee) {
-                return strpos($key, $employee->id . '_') === 0;
+                return strpos($key, $employee->id.'_') === 0;
             });
 
             // If employee has entitlements, get only the latest period (most recent period_end)
@@ -105,12 +107,12 @@ class LeaveEntitlementExport implements FromCollection, WithHeadings, WithMappin
 
                 foreach ($employeeEntitlements as $groupKey => $groupedEntitlements) {
                     $firstEntitlement = $groupedEntitlements->first();
-                    
+
                     // Ensure period_end exists and is valid
-                    if (!$firstEntitlement || !$firstEntitlement->period_end) {
+                    if (! $firstEntitlement || ! $firstEntitlement->period_end) {
                         continue;
                     }
-                    
+
                     $periodEnd = $firstEntitlement->period_end;
 
                     // If this is the first period or this period_end is more recent, update latest
@@ -123,9 +125,9 @@ class LeaveEntitlementExport implements FromCollection, WithHeadings, WithMappin
                 // Process only the latest period
                 if ($latestPeriod) {
                     $firstEntitlement = $latestPeriod->first();
-                    
+
                     // Ensure we have valid period dates
-                    if (!$firstEntitlement || !$firstEntitlement->period_start || !$firstEntitlement->period_end) {
+                    if (! $firstEntitlement || ! $firstEntitlement->period_start || ! $firstEntitlement->period_end) {
                         continue;
                     }
 
@@ -188,7 +190,7 @@ class LeaveEntitlementExport implements FromCollection, WithHeadings, WithMappin
         return collect($data)
             ->sortBy([
                 ['project', 'asc'],
-                ['nik', 'asc']
+                ['nik', 'asc'],
             ])
             ->values();
     }
@@ -244,11 +246,11 @@ class LeaveEntitlementExport implements FromCollection, WithHeadings, WithMappin
     {
         // Apply default style to first 7 columns (Nama, NIK, Position, DOH, Project, Start Period, End Period)
         foreach (['A', 'B', 'C', 'D', 'E', 'F', 'G'] as $defaultCol) {
-            $sheet->getStyle($defaultCol . '1')->applyFromArray([
+            $sheet->getStyle($defaultCol.'1')->applyFromArray([
                 'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
                 'fill' => [
                     'fillType' => Fill::FILL_SOLID,
-                    'startColor' => ['rgb' => '4472C4']
+                    'startColor' => ['rgb' => '4472C4'],
                 ],
                 'alignment' => [
                     'horizontal' => Alignment::HORIZONTAL_CENTER,
@@ -262,12 +264,12 @@ class LeaveEntitlementExport implements FromCollection, WithHeadings, WithMappin
         $leaveTypeCol = 'H';
         foreach ($this->leaveTypes as $leaveType) {
             $color = $this->getCategoryColor($leaveType->category);
-            $cell = $leaveTypeCol . '1';
+            $cell = $leaveTypeCol.'1';
             $sheet->getStyle($cell)->applyFromArray([
                 'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
                 'fill' => [
                     'fillType' => Fill::FILL_SOLID,
-                    'startColor' => ['rgb' => $color]
+                    'startColor' => ['rgb' => $color],
                 ],
                 'alignment' => [
                     'horizontal' => Alignment::HORIZONTAL_CENTER,
@@ -280,11 +282,11 @@ class LeaveEntitlementExport implements FromCollection, WithHeadings, WithMappin
         }
 
         // Apply default style to Deposit Days column (last column)
-        $sheet->getStyle($leaveTypeCol . '1')->applyFromArray([
+        $sheet->getStyle($leaveTypeCol.'1')->applyFromArray([
             'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
             'fill' => [
                 'fillType' => Fill::FILL_SOLID,
-                'startColor' => ['rgb' => '4472C4']
+                'startColor' => ['rgb' => '4472C4'],
             ],
             'alignment' => [
                 'horizontal' => Alignment::HORIZONTAL_CENTER,
