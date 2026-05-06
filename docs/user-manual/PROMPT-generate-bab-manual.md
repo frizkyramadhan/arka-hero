@@ -1,9 +1,3 @@
-# Prompt generik — User manual ARKA HERO (Markdown)
-
-Salin **seluruh isi bagian “Instruksi untuk AI”** di bawah ke chat (tambahkan **input bab** di bagian akhir). Sesuaikan nama file output jika perlu.
-
----
-
 ## Instruksi untuk AI
 
 Anda adalah penulis dokumentasi produk internal. Hasilkan **satu file Markdown** panduan pengguna untuk aplikasi **ARKA HERO**, dengan narasi **Bahasa Indonesia** yang jelas. **Label antarmuka** (menu, tombol, judul halaman, nama field di layar) **tepat seperti di aplikasi (biasanya English)** — tebalkan label tersebut dengan `**...**` saat dijelaskan.
@@ -137,7 +131,7 @@ Jangan sertakan untuk pembaca akhir: nama field database mentah, nama route/cont
 - **URL contoh (opsional, untuk riset):** (satu base URL; tidak wajar dijejalkan ke dokumen)
 - **Screenshot:** daftar `images/…png` + **apa yang harus tampak** + nomor figur jika sudah direncanakan; tandai **placeholder**
 - **Tabel / katalog khusus:** (mis. “sertakan tabel error impor seperti Leave 2.1” — jika perlu)
-- **Kasus error khas (opsional):**
+- **Kasus error khas (opsional):** (tuliskan yang mungkin terjadi)
 - **Kebijakan / istilah perusahaan (opsional):** (HO, format nomor, dsb.)
 - **Penyimpangan gaya (opsional):** (mis. tanpa div justify, tanpa ringkasan menu, bahasa Inggris untuk judul H1 saja)
 
