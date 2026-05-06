@@ -450,7 +450,10 @@ class RecruitmentSessionController extends Controller
         // Apply pagination
         $paginatedData = $combinedData->slice($start, $length)->values();
 
+        // Pagination is already applied above; Yajra CollectionDataTable would slice again
+        // using the same start/offset and return empty rows on page 2+.
         return datatables()->of($paginatedData)
+            ->skipPaging()
             ->with([
                 'recordsTotal' => $totalRecords,
                 'recordsFiltered' => $filteredRecords,

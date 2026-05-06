@@ -246,7 +246,6 @@
                         d.position_id = $('#position_id').val();
                         d.required_date_from = $('#required_date_from').val();
                         d.required_date_to = $('#required_date_to').val();
-                        d.search = $("input[type=search][aria-controls=example1]").val();
                     }
                 },
                 columns: [{
