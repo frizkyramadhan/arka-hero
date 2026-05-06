@@ -366,12 +366,7 @@ class LeaveRequestController extends Controller
             'manual_approvers.*.exists' => 'One or more selected approvers are invalid.',
         ]);
 
-        $this->validateLeaveDatesAgainstNationalHolidays(
-            $request->start_date,
-            $request->end_date,
-            $request->back_to_work_date,
-            $this->shouldApplyNationalHolidayLeaveRestrictions($request)
-        );
+        $this->validateLeaveDatesAgainstNationalHolidays($request->back_to_work_date);
 
         if (! $isLSL) {
             $projectForDays = $request->filled('project_id') ? Project::find($request->project_id) : null;
@@ -822,12 +817,7 @@ class LeaveRequestController extends Controller
             'manual_approvers.*.exists' => 'One or more selected approvers are invalid.',
         ]);
 
-        $this->validateLeaveDatesAgainstNationalHolidays(
-            $request->start_date,
-            $request->end_date,
-            $request->back_to_work_date,
-            $this->shouldApplyNationalHolidayLeaveRestrictions($request)
-        );
+        $this->validateLeaveDatesAgainstNationalHolidays($request->back_to_work_date);
 
         if (! $isLSL) {
             $projectForDays = $request->filled('project_id') ? Project::find($request->project_id) : null;
@@ -2161,26 +2151,11 @@ class LeaveRequestController extends Controller
     }
 
     /**
-     * Non-roster: block leave ranges that include national holidays.
-     * Roster: national holidays may appear in the leave range (counted in roster total_days).
-     * Back to work: never on a national holiday (any project type).
+     * Leave range may include national holidays (total_days still excludes them for non-roster via countBillableLeaveDaysInRange).
+     * Back to work cannot fall on a national holiday.
      */
-    private function validateLeaveDatesAgainstNationalHolidays(
-        ?string $startDate,
-        ?string $endDate,
-        ?string $backToWorkDate,
-        bool $applyNationalHolidayRestrictions = true
-    ): void {
-        if ($applyNationalHolidayRestrictions && $startDate && $endDate) {
-            $overlap = NationalHoliday::labelsOverlappingRange($startDate, $endDate);
-            if ($overlap !== []) {
-                throw ValidationException::withMessages([
-                    'start_date' => 'Rentang cuti tidak boleh mencakup hari libur nasional: '.implode(', ', $overlap),
-                ]);
-            }
-        }
-
-        // Back to work cannot fall on a national holiday (all project types; UI allows weekends).
+    private function validateLeaveDatesAgainstNationalHolidays(?string $backToWorkDate): void
+    {
         if ($backToWorkDate) {
             $ymd = \Carbon\Carbon::parse($backToWorkDate)->format('Y-m-d');
             if (NationalHoliday::isHolidayDate($ymd)) {
@@ -2189,24 +2164,6 @@ class LeaveRequestController extends Controller
                 ]);
             }
         }
-    }
-
-    /**
-     * Only non-roster projects forbid national holidays inside the selected leave date range.
-     */
-    private function shouldApplyNationalHolidayLeaveRestrictions(Request $request): bool
-    {
-        $project = $request->filled('project_id') ? Project::find($request->project_id) : null;
-        if (! $project) {
-            $admin = Administration::where('employee_id', $request->employee_id)->where('is_active', 1)->first();
-            $project = $admin?->project_id ? Project::find($admin->project_id) : null;
-        }
-
-        if (! $project) {
-            return true;
-        }
-
-        return $project->isNonRosterProject();
     }
 
     /**
