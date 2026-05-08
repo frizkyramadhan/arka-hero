@@ -161,16 +161,23 @@
                                             <div class="row">
                                                 <div class="col-md-3">
                                                     <div class="form-group">
-                                                        <label>Destination</label>
-                                                        <input type="text" class="form-control"
-                                                            id="filter-destination" placeholder="Search destination...">
+                                                        <label>Project</label>
+                                                        <select class="form-control select2bs4" id="filter-project">
+                                                            <option value="">- All -</option>
+                                                            @foreach ($projects as $project)
+                                                                <option value="{{ $project->id }}">
+                                                                    {{ $project->project_code }} -
+                                                                    {{ $project->project_name }}
+                                                                </option>
+                                                            @endforeach
+                                                        </select>
                                                     </div>
                                                 </div>
                                                 <div class="col-md-3">
                                                     <div class="form-group">
-                                                        <label>Remarks</label>
-                                                        <input type="text" class="form-control" id="filter-remarks"
-                                                            placeholder="Search remarks...">
+                                                        <label>Destination</label>
+                                                        <input type="text" class="form-control"
+                                                            id="filter-destination" placeholder="Search destination...">
                                                     </div>
                                                 </div>
                                                 <div class="col-md-3">
@@ -199,42 +206,24 @@
                                 </div>
                             </div>
 
-                            <!-- Filter State Indicator -->
-                            <div id="filter-state-indicator" class="alert alert-light alert-sm mb-3 d-none">
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <div>
-                                        <i class="fas fa-info-circle mr-2"></i>
-                                        <strong>Filters Applied:</strong>
-                                        <span id="active-filter-count">0</span> active filter(s)
-                                    </div>
-                                    <div>
-                                        <button type="button" class="btn btn-sm btn-outline-secondary"
-                                            id="btn-quick-reset">
-                                            <i class="fas fa-undo mr-1"></i>Quick Reset
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Data Table -->
                             <div class="table-responsive">
                                 <table id="letter-numbers-table" class="table table-bordered table-striped">
                                     <thead>
                                         <tr>
-                                            <th class="align-middle" width="5%">No</th>
-                                            <th class="align-middle">Project</th>
-                                            <th class="align-middle">Letter Number</th>
-                                            <th class="align-middle">Category</th>
-                                            <th class="align-middle">Subject</th>
-                                            <th class="align-middle">Date</th>
-                                            <th class="align-middle">Destination</th>
-                                            {{-- <th class="align-middle">Employee</th> --}}
-                                            <th class="align-middle">Remarks</th>
-                                            <th class="align-middle">Status</th>
-                                            <th class="align-middle" width="10%">Action</th>
+                                            <th class="text-center" width="5%">No</th>
+                                            <th>Project</th>
+                                            <th>Letter Number</th>
+                                            <th>Category</th>
+                                            <th>Subject</th>
+                                            <th>Date</th>
+                                            <th>Destination</th>
+                                            <th>Remarks</th>
+                                            <th class="text-center">Status</th>
+                                            <th class="text-center">Action</th>
                                         </tr>
                                     </thead>
-                                    <tbody></tbody>
+                                    <tbody>
+                                    </tbody>
                                 </table>
                             </div>
                         </div>
@@ -284,35 +273,13 @@
 @endsection
 
 @section('styles')
+    <!-- DataTables -->
+    <link rel="stylesheet" href="{{ asset('assets/plugins/datatables-bs4/css/dataTables.bootstrap4.min.css') }}">
+    <link rel="stylesheet" href="{{ asset('assets/plugins/datatables-buttons/css/buttons.bootstrap4.min.css') }}">
+    <!-- Select2 -->
     <link rel="stylesheet" href="{{ asset('assets/plugins/select2/css/select2.min.css') }}">
     <link rel="stylesheet" href="{{ asset('assets/plugins/select2-bootstrap4-theme/select2-bootstrap4.min.css') }}">
-    <link rel="stylesheet" href="{{ asset('assets/plugins/datatables-bs4/css/dataTables.bootstrap4.min.css') }}">
-    <link rel="stylesheet" href="{{ asset('assets/plugins/datatables-responsive/css/responsive.bootstrap4.min.css') }}">
-    <link rel="stylesheet" href="{{ asset('assets/plugins/datatables-buttons/css/buttons.bootstrap4.min.css') }}">
     <style>
-        /* Active Filters Alert Styling */
-        .alert-sm {
-            padding: 0.5rem 0.75rem;
-            font-size: 0.875rem;
-        }
-
-        .alert-info {
-            background-color: #d1ecf1;
-            border-color: #bee5eb;
-            color: #0c5460;
-        }
-
-        .btn-outline-info {
-            color: #17a2b8;
-            border-color: #17a2b8;
-        }
-
-        .btn-outline-info:hover {
-            background-color: #17a2b8;
-            border-color: #17a2b8;
-            color: #fff;
-        }
-
         /* Filter card improvements */
         .card-primary {
             border-color: #007bff;
@@ -332,82 +299,24 @@
             color: #fff;
             text-decoration: none;
         }
-
-        /* DataTable Header Styling */
-        #letter-numbers-table thead th {
-            background-color: #f8f9fa;
-            border-color: #dee2e6;
-            font-weight: 600;
-            color: #495057;
-            cursor: pointer;
-            position: relative;
-        }
-
-        #letter-numbers-table thead th.sortable {
-            background-color: #e9ecef;
-        }
-
-        #letter-numbers-table thead th.sortable:hover {
-            background-color: #dee2e6;
-        }
-
-        #letter-numbers-table thead th.sorting_asc::after {
-            content: '\f0de';
-            font-family: 'Font Awesome 5 Free';
-            font-weight: 900;
-            position: absolute;
-            right: 8px;
-            top: 50%;
-            transform: translateY(-50%);
-            color: #007bff;
-        }
-
-        #letter-numbers-table thead th.sorting_desc::after {
-            content: '\f0dd';
-            font-family: 'Font Awesome 5 Free';
-            font-weight: 900;
-            position: absolute;
-            right: 8px;
-            top: 50%;
-            transform: translateY(-50%);
-            color: #007bff;
-        }
-
-        #letter-numbers-table thead th.sortable::after {
-            content: '\f0dc';
-            font-family: 'Font Awesome 5 Free';
-            font-weight: 400;
-            position: absolute;
-            right: 8px;
-            top: 50%;
-            transform: translateY(-50%);
-            color: #6c757d;
-            opacity: 0.5;
-        }
-
-        #letter-numbers-table thead th.sortable:hover::after {
-            opacity: 1;
-        }
-
-        /* Filter improvements */
-        .form-group label {
-            font-weight: 500;
-            color: #495057;
-            margin-bottom: 0.25rem;
-        }
-
-        .form-control:focus {
-            border-color: #007bff;
-            box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
-        }
     </style>
 @endsection
 
 @section('scripts')
-    <script src="{{ asset('assets/plugins/bs-custom-file-input/bs-custom-file-input.min.js') }}"></script>
+    <!-- DataTables  & Plugins -->
     <script src="{{ asset('assets/plugins/datatables/jquery.dataTables.min.js') }}"></script>
     <script src="{{ asset('assets/plugins/datatables-bs4/js/dataTables.bootstrap4.min.js') }}"></script>
+    <script src="{{ asset('assets/plugins/datatables-buttons/js/dataTables.buttons.min.js') }}"></script>
+    <script src="{{ asset('assets/plugins/datatables-buttons/js/buttons.bootstrap4.min.js') }}"></script>
+    <script src="{{ asset('assets/plugins/jszip/jszip.min.js') }}"></script>
+    <script src="{{ asset('assets/plugins/pdfmake/pdfmake.min.js') }}"></script>
+    <script src="{{ asset('assets/plugins/pdfmake/vfs_fonts.js') }}"></script>
+    <script src="{{ asset('assets/plugins/datatables-buttons/js/buttons.html5.min.js') }}"></script>
+    <script src="{{ asset('assets/plugins/datatables-buttons/js/buttons.print.min.js') }}"></script>
+    <script src="{{ asset('assets/plugins/datatables-buttons/js/buttons.colVis.min.js') }}"></script>
+    <!-- Select2 -->
     <script src="{{ asset('assets/plugins/select2/js/select2.full.min.js') }}"></script>
+    <script src="{{ asset('assets/plugins/bs-custom-file-input/bs-custom-file-input.min.js') }}"></script>
     <script src="{{ asset('vendor/sweetalert/sweetalert.all.js') }}"></script>
 
     <script>
@@ -425,6 +334,7 @@
                 var letterNumber = getUrlParameter('letter_number');
                 var categoryId = getUrlParameter('letter_category_id');
                 var status = getUrlParameter('status');
+                var projectId = getUrlParameter('project_id');
                 var dateFrom = getUrlParameter('date_from');
                 var dateTo = getUrlParameter('date_to');
                 var destination = getUrlParameter('destination');
@@ -439,6 +349,9 @@
                 }
                 if (status) {
                     $('#filter-status').val(status).trigger('change');
+                }
+                if (projectId) {
+                    $('#filter-project').val(projectId).trigger('change');
                 }
                 if (dateFrom) {
                     $('#filter-date-from').val(dateFrom);
@@ -466,6 +379,7 @@
                 var letterNumber = $('#filter-letter-number').val();
                 var categoryId = $('#filter-category').val();
                 var status = $('#filter-status').val();
+                var projectId = $('#filter-project').val();
                 var dateFrom = $('#filter-date-from').val();
                 var dateTo = $('#filter-date-to').val();
                 var destination = $('#filter-destination').val();
@@ -493,6 +407,11 @@
                     var statusText = $('#filter-status option:selected').text();
                     activeFilters.push('Status: ' + statusText);
                     pageTitle += ' - ' + statusText;
+                }
+                if (projectId) {
+                    var projectText = $('#filter-project option:selected').text();
+                    activeFilters.push('Project: ' + projectText);
+                    pageTitle += ' - ' + projectText;
                 }
                 if (dateFrom || dateTo) {
                     var dateFilter = [];
@@ -539,6 +458,9 @@
             var table = $("#letter-numbers-table").DataTable({
                 processing: true,
                 serverSide: true,
+                scrollX: true,
+                scrollCollapse: true,
+                autoWidth: false,
                 ajax: {
                     url: "{{ route('letter-numbers.data') }}",
                     data: function(d) {
@@ -546,6 +468,7 @@
                         d.letter_category_id = $('#filter-category').val();
                         d.project_id = $('#filter-project').val();
                         d.status = $('#filter-status').val();
+                        d.project_id = $('#filter-project').val();
                         d.date_from = $('#filter-date-from').val();
                         d.date_to = $('#filter-date-to').val();
                         d.destination = $('#filter-destination').val();
@@ -645,12 +568,23 @@
                 }
             });
 
-            // Filter events
+            // Handle filter changes
+            $('#filter-category, #filter-status, #filter-project, #filter-date-from, #filter-date-to').change(
+                function() {
+                    table.draw();
+                });
+
+            $('#filter-letter-number, #filter-destination, #filter-remarks').keyup(function() {
+                table.draw();
+            });
+
+            // Handle reset button
             $('#btn-reset-filter').click(function() {
                 $('#filter-letter-number').val('');
                 $('#filter-category').val('').trigger('change');
                 $('#filter-project').val('').trigger('change');
                 $('#filter-status').val('').trigger('change');
+                $('#filter-project').val('').trigger('change');
                 $('#filter-date-from, #filter-date-to').val('');
                 $('#filter-destination, #filter-remarks').val('');
                 table.draw();
@@ -689,6 +623,7 @@
                 $('#filter-category').val('').trigger('change');
                 $('#filter-project').val('').trigger('change');
                 $('#filter-status').val('').trigger('change');
+                $('#filter-project').val('').trigger('change');
                 $('#filter-date-from, #filter-date-to').val('');
                 $('#filter-destination, #filter-remarks').val('');
 
