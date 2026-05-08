@@ -291,6 +291,8 @@ Route::group(['middleware' => ['auth']], function () {
         Route::post('/', [LetterNumberController::class, 'store'])->name('store');
         Route::get('/export', [LetterNumberController::class, 'export'])->name('export');
         Route::post('/import', [LetterNumberController::class, 'import'])->name('import');
+        Route::get('/available-for-select/{categoryCode}', [LetterNumberController::class, 'getAvailableNumbersForSelect'])
+            ->name('available-for-select');
         Route::get('/{id}', [LetterNumberController::class, 'show'])->name('show');
         Route::get('/{id}/edit', [LetterNumberController::class, 'edit'])->name('edit');
         Route::put('/{id}', [LetterNumberController::class, 'update'])->name('update');
@@ -710,6 +712,7 @@ Route::group(['middleware' => ['auth']], function () {
         Route::get('/my-requests/{leaveRequest}', [LeaveRequestController::class, 'myRequestsShow'])->name('my-requests.show');
         Route::get('/my-requests/{leaveRequest}/edit', [LeaveRequestController::class, 'myRequestsEdit'])->name('my-requests.edit');
         Route::put('/my-requests/{leaveRequest}', [LeaveRequestController::class, 'myRequestsUpdate'])->name('my-requests.update');
+        Route::delete('/my-requests/{leaveRequest}', [LeaveRequestController::class, 'destroy'])->name('my-requests.destroy');
         Route::get('/my-requests/{leaveRequest}/cancellation-form', [LeaveRequestController::class, 'showCancellationForm'])->name('my-requests.cancellation-form');
         Route::post('/my-requests/{leaveRequest}/cancellation', [LeaveRequestController::class, 'storeCancellation'])->name('my-requests.cancellation');
         Route::get('/my-entitlements', [LeaveRequestController::class, 'myEntitlements'])->name('my-entitlements');

@@ -448,14 +448,23 @@
 
                             @if ($officialtravel->status == 'approved')
                                 @can('official-travels.stamp')
-                                    @if ($officialtravel->canRecordArrival())
+                                    @php
+                                        $canStampThisLotDestination =
+                                            auth()->user() &&
+                                            (Gate::allows('superadmin') ||
+                                                \App\Support\UserProject::destinationMatchesUserAssignedProjects(
+                                                    auth()->user(),
+                                                    $officialtravel->destination,
+                                                ));
+                                    @endphp
+                                    @if ($canStampThisLotDestination && $officialtravel->canRecordArrival())
                                         <a href="{{ route('officialtravels.showArrivalForm', $officialtravel->id) }}"
                                             class="btn-action arrival-btn">
                                             <i class="fas fa-plane-arrival"></i> Record Arrival
                                         </a>
                                     @endif
 
-                                    @if ($officialtravel->canRecordDeparture())
+                                    @if ($canStampThisLotDestination && $officialtravel->canRecordDeparture())
                                         <a href="{{ route('officialtravels.showDepartureForm', $officialtravel->id) }}"
                                             class="btn-action departure-btn">
                                             <i class="fas fa-plane-departure"></i> Record Departure
@@ -514,7 +523,8 @@
     @endif
 
     <!-- Close Modal -->
-    @if ($officialtravel->status == 'approved' && $officialtravel->canClose())
+    @can('official-travels.stamp')
+        @if ($officialtravel->status == 'approved' && $officialtravel->canClose())
         <div class="modal fade custom-modal" id="closeModal" tabindex="-1" role="dialog"
             aria-labelledby="closeModalLabel" aria-hidden="true">
             <div class="modal-dialog" role="document">
@@ -545,6 +555,7 @@
             </div>
         </div>
     @endif
+    @endcan
 
 @endsection
 

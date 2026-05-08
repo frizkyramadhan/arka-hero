@@ -34,9 +34,11 @@ use App\Models\RecruitmentRequest;
 use App\Models\RecruitmentSession;
 use App\Models\Taxidentification;
 use App\Models\User;
+use App\Support\UserProject;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
 use Yajra\DataTables\DataTables;
 
@@ -160,20 +162,26 @@ class DashboardController extends Controller
         // New logic for pending arrivals based on stops
         $pendingArrivals = 0;
         if ($user->can('official-travels.stamp')) {
-            $pendingArrivals = Officialtravel::where('status', 'approved')
-                ->whereDoesntHave('stops')
-                ->count();
+            $pendingArrivalsQuery = Officialtravel::where('status', 'approved')
+                ->whereDoesntHave('stops');
+            if (! Gate::allows('superadmin')) {
+                UserProject::scopeOfficialTravelsDestinationStampMatch($pendingArrivalsQuery, $user);
+            }
+            $pendingArrivals = $pendingArrivalsQuery->count();
         }
 
         // New logic for pending departures based on stops
         $pendingDepartures = 0;
         if ($user->can('official-travels.stamp')) {
-            $pendingDepartures = Officialtravel::where('status', 'approved')
+            $pendingDeparturesQuery = Officialtravel::where('status', 'approved')
                 ->whereHas('stops', function ($query) {
                     $query->whereNotNull('arrival_at_destination')
                         ->whereNull('departure_from_destination');
-                })
-                ->count();
+                });
+            if (! Gate::allows('superadmin')) {
+                UserProject::scopeOfficialTravelsDestinationStampMatch($pendingDeparturesQuery, $user);
+            }
+            $pendingDepartures = $pendingDeparturesQuery->count();
         }
 
         $totalTravels = Officialtravel::count();
@@ -499,6 +507,10 @@ class DashboardController extends Controller
             ->where('status', 'approved')
             ->whereDoesntHave('stops');
 
+        if (! Gate::allows('superadmin')) {
+            UserProject::scopeOfficialTravelsDestinationStampMatch($query, $user);
+        }
+
         return DataTables::of($query)
             ->addIndexColumn()
             ->addColumn('official_travel_date', function ($row) {
@@ -537,6 +549,10 @@ class DashboardController extends Controller
                 $query->whereNotNull('arrival_at_destination')
                     ->whereNull('departure_from_destination');
             });
+
+        if (! Gate::allows('superadmin')) {
+            UserProject::scopeOfficialTravelsDestinationStampMatch($query, $user);
+        }
 
         return DataTables::of($query)
             ->addIndexColumn()
@@ -1910,6 +1926,13 @@ class DashboardController extends Controller
             ->limit(5)
             ->get();
 
+        // Recent Recruitment (FPTK) — sama cakupan dengan My Recruitment Request
+        $recentRecruitmentRequests = RecruitmentRequest::with(['department', 'position', 'project'])
+            ->where('created_by', $user->id)
+            ->orderByDesc('created_at')
+            ->limit(5)
+            ->get();
+
         // Overtime (sama cakupan dengan My Overtime: pembuat atau pegawai di baris detail)
         $overtimeStats = [
             'total' => 0,
@@ -2008,6 +2031,7 @@ class DashboardController extends Controller
             'recentLeaveRequests' => $recentLeaveRequests,
             'recentTravels' => $recentTravels,
             'recentFlightRequests' => $recentFlightRequests,
+            'recentRecruitmentRequests' => $recentRecruitmentRequests,
             'overtimeStats' => $overtimeStats,
             'recentOvertimeRequests' => $recentOvertimeRequests,
             'leaveEntitlements' => $leaveEntitlements,

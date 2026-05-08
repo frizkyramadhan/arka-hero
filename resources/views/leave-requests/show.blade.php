@@ -695,6 +695,15 @@
                                 !auth()->user()->can('leave-requests.show')
                                     ? route('leave.my-requests.cancellation-form', $leaveRequest)
                                     : route('leave.requests.cancellation-form', $leaveRequest));
+
+                            $destroyLeaveRoute = $fromMyRequests
+                                ? route('leave.my-requests.destroy', $leaveRequest)
+                                : route('leave.requests.destroy', $leaveRequest);
+
+                            $canDeleteLeaveRequest = $leaveRequest->canBeDeletedBeforeApproval() &&
+                                (auth()->user()->can('leave-requests.delete') ||
+                                    (auth()->user()->can('personal.leave.edit-own') &&
+                                        $leaveRequest->employee_id === auth()->user()->employee_id));
                         @endphp
 
                         <a href="{{ $backRoute }}" class="btn-action back-btn">
@@ -714,6 +723,17 @@
                                 <a href="{{ $editRoute }}" class="btn-action edit-btn">
                                     <i class="fas fa-edit"></i> Edit Request
                                 </a>
+                            @endif
+
+                            @if ($canDeleteLeaveRequest)
+                                <form method="POST" action="{{ $destroyLeaveRoute }}"
+                                    onsubmit="return confirm('Are you sure you want to permanently delete this leave request? This cannot be undone.');">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="btn-action delete-leave-btn">
+                                        <i class="fas fa-trash-alt"></i> Delete Request
+                                    </button>
+                                </form>
                             @endif
                         @endif
 
@@ -1270,6 +1290,15 @@
 
         .cancel-btn:hover {
             background-color: #c82333;
+            color: white;
+        }
+
+        .delete-leave-btn {
+            background-color: #b02a37;
+        }
+
+        .delete-leave-btn:hover {
+            background-color: #94222d;
             color: white;
         }
 

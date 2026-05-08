@@ -3,18 +3,20 @@
 namespace App\Http\Controllers;
 
 use App\Exports\LetterAdministrationExport;
+use App\Http\Controllers\Concerns\ManagesLetterNumberForm;
 use App\Imports\LetterAdministrationImport;
 use App\Models\Administration;
 use App\Models\LetterCategory;
 use App\Models\LetterNumber;
 use App\Models\LetterSubject;
-use App\Models\Project;
 use Illuminate\Http\Request;
 use Maatwebsite\Excel\Facades\Excel;
 use Maatwebsite\Excel\Validators\ValidationException;
 
 class LetterNumberController extends Controller
 {
+    use ManagesLetterNumberForm;
+
     public function __construct()
     {
         $this->middleware('permission:letter-numbers.show')->only(['index', 'show']);
@@ -64,14 +66,15 @@ class LetterNumberController extends Controller
         $title = 'Letter Number Administration';
         $subtitle = 'Letter Numbers List';
         $categories = $this->getFilteredCategories();
+        $projects = auth()->user()->projects()->where('project_status', 1)->orderBy('project_code', 'asc')->get();
 
-        return view('letter-numbers.index', compact('title', 'subtitle', 'categories'));
+        return view('letter-numbers.index', compact('title', 'subtitle', 'categories', 'projects'));
     }
 
     public function getLetterNumbers(Request $request)
     {
-        // Get user's accessible project IDs
-        $userProjects = auth()->user()->projects()->where('project_status', 1)->pluck('projects.id')->toArray();
+        // Get user's accessible project IDs (user_project / project pivot)
+        $userProjectIds = auth()->user()->projects()->where('project_status', 1)->pluck('projects.id')->map(fn ($id) => (int) $id)->all();
 
         $letterNumbers = LetterNumber::with([
             'category',
@@ -83,7 +86,13 @@ class LetterNumberController extends Controller
             'reservedBy',
             'usedBy',
         ])
-            ->whereIn('project_id', $userProjects)
+            ->whereIn('project_id', $userProjectIds)
+            ->when(
+                $request->filled('project_id') && in_array((int) $request->project_id, $userProjectIds, true),
+                function ($query) use ($request) {
+                    return $query->where('project_id', (int) $request->project_id);
+                }
+            )
             ->when($request->letter_number, function ($query, $letterNumber) {
                 return $query->where('letter_number', 'like', '%'.$letterNumber.'%');
             })
@@ -216,7 +225,7 @@ class LetterNumberController extends Controller
             'destination' => 'nullable|string|max:200',
             'remarks' => 'nullable|string',
             'project_code' => 'nullable|string|max:50',
-            'project_id' => 'required|exists:projects,id',
+            'project_id' => $this->letterNumberProjectIdRules(),
         ];
 
         // Validate category access based on user permissions
@@ -262,19 +271,7 @@ class LetterNumberController extends Controller
         $request->validate($rules);
 
         $letterNumber = new LetterNumber;
-        $letterNumber->fill($request->all());
-
-        // Set project_id: priority from administration, then from request
-        if ($request->administration_id) {
-            $administration = Administration::find($request->administration_id);
-            if ($administration && $administration->project_id) {
-                $letterNumber->project_id = $administration->project_id;
-            }
-        }
-        // If project_id not set from administration, use from request (or null)
-        if (! $letterNumber->project_id && $request->project_id) {
-            $letterNumber->project_id = $request->project_id;
-        }
+        $letterNumber->fill($this->letterNumberPayload($request));
 
         $letterNumber->user_id = auth()->id();
         $letterNumber->save();
@@ -296,6 +293,8 @@ class LetterNumberController extends Controller
         ])
             ->findOrFail($id);
 
+        abort_unless($this->userHasAccessToLetterNumberProject($letterNumber), 403);
+
         $title = 'Letter Number Details';
         $relatedDocument = $letterNumber->relatedDocument();
 
@@ -305,6 +304,8 @@ class LetterNumberController extends Controller
     public function edit($id)
     {
         $letterNumber = LetterNumber::findOrFail($id);
+
+        abort_unless($this->userHasAccessToLetterNumberProject($letterNumber), 403);
 
         // Hanya bisa edit jika status masih reserved
         if ($letterNumber->status !== 'reserved') {
@@ -337,6 +338,8 @@ class LetterNumberController extends Controller
     {
         $letterNumber = LetterNumber::findOrFail($id);
 
+        abort_unless($this->userHasAccessToLetterNumberProject($letterNumber), 403);
+
         // Hanya bisa update jika status masih reserved
         if ($letterNumber->status !== 'reserved') {
             return redirect()->route('letter-numbers.index')
@@ -348,7 +351,7 @@ class LetterNumberController extends Controller
             'destination' => 'nullable|string|max:200',
             'remarks' => 'nullable|string',
             'project_code' => 'nullable|string|max:50',
-            'project_id' => 'required|exists:projects,id',
+            'project_id' => $this->letterNumberProjectIdRules(),
         ];
 
         // Validate category access based on user permissions
@@ -384,24 +387,16 @@ class LetterNumberController extends Controller
                 case 'SKPK':
                     // SKPK no longer requires administration_id (NIK)
                     break;
+
+                case 'FR':
+                    $rules['ticket_classification'] = 'required|in:Pesawat,Kereta Api,Bus';
+                    break;
             }
         }
 
         $request->validate($rules);
 
-        $letterNumber->fill($request->all());
-
-        // Set project_id: priority from administration, then from request
-        if ($request->administration_id) {
-            $administration = Administration::find($request->administration_id);
-            if ($administration && $administration->project_id) {
-                $letterNumber->project_id = $administration->project_id;
-            }
-        }
-        // If project_id not set from administration, use from request (or keep existing)
-        if (! $letterNumber->project_id && $request->project_id) {
-            $letterNumber->project_id = $request->project_id;
-        }
+        $letterNumber->fill($this->letterNumberPayload($request));
 
         $letterNumber->save();
 
@@ -413,6 +408,13 @@ class LetterNumberController extends Controller
     {
         try {
             $letterNumber = LetterNumber::findOrFail($id);
+
+            if (! $this->userHasAccessToLetterNumberProject($letterNumber)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'You do not have access to this letter number.',
+                ], 403);
+            }
 
             // Hanya bisa delete jika status masih reserved dan tidak ada related document
             if ($letterNumber->status !== 'reserved') {
@@ -448,6 +450,13 @@ class LetterNumberController extends Controller
         try {
             $letterNumber = LetterNumber::findOrFail($id);
 
+            if (! $this->userHasAccessToLetterNumberProject($letterNumber)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'You do not have access to this letter number.',
+                ], 403);
+            }
+
             // Hanya bisa cancel jika status masih reserved
             if ($letterNumber->status !== 'reserved') {
                 return response()->json([
@@ -471,7 +480,8 @@ class LetterNumberController extends Controller
     }
 
     /**
-     * API: Get available letter numbers for specific category
+     * API (legacy): Get available letter numbers for specific category.
+     * Not scoped to user projects; authenticated session is typically absent on api middleware.
      */
     public function getAvailableNumbers($categoryCode)
     {
@@ -480,7 +490,7 @@ class LetterNumberController extends Controller
 
             $numbers = LetterNumber::where('letter_category_id', $category->id)
                 ->where('status', 'reserved')
-                ->with('subject') // Eager load subject
+                ->with(['subject', 'project'])
                 ->orderBy('letter_date', 'desc')
                 ->get();
 
@@ -492,6 +502,51 @@ class LetterNumberController extends Controller
                     'letter_date' => $number->letter_date,
                     'subject_name' => $number->subject->subject_name ?? $number->custom_subject,
                     'remarks' => $number->remarks,
+                    'project_code' => $number->project?->project_code ?? $number->project_code,
+                ];
+            });
+
+            return response()->json(['success' => true, 'data' => $formattedNumbers]);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json(['success' => false, 'message' => "Category '{$categoryCode}' not found."], 404);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => 'An error occurred while fetching numbers.'], 500);
+        }
+    }
+
+    /**
+     * JSON for authenticated UI: reserved letter numbers for category, limited to current user's projects.
+     */
+    public function getAvailableNumbersForSelect(string $categoryCode)
+    {
+        try {
+            $userProjectIds = auth()->user()->projects()
+                ->where('project_status', 1)
+                ->pluck('projects.id')
+                ->map(fn ($id) => (int) $id)
+                ->all();
+
+            if ($userProjectIds === []) {
+                return response()->json(['success' => true, 'data' => []]);
+            }
+
+            $category = LetterCategory::where('category_code', $categoryCode)->firstOrFail();
+
+            $numbers = LetterNumber::where('letter_category_id', $category->id)
+                ->where('status', 'reserved')
+                ->whereIn('project_id', $userProjectIds)
+                ->with(['subject', 'project'])
+                ->orderBy('letter_date', 'desc')
+                ->get();
+
+            $formattedNumbers = $numbers->map(function ($number) {
+                return [
+                    'id' => $number->id,
+                    'letter_number' => $number->letter_number,
+                    'letter_date' => $number->letter_date,
+                    'subject_name' => $number->subject->subject_name ?? $number->custom_subject,
+                    'remarks' => $number->remarks,
+                    'project_code' => $number->project?->project_code ?? $number->project_code,
                 ];
             });
 
@@ -524,6 +579,11 @@ class LetterNumberController extends Controller
     {
         try {
             $letterNumber = LetterNumber::findOrFail($id);
+
+            if (! $this->userHasAccessToLetterNumberProject($letterNumber)) {
+                return redirect()->route('letter-numbers.index')
+                    ->with('toast_error', 'You do not have access to this letter number.');
+            }
 
             // Double check conditions to be safe
             if ($letterNumber->status !== 'reserved') {

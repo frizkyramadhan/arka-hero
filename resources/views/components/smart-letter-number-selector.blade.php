@@ -1,8 +1,8 @@
 {{--
     Letter Number Selector Component
 
-    Reusable component for selecting existing reserved letter numbers.
-    Loads options via GET /api/letter-numbers/available/{categoryCode} with header X-API-Key from API_KEY (.env).
+    Loads reserved letter numbers via GET letter-numbers/available-for-select/{categoryCode} (web, auth session).
+    Results are limited to letter_numbers.project_id in the current user's assigned projects (user_project).
 
     Usage:
     @include('components.smart-letter-number-selector', [
@@ -25,8 +25,7 @@
     $placeholder = $placeholder ?? 'Select Letter Number';
     $selectedValue = old($fieldName) ?? ($selectedValue ?? null);
 
-    // Same key as API_KEY in .env (config/services.php → services.api.key); required when API_REQUIRE_KEY=true
-    $letterNumbersApiKey = config('services.api.key') ?? '';
+    $letterNumbersSelectUrl = route('letter-numbers.available-for-select', ['categoryCode' => $categoryCode]);
 
     // Component ID for JavaScript isolation
     $componentId = 'letter-selector-' . uniqid();
@@ -55,7 +54,7 @@
                     <div class="invalid-feedback">{{ $message }}</div>
                 @enderror
                 <small class="form-text text-muted">
-                    Select from reserved letter numbers for category {{ $categoryCode }}
+                    Reserved numbers for category {{ $categoryCode }} on your assigned projects only.
                 </small>
             </div>
             <div class="col-md-4">
@@ -101,7 +100,6 @@
         // Function to initialize letter number selector
         function initLetterNumberSelector() {
             const componentId = '{{ $componentId }}';
-            const categoryCode = '{{ $categoryCode }}';
             const $component = $('#' + componentId);
 
             // Initialize Select2 for this component
@@ -143,12 +141,11 @@
                 updateSelectionStatus('info', 'Loading available letter numbers...');
 
                 $.ajax({
-                        url: "{{ route('api.letter-numbers.available', ['categoryCode' => ':categoryCode']) }}"
-                            .replace(':categoryCode', categoryCode),
+                        url: @json($letterNumbersSelectUrl),
                         method: 'GET',
                         headers: {
-                            'X-API-Key': @json($letterNumbersApiKey),
                             'Accept': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest',
                         },
                     })
                     .done(function(response) {

@@ -10,7 +10,7 @@
                 <div class="col-sm-6">
                     <ol class="breadcrumb float-sm-right">
                         <li class="breadcrumb-item"><a href="{{ route('dashboard.personal') }}">My Dashboard</a></li>
-                        <li class="breadcrumb-item active">My LOT Request</li>
+                        <li class="breadcrumb-item active">My Official Travel Request</li>
                     </ol>
                 </div>
             </div>
