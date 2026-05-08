@@ -43,8 +43,8 @@ class LeaveRequestController extends Controller
         $this->middleware('permission:leave-requests.edit')->only('edit', 'update', 'deleteDocument', 'upload');
 
         // Delete/cancel any leave request and manage cancellations
-        // Note: showCancellationForm and storeCancellation are dual access methods (see below)
-        $this->middleware('permission:leave-requests.delete')->only('destroy', 'approveCancellation', 'rejectCancellation', 'close');
+        // Note: destroy() uses dual permission inside the method; showCancellationForm/storeCancellation are dual access (see below)
+        $this->middleware('permission:leave-requests.delete')->only('approveCancellation', 'rejectCancellation', 'close');
 
         // AJAX methods for admin (project info, employees by project)
         // Note: getLeaveTypeInfo is handled as dual access method (see below)
@@ -81,6 +81,7 @@ class LeaveRequestController extends Controller
         // - store() - admin can create for anyone, personal can create for self
         // - showCancellationForm() - admin can cancel any, personal can cancel own (if has personal.leave.cancel-own)
         // - storeCancellation() - admin can cancel any, personal can cancel own (if has personal.leave.cancel-own)
+        // - destroy() - admin (leave-requests.delete) or employee (personal.leave.edit-own, own request only); see method body
         // - getLeaveTypeInfo() - admin can access with leave-requests.show, personal can access with personal.leave.create-own or personal.leave.edit-own
         // Note: These methods are NOT in middleware to allow dual access
     }
@@ -105,7 +106,7 @@ class LeaveRequestController extends Controller
         $totalRecords = (clone $scopedBase)->count();
 
         $query = (clone $scopedBase)
-            ->with(['employee', 'leaveType', 'administration.project'])
+            ->with(['employee', 'leaveType', 'administration.project', 'approvalPlans'])
             ->select('leave_requests.*')
             ->orderBy('created_at', 'desc');
 
@@ -186,6 +187,12 @@ class LeaveRequestController extends Controller
             $actions = '<div class="btn-group" role="group">';
             $actions .= '<a href="'.route('leave.requests.show', $request).'" class="btn btn-info btn-sm mr-1"><i class="fas fa-eye"></i></a>';
             $actions .= '<a href="'.route('leave.requests.edit', $request).'" class="btn btn-warning btn-sm mr-1"><i class="fas fa-edit"></i></a>';
+
+            if ($request->canBeDeletedBeforeApproval() && auth()->user()->can('leave-requests.delete')) {
+                $actions .= '<form method="POST" action="'.route('leave.requests.destroy', $request).'" class="d-inline" onsubmit="return confirm(\'Delete this leave request? This cannot be undone.\');">';
+                $actions .= csrf_field().method_field('DELETE');
+                $actions .= '<button type="submit" class="btn btn-danger btn-sm mr-1" title="Delete"><i class="fas fa-trash"></i></button></form>';
+            }
 
             // if ($request->canBeCancelled()) {
             //     $actions .= '<a href="' . route('leave.requests.edit', $request) . '" class="btn btn-warning btn-sm mr-1"><i class="fas fa-edit"></i></a>';
@@ -1128,30 +1135,64 @@ class LeaveRequestController extends Controller
     }
 
     /**
-     * Delete/Cancel leave request
+     * Permanently delete a leave request before any approval action.
      *
-     * ADMIN/HR: Can delete/cancel any leave request (permission: leave-requests.delete)
-     * PERSONAL/USER: Can cancel their own leave requests (permission: personal.leave.cancel-own)
-     *
-     * Note: Protected by middleware 'permission:leave-requests.delete' for admin
-     * Personal users should use cancellation form instead
+     * ADMIN/HR: leave-requests.delete (scoped by project assignment)
+     * PERSONAL: personal.leave.edit-own, own employee only
      */
-    public function destroy(LeaveRequest $leaveRequest)
+    public function destroy(LeaveRequest $leaveRequest): RedirectResponse
     {
-        // This method is primarily for admin/HR (protected by middleware)
-        // Personal users should use showCancellationForm() and storeCancellation() instead
+        /** @var \App\Models\User $user */
+        $user = auth()->user();
+
+        if (
+            ! $user->can('leave-requests.delete')
+            && ! ($user->can('personal.leave.edit-own') && $leaveRequest->employee_id === $user->employee_id)
+        ) {
+            abort(403, 'You do not have permission to delete this leave request.');
+        }
 
         if ($r = $this->guardLeaveRequestProjectForHrUser($leaveRequest)) {
             return $r;
         }
 
-        // Delete supporting document and folder
-        $this->deleteSupportingDocument($leaveRequest);
+        if (! $leaveRequest->canBeDeletedBeforeApproval()) {
+            return back()->with('toast_error', 'This leave request cannot be deleted because approval has already started or the status is not eligible.');
+        }
 
-        $leaveRequest->cancel();
+        $redirectToMyList = $leaveRequest->employee_id === $user->employee_id
+            && ! $user->can('leave-requests.show');
+
+        DB::beginTransaction();
+        try {
+            $this->deleteSupportingDocument($leaveRequest);
+
+            ApprovalPlan::where('document_id', $leaveRequest->id)
+                ->where('document_type', 'leave_request')
+                ->delete();
+
+            $leaveRequest->flightRequests()->delete();
+
+            $leaveRequest->delete();
+
+            DB::commit();
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Failed to delete leave request: '.$e->getMessage(), [
+                'leave_request_id' => $leaveRequest->id,
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return back()->with('toast_error', 'Failed to delete leave request: '.$e->getMessage());
+        }
+
+        if ($redirectToMyList) {
+            return redirect()->route('leave.my-requests')
+                ->with('toast_success', 'Leave request deleted successfully.');
+        }
 
         return redirect()->route('leave.requests.index')
-            ->with('toast_success', 'Leave request cancelled successfully.');
+            ->with('toast_success', 'Leave request deleted successfully.');
     }
 
     /**
@@ -1938,7 +1979,7 @@ class LeaveRequestController extends Controller
     {
         $user = Auth::user();
 
-        $query = LeaveRequest::with(['leaveType', 'administration.project', 'requestedBy'])
+        $query = LeaveRequest::with(['leaveType', 'administration.project', 'requestedBy', 'approvalPlans'])
             ->where('employee_id', $user->employee_id)
             ->select('leave_requests.*')
             ->orderBy('created_at', 'desc');
@@ -1995,13 +2036,19 @@ class LeaveRequestController extends Controller
             ->addColumn('requested_at', function ($row) {
                 return $row->requested_at ? \Carbon\Carbon::parse($row->requested_at)->format('d/m/Y H:i') : 'N/A';
             })
-            ->addColumn('action', function ($row) {
+            ->addColumn('action', function ($row) use ($user) {
                 $btn = '<div class="btn-group" role="group">';
 
                 $btn .= '<a href="'.route('leave.my-requests.show', $row->id).'" class="btn btn-info btn-sm mr-1"><i class="fas fa-eye"></i></a>';
 
                 if ($row->status === 'draft' || $row->status === 'pending') {
                     $btn .= '<a href="'.route('leave.my-requests.edit', $row->id).'" class="btn btn-warning btn-sm mr-1"><i class="fas fa-edit"></i></a>';
+                }
+
+                if ($row->canBeDeletedBeforeApproval() && $user->can('personal.leave.edit-own')) {
+                    $btn .= '<form method="POST" action="'.route('leave.my-requests.destroy', $row->id).'" class="d-inline" onsubmit="return confirm(\'Delete this leave request? This cannot be undone.\');">';
+                    $btn .= csrf_field().method_field('DELETE');
+                    $btn .= '<button type="submit" class="btn btn-danger btn-sm mr-1" title="Delete"><i class="fas fa-trash"></i></button></form>';
                 }
 
                 $btn .= '</div>';

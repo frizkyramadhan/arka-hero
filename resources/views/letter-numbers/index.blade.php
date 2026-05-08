@@ -113,13 +113,6 @@
                                             <div class="row">
                                                 <div class="col-md-2">
                                                     <div class="form-group">
-                                                        <label>Letter Number</label>
-                                                        <input type="text" class="form-control" id="filter-letter-number"
-                                                            placeholder="Search letter number...">
-                                                    </div>
-                                                </div>
-                                                <div class="col-md-2">
-                                                    <div class="form-group">
                                                         <label>Date From</label>
                                                         <input type="date" class="form-control" id="filter-date-from">
                                                     </div>
@@ -128,6 +121,19 @@
                                                     <div class="form-group">
                                                         <label>Date To</label>
                                                         <input type="date" class="form-control" id="filter-date-to">
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-2">
+                                                    <div class="form-group">
+                                                        <label>Project</label>
+                                                        <select class="form-control select2bs4" id="filter-project">
+                                                            <option value="">- All projects -</option>
+                                                            @foreach ($projects as $project)
+                                                                <option value="{{ $project->id }}">
+                                                                    {{ $project->project_code }}
+                                                                </option>
+                                                            @endforeach
+                                                        </select>
                                                     </div>
                                                 </div>
                                                 <div class="col-md-3">
@@ -146,18 +152,14 @@
                                                 </div>
                                                 <div class="col-md-3">
                                                     <div class="form-group">
-                                                        <label>Status</label>
-                                                        <select class="form-control select2bs4" id="filter-status">
-                                                            <option value="">- All -</option>
-                                                            <option value="reserved">Reserved</option>
-                                                            <option value="used">Used</option>
-                                                            <option value="cancelled">Cancelled</option>
-                                                        </select>
+                                                        <label>Letter Number</label>
+                                                        <input type="text" class="form-control" id="filter-letter-number"
+                                                            placeholder="Search letter number...">
                                                     </div>
                                                 </div>
                                             </div>
                                             <div class="row">
-                                                <div class="col-md-5">
+                                                <div class="col-md-3">
                                                     <div class="form-group">
                                                         <label>Project</label>
                                                         <select class="form-control select2bs4" id="filter-project">
@@ -171,28 +173,32 @@
                                                         </select>
                                                     </div>
                                                 </div>
-                                                <div class="col-md-5">
+                                                <div class="col-md-3">
                                                     <div class="form-group">
                                                         <label>Destination</label>
                                                         <input type="text" class="form-control"
                                                             id="filter-destination" placeholder="Search destination...">
                                                     </div>
                                                 </div>
-                                            </div>
-                                            <div class="col-md-3">
-                                                <div class="form-group">
-                                                    <label>Remarks</label>
-                                                    <input type="text" class="form-control" id="filter-remarks"
-                                                        placeholder="Search remarks...">
+                                                <div class="col-md-3">
+                                                    <div class="form-group">
+                                                        <label>Status</label>
+                                                        <select class="form-control select2bs4" id="filter-status">
+                                                            <option value="">- All -</option>
+                                                            <option value="reserved">Reserved</option>
+                                                            <option value="used">Used</option>
+                                                            <option value="cancelled">Cancelled</option>
+                                                        </select>
+                                                    </div>
                                                 </div>
-                                            </div>
-                                            <div class="col-md-3">
-                                                <div class="form-group">
-                                                    <label>&nbsp;</label>
-                                                    <button type="button" id="btn-reset-filter"
-                                                        class="btn btn-danger btn-block">
-                                                        <i class="fas fa-times"></i> Reset Filter
-                                                    </button>
+                                                <div class="col-md-3 text-right">
+                                                    <div class="form-group">
+                                                        <label>&nbsp;</label>
+                                                        <button type="button" id="btn-reset-filter"
+                                                            class="btn btn-danger btn-block">
+                                                            <i class="fas fa-times"></i> Reset Filter
+                                                        </button>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
@@ -333,6 +339,7 @@
                 var dateTo = getUrlParameter('date_to');
                 var destination = getUrlParameter('destination');
                 var remarks = getUrlParameter('remarks');
+                var projectId = getUrlParameter('project_id');
 
                 if (letterNumber) {
                     $('#filter-letter-number').val(letterNumber);
@@ -358,6 +365,10 @@
                 if (remarks) {
                     $('#filter-remarks').val(remarks);
                 }
+                if (projectId && /^\d+$/.test(projectId) &&
+                    $('#filter-project option[value="' + projectId + '"]').length) {
+                    $('#filter-project').val(projectId).trigger('change');
+                }
 
                 // Update page title and show active filters
                 updatePageTitleAndFilters();
@@ -373,6 +384,7 @@
                 var dateTo = $('#filter-date-to').val();
                 var destination = $('#filter-destination').val();
                 var remarks = $('#filter-remarks').val();
+                var projectId = $('#filter-project').val();
 
                 var activeFilters = [];
                 var pageTitle = 'Letter Number Administration';
@@ -380,6 +392,11 @@
                 if (letterNumber) {
                     activeFilters.push('Letter Number: ' + letterNumber);
                     pageTitle += ' - ' + letterNumber;
+                }
+                if (projectId) {
+                    var projectText = $('#filter-project option:selected').text();
+                    activeFilters.push('Project: ' + projectText);
+                    pageTitle += ' - ' + projectText;
                 }
                 if (categoryId) {
                     var categoryText = $('#filter-category option:selected').text();
@@ -449,6 +466,7 @@
                     data: function(d) {
                         d.letter_number = $('#filter-letter-number').val();
                         d.letter_category_id = $('#filter-category').val();
+                        d.project_id = $('#filter-project').val();
                         d.status = $('#filter-status').val();
                         d.project_id = $('#filter-project').val();
                         d.date_from = $('#filter-date-from').val();
@@ -564,11 +582,33 @@
             $('#btn-reset-filter').click(function() {
                 $('#filter-letter-number').val('');
                 $('#filter-category').val('').trigger('change');
+                $('#filter-project').val('').trigger('change');
                 $('#filter-status').val('').trigger('change');
                 $('#filter-project').val('').trigger('change');
                 $('#filter-date-from, #filter-date-to').val('');
                 $('#filter-destination, #filter-remarks').val('');
                 table.draw();
+                updatePageTitleAndFilters(); // Reset page title and filters info
+                showFilterState(); // Show filter state
+            });
+
+            // Auto apply filter on change
+            $('#filter-project, #filter-category, #filter-status, #filter-date-from, #filter-date-to').on('change',
+                function() {
+                    table.draw();
+                    updatePageTitleAndFilters(); // Update page title and filters info on change
+                    showFilterState(); // Show filter state
+                });
+
+            // Auto apply filter on keyup for text inputs (with debounce)
+            var timeout;
+            $('#filter-letter-number, #filter-destination, #filter-remarks').on('keyup', function() {
+                clearTimeout(timeout);
+                timeout = setTimeout(function() {
+                    table.draw();
+                    updatePageTitleAndFilters(); // Update page title and filters info on keyup
+                    showFilterState(); // Show filter state
+                }, 500); // Wait 500ms after user stops typing
             });
 
             // Clear URL filters button
@@ -581,6 +621,7 @@
                 // Clear all filter values
                 $('#filter-letter-number').val('');
                 $('#filter-category').val('').trigger('change');
+                $('#filter-project').val('').trigger('change');
                 $('#filter-status').val('').trigger('change');
                 $('#filter-project').val('').trigger('change');
                 $('#filter-date-from, #filter-date-to').val('');
@@ -608,6 +649,48 @@
             }
 
             // Add filter state indicator
+            function showFilterState() {
+                var hasFilters = $('#filter-letter-number').val() ||
+                    $('#filter-category').val() ||
+                    $('#filter-project').val() ||
+                    $('#filter-status').val() ||
+                    $('#filter-date-from').val() ||
+                    $('#filter-date-to').val() ||
+                    $('#filter-destination').val() ||
+                    $('#filter-remarks').val();
+
+                var filterCount = 0;
+                if ($('#filter-letter-number').val()) filterCount++;
+                if ($('#filter-category').val()) filterCount++;
+                if ($('#filter-project').val()) filterCount++;
+                if ($('#filter-status').val()) filterCount++;
+                if ($('#filter-date-from').val()) filterCount++;
+                if ($('#filter-date-to').val()) filterCount++;
+                if ($('#filter-destination').val()) filterCount++;
+                if ($('#filter-remarks').val()) filterCount++;
+
+                $('#active-filter-count').text(filterCount);
+
+                if (hasFilters) {
+                    $('#filter-state-indicator').removeClass('d-none').addClass('d-block');
+                } else {
+                    $('#filter-state-indicator').removeClass('d-block').addClass('d-none');
+                }
+            }
+
+            // Quick reset button event
+            $(document).on('click', '#btn-quick-reset', function() {
+                $('#filter-letter-number').val('');
+                $('#filter-category').val('').trigger('change');
+                $('#filter-project').val('').trigger('change');
+                $('#filter-status').val('').trigger('change');
+                $('#filter-date-from, #filter-date-to').val('');
+                $('#filter-destination, #filter-remarks').val('');
+
+                table.draw();
+                updatePageTitleAndFilters();
+                showFilterState();
+            });
 
             // Delete function
             $(document).on('click', '.btn-delete', function() {

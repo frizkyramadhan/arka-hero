@@ -100,10 +100,10 @@ class FlightRequestController extends Controller
             $employeeNik = $request->nik ?? ($request->employee->nik ?? 'N/A');
 
             $actions = '<div class="btn-group">';
-            $actions .= '<a href="' . route('flight-requests.show', $request->id) . '" class="btn btn-sm btn-info mr-1" title="View"><i class="fas fa-eye"></i></a>';
+            $actions .= '<a href="'.route('flight-requests.show', $request->id).'" class="btn btn-sm btn-info mr-1" title="View"><i class="fas fa-eye"></i></a>';
 
             if (in_array($request->status, [FlightRequest::STATUS_DRAFT, FlightRequest::STATUS_SUBMITTED])) {
-                $actions .= '<a href="' . route('flight-requests.edit', $request->id) . '" class="btn btn-sm btn-warning" title="Edit"><i class="fas fa-edit"></i></a>';
+                $actions .= '<a href="'.route('flight-requests.edit', $request->id).'" class="btn btn-sm btn-warning" title="Edit"><i class="fas fa-edit"></i></a>';
             }
 
             $actions .= '</div>';
@@ -563,10 +563,10 @@ class FlightRequestController extends Controller
                 ->with('toast_success', $message);
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Flight Request creation failed: ' . $e->getMessage());
+            Log::error('Flight Request creation failed: '.$e->getMessage());
 
             return back()->withInput()
-                ->with('toast_error', 'Failed to create Flight Request: ' . $e->getMessage());
+                ->with('toast_error', 'Failed to create Flight Request: '.$e->getMessage());
         }
     }
 
@@ -724,10 +724,10 @@ class FlightRequestController extends Controller
                 ->with('toast_success', 'Flight Request updated successfully.');
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Flight Request update failed: ' . $e->getMessage());
+            Log::error('Flight Request update failed: '.$e->getMessage());
 
             return back()->withInput()
-                ->with('toast_error', 'Failed to update Flight Request: ' . $e->getMessage());
+                ->with('toast_error', 'Failed to update Flight Request: '.$e->getMessage());
         }
     }
 
@@ -755,7 +755,7 @@ class FlightRequestController extends Controller
                 ->with('toast_success', 'Flight Request deleted successfully.');
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Flight Request deletion failed: ' . $e->getMessage());
+            Log::error('Flight Request deletion failed: '.$e->getMessage());
 
             return back()->with('toast_error', 'Failed to delete Flight Request.');
         }
@@ -800,7 +800,7 @@ class FlightRequestController extends Controller
             return back()->with('toast_success', 'Flight Request submitted successfully.');
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Flight Request submission failed: ' . $e->getMessage());
+            Log::error('Flight Request submission failed: '.$e->getMessage());
 
             return back()->with('toast_error', 'Failed to submit Flight Request.');
         }
@@ -844,7 +844,7 @@ class FlightRequestController extends Controller
             return back()->with('toast_success', 'Flight Request cancelled successfully.');
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Flight Request cancellation failed: ' . $e->getMessage());
+            Log::error('Flight Request cancellation failed: '.$e->getMessage());
 
             return back()->with('toast_error', 'Failed to cancel Flight Request.');
         }
@@ -869,7 +869,7 @@ class FlightRequestController extends Controller
 
             return back()->with('toast_success', 'Flight Request marked as completed.');
         } catch (\Exception $e) {
-            Log::error('Flight Request complete failed: ' . $e->getMessage());
+            Log::error('Flight Request complete failed: '.$e->getMessage());
 
             return back()->with('toast_error', 'Failed to complete Flight Request.');
         }
@@ -905,7 +905,7 @@ class FlightRequestController extends Controller
         }
 
         if ($request->filled('form_number')) {
-            $query->where('form_number', 'like', '%' . $request->form_number . '%');
+            $query->where('form_number', 'like', '%'.$request->form_number.'%');
         }
 
         if ($request->filled('date_from')) {
@@ -913,7 +913,7 @@ class FlightRequestController extends Controller
         }
 
         if ($request->filled('date_to')) {
-            $query->where('requested_at', '<=', $request->date_to . ' 23:59:59');
+            $query->where('requested_at', '<=', $request->date_to.' 23:59:59');
         }
 
         return datatables()->of($query)
@@ -934,9 +934,9 @@ class FlightRequestController extends Controller
                 return $row->requested_at ? $row->requested_at->format('d/m/Y H:i') : '-';
             })
             ->addColumn('actions', function ($row) {
-                $actions = '<a href="' . route('flight-requests.my-requests.show', $row->id) . '" class="btn btn-sm btn-info"><i class="fas fa-eye"></i></a>';
+                $actions = '<a href="'.route('flight-requests.my-requests.show', $row->id).'" class="btn btn-sm btn-info"><i class="fas fa-eye"></i></a>';
                 if (in_array($row->status, [FlightRequest::STATUS_DRAFT, FlightRequest::STATUS_SUBMITTED])) {
-                    $actions .= ' <a href="' . route('flight-requests.my-requests.edit', $row->id) . '" class="btn btn-sm btn-warning"><i class="fas fa-edit"></i></a>';
+                    $actions .= ' <a href="'.route('flight-requests.my-requests.edit', $row->id).'" class="btn btn-sm btn-warning"><i class="fas fa-edit"></i></a>';
                 }
 
                 return $actions;
@@ -1044,6 +1044,10 @@ class FlightRequestController extends Controller
             'employee',
             'administration.position.department',
             'administration.project',
+            'officialTravel.traveler.employee',
+            'officialTravel.details.follower.employee',
+            'officialTravel.details.follower.position.department',
+            'officialTravel.details.follower.project',
         ])->where('requested_by', $user->id)->findOrFail($id);
 
         if (! in_array($flightRequest->status, [FlightRequest::STATUS_DRAFT, FlightRequest::STATUS_SUBMITTED])) {
@@ -1100,7 +1104,7 @@ class FlightRequestController extends Controller
             FlightRequest::STATUS_CANCELLED => '<span class="badge badge-warning">Cancelled</span>',
         ];
 
-        return $badges[$status] ?? '<span class="badge badge-secondary">' . ucfirst($status) . '</span>';
+        return $badges[$status] ?? '<span class="badge badge-secondary">'.ucfirst($status).'</span>';
     }
 
     private function getRequestTypeBadge($type)
@@ -1111,7 +1115,7 @@ class FlightRequestController extends Controller
             FlightRequest::TYPE_TRAVEL_BASED => '<span class="badge badge-success">Travel Based</span>',
         ];
 
-        return $badges[$type] ?? '<span class="badge badge-secondary">' . ucfirst($type) . '</span>';
+        return $badges[$type] ?? '<span class="badge badge-secondary">'.ucfirst($type).'</span>';
     }
 
     private function generateFormNumber()

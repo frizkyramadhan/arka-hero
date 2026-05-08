@@ -96,6 +96,85 @@ final class UserProject
     }
 
     /**
+     * Apakah string destinasi LOT cocok dengan salah satu proyek aktif user–project?
+     * (sama dengan kriteria stamp arrival/departure)
+     */
+    public static function destinationMatchesUserAssignedProjects(?User $user, ?string $destination): bool
+    {
+        $user = self::resolveUser($user);
+        if ($user === null) {
+            return false;
+        }
+
+        $dest = preg_replace('/\s+/u', ' ', trim((string) $destination));
+        if ($dest === '') {
+            return false;
+        }
+
+        $assigned = $user->projects()->where('project_status', 1)->orderBy('project_code')->get();
+        if ($assigned->isEmpty()) {
+            return false;
+        }
+
+        $destLower = mb_strtolower($dest);
+
+        foreach ($assigned as $project) {
+            $code = trim((string) $project->project_code);
+            $name = trim((string) $project->project_name);
+            $label = preg_replace('/\s+/u', ' ', $code.' - '.$name);
+
+            if (strcasecmp($dest, $label) === 0) {
+                return true;
+            }
+            if ($code !== '' && strcasecmp($dest, $code) === 0) {
+                return true;
+            }
+            if ($name !== '' && strcasecmp($dest, $name) === 0) {
+                return true;
+            }
+            if ($code !== '' && str_starts_with($destLower, mb_strtolower($code).' - ')) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Filter query Official Travel agar hanya LOT yang destinasi-nya match assignment user (untuk stamp listing).
+     */
+    public static function scopeOfficialTravelsDestinationStampMatch(Builder $query, ?User $user = null, string $destinationColumn = 'officialtravels.destination'): void
+    {
+        $user = self::resolveUser($user);
+        if ($user === null) {
+            $query->whereRaw('0 = 1');
+
+            return;
+        }
+
+        $assigned = $user->projects()->where('project_status', 1)->orderBy('project_code')->get();
+        if ($assigned->isEmpty()) {
+            $query->whereRaw('0 = 1');
+
+            return;
+        }
+
+        $query->where(function (Builder $w) use ($assigned, $destinationColumn) {
+            foreach ($assigned as $project) {
+                $code = trim((string) $project->project_code);
+                $name = trim((string) $project->project_name);
+                $label = preg_replace('/\s+/u', ' ', $code.' - '.$name);
+                $w->orWhere($destinationColumn, $label)
+                    ->orWhere($destinationColumn, $code)
+                    ->orWhere($destinationColumn, $name);
+                if ($code !== '') {
+                    $w->orWhere($destinationColumn, 'like', $code.' - %');
+                }
+            }
+        });
+    }
+
+    /**
      * Dropdown karyawan sesuai `user_project`.
      *
      * - {@see EMPLOYEE_SELECT_LINKED}: karyawan yang punya minimal satu baris administrasi di proyek assignment (distinct).

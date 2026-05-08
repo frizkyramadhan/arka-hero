@@ -423,192 +423,210 @@
                 @endif
             </div>
 
-            <!-- Main Content Row -->
-            <div class="row">
-                <!-- Recent Leave Requests -->
-                <div class="col-lg-6 mb-4 dashboard-tab-content dashboard-tab-overview dashboard-tab-leave">
-                    <div class="card card-outline card-info shadow-sm">
-                        <div class="card-header border-bottom">
-                            <h3 class="card-title mb-0">
-                                <i class="fas fa-calendar-check mr-2 text-info"></i>
-                                Recent Leave Requests
-                            </h3>
-                            <div class="card-tools">
-                                <a href="{{ route('leave.my-requests') }}" class="btn btn-sm btn-info">
-                                    <i class="fas fa-list mr-1"></i> View All
-                                </a>
-                            </div>
+            <!-- Leave + Official Travels (dua kolom lg) -->
+            <div class="row mb-4">
+                <div class="col-12 col-lg-6 mb-3 mb-lg-0 dashboard-tab-content dashboard-tab-overview dashboard-tab-leave">
+                    <div class="card card-outline card-primary card-tabs shadow-sm h-100">
+                        <div class="card-header p-0 border-bottom-0">
+                            <ul class="nav nav-tabs" id="personal-leave-dash-tabs" role="tablist">
+                                <li class="nav-item">
+                                    <a class="nav-link active text-info" id="tab-recent-leave-tab" data-toggle="tab"
+                                        href="#tab-personal-recent-leave" role="tab"
+                                        aria-controls="tab-personal-recent-leave" aria-selected="true">
+                                        <i class="fas fa-calendar-check mr-1"></i> Recent Leave Requests
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" id="tab-leave-entitlements-tab" data-toggle="tab"
+                                        href="#tab-personal-leave-entitlements" role="tab"
+                                        aria-controls="tab-personal-leave-entitlements" aria-selected="false">
+                                        <i class="fas fa-calendar-week mr-1"></i> Current Leave Entitlements
+                                    </a>
+                                </li>
+                            </ul>
                         </div>
                         <div class="card-body p-0">
-                            @forelse($recentLeaveRequests as $request)
-                                <div class="list-group list-group-flush">
-                                    <div class="list-group-item">
-                                        <div class="d-flex justify-content-between align-items-start">
-                                            <div class="flex-grow-1">
-                                                <h6 class="mb-1 font-weight-bold">
-                                                    {{ $request->leaveType->name ?? 'N/A' }}
-                                                </h6>
-                                                <p class="mb-1 text-muted small">
-                                                    <i class="far fa-calendar mr-1"></i>
-                                                    {{ \Carbon\Carbon::parse($request->start_date)->format('M d') }} -
-                                                    {{ \Carbon\Carbon::parse($request->end_date)->format('M d, Y') }}
-                                                </p>
-                                                <small class="text-muted">
-                                                    <i class="far fa-clock mr-1"></i>
-                                                    {{ $request->total_days }}
-                                                    {{ $request->total_days == 1 ? 'day' : 'days' }}
-                                                </small>
+                            <div class="tab-content">
+                                <div class="tab-pane fade show active" id="tab-personal-recent-leave" role="tabpanel"
+                                    aria-labelledby="tab-recent-leave-tab">
+                                    <div class="border-bottom px-3 py-2 bg-light">
+                                        <a href="{{ route('leave.my-requests') }}"
+                                            class="btn btn-sm btn-info float-right">
+                                            <i class="fas fa-list mr-1"></i> View All
+                                        </a>
+                                        <div class="clearfix"></div>
+                                    </div>
+                                    <div class="p-0" style="max-height: 470px; overflow-y: auto;">
+                                        @if ($recentLeaveRequests->isEmpty())
+                                            <div class="text-center py-5">
+                                                <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                                                <p class="text-muted mb-0">No leave requests found</p>
                                             </div>
-                                            <div class="ml-3">
-                                                <span
-                                                    class="badge badge-lg
-                                                @if ($request->status == 'approved') badge-success
-                                                @elseif($request->status == 'pending') badge-warning
-                                                @elseif($request->status == 'rejected') badge-danger
-                                                @else badge-secondary @endif">
-                                                    {{ ucfirst($request->status) }}
-                                                </span>
+                                        @else
+                                            <div class="list-group list-group-flush">
+                                                @foreach ($recentLeaveRequests as $request)
+                                                    <div class="list-group-item">
+                                                        <div class="d-flex justify-content-between align-items-start">
+                                                            <div class="flex-grow-1">
+                                                                <h6 class="mb-1 font-weight-bold">
+                                                                    {{ $request->leaveType->name ?? 'N/A' }}
+                                                                </h6>
+                                                                <p class="mb-1 text-muted small">
+                                                                    <i class="far fa-calendar mr-1"></i>
+                                                                    {{ \Carbon\Carbon::parse($request->start_date)->format('M d') }}
+                                                                    -
+                                                                    {{ \Carbon\Carbon::parse($request->end_date)->format('M d, Y') }}
+                                                                </p>
+                                                                <small class="text-muted">
+                                                                    <i class="far fa-clock mr-1"></i>
+                                                                    {{ $request->total_days }}
+                                                                    {{ $request->total_days == 1 ? 'day' : 'days' }}
+                                                                </small>
+                                                            </div>
+                                                            <div class="ml-3">
+                                                                <span
+                                                                    class="badge badge-lg @if ($request->status == 'approved' || $request->status == 'auto_approved') badge-success @elseif($request->status == 'pending') badge-warning @elseif($request->status == 'rejected') badge-danger @else badge-secondary @endif">
+                                                                    {{ ucfirst(str_replace('_', ' ', $request->status)) }}
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                @endforeach
                                             </div>
-                                        </div>
+                                        @endif
                                     </div>
                                 </div>
-                            @empty
-                                <div class="text-center py-5">
-                                    <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
-                                    <p class="text-muted mb-0">No leave requests found</p>
-                                </div>
-                            @endforelse
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Current Leave Entitlements -->
-                <div class="col-lg-6 mb-3 dashboard-tab-content dashboard-tab-overview dashboard-tab-leave">
-                    <div class="card card-outline card-primary shadow-sm h-100 d-flex flex-column">
-                        <div class="card-header border-bottom py-2">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <h5 class="card-title mb-0">
-                                    <i class="fas fa-calendar-week mr-2 text-primary"></i>
-                                    Current Leave Entitlements
-                                </h5>
-                                <div class="d-flex align-items-center">
-                                    <button type="button" class="btn btn-sm btn-outline-primary mr-2"
-                                        id="toggleAllEntitlements">
-                                        <i class="fas fa-chevron-down" id="toggleAllIcon"></i>
-                                        <span id="toggleAllText">Expand All</span>
-                                    </button>
-                                    <a href="{{ route('leave.my-entitlements') }}" class="btn btn-sm btn-primary">
-                                        <i class="fas fa-chart-pie mr-1"></i> Details
-                                    </a>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="card-body p-0 flex-grow-1" style="max-height: 470px; overflow-y: auto;">
-                            <div class="accordion mb-0" id="entitlementsAccordion">
-                                @forelse($leaveEntitlements as $index => $entitlement)
-                                    @php
-                                        $usagePercentage =
-                                            $entitlement->entitled_days > 0
-                                                ? ($entitlement->taken_days / $entitlement->entitled_days) * 100
-                                                : 0;
-                                        $collapseId = 'collapseEntitlement' . $index;
-                                        $headingId = 'headingEntitlement' . $index;
-                                        $isLast = $loop->last;
-                                    @endphp
-                                    <div class="card border-0 {{ !$isLast ? 'border-bottom' : '' }}">
-                                        <div class="card-header p-2" id="{{ $headingId }}">
-                                            <button class="btn btn-link btn-block text-left p-0 entitlement-toggle"
-                                                type="button" data-toggle="collapse" data-target="#{{ $collapseId }}"
-                                                aria-expanded="false" aria-controls="{{ $collapseId }}">
-                                                <div class="d-flex justify-content-between align-items-center">
-                                                    <h6 class="mb-0 font-weight-bold text-primary">
-                                                        <i class="fas fa-calendar-check mr-1"></i>
-                                                        {{ $entitlement->leaveType->name ?? 'N/A' }}
-                                                    </h6>
-                                                    <div class="d-flex align-items-center">
-                                                        <span class="badge badge-success mr-2">
-                                                            {{ $entitlement->remaining_days }} days
-                                                        </span>
-                                                        <i class="fas fa-chevron-down entitlement-chevron"></i>
-                                                    </div>
-                                                </div>
+                                <div class="tab-pane fade" id="tab-personal-leave-entitlements" role="tabpanel"
+                                    aria-labelledby="tab-leave-entitlements-tab">
+                                    <div class="border-bottom px-3 py-2 bg-light">
+                                        <div class="d-flex justify-content-end align-items-center flex-wrap">
+                                            <button type="button" class="btn btn-sm btn-outline-primary mr-2 mb-0"
+                                                id="toggleAllEntitlements">
+                                                <i class="fas fa-chevron-down" id="toggleAllIcon"></i>
+                                                <span id="toggleAllText">Expand All</span>
                                             </button>
+                                            <a href="{{ route('leave.my-entitlements') }}"
+                                                class="btn btn-sm btn-primary">
+                                                <i class="fas fa-chart-pie mr-1"></i> Details
+                                            </a>
                                         </div>
-                                        <div id="{{ $collapseId }}" class="collapse"
-                                            aria-labelledby="{{ $headingId }}">
-                                            <div class="card-body p-3 pb-2">
-                                                <div class="row text-center mb-2">
-                                                    <div class="col-4">
-                                                        <div class="border-right">
-                                                            <div class="text-muted small mb-1">Entitled</div>
-                                                            <div class="font-weight-bold">
-                                                                {{ $entitlement->entitled_days }}</div>
-                                                        </div>
-                                                    </div>
-                                                    <div class="col-4">
-                                                        <div class="border-right">
-                                                            <div class="text-muted small mb-1">Used</div>
-                                                            <div class="font-weight-bold text-warning">
-                                                                {{ $entitlement->taken_days }}</div>
-                                                        </div>
-                                                    </div>
-                                                    <div class="col-4">
-                                                        <div class="text-muted small mb-1">Remaining</div>
-                                                        <div class="font-weight-bold text-success">
-                                                            {{ $entitlement->remaining_days }}</div>
-                                                    </div>
-                                                </div>
-                                                <div class="progress mb-2" style="height: 5px;">
-                                                    <div class="progress-bar bg-success" role="progressbar"
-                                                        style="width: {{ 100 - $usagePercentage }}%"
-                                                        aria-valuenow="{{ 100 - $usagePercentage }}" aria-valuemin="0"
-                                                        aria-valuemax="100">
-                                                    </div>
-                                                </div>
-                                                <small class="text-muted mb-3 d-block">
-                                                    <i class="far fa-calendar mr-1"></i>
-                                                    Valid until {{ $entitlement->period_end->format('M d, Y') }}
-                                                </small>
-                                                @can('personal.leave.create-own')
-                                                    @if ($entitlement->remaining_days > 0)
-                                                        <a href="{{ route('leave.my-requests.create', ['leave_type' => $entitlement->leave_type_id]) }}"
-                                                            class="btn btn-sm btn-primary btn-block">
-                                                            <i class="fas fa-calendar-plus mr-1"></i> Request
-                                                            {{ $entitlement->leaveType->name ?? 'Leave' }}
-                                                        </a>
-                                                    @else
-                                                        <button class="btn btn-sm btn-secondary btn-block" disabled>
-                                                            <i class="fas fa-ban mr-1"></i> No Balance Available
+                                    </div>
+                                    <div class="p-0" style="max-height: 470px; overflow-y: auto;">
+                                        <div class="accordion mb-0" id="entitlementsAccordion">
+                                            @forelse($leaveEntitlements as $index => $entitlement)
+                                                @php
+                                                    $usagePercentage =
+                                                        $entitlement->entitled_days > 0
+                                                            ? ($entitlement->taken_days / $entitlement->entitled_days) *
+                                                                100
+                                                            : 0;
+                                                    $collapseId = 'collapseEntitlement' . $index;
+                                                    $headingId = 'headingEntitlement' . $index;
+                                                    $isLast = $loop->last;
+                                                @endphp
+                                                <div class="card border-0 {{ !$isLast ? 'border-bottom' : '' }}">
+                                                    <div class="card-header p-2" id="{{ $headingId }}">
+                                                        <button
+                                                            class="btn btn-link btn-block text-left p-0 entitlement-toggle"
+                                                            type="button" data-toggle="collapse"
+                                                            data-target="#{{ $collapseId }}" aria-expanded="false"
+                                                            aria-controls="{{ $collapseId }}">
+                                                            <div class="d-flex justify-content-between align-items-center">
+                                                                <h6 class="mb-0 font-weight-bold text-primary">
+                                                                    <i class="fas fa-calendar-check mr-1"></i>
+                                                                    {{ $entitlement->leaveType->name ?? 'N/A' }}
+                                                                </h6>
+                                                                <div class="d-flex align-items-center">
+                                                                    <span class="badge badge-success mr-2">
+                                                                        {{ $entitlement->remaining_days }} days
+                                                                    </span>
+                                                                    <i class="fas fa-chevron-down entitlement-chevron"></i>
+                                                                </div>
+                                                            </div>
                                                         </button>
-                                                    @endif
-                                                @endcan
-                                            </div>
+                                                    </div>
+                                                    <div id="{{ $collapseId }}" class="collapse"
+                                                        aria-labelledby="{{ $headingId }}">
+                                                        <div class="card-body p-3 pb-2">
+                                                            <div class="row text-center mb-2">
+                                                                <div class="col-4">
+                                                                    <div class="border-right">
+                                                                        <div class="text-muted small mb-1">Entitled
+                                                                        </div>
+                                                                        <div class="font-weight-bold">
+                                                                            {{ $entitlement->entitled_days }}</div>
+                                                                    </div>
+                                                                </div>
+                                                                <div class="col-4">
+                                                                    <div class="border-right">
+                                                                        <div class="text-muted small mb-1">Used</div>
+                                                                        <div class="font-weight-bold text-warning">
+                                                                            {{ $entitlement->taken_days }}</div>
+                                                                    </div>
+                                                                </div>
+                                                                <div class="col-4">
+                                                                    <div class="text-muted small mb-1">Remaining</div>
+                                                                    <div class="font-weight-bold text-success">
+                                                                        {{ $entitlement->remaining_days }}</div>
+                                                                </div>
+                                                            </div>
+                                                            <div class="progress mb-2" style="height: 5px;">
+                                                                <div class="progress-bar bg-success" role="progressbar"
+                                                                    style="width: {{ 100 - $usagePercentage }}%"
+                                                                    aria-valuenow="{{ 100 - $usagePercentage }}"
+                                                                    aria-valuemin="0" aria-valuemax="100">
+                                                                </div>
+                                                            </div>
+                                                            <small class="text-muted mb-3 d-block">
+                                                                <i class="far fa-calendar mr-1"></i>
+                                                                Valid until
+                                                                {{ $entitlement->period_end->format('M d, Y') }}
+                                                            </small>
+                                                            @can('personal.leave.create-own')
+                                                                @if ($entitlement->remaining_days > 0)
+                                                                    <a href="{{ route('leave.my-requests.create', ['leave_type' => $entitlement->leave_type_id]) }}"
+                                                                        class="btn btn-sm btn-primary btn-block">
+                                                                        <i class="fas fa-calendar-plus mr-1"></i> Request
+                                                                        {{ $entitlement->leaveType->name ?? 'Leave' }}
+                                                                    </a>
+                                                                @else
+                                                                    <button class="btn btn-sm btn-secondary btn-block"
+                                                                        disabled>
+                                                                        <i class="fas fa-ban mr-1"></i> No Balance
+                                                                        Available
+                                                                    </button>
+                                                                @endif
+                                                            @endcan
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            @empty
+                                                <div class="alert alert-info m-3" style="font-size: 0.95rem;">
+                                                    <div class="text-center">
+                                                        <i class="fas fa-info-circle mb-2" style="font-size: 1.3rem;"></i>
+                                                        <p class="mb-2 font-weight-bold">Leave balance/entitlement belum
+                                                            tersedia</p>
+                                                        <p class="mb-1" style="font-size: 0.9rem;">Silakan hubungi HR HO
+                                                            Balikpapan
+                                                            untuk mengatur leave entitlement Anda.</p>
+                                                        <p class="mt-2">
+                                                            <i class="fas fa-phone-alt mr-1"></i>
+                                                            <strong>HR HO Balikpapan</strong>
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            @endforelse
                                         </div>
                                     </div>
-                                @empty
-                                    <div class="alert alert-info m-3" style="font-size: 0.95rem;">
-                                        <div class="text-center">
-                                            <i class="fas fa-info-circle mb-2" style="font-size: 1.3rem;"></i>
-                                            <p class="mb-2 font-weight-bold">Leave balance/entitlement belum tersedia</p>
-                                            <p class="mb-1" style="font-size: 0.9rem;">Silakan hubungi HR HO Balikpapan
-                                                untuk mengatur leave entitlement Anda.</p>
-                                            <p class= "mt-2">
-                                                <i class="fas fa-phone-alt mr-1"></i>
-                                                <strong>HR HO Balikpapan</strong>
-                                            </p>
-                                        </div>
-                                    </div>
-                                @endforelse
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
-            </div>
 
-            <!-- Recent Official Travels & Recent Flight Requests -->
-            <div class="row mb-4">
                 <!-- Recent Official Travels -->
-                <div class="col-lg-6 mb-3 mb-lg-0 dashboard-tab-content dashboard-tab-overview dashboard-tab-travels">
+                <div
+                    class="col-12 col-lg-6 mb-3 mb-lg-0 dashboard-tab-content dashboard-tab-overview dashboard-tab-travels">
                     <div class="card card-outline card-success shadow-sm h-100">
                         <div class="card-header border-bottom">
                             <h3 class="card-title mb-0">
@@ -720,9 +738,12 @@
                         </div>
                     </div>
                 </div>
+            </div>
 
-                <!-- Recent Flight Requests -->
-                <div class="col-lg-6 mb-3 mb-lg-0 dashboard-tab-content dashboard-tab-overview dashboard-tab-flight">
+            <!-- Recent Flight Requests + Recruitment (dua kolom lg) -->
+            <div class="row mb-4">
+                <div
+                    class="col-12 col-lg-6 mb-3 mb-lg-0 dashboard-tab-content dashboard-tab-overview dashboard-tab-flight">
                     <div class="card card-outline card-primary shadow-sm h-100">
                         <div class="card-header border-bottom">
                             <h3 class="card-title mb-0">
@@ -782,12 +803,102 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- Recent Recruitment (FPTK) -->
+                <div
+                    class="col-12 col-lg-6 mb-3 mb-lg-0 dashboard-tab-content dashboard-tab-overview dashboard-tab-recruitment">
+                    <div class="card card-outline card-warning shadow-sm h-100">
+                        <div class="card-header border-bottom">
+                            <h3 class="card-title mb-0">
+                                <i class="fas fa-user-tie mr-2 text-warning"></i>
+                                Recent Recruitment
+                            </h3>
+                            <div class="card-tools">
+                                <a href="{{ route('recruitment.my-requests') }}" class="btn btn-sm btn-warning">
+                                    <i class="fas fa-list mr-1"></i> View All
+                                </a>
+                            </div>
+                        </div>
+                        <div class="card-body p-0">
+                            @if ($recentRecruitmentRequests->isEmpty())
+                                <div class="text-center py-5">
+                                    <i class="fas fa-briefcase fa-3x text-muted mb-3"></i>
+                                    <p class="text-muted mb-0">No recruitment requests found</p>
+                                    @can('personal.recruitment.create-own')
+                                        <a href="{{ route('recruitment.my-requests.create') }}"
+                                            class="btn btn-warning btn-sm mt-2">
+                                            <i class="fas fa-plus mr-1"></i> Create FPTK
+                                        </a>
+                                    @endcan
+                                </div>
+                            @else
+                                <div class="list-group list-group-flush">
+                                    @foreach ($recentRecruitmentRequests as $fptk)
+                                        <a href="{{ route('recruitment.my-requests.show', $fptk->id) }}"
+                                            class="list-group-item list-group-item-action">
+                                            <div class="d-flex justify-content-between align-items-start">
+                                                <div class="flex-grow-1">
+                                                    <h6 class="mb-1 font-weight-bold">
+                                                        {{ $fptk->letter_number ?? ($fptk->request_number ?? 'FPTK') }}
+                                                    </h6>
+                                                    <p class="mb-1 text-muted small">
+                                                        <i class="fas fa-user-tie mr-1"></i>
+                                                        {{ $fptk->position->position_name ?? '—' }}
+                                                    </p>
+                                                    <small class="text-muted d-block">
+                                                        <i class="fas fa-building mr-1"></i>
+                                                        {{ $fptk->department->department_name ?? '—' }}
+                                                        @if ($fptk->project)
+                                                            <span class="mx-1">·</span>
+                                                            <i class="fas fa-project-diagram mr-1"></i>
+                                                            {{ $fptk->project->project_name ?? '—' }}
+                                                        @endif
+                                                    </small>
+                                                    <small class="text-muted">
+                                                        <i class="far fa-calendar mr-1"></i>
+                                                        {{ $fptk->created_at->format('M d, Y') }}
+                                                    </small>
+                                                </div>
+                                                <div class="ml-3">
+                                                    @php
+                                                        $st = $fptk->status;
+                                                        $recBadge = match ($st) {
+                                                            \App\Models\RecruitmentRequest::STATUS_APPROVED
+                                                                => 'badge-success',
+                                                            \App\Models\RecruitmentRequest::STATUS_SUBMITTED
+                                                                => 'badge-info',
+                                                            \App\Models\RecruitmentRequest::STATUS_DRAFT
+                                                                => 'badge-secondary',
+                                                            \App\Models\RecruitmentRequest::STATUS_REJECTED,
+                                                            \App\Models\RecruitmentRequest::STATUS_CANCELLED
+                                                                => 'badge-danger',
+                                                            \App\Models\RecruitmentRequest::STATUS_CLOSED
+                                                                => 'badge-dark',
+                                                            default => 'badge-secondary',
+                                                        };
+                                                        $statusOpts = \App\Models\RecruitmentRequest::getStatusOptions();
+                                                        $statusLabel =
+                                                            $statusOpts[$st] ??
+                                                            ucfirst(str_replace('_', ' ', (string) $st));
+                                                    @endphp
+                                                    <span
+                                                        class="badge badge-lg {{ $recBadge }}">{{ $statusLabel }}</span>
+                                                </div>
+                                            </div>
+                                        </a>
+                                    @endforeach
+                                </div>
+                            @endif
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <!-- Profile Completeness Row -->
             <div class="row mb-4">
                 <!-- Profile Completeness -->
-                <div class="col-lg-6 dashboard-tab-content dashboard-tab-overview dashboard-tab-profile">
+                <div
+                    class="col-12 col-lg-6 mb-3 mb-lg-0 dashboard-tab-content dashboard-tab-overview dashboard-tab-profile">
                     <div class="card card-outline card-warning shadow-sm h-100 d-flex flex-column">
                         <div class="card-header border-bottom py-2">
                             <h5 class="card-title mb-0">

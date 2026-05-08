@@ -189,12 +189,12 @@ Bagi karyawan dengan peran “user” (menu **My Features**), pengajuan pribadi 
 2. Di sidebar, **My Features** → **My Official Travel Request** (bukan menu HR **Official Travel Management**).
 3. Buka panel **Filter** bila perlu; gunakan **Travel Number**, **Status**, **Role** (**Main Traveler** / **Follower**), dan lainnya.
 4. Klik **New Request** untuk mengajukan permintaan baru (jika tombol tampil). <a href="#submit-lot-request">Lihat gambar</a>.
-5. Isi form **Submit LOT Request** (informasi perjalanan, **Followers**, **Travel Arrangements**, **Flight Request**, dan seterusnya), lalu klik **Submit to HR** untuk mengirim. LOT akan terbentuk nomor dengan format **REQxxxxx** sampai HR mengonfirmasi; surat resmi dan nomor LOT final ditetapkan HR.
+5. Isi form **Add My Official Travel (LOT)** (informasi perjalanan, **Followers**, **Travel Arrangements**, **Flight Request**, dan seterusnya), lalu klik **Submit to HR** untuk mengirim. LOT akan terbentuk nomor dengan format **REQxxxxx** sampai HR mengonfirmasi; surat resmi dan nomor LOT final ditetapkan HR.
 6. Untuk melihat detail atau mengubah: di daftar, gunakan action **View** atau **Edit** pada baris terkait.
 7. Langkah selanjutnya akan diproses oleh admin HR untuk proses konfirmasi dengan mengisi nomor LOT yang resmi (ARKA/Bxxxx/HR/IV/2026) dan menentukan approver yang sesuai.
 
 <p align="center" id="submit-lot-request">
-<img src="images/my-official-travel-submit-lot-request.png" alt="Form Submit LOT Request: peringatan HR, Travel Information, Travel Arrangements, Flight Request, Followers, Submit to HR, Cancel" style="max-width: 100%; width: 100%; height: auto;" />
+<img src="images/my-official-travel-submit-lot-request.png" alt="Form Add My Official Travel (LOT): peringatan HR, Travel Information, Travel Arrangements, Flight Request, Followers, Submit to HR, Cancel" style="max-width: 100%; width: 100%; height: auto;" />
 </p>
 
 ---

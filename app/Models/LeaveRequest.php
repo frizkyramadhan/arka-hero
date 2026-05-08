@@ -163,6 +163,30 @@ class LeaveRequest extends Model
     }
 
     /**
+     * True when no approval record has moved past pending (status 0).
+     */
+    public function hasNoApprovalActionsYet(): bool
+    {
+        if ($this->relationLoaded('approvalPlans')) {
+            return $this->approvalPlans->every(fn (ApprovalPlan $p) => (int) $p->status === 0);
+        }
+
+        return ! $this->approvalPlans()->where('status', '!=', 0)->exists();
+    }
+
+    /**
+     * May be hard-deleted before any approval action (draft/pending, all approval plans still pending).
+     */
+    public function canBeDeletedBeforeApproval(): bool
+    {
+        if (! in_array($this->status, ['draft', 'pending'], true)) {
+            return false;
+        }
+
+        return $this->hasNoApprovalActionsYet();
+    }
+
+    /**
      * Close this leave request
      * Can be used by HR to mark leave request as closed/completed
      */
