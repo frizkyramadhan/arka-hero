@@ -467,13 +467,13 @@ Bagian ini **diselaraskan** dengan dokumen _Official Travel Management (LOT)_ �
 
 ### Setelah LOT disetujui — arrival, departure, dan closing
 
-Sesudah LOT berstatus **Approved** dan Anda menjalankan dinas, cap waktu perjalanan dicatat lewat **stop** pada LOT itu:
+Sesudah LOT berstatus **Approved** dan Anda menjalankan dinas, cap waktu perjalanan dicatat lewat **stop** (checkpoint) pada LOT itu:
 
-1. **Arrival** — ketika Anda **tiba** di sebuah lokasi tujuan, **HR/admin** mencatat **Record Arrival** (tanggal, waktu, catatan). Ini membuka stop secara lengkap untuk lokasi tersebut sebelum bisa ada departure dari lokasi yang sama.
-2. **Departure** — ketika Anda **akan meninggalkan** lokasi itu menuju lokasi berikutnya atau pulang, **HR/admin** mencatat **Record Departure**. Urutan wajar sistem: **arrival stop tersebut lebih dulu**, lalu **departure**.
-3. **Beberapa lokasi** — jika dinas melibatkan lebih dari satu titik, pola **arrival → departure** diulang per lokasi sesuai aturan HR dan layanan Anda (titik tambahan bisa menjadi stop baru pada LOT yang sama).
+1. **Arrival** — ketika Anda **tiba** di sebuah lokasi tujuan, **HR/admin** mencatat **Record Arrival** (tanggal, waktu, catatan) untuk stop yang bersangkutan.
+2. **Departure** — ketika Anda **akan meninggalkan** lokasi itu menuju lokasi berikutnya atau pulang, **HR/admin** mencatat **Record Departure** pada **stop yang sama**, setelah **arrival** stop itu ada.
+3. **Lebih dari satu destinasi** pada LOT yang sama: selama **belum ada arrival** di stop manapun, beberapa lokasi dapat mencatat **arrival** secara paralel (tombol mengikuti penugasan proyek tiap akun); begitu **satu** stop sudah **arrive** dan **belum** **departure**, lokasi lain **tidak** mendapat aksi stempel sampai **departure** di stop itu selesai; lalu pola berulang untuk stop berikutnya.
 4. **Perjalanan ke luar area perusahaan** (misalnya ke **vendor**, **instansi pemerintah**, atau lokasi mitra lain di mana HR internal tidak dapat mencatat langsung di sistem) — **cetak LOT** (**Print** dari detail LOT jika tersedia), minta **stampel atau paraf kedatangan dan keberangkatan** sesuai prosedur lokasi tersebut pada dokumen cetak, lalu **serahkan salinan/tanda terima yang sudah berstempel kepada HR** supaya **diinput sebagai catatan arrival/departure** mengikuti kebijakan kantor.
-5. **Closing** — setelah perjalanan **selesai** dan catatan stop telah lengkap sesuai aturan aplikasi, **HR** dapat menutup LOT (**Close** / status **Closed**). Anda sebagai traveler utama atau follower biasanya **memantau** status dan timeline di **detail LOT**; tombol pencatatan arrival/departure/close ada pada **akses HR/admin**.
+5. **Closing** — setelah perjalanan **selesai** (semua stop yang dipakai sudah lengkap) **atau** dinas dihentikan lebih awal sesuai kebijakan, **HR/admin** dapat menutup LOT (**Close** / status **Closed**). **Penutupan dini** (beberapa destinasi tidak jadi; kembali ke lokasi awal) memerlukan **minimal satu** checkpoint dengan **arrival** dan **departure**; tombol **Close** untuk kasus itu biasanya pada akun yang memegang proyek **LOT Origin** atau **administrator** — lihat panduan **Official Travel Management** bagian menutup perjalanan. Anda sebagai traveler biasanya **memantau** status di **detail LOT**; tombol stempel dan tutup mengikuti **akses HR/admin**.
 
 Untuk langkah formulir lengkap dan tangkapan layar **Record Arrival**, **Record Departure**, dan **Close Official Travel**, merujuk pada panduan **Official Travel Management** bagian alur perjalanan dinas (Arrivals & Departures).
 
@@ -517,7 +517,7 @@ Klik **New Request**. Halaman **Create Flight Request** terbuka (breadcrumb umum
 
 1. Di **Select Request Type**, pilih **Standalone**, **Leave Request (Cuti)**, atau **Official Travel (LOT)**. Di [daftar permintaan](#my-flight-requests-list), tipe itu terlihat sebagai badge **Standalone**, **Leave Based**, atau **Travel Based**.
 2. Lengkapi blok yang muncul setelah langkah 1 — ringkasannya ada pada daftar **Perbedaan per tipe** di bawah (pemilih cuti/LOT, data karyawan, pengikut, dll.).
-3. **Flight Details** — **Add Flight Segment** untuk tiap leg. Field wajib bertanda \*: **Departure City**, **Arrival City**, **Flight Date**. **Flight Time (ETD)** dan **Airline** bersifat pelengkap. Ikon **X** pada kartu segmen menghapus segmen tersebut.
+3. **Flight Details** — **Add Flight Segment** untuk tiap destination. Field wajib bertanda \*: **Departure City**, **Arrival City**, **Flight Date**. **Flight Time (ETD)** dan **Airline** bersifat pelengkap. Ikon **X** pada kartu segmen menghapus segmen tersebut.
 4. **Notes** di panel kanan bersifat opsional.
 5. **Create Flight Request** menyimpan/mengajukan sesuai alur aplikasi; **Cancel** keluar tanpa mengirim. Jika layar Anda menampilkan **Save as Draft** atau **Submit**, gunakan opsi itu — **Submit** mengarahkan permohonan ke pemrosesan tiket di HO Balikpapan dan dapat mengubah status menjadi **Submitted**.
 

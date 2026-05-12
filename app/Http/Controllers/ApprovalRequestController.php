@@ -90,9 +90,14 @@ class ApprovalRequestController extends Controller
                             ->orWhere('position_title', 'LIKE', "%$search%");
                     });
 
-                    $query->orWhereHas('leave_request', function ($q) use ($search) {
+                    $query->orWhereHas('leaveRequest', function ($q) use ($search) {
                         $q->where('reason', 'LIKE', "%$search%")
-                            ->orWhereHas('administration.employee', function ($emp) use ($search) {
+                            ->orWhere('register_number', 'LIKE', "%$search%")
+                            ->orWhereHas('administration.project', function ($pq) use ($search) {
+                                $pq->where('project_code', 'LIKE', "%$search%")
+                                    ->orWhere('project_name', 'LIKE', "%$search%");
+                            })
+                            ->orWhereHas('employee', function ($emp) use ($search) {
                                 $emp->where('fullname', 'LIKE', "%$search%");
                             });
                     });

@@ -213,11 +213,9 @@
                                                     </div>
                                                 </td>
                                                 <td>
-                                                    <div>
-                                                        <div class="font-weight-bold">{{ $travel->destination }}
-                                                        </div>
-                                                        <small class="text-muted">{{ $travel->duration }}</small>
-                                                    </div>
+                                                    @include('dashboard.partials.open-travel-destination-cell', [
+                                                        'travel' => $travel,
+                                                    ])
                                                 </td>
                                                 <td>
                                                     <div>
@@ -271,34 +269,36 @@
                                                             <i class="fas fa-eye"></i>
                                                         </a>
                                                         @if ($travel->status === 'approved')
-                                                            @php
-                                                                $canRecordArrival = $travel->canRecordArrival();
-                                                                $canRecordDeparture = $travel->canRecordDeparture();
-                                                                $canClose = $travel->canClose();
-                                                            @endphp
-                                                            @if ($canRecordArrival)
-                                                                <a href="{{ route('officialtravels.showArrivalForm', $travel->id) }}"
-                                                                    class="btn btn-sm btn-outline-primary"
-                                                                    title="Record Arrival">
-                                                                    <i class="fas fa-plane-arrival"></i>
-                                                                </a>
-                                                            @endif
-                                                            @if ($canRecordDeparture)
-                                                                <a href="{{ route('officialtravels.showDepartureForm', $travel->id) }}"
-                                                                    class="btn btn-sm btn-outline-success"
-                                                                    title="Record Departure">
-                                                                    <i class="fas fa-plane-departure"></i>
-                                                                </a>
-                                                            @endif
-                                                            @if ($canClose)
-                                                                <button type="button"
-                                                                    class="btn btn-sm btn-outline-warning close-travel-btn"
-                                                                    data-travel-id="{{ $travel->id }}"
-                                                                    data-travel-number="{{ $travel->official_travel_number }}"
-                                                                    title="Close Travel">
-                                                                    <i class="fas fa-lock"></i>
-                                                                </button>
-                                                            @endif
+                                                            @can('official-travels.stamp')
+                                                                @php
+                                                                    $u = auth()->user();
+                                                                    $canArrival = $u && $travel->userCanStampAnyArrival($u);
+                                                                    $canDeparture = $u && $travel->userCanStampAnyDeparture($u);
+                                                                @endphp
+                                                                @if ($canArrival)
+                                                                    <a href="{{ route('officialtravels.showArrivalForm', $travel->id) }}"
+                                                                        class="btn btn-sm btn-outline-primary"
+                                                                        title="Record Arrival">
+                                                                        <i class="fas fa-plane-arrival"></i>
+                                                                    </a>
+                                                                @endif
+                                                                @if ($canDeparture)
+                                                                    <a href="{{ route('officialtravels.showDepartureForm', $travel->id) }}"
+                                                                        class="btn btn-sm btn-outline-success"
+                                                                        title="Record Departure">
+                                                                        <i class="fas fa-plane-departure"></i>
+                                                                    </a>
+                                                                @endif
+                                                                @if ($u && $travel->userMayClose($u))
+                                                                    <button type="button"
+                                                                        class="btn btn-sm btn-outline-warning close-travel-btn"
+                                                                        data-travel-id="{{ $travel->id }}"
+                                                                        data-travel-number="{{ $travel->official_travel_number }}"
+                                                                        title="Close Travel">
+                                                                        <i class="fas fa-lock"></i>
+                                                                    </button>
+                                                                @endif
+                                                            @endcan
                                                         @endif
                                                     </div>
                                                 </td>

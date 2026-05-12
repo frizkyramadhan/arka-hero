@@ -49,58 +49,74 @@
                                     <div id="collapseOne" class="collapse" data-parent="#accordion">
                                         <div class="card-body">
                                             <div class="row">
-                                                <div class="col-md-2">
+                                                <div class="col-md-3">
                                                     <div class="form-group">
-                                                        <label>Status</label>
+                                                        <label for="start_date">Date From</label>
+                                                        <input type="date" class="form-control" id="start_date"
+                                                            name="start_date" autocomplete="off">
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <div class="form-group">
+                                                        <label for="end_date">Date To</label>
+                                                        <input type="date" class="form-control" id="end_date"
+                                                            name="end_date" autocomplete="off">
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <div class="form-group">
+                                                        <label for="project_id">Project</label>
+                                                        <select class="form-control select2bs4" id="project_id"
+                                                            name="project_id">
+                                                            <option value="">- All -</option>
+                                                            @foreach ($projects as $project)
+                                                                <option value="{{ $project->id }}">
+                                                                    {{ $project->project_code }} —
+                                                                    {{ $project->project_name }}</option>
+                                                            @endforeach
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <div class="form-group">
+                                                        <label for="status">Status</label>
                                                         <select class="form-control select2bs4" id="status"
                                                             name="status">
                                                             <option value="">- All -</option>
+                                                            <option value="draft">Draft</option>
                                                             <option value="pending">Pending</option>
                                                             <option value="approved">Approved</option>
                                                             <option value="rejected">Rejected</option>
                                                             <option value="cancelled">Cancelled</option>
+                                                            <option value="closed">Closed</option>
                                                             <option value="auto_approved">Auto Approved</option>
                                                         </select>
                                                     </div>
                                                 </div>
-                                                <div class="col-md-2">
+                                                <div class="col-md-3">
                                                     <div class="form-group">
-                                                        <label>Employee</label>
+                                                        <label for="employee_id">Employee</label>
                                                         <select class="form-control select2bs4" id="employee_id"
                                                             name="employee_id">
                                                             <option value="">- All -</option>
                                                         </select>
                                                     </div>
                                                 </div>
-                                                <div class="col-md-2">
+                                                <div class="col-md-3">
                                                     <div class="form-group">
-                                                        <label>Leave Type</label>
+                                                        <label for="leave_type_id">Leave Type</label>
                                                         <select class="form-control select2bs4" id="leave_type_id"
                                                             name="leave_type_id">
                                                             <option value="">- All -</option>
                                                         </select>
                                                     </div>
                                                 </div>
-                                                <div class="col-md-2">
-                                                    <div class="form-group">
-                                                        <label>Start Date</label>
-                                                        <input type="date" class="form-control" id="start_date"
-                                                            name="start_date" autocomplete="off">
-                                                    </div>
-                                                </div>
-                                                <div class="col-md-2">
-                                                    <div class="form-group">
-                                                        <label>End Date</label>
-                                                        <input type="date" class="form-control" id="end_date"
-                                                            name="end_date" autocomplete="off">
-                                                    </div>
-                                                </div>
-                                                <div class="col-md-2">
+                                                <div class="col-md-3">
                                                     <div class="form-group">
                                                         <label>&nbsp;</label>
-                                                        <button type="button" class="btn btn-secondary w-100"
+                                                        <button type="button" class="btn btn-secondary btn-block"
                                                             id="btn-reset" style="margin-bottom: 6px;">
-                                                            <i class="fas fa-times"></i> Reset
+                                                            <i class="fas fa-times"></i> Reset Filter
                                                         </button>
                                                     </div>
                                                 </div>
@@ -166,24 +182,27 @@
                 width: '100%'
             });
 
-            // Load employees for filter
-            $.get('{{ route('api.employees.list') }}', function(data) {
-                var options = '<option value="">- All -</option>';
-                $.each(data, function(index, employee) {
-                    options += '<option value="' + employee.id + '">' + employee.fullname +
-                        '</option>';
+            // Filters: use web routes (session cookie). /api/* requires API key and fails from the browser.
+            $.getJSON('{{ route('leave.requests.index.filter-options') }}', function(res) {
+                var $emp = $('#employee_id').empty().append('<option value="">- All -</option>');
+                $.each(res.employees || [], function(_, employee) {
+                    $('<option>', {
+                        value: employee.id,
+                        text: employee.label || employee.fullname || ''
+                    }).appendTo($emp);
                 });
-                $('#employee_id').html(options);
-            });
+                $emp.trigger('change');
 
-            // Load leave types for filter
-            $.get('{{ route('api.leave.types') }}', function(data) {
-                var options = '<option value="">- All -</option>';
-                $.each(data, function(index, leaveType) {
-                    options += '<option value="' + leaveType.id + '">' + leaveType.name +
-                        '</option>';
+                var $lt = $('#leave_type_id').empty().append('<option value="">- All -</option>');
+                $.each(res.leave_types || [], function(_, leaveType) {
+                    $('<option>', {
+                        value: leaveType.id,
+                        text: leaveType.label || leaveType.name || ''
+                    }).appendTo($lt);
                 });
-                $('#leave_type_id').html(options);
+                $lt.trigger('change');
+            }).fail(function(xhr) {
+                console.error('leave.requests.index.filter-options failed', xhr.status, xhr.responseText);
             });
 
             var table = $("#leave-requests-table").DataTable({
@@ -195,12 +214,12 @@
                 ajax: {
                     url: "{{ route('leave.requests.data') }}",
                     data: function(d) {
-                        d.status = $('#status').val(),
-                            d.employee_id = $('#employee_id').val(),
-                            d.leave_type_id = $('#leave_type_id').val(),
-                            d.start_date = $('#start_date').val(),
-                            d.end_date = $('#end_date').val(),
-                            d.search = $("input[type=search][aria-controls=leave-requests-table]").val()
+                        d.status = $('#status').val();
+                        d.employee_id = $('#employee_id').val();
+                        d.leave_type_id = $('#leave_type_id').val();
+                        d.project_id = $('#project_id').val();
+                        d.start_date = $('#start_date').val();
+                        d.end_date = $('#end_date').val();
                     }
                 },
                 columns: [{
@@ -273,7 +292,7 @@
             });
 
             // Handle filter changes
-            $('#status, #employee_id, #leave_type_id').change(function() {
+            $('#status, #employee_id, #leave_type_id, #project_id').change(function() {
                 table.draw();
             });
 
@@ -283,7 +302,7 @@
 
             // Handle reset button
             $('#btn-reset').click(function() {
-                $('#status, #employee_id, #leave_type_id').val('').trigger('change');
+                $('#status, #employee_id, #leave_type_id, #project_id').val('').trigger('change');
                 $('#start_date, #end_date').val('');
                 table.draw();
             });

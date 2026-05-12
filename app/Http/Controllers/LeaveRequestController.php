@@ -34,7 +34,7 @@ class LeaveRequestController extends Controller
         // They can manage ALL leave requests across the organization
 
         // View all leave requests (index, data, download)
-        $this->middleware('permission:leave-requests.show')->only('index', 'data', 'download');
+        $this->middleware('permission:leave-requests.show')->only('index', 'data', 'download', 'indexFilterOptions');
 
         // Create leave requests for any employee
         $this->middleware('permission:leave-requests.create')->only('create', 'store');
@@ -57,7 +57,7 @@ class LeaveRequestController extends Controller
         // They can only manage their OWN leave requests
 
         // View own leave requests
-        $this->middleware('permission:personal.leave.view-own')->only('myRequests', 'myRequestsData', 'myRequestsShow');
+        $this->middleware('permission:personal.leave.view-own')->only('myRequests', 'myRequestsData', 'myRequestsShow', 'myRequestsFilterOptions');
 
         // Create own leave requests
         // Note: getLeaveTypeInfo is handled as dual access method (see below)
@@ -91,7 +91,77 @@ class LeaveRequestController extends Controller
      */
     public function index()
     {
-        return view('leave-requests.index')->with('title', 'Leave Requests');
+        $projects = UserProject::projectsForSelect();
+
+        return view('leave-requests.index', compact('projects'))
+            ->with('title', 'Leave Requests');
+    }
+
+    /**
+     * JSON for admin leave-requests index filters (web session — not under /api key middleware).
+     */
+    public function indexFilterOptions()
+    {
+        $rows = UserProject::employeesForSelect(
+            null,
+            UserProject::EMPLOYEE_SELECT_ACTIVE_ADMINISTRATION,
+            'nik'
+        );
+
+        $employees = $rows
+            ->unique('id')
+            ->sortBy(fn (Employee $e) => mb_strtolower((string) ($e->nik ?? '')))
+            ->values()
+            ->map(function (Employee $e) {
+                $nik = (string) ($e->nik ?? '');
+                $name = $e->fullname ?? '';
+
+                return [
+                    'id' => $e->id,
+                    'nik' => $nik,
+                    'fullname' => $name,
+                    'label' => $nik !== '' ? $nik.' — '.$name : $name,
+                ];
+            });
+
+        $leaveTypes = LeaveType::query()
+            ->where('is_active', true)
+            ->orderBy('code')
+            ->get(['id', 'code', 'name'])
+            ->values()
+            ->map(fn (LeaveType $lt) => [
+                'id' => $lt->id,
+                'code' => $lt->code,
+                'name' => $lt->name,
+                'label' => ($lt->code ? $lt->code.' — '.$lt->name : $lt->name),
+            ]);
+
+        return response()->json([
+            'employees' => $employees,
+            'leave_types' => $leaveTypes,
+        ]);
+    }
+
+    /**
+     * JSON for "My leave requests" filter dropdowns.
+     */
+    public function myRequestsFilterOptions()
+    {
+        $leaveTypes = LeaveType::query()
+            ->where('is_active', true)
+            ->orderBy('code')
+            ->get(['id', 'code', 'name'])
+            ->values()
+            ->map(fn (LeaveType $lt) => [
+                'id' => $lt->id,
+                'code' => $lt->code,
+                'name' => $lt->name,
+                'label' => ($lt->code ? $lt->code.' — '.$lt->name : $lt->name),
+            ]);
+
+        return response()->json([
+            'leave_types' => $leaveTypes,
+        ]);
     }
 
     /**
@@ -121,6 +191,12 @@ class LeaveRequestController extends Controller
 
         if ($request->filled('leave_type_id')) {
             $query->where('leave_type_id', $request->leave_type_id);
+        }
+
+        if ($request->filled('project_id')) {
+            $query->whereHas('administration', function ($q) use ($request) {
+                $q->where('project_id', $request->project_id);
+            });
         }
 
         if ($request->filled('start_date')) {
@@ -162,6 +238,9 @@ class LeaveRequestController extends Controller
         $data = $leaveRequests->map(function ($request, $index) use ($start) {
             $statusBadge = '';
             switch ($request->status) {
+                case 'draft':
+                    $statusBadge = '<span class="badge badge-secondary">Draft</span>';
+                    break;
                 case 'pending':
                     $statusBadge = '<span class="badge badge-warning">Pending</span>';
                     break;
@@ -2029,9 +2108,10 @@ class LeaveRequestController extends Controller
                     'rejected' => '<span class="badge badge-danger">Rejected</span>',
                     'cancelled' => '<span class="badge badge-dark">Cancelled</span>',
                     'closed' => '<span class="badge badge-info">Closed</span>',
+                    'auto_approved' => '<span class="badge badge-success">Auto Approved</span>',
                 ];
 
-                return $badges[$row->status] ?? '<span class="badge badge-secondary">Unknown</span>';
+                return $badges[$row->status] ?? '<span class="badge badge-secondary">'.e(ucfirst((string) $row->status)).'</span>';
             })
             ->addColumn('requested_at', function ($row) {
                 return $row->requested_at ? \Carbon\Carbon::parse($row->requested_at)->format('d/m/Y H:i') : 'N/A';

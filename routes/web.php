@@ -280,6 +280,7 @@ Route::group(['middleware' => ['auth']], function () {
     Route::post('officialtravels/{officialtravel}/departure', [OfficialtravelController::class, 'departureStamp'])->name('officialtravels.departureStamp');
 
     Route::get('officialtravels/{officialtravel}/print', [OfficialtravelController::class, 'print'])->name('officialtravels.print');
+    Route::patch('officialtravels/{officialtravel}/approved-itinerary', [OfficialtravelController::class, 'adjustApprovedItinerary'])->name('officialtravels.adjustApprovedItinerary');
     Route::patch('officialtravels/{officialtravel}/close', [OfficialtravelController::class, 'close'])->name('officialtravels.close');
     Route::post('officialtravels/export', [OfficialtravelController::class, 'exportExcel'])->name('officialtravels.export');
 
@@ -674,6 +675,7 @@ Route::group(['middleware' => ['auth']], function () {
         Route::prefix('requests')->name('requests.')->group(function () {
             Route::get('/', [LeaveRequestController::class, 'index'])->name('index');
             Route::get('/data', [LeaveRequestController::class, 'data'])->name('data');
+            Route::get('/index-filter-options', [LeaveRequestController::class, 'indexFilterOptions'])->name('index.filter-options');
             Route::get('/create', [LeaveRequestController::class, 'create'])->name('create');
             Route::post('/', [LeaveRequestController::class, 'store'])->name('store');
             Route::get('/{leaveRequest}', [LeaveRequestController::class, 'show'])->name('show');
@@ -707,6 +709,7 @@ Route::group(['middleware' => ['auth']], function () {
         // Self-service routes for user role (moved outside requests prefix)
         Route::get('/my-requests', [LeaveRequestController::class, 'myRequests'])->name('my-requests');
         Route::get('/my-requests/data', [LeaveRequestController::class, 'myRequestsData'])->name('my-requests.data');
+        Route::get('/my-requests/filter-options', [LeaveRequestController::class, 'myRequestsFilterOptions'])->name('my-requests.filter-options');
         Route::get('/my-requests/create', [LeaveRequestController::class, 'myRequestsCreate'])->name('my-requests.create');
         Route::post('/my-requests', [LeaveRequestController::class, 'myRequestsStore'])->name('my-requests.store');
         Route::get('/my-requests/{leaveRequest}', [LeaveRequestController::class, 'myRequestsShow'])->name('my-requests.show');

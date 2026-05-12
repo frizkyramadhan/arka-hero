@@ -4,7 +4,11 @@
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>LETTER OF OFFICIAL TRAVEL</title>
+        <title>LETTER OF OFFICIAL TRAVEL
+            @if (! empty($printStop))
+                — {{ \Illuminate\Support\Str::limit($printStop->destination, 48) }}
+            @endif
+        </title>
         {{-- <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet"> --}}
         <!-- Google Font: Source Sans Pro -->
         <link rel="stylesheet" href="{{ asset('assets/dist/css/font.css') }}">
@@ -145,6 +149,11 @@
             <div class="number">
                 No. {{ $officialtravel->official_travel_number }}
             </div>
+            @if (! empty($printStop))
+                <div class="text-center small font-weight-bold mb-2">
+                    Print sheet: destination {{ $printStopLeg }} of {{ $officialtravel->stops->count() }} only
+                </div>
+            @endif
 
             <div class="info-row">
                 <div class="label">Name / NIK</div>
@@ -180,10 +189,30 @@
                 <div class="value">{{ $officialtravel->purpose }}</div>
             </div>
 
-            <div class="info-row">
-                <div class="label">Destination</div>
+            <div class="info-row align-items-start">
+                <div class="label">Destination(s)</div>
                 <div class="colon">:</div>
-                <div class="value">{{ $officialtravel->destination }}</div>
+                <div class="value">
+                    @if (! empty($printStop))
+                        {{ $printStop->destination }}
+                        @if ($printStop->is_manual)
+                            <span class="text-muted">(manual)</span>
+                        @endif
+                    @elseif ($officialtravel->stops->isNotEmpty())
+                        <ol class="mb-0 pl-3">
+                            @foreach ($officialtravel->stops as $stop)
+                                <li>
+                                    {{ $stop->destination }}
+                                    @if ($stop->is_manual)
+                                        <span class="text-muted">(manual)</span>
+                                    @endif
+                                </li>
+                            @endforeach
+                        </ol>
+                    @else
+                        {{ $officialtravel->destination }}
+                    @endif
+                </div>
             </div>
 
             <div class="info-row">
@@ -203,10 +232,62 @@
                     <strong>Arrivals and Departures : </strong><i>(filled by officer on destination with Stamp and
                         Sign)</i>
                 </div>
-                @if ($officialtravel->stops->count() > 0)
+                @if (! empty($printStop))
+                    <div class="mb-3">
+                        <h6><strong>Destination {{ $printStopLeg }}</strong> — {{ $printStop->destination }}
+                            @if ($printStop->is_manual)
+                                <span class="text-muted">(manual)</span>
+                            @endif
+                        </h6>
+                        <table class="table table-sm table-bordered arrival-departure">
+                            <tr>
+                                <td width="50%">
+                                    <strong>Arrival at Destination</strong>
+                                </td>
+                                <td width="50%">
+                                    <strong>Departure from Destination</strong>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td width="50%" height="120px">
+                                    <div>
+                                        <strong>Checked by:</strong><br>
+                                        {{ $printStop->arrivalChecker->name ?? '.........................' }}
+                                    </div>
+                                    <div>
+                                        <strong>Remarks:</strong><br>
+                                        {{ $printStop->arrival_remark ?? '.........................' }}
+                                    </div>
+                                    <div>
+                                        <strong>Date:</strong><br>
+                                        {{ $printStop->arrival_at_destination ? date('d/m/Y', strtotime($printStop->arrival_at_destination)) : '.........................' }}
+                                    </div>
+                                </td>
+                                <td width="50%" height="120px">
+                                    <div>
+                                        <strong>Checked by:</strong><br>
+                                        {{ $printStop->departureChecker->name ?? '.........................' }}
+                                    </div>
+                                    <div>
+                                        <strong>Remarks:</strong><br>
+                                        {{ $printStop->departure_remark ?? '.........................' }}
+                                    </div>
+                                    <div>
+                                        <strong>Date:</strong><br>
+                                        {{ $printStop->departure_from_destination ? date('d/m/Y', strtotime($printStop->departure_from_destination)) : '.........................' }}
+                                    </div>
+                                </td>
+                            </tr>
+                        </table>
+                    </div>
+                @elseif ($officialtravel->stops->count() > 0)
                     @foreach ($officialtravel->stops as $index => $stop)
                         <div class="mb-3">
-                            <h6><strong>Stop #{{ $index + 1 }}</strong></h6>
+                            <h6><strong>Destination {{ $index + 1 }}</strong> — {{ $stop->destination }}
+                                @if ($stop->is_manual)
+                                    <span class="text-muted">(manual)</span>
+                                @endif
+                            </h6>
                             <table class="table table-sm table-bordered arrival-departure">
                                 <tr>
                                     <td width="50%">

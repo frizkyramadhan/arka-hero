@@ -11,6 +11,9 @@ class OfficialtravelStop extends Model
 
     protected $fillable = [
         'official_travel_id',
+        'sort_order',
+        'destination',
+        'is_manual',
         'arrival_at_destination',
         'arrival_check_by',
         'arrival_remark',
@@ -18,20 +21,21 @@ class OfficialtravelStop extends Model
         'departure_from_destination',
         'departure_check_by',
         'departure_remark',
-        'departure_timestamps'
+        'departure_timestamps',
     ];
 
     protected $casts = [
+        'is_manual' => 'boolean',
         'arrival_at_destination' => 'datetime',
         'departure_from_destination' => 'datetime',
         'arrival_timestamps' => 'datetime',
-        'departure_timestamps' => 'datetime'
+        'departure_timestamps' => 'datetime',
     ];
 
     // Relationships
     public function officialtravel()
     {
-        return $this->belongsTo(Officialtravel::class);
+        return $this->belongsTo(Officialtravel::class, 'official_travel_id');
     }
 
     public function arrivalChecker()
@@ -47,12 +51,12 @@ class OfficialtravelStop extends Model
     // Helper methods
     public function hasArrival()
     {
-        return !is_null($this->arrival_at_destination);
+        return ! is_null($this->arrival_at_destination);
     }
 
     public function hasDeparture()
     {
-        return !is_null($this->departure_from_destination);
+        return ! is_null($this->departure_from_destination);
     }
 
     public function isComplete()
@@ -62,11 +66,11 @@ class OfficialtravelStop extends Model
 
     public function isArrivalOnly()
     {
-        return $this->hasArrival() && !$this->hasDeparture();
+        return $this->hasArrival() && ! $this->hasDeparture();
     }
 
     public function isDepartureOnly()
     {
-        return !$this->hasArrival() && $this->hasDeparture();
+        return ! $this->hasArrival() && $this->hasDeparture();
     }
 }
