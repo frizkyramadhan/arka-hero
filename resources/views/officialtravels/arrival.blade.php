@@ -76,8 +76,20 @@
                                         <i class="fas fa-map-marker-alt"></i>
                                     </div>
                                     <div class="info-content">
-                                        <div class="info-label">Destination</div>
-                                        <div class="info-value">{{ $officialtravel->destination }}</div>
+                                        <div class="info-label">Checkpoint destination</div>
+                                        <div class="info-value">
+                                            @if (isset($arrivalStampCandidates) && $arrivalStampCandidates->count() > 1)
+                                                Select the destination below.
+                                            @elseif (isset($arrivalStampCandidates) && $arrivalStampCandidates->isNotEmpty())
+                                                {{ $arrivalStampCandidates->first()->destination }}
+                                                @if ($arrivalStampCandidates->first()->is_manual)
+                                                    <small class="text-muted">(manual — stamped by origin
+                                                        project)</small>
+                                                @endif
+                                            @else
+                                                {{ $officialtravel->destination }}
+                                            @endif
+                                        </div>
                                         <div class="info-meta">Duration: {{ $officialtravel->duration }}</div>
                                     </div>
                                 </div>
@@ -93,8 +105,10 @@
                                                 $currentStatus = $officialtravel->getCurrentStopStatus();
                                                 $statusLabels = [
                                                     'no_stops' => 'No stops recorded',
-                                                    'complete' => 'Latest stop complete',
-                                                    'arrival_only' => 'Waiting for departure',
+                                                    'complete' => 'All destinations complete',
+                                                    'arrival_only' =>
+                                                        'Waiting for departure (one or more destinations)',
+                                                    'pending_arrival' => 'Awaiting arrival (one or more destinations)',
                                                     'departure_only' => 'Departure only recorded',
                                                     'unknown' => 'Unknown status',
                                                 ];
@@ -151,6 +165,28 @@
                                 <h2><i class="fas fa-plane-arrival"></i> Arrival Check</h2>
                             </div>
                             <div class="card-body">
+                                @if (isset($arrivalStampCandidates) && $arrivalStampCandidates->isNotEmpty())
+                                    @if ($arrivalStampCandidates->count() > 1)
+                                        <div class="form-group">
+                                            <label for="official_travel_stop_id">Destination (checkpoint) <span
+                                                    class="text-danger">*</span></label>
+                                            <select name="official_travel_stop_id" id="official_travel_stop_id"
+                                                class="form-control" required>
+                                                @foreach ($arrivalStampCandidates as $s)
+                                                    <option value="{{ $s->id }}" @selected(old('official_travel_stop_id') == $s->id)>
+                                                        Destination {{ $s->sort_order + 1 }}: {{ $s->destination }}
+                                                        @if ($s->is_manual)
+                                                            (manual / origin project)
+                                                        @endif
+                                                    </option>
+                                                @endforeach
+                                            </select>
+                                        </div>
+                                    @else
+                                        <input type="hidden" name="official_travel_stop_id"
+                                            value="{{ $arrivalStampCandidates->first()->id }}">
+                                    @endif
+                                @endif
                                 <div class="form-group">
                                     <label for="arrival_at_destination">Arrival Date & Time <span
                                             class="text-danger">*</span></label>

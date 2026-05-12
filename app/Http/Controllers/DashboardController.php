@@ -26,6 +26,7 @@ use App\Models\LetterCategory;
 use App\Models\LetterNumber;
 use App\Models\License;
 use App\Models\Officialtravel;
+use App\Models\OfficialtravelStop;
 use App\Models\Operableunit;
 use App\Models\OvertimeRequest;
 use App\Models\Project;
@@ -38,7 +39,6 @@ use App\Support\UserProject;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
 use Yajra\DataTables\DataTables;
 
@@ -150,6 +150,19 @@ class DashboardController extends Controller
     }
 
     /**
+     * Official travels visible on this dashboard: origin in user_project OR destination/itinerary matches assignment.
+     *
+     * @return \Illuminate\Database\Eloquent\Builder<\App\Models\Officialtravel>
+     */
+    private function officialTravelScopedQuery(): \Illuminate\Database\Eloquent\Builder
+    {
+        $q = Officialtravel::query();
+        UserProject::scopeOfficialTravelsDashboardVisible($q, Auth::user());
+
+        return $q;
+    }
+
+    /**
      * Dedicated Official Travel Dashboard view
      */
     public function officialTravel()
@@ -159,56 +172,90 @@ class DashboardController extends Controller
         // Remove legacy approval system - no more pending approvals
         $pendingApprovals = 0;
 
-        // New logic for pending arrivals based on stops
+        // Pending arrivals: any destination awaiting arrival the user may stamp (including manual destinations → origin project).
         $pendingArrivals = 0;
         if ($user->can('official-travels.stamp')) {
-            $pendingArrivalsQuery = Officialtravel::where('status', 'approved')
-                ->whereDoesntHave('stops');
-            if (! Gate::allows('superadmin')) {
-                UserProject::scopeOfficialTravelsDestinationStampMatch($pendingArrivalsQuery, $user);
+            $pendingArrivalsQuery = Officialtravel::where('status', 'approved');
+            if (! $user->hasRole('administrator')) {
+                UserProject::scopeOfficialTravelsPendingArrivalStampVisible($pendingArrivalsQuery, $user);
+            } else {
+                $pendingArrivalsQuery->where(function ($w) {
+                    $w->whereDoesntHave('stops')
+                        ->orWhereHas('stops', function ($q) {
+                            $q->whereNull('arrival_at_destination');
+                        });
+                });
             }
             $pendingArrivals = $pendingArrivalsQuery->count();
         }
 
-        // New logic for pending departures based on stops
+        // Pending departures: destinations with arrival but no departure, scoped by project / manual rule.
         $pendingDepartures = 0;
         if ($user->can('official-travels.stamp')) {
-            $pendingDeparturesQuery = Officialtravel::where('status', 'approved')
-                ->whereHas('stops', function ($query) {
+            $pendingDeparturesQuery = Officialtravel::where('status', 'approved');
+            if (! $user->hasRole('administrator')) {
+                UserProject::scopeOfficialTravelsPendingDepartureStampVisible($pendingDeparturesQuery, $user);
+            } else {
+                $pendingDeparturesQuery->whereHas('stops', function ($query) {
                     $query->whereNotNull('arrival_at_destination')
                         ->whereNull('departure_from_destination');
                 });
-            if (! Gate::allows('superadmin')) {
-                UserProject::scopeOfficialTravelsDestinationStampMatch($pendingDeparturesQuery, $user);
             }
             $pendingDepartures = $pendingDeparturesQuery->count();
         }
 
-        $totalTravels = Officialtravel::count();
-        $activeTravels = Officialtravel::where('status', 'approved')->count();
-        $draftTravels = Officialtravel::where('status', 'draft')->count();
-        $submittedTravels = Officialtravel::where('status', 'submitted')->count();
-        $approvedTravels = Officialtravel::where('status', 'approved')->count();
-        $rejectedTravels = Officialtravel::where('status', 'rejected')->count();
+        $totalTravels = $this->officialTravelScopedQuery()->count();
+        $activeTravels = $this->officialTravelScopedQuery()->where('status', 'approved')->count();
+        $draftTravels = $this->officialTravelScopedQuery()->where('status', 'draft')->count();
+        $submittedTravels = $this->officialTravelScopedQuery()->where('status', 'submitted')->count();
+        $approvedTravels = $this->officialTravelScopedQuery()->where('status', 'approved')->count();
+        $rejectedTravels = $this->officialTravelScopedQuery()->where('status', 'rejected')->count();
 
-        $thisMonthTravels = Officialtravel::whereMonth('created_at', now()->month)
+        $thisMonthTravels = $this->officialTravelScopedQuery()
+            ->whereMonth('created_at', now()->month)
             ->whereYear('created_at', now()->year)
             ->count();
 
-        $lastMonthTravels = Officialtravel::whereMonth('created_at', now()->subMonth()->month)
+        $lastMonthTravels = $this->officialTravelScopedQuery()
+            ->whereMonth('created_at', now()->subMonth()->month)
             ->whereYear('created_at', now()->subMonth()->year)
             ->count();
 
         $monthlyGrowth = $lastMonthTravels > 0 ? round((($thisMonthTravels - $lastMonthTravels) / $lastMonthTravels) * 100, 1) : 0;
 
-        $topDestinations = Officialtravel::select('destination', DB::raw('count(*) as count'))
+        // Top destinations: count each itinerary leg (stops) + legacy LOT without stops (header destination only).
+        $stopDestinationCounts = OfficialtravelStop::query()
+            ->whereHas('officialtravel', function ($q) {
+                UserProject::scopeOfficialTravelsDashboardVisible($q, Auth::user());
+            })
+            ->whereNotNull('destination')
+            ->where('destination', '!=', '')
+            ->selectRaw('destination, count(*) as cnt')
             ->groupBy('destination')
-            ->orderBy('count', 'desc')
-            ->limit(5)
-            ->get();
+            ->pluck('cnt', 'destination');
 
-        $departmentStats = Officialtravel::join('employees', 'officialtravels.traveler_id', '=', 'employees.id')
-            ->join('administrations', 'employees.id', '=', 'administrations.employee_id')
+        $legacyHeaderCounts = $this->officialTravelScopedQuery()
+            ->whereDoesntHave('stops')
+            ->whereNotNull('destination')
+            ->where('destination', '!=', '')
+            ->selectRaw('destination, count(*) as cnt')
+            ->groupBy('destination')
+            ->pluck('cnt', 'destination');
+
+        $mergedDestinationCounts = [];
+        foreach ($stopDestinationCounts as $dest => $cnt) {
+            $mergedDestinationCounts[$dest] = ($mergedDestinationCounts[$dest] ?? 0) + (int) $cnt;
+        }
+        foreach ($legacyHeaderCounts as $dest => $cnt) {
+            $mergedDestinationCounts[$dest] = ($mergedDestinationCounts[$dest] ?? 0) + (int) $cnt;
+        }
+        arsort($mergedDestinationCounts);
+        $topDestinations = collect(array_slice($mergedDestinationCounts, 0, 5, true))
+            ->map(fn ($count, $destination) => (object) ['destination' => $destination, 'count' => $count])
+            ->values();
+
+        $departmentStats = $this->officialTravelScopedQuery()
+            ->join('administrations', 'officialtravels.traveler_id', '=', 'administrations.id')
             ->join('positions', 'administrations.position_id', '=', 'positions.id')
             ->join('departments', 'positions.department_id', '=', 'departments.id')
             ->select('departments.department_name', DB::raw('count(*) as count'))
@@ -217,8 +264,9 @@ class DashboardController extends Controller
             ->limit(5)
             ->get();
 
-        $openTravel = Officialtravel::where('status', 'approved')->count();
-        $openTravels = Officialtravel::with('traveler.employee')
+        $openTravel = $this->officialTravelScopedQuery()->where('status', 'approved')->count();
+        $openTravels = $this->officialTravelScopedQuery()
+            ->with(['traveler.employee', 'traveler.position', 'stops'])
             ->whereNot('status', 'closed')
             ->orderBy('created_at', 'desc')
             ->get();
@@ -503,12 +551,17 @@ class DashboardController extends Controller
         //     return response()->json(['error' => 'Unauthorized'], 403);
         // }
 
-        $query = Officialtravel::with('traveler.employee')
-            ->where('status', 'approved')
-            ->whereDoesntHave('stops');
-
-        if (! Gate::allows('superadmin')) {
-            UserProject::scopeOfficialTravelsDestinationStampMatch($query, $user);
+        $query = Officialtravel::with(['traveler.employee', 'stops'])
+            ->where('status', 'approved');
+        if (! $user->hasRole('administrator')) {
+            UserProject::scopeOfficialTravelsPendingArrivalStampVisible($query, $user);
+        } else {
+            $query->where(function ($w) {
+                $w->whereDoesntHave('stops')
+                    ->orWhereHas('stops', function ($q) {
+                        $q->whereNull('arrival_at_destination');
+                    });
+            });
         }
 
         return DataTables::of($query)
@@ -518,6 +571,20 @@ class DashboardController extends Controller
             })
             ->addColumn('traveler', function ($row) {
                 return $row->traveler->employee->fullname ?? 'N/A';
+            })
+            ->addColumn('destination', function ($row) {
+                return e($row->pendingArrivalDestinationLabel());
+            })
+            ->filterColumn('destination', function ($q, $keyword) {
+                $keyword = trim((string) $keyword);
+                if ($keyword === '') {
+                    return;
+                }
+                $like = '%'.$keyword.'%';
+                $q->where(function ($w) use ($like) {
+                    $w->where('officialtravels.destination', 'like', $like)
+                        ->orWhereHas('stops', fn ($sq) => $sq->where('destination', 'like', $like));
+                });
             })
             ->addColumn('action', function ($row) {
                 $btn = '<a href="'.route('officialtravels.showArrivalForm', $row->id).'" class="btn btn-sm btn-info">
@@ -543,15 +610,15 @@ class DashboardController extends Controller
         //     return response()->json(['error' => 'Unauthorized'], 403);
         // }
 
-        $query = Officialtravel::with('traveler.employee')
-            ->where('status', 'approved')
-            ->whereHas('stops', function ($query) {
+        $query = Officialtravel::with(['traveler.employee', 'stops'])
+            ->where('status', 'approved');
+        if (! $user->hasRole('administrator')) {
+            UserProject::scopeOfficialTravelsPendingDepartureStampVisible($query, $user);
+        } else {
+            $query->whereHas('stops', function ($query) {
                 $query->whereNotNull('arrival_at_destination')
                     ->whereNull('departure_from_destination');
             });
-
-        if (! Gate::allows('superadmin')) {
-            UserProject::scopeOfficialTravelsDestinationStampMatch($query, $user);
         }
 
         return DataTables::of($query)
@@ -561,6 +628,20 @@ class DashboardController extends Controller
             })
             ->addColumn('traveler', function ($row) {
                 return $row->traveler->employee->fullname ?? 'N/A';
+            })
+            ->addColumn('destination', function ($row) {
+                return e($row->pendingDepartureDestinationLabel());
+            })
+            ->filterColumn('destination', function ($q, $keyword) {
+                $keyword = trim((string) $keyword);
+                if ($keyword === '') {
+                    return;
+                }
+                $like = '%'.$keyword.'%';
+                $q->where(function ($w) use ($like) {
+                    $w->where('officialtravels.destination', 'like', $like)
+                        ->orWhereHas('stops', fn ($sq) => $sq->where('destination', 'like', $like));
+                });
             })
             ->addColumn('action', function ($row) {
                 $btn = '<a href="'.route('officialtravels.showDepartureForm', $row->id).'" class="btn btn-sm btn-purple">
@@ -1895,7 +1976,7 @@ class DashboardController extends Controller
         // Recent Official Travels
         $administrationId = $user->administration_id;
         $recentTravels = $administrationId ? Officialtravel::with(['project', 'stops' => function ($query) {
-            $query->orderBy('created_at', 'desc');
+            $query->orderBy('sort_order')->orderBy('id');
         }])
             ->where(function ($q) use ($administrationId) {
                 $q->where('traveler_id', $administrationId)

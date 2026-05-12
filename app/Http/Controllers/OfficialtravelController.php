@@ -17,7 +17,6 @@ use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithHeadings;
@@ -40,37 +39,54 @@ class OfficialtravelController extends Controller
     }
 
     /**
-     * Stamping hanya jika destinasi LOT cocok dengan proyek aktif yang di-assign ke user (user–project).
-     * Superadmin (gate) tidak dibatasi.
+     * Stamping is allowed only for destinations the user may checkpoint (project-matched destination, or manual destination → origin project).
+     * Role Spatie `administrator` is not restricted.
+     *
+     * @param  'arrival'|'departure'  $stampKind
+     * @param  OfficialtravelStop|null  $stop  When null, legacy first arrival without itinerary rows (header destination only).
      */
-    protected function ensureStampAllowedForDestination(Officialtravel $officialtravel): ?\Illuminate\Http\RedirectResponse
-    {
+    protected function ensureStampAllowedForDestination(
+        Officialtravel $officialtravel,
+        string $stampKind = 'arrival',
+        ?OfficialtravelStop $stop = null,
+    ): ?\Illuminate\Http\RedirectResponse {
         $user = Auth::user();
         if (! $user) {
             return redirect()->back()->with('toast_error', 'Unauthorized.');
         }
 
-        if (Gate::forUser($user)->allows('superadmin')) {
+        if ($user->hasRole('administrator')) {
             return null;
-        }
-
-        $dest = preg_replace('/\s+/u', ' ', trim((string) $officialtravel->destination));
-        if ($dest === '') {
-            return redirect()->back()->with('toast_error', 'LOT ini tidak memiliki data destinasi.');
         }
 
         $assignedCount = $user->projects()->where('project_status', 1)->count();
         if ($assignedCount === 0) {
             return redirect()->back()->with(
                 'toast_error',
-                'Akun Anda tidak memiliki proyek aktif di user–project. Hubungi admin untuk assignment proyek agar dapat mencatat stamp.'
+                'Your account has no active user–project assignments. Ask an admin to assign projects before recording checkpoints.'
             );
         }
 
-        if (! UserProject::destinationMatchesUserAssignedProjects($user, $officialtravel->destination)) {
+        if ($stop !== null) {
+            if (! UserProject::userCanStampOfficialtravelStop($user, $officialtravel, $stop)) {
+                return redirect()->back()->with(
+                    'toast_error',
+                    'You can only record checkpoints for destinations that match your assigned projects. Manual destinations are handled by users assigned to this travel\'s origin project.'
+                );
+            }
+
+            return null;
+        }
+
+        $dest = preg_replace('/\s+/u', ' ', trim((string) $officialtravel->destination));
+        if ($dest === '') {
+            return redirect()->back()->with('toast_error', 'This official travel has no destination data for this step.');
+        }
+
+        if (! UserProject::destinationMatchesUserAssignedProjects($user, $dest)) {
             return redirect()->back()->with(
                 'toast_error',
-                'Anda hanya dapat mencatat kedatangan/keberangkatan untuk LOT yang destinasinya sesuai proyek yang di-assign pada akun Anda (user–project).'
+                'You can only record checkpoints when the destination matches your assigned projects (user–project).'
             );
         }
 
@@ -78,11 +94,63 @@ class OfficialtravelController extends Controller
     }
 
     /**
+     * @return array{0: array<int, string>, 1: array<int, bool>}
+     */
+    protected function normalizeStopsFromRequest(Request $request): array
+    {
+        $raw = $request->input('stop_destinations', []);
+        $rawManual = $request->input('stop_destinations_manual', []);
+        if (! is_array($raw)) {
+            $raw = [];
+        }
+        if (! is_array($rawManual)) {
+            $rawManual = [];
+        }
+
+        $list = [];
+        $manualFlags = [];
+        foreach ($raw as $i => $s) {
+            $t = preg_replace('/\s+/u', ' ', trim((string) $s));
+            if ($t === '') {
+                continue;
+            }
+            $list[] = $t;
+            $manualFlags[] = isset($rawManual[$i]) && (string) $rawManual[$i] === '1';
+        }
+
+        return [array_values($list), $manualFlags];
+    }
+
+    protected function syncOfficialtravelPlannedStops(Officialtravel $officialtravel, array $destinationStrings, array $manualFlags = []): void
+    {
+        if (! $officialtravel->plannedStopsAreEditable()) {
+            return;
+        }
+
+        $officialtravel->stops()->delete();
+        foreach ($destinationStrings as $i => $dest) {
+            OfficialtravelStop::create([
+                'official_travel_id' => $officialtravel->id,
+                'destination' => $dest,
+                'sort_order' => $i,
+                'is_manual' => (bool) ($manualFlags[$i] ?? false),
+            ]);
+        }
+
+        $officialtravel->unsetRelation('stops');
+        $officialtravel->refreshStampContextDestination();
+    }
+
+    /**
      * Constructor to add permissions
      */
     public function __construct()
     {
-        $this->middleware('permission:official-travels.show')->only(['index', 'show']);
+        $this->middleware('permission:official-travels.show')->only([
+            'index',
+            'show',
+            'adjustApprovedItinerary',
+        ]);
         $this->middleware('permission:official-travels.create')->only('create');
         $this->middleware('permission:official-travels.edit')->only('edit');
         $this->middleware('permission:official-travels.delete')->only('destroy');
@@ -126,6 +194,7 @@ class OfficialtravelController extends Controller
             'transportation',
             'accommodation',
             'details.follower.employee',
+            'stops',
             'creator',
         ]);
 
@@ -144,9 +213,9 @@ class OfficialtravelController extends Controller
             $officialtravels->where('official_travel_number', 'LIKE', '%'.$request->get('travel_number').'%');
         }
 
-        // Filter by destination
+        // Filter by destination (header + itinerary stops)
         if (! empty($request->get('destination'))) {
-            $officialtravels->where('destination', 'LIKE', '%'.$request->get('destination').'%');
+            $officialtravels->whereDestinationSearch((string) $request->get('destination'));
         }
 
         // Filter by NIK
@@ -182,7 +251,10 @@ class OfficialtravelController extends Controller
             $search = $request->get('search');
             $officialtravels->where(function ($query) use ($search) {
                 $query->where('official_travel_number', 'LIKE', "%$search%")
-                    ->orWhere('destination', 'LIKE', "%$search%")
+                    ->orWhere('officialtravels.destination', 'LIKE', "%$search%")
+                    ->orWhereHas('stops', function ($q) use ($search) {
+                        $q->where('destination', 'LIKE', "%$search%");
+                    })
                     ->orWhereHas('traveler.employee', function ($q) use ($search) {
                         $q->where('fullname', 'LIKE', "%$search%")
                             ->orWhere('nik', 'LIKE', "%$search%");
@@ -216,7 +288,7 @@ class OfficialtravelController extends Controller
                 return $officialtravel->project ? $officialtravel->project->project_code : '-';
             })
             ->addColumn('destination', function ($officialtravel) {
-                return $officialtravel->destination;
+                return view('officialtravels.partials.datatable-destination-cell', ['travel' => $officialtravel])->render();
             })
             ->addColumn('status', function ($officialtravel) {
                 if ($officialtravel->submitted_by_user && empty($officialtravel->letter_number_id)) {
@@ -247,7 +319,13 @@ class OfficialtravelController extends Controller
             ->addColumn('action', function ($model) {
                 return view('officialtravels.action', compact('model'))->render();
             })
-            ->rawColumns(['action', 'status', 'created_by'])
+            ->filterColumn('destination', function ($query, $keyword) {
+                if (! is_string($keyword) || trim($keyword) === '') {
+                    return;
+                }
+                $query->whereDestinationSearch($keyword);
+            })
+            ->rawColumns(['action', 'status', 'created_by', 'destination'])
             ->toJson();
     }
 
@@ -333,7 +411,8 @@ class OfficialtravelController extends Controller
                 'official_travel_origin' => 'required|exists:projects,id',
                 'traveler_id' => 'required|exists:administrations,id',
                 'purpose' => 'required|string',
-                'destination' => 'required|string|min:3',
+                'stop_destinations' => 'required|array|min:1',
+                'stop_destinations.*' => 'required|string|min:3',
                 'duration' => 'required|string|min:1',
                 'departure_from' => 'required|date|after_or_equal:today',
                 'transportation_id' => 'required|exists:transportations,id',
@@ -359,8 +438,10 @@ class OfficialtravelController extends Controller
                 'traveler_id.required' => 'Main Traveler is required.',
                 'traveler_id.exists' => 'Selected Main Traveler is invalid.',
                 'purpose.required' => 'Purpose is required.',
-                'destination.required' => 'Destination is required.',
-                'destination.min' => 'Destination must be at least 3 characters.',
+                'stop_destinations.required' => 'At least one destination is required.',
+                'stop_destinations.min' => 'At least one destination is required.',
+                'stop_destinations.*.required' => 'Each destination must be filled in.',
+                'stop_destinations.*.min' => 'Each destination must be at least 3 characters.',
                 'duration.required' => 'Duration is required.',
                 'duration.min' => 'Duration cannot be empty.',
                 'departure_from.required' => 'Departure Date is required.',
@@ -382,6 +463,8 @@ class OfficialtravelController extends Controller
                 'submit_action.required' => 'Please select an action.',
                 'submit_action.in' => 'Invalid submit action.',
             ]);
+
+            [$stopDestinations, $stopDestinationManualFlags] = $this->normalizeStopsFromRequest($request);
 
             if ($r = $this->guardOfficialtravelRequestOrigin($request)) {
                 return $r;
@@ -445,7 +528,7 @@ class OfficialtravelController extends Controller
                 'status' => $status,
                 'traveler_id' => $request->traveler_id,
                 'purpose' => $request->purpose,
-                'destination' => $request->destination,
+                'destination' => $stopDestinations[0] ?? '',
                 'duration' => $request->duration,
                 'departure_from' => $request->departure_from,
                 'transportation_id' => $request->transportation_id,
@@ -455,6 +538,8 @@ class OfficialtravelController extends Controller
                 'submit_at' => $submitAt,
             ]);
             $officialtravel->save();
+
+            $this->syncOfficialtravelPlannedStops($officialtravel, $stopDestinations, $stopDestinationManualFlags);
 
             // Mark letter number as used jika ada
             if ($letterNumberRecord) {
@@ -551,7 +636,79 @@ class OfficialtravelController extends Controller
             'latestStop',
         ])->findOrFail($id);
 
-        return view('officialtravels.show', compact('title', 'subtitle', 'officialtravel'));
+        $destinationProjectsForItineraryAdjust = collect();
+        $canAdjustApprovedItinerary = false;
+        $user = Auth::user();
+        if ($user && UserProject::userMayAdjustApprovedOfficialtravelItinerary($user, $officialtravel)) {
+            $canAdjustApprovedItinerary = true;
+            $destinationProjectsForItineraryAdjust = $this->activeProjectsForDestinationSelect();
+        }
+
+        return view(
+            'officialtravels.show',
+            compact(
+                'title',
+                'subtitle',
+                'officialtravel',
+                'destinationProjectsForItineraryAdjust',
+                'canAdjustApprovedItinerary'
+            )
+        );
+    }
+
+    /**
+     * Adjust upcoming itinerary legs on an approved LOT (origin project / administrator only).
+     */
+    public function adjustApprovedItinerary(Request $request, Officialtravel $officialtravel)
+    {
+        $user = Auth::user();
+        if (! $user || ! UserProject::userMayAdjustApprovedOfficialtravelItinerary($user, $officialtravel)) {
+            abort(403, 'You cannot change this itinerary.');
+        }
+
+        $this->validate($request, [
+            'stop_destinations' => 'required|array',
+        ], [
+            'stop_destinations.required' => 'Please add at least one stop.',
+        ]);
+
+        [$list, $flags] = $this->normalizeStopsFromRequest($request);
+
+        if ($list === []) {
+            return redirect()->back()
+                ->withInput()
+                ->with('toast_error', 'Please add at least one stop.');
+        }
+
+        foreach ($list as $d) {
+            if (mb_strlen(preg_replace('/\s+/u', ' ', trim((string) $d))) < 3) {
+                return redirect()->back()
+                    ->withInput()
+                    ->with('toast_error', 'Each stop must be at least 3 characters.');
+            }
+        }
+
+        if (count($list) < $officialtravel->approvedItineraryLockedStopCount()) {
+            return redirect()->back()
+                ->withInput()
+                ->with('toast_error', 'You cannot remove stops that already have a checkpoint. Refresh the page if the trip changed.');
+        }
+
+        try {
+            DB::beginTransaction();
+            $officialtravel->replaceItineraryKeepingCheckpointStops($list, $flags);
+            DB::commit();
+        } catch (\InvalidArgumentException $e) {
+            DB::rollBack();
+
+            return redirect()->back()
+                ->withInput()
+                ->with('toast_error', $e->getMessage());
+        }
+
+        return redirect()
+            ->route('officialtravels.show', $officialtravel->id)
+            ->with('toast_success', 'Itinerary saved.');
     }
 
     /**
@@ -576,6 +733,7 @@ class OfficialtravelController extends Controller
             'traveler.position.department',
             'traveler.project',
             'project',
+            'stops',
         ]);
 
         // Load employees with their relationships
@@ -627,13 +785,12 @@ class OfficialtravelController extends Controller
 
             if ($isPendingHr) {
                 // HR confirming user submission: require letter number and approvers
-                $this->validate($request, [
+                $rules = [
                     'letter_number_id' => 'required|exists:letter_numbers,id',
                     'official_travel_date' => 'required|date',
                     'official_travel_origin' => 'required',
                     'traveler_id' => 'required',
                     'purpose' => 'required',
-                    'destination' => 'required',
                     'duration' => 'required',
                     'departure_from' => 'required|date',
                     'transportation_id' => 'required',
@@ -641,18 +798,23 @@ class OfficialtravelController extends Controller
                     'followers' => 'nullable|array',
                     'manual_approvers' => 'required|array|min:1',
                     'manual_approvers.*' => 'exists:users,id',
-                ], [
+                ];
+                if ($officialtravel->plannedStopsAreEditable()) {
+                    $rules['stop_destinations'] = 'required|array|min:1';
+                    $rules['stop_destinations.*'] = 'required|string|min:3';
+                }
+                $this->validate($request, $rules, [
                     'letter_number_id.required' => 'Pilih nomor surat untuk mengonfirmasi pengajuan ini.',
                     'manual_approvers.required' => 'Pilih minimal satu approver.',
+                    'stop_destinations.required' => 'Destinasi minimal satu destination wajib diisi.',
                 ]);
             } else {
-                $this->validate($request, [
+                $rules = [
                     'official_travel_number' => 'required|unique:officialtravels,official_travel_number,'.$officialtravel->id,
                     'official_travel_date' => 'required|date',
                     'official_travel_origin' => 'required',
                     'traveler_id' => 'required',
                     'purpose' => 'required',
-                    'destination' => 'required',
                     'duration' => 'required',
                     'departure_from' => 'required|date',
                     'transportation_id' => 'required',
@@ -660,18 +822,32 @@ class OfficialtravelController extends Controller
                     'followers' => 'nullable|array',
                     'manual_approvers' => 'nullable|array|min:1',
                     'manual_approvers.*' => 'exists:users,id',
-                ], [
+                ];
+                if ($officialtravel->plannedStopsAreEditable()) {
+                    $rules['stop_destinations'] = 'required|array|min:1';
+                    $rules['stop_destinations.*'] = 'required|string|min:3';
+                }
+                $this->validate($request, $rules, [
                     'manual_approvers.array' => 'Approvers must be an array.',
                     'manual_approvers.min' => 'Please select at least one approver.',
                     'manual_approvers.*.exists' => 'One or more selected approvers are invalid.',
+                    'stop_destinations.required' => 'At least one destination is required.',
                 ]);
             }
+
+            [$stopDestinations, $stopDestinationManualFlags] = $officialtravel->plannedStopsAreEditable()
+                ? $this->normalizeStopsFromRequest($request)
+                : [[], []];
 
             if ($r = $this->guardOfficialtravelRequestOrigin($request)) {
                 return $r;
             }
 
             DB::beginTransaction();
+
+            $destFirst = $officialtravel->plannedStopsAreEditable() && $stopDestinations !== []
+                ? $stopDestinations[0]
+                : $officialtravel->destination;
 
             if ($officialtravel->status !== 'draft') {
                 throw new \Exception('Cannot edit Official Travel that is not in draft or pending HR confirmation status.');
@@ -707,7 +883,7 @@ class OfficialtravelController extends Controller
                     'submitted_by_user' => false,
                     'traveler_id' => $request->traveler_id,
                     'purpose' => $request->purpose,
-                    'destination' => $request->destination,
+                    'destination' => $destFirst,
                     'duration' => $request->duration,
                     'departure_from' => $request->departure_from,
                     'transportation_id' => $request->transportation_id,
@@ -728,13 +904,17 @@ class OfficialtravelController extends Controller
                     'official_travel_origin' => $request->official_travel_origin,
                     'traveler_id' => $request->traveler_id,
                     'purpose' => $request->purpose,
-                    'destination' => $request->destination,
+                    'destination' => $destFirst,
                     'duration' => $request->duration,
                     'departure_from' => $request->departure_from,
                     'transportation_id' => $request->transportation_id,
                     'accommodation_id' => $request->accommodation_id,
                     'manual_approvers' => $manualApprovers,
                 ]);
+            }
+
+            if ($officialtravel->plannedStopsAreEditable() && $stopDestinations !== []) {
+                $this->syncOfficialtravelPlannedStops($officialtravel, $stopDestinations, $stopDestinationManualFlags);
             }
 
             if ($approversChanged) {
@@ -887,21 +1067,26 @@ class OfficialtravelController extends Controller
             'accommodation',
             'details.follower.employee',
             'latestStop',
+            'stops',
         ])->findOrFail($id);
 
-        // Cek apakah bisa record arrival
         if (! $officialtravel->canRecordArrival()) {
             return redirect()->back()->with('toast_error', 'Cannot record arrival at this time. Please check the current status.');
         }
 
-        if ($redirect = $this->ensureStampAllowedForDestination($officialtravel)) {
-            return $redirect;
+        if (! $officialtravel->userCanStampAnyArrival(Auth::user())) {
+            return redirect()->back()->with(
+                'toast_error',
+                'You are not allowed to record arrival for this travel (no matching project for pending destinations).'
+            );
         }
+
+        $arrivalStampCandidates = $officialtravel->stopsEligibleForArrivalStamp(Auth::user());
 
         $title = 'Official Travels';
         $subtitle = 'Record Arrival';
 
-        return view('officialtravels.arrival', compact('title', 'subtitle', 'officialtravel'));
+        return view('officialtravels.arrival', compact('title', 'subtitle', 'officialtravel', 'arrivalStampCandidates'));
     }
 
     /**
@@ -910,42 +1095,83 @@ class OfficialtravelController extends Controller
     public function arrivalStamp(Request $request, Officialtravel $officialtravel)
     {
         try {
-            // Cek apakah bisa record arrival
             if (! $officialtravel->canRecordArrival()) {
                 return redirect()->back()->with('toast_error', 'Cannot record arrival at this time. Please check the current status.');
             }
 
-            if ($redirect = $this->ensureStampAllowedForDestination($officialtravel)) {
-                return $redirect;
+            if (! $officialtravel->userCanStampAnyArrival(Auth::user())) {
+                return redirect()->back()->with(
+                    'toast_error',
+                    'You are not allowed to record arrival for this travel (no matching project for pending destinations).'
+                );
             }
 
             $this->validate($request, [
                 'arrival_at_destination' => 'required|date',
                 'arrival_remark' => 'required|string',
+                'official_travel_stop_id' => 'nullable|integer|exists:officialtravel_stops,id',
             ]);
 
             DB::beginTransaction();
 
-            // Get or create latest stop
-            $latestStop = $officialtravel->latestStop;
-            if (! $latestStop || $latestStop->isComplete()) {
-                // Create new stop
-                $latestStop = OfficialtravelStop::create([
-                    'official_travel_id' => $officialtravel->id,
-                    'arrival_at_destination' => $request->arrival_at_destination,
-                    'arrival_check_by' => Auth::id(),
-                    'arrival_remark' => $request->arrival_remark,
-                    'arrival_timestamps' => now(),
-                ]);
+            $officialtravel->load('stops');
+            $candidates = $officialtravel->stopsEligibleForArrivalStamp(Auth::user());
+
+            if ($officialtravel->stops()->exists()) {
+                if ($candidates->isEmpty()) {
+                    DB::rollBack();
+
+                    return redirect()->back()->with('toast_error', 'No arrival checkpoint is available for your assigned projects.');
+                }
+
+                if ($candidates->count() > 1 && ! $request->filled('official_travel_stop_id')) {
+                    DB::rollBack();
+
+                    return redirect()->back()->with('toast_error', 'Please select which destination you are recording arrival for.');
+                }
+
+                $stop = null;
+                if ($request->filled('official_travel_stop_id')) {
+                    $stop = $candidates->firstWhere('id', (int) $request->input('official_travel_stop_id'));
+                } else {
+                    $stop = $candidates->first();
+                }
+
+                if (! $stop) {
+                    DB::rollBack();
+
+                    return redirect()->back()->with('toast_error', 'Invalid destination selected for this arrival.');
+                }
+
+                if ($redirect = $this->ensureStampAllowedForDestination($officialtravel, 'arrival', $stop)) {
+                    DB::rollBack();
+
+                    return $redirect;
+                }
             } else {
-                // Update existing stop
-                $latestStop->update([
-                    'arrival_at_destination' => $request->arrival_at_destination,
-                    'arrival_check_by' => Auth::id(),
-                    'arrival_remark' => $request->arrival_remark,
-                    'arrival_timestamps' => now(),
+                if ($redirect = $this->ensureStampAllowedForDestination($officialtravel, 'arrival', null)) {
+                    DB::rollBack();
+
+                    return $redirect;
+                }
+
+                $stop = OfficialtravelStop::create([
+                    'official_travel_id' => $officialtravel->id,
+                    'destination' => preg_replace('/\s+/u', ' ', trim((string) $officialtravel->destination)),
+                    'sort_order' => 0,
+                    'is_manual' => false,
                 ]);
             }
+
+            $stop->update([
+                'arrival_at_destination' => $request->arrival_at_destination,
+                'arrival_check_by' => Auth::id(),
+                'arrival_remark' => $request->arrival_remark,
+                'arrival_timestamps' => now(),
+            ]);
+
+            $officialtravel->unsetRelation('stops');
+            $officialtravel->refreshStampContextDestination();
 
             DB::commit();
 
@@ -977,21 +1203,26 @@ class OfficialtravelController extends Controller
             'accommodation',
             'details.follower.employee',
             'latestStop',
+            'stops',
         ])->findOrFail($id);
 
-        // Cek apakah bisa record departure
         if (! $officialtravel->canRecordDeparture()) {
             return redirect()->back()->with('toast_error', 'Cannot record departure at this time. Please check the current status.');
         }
 
-        if ($redirect = $this->ensureStampAllowedForDestination($officialtravel)) {
-            return $redirect;
+        if (! $officialtravel->userCanStampAnyDeparture(Auth::user())) {
+            return redirect()->back()->with(
+                'toast_error',
+                'You are not allowed to record departure for this travel (no matching project for pending destinations).'
+            );
         }
+
+        $departureStampCandidates = $officialtravel->stopsEligibleForDepartureStamp(Auth::user());
 
         $title = 'Official Travels';
         $subtitle = 'Record Departure';
 
-        return view('officialtravels.departure', compact('title', 'subtitle', 'officialtravel'));
+        return view('officialtravels.departure', compact('title', 'subtitle', 'officialtravel', 'departureStampCandidates'));
     }
 
     /**
@@ -1007,32 +1238,70 @@ class OfficialtravelController extends Controller
                 'accommodation',
                 'details.follower.employee',
                 'latestStop',
+                'stops',
             ])->findOrFail($id);
 
-            // Cek apakah bisa record departure
             if (! $officialtravel->canRecordDeparture()) {
                 return redirect()->back()->with('toast_error', 'Cannot record departure at this time. Please check the current status.');
             }
 
-            if ($redirect = $this->ensureStampAllowedForDestination($officialtravel)) {
-                return $redirect;
+            if (! $officialtravel->userCanStampAnyDeparture(Auth::user())) {
+                return redirect()->back()->with(
+                    'toast_error',
+                    'You are not allowed to record departure for this travel (no matching project for pending destinations).'
+                );
             }
 
             $request->validate([
                 'departure_from_destination' => 'required|date',
                 'departure_remark' => 'required|string',
+                'official_travel_stop_id' => 'nullable|integer|exists:officialtravel_stops,id',
             ]);
 
             DB::beginTransaction();
 
-            // Update latest stop with departure info
-            $latestStop = $officialtravel->latestStop;
-            $latestStop->update([
+            $candidates = $officialtravel->stopsEligibleForDepartureStamp(Auth::user());
+
+            if ($candidates->isEmpty()) {
+                DB::rollBack();
+
+                return redirect()->back()->with('toast_error', 'No departure checkpoint is available for your assigned projects.');
+            }
+
+            if ($candidates->count() > 1 && ! $request->filled('official_travel_stop_id')) {
+                DB::rollBack();
+
+                return redirect()->back()->with('toast_error', 'Please select which destination you are recording departure for.');
+            }
+
+            $stop = null;
+            if ($request->filled('official_travel_stop_id')) {
+                $stop = $candidates->firstWhere('id', (int) $request->input('official_travel_stop_id'));
+            } else {
+                $stop = $candidates->first();
+            }
+
+            if (! $stop) {
+                DB::rollBack();
+
+                return redirect()->back()->with('toast_error', 'Invalid destination selected for this departure.');
+            }
+
+            if ($redirect = $this->ensureStampAllowedForDestination($officialtravel, 'departure', $stop)) {
+                DB::rollBack();
+
+                return $redirect;
+            }
+
+            $stop->update([
                 'departure_from_destination' => $request->departure_from_destination,
                 'departure_check_by' => auth()->id(),
                 'departure_remark' => $request->departure_remark,
                 'departure_timestamps' => now(),
             ]);
+
+            $officialtravel->unsetRelation('stops');
+            $officialtravel->refreshStampContextDestination();
 
             DB::commit();
 
@@ -1054,21 +1323,54 @@ class OfficialtravelController extends Controller
         }
     }
 
-    public function print($id)
+    public function print(Request $request, Officialtravel $officialtravel)
     {
         $title = 'Official Travels';
         $subtitle = 'Official Travel Details';
-        $officialtravel = Officialtravel::with([
+
+        $officialtravel->load([
             'traveler.employee',
+            'traveler.position.department',
+            'traveler.project',
             'project',
             'transportation',
             'accommodation',
             'details.follower.employee',
+            'details.follower.position.department',
+            'details.follower.project',
             'stops.arrivalChecker',
             'stops.departureChecker',
-        ])->findOrFail($id);
+        ]);
 
-        return view('officialtravels.print', compact('title', 'subtitle', 'officialtravel'));
+        $printStop = null;
+        $printStopLeg = null;
+
+        if ($request->filled('stop')) {
+            $printStop = OfficialtravelStop::query()
+                ->where('official_travel_id', $officialtravel->id)
+                ->whereKey($request->query('stop'))
+                ->with(['arrivalChecker', 'departureChecker'])
+                ->firstOrFail();
+
+            $printStopLeg = $officialtravel->stops
+                ->sortBy(['sort_order', 'id'])
+                ->values()
+                ->search(fn (OfficialtravelStop $s) => (string) $s->id === (string) $printStop->id);
+
+            if ($printStopLeg === false) {
+                abort(404);
+            }
+
+            $printStopLeg = (int) $printStopLeg + 1;
+        }
+
+        return view('officialtravels.print', compact(
+            'title',
+            'subtitle',
+            'officialtravel',
+            'printStop',
+            'printStopLeg'
+        ));
     }
 
     /**
@@ -1077,9 +1379,12 @@ class OfficialtravelController extends Controller
     public function close(Officialtravel $officialtravel)
     {
         try {
-            // Cek apakah bisa close
-            if (! $officialtravel->canClose()) {
-                return redirect()->back()->with('toast_error', 'Cannot close official travel. Please ensure at least one complete stop (arrival + departure) is recorded.');
+            // Full itinerary complete, or early close from LOT origin after at least one checkpoint is done
+            if (! $officialtravel->userMayClose(Auth::user())) {
+                return redirect()->back()->with(
+                    'toast_error',
+                    'Cannot close this official travel. Complete all checkpoints, or — if the trip ended early at origin — ensure at least one stop has arrival and departure and use an account assigned to the LOT origin project (or administrator).'
+                );
             }
 
             DB::beginTransaction();
@@ -1191,7 +1496,7 @@ class OfficialtravelController extends Controller
             }
 
             if (! empty($request->get('destination'))) {
-                $query->where('destination', 'LIKE', '%'.$request->get('destination').'%');
+                $query->whereDestinationSearch((string) $request->get('destination'));
             }
 
             if (! empty($request->get('nik'))) {
@@ -1222,7 +1527,10 @@ class OfficialtravelController extends Controller
                 $search = $request->get('search');
                 $query->where(function ($q) use ($search) {
                     $q->where('official_travel_number', 'LIKE', "%$search%")
-                        ->orWhere('destination', 'LIKE', "%$search%")
+                        ->orWhere('officialtravels.destination', 'LIKE', "%$search%")
+                        ->orWhereHas('stops', function ($sq) use ($search) {
+                            $sq->where('destination', 'LIKE', "%$search%");
+                        })
                         ->orWhereHas('traveler.employee', function ($q) use ($search) {
                             $q->where('fullname', 'LIKE', "%$search%")
                                 ->orWhere('nik', 'LIKE', "%$search%");
@@ -1327,7 +1635,7 @@ class OfficialtravelController extends Controller
                         date('d/m/Y', strtotime($officialtravel->official_travel_date)),
                         $travelerName,
                         $project,
-                        $officialtravel->destination,
+                        $officialtravel->itinerarySummaryForDisplay(),
                         $status,
                         $approveBy,
                         $approveDate,
@@ -1418,9 +1726,9 @@ class OfficialtravelController extends Controller
             }
         }
 
-        // Apply destination filter
+        // Apply destination filter (header + itinerary stops)
         if ($request->filled('destination')) {
-            $query->where('destination', 'like', '%'.$request->destination.'%');
+            $query->whereDestinationSearch((string) $request->destination);
         }
 
         // Apply traveler filter
@@ -1453,7 +1761,7 @@ class OfficialtravelController extends Controller
                 return $row->project ? $row->project->project_code : '-';
             })
             ->addColumn('destination', function ($row) {
-                return $row->destination;
+                return view('officialtravels.partials.datatable-destination-cell', ['travel' => $row])->render();
             })
             ->addColumn('status_badge', function ($row) {
                 if ($row->submitted_by_user && empty($row->letter_number_id)) {
@@ -1485,7 +1793,13 @@ class OfficialtravelController extends Controller
 
                 return $btn;
             })
-            ->rawColumns(['status_badge', 'created_by', 'action'])
+            ->filterColumn('destination', function ($query, $keyword) {
+                if (! is_string($keyword) || trim($keyword) === '') {
+                    return;
+                }
+                $query->whereDestinationSearch($keyword);
+            })
+            ->rawColumns(['status_badge', 'created_by', 'action', 'destination'])
             ->make(true);
     }
 
@@ -1557,6 +1871,7 @@ class OfficialtravelController extends Controller
             'details.follower.employee',
             'details.follower.position.department',
             'details.follower.project',
+            'stops',
         ])->findOrFail($id);
 
         if ($officialtravel->traveler_id !== $administrationId) {
@@ -1621,7 +1936,7 @@ class OfficialtravelController extends Controller
                 ->with('toast_error', 'Anda tidak memiliki data administrasi aktif. Silakan hubungi HR.');
         }
 
-        $officialtravel = Officialtravel::with('details')->findOrFail($id);
+        $officialtravel = Officialtravel::with(['details', 'stops'])->findOrFail($id);
         if ($officialtravel->traveler_id !== $administrationId) {
             abort(403, 'Anda hanya dapat mengedit pengajuan LOT Anda sendiri.');
         }
@@ -1635,7 +1950,8 @@ class OfficialtravelController extends Controller
                 'official_travel_date' => 'required|date',
                 'official_travel_origin' => 'required|exists:projects,id',
                 'purpose' => 'required|string',
-                'destination' => 'required|string|min:3',
+                'stop_destinations' => 'required|array|min:1',
+                'stop_destinations.*' => 'required|string|min:3',
                 'duration' => 'required|string|min:1',
                 'departure_from' => 'required|date',
                 'transportation_id' => 'required|exists:transportations,id',
@@ -1646,11 +1962,13 @@ class OfficialtravelController extends Controller
                 'official_travel_date.required' => 'Tanggal LOT wajib diisi.',
                 'official_travel_origin.required' => 'Asal LOT wajib dipilih.',
                 'purpose.required' => 'Tujuan perjalanan wajib diisi.',
-                'destination.required' => 'Destinasi wajib diisi.',
+                'stop_destinations.required' => 'Destinasi (minimal satu destination) wajib diisi.',
                 'departure_from.after_or_equal' => 'Tanggal keberangkatan tidak boleh di masa lalu.',
                 'transportation_id.required' => 'Transportasi wajib dipilih.',
                 'accommodation_id.required' => 'Akomodasi wajib dipilih.',
             ]);
+
+            [$stopDestinations, $stopDestinationManualFlags] = $this->normalizeStopsFromRequest($request);
 
             if ($r = $this->guardOfficialtravelRequestOrigin($request)) {
                 return $r;
@@ -1662,12 +1980,16 @@ class OfficialtravelController extends Controller
                 'official_travel_date' => $request->official_travel_date,
                 'official_travel_origin' => $request->official_travel_origin,
                 'purpose' => $request->purpose,
-                'destination' => $request->destination,
+                'destination' => $stopDestinations[0] ?? $officialtravel->destination,
                 'duration' => $request->duration,
                 'departure_from' => $request->departure_from,
                 'transportation_id' => $request->transportation_id,
                 'accommodation_id' => $request->accommodation_id,
             ]);
+
+            if ($officialtravel->plannedStopsAreEditable()) {
+                $this->syncOfficialtravelPlannedStops($officialtravel, $stopDestinations, $stopDestinationManualFlags);
+            }
 
             // Sync followers: remove current, add from request (exclude main traveler)
             $officialtravel->details()->delete();
@@ -1831,7 +2153,8 @@ class OfficialtravelController extends Controller
                 'official_travel_date' => 'required|date',
                 'official_travel_origin' => 'required|exists:projects,id',
                 'purpose' => 'required|string',
-                'destination' => 'required|string|min:3',
+                'stop_destinations' => 'required|array|min:1',
+                'stop_destinations.*' => 'required|string|min:3',
                 'duration' => 'required|string|min:1',
                 'departure_from' => 'required|date|after_or_equal:today',
                 'transportation_id' => 'required|exists:transportations,id',
@@ -1842,11 +2165,13 @@ class OfficialtravelController extends Controller
                 'official_travel_date.required' => 'Tanggal LOT wajib diisi.',
                 'official_travel_origin.required' => 'Asal LOT wajib dipilih.',
                 'purpose.required' => 'Tujuan perjalanan wajib diisi.',
-                'destination.required' => 'Destinasi wajib diisi.',
+                'stop_destinations.required' => 'Destinasi (minimal satu destination) wajib diisi.',
                 'departure_from.after_or_equal' => 'Tanggal keberangkatan tidak boleh di masa lalu.',
                 'transportation_id.required' => 'Transportasi wajib dipilih.',
                 'accommodation_id.required' => 'Akomodasi wajib dipilih.',
             ]);
+
+            [$stopDestinations, $stopDestinationManualFlags] = $this->normalizeStopsFromRequest($request);
 
             if ($r = $this->guardOfficialtravelRequestOrigin($request)) {
                 return $r;
@@ -1878,7 +2203,7 @@ class OfficialtravelController extends Controller
                             'submitted_by_user' => true,
                             'traveler_id' => $administrationId,
                             'purpose' => $request->purpose,
-                            'destination' => $request->destination,
+                            'destination' => $stopDestinations[0] ?? '',
                             'duration' => $request->duration,
                             'departure_from' => $request->departure_from,
                             'transportation_id' => $request->transportation_id,
@@ -1888,6 +2213,9 @@ class OfficialtravelController extends Controller
                             'submit_at' => null,
                         ]);
                         $officialtravel->save();
+
+                        $this->syncOfficialtravelPlannedStops($officialtravel, $stopDestinations, $stopDestinationManualFlags);
+
                         break;
                     } catch (QueryException $e) {
                         $isDuplicate = (int) ($e->errorInfo[1] ?? 0) === 1062

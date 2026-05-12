@@ -695,8 +695,11 @@
                                     <div class="list-group-item">
                                         <div class="d-flex justify-content-between align-items-start">
                                             <div class="flex-grow-1">
-                                                <h6 class="mb-1 font-weight-bold">
-                                                    {{ $travel->destination }}
+                                                @php
+                                                    $itineraryLabel = $travel->itinerarySummaryForDisplay();
+                                                @endphp
+                                                <h6 class="mb-1 font-weight-bold" title="{{ $itineraryLabel }}">
+                                                    {{ \Illuminate\Support\Str::limit($itineraryLabel, 80) }}
                                                 </h6>
                                                 <p class="mb-1 text-muted small">
                                                     <i class="far fa-calendar mr-1"></i>

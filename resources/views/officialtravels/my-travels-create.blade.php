@@ -149,6 +149,24 @@
                                         </div>
                                     </div>
                                 </div>
+                            </div>
+                        </div>
+
+                        <!-- Destination, purpose, and schedule (isolated for future destination / route updates) -->
+                        <div class="card card-secondary card-outline elevation-2">
+                            <div class="card-header">
+                                <h3 class="card-title">
+                                    <i class="fas fa-route mr-2"></i>
+                                    <strong>Destination &amp; schedule</strong>
+                                </h3>
+                            </div>
+                            <div class="card-body">
+                                <div class="form-group">
+                                    @include('officialtravels.partials.stop-destinations-fields', [
+                                        'destinationProjects' => $destinationProjects,
+                                        'officialtravel' => null,
+                                    ])
+                                </div>
 
                                 <div class="form-group">
                                     <label for="purpose">Purpose <span class="text-danger">*</span></label>
@@ -160,61 +178,8 @@
                                 </div>
 
                                 <div class="row">
-                                    @php
-                                        $destinationOld = old('destination', '');
-                                        $destinationIsManual = (string) old('destination_is_manual') === '1';
-                                    @endphp
-                                    <div class="col-md-4">
-                                        <div class="form-group">
-                                            <label for="destination_is_manual">
-                                                <i class="fas fa-map-marker-alt mr-1"></i>
-                                                Destination <span class="text-danger">*</span>
-                                            </label>
-                                            <input type="hidden" name="destination" id="destination_value"
-                                                value="{{ $destinationOld }}">
-                                            <div class="input-group">
-                                                <div class="input-group-prepend">
-                                                    <span class="input-group-text">
-                                                        <input type="checkbox" name="destination_is_manual"
-                                                            id="destination_is_manual" value="1"
-                                                            {{ $destinationIsManual ? 'checked' : '' }}
-                                                            title="Enter destination as free text"
-                                                            aria-label="Manual destination">
-                                                    </span>
-                                                </div>
-                                                <select
-                                                    class="form-control @error('destination') is-invalid @enderror {{ $destinationIsManual ? 'd-none' : '' }}"
-                                                    id="destination_project_select">
-                                                    <option value="">Select destination project</option>
-                                                    @foreach ($destinationProjects as $project)
-                                                        @php
-                                                            $destinationOptLabel = $project->project_code . ' - ' . $project->project_name;
-                                                        @endphp
-                                                        <option value="{{ $destinationOptLabel }}"
-                                                            {{ !$destinationIsManual && (string) $destinationOld === (string) $destinationOptLabel ? 'selected' : '' }}>
-                                                            {{ $destinationOptLabel }}
-                                                        </option>
-                                                    @endforeach
-                                                </select>
-                                                <input type="text"
-                                                    class="form-control @error('destination') is-invalid @enderror {{ $destinationIsManual ? '' : 'd-none' }}"
-                                                    id="destination_manual_input"
-                                                    value="{{ $destinationIsManual ? $destinationOld : '' }}"
-                                                    placeholder="Enter destination" autocomplete="off"
-                                                    {{ $destinationIsManual ? '' : 'disabled' }}>
-                                                <div class="input-group-append">
-                                                    <span class="input-group-text"><i class="fas fa-plane"></i></span>
-                                                </div>
-                                            </div>
-                                            <small class="form-text text-muted">Choose an active project code, or tick the
-                                                box for manual entry.</small>
-                                            @error('destination')
-                                                <div class="invalid-feedback d-block">{{ $message }}</div>
-                                            @enderror
-                                        </div>
-                                    </div>
-                                    <div class="col-md-4">
-                                        <div class="form-group">
+                                    <div class="col-md-6">
+                                        <div class="form-group mb-md-0">
                                             <label for="departure_from">Departure Date <span
                                                     class="text-danger">*</span></label>
                                             <div class="input-group date" id="departure_from_picker"
@@ -232,8 +197,8 @@
                                             </div>
                                         </div>
                                     </div>
-                                    <div class="col-md-4">
-                                        <div class="form-group">
+                                    <div class="col-md-6">
+                                        <div class="form-group mb-0">
                                             <label for="duration">Duration <span class="text-danger">*</span></label>
                                             <div class="input-group">
                                                 <div class="input-group-prepend">
@@ -485,6 +450,10 @@
             color: #bd2130;
         }
 
+        .stop-project-wrap .select2-container {
+            width: 100% !important;
+        }
+
         @media (max-width: 767.98px) {
             .card-body .row .col-md-6:first-child {
                 margin-bottom: 1rem;
@@ -587,72 +556,6 @@
                 });
             });
 
-            (function initOfficialTravelDestinationField() {
-                var $form = $('#officialTravelForm');
-                if (!$form.length) return;
-                if ($form.data('destinationManualBound')) return;
-                $form.data('destinationManualBound', true);
-
-                function destinationSyncHidden(root) {
-                    var $root = root ? $(root) : $(document);
-                    var hidden = $root.find('#destination_value');
-                    if (!hidden.length) return;
-                    var manualCb = $root.find('#destination_is_manual');
-                    var manualInput = $root.find('#destination_manual_input');
-                    var projectSelect = $root.find('#destination_project_select');
-                    if (manualCb.is(':checked')) {
-                        hidden.val((manualInput.val() || '').trim());
-                    } else {
-                        hidden.val((projectSelect.val() || '').trim());
-                    }
-                }
-
-                function destinationToggleMode(root) {
-                    var $root = root ? $(root) : $(document);
-                    var manualCb = $root.find('#destination_is_manual');
-                    var manualInput = $root.find('#destination_manual_input');
-                    var projectSelect = $root.find('#destination_project_select');
-                    if (manualCb.is(':checked')) {
-                        projectSelect.addClass('d-none');
-                        manualInput.removeClass('d-none');
-                        manualInput.prop('disabled', false);
-                        projectSelect.prop('disabled', true);
-                        if (!manualInput.val() && projectSelect.val()) {
-                            manualInput.val(projectSelect.val());
-                        }
-                    } else {
-                        manualInput.addClass('d-none');
-                        projectSelect.removeClass('d-none');
-                        manualInput.prop('disabled', true);
-                        projectSelect.prop('disabled', false);
-                        if (projectSelect.val() === '' && (manualInput.val() || '').trim() !== '') {
-                            var wanted = (manualInput.val() || '').trim();
-                            var match = projectSelect.find('option').filter(function() {
-                                return $(this).val() === wanted;
-                            }).first();
-                            if (match.length) {
-                                projectSelect.val(wanted);
-                            }
-                        }
-                    }
-                    destinationSyncHidden(root);
-                }
-
-                var formEl = $form.get(0);
-                destinationToggleMode(formEl);
-                $form.on('change', '#destination_is_manual', function() {
-                    destinationToggleMode(formEl);
-                });
-                $form.on('change', '#destination_project_select', function() {
-                    destinationSyncHidden(formEl);
-                });
-                $form.on('input', '#destination_manual_input', function() {
-                    destinationSyncHidden(formEl);
-                });
-                $form.on('submit', function() {
-                    destinationSyncHidden(formEl);
-                });
-            })();
         });
     </script>
 @endsection

@@ -96,7 +96,7 @@
                             <div class="col-md-4 form-group mb-lg-0">
                                 <label for="destination" class="small font-weight-bold text-muted">Destination</label>
                                 <input type="text" class="form-control" id="destination" name="destination"
-                                    value="{{ $filters['destination'] ?? '' }}" placeholder="Partial match">
+                                    value="{{ $filters['destination'] ?? '' }}" placeholder="Header or any stop (partial)">
                             </div>
                             <div class="col-md-4 form-group mb-lg-0">
                                 <label for="traveler_q" class="small font-weight-bold text-muted">Traveler</label>
@@ -193,6 +193,10 @@
 
         .official-travel-report-purpose {
             max-width: 220px;
+        }
+
+        .official-travel-report-destination ul {
+            margin-bottom: 0;
         }
 
         .card-outline.card-primary {
@@ -310,7 +314,8 @@
                     {
                         data: 'destination',
                         name: 'destination',
-                        orderable: false
+                        orderable: false,
+                        className: 'align-top small official-travel-report-destination'
                     },
                     {
                         data: 'purpose_html',

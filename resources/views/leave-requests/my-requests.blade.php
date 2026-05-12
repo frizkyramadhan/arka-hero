@@ -66,6 +66,7 @@
                                                             <option value="rejected">Rejected</option>
                                                             <option value="cancelled">Cancelled</option>
                                                             <option value="closed">Closed</option>
+                                                            <option value="auto_approved">Auto Approved</option>
                                                         </select>
                                                     </div>
                                                 </div>
@@ -80,14 +81,14 @@
                                                 </div>
                                                 <div class="col-md-2">
                                                     <div class="form-group">
-                                                        <label>Start Date</label>
+                                                        <label for="start_date">Date From</label>
                                                         <input type="date" class="form-control" id="start_date"
                                                             name="start_date" autocomplete="off">
                                                     </div>
                                                 </div>
                                                 <div class="col-md-2">
                                                     <div class="form-group">
-                                                        <label>End Date</label>
+                                                        <label for="end_date">Date To</label>
                                                         <input type="date" class="form-control" id="end_date"
                                                             name="end_date" autocomplete="off">
                                                     </div>
@@ -164,14 +165,17 @@
                 width: '100%'
             });
 
-            // Load leave types for filter
-            $.get('{{ route('api.leave.types') }}', function(data) {
-                var options = '<option value="">- All -</option>';
-                $.each(data, function(index, leaveType) {
-                    options += '<option value="' + leaveType.id + '">' + leaveType.name +
-                        '</option>';
+            $.getJSON('{{ route('leave.my-requests.filter-options') }}', function(res) {
+                var $lt = $('#leave_type_id').empty().append('<option value="">- All -</option>');
+                $.each(res.leave_types || [], function(_, leaveType) {
+                    $('<option>', {
+                        value: leaveType.id,
+                        text: leaveType.label || leaveType.name || ''
+                    }).appendTo($lt);
                 });
-                $('#leave_type_id').html(options);
+                $lt.trigger('change');
+            }).fail(function(xhr) {
+                console.error('leave.my-requests.filter-options failed', xhr.status, xhr.responseText);
             });
 
             var table = $("#leave-requests-table").DataTable({
@@ -183,11 +187,10 @@
                 ajax: {
                     url: "{{ route('leave.my-requests.data') }}",
                     data: function(d) {
-                        d.status = $('#status').val(),
-                            d.leave_type_id = $('#leave_type_id').val(),
-                            d.start_date = $('#start_date').val(),
-                            d.end_date = $('#end_date').val(),
-                            d.search = $("input[type=search][aria-controls=leave-requests-table]").val()
+                        d.status = $('#status').val();
+                        d.leave_type_id = $('#leave_type_id').val();
+                        d.start_date = $('#start_date').val();
+                        d.end_date = $('#end_date').val();
                     }
                 },
                 columns: [{

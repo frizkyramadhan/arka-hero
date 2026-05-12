@@ -75,8 +75,20 @@
                                         <i class="fas fa-map-marker-alt"></i>
                                     </div>
                                     <div class="info-content">
-                                        <div class="info-label">Destination</div>
-                                        <div class="info-value">{{ $officialtravel->destination }}</div>
+                                        <div class="info-label">Checkpoint destination</div>
+                                        <div class="info-value">
+                                            @if (isset($departureStampCandidates) && $departureStampCandidates->count() > 1)
+                                                Select the destination below.
+                                            @elseif (isset($departureStampCandidates) && $departureStampCandidates->isNotEmpty())
+                                                {{ $departureStampCandidates->first()->destination }}
+                                                @if ($departureStampCandidates->first()->is_manual)
+                                                    <small class="text-muted">(manual — stamped by origin
+                                                        project)</small>
+                                                @endif
+                                            @else
+                                                {{ $officialtravel->destination }}
+                                            @endif
+                                        </div>
                                         <div class="info-meta">Duration: {{ $officialtravel->duration }}</div>
                                     </div>
                                 </div>
@@ -87,9 +99,9 @@
                                     </div>
                                     <div class="info-content">
                                         <div class="info-label">Expected Departure</div>
-                                        <div class="info-value">{{ $officialtravel->departure_from_destination }}</div>
-                                        <div class="info-meta">From:
-                                            {{ date('d M Y', strtotime($officialtravel->departure_from)) }}</div>
+                                        <div class="info-value">
+                                            {{ $officialtravel->departure_from ? date('d M Y', strtotime($officialtravel->departure_from)) : 'N/A' }}
+                                        </div>
                                     </div>
                                 </div>
 
@@ -107,42 +119,56 @@
                                 </div>
                             </div>
 
-                            <!-- Current Stop Info -->
                             <div class="arrival-info mt-4">
-                                <h3><i class="fas fa-history"></i> Current Stop Information</h3>
-                                @if ($officialtravel->latestStop && $officialtravel->latestStop->hasArrival())
-                                    <div class="info-grid mt-3">
-                                        <div class="info-item">
-                                            <div class="info-icon" style="background-color: #9b59b6;">
-                                                <i class="fas fa-user-check"></i>
-                                            </div>
-                                            <div class="info-content">
-                                                <div class="info-label">Arrival Confirmed By</div>
-                                                <div class="info-value">
-                                                    {{ $officialtravel->latestStop->arrivalChecker->name ?? 'Unknown' }}
-                                                </div>
-                                                <div class="info-meta">
-                                                    {{ $officialtravel->latestStop->arrival_timestamps ? date('d M Y H:i', strtotime($officialtravel->latestStop->arrival_timestamps)) : 'N/A' }}
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <div class="info-item">
-                                            <div class="info-icon" style="background-color: #16a085;">
-                                                <i class="fas fa-clipboard-list"></i>
-                                            </div>
-                                            <div class="info-content">
-                                                <div class="info-label">Arrival Notes</div>
-                                                <div class="info-value">{{ $officialtravel->latestStop->arrival_remark }}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                @else
+                                <h3><i class="fas fa-history"></i> Arrival on destination(s) you can close out</h3>
+                                @if (isset($departureStampCandidates) && $departureStampCandidates->isEmpty())
                                     <div class="alert alert-warning">
                                         <i class="fas fa-exclamation-triangle"></i>
-                                        No arrival recorded for current stop. Please record arrival first.
+                                        No matching destination for departure.
                                     </div>
+                                @else
+                                    @foreach ($departureStampCandidates ?? [] as $destination)
+                                        @if ($destination->hasArrival())
+                                            <div class="info-grid mt-3">
+                                                <div class="info-item">
+                                                    <div class="info-icon" style="background-color: #9b59b6;">
+                                                        <i class="fas fa-map-pin"></i>
+                                                    </div>
+                                                    <div class="info-content">
+                                                        <div class="info-label">Destination
+                                                            {{ $destination->sort_order + 1 }}
+                                                        </div>
+                                                        <div class="info-value">{{ $destination->destination }}</div>
+                                                    </div>
+                                                </div>
+                                                <div class="info-item">
+                                                    <div class="info-icon" style="background-color: #9b59b6;">
+                                                        <i class="fas fa-user-check"></i>
+                                                    </div>
+                                                    <div class="info-content">
+                                                        <div class="info-label">Arrival confirmed by</div>
+                                                        <div class="info-value">
+                                                            {{ $destination->arrivalChecker->name ?? 'Unknown' }}
+                                                        </div>
+                                                        <div class="info-meta">
+                                                            {{ $destination->arrival_timestamps ? date('d M Y H:i', strtotime($destination->arrival_timestamps)) : 'N/A' }}
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div class="info-item">
+                                                    <div class="info-icon" style="background-color: #16a085;">
+                                                        <i class="fas fa-clipboard-list"></i>
+                                                    </div>
+                                                    <div class="info-content">
+                                                        <div class="info-label">Arrival notes</div>
+                                                        <div class="info-value">{{ $destination->arrival_remark }}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        @endif
+                                    @endforeach
                                 @endif
                             </div>
 
@@ -172,6 +198,28 @@
                                 <h2><i class="fas fa-plane-departure"></i> Departure Check</h2>
                             </div>
                             <div class="card-body">
+                                @if (isset($departureStampCandidates) && $departureStampCandidates->isNotEmpty())
+                                    @if ($departureStampCandidates->count() > 1)
+                                        <div class="form-group">
+                                            <label for="official_travel_stop_id">Destination (checkpoint) <span
+                                                    class="text-danger">*</span></label>
+                                            <select name="official_travel_stop_id" id="official_travel_stop_id"
+                                                class="form-control" required>
+                                                @foreach ($departureStampCandidates as $s)
+                                                    <option value="{{ $s->id }}" @selected(old('official_travel_stop_id') == $s->id)>
+                                                        Destination {{ $s->sort_order + 1 }}: {{ $s->destination }}
+                                                        @if ($s->is_manual)
+                                                            (manual / origin project)
+                                                        @endif
+                                                    </option>
+                                                @endforeach
+                                            </select>
+                                        </div>
+                                    @else
+                                        <input type="hidden" name="official_travel_stop_id"
+                                            value="{{ $departureStampCandidates->first()->id }}">
+                                    @endif
+                                @endif
                                 <div class="form-group">
                                     <label for="departure_from_destination">Departure Date & Time <span
                                             class="text-danger">*</span></label>

@@ -88,7 +88,7 @@ class OfficialTravelReportController extends Controller
                 'official_travel_date_fmt' => $row->official_travel_date?->format('d/m/Y') ?? '—',
                 'traveler_html' => $travelerCell,
                 'project_name' => e($row->project->project_name ?? '—'),
-                'destination' => e($row->destination ?? '—'),
+                'destination' => view('officialtravels.partials.datatable-destination-cell', ['travel' => $row])->render(),
                 'purpose_html' => $purposeHtml,
                 'duration' => e($row->duration ?? '—'),
                 'transportation' => e($row->transportation->transportation_name ?? '—'),
@@ -131,7 +131,7 @@ class OfficialTravelReportController extends Controller
                 'NIK' => $traveler->nik ?? '—',
                 'Traveler' => $emp->fullname ?? '—',
                 'Project' => $row->project->project_name ?? '—',
-                'Destination' => $row->destination ?? '—',
+                'Destination' => $row->itinerarySummaryForDisplay(),
                 'Purpose' => $row->purpose ?? '—',
                 'Duration' => $row->duration ?? '—',
                 'Departure from' => $row->departure_from?->format('Y-m-d') ?? '—',
@@ -171,7 +171,7 @@ class OfficialTravelReportController extends Controller
     {
         $query = Officialtravel::query()
             ->select('officialtravels.*')
-            ->with(['traveler.employee', 'project', 'transportation', 'accommodation'])
+            ->with(['traveler.employee', 'project', 'transportation', 'accommodation', 'stops'])
             ->orderByDesc('officialtravels.created_at');
 
         UserProject::scopeToAssignedProjects($query, 'official_travel_origin');
@@ -215,8 +215,7 @@ class OfficialTravelReportController extends Controller
             $query->where('officialtravels.official_travel_number', 'like', $term);
         }
         if ($request->filled('destination')) {
-            $term = '%'.addcslashes(trim((string) $request->destination), '%_\\').'%';
-            $query->where('officialtravels.destination', 'like', $term);
+            $query->whereDestinationSearch(trim((string) $request->destination));
         }
         if ($request->filled('traveler_q')) {
             $term = '%'.addcslashes(trim((string) $request->traveler_q), '%_\\').'%';

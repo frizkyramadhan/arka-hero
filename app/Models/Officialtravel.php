@@ -2,10 +2,13 @@
 
 namespace App\Models;
 
+use App\Support\UserProject;
 use App\Traits\HasLetterNumber;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use InvalidArgumentException;
 
 class Officialtravel extends Model
 {
@@ -88,12 +91,174 @@ class Officialtravel extends Model
 
     public function stops()
     {
-        return $this->hasMany(OfficialtravelStop::class, 'official_travel_id', 'id');
+        return $this->hasMany(OfficialtravelStop::class, 'official_travel_id', 'id')
+            ->orderBy('sort_order')
+            ->orderBy('id');
     }
 
+    /**
+     * Last destination by itinerary order (not necessarily latest stamp activity).
+     */
     public function latestStop()
     {
-        return $this->hasOne(OfficialtravelStop::class, 'official_travel_id', 'id')->latest();
+        return $this->hasOne(OfficialtravelStop::class, 'official_travel_id', 'id')
+            ->orderByDesc('sort_order')
+            ->orderByDesc('id');
+    }
+
+    /** Planned destinations can be replaced only before any stamp exists on any stop. */
+    public function plannedStopsAreEditable(): bool
+    {
+        return ! $this->stops()
+            ->where(function ($q) {
+                $q->whereNotNull('arrival_at_destination')
+                    ->orWhereNotNull('departure_from_destination');
+            })
+            ->exists();
+    }
+
+    /**
+     * Stops that already have arrival or departure (checkpoint) — cannot be edited or removed via itinerary adjust.
+     */
+    public function approvedItineraryLockedStopCount(): int
+    {
+        return $this->stops()
+            ->where(function ($q) {
+                $q->whereNotNull('arrival_at_destination')
+                    ->orWhereNotNull('departure_from_destination');
+            })
+            ->count();
+    }
+
+    public function userMayAdjustApprovedItineraryAtOrigin(?User $user = null): bool
+    {
+        $user = $user ?? auth()->user();
+
+        return UserProject::userMayAdjustApprovedOfficialtravelItinerary($user, $this);
+    }
+
+    /**
+     * Rebuild itinerary: every stop with a checkpoint must stay (same label + manual flag), in order.
+     * Stops without checkpoint are replaced from the request (add / remove / edit).
+     *
+     * @param  array<int, string>  $destinationStrings  Normalized list from {@see OfficialtravelController::normalizeStopsFromRequest}
+     * @param  array<int, bool>  $manualFlags
+     *
+     * @throws InvalidArgumentException
+     */
+    public function replaceItineraryKeepingCheckpointStops(array $destinationStrings, array $manualFlags): void
+    {
+        $normDest = function (?string $s): string {
+            return preg_replace('/\s+/u', ' ', trim((string) $s));
+        };
+
+        $ordered = $this->stops()->orderBy('sort_order')->orderBy('id')->get();
+        $lockedQueue = $ordered->filter(function (OfficialtravelStop $s) {
+            return $s->hasArrival() || $s->hasDeparture();
+        })->values();
+
+        $plan = [];
+        foreach ($destinationStrings as $i => $destRaw) {
+            $d = $normDest($destRaw ?? '');
+            if ($d === '') {
+                continue;
+            }
+            $flag = (bool) ($manualFlags[$i] ?? false);
+            $nextLocked = $lockedQueue->first();
+            if ($nextLocked instanceof OfficialtravelStop
+                && $d === $normDest($nextLocked->destination)
+                && $flag === (bool) $nextLocked->is_manual) {
+                $plan[] = ['type' => 'locked', 'stop' => $nextLocked];
+                $lockedQueue->shift();
+
+                continue;
+            }
+
+            $plan[] = ['type' => 'new', 'dest' => $d, 'manual' => $flag];
+        }
+
+        if ($lockedQueue->isNotEmpty()) {
+            throw new InvalidArgumentException('You cannot remove or change stops that already have a checkpoint.');
+        }
+
+        $keepIds = collect($plan)
+            ->where('type', 'locked')
+            ->pluck('stop.id')
+            ->filter()
+            ->all();
+
+        OfficialtravelStop::query()
+            ->where('official_travel_id', $this->id)
+            ->whereNotIn('id', $keepIds)
+            ->delete();
+
+        $order = 0;
+        foreach ($plan as $item) {
+            if ($item['type'] === 'locked') {
+                $stop = $item['stop'];
+                if ((int) $stop->sort_order !== $order) {
+                    $stop->update(['sort_order' => $order]);
+                }
+                $order++;
+
+                continue;
+            }
+
+            OfficialtravelStop::create([
+                'official_travel_id' => $this->id,
+                'destination' => $item['dest'],
+                'sort_order' => $order,
+                'is_manual' => $item['manual'],
+            ]);
+            $order++;
+        }
+
+        $this->unsetRelation('stops');
+        $this->refreshStampContextDestination();
+    }
+
+    public function nextArrivalStop(): ?OfficialtravelStop
+    {
+        return $this->stops()
+            ->whereNull('arrival_at_destination')
+            ->orderBy('sort_order')
+            ->orderBy('id')
+            ->first();
+    }
+
+    public function nextDepartureStop(): ?OfficialtravelStop
+    {
+        return $this->stops()
+            ->whereNotNull('arrival_at_destination')
+            ->whereNull('departure_from_destination')
+            ->orderBy('sort_order')
+            ->orderBy('id')
+            ->first();
+    }
+
+    /**
+     * Keep `officialtravels.destination` aligned with the destination used for stamp permission / dashboard filters.
+     */
+    public function refreshStampContextDestination(): void
+    {
+        $nextA = $this->nextArrivalStop();
+        if ($nextA && filled($nextA->destination)) {
+            $this->forceFill(['destination' => $nextA->destination])->saveQuietly();
+
+            return;
+        }
+
+        $nextD = $this->nextDepartureStop();
+        if ($nextD && filled($nextD->destination)) {
+            $this->forceFill(['destination' => $nextD->destination])->saveQuietly();
+
+            return;
+        }
+
+        $labels = $this->stops()->orderBy('sort_order')->orderBy('id')->pluck('destination')->filter()->values();
+        if ($labels->isNotEmpty()) {
+            $this->forceFill(['destination' => $labels->implode(' → ')])->saveQuietly();
+        }
     }
 
     public function creator()
@@ -152,14 +317,26 @@ class Officialtravel extends Model
             return false;
         }
 
-        $latestStop = $this->latestStop;
-        if (! $latestStop) {
-            return true; // No stops yet, can record arrival
+        // While any leg is waiting for departure, no new arrivals (multi: parallel first wave ends after first arrival;
+        // single: one leg at a time).
+        if ($this->stops()->exists()) {
+            $awaitingDeparture = $this->stops()
+                ->whereNotNull('arrival_at_destination')
+                ->whereNull('departure_from_destination')
+                ->orderBy('sort_order')
+                ->orderBy('id')
+                ->exists();
+            if ($awaitingDeparture) {
+                return false;
+            }
         }
 
-        // Can record arrival if latest stop is complete (has both arrival and departure)
-        // or if latest stop has no arrival yet
-        return $latestStop->isComplete() || ! $latestStop->hasArrival();
+        if ($this->nextArrivalStop()) {
+            return true;
+        }
+
+        // Legacy: no planned rows yet — first arrival will create a stop from LOT header destination
+        return ! $this->stops()->exists();
     }
 
     public function canRecordDeparture()
@@ -168,13 +345,7 @@ class Officialtravel extends Model
             return false;
         }
 
-        $latestStop = $this->latestStop;
-        if (! $latestStop) {
-            return false; // No stops yet, need arrival first
-        }
-
-        // Can record departure if latest stop has arrival but no departure
-        return $latestStop->hasArrival() && ! $latestStop->hasDeparture();
+        return $this->nextDepartureStop() !== null;
     }
 
     public function canClose()
@@ -183,31 +354,303 @@ class Officialtravel extends Model
             return false;
         }
 
-        $latestStop = $this->latestStop;
-        if (! $latestStop) {
-            return false; // No stops yet
+        if (! $this->stops()->exists()) {
+            return false;
         }
 
-        // Can close if latest stop is complete (has both arrival and departure)
-        return $latestStop->isComplete();
+        return ! $this->stops()->where(function ($q) {
+            $q->whereNull('arrival_at_destination')
+                ->orWhereNull('departure_from_destination');
+        })->exists();
+    }
+
+    /** Any stop with both arrival and departure recorded. */
+    public function hasAtLeastOneFullyCompletedStop(): bool
+    {
+        return $this->stops()
+            ->whereNotNull('arrival_at_destination')
+            ->whereNotNull('departure_from_destination')
+            ->exists();
+    }
+
+    /**
+     * Multi-leg LOT may be closed early from origin when the planned route is shortened,
+     * if at least one checkpoint is complete and other legs are left open.
+     */
+    public function eligibleForEarlyCloseFromOrigin(): bool
+    {
+        if ($this->status !== self::STATUS_APPROVED) {
+            return false;
+        }
+
+        if (! $this->stops()->exists()) {
+            return false;
+        }
+
+        if ($this->canClose()) {
+            return false;
+        }
+
+        return $this->hasAtLeastOneFullyCompletedStop();
+    }
+
+    /**
+     * Whether this user may execute Close: all stops complete, or early close allowed for LOT origin (or administrator).
+     */
+    public function userMayClose(?User $user = null): bool
+    {
+        $user = $user ?? auth()->user();
+        if (! $user instanceof User || $this->status !== self::STATUS_APPROVED) {
+            return false;
+        }
+
+        if ($this->canClose()) {
+            return true;
+        }
+
+        if (! $this->eligibleForEarlyCloseFromOrigin()) {
+            return false;
+        }
+
+        if ($user->hasRole('administrator')) {
+            return true;
+        }
+
+        $originId = $this->official_travel_origin;
+
+        return $originId !== null && UserProject::canAccessProjectId((int) $originId, $user);
     }
 
     public function getCurrentStopStatus()
     {
-        $latestStop = $this->latestStop;
-        if (! $latestStop) {
+        if (! $this->stops()->exists()) {
             return 'no_stops';
         }
 
-        if ($latestStop->isComplete()) {
-            return 'complete';
-        } elseif ($latestStop->isArrivalOnly()) {
+        if ($this->stops()->whereNotNull('arrival_at_destination')->whereNull('departure_from_destination')->exists()) {
             return 'arrival_only';
-        } elseif ($latestStop->isDepartureOnly()) {
-            return 'departure_only';
         }
 
-        return 'unknown';
+        if ($this->stops()->whereNull('arrival_at_destination')->exists()) {
+            return 'pending_arrival';
+        }
+
+        return 'complete';
+    }
+
+    /** @return \Illuminate\Support\Collection<int, OfficialtravelStop> */
+    public function stopsEligibleForArrivalStamp(?User $user = null): \Illuminate\Support\Collection
+    {
+        $user = $user ?? auth()->user();
+        if (! $user instanceof User) {
+            return collect();
+        }
+
+        if (! $this->stops()->exists()) {
+            return collect();
+        }
+
+        // Multi-destination: until any arrival is recorded, every leg without arrival may stamp in parallel (per project rules).
+        // Once some leg is awaiting departure, no new arrivals anywhere until that leg departs.
+        if ($this->stops()->count() > 1) {
+            if ($this->nextDepartureStop() !== null) {
+                return collect();
+            }
+
+            $candidates = $this->stops()
+                ->whereNull('arrival_at_destination')
+                ->orderBy('sort_order')
+                ->orderBy('id')
+                ->get();
+            if ($user->hasRole('administrator')) {
+                return $candidates->values();
+            }
+
+            return $candidates
+                ->filter(fn (OfficialtravelStop $s) => UserProject::userCanStampOfficialtravelStop($user, $this, $s))
+                ->values();
+        }
+
+        // Single planned stop: one arrival leg at a time (same lock rule via canRecordArrival).
+        $next = $this->nextArrivalStop();
+        if ($next === null) {
+            return collect();
+        }
+
+        if ($user->hasRole('administrator')) {
+            return collect([$next]);
+        }
+
+        return UserProject::userCanStampOfficialtravelStop($user, $this, $next)
+            ? collect([$next])
+            : collect();
+    }
+
+    /** @return \Illuminate\Support\Collection<int, OfficialtravelStop> */
+    public function stopsEligibleForDepartureStamp(?User $user = null): \Illuminate\Support\Collection
+    {
+        $user = $user ?? auth()->user();
+        if (! $user instanceof User) {
+            return collect();
+        }
+
+        $next = $this->nextDepartureStop();
+        if ($next === null) {
+            return collect();
+        }
+
+        if ($user->hasRole('administrator')) {
+            return collect([$next]);
+        }
+
+        return UserProject::userCanStampOfficialtravelStop($user, $this, $next)
+            ? collect([$next])
+            : collect();
+    }
+
+    public function userCanStampAnyArrival(?User $user = null): bool
+    {
+        $user = $user ?? auth()->user();
+        if (! $user instanceof User || $this->status !== self::STATUS_APPROVED) {
+            return false;
+        }
+
+        if (! $this->canRecordArrival()) {
+            return false;
+        }
+
+        if (! $this->stops()->exists()) {
+            if ($user->hasRole('administrator')) {
+                return true;
+            }
+
+            return UserProject::destinationMatchesUserAssignedProjects($user, $this->destination);
+        }
+
+        return $this->stopsEligibleForArrivalStamp($user)->isNotEmpty();
+    }
+
+    public function userCanStampAnyDeparture(?User $user = null): bool
+    {
+        $user = $user ?? auth()->user();
+        if (! $user instanceof User || $this->status !== self::STATUS_APPROVED) {
+            return false;
+        }
+
+        return $this->canRecordDeparture()
+            && $this->stopsEligibleForDepartureStamp($user)->isNotEmpty();
+    }
+
+    /**
+     * Full route text for lists/dashboards: ordered stops joined with arrows, or legacy column.
+     */
+    public function itinerarySummaryForDisplay(): string
+    {
+        $stops = $this->relationLoaded('stops')
+            ? $this->stops->sortBy(['sort_order', 'id'])->values()
+            : $this->stops()->orderBy('sort_order')->orderBy('id')->get();
+
+        if ($stops->isNotEmpty()) {
+            $labels = $stops->pluck('destination')->filter(fn ($d) => filled($d));
+            if ($labels->isNotEmpty()) {
+                return $labels->implode(' → ');
+            }
+        }
+
+        return (string) ($this->destination ?? '');
+    }
+
+    /**
+     * Ordered destination strings for dashboard list cells (one list item per checkpoint).
+     *
+     * @return \Illuminate\Support\Collection<int, string>
+     */
+    public function itineraryDestinationList(): \Illuminate\Support\Collection
+    {
+        $stops = $this->relationLoaded('stops')
+            ? $this->stops->sortBy(['sort_order', 'id'])->values()
+            : $this->stops()->orderBy('sort_order')->orderBy('id')->get();
+
+        if ($stops->isNotEmpty()) {
+            $labels = $stops->pluck('destination')
+                ->filter(fn ($d) => filled($d))
+                ->map(fn ($d) => trim((string) $d))
+                ->values();
+            if ($labels->isNotEmpty()) {
+                return $labels;
+            }
+        }
+
+        $header = trim((string) ($this->destination ?? ''));
+        if ($header === '') {
+            return collect();
+        }
+
+        if (str_contains($header, '→')) {
+            return collect(preg_split('/\s*→\s*/u', $header))
+                ->map(fn ($s) => trim((string) $s))
+                ->filter()
+                ->values();
+        }
+
+        return collect([$header]);
+    }
+
+    /**
+     * Header destination or any itinerary stop destination (lists, export, DataTable filters).
+     */
+    public function scopeWhereDestinationSearch(Builder $query, string $term): Builder
+    {
+        $term = trim($term);
+        if ($term === '') {
+            return $query;
+        }
+        $like = '%'.$term.'%';
+
+        return $query->where(function (Builder $w) use ($like) {
+            $w->where('officialtravels.destination', 'like', $like)
+                ->orWhereHas('stops', function (Builder $sq) use ($like) {
+                    $sq->where('destination', 'like', $like);
+                });
+        });
+    }
+
+    /** Next leg needing arrival (stamp queues / dashboard). */
+    public function pendingArrivalDestinationLabel(): string
+    {
+        if ($this->stops()->count() > 1 && $this->nextDepartureStop() === null) {
+            $labels = $this->stops()
+                ->whereNull('arrival_at_destination')
+                ->orderBy('sort_order')
+                ->orderBy('id')
+                ->pluck('destination')
+                ->filter(fn ($d) => filled($d));
+            if ($labels->count() > 1) {
+                return $labels->implode('; ');
+            }
+        }
+
+        $next = $this->nextArrivalStop();
+        if ($next && filled($next->destination)) {
+            return $next->destination;
+        }
+
+        if (! $this->stops()->exists() && filled($this->destination)) {
+            return (string) $this->destination;
+        }
+
+        return $this->itinerarySummaryForDisplay();
+    }
+
+    /** Next leg needing departure (stamp queues). */
+    public function pendingDepartureDestinationLabel(): string
+    {
+        $next = $this->nextDepartureStop();
+        if ($next && filled($next->destination)) {
+            return $next->destination;
+        }
+
+        return '—';
     }
 
     // Get manual approvers as User collection

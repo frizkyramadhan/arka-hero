@@ -193,7 +193,7 @@ Respons sukses umum: `{ "status": "success", "data": ... }` dengan **`Officialtr
 
 ### 6.3 `POST /api/official-travels/search-claimable`
 
-- Filter sama; hasil: belum claimed, trip selesai (ada `departure_from_destination` pada stops), dll. sesuai query di controller.
+- Filter sama; hasil: belum claimed, destination selesai (ada `departure_from_destination` pada stops), dll. sesuai query di controller.
 
 ### 6.4 `POST /api/official-travels/detail`
 

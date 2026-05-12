@@ -367,47 +367,11 @@
                 <div class="col-lg-4">
                     <!-- Flight Request (Tiket Pesawat) - if any -->
                     @if ($leaveRequest->flightRequests && $leaveRequest->flightRequests->isNotEmpty())
-                        <div class="leave-request-card mb-4">
-                            <div class="card-head">
-                                <h2><i class="fas fa-plane"></i> Flight Request</h2>
-                            </div>
-                            <div class="card-body py-2">
-                                @foreach ($leaveRequest->flightRequests as $fr)
-                                    <div class="border rounded p-3 mb-2 bg-light">
-                                        <div class="d-flex justify-content-between align-items-center mb-2">
-                                            <strong class="small">{{ $fr->form_number ?? 'FR-' . $fr->id }}</strong>
-                                            @if (Route::has('flight-requests.show'))
-                                                <a href="{{ route('flight-requests.show', $fr) }}"
-                                                    class="btn btn-sm btn-outline-primary" target="_blank">
-                                                    <i class="fas fa-external-link-alt"></i> View
-                                                </a>
-                                            @endif
-                                        </div>
-                                        <div class="small text-muted mb-2">
-                                            Status: <span
-                                                class="badge badge-{{ $fr->status === 'draft' ? 'secondary' : ($fr->status === 'approved' ? 'success' : 'info') }}">{{ ucfirst($fr->status) }}</span>
-                                            @if ($fr->requested_at)
-                                                · {{ $fr->requested_at->format('d M Y H:i') }}
-                                            @endif
-                                        </div>
-                                        @if ($fr->details && $fr->details->isNotEmpty())
-                                            <ul class="list-unstyled small mb-0">
-                                                @foreach ($fr->details->sortBy('segment_order') as $seg)
-                                                    <li class="mb-1">
-                                                        <i class="fas fa-plane-departure text-muted mr-1"></i>
-                                                        {{ $seg->flight_date ? $seg->flight_date->format('d M Y') : '' }}
-                                                        {{ $seg->departure_city }} → {{ $seg->arrival_city }}
-                                                        @if ($seg->airline)
-                                                            <span class="text-muted">({{ $seg->airline }})</span>
-                                                        @endif
-                                                    </li>
-                                                @endforeach
-                                            </ul>
-                                        @endif
-                                    </div>
-                                @endforeach
-                            </div>
-                        </div>
+                        @include('flight-requests.partials.embedded-flight-requests-accordion', [
+                            'flightRequests' => $leaveRequest->flightRequests,
+                            'wrapperClass' => 'leave-request-card mb-4',
+                            'linkTarget' => '_blank',
+                        ])
                     @endif
 
                     <!-- Manual Approvers Card -->
