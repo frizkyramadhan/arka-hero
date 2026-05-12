@@ -186,8 +186,7 @@ final class UserProject
     }
 
     /**
-     * Approved LOTs visible for "pending arrival" stamping: legacy (no stops + header destination match), or any destination
-     * missing arrival that the user is allowed to stamp.
+     * Approved LOTs visible for "pending arrival" stamping: any planned stop without arrival that the user may stamp.
      */
     public static function scopeOfficialTravelsPendingArrivalStampVisible(Builder $query, ?User $user = null): void
     {
@@ -224,12 +223,8 @@ final class UserProject
 
         $assigned = $user->projects()->where('project_status', 1)->orderBy('project_code')->get();
 
-        $query->where(function (Builder $outer) use ($user, $projectIds, $assigned) {
-            $outer->where(function (Builder $legacy) use ($user) {
-                $legacy->whereDoesntHave('stops');
-                self::scopeOfficialTravelsDestinationStampMatch($legacy, $user);
-            });
-            $outer->orWhere(function (Builder $open) use ($projectIds, $assigned) {
+        $query->where(function (Builder $outer) use ($projectIds, $assigned) {
+            $outer->where(function (Builder $open) use ($projectIds, $assigned) {
                 $open->whereDoesntHave('stops', function (Builder $lock) {
                     $lock->whereNotNull('arrival_at_destination')
                         ->whereNull('departure_from_destination');
@@ -328,9 +323,9 @@ final class UserProject
     }
 
     /**
-     * Filter query Official Travel agar hanya LOT yang destinasi-nya match assignment user (untuk stamp listing).
+     * Filter query Official Travel: destination on any planned stop matches user's assigned projects (stamp listing).
      */
-    public static function scopeOfficialTravelsDestinationStampMatch(Builder $query, ?User $user = null, string $destinationColumn = 'officialtravels.destination'): void
+    public static function scopeOfficialTravelsDestinationStampMatch(Builder $query, ?User $user = null): void
     {
         $user = self::resolveUser($user);
         if ($user === null) {
@@ -346,18 +341,22 @@ final class UserProject
             return;
         }
 
-        $query->where(function (Builder $w) use ($assigned, $destinationColumn) {
-            foreach ($assigned as $project) {
-                $code = trim((string) $project->project_code);
-                $name = trim((string) $project->project_name);
-                $label = preg_replace('/\s+/u', ' ', $code.' - '.$name);
-                $w->orWhere($destinationColumn, $label)
-                    ->orWhere($destinationColumn, $code)
-                    ->orWhere($destinationColumn, $name);
-                if ($code !== '') {
-                    $w->orWhere($destinationColumn, 'like', $code.' - %');
+        $query->whereHas('stops', function (Builder $stops) use ($assigned) {
+            $stops->where(function (Builder $w) use ($assigned) {
+                foreach ($assigned as $project) {
+                    $code = trim((string) $project->project_code);
+                    $name = trim((string) $project->project_name);
+                    $label = preg_replace('/\s+/u', ' ', $code.' - '.$name);
+                    $w->orWhere(function (Builder $one) use ($label, $code, $name) {
+                        $one->where('officialtravel_stops.destination', $label)
+                            ->orWhere('officialtravel_stops.destination', $code)
+                            ->orWhere('officialtravel_stops.destination', $name);
+                        if ($code !== '') {
+                            $one->orWhere('officialtravel_stops.destination', 'like', $code.' - %');
+                        }
+                    });
                 }
-            }
+            });
         });
     }
 
@@ -365,7 +364,7 @@ final class UserProject
      * LOT yang boleh tampil di dashboard official travel (statistik, tabel terbuka, top destinations).
      *
      * Selain LOT dengan asal (`official_travel_origin`) di proyek assignment, ikut sertakan LOT yang destinasi
-     * perjalanannya relevan dengan assignment (stop non-manual / header tanpa stop), sama logika pola string
+     * perjalanannya relevan dengan assignment (stop non-manual), sama logika pola string
      * dengan {@see scopeOfficialTravelsPendingArrivalStampVisible}.
      *
      * Administrator: tanpa filter tambahan.
@@ -392,13 +391,8 @@ final class UserProject
 
         $assigned = $user->projects()->where('project_status', 1)->orderBy('project_code')->get();
 
-        $query->where(function (Builder $outer) use ($user, $projectIds, $assigned) {
+        $query->where(function (Builder $outer) use ($projectIds, $assigned) {
             $outer->whereIn('officialtravels.official_travel_origin', $projectIds);
-
-            $outer->orWhere(function (Builder $legacyDest) use ($user) {
-                $legacyDest->whereDoesntHave('stops');
-                self::scopeOfficialTravelsDestinationStampMatch($legacyDest, $user);
-            });
 
             $outer->orWhereHas('stops', function (Builder $sq) use ($assigned) {
                 $sq->where(function (Builder $nm) {

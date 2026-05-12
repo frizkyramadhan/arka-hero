@@ -43,6 +43,8 @@ class OfficialtravelResource extends JsonResource
             'status' => $this->status,
             'purpose' => $this->purpose,
             'destination' => $this->destination,
+            'itinerary_summary' => $this->itinerarySummaryForDisplay(),
+            'destinations' => $this->itineraryDestinationList()->values()->all(),
             'duration' => $this->duration,
             'departure_from' => $this->departure_from,
             'is_claimed' => $this->is_claimed,
@@ -165,6 +167,9 @@ class OfficialtravelResource extends JsonResource
                 return $this->stops->map(function ($stop) {
                     $stopData = [
                         'id' => $stop->id,
+                        'sort_order' => $stop->sort_order,
+                        'destination' => $stop->destination,
+                        'is_manual' => $stop->is_manual,
                         'arrival_at_destination' => $stop->arrival_at_destination,
                         'arrival_remark' => $stop->arrival_remark,
                         'arrival_timestamps' => $stop->arrival_timestamps,

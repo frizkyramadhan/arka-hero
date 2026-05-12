@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Support\UserProject;
 use App\Traits\HasLetterNumber;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -214,7 +215,6 @@ class Officialtravel extends Model
         }
 
         $this->unsetRelation('stops');
-        $this->refreshStampContextDestination();
     }
 
     public function nextArrivalStop(): ?OfficialtravelStop
@@ -237,28 +237,15 @@ class Officialtravel extends Model
     }
 
     /**
-     * Keep `officialtravels.destination` aligned with the destination used for stamp permission / dashboard filters.
+     * Legacy DB column `officialtravels.destination` is unused: itinerary labels live on `officialtravel_stops`.
+     * Reads return the same itinerary summary as the UI/API; writes always persist an empty string.
      */
-    public function refreshStampContextDestination(): void
+    protected function destination(): Attribute
     {
-        $nextA = $this->nextArrivalStop();
-        if ($nextA && filled($nextA->destination)) {
-            $this->forceFill(['destination' => $nextA->destination])->saveQuietly();
-
-            return;
-        }
-
-        $nextD = $this->nextDepartureStop();
-        if ($nextD && filled($nextD->destination)) {
-            $this->forceFill(['destination' => $nextD->destination])->saveQuietly();
-
-            return;
-        }
-
-        $labels = $this->stops()->orderBy('sort_order')->orderBy('id')->pluck('destination')->filter()->values();
-        if ($labels->isNotEmpty()) {
-            $this->forceFill(['destination' => $labels->implode(' → ')])->saveQuietly();
-        }
+        return Attribute::make(
+            get: fn () => $this->itinerarySummaryForDisplay(),
+            set: fn (mixed $value) => '',
+        );
     }
 
     public function creator()
@@ -331,12 +318,7 @@ class Officialtravel extends Model
             }
         }
 
-        if ($this->nextArrivalStop()) {
-            return true;
-        }
-
-        // Legacy: no planned rows yet — first arrival will create a stop from LOT header destination
-        return ! $this->stops()->exists();
+        return $this->nextArrivalStop() !== null;
     }
 
     public function canRecordDeparture()
@@ -520,11 +502,7 @@ class Officialtravel extends Model
         }
 
         if (! $this->stops()->exists()) {
-            if ($user->hasRole('administrator')) {
-                return true;
-            }
-
-            return UserProject::destinationMatchesUserAssignedProjects($user, $this->destination);
+            return false;
         }
 
         return $this->stopsEligibleForArrivalStamp($user)->isNotEmpty();
@@ -542,7 +520,7 @@ class Officialtravel extends Model
     }
 
     /**
-     * Full route text for lists/dashboards: ordered stops joined with arrows, or legacy column.
+     * Full route text for lists/dashboards: ordered stops joined with arrows.
      */
     public function itinerarySummaryForDisplay(): string
     {
@@ -557,7 +535,7 @@ class Officialtravel extends Model
             }
         }
 
-        return (string) ($this->destination ?? '');
+        return '';
     }
 
     /**
@@ -581,23 +559,11 @@ class Officialtravel extends Model
             }
         }
 
-        $header = trim((string) ($this->destination ?? ''));
-        if ($header === '') {
-            return collect();
-        }
-
-        if (str_contains($header, '→')) {
-            return collect(preg_split('/\s*→\s*/u', $header))
-                ->map(fn ($s) => trim((string) $s))
-                ->filter()
-                ->values();
-        }
-
-        return collect([$header]);
+        return collect();
     }
 
     /**
-     * Header destination or any itinerary stop destination (lists, export, DataTable filters).
+     * Match any planned stop destination (lists, export, DataTable filters, API search).
      */
     public function scopeWhereDestinationSearch(Builder $query, string $term): Builder
     {
@@ -607,11 +573,8 @@ class Officialtravel extends Model
         }
         $like = '%'.$term.'%';
 
-        return $query->where(function (Builder $w) use ($like) {
-            $w->where('officialtravels.destination', 'like', $like)
-                ->orWhereHas('stops', function (Builder $sq) use ($like) {
-                    $sq->where('destination', 'like', $like);
-                });
+        return $query->whereHas('stops', function (Builder $sq) use ($like) {
+            $sq->where('officialtravel_stops.destination', 'like', $like);
         });
     }
 
@@ -633,10 +596,6 @@ class Officialtravel extends Model
         $next = $this->nextArrivalStop();
         if ($next && filled($next->destination)) {
             return $next->destination;
-        }
-
-        if (! $this->stops()->exists() && filled($this->destination)) {
-            return (string) $this->destination;
         }
 
         return $this->itinerarySummaryForDisplay();
