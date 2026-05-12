@@ -12,6 +12,50 @@ use Illuminate\Support\Facades\DB;
 
 class OfficialtravelApiController extends Controller
 {
+    private const SEARCH_FILTER_LIST = 'travel_number, traveler, department, project, destination';
+
+    /**
+     * @return bool true when at least one supported filter was applied
+     */
+    private function applyOfficialtravelSearchFilters(Request $request, Builder $query): bool
+    {
+        $hasFilters = false;
+
+        if ($request->filled('travel_number')) {
+            $hasFilters = true;
+            $query->where('official_travel_number', 'LIKE', '%'.$request->travel_number.'%');
+        }
+
+        if ($request->filled('traveler')) {
+            $hasFilters = true;
+            $query->whereHas('traveler.employee', function (Builder $q) use ($request) {
+                $q->where('fullname', 'LIKE', '%'.$request->traveler.'%');
+            });
+        }
+
+        if ($request->filled('department')) {
+            $hasFilters = true;
+            $query->whereHas('traveler.position.department', function (Builder $q) use ($request) {
+                $q->where('department_name', 'LIKE', '%'.$request->department.'%');
+            });
+        }
+
+        if ($request->filled('project')) {
+            $hasFilters = true;
+            $query->whereHas('project', function (Builder $q) use ($request) {
+                $q->where('project_code', 'LIKE', '%'.$request->project.'%')
+                    ->orWhere('project_name', 'LIKE', '%'.$request->project.'%');
+            });
+        }
+
+        if ($request->filled('destination')) {
+            $hasFilters = true;
+            $query->whereDestinationSearch(trim((string) $request->destination));
+        }
+
+        return $hasFilters;
+    }
+
     /**
      * Search official travels
      *
@@ -21,44 +65,13 @@ class OfficialtravelApiController extends Controller
     {
         try {
             $query = Officialtravel::query();
-            $hasFilters = false;
-
-            // Filter by travel number
-            if ($request->filled('travel_number')) {
-                $hasFilters = true;
-                $query->where('official_travel_number', 'LIKE', '%'.$request->travel_number.'%');
-            }
-
-            // Filter by traveler
-            if ($request->filled('traveler')) {
-                $hasFilters = true;
-                $query->whereHas('traveler.employee', function (Builder $q) use ($request) {
-                    $q->where('fullname', 'LIKE', '%'.$request->traveler.'%');
-                });
-            }
-
-            // Filter by department
-            if ($request->filled('department')) {
-                $hasFilters = true;
-                $query->whereHas('traveler.position.department', function (Builder $q) use ($request) {
-                    $q->where('department_name', 'LIKE', '%'.$request->department.'%');
-                });
-            }
-
-            // Filter by project
-            if ($request->filled('project')) {
-                $hasFilters = true;
-                $query->whereHas('project', function (Builder $q) use ($request) {
-                    $q->where('project_code', 'LIKE', '%'.$request->project.'%')
-                        ->orWhere('project_name', 'LIKE', '%'.$request->project.'%');
-                });
-            }
+            $hasFilters = $this->applyOfficialtravelSearchFilters($request, $query);
 
             // If no filters provided or all filter values are empty/null, return error
             if (! $hasFilters) {
                 return response()->json([
                     'status' => 'error',
-                    'message' => 'At least one filter parameter with a non-empty value is required. Available filters: travel_number, traveler, department, project',
+                    'message' => 'At least one filter parameter with a non-empty value is required. Available filters: '.self::SEARCH_FILTER_LIST,
                     'data' => [],
                 ], 400);
             }
@@ -110,44 +123,13 @@ class OfficialtravelApiController extends Controller
     {
         try {
             $query = Officialtravel::query();
-            $hasFilters = false;
-
-            // Filter by travel number
-            if ($request->filled('travel_number')) {
-                $hasFilters = true;
-                $query->where('official_travel_number', 'LIKE', '%'.$request->travel_number.'%');
-            }
-
-            // Filter by traveler
-            if ($request->filled('traveler')) {
-                $hasFilters = true;
-                $query->whereHas('traveler.employee', function (Builder $q) use ($request) {
-                    $q->where('fullname', 'LIKE', '%'.$request->traveler.'%');
-                });
-            }
-
-            // Filter by department
-            if ($request->filled('department')) {
-                $hasFilters = true;
-                $query->whereHas('traveler.position.department', function (Builder $q) use ($request) {
-                    $q->where('department_name', 'LIKE', '%'.$request->department.'%');
-                });
-            }
-
-            // Filter by project
-            if ($request->filled('project')) {
-                $hasFilters = true;
-                $query->whereHas('project', function (Builder $q) use ($request) {
-                    $q->where('project_code', 'LIKE', '%'.$request->project.'%')
-                        ->orWhere('project_name', 'LIKE', '%'.$request->project.'%');
-                });
-            }
+            $hasFilters = $this->applyOfficialtravelSearchFilters($request, $query);
 
             // If no filters provided or all filter values are empty/null, return error
             if (! $hasFilters) {
                 return response()->json([
                     'status' => 'error',
-                    'message' => 'At least one filter parameter with a non-empty value is required. Available filters: travel_number, traveler, department, project',
+                    'message' => 'At least one filter parameter with a non-empty value is required. Available filters: '.self::SEARCH_FILTER_LIST,
                     'data' => [],
                 ], 400);
             }
@@ -202,39 +184,12 @@ class OfficialtravelApiController extends Controller
     {
         try {
             $query = Officialtravel::query();
-            $hasFilters = false;
-
-            if ($request->filled('travel_number')) {
-                $hasFilters = true;
-                $query->where('official_travel_number', 'LIKE', '%'.$request->travel_number.'%');
-            }
-
-            if ($request->filled('traveler')) {
-                $hasFilters = true;
-                $query->whereHas('traveler.employee', function (Builder $q) use ($request) {
-                    $q->where('fullname', 'LIKE', '%'.$request->traveler.'%');
-                });
-            }
-
-            if ($request->filled('department')) {
-                $hasFilters = true;
-                $query->whereHas('traveler.position.department', function (Builder $q) use ($request) {
-                    $q->where('department_name', 'LIKE', '%'.$request->department.'%');
-                });
-            }
-
-            if ($request->filled('project')) {
-                $hasFilters = true;
-                $query->whereHas('project', function (Builder $q) use ($request) {
-                    $q->where('project_code', 'LIKE', '%'.$request->project.'%')
-                        ->orWhere('project_name', 'LIKE', '%'.$request->project.'%');
-                });
-            }
+            $hasFilters = $this->applyOfficialtravelSearchFilters($request, $query);
 
             if (! $hasFilters) {
                 return response()->json([
                     'status' => 'error',
-                    'message' => 'At least one filter parameter with a non-empty value is required. Available filters: travel_number, traveler, department, project',
+                    'message' => 'At least one filter parameter with a non-empty value is required. Available filters: '.self::SEARCH_FILTER_LIST,
                     'data' => [],
                 ], 400);
             }
@@ -252,6 +207,9 @@ class OfficialtravelApiController extends Controller
                 'stops.arrivalChecker',
                 'stops.departureChecker',
                 'creator',
+                'approval_plans' => function ($q) {
+                    $q->orderBy('id');
+                },
                 'approval_plans.approver',
             ])
                 ->whereHas('stops', function ($q) {
@@ -370,6 +328,10 @@ class OfficialtravelApiController extends Controller
                 'stops.arrivalChecker',
                 'stops.departureChecker',
                 'creator',
+                'approval_plans' => function ($q) {
+                    $q->orderBy('id');
+                },
+                'approval_plans.approver',
             ])->where('official_travel_number', $request->official_travel_number)->first();
 
             if (! $officialtravel) {

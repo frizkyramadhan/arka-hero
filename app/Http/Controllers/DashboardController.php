@@ -223,7 +223,7 @@ class DashboardController extends Controller
 
         $monthlyGrowth = $lastMonthTravels > 0 ? round((($thisMonthTravels - $lastMonthTravels) / $lastMonthTravels) * 100, 1) : 0;
 
-        // Top destinations: count each itinerary leg (stops) + legacy LOT without stops (header destination only).
+        // Top destinations: count each itinerary leg (officialtravel_stops.destination).
         $stopDestinationCounts = OfficialtravelStop::query()
             ->whereHas('officialtravel', function ($q) {
                 UserProject::scopeOfficialTravelsDashboardVisible($q, Auth::user());
@@ -234,19 +234,8 @@ class DashboardController extends Controller
             ->groupBy('destination')
             ->pluck('cnt', 'destination');
 
-        $legacyHeaderCounts = $this->officialTravelScopedQuery()
-            ->whereDoesntHave('stops')
-            ->whereNotNull('destination')
-            ->where('destination', '!=', '')
-            ->selectRaw('destination, count(*) as cnt')
-            ->groupBy('destination')
-            ->pluck('cnt', 'destination');
-
         $mergedDestinationCounts = [];
         foreach ($stopDestinationCounts as $dest => $cnt) {
-            $mergedDestinationCounts[$dest] = ($mergedDestinationCounts[$dest] ?? 0) + (int) $cnt;
-        }
-        foreach ($legacyHeaderCounts as $dest => $cnt) {
             $mergedDestinationCounts[$dest] = ($mergedDestinationCounts[$dest] ?? 0) + (int) $cnt;
         }
         arsort($mergedDestinationCounts);
@@ -667,10 +656,7 @@ class DashboardController extends Controller
                     return;
                 }
                 $like = '%'.$keyword.'%';
-                $q->where(function ($w) use ($like) {
-                    $w->where('officialtravels.destination', 'like', $like)
-                        ->orWhereHas('stops', fn ($sq) => $sq->where('destination', 'like', $like));
-                });
+                $q->whereHas('stops', fn ($sq) => $sq->where('officialtravel_stops.destination', 'like', $like));
             })
             ->addColumn('action', function ($row) {
                 $btn = '<a href="'.route('officialtravels.showArrivalForm', $row->id).'" class="btn btn-sm btn-info">
@@ -724,10 +710,7 @@ class DashboardController extends Controller
                     return;
                 }
                 $like = '%'.$keyword.'%';
-                $q->where(function ($w) use ($like) {
-                    $w->where('officialtravels.destination', 'like', $like)
-                        ->orWhereHas('stops', fn ($sq) => $sq->where('destination', 'like', $like));
-                });
+                $q->whereHas('stops', fn ($sq) => $sq->where('officialtravel_stops.destination', 'like', $like));
             })
             ->addColumn('action', function ($row) {
                 $btn = '<a href="'.route('officialtravels.showDepartureForm', $row->id).'" class="btn btn-sm btn-purple">

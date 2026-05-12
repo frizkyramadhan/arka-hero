@@ -177,12 +177,12 @@ Semua respons sukses utama memakai koleksi **`AdministrationResource`** (data ad
 
 Base path: **`/api/official-travels`**
 
-Respons sukses umum: `{ "status": "success", "data": ... }` dengan **`OfficialtravelResource`**: antara lain `official_travel_number`, `official_travel_date`, **`approved_at`** (bila terisi, format `Y-m-d H:i:s`), `destination`, `traveler` (+ `nik`, **`employee`** = `{ "fullname" }`), relasi proyek, `stops`, `approval_plans`, dll.
+Respons sukses umum: `{ "status": "success", "data": ... }` dengan **`OfficialtravelResource`**: antara lain `official_travel_number`, `official_travel_date`, **`approved_at`** (bila terisi, format `Y-m-d H:i:s`), **`destination`** (ringkasan rute dari **`officialtravel_stops`** — sama isinya dengan **`itinerary_summary`**, untuk kompatibilitas), **`itinerary_summary`** (teks rute per stop dipisah `→`), **`destinations`** (array string tujuan berurutan), `traveler` (+ `nik`, **`employee`** = `{ "fullname" }`), relasi proyek, **`stops`** (tiap item: `sort_order`, `destination`, `is_manual`, stempel kedatangan/keberangkatan, checker bila termuat), `approval_plans`, dll.
 
 ### 6.1 `POST /api/official-travels/search`
 
 - **Wajib:** minimal **satu** filter berisi nilai tidak kosong.
-- **Body (JSON):** salah satu atau lebih: `travel_number`, `traveler`, `department`, `project` (semua partial match `LIKE` kecuali nomor sesuai logika controller).
+- **Body (JSON):** salah satu atau lebih: `travel_number`, `traveler`, `department`, `project`, **`destination`** (pencarian pada **`officialtravel_stops.destination`** saja, partial `LIKE`).
 - **Filter hasil:** `status <> 'draft'`, `is_claimed = 'no'`.
 - **400:** Tanpa filter valid.
 - **404:** Tidak ada data.
@@ -389,7 +389,7 @@ Field lain (alasan, `approval_plans`, dll.) tetap ada di payload. **Nama karyawa
 | ---------------- | ------------------------------------------------------------------------------ |
 | Nomor            | `official_travel_number`                                                       |
 | NIK / nama       | `traveler.nik`, `traveler.employee.fullname`                                   |
-| Tanggal / tujuan | `official_travel_date`, `destination`, `purpose`, `departure_from`, `duration` |
+| Tanggal / tujuan | `official_travel_date`, `destination`, **`itinerary_summary`**, **`destinations`**, **`stops[]`**, `purpose`, `departure_from`, `duration` |
 | Disetujui        | `approved_at`; tahapan di `approval_plans`                                     |
 
 **Lembur** (`OvertimeRequestSummaryResource`):
