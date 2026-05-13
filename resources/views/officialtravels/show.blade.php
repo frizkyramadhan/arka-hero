@@ -9,7 +9,8 @@
                     {{ $officialtravel->letter_number ? $officialtravel->official_travel_number : 'LOT Draft : ' . $officialtravel->official_travel_number }}
                 </h1>
                 <div class="travel-date">
-                    <i class="far fa-calendar-alt"></i> {{ date('d F Y', strtotime($officialtravel->official_travel_date)) }}
+                    <i class="far fa-calendar-alt"></i>
+                    {{ $officialtravel->official_travel_date ? format_date_with_weekday($officialtravel->official_travel_date) : 'N/A' }}
                 </div>
                 @php
                     $statusMap = [

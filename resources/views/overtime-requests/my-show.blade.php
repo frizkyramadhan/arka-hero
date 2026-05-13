@@ -36,7 +36,7 @@
                 <div class="travel-destination">{{ $overtimeRequest->project->project_name ?? '—' }}</div>
                 <div class="travel-date">
                     <i class="far fa-calendar-alt mr-1"></i>
-                    {{ $overtimeRequest->overtime_date ? $overtimeRequest->overtime_date->format('d M Y') : '—' }}
+                    {{ $overtimeRequest->overtime_date ? format_date_with_weekday($overtimeRequest->overtime_date) : '—' }}
                 </div>
             </div>
             <div class="travel-status-pill">
@@ -88,7 +88,7 @@
                                     <div class="info-content">
                                         <div class="info-label">Overtime date</div>
                                         <div class="info-value">
-                                            {{ $overtimeRequest->overtime_date ? $overtimeRequest->overtime_date->format('d M Y') : '—' }}
+                                            {{ $overtimeRequest->overtime_date ? format_date_with_weekday($overtimeRequest->overtime_date) : '—' }}
                                         </div>
                                     </div>
                                 </div>
@@ -106,7 +106,7 @@
                                     <div class="info-content">
                                         <div class="info-label">Created at</div>
                                         <div class="info-value">
-                                            {{ $overtimeRequest->created_at ? $overtimeRequest->created_at->format('d M Y H:i') : '—' }}
+                                            {{ $overtimeRequest->created_at ? format_datetime_with_weekday($overtimeRequest->created_at) : '—' }}
                                         </div>
                                     </div>
                                 </div>
@@ -171,7 +171,7 @@
                             <div class="card-body">
                                 @if ($overtimeRequest->finished_at)
                                     <p class="mb-1"><strong>Finished at:</strong>
-                                        {{ $overtimeRequest->finished_at->format('d M Y H:i') }}</p>
+                                        {{ format_datetime_with_weekday($overtimeRequest->finished_at) }}</p>
                                 @endif
                                 @if ($overtimeRequest->finishedBy)
                                     <p class="mb-1"><strong>By:</strong> {{ $overtimeRequest->finishedBy->name }}</p>

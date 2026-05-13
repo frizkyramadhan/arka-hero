@@ -51,9 +51,9 @@
                                 </div>
                                 <div class="form-group">
                                     <label for="email">Email <small class="text-muted">(Optional)</small></label>
-                                    <input type="email" class="form-control @error('email') is-invalid @enderror"
-                                        name="email" id="email" value="{{ old('email') }}">
-                                    <small class="form-text text-muted">If provided, must end with @arka.co.id</small>
+                                    <input type="text" class="form-control @error('email') is-invalid @enderror"
+                                        name="email" id="email" value="{{ old('email') }}" autocomplete="email">
+                                    <small class="form-text text-muted">Optional. Max 255 characters if filled.</small>
                                     @error('email')
                                         <div class="invalid-feedback">{{ $message }}</div>
                                     @enderror
