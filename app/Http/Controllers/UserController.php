@@ -272,7 +272,7 @@ class UserController extends Controller
             $this->validate($request, [
                 'name' => 'required',
                 'username' => 'required|unique:users|alpha_dash|min:3|max:255',
-                'email' => 'nullable|email:dns|unique:users|ends_with:@arka.co.id',
+                'email' => 'nullable|string|max:255|unique:users',
                 'password' => 'required|min:5',
                 'user_status' => 'required',
                 'employee_id' => 'nullable|exists:employees,id|unique:users,employee_id',
@@ -285,9 +285,7 @@ class UserController extends Controller
                 'username.unique' => 'Username already exists',
                 'username.alpha_dash' => 'Username can only contain letters, numbers, dashes and underscores',
                 'username.min' => 'Username must be at least 3 characters',
-                'email.email' => 'Email must be a valid email address',
                 'email.unique' => 'Email already exists',
-                'email.ends_with' => 'Email must end with @arka.co.id',
                 'password.required' => 'Password is required',
                 'password.min' => 'Password must be at least 5 characters',
                 'employee_id.exists' => 'Selected employee does not exist',
@@ -310,9 +308,9 @@ class UserController extends Controller
             $user = User::create([
                 'name' => $request->name,
                 'username' => $request->username,
-                'email' => $request->email,
+                'email' => $request->filled('email') ? $request->input('email') : null,
                 'password' => Hash::make($request->password),
-                'employee_id' => $request->employee_id,
+                'employee_id' => $request->employee_id ?: null,
                 'user_status' => $request->user_status,
             ]);
 
@@ -424,7 +422,7 @@ class UserController extends Controller
             $this->validate($request, [
                 'name' => 'required',
                 'username' => 'required|alpha_dash|min:3|max:255|unique:users,username,'.$id,
-                'email' => 'nullable|email:dns|ends_with:@arka.co.id|unique:users,email,'.$id,
+                'email' => 'nullable|string|max:255|unique:users,email,'.$id,
                 'employee_id' => 'nullable|exists:employees,id|unique:users,employee_id,'.$id,
                 'user_status' => 'required',
                 'roles' => 'required|array|min:1',
@@ -437,9 +435,7 @@ class UserController extends Controller
                 'username.unique' => 'Username already exists',
                 'username.alpha_dash' => 'Username can only contain letters, numbers, dashes and underscores',
                 'username.min' => 'Username must be at least 3 characters',
-                'email.email' => 'Email must be a valid email address',
                 'email.unique' => 'Email already exists',
-                'email.ends_with' => 'Email must end with @arka.co.id',
                 'employee_id.exists' => 'Selected employee does not exist',
                 'employee_id.unique' => 'This employee already has a user account',
                 'roles.required' => 'Please select at least one role',
@@ -471,7 +467,14 @@ class UserController extends Controller
                 $input = Arr::except($input, ['password']);
             }
 
-            $user->update($input);
+            $user->update([
+                'name' => $request->input('name'),
+                'username' => $request->input('username'),
+                'email' => $request->filled('email') ? $request->input('email') : null,
+                'employee_id' => $request->input('employee_id') ?: null,
+                'user_status' => $request->input('user_status'),
+                ...(array_key_exists('password', $input) ? ['password' => $input['password']] : []),
+            ]);
             $user->syncRoles($request->roles);
 
             // Sync projects and departments

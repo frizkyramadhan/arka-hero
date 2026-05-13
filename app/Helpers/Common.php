@@ -25,6 +25,34 @@ function showDateTime($carbon, $format = 'd M Y @ H:i')
 }
 
 /**
+ * Tanggal dengan nama hari (sesuai locale aplikasi), contoh: Monday, 13 May 2026.
+ */
+function format_date_with_weekday(null|string|\DateTimeInterface $value): string
+{
+    if ($value === null || $value === '') {
+        return 'N/A';
+    }
+
+    return \Carbon\Carbon::parse($value)
+        ->locale(app()->getLocale())
+        ->translatedFormat('l, d F Y');
+}
+
+/**
+ * Tanggal dan jam dengan nama hari (sesuai locale aplikasi).
+ */
+function format_datetime_with_weekday(null|string|\DateTimeInterface $value): string
+{
+    if ($value === null || $value === '') {
+        return 'N/A';
+    }
+
+    return \Carbon\Carbon::parse($value)
+        ->locale(app()->getLocale())
+        ->translatedFormat('l, d M Y H:i');
+}
+
+/**
  * Format request reason for display
  */
 function formatRequestReason($requestReason, $otherReason = null)

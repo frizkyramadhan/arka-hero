@@ -2,13 +2,12 @@
 
 namespace App\Exports\Concerns;
 
+use Illuminate\Database\Query\Builder;
+
 trait ExportForEmployeeIds
 {
-    /**
-     * @param  list<string>  $employeeIds
-     */
     public function __construct(
-        protected array $employeeIds = []
+        protected Builder $employeeExportIdsQuery
     ) {}
 
     /**
@@ -16,12 +15,6 @@ trait ExportForEmployeeIds
      */
     protected function applyEmployeeIdFilter($query, string $column): void
     {
-        if ($this->employeeIds === []) {
-            $query->whereRaw('0 = 1');
-
-            return;
-        }
-
-        $query->whereIn($column, $this->employeeIds);
+        $query->whereIn($column, $this->employeeExportIdsQuery->clone());
     }
 }

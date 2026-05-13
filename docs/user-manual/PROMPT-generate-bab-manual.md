@@ -157,7 +157,7 @@ Gunakan blok ini sebagai **template lengkap** saat meregenerasi atau menyamakan 
 **Template generik (bab lain):**
 
 - **Nama & nomor file target:** (`12-roster-management.md`)
-- **Topik & outline:** (bullet besar per `## 1. Dashboard, ## 2. Roster Management (Cycle Management), ## 3. Periodic Leave Request (Bulk request)`)
+- **Topik & outline:** (bullet besar per `## 1. Dashboard, ## 2. Roster Management (Cycle Management), ## 3. Periodic Leave Request (Bulk request)` dan semua rinciannya)
 - **Pembaca target:** (HR di project dengan leave type=roster)
 - **Menu sidebar (label persis):** (HERO Section -> Roster Management)
 - **URL contoh (opsional, untuk riset):** (satu base URL; jarang dimasukkan ke narasi)

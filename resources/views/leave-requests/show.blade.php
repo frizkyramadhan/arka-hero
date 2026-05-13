@@ -13,7 +13,8 @@
                     </div>
                 @endif
                 <div class="leave-request-date">
-                    <i class="far fa-calendar-alt"></i> {{ date('d F Y', strtotime($leaveRequest->created_at)) }}
+                    <i class="far fa-calendar-alt"></i>
+                    {{ format_date_with_weekday($leaveRequest->created_at) }}
                 </div>
                 @php
                     $statusMap = [
@@ -87,7 +88,7 @@
                                     </div>
                                     <div class="info-content">
                                         <div class="info-label">Start Date</div>
-                                        <div class="info-value">{{ $leaveRequest->start_date->format('d F Y') }}</div>
+                                        <div class="info-value">{{ format_date_with_weekday($leaveRequest->start_date) }}</div>
                                     </div>
                                 </div>
                                 <div class="info-item">
@@ -96,7 +97,7 @@
                                     </div>
                                     <div class="info-content">
                                         <div class="info-label">End Date</div>
-                                        <div class="info-value">{{ $leaveRequest->end_date->format('d F Y') }}</div>
+                                        <div class="info-value">{{ format_date_with_weekday($leaveRequest->end_date) }}</div>
                                     </div>
                                 </div>
                                 <div class="info-item">
@@ -129,7 +130,7 @@
                                     <div class="info-content">
                                         <div class="info-label">Back to Work Date</div>
                                         <div class="info-value">
-                                            {{ $leaveRequest->back_to_work_date ? $leaveRequest->back_to_work_date->format('d F Y') : 'N/A' }}
+                                            {{ $leaveRequest->back_to_work_date ? format_date_with_weekday($leaveRequest->back_to_work_date) : 'N/A' }}
                                         </div>
                                     </div>
                                 </div>
@@ -140,7 +141,7 @@
                                     <div class="info-content">
                                         <div class="info-label">Requested At</div>
                                         <div class="info-value">
-                                            {{ $leaveRequest->requested_at ? $leaveRequest->requested_at->format('d F Y H:i') : 'N/A' }}
+                                            {{ $leaveRequest->requested_at ? format_datetime_with_weekday($leaveRequest->requested_at) : 'N/A' }}
                                         </div>
                                     </div>
                                 </div>
@@ -468,7 +469,7 @@
                                                                 <i class="fas fa-calendar text-secondary"></i>
                                                                 <strong>Requested at:</strong>
                                                                 <span
-                                                                    class="ml-2">{{ $cancellation->requested_at->format('d F Y, H:i') }}</span>
+                                                                    class="ml-2">{{ format_datetime_with_weekday($cancellation->requested_at) }}</span>
                                                             </div>
 
                                                             @if ($showAdminActions && $cancellation->status === 'pending')
@@ -506,7 +507,7 @@
                                                                     <i class="fas fa-calendar-check text-success"></i>
                                                                     <strong>Confirmed at:</strong>
                                                                     <span
-                                                                        class="ml-2">{{ $cancellation->confirmed_at->format('d F Y, H:i') }}</span>
+                                                                        class="ml-2">{{ format_datetime_with_weekday($cancellation->confirmed_at) }}</span>
                                                                 </div>
                                                                 @if ($cancellation->confirmation_notes)
                                                                     <div class="detail-item mb-2">

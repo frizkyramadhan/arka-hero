@@ -7,7 +7,7 @@
                 <div class="fptk-project">{{ $fptk->project->project_name }}</div>
                 <h1 class="fptk-number">{{ $letterInfo['display_number'] ?? $fptk->request_number }}</h1>
                 <div class="fptk-date">
-                    <i class="far fa-calendar-alt"></i> {{ date('d F Y', strtotime($fptk->created_at)) }}
+                    <i class="far fa-calendar-alt"></i> {{ format_date_with_weekday($fptk->created_at) }}
                 </div>
                 @php
                     $statusMap = [
@@ -114,7 +114,7 @@
                                     </div>
                                     <div class="info-content">
                                         <div class="info-label">Required Date</div>
-                                        <div class="info-value">{{ date('d F Y', strtotime($fptk->required_date)) }}</div>
+                                        <div class="info-value">{{ format_date_with_weekday($fptk->required_date) }}</div>
                                     </div>
                                 </div>
                                 <div class="info-item">
@@ -384,7 +384,7 @@
                                 <div class="requester-name">{{ $fptk->createdBy->name }}</div>
                                 <div class="requester-email">{{ $fptk->createdBy->email }}</div>
                                 <div class="requester-date">
-                                    <i class="fas fa-calendar"></i> {{ date('d F Y H:i', strtotime($fptk->created_at)) }}
+                                    <i class="fas fa-calendar"></i> {{ format_datetime_with_weekday($fptk->created_at) }}
                                 </div>
                             </div>
                         </div>

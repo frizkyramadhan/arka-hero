@@ -25,7 +25,7 @@
             <div class="info-content">
                 <div class="info-label">Departure Date</div>
                 <div class="info-value">
-                    {{ date('d F Y', strtotime($officialtravel->departure_from)) }}</div>
+                    {{ format_date_with_weekday($officialtravel->departure_from) }}</div>
             </div>
         </div>
     </div>

@@ -50,23 +50,29 @@
                 <div class="document-date">
                     <i class="far fa-calendar-alt"> </i>
                     @if ($approvalPlan->document_type === 'officialtravel')
-                        {{ date('d F Y', strtotime($document->official_travel_date ?? now())) }}
+                        {{ format_date_with_weekday($document->official_travel_date ?? now()) }}
                     @elseif($approvalPlan->document_type === 'recruitment_request')
-                        {{ date('d F Y', strtotime($document->created_at ?? now())) }}
+                        {{ format_date_with_weekday($document->created_at ?? now()) }}
                     @elseif($approvalPlan->document_type === 'leave_request')
-                        {{ date('d F Y', strtotime($document->requested_at ?? now())) }}
+                        {{ format_date_with_weekday($document->requested_at ?? now()) }}
                     @elseif($approvalPlan->document_type === 'flight_request')
                         @php $document = App\Models\FlightRequest::find($approvalPlan->document_id); @endphp
-                        {{ date('d F Y', strtotime($document->requested_at ?? ($document->created_at ?? now()))) }}
+                        {{ format_date_with_weekday($document->requested_at ?? ($document->created_at ?? now())) }}
                     @elseif($approvalPlan->document_type === 'overtime_request')
                         @if ($document && $document->overtime_date)
-                            {{ $document->overtime_date->format('d F Y') }}
+                            {{ format_date_with_weekday($document->overtime_date) }}
                         @else
-                            {{ date('d F Y') }}
+                            {{ format_date_with_weekday(now()) }}
                         @endif
                     @elseif($approvalPlan->document_type === 'flight_request_issuance')
                         @php $document = App\Models\FlightRequestIssuance::find($approvalPlan->document_id); @endphp
-                        {{ $document && $document->issued_date ? date('d F Y', strtotime($document->issued_date)) : ($document && $document->created_at ? date('d F Y', strtotime($document->created_at)) : date('d F Y', strtotime(now()))) }}
+                        @if ($document && $document->issued_date)
+                            {{ format_date_with_weekday($document->issued_date) }}
+                        @elseif ($document && $document->created_at)
+                            {{ format_date_with_weekday($document->created_at) }}
+                        @else
+                            {{ format_date_with_weekday(now()) }}
+                        @endif
                     @endif
                 </div>
                 <div class="document-status-pill status-pending-approval">
@@ -212,7 +218,7 @@
                                         <div class="info-content">
                                             <div class="info-label">Overtime date</div>
                                             <div class="info-value">
-                                                {{ $document->overtime_date ? $document->overtime_date->format('d F Y') : 'N/A' }}
+                                                {{ $document->overtime_date ? format_date_with_weekday($document->overtime_date) : 'N/A' }}
                                             </div>
                                         </div>
                                     </div>
@@ -232,7 +238,7 @@
                                         <div class="info-content">
                                             <div class="info-label">Created at</div>
                                             <div class="info-value">
-                                                {{ $document->created_at ? $document->created_at->format('d M Y H:i') : 'N/A' }}
+                                                {{ $document->created_at ? format_datetime_with_weekday($document->created_at) : 'N/A' }}
                                             </div>
                                         </div>
                                     </div>
@@ -351,7 +357,7 @@
                                         <div class="info-content">
                                             <div class="info-label">Required Date</div>
                                             <div class="info-value">
-                                                {{ date('d F Y', strtotime($document->required_date)) }}</div>
+                                                {{ format_date_with_weekday($document->required_date) }}</div>
                                         </div>
                                     </div>
                                     <div class="info-item">
@@ -626,7 +632,7 @@
                                         </div>
                                         <div class="info-content">
                                             <div class="info-label">Start Date</div>
-                                            <div class="info-value">{{ date('d F Y', strtotime($document->start_date)) }}
+                                            <div class="info-value">{{ format_date_with_weekday($document->start_date) }}
                                             </div>
                                         </div>
                                     </div>
@@ -636,7 +642,7 @@
                                         </div>
                                         <div class="info-content">
                                             <div class="info-label">End Date</div>
-                                            <div class="info-value">{{ date('d F Y', strtotime($document->end_date)) }}
+                                            <div class="info-value">{{ format_date_with_weekday($document->end_date) }}
                                             </div>
                                         </div>
                                     </div>
@@ -657,7 +663,7 @@
                                         <div class="info-content">
                                             <div class="info-label">Back to Work Date</div>
                                             <div class="info-value">
-                                                {{ $document->back_to_work_date ? date('d F Y', strtotime($document->back_to_work_date)) : 'N/A' }}
+                                                {{ $document->back_to_work_date ? format_date_with_weekday($document->back_to_work_date) : 'N/A' }}
                                             </div>
                                         </div>
                                     </div>
@@ -668,7 +674,7 @@
                                         <div class="info-content">
                                             <div class="info-label">Requested At</div>
                                             <div class="info-value">
-                                                {{ date('d M Y H:i', strtotime($document->created_at)) }}</div>
+                                                {{ $document->created_at ? format_datetime_with_weekday($document->created_at) : 'N/A' }}</div>
                                         </div>
                                     </div>
                                     <div class="info-item">
@@ -1142,20 +1148,20 @@
                                             <span class="submit-date">
                                                 <i class="far fa-calendar-alt"></i>
                                                 @if ($approvalPlan->document_type === 'officialtravel')
-                                                    {{ $document->submit_at ? date('d M Y H:i', strtotime($document->submit_at)) : 'N/A' }}
+                                                    {{ $document->submit_at ? format_datetime_with_weekday($document->submit_at) : 'N/A' }}
                                                 @elseif($approvalPlan->document_type === 'recruitment_request')
-                                                    {{ $document->submit_at ? date('d M Y H:i', strtotime($document->submit_at)) : 'N/A' }}
+                                                    {{ $document->submit_at ? format_datetime_with_weekday($document->submit_at) : 'N/A' }}
                                                 @elseif($approvalPlan->document_type === 'leave_request')
-                                                    {{ $document->requested_at ? date('d M Y H:i', strtotime($document->requested_at)) : 'N/A' }}
+                                                    {{ $document->requested_at ? format_datetime_with_weekday($document->requested_at) : 'N/A' }}
                                                 @elseif($approvalPlan->document_type === 'flight_request')
                                                     @php $document = App\Models\FlightRequest::find($approvalPlan->document_id); @endphp
-                                                    {{ $document && $document->requested_at ? date('d M Y H:i', strtotime($document->requested_at)) : 'N/A' }}
+                                                    {{ $document && $document->requested_at ? format_datetime_with_weekday($document->requested_at) : 'N/A' }}
                                                 @elseif($approvalPlan->document_type === 'flight_request_issuance')
                                                     @php $document = App\Models\FlightRequestIssuance::find($approvalPlan->document_id); @endphp
-                                                    {{ $document && ($document->issued_at ?? $document->created_at) ? date('d M Y H:i', strtotime($document->issued_at ?? $document->created_at)) : 'N/A' }}
+                                                    {{ $document && ($document->issued_at ?? $document->created_at) ? format_datetime_with_weekday($document->issued_at ?? $document->created_at) : 'N/A' }}
                                                 @elseif($approvalPlan->document_type === 'overtime_request')
                                                     @php $document = App\Models\OvertimeRequest::find($approvalPlan->document_id); @endphp
-                                                    {{ $document && $document->requested_at ? $document->requested_at->format('d M Y H:i') : ($document && $document->created_at ? $document->created_at->format('d M Y H:i') : 'N/A') }}
+                                                    {{ $document && $document->requested_at ? format_datetime_with_weekday($document->requested_at) : ($document && $document->created_at ? format_datetime_with_weekday($document->created_at) : 'N/A') }}
                                                 @endif
                                             </span>
                                         </div>

@@ -173,17 +173,18 @@ class EmployeeController extends Controller
     }
 
     /**
-     * @return list<string>
+     * Subquery: distinct employee IDs matching the same filters as the listing / DataTable.
+     * Used by Excel export with WHERE IN (subquery) so PDO does not hit placeholder limits
+     * when a project has many rows (raw pluck + whereIn id list can exceed MySQL max_allowed_packet).
      */
-    protected function filteredEmployeeIdsForExport(Request $request): array
+    protected function employeeExportIdsQuery(Request $request): \Illuminate\Database\Query\Builder
     {
         return $this->employeeDatatableQuery($request)
             ->clone()
             ->reorder()
             ->select('employees.id')
             ->distinct()
-            ->pluck('employees.id')
-            ->all();
+            ->toBase();
     }
 
     public function getEmployees(Request $request)
@@ -1111,9 +1112,8 @@ class EmployeeController extends Controller
 
     public function export(Request $request)
     {
-        $ids = $this->filteredEmployeeIdsForExport($request);
-
-        return (new MultipleSheetExport($ids))->download('export-'.date('Y-m-d').'.xlsx');
+        return (new MultipleSheetExport($this->employeeExportIdsQuery($request)))
+            ->download('export-'.date('Y-m-d').'.xlsx');
     }
 
     public function import(Request $request)
