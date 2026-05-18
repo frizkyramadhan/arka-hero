@@ -83,42 +83,28 @@ class EmployeeController extends Controller
 
     protected function applyEmployeeDatatableFilters($query, Request $request): void
     {
-        if (! empty($request->get('date1') && ! empty($request->get('date2')))) {
-            $query->where(function ($w) use ($request) {
-                $date1 = $request->get('date1');
-                $date2 = $request->get('date2');
-                $w->whereBetween('doh', [$date1, $date2]);
-            });
+        // Date range filter (DOH)
+        $date1 = $request->get('date1');
+        $date2 = $request->get('date2');
+        if (! empty($date1) && ! empty($date2)) {
+            $query->whereBetween('doh', [$date1, $date2]);
         }
+
+        // Individual column filters — each is an independent AND condition
         if (! empty($request->get('nik'))) {
-            $query->where(function ($w) use ($request) {
-                $nik = $request->get('nik');
-                $w->orWhere('nik', 'LIKE', '%'.$nik.'%');
-            });
+            $query->where('nik', 'LIKE', '%'.$request->get('nik').'%');
         }
         if (! empty($request->get('fullname'))) {
-            $query->where(function ($w) use ($request) {
-                $fullname = $request->get('fullname');
-                $w->orWhere('fullname', 'LIKE', '%'.$fullname.'%');
-            });
+            $query->where('fullname', 'LIKE', '%'.$request->get('fullname').'%');
         }
         if (! empty($request->get('poh'))) {
-            $query->where(function ($w) use ($request) {
-                $poh = $request->get('poh');
-                $w->orWhere('poh', 'LIKE', '%'.$poh.'%');
-            });
+            $query->where('poh', 'LIKE', '%'.$request->get('poh').'%');
         }
         if (! empty($request->get('department_name'))) {
-            $query->where(function ($w) use ($request) {
-                $department_name = $request->get('department_name');
-                $w->orWhere('department_name', 'LIKE', '%'.$department_name.'%');
-            });
+            $query->where('department_name', 'LIKE', '%'.$request->get('department_name').'%');
         }
         if (! empty($request->get('position_name'))) {
-            $query->where(function ($w) use ($request) {
-                $position_name = $request->get('position_name');
-                $w->orWhere('position_name', 'LIKE', '%'.$position_name.'%');
-            });
+            $query->where('position_name', 'LIKE', '%'.$request->get('position_name').'%');
         }
         if (! empty($request->get('grade_id'))) {
             $query->where('administrations.grade_id', $request->get('grade_id'));
@@ -127,29 +113,26 @@ class EmployeeController extends Controller
             $query->where('administrations.level_id', $request->get('level_id'));
         }
         if (! empty($request->get('project_code'))) {
-            $query->where(function ($w) use ($request) {
-                $project_code = $request->get('project_code');
-                $w->orWhere('project_code', 'LIKE', '%'.$project_code.'%');
-            });
+            $query->where('project_code', 'LIKE', '%'.$request->get('project_code').'%');
         }
         if (! empty($request->get('class'))) {
-            $query->where(function ($w) use ($request) {
-                $class = $request->get('class');
-                $w->orWhere('class', 'LIKE', '%'.$class.'%');
-            });
+            $query->where('class', 'LIKE', '%'.$request->get('class').'%');
         }
 
+        // Status filter — active (default), inactive, or all
         $status = $request->get('status', 'active');
         if ($status === 'active') {
             $query->where('administrations.is_active', 1);
         } elseif ($status === 'inactive') {
             $query->where('administrations.is_active', 0);
         }
+        // status === '' or 'all' → no restriction
 
+        // Global search (DataTable search box equivalent)
         if (! empty($request->get('search'))) {
-            $query->where(function ($w) use ($request) {
-                $search = $request->get('search');
-                $w->orWhere('nik', 'LIKE', "%$search%")
+            $search = $request->get('search');
+            $query->where(function ($w) use ($search) {
+                $w->where('nik', 'LIKE', "%$search%")
                     ->orWhere('fullname', 'LIKE', "%$search%")
                     ->orWhere('poh', 'LIKE', "%$search%")
                     ->orWhere('doh', 'LIKE', "%$search%")
@@ -173,18 +156,23 @@ class EmployeeController extends Controller
     }
 
     /**
-     * Subquery: distinct employee IDs matching the same filters as the listing / DataTable.
-     * Used by Excel export with WHERE IN (subquery) so PDO does not hit placeholder limits
-     * when a project has many rows (raw pluck + whereIn id list can exceed MySQL max_allowed_packet).
+     * Collect distinct employee IDs that match the current DataTable filters.
+     *
+     * Uses the SAME query as the DataTable listing so the export always mirrors
+     * what the user sees on screen.  ORDER BY is stripped before DISTINCT to avoid
+     * MySQL's "ORDER BY not in SELECT" error when the original order column
+     * (administrations.nik) is not included in the narrowed SELECT.
+     *
+     * @return int[]
      */
-    protected function employeeExportIdsQuery(Request $request): \Illuminate\Database\Query\Builder
+    protected function filteredEmployeeIdsForExport(Request $request): array
     {
         return $this->employeeDatatableQuery($request)
-            ->clone()
-            ->reorder()
-            ->select('employees.id')
+            ->reorder()                // strip ORDER BY (incompatible with DISTINCT on a single column)
+            ->select('employees.id')   // narrow SELECT to just the PK
             ->distinct()
-            ->toBase();
+            ->pluck('employees.id')
+            ->all();
     }
 
     public function getEmployees(Request $request)
@@ -1112,8 +1100,31 @@ class EmployeeController extends Controller
 
     public function export(Request $request)
     {
-        return (new MultipleSheetExport($this->employeeExportIdsQuery($request)))
-            ->download('export-'.date('Y-m-d').'.xlsx');
+        // Generous limits for potentially large multi-sheet Excel files.
+        ini_set('memory_limit', '512M');
+        set_time_limit(300);
+
+        try {
+            $ids = $this->filteredEmployeeIdsForExport($request);
+
+            Log::info('Employee export', [
+                'filters'      => $request->only(['date1', 'date2', 'nik', 'fullname', 'department_name', 'position_name', 'project_code', 'grade_id', 'level_id', 'class', 'status', 'search']),
+                'employee_count' => count($ids),
+            ]);
+
+            return (new MultipleSheetExport($ids))
+                ->download('export-'.date('Y-m-d').'.xlsx');
+        } catch (\Throwable $e) {
+            Log::error('Employee export failed', [
+                'error'   => $e->getMessage(),
+                'file'    => $e->getFile(),
+                'line'    => $e->getLine(),
+                'filters' => $request->only(['date1', 'date2', 'nik', 'fullname', 'department_name', 'position_name', 'project_code', 'grade_id', 'level_id', 'class', 'status', 'search']),
+            ]);
+
+            return redirect()->back()
+                ->with('toast_error', 'Export gagal. Silakan cek log server untuk detail error.');
+        }
     }
 
     public function import(Request $request)
