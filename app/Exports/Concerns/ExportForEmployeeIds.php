@@ -2,19 +2,28 @@
 
 namespace App\Exports\Concerns;
 
-use Illuminate\Database\Query\Builder;
-
 trait ExportForEmployeeIds
 {
+    /**
+     * @param  int[]|string[]  $employeeIds
+     */
     public function __construct(
-        protected Builder $employeeExportIdsQuery
+        protected array $employeeIds
     ) {}
 
     /**
+     * Apply a WHERE employee-id filter to the given query.
+     *
      * @param  \Illuminate\Database\Eloquent\Builder|\Illuminate\Database\Query\Builder  $query
      */
     protected function applyEmployeeIdFilter($query, string $column): void
     {
-        $query->whereIn($column, $this->employeeExportIdsQuery->clone());
+        if (empty($this->employeeIds)) {
+            $query->whereRaw('0 = 1');
+
+            return;
+        }
+
+        $query->whereIn($column, $this->employeeIds);
     }
 }

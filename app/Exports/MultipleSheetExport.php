@@ -2,7 +2,6 @@
 
 namespace App\Exports;
 
-use Illuminate\Database\Query\Builder;
 use Maatwebsite\Excel\Concerns\Exportable;
 use Maatwebsite\Excel\Concerns\WithMultipleSheets;
 
@@ -10,29 +9,32 @@ class MultipleSheetExport implements WithMultipleSheets
 {
     use Exportable;
 
+    /**
+     * @param  int[]|string[]  $employeeIds  Filtered employee IDs from the DataTable query.
+     */
     public function __construct(
-        private readonly Builder $employeeExportIdsQuery
+        private readonly array $employeeIds
     ) {}
 
     public function sheets(): array
     {
-        $sub = $this->employeeExportIdsQuery;
+        $ids = $this->employeeIds;
 
         return [
-            new PersonalExport($sub),
-            new AdministrationExport($sub),
-            new BankExport($sub),
-            new TaxExport($sub),
-            new HealthInsuranceExport($sub),
-            new LicenseExport($sub),
-            new FamilyExport($sub),
-            new EducationExport($sub),
-            new CourseExport($sub),
-            new JobExperienceExport($sub),
-            new OperableunitExport($sub),
-            new EmergencycallExport($sub),
-            new AdditionaldataExport($sub),
-            new TerminationExport($sub),
+            new PersonalExport($ids),
+            new AdministrationExport($ids),
+            new BankExport($ids),
+            new TaxExport($ids),
+            new HealthInsuranceExport($ids),
+            new LicenseExport($ids),
+            new FamilyExport($ids),
+            new EducationExport($ids),
+            new CourseExport($ids),
+            new JobExperienceExport($ids),
+            new OperableunitExport($ids),
+            new EmergencycallExport($ids),
+            new AdditionaldataExport($ids),
+            new TerminationExport($ids),
         ];
     }
 }
