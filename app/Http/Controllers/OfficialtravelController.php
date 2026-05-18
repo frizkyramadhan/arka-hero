@@ -1311,6 +1311,11 @@ class OfficialtravelController extends Controller
             'details.follower.project',
             'stops.arrivalChecker',
             'stops.departureChecker',
+            'approval_plans' => function ($q) {
+                $q->orderBy('approval_order')->orderBy('id')->with([
+                    'approver.administration.position',
+                ]);
+            },
         ]);
 
         $printStop = null;

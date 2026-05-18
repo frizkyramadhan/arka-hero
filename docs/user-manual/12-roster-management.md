@@ -108,7 +108,16 @@ Tabel **Project Statistics** di bagian bawah merangkum kondisi roster per projec
 
 Halaman **Rosters** adalah pusat pengelolaan jadwal kerja tiap karyawan. Navigasi: **HERO SECTION** → **Roster Management** → **Rosters**.
 
-### 3.1 Daftar Roster per Proyek
+**Yang perlu dipahami:** jadwal roster tidak dibuat “sekali untuk selamanya”. Jadwal itu dibuat **per karyawan** dan **per penempatan di satu project** (di aplikasi ini tercatat sebagai satu baris **Administration**: kombinasi karyawan + project + jabatan/level).
+
+Dari penempatan itu aplikasi mengambil informasi berikut:
+
+- **Project** — menentukan **siapa saja** yang muncul ketika Anda memilih project di filter; cuti massal **Periodic Leave** juga mengikuti project bertipe roster.
+- **Level** — menentukan **berapa lama kerja dan berapa lama libur/cuti** menurut aturan jabatan, pola yang tertera sebagai **Pattern**. Hitungan seperti **FB Cycle Ratio** dan tanggal kerja/cuti otomatis mengikuti aturan level ini.
+- **Position** dan **Department** — untuk menampilkan kolom jabatan/departemen dan untuk mengelompokkan daftar pengajuan di **Periodic Leave Requests**.
+- **Cycle** (di kartu **Cycle Management**) — tiap baris adalah **satu giliran kerja–cuti** dalam satu roster yang sama.
+
+### 3.1 Daftar Roster per Project
 
 Halaman diawali dengan kartu **Project Filter** untuk memilih project terlebih dahulu sebelum daftar karyawan muncul.
 
@@ -492,7 +501,7 @@ Di bawah informasi utama, pengajuan dalam batch dikelompokkan berdasarkan **Depa
 | Gejala / pesan                                                                          | Kemungkinan penyebab                                                                    | Apa yang bisa dicoba                                                                          |
 | :-------------------------------------------------------------------------------------- | :-------------------------------------------------------------------------------------- | :-------------------------------------------------------------------------------------------- |
 | Tombol **Create** tidak muncul di kolom Action                                          | Level karyawan belum memiliki konfigurasi roster                                        | Hubungi administrator untuk mengatur konfigurasi Level                                        |
-| Tombol **Export** / **Calendar View** / **Create Periodic Leave** tidak aktif (abu-abu) | Proyek belum dipilih di filter                                                          | Pilih project terlebih dahulu di dropdown **Select Project**                                  |
+| Tombol **Export** / **Calendar View** / **Create Periodic Leave** tidak aktif (abu-abu) | Project belum dipilih di filter                                                         | Pilih project terlebih dahulu di dropdown **Select Project**                                  |
 | Setelah klik **Search Employees**, daftar karyawan kosong                               | Tidak ada karyawan yang jatuh tempo dalam rentang **Look Ahead Days**                   | Tambah nilai **Look Ahead Days** (misalnya 30 atau 60 hari) atau periksa data roster karyawan |
 | Import gagal dengan pesan kesalahan per baris                                           | Kolom wajib (NIK, Cycle No, Work Start, Work End) tidak diisi atau format tanggal salah | Periksa file Excel; pastikan format tanggal sesuai (`YYYY-MM-DD`) dan kolom wajib terisi      |
 | Tombol **Submit Leave Request** tidak aktif                                             | Belum ada karyawan yang dipilih atau approver belum ditentukan                          | Centang minimal satu karyawan dan pilih approver untuk setiap departemen                      |

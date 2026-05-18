@@ -87,7 +87,7 @@ class TerminationController extends Controller
         $request->validate([
             'termination_date' => 'required',
             'termination_reason' => 'required',
-            'coe_no' => 'required',
+            'coe_no' => 'nullable|string',
         ]);
 
         $administration = Administration::where('id', $id)->firstOrFail();
