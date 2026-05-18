@@ -1,6 +1,7 @@
 <!-- Termination Modals for Employment History -->
 @foreach ($administrations as $administration)
-    <div class="modal fade text-left" id="modal-termination-employment-{{ $administration->id }}">
+    <div class="modal fade text-left" id="modal-termination-employment-{{ $administration->id }}"
+        data-terminated="{{ $administration->is_active == 0 ? '1' : '0' }}">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header bg-danger">
@@ -95,7 +96,7 @@
                                                 class="form-control @error('termination_date') is-invalid @enderror termination-form-field"
                                                 id="termination_date_employment_{{ $administration->id }}"
                                                 name="termination_date"
-                                                value="{{ old('termination_date', $administration->termination_date) }}"
+                                                value="{{ old('termination_date', optional($administration->termination_date)->format('Y-m-d')) }}"
                                                 disabled required>
                                         </div>
                                         @error('termination_date')
@@ -271,6 +272,10 @@
                 const selectId = '#termination_reason_employment_' + administrationId;
                 const $modal = $(this);
 
+                if ($modal.attr('data-terminated') === '1') {
+                    $modal.find('.termination-checklist').prop('checked', true);
+                }
+
                 if ($(selectId).length) {
                     // Destroy existing Select2 if any
                     if ($(selectId).hasClass('select2-hidden-accessible')) {
@@ -283,6 +288,7 @@
                         width: '100%',
                         dropdownParent: $modal
                     });
+                    $(selectId).trigger('change');
                 }
 
                 // Initialize checklist state

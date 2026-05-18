@@ -5,7 +5,7 @@
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>LETTER OF OFFICIAL TRAVEL
-            @if (! empty($printStop))
+            @if (!empty($printStop))
                 — {{ \Illuminate\Support\Str::limit($printStop->destination, 48) }}
             @endif
         </title>
@@ -93,6 +93,86 @@
                 flex: 1;
             }
 
+            .signature-approval-meta {
+                margin-top: 8px;
+                margin-bottom: 4px;
+                line-height: 1.35;
+            }
+
+            .signature-approval-meta .approver-block+.approver-block {
+                margin-top: 10px;
+            }
+
+            .signature-section .signature-approver-name {
+                font-size: 10pt;
+                font-weight: 600;
+                color: #222;
+                margin-bottom: 4px;
+            }
+
+            .signature-section .signature-approver-position {
+                font-size: 9pt;
+                color: #444;
+                margin-bottom: 0;
+            }
+
+            .signature-section .signature-approval-status-row {
+                margin-bottom: 6px;
+            }
+
+            .signature-section .signature-approval-date {
+                font-size: 9pt;
+                color: #555;
+                margin-bottom: 8px;
+            }
+
+            /* Approval status pills — aligned with flight-requests/print.blade.php */
+            .signature-section .approval-status {
+                display: inline-block;
+                font-weight: 600;
+                font-size: 10.5pt;
+                letter-spacing: 0.02em;
+                text-transform: capitalize;
+                text-align: center;
+                line-height: 1.3;
+                padding: 5px 14px;
+                border-radius: 5px;
+                border: 1px solid transparent;
+                box-sizing: border-box;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+
+            .signature-section .approval-status.pending {
+                background: #fff3cd;
+                color: #856404;
+                border-color: #e6cf7a;
+            }
+
+            .signature-section .approval-status.approved {
+                background: #d4edda;
+                color: #155724;
+                border-color: #8fce9c;
+            }
+
+            .signature-section .approval-status.reject {
+                background: #f8d7da;
+                color: #721c24;
+                border-color: #e4a8ad;
+            }
+
+            .signature-section .approval-status.fr-doc-cancelled {
+                background: #fdebd0;
+                color: #533f03;
+                border-color: #e8c98f;
+            }
+
+            .signature-section .approval-status.fr-doc-submitted {
+                background: #fff8e6;
+                color: #856404;
+                border-color: #f0d77a;
+            }
+
             .signature-line {
                 margin: 40px 0 10px 0;
                 border-bottom: 1px solid #000;
@@ -134,6 +214,8 @@
             @media print {
                 body {
                     padding: 20px;
+                    print-color-adjust: exact;
+                    -webkit-print-color-adjust: exact;
                 }
             }
         </style>
@@ -149,7 +231,7 @@
             <div class="number">
                 No. {{ $officialtravel->official_travel_number }}
             </div>
-            @if (! empty($printStop))
+            @if (!empty($printStop))
                 <div class="text-center small font-weight-bold mb-2">
                     Print sheet: destination {{ $printStopLeg }} of {{ $officialtravel->stops->count() }} only
                 </div>
@@ -193,7 +275,7 @@
                 <div class="label">Destination(s)</div>
                 <div class="colon">:</div>
                 <div class="value">
-                    @if (! empty($printStop))
+                    @if (!empty($printStop))
                         {{ $printStop->destination }}
                         @if ($printStop->is_manual)
                             <span class="text-muted">(manual)</span>
@@ -232,7 +314,7 @@
                     <strong>Arrivals and Departures : </strong><i>(filled by officer on destination with Stamp and
                         Sign)</i>
                 </div>
-                @if (! empty($printStop))
+                @if (!empty($printStop))
                     <div class="mb-3">
                         <h6><strong>Destination {{ $printStopLeg }}</strong> — {{ $printStop->destination }}
                             @if ($printStop->is_manual)
@@ -430,6 +512,37 @@
                 </div>
             </div>
 
+            @php
+                $approvalPlanStatusLabels = [
+                    0 => 'Pending',
+                    1 => 'Approved',
+                    2 => 'Reject',
+                    3 => 'Cancelled',
+                    4 => 'Revised',
+                ];
+                $printApprovalPlans = ($officialtravel->approval_plans ?? collect())->sortBy([
+                    ['approval_order', 'asc'],
+                    ['id', 'asc'],
+                ]);
+                $printDistinctOrders = $printApprovalPlans
+                    ->pluck('approval_order')
+                    ->filter(fn($o) => $o !== null)
+                    ->unique()
+                    ->sort()
+                    ->values();
+                $printRecommendedPlans = collect();
+                $printFinalApprovalPlans = collect();
+                if ($printDistinctOrders->isNotEmpty()) {
+                    $printMinOrder = $printDistinctOrders->first();
+                    $printMaxOrder = $printDistinctOrders->last();
+                    $printRecommendedPlans = $printApprovalPlans->where('approval_order', $printMinOrder)->values();
+                    $printFinalApprovalPlans = $printApprovalPlans->where('approval_order', $printMaxOrder)->values();
+                } elseif ($printApprovalPlans->isNotEmpty()) {
+                    $printRecommendedPlans = $printApprovalPlans->values();
+                    $printFinalApprovalPlans = $printApprovalPlans->values();
+                }
+            @endphp
+
             <div class="signature-section">
                 <div class="signature-date">
                     Balikpapan, {{ date('d F Y', strtotime($officialtravel->official_travel_date)) }}
@@ -437,11 +550,85 @@
                 <div class="signature-boxes">
                     <div class="signature-box">
                         <div>Approved by,</div>
-                        <div style="margin-top: 70px">( Position )</div>
+                        <div class="signature-approval-meta">
+                            @forelse ($printFinalApprovalPlans as $plan)
+                                @php
+                                    $lotSt = (int) ($plan->status ?? 0);
+                                    $lotStatusText = $approvalPlanStatusLabels[$lotSt] ?? 'Pending';
+                                    $lotStatusClass = match ($lotSt) {
+                                        1 => 'approved',
+                                        2 => 'reject',
+                                        3 => 'fr-doc-cancelled',
+                                        4 => 'fr-doc-submitted',
+                                        default => 'pending',
+                                    };
+                                    $lotPlanTs = $plan->updated_at ?? $plan->created_at;
+                                    $lotApproverPosition = $plan->approver?->administration?->position?->position_name;
+                                @endphp
+                                <div class="approver-block">
+                                    <br>
+                                    <div class="signature-approval-status-row">
+                                        <span
+                                            class="approval-status {{ $lotStatusClass }}">{{ $lotStatusText }}</span>
+                                    </div>
+                                    <div class="signature-approval-date">
+                                        {{ $lotSt !== 0 && $lotPlanTs ? $lotPlanTs->format('d/m/Y') : '—' }}
+                                    </div>
+                                    <div class="signature-approver-name">{{ $plan->approver->name ?? '—' }}</div>
+                                    <div class="signature-approver-position">
+                                        {{ $lotApproverPosition ?? '—' }}
+                                    </div>
+                                </div>
+                            @empty
+                                <div class="text-muted">—</div>
+                            @endforelse
+                        </div>
+                        @if ($printFinalApprovalPlans->isEmpty())
+                            <div style="margin-top: 48px">( Position )</div>
+                        @else
+                            <div style="margin-top: 36px; min-height: 28px;" aria-hidden="true"></div>
+                        @endif
                     </div>
                     <div class="signature-box">
                         <div>Recommended by,</div>
-                        <div style="margin-top: 70px">( Position )</div>
+                        <div class="signature-approval-meta">
+                            @forelse ($printRecommendedPlans as $plan)
+                                @php
+                                    $lotSt = (int) ($plan->status ?? 0);
+                                    $lotStatusText = $approvalPlanStatusLabels[$lotSt] ?? 'Pending';
+                                    $lotStatusClass = match ($lotSt) {
+                                        1 => 'approved',
+                                        2 => 'reject',
+                                        3 => 'fr-doc-cancelled',
+                                        4 => 'fr-doc-submitted',
+                                        default => 'pending',
+                                    };
+                                    $lotPlanTs = $plan->updated_at ?? $plan->created_at;
+                                    $lotApproverPosition = $plan->approver?->administration?->position?->position_name;
+                                @endphp
+                                <div class="approver-block">
+                                    <br>
+                                    <div class="signature-approval-status-row">
+                                        <span
+                                            class="approval-status {{ $lotStatusClass }}">{{ $lotStatusText }}</span>
+                                    </div>
+                                    <div class="signature-approval-date">
+                                        {{ $lotSt !== 0 && $lotPlanTs ? $lotPlanTs->format('d/m/Y') : '—' }}
+                                    </div>
+                                    <div class="signature-approver-name">{{ $plan->approver->name ?? '—' }}</div>
+                                    <div class="signature-approver-position">
+                                        {{ $lotApproverPosition ?? '—' }}
+                                    </div>
+                                </div>
+                            @empty
+                                <div class="text-muted">—</div>
+                            @endforelse
+                        </div>
+                        @if ($printRecommendedPlans->isEmpty())
+                            <div style="margin-top: 48px">( Position )</div>
+                        @else
+                            <div style="margin-top: 36px; min-height: 28px;" aria-hidden="true"></div>
+                        @endif
                     </div>
                 </div>
             </div>
