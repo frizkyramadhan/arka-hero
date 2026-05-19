@@ -1,4 +1,7 @@
 @php
+    use App\Services\AdministrationYearsOfServiceCalculator;
+
+    $yearsOfServiceCalculator = new AdministrationYearsOfServiceCalculator();
     $loadingOverlay = '<div class="overlay-wrapper">
         <div class="overlay">
             <i class="fas fa-3x fa-sync-alt fa-spin"></i>
@@ -69,11 +72,13 @@
                         <td>{{ $administration->doh ? date('d M Y', strtotime($administration->doh)) : '-' }}
                         </td>
                         <td class="text-center">
-                            @if ($administration->doh)
-                                @php
-                                    $doh = \Carbon\Carbon::parse($administration->doh);
-                                    $yearsOfService = $doh->diffInYears(\Carbon\Carbon::now());
-                                @endphp
+                            @php
+                                $yearsOfService = $yearsOfServiceCalculator->calculateYears(
+                                    $administration,
+                                    $administrations,
+                                );
+                            @endphp
+                            @if ($yearsOfService !== null)
                                 {{ $yearsOfService }} year{{ $yearsOfService != 1 ? 's' : '' }}
                             @else
                                 -

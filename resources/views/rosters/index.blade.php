@@ -2,6 +2,70 @@
 
 @section('title', $title)
 
+@section('styles')
+    <style>
+        #modalImport .modal-content {
+            max-height: calc(100vh - 2rem);
+            display: flex;
+            flex-direction: column;
+        }
+
+        #modalImport .modal-import-form {
+            display: flex;
+            flex-direction: column;
+            flex: 1 1 auto;
+            min-height: 0;
+            overflow: hidden;
+        }
+
+        #modalImport .modal-body {
+            overflow-y: auto;
+            flex: 1 1 auto;
+            max-height: calc(100vh - 10rem);
+        }
+
+        #modalImportErrors {
+            font-size: 1rem;
+        }
+
+        #modalImportErrors ul {
+            font-size: 1rem;
+            line-height: 1.55;
+        }
+
+        #modalImportErrors ul li {
+            margin-bottom: 0.35rem;
+        }
+
+        #modalImport .import-modal-steps {
+            font-size: 0.925rem;
+            line-height: 1.5;
+        }
+
+        #modalImport .import-modal-steps ol {
+            padding-left: 1.25rem;
+        }
+
+        #modalImport .import-modal-columns {
+            font-size: 0.875rem;
+        }
+
+        #modalImport .import-modal-columns .wajib-col {
+            width: 3.5rem;
+        }
+
+        #modalImport .import-modal-upload {
+            background-color: #f8f9fa;
+        }
+
+        @media (max-width: 576px) {
+            #modalImport .modal-body {
+                max-height: calc(100vh - 8rem);
+            }
+        }
+    </style>
+@endsection
+
 @section('content')
     <div class="content-header">
         <div class="container-fluid">
@@ -36,7 +100,7 @@
                                     class="btn btn-sm btn-warning" title="Calendar View">
                                     <i class="fas fa-calendar-alt mr-1"></i> Calendar View
                                 </a>
-                                <a href="{{ route('rosters.export', ['project_id' => $selectedProject->id]) }}"
+                                <a href="{{ route('rosters.export', array_filter(['project_id' => $selectedProject->id, 'search' => $search])) }}"
                                     class="btn btn-sm btn-success" title="Export to Excel">
                                     <i class="fas fa-file-excel mr-1"></i> Export
                                 </a>
@@ -95,45 +159,21 @@
 
             <!-- Import Modal -->
             <div class="modal fade" id="modalImport" tabindex="-1">
-                <div class="modal-dialog">
+                <div class="modal-dialog modal-xl modal-dialog-scrollable modal-dialog-centered">
                     <div class="modal-content">
-                        <div class="modal-header bg-info">
-                            <h5 class="modal-title">Import Roster Data</h5>
+                        <div class="modal-header bg-info flex-shrink-0">
+                            <h5 class="modal-title"><i class="fas fa-file-import mr-2"></i>Import Roster Data</h5>
                             <button type="button" class="close text-white" data-dismiss="modal">
                                 <span>&times;</span>
                             </button>
                         </div>
-                        <form action="{{ route('rosters.import') }}" method="POST" enctype="multipart/form-data">
+                        <form action="{{ route('rosters.import') }}" method="POST" enctype="multipart/form-data"
+                            class="modal-import-form">
                             @csrf
-                            <div class="modal-body">
-                                <div class="form-group">
-                                    <label for="file">Select Excel File <span class="text-danger">*</span></label>
-                                    <input type="file" class="form-control-file" id="file" name="file"
-                                        accept=".xlsx,.xls" required>
-                                    <small class="form-text text-muted">
-                                        <i class="fas fa-info-circle"></i> File must be in .xlsx or .xls format (max 10MB)
-                                    </small>
-                                </div>
-                                <div class="alert alert-info">
-                                    <strong>Format:</strong> NIK, Full Name, Position, Level, Pattern, Cycle No, Work Start,
-                                    Work End, Adjusted Days,
-                                    Leave Start, Leave End, Remarks, Status<br>
-                                    <small><i class="fas fa-info-circle"></i> Position, Level, Pattern are informational
-                                        only. NIK, Cycle No, Work Start, and Work End are required.</small>
-                                </div>
-                                @if (session('failures'))
-                                    <div class="alert alert-warning">
-                                        <strong>Import Errors:</strong>
-                                        <ul class="mb-0">
-                                            @foreach (session('failures') as $failure)
-                                                <li>Row {{ $failure['row'] }} ({{ $failure['attribute'] }}):
-                                                    {{ $failure['errors'] }}</li>
-                                            @endforeach
-                                        </ul>
-                                    </div>
-                                @endif
+                            <div class="modal-body" id="modalImportBody">
+                                @include('rosters.partials.import-modal-body')
                             </div>
-                            <div class="modal-footer">
+                            <div class="modal-footer flex-shrink-0">
                                 <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
                                 <button type="submit" class="btn btn-primary">
                                     <i class="fas fa-upload mr-1"></i> Import
@@ -493,5 +533,21 @@
                 });
             });
         });
+
+        function scrollModalImportToErrors() {
+            var $body = $('#modalImportBody');
+            var $errors = $('#modalImportErrors');
+            if ($body.length && $errors.length) {
+                $body.scrollTop($errors.offset().top - $body.offset().top + $body.scrollTop() - 16);
+            }
+        }
+
+        $('#modalImport').on('shown.bs.modal', function() {
+            scrollModalImportToErrors();
+        });
+
+        @if (session('failures'))
+            $('#modalImport').modal('show');
+        @endif
     </script>
 @endsection

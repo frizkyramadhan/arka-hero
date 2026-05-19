@@ -56,10 +56,10 @@ Halaman **Dashboard** memberikan gambaran menyeluruh kondisi roster di seluruh p
 <p align="center" id="gambar-1-1">
     <img
         src="images/roster-dashboard.png"
-        alt="Halaman Dashboard Roster Management menampilkan empat kartu statistik di baris atas: Total Rosters, Active Cycles, On Leave, dan Periodic Requests"
-        style="max-width: 90%; width: 90%; height: auto;"
+        alt="Halaman Roster & Periodic Leave Dashboard: judul dan breadcrumb Home / Roster & Periodic Leave; empat kartu Total Rosters, Active Cycles, On Leave, Periodic Requests; tabel Balancing Roster Cycle dan Recent Periodic Leave Requests; tabel Project Statistics di bawah"
+        style="max-width: 85%; width: 85%; height: auto;"
     />
-    <br><em>Gambar 1.1 — Dashboard Roster Management</em>
+    <br><em>Gambar 1.1 — Roster &amp; Periodic Leave Dashboard</em>
 </p>
 
 ### Kartu Statistik
@@ -81,22 +81,15 @@ Tabel **Balancing Roster Cycle** menampilkan daftar karyawan yang jadwal kerjany
 - **Work Days Diff** — Selisih hari kerja; badge hijau berarti surplus, badge merah berarti defisit.
 - **Action** — Tombol **View** untuk langsung membuka detail roster karyawan bersangkutan.
 
-<p align="center" id="gambar-1-2">
-    <img
-        src="images/roster-dashboard-balancing.png"
-        alt="Tabel Balancing Roster Cycle menampilkan kolom Employee, NIK, Project, Work Days Diff dengan badge warna, dan tombol View di kolom Action"
-        style="max-width: 90%; width: 90%; height: auto;"
-    />
-    <br><em>Gambar 1.2 — Tabel Balancing Roster Cycle</em>
-</p>
+Contoh tampilan tabel ini ada pada bagian kiri layar di [Gambar 1.1](#gambar-1-1).
 
 ### Recent Periodic Leave Requests
 
-Tabel **Recent Periodic Leave Requests** di sisi kanan menampilkan lima batch pengajuan cuti terbaru dengan kolom **Batch ID**, **Notes**, **Total** (jumlah request dalam batch), **Status**, dan **Action** (tombol **View** menuju detail batch).
+Tabel **Recent Periodic Leave Requests** di sisi kanan menampilkan lima batch pengajuan cuti terbaru dengan kolom **Batch ID**, **Notes**, **Total** (jumlah request dalam batch), **Status**, dan **Action** (tombol **View** menuju detail batch). Layout kolom ini terlihat di kanan atas pada [Gambar 1.1](#gambar-1-1).
 
 ### Project Statistics
 
-Tabel **Project Statistics** di bagian bawah merangkum kondisi roster per project:
+Tabel **Project Statistics** di bagian bawah merangkum kondisi roster per project (lihat bagian bawah [Gambar 1.1](#gambar-1-1)):
 
 - **Project Code** — Kode project.
 - **Total Rosters** — Jumlah roster terdaftar di project tersebut.
@@ -108,12 +101,12 @@ Tabel **Project Statistics** di bagian bawah merangkum kondisi roster per projec
 
 Halaman **Rosters** adalah pusat pengelolaan jadwal kerja tiap karyawan. Navigasi: **HERO SECTION** → **Roster Management** → **Rosters**.
 
-**Yang perlu dipahami:** jadwal roster tidak dibuat “sekali untuk selamanya”. Jadwal itu dibuat **per karyawan** dan **per penempatan di satu project** (di aplikasi ini tercatat sebagai satu baris **Administration**: kombinasi karyawan + project + jabatan/level).
+**Yang perlu dipahami:** Jadwal roster dibuat **per karyawan** dan **per penempatan di satu project** (di aplikasi ini tercatat sebagai satu baris **Administration**: data karyawan + project + posisi + level), sehingga sangat bergantung pada data karyawan yang valid.
 
 Dari penempatan itu aplikasi mengambil informasi berikut:
 
 - **Project** — menentukan **siapa saja** yang muncul ketika Anda memilih project di filter; cuti massal **Periodic Leave** juga mengikuti project bertipe roster.
-- **Level** — menentukan **berapa lama kerja dan berapa lama libur/cuti** menurut aturan jabatan, pola yang tertera sebagai **Pattern**. Hitungan seperti **FB Cycle Ratio** dan tanggal kerja/cuti otomatis mengikuti aturan level ini.
+- **Level** — menentukan **berapa lama kerja dan berapa lama libur/cuti** menurut aturan jabatan, pola yang tertera sebagai **Roster Cycle**. Hitungan seperti **FB Cycle Ratio** dan tanggal kerja/cuti otomatis mengikuti aturan level ini.
 - **Position** dan **Department** — untuk menampilkan kolom jabatan/departemen dan untuk mengelompokkan daftar pengajuan di **Periodic Leave Requests**.
 - **Cycle** (di kartu **Cycle Management**) — tiap baris adalah **satu giliran kerja–cuti** dalam satu roster yang sama.
 
@@ -126,13 +119,15 @@ Halaman diawali dengan kartu **Project Filter** untuk memilih project terlebih d
 1. Pada field **Select Project**, pilih project yang diinginkan. Daftar karyawan akan muncul secara otomatis.
 2. Optionally, ketik NIK atau nama di field **Search Employee** lalu klik **Filter** untuk mempersempit hasil.
 
+Di pojok kanan atas kartu **Project Filter** tersedia tombol **Create Periodic Leave**, **Calendar View**, **Export**, dan **Import**. Tombol cuti massal, kalender, dan ekspor baru aktif setelah satu project dipilih; **Import** tetap dapat dibuka kapan saja. Selama belum ada project yang dipilih, kotak **Information** di bawah filter menampilkan pesan **Please select a project to view employees and manage their rosters.**
+
 <p align="center" id="gambar-3-1">
     <img
         src="images/roster-index-filter.png"
-        alt="Kartu Project Filter pada halaman Rosters dengan dropdown Select Project, field Search Employee, dan tombol Filter"
-        style="max-width: 90%; width: 90%; height: auto;"
+        alt="Halaman Roster Management: breadcrumb Home / Roster Management; kartu Project Filter dengan Select Project, Search Employee NIK or Name, tombol Filter; tombol Create Periodic Leave, Calendar View, Export, Import; kotak Information meminta memilih project terlebih dahulu"
+        style="max-width: 85%; width: 85%; height: auto;"
     />
-    <br><em>Gambar 3.1 — Filter project pada halaman Rosters</em>
+    <br><em>Gambar 3.1 — Kartu Project Filter pada halaman Rosters</em>
 </p>
 
 Setelah project dipilih, kartu **Employees** menampilkan tabel dengan kolom berikut:
@@ -143,25 +138,27 @@ Setelah project dipilih, kartu **Employees** menampilkan tabel dengan kolom beri
 | **Full Name** | Nama lengkap karyawan.                                                                                                             |
 | **Position**  | Nama jabatan.                                                                                                                      |
 | **Level**     | Kategori level jabatan (ditampilkan sebagai badge).                                                                                |
-| **Pattern**   | Pola siklus roster dari konfigurasi Level (misalnya `63/15`). Badge abu-abu berarti belum ada konfigurasi.                         |
+| **Pattern**   | Pola siklus roster dari konfigurasi Level (misalnya `2/8`).                                                                        |
 | **Cycles**    | Jumlah siklus yang sudah terdaftar dalam roster karyawan tersebut.                                                                 |
 | **Status**    | Status siklus aktif saat ini: **Active** (hijau), **On Leave** (kuning), **No Active Cycle** (biru), atau **No Roster** (abu-abu). |
 | **Action**    | Tombol aksi sesuai kondisi roster (lihat [bagian 3.2](#section-3-2-create)).                                                       |
 
+Contoh di bawah menampilkan **Project Filter** dengan project yang sudah dipilih, kartu **Employees** beserta jumlah karyawan di badge, serta baris dengan status **No Roster** (tombol **Create**) dan **No Active Cycle** (tombol **View** dan hapus roster).
+
 <p align="center" id="gambar-3-2">
     <img
         src="images/roster-index-list.png"
-        alt="Tabel Employees pada halaman Rosters menampilkan kolom NIK, Full Name, Position, Level, Pattern, Cycles, Status, dan Action"
-        style="max-width: 90%; width: 90%; height: auto;"
+        alt="Halaman Roster Management: Project Filter dengan Select Project terisi contoh 017C, Search Employee, tombol Filter dan empat tombol aksi; kartu Employees dengan badge jumlah karyawan; tabel kolom No, NIK, Full Name, Position, Level, Pattern, Cycles, Status, Action dengan badge dan tombol Create atau View serta hapus"
+        style="max-width: 85%; width: 85%; height: auto;"
     />
-    <br><em>Gambar 3.2 — Daftar karyawan roster per project</em>
+    <br><em>Gambar 3.2 — Filter project dan daftar karyawan (Employees)</em>
 </p>
 
 ### 3.2 Membuat Roster Baru
 
 <a id="section-3-2-create"></a>
 
-Karyawan yang **belum memiliki roster** dan levelnya sudah dikonfigurasi akan menampilkan tombol **Create** di kolom **Action**.
+Terdapat 2 cara untuk membuat roster, menambah manual masing-masing karyawan dan import excel untuk menambah beberapa karyawan sekaligus. Karyawan yang **belum memiliki roster** dan levelnya sudah dikonfigurasi akan menampilkan tombol **Create** di kolom **Action**.
 
 **Langkah-langkah:**
 
@@ -170,16 +167,7 @@ Karyawan yang **belum memiliki roster** dan levelnya sudah dikonfigurasi akan me
 3. Sistem akan membuat roster kosong (0 cycles) untuk karyawan tersebut.
 4. Kolom **Cycles** berubah menjadi `0 cycles` dan kolom **Action** berganti menampilkan tombol **View** dan **Delete**.
 
-**Catatan:** Jika karyawan belum memiliki konfigurasi roster di Level-nya, kolom **Action** menampilkan badge **Not Available** dan roster tidak dapat dibuat.
-
-<p align="center" id="gambar-3-3">
-    <img
-        src="images/roster-create-modal.png"
-        alt="Dialog konfirmasi Create Roster dengan nama karyawan, tombol Yes Create berwarna hijau, dan tombol Cancel"
-        style="max-width: 50%; width: 50%; height: auto;"
-    />
-    <br><em>Gambar 3.3 — Dialog konfirmasi pembuatan roster</em>
-</p>
+**Catatan:** Jika karyawan belum memiliki konfigurasi roster di Level-nya, kolom **Action** menampilkan badge **Not Available** dan roster tidak dapat dibuat. Cek data karyawan di **Employee Management** → **Employees** untuk melihat level dan project yang dari data tersebut menentukan **Roster Cycle**-nya.
 
 **Menghapus roster:** Klik tombol hapus (ikon tempat sampah merah) pada baris karyawan, lalu konfirmasi dialog **Delete Roster**. Seluruh data siklus akan ikut terhapus.
 
@@ -192,7 +180,7 @@ Klik tombol **View** (ikon mata biru) pada baris karyawan untuk membuka halaman 
 Kartu **Employee Information** menampilkan data dasar:
 
 - Kolom kiri: **NIK**, **Full Name**, **Position**, **Department**.
-- Kolom kanan: **Project**, **Level**, **Roster Cycle** (pola, misalnya `63/15`), **FB Cycle Ratio** (rasio konversi hari kerja ke hari cuti).
+- Kolom kanan: **Project**, **Level**, **Roster Cycle** (pola, misalnya `2/8`), **FB Cycle Ratio** (rasio konversi hari kerja ke hari cuti).
 
 #### Statistik Siklus
 
@@ -203,37 +191,41 @@ Empat kartu statistik di bawahnya menampilkan ringkasan akumulasi:
 - **Leave Balance** — Sisa saldo cuti.
 - **Work Days Difference** — Selisih hari kerja setelah diperhitungkan dengan FB Cycle Ratio; nilai positif berarti surplus kerja, nilai negatif perlu _balancing_.
 
+Judul halaman mengikuti pola **Roster Details - [nama karyawan]**; breadcrumb: **Home / Roster Management / Details**. Pada tangkapan layar berikut, kartu **Employee Information** dan keempat kartu statistik tampil berurutan dari atas ke bawah.
+
 <p align="center" id="gambar-3-4">
     <img
         src="images/roster-show-stats.png"
-        alt="Halaman detail roster menampilkan kartu Employee Information di atas dan empat kartu statistik Accumulated Leave, Leave Taken, Leave Balance, Work Days Difference"
+        alt="Halaman Roster Details: judul dengan nama karyawan, breadcrumb Home / Roster Management / Details; kartu Employee Information dua kolom berisi NIK, Full Name, Position, Department, Project, Level badge, Roster Cycle badge, FB Cycle Ratio badge, tombol Back; empat kartu statistik Accumulated Leave, Leave Taken, Leave Balance, Work Days Difference dengan angka hari"
         style="max-width: 90%; width: 90%; height: auto;"
     />
-    <br><em>Gambar 3.4 — Informasi karyawan dan statistik siklus</em>
+    <br><em>Gambar 3.4 — Employee Information dan statistik siklus</em>
 </p>
 
 #### Tabel Cycle Management
 
 Kartu **Cycle Management** menampilkan seluruh siklus dengan kolom:
 
-| Kolom            | Keterangan                                                                 |
-| :--------------- | :------------------------------------------------------------------------- |
-| **Cycle**        | Nomor siklus (misalnya `#1`, `#2`).                                        |
-| **Work Period**  | Rentang tanggal kerja (format dd/mm/yyyy).                                 |
-| **Work Days**    | Jumlah hari kerja aktual pada siklus ini.                                  |
-| **Adjusted**     | Nilai penyesuaian; hijau (+), merah (−), abu-abu (0).                      |
-| **Leave Period** | Rentang tanggal cuti; tanda `−` jika belum ditetapkan.                     |
-| **Leave Days**   | Jumlah hari cuti; tanda `−` jika belum ada Leave Period.                   |
-| **Entitlement**  | Hak cuti yang terakumulasi dari siklus ini (desimal).                      |
-| **Status**       | Status siklus saat ini (misalnya **Active**, **On Leave**, **Completed**). |
-| **Action**       | Tombol **View** (detail), **Edit** (ubah), **Delete** (hapus siklus).      |
+| Kolom            | Keterangan                                                                                                                         |
+| :--------------- | :--------------------------------------------------------------------------------------------------------------------------------- |
+| **Cycle**        | Nomor siklus (misalnya `#1`, `#2`).                                                                                                |
+| **Work Period**  | Rentang tanggal kerja (format dd/mm/yyyy).                                                                                         |
+| **Work Days**    | Jumlah hari kerja aktual pada siklus ini.                                                                                          |
+| **Adjusted**     | Nilai penyesuaian; hijau (+), merah (−), abu-abu (0).                                                                              |
+| **Leave Period** | Rentang tanggal cuti; tanda `−` jika belum ditetapkan.                                                                             |
+| **Leave Days**   | Jumlah hari cuti; tanda `−` jika belum ada Leave Period.                                                                           |
+| **Entitlement**  | Hak cuti yang terakumulasi dari siklus ini (desimal).                                                                              |
+| **Status**       | Status siklus saat ini, misalnya **Scheduled**, **Active**, **On Leave**, atau **Completed** (ditampilkan sebagai badge berwarna). |
+| **Action**       | Tombol **View** (detail), **Edit** (ubah), **Delete** (hapus siklus).                                                              |
 
 Jika karyawan memiliki **Remarks** pada suatu siklus, catatan tersebut ditampilkan di baris abu-abu tepat di bawah baris siklus bersangkutan.
+
+Pada tangkapan layar berikut tampak tombol **Add Cycle** di pojok kanan header kartu, beberapa baris siklus dengan status berbeda (**Completed**, **On Leave**, **Scheduled**), serta contoh baris **Remarks** di bawah siklus pertama.
 
 <p align="center" id="gambar-3-5">
     <img
         src="images/roster-show-cycles.png"
-        alt="Tabel Cycle Management menampilkan baris-baris siklus dengan kolom Work Period, Work Days, Adjusted, Leave Period, Leave Days, Entitlement, Status, dan tombol aksi"
+        alt="Kartu Cycle Management dengan tombol Add Cycle; tabel kolom Cycle, Work Period, Work Days badge biru, Adjusted badge abu atau hijau untuk nilai positif, Leave Period, Leave Days badge kuning, Entitlement badge teal, Status badge Completed atau On Leave atau Scheduled, Action dengan tombol View Edit Delete; baris Remarks opsional di bawah siklus"
         style="max-width: 90%; width: 90%; height: auto;"
     />
     <br><em>Gambar 3.5 — Tabel Cycle Management</em>
@@ -241,26 +233,26 @@ Jika karyawan memiliki **Remarks** pada suatu siklus, catatan tersebut ditampilk
 
 #### Menambah Siklus Baru
 
-Klik tombol **Add Cycle** di pojok kanan atas kartu **Cycle Management**. Modal **Add Cycle** akan terbuka.
+Klik tombol **Add Cycle** di pojok kanan atas kartu **Cycle Management**. Modal pembuka berjudul **Add Cycle Manually** (saat mengubah siklus yang sudah ada, judul modal menjadi **Edit Cycle**).
 
 **Penjelasan singkat — modal Add/Edit Cycle:**
 
 - **Work Period** (kiri):
-    - **Start Date** — Tanggal mulai kerja. Jika sudah ada siklus sebelumnya, nilai ini terisi otomatis dari Leave End siklus terakhir + 1 hari (tetap bisa diubah).
-    - **End Date** — Dihitung otomatis: Work Start + Work Days (dari Level) + Adjusted Days. Field ini _read-only_.
-    - **Adjusted Days** — Koreksi hari kerja; isi angka positif untuk menambah, negatif untuk mengurangi.
+    - **Start Date** — Tanggal mulai kerja. Jika sudah ada siklus sebelumnya, nilai ini terisi otomatis dari Leave End siklus terakhir + 1 hari (tetap bisa diubah). Teks bantuan: _Auto-set from last cycle if exists_.
+    - **End Date** — Dihitung otomatis dari Work Start + Work Days (dari **Level**) + Adjusted Days; field ini hanya baca. Di layar, rumus ditampilkan sebagai _Auto: work_start + [N] days + adjusted_days_ — angka **N** mengikuti konfigurasi level karyawan (contoh cuplikan: 56 hari).
+    - **Adjusted Days** — Koreksi hari kerja; positif (+) menambah, negatif (−) mengurangi (teks bantuan menyebut _Positive (+) to add days, Negative (-) to reduce days_).
 - **Leave Period** (kanan):
-    - **Start Date** — Dihitung otomatis: Work End + 1 hari. _Read-only_.
-    - **End Date** — Dihitung otomatis: Leave Start + 15 hari. _Read-only_.
-- **Remarks** — Catatan opsional untuk siklus ini.
+    - **Start Date** — Dihitung otomatis: Work End + 1 hari; hanya baca (_Auto: work_end + 1 day_).
+    - **End Date** — Dihitung otomatis dari Leave Start sesuai rumus di layar (_Auto: leave_start + 15 days_); hanya baca.
+- **Remarks** — Catatan opsional (_Optional notes..._).
 
 <p align="center" id="gambar-3-6">
     <img
         src="images/roster-cycle-modal.png"
-        alt="Modal Add Cycle dengan dua panel: Work Period (Start Date, End Date read-only, Adjusted Days) dan Leave Period (Start Date dan End Date read-only), serta field Remarks dan tombol Save"
-        style="max-width: 80%; width: 80%; height: auto;"
+        alt="Modal Add Cycle Manually berheader biru: dua kartu Work Period dan Leave Period berdampingan dengan Start Date wajib, End Date abu read-only, Adjusted Days, teks bantuan ikon info dan rumus otomatis; textarea Remarks placeholder Optional notes; footer tombol Cancel dan Save"
+        style="max-width: 53%; width: 53%; height: auto;"
     />
-    <br><em>Gambar 3.6 — Modal tambah/ubah siklus</em>
+    <br><em>Gambar 3.6 — Modal Add Cycle Manually</em>
 </p>
 
 Klik **Save** untuk menyimpan. Halaman akan dimuat ulang dan siklus baru muncul di tabel.
@@ -281,33 +273,50 @@ Di bagian bawah halaman terdapat kartu **Note** yang memuat kebijakan terkait cu
 
 ---
 
-### 3.4 Impor Data Roster dari Excel
+### 3.4 Ekspor Data Roster
+
+Setelah memilih project di halaman **Rosters**, klik tombol **Export** (hijau) di pojok kanan atas. File Excel akan langsung diunduh berisi data roster untuk project yang dipilih dan bisa digunakan untuk menginput data roster secara massal.
+
+**Catatan:** Tombol **Export** hanya aktif apabila project sudah dipilih. Jika Anda mengisi **Search Employee** (NIK atau nama) lalu klik **Filter**, data yang diekspor mengikuti hasil filter yang sama dengan tabel di layar (bukan seluruh karyawan project).
+
+### 3.5 Impor Data Roster dari Excel
 
 Fitur **Import** memungkinkan pengunggahan data roster secara massal dari file Excel.
 
-**Langkah-langkah:**
+**Langkah-langkah (disarankan: ekspor → edit → impor):**
 
-1. Di halaman **Rosters** (setelah memilih project atau tanpa pilih project), klik tombol **Import** (biru) di pojok kanan atas kartu **Project Filter**. Modal **Import Roster Data** terbuka.
-2. Klik **Select Excel File**, lalu pilih file berformat `.xlsx` atau `.xls` (maksimal 10 MB).
-3. Klik **Import** untuk memulai proses unggah.
+1. **Ekspor template dari project**
+    - Buka halaman **Rosters** dan pilih **project** di **Project Filter** (wajib agar tombol **Export** aktif).
+    - Klik tombol **Export** (hijau) di pojok kanan atas kartu **Project Filter**.
+    - File Excel (`roster-export-YYYY-MM-DD.xlsx`) terunduh berisi daftar karyawan roster project tersebut beserta siklus yang sudah ada (jika ada). Lihat juga **bagian 3.4** di atas.
+2. **Edit file Excel**
+    - Buka file hasil unduhan di Microsoft Excel atau aplikasi spreadsheet sejenis.
+    - **Jangan ubah** baris header (nama kolom) dan urutan kolom.
+    - Untuk **menambah siklus baru**: tambahkan baris baru; isi **NIK**, **Cycle No**, **Work Start**, dan **Adjusted Days** (jika perlu). Kolom **Work End**, **Leave Start**, **Leave End**, dan **Status** boleh dikosongkan — sistem menghitungnya otomatis (sama seperti **Add Cycle** di detail roster).
+    - Untuk **mengubah siklus yang sudah ada**: cari baris berdasarkan **NIK** + **Cycle No**, lalu ubah **Work Start** dan/atau **Adjusted Days**; kosongkan atau abaikan kolom tanggal cuti dan status agar dihitung ulang saat impor.
+    - Kolom **Full Name**, **Position**, dan **Level** hanya informasi; boleh dibiarkan dari hasil ekspor.
+    - Simpan file dalam format `.xlsx` atau `.xls`.
+3. **Impor file yang sudah diedit**
+    - Kembali ke halaman **Rosters**, klik tombol **Import** (biru) di pojok kanan atas kartu **Project Filter**. Modal **Import Roster Data** terbuka.
+    - Klik **Select Excel File**, lalu pilih file yang sudah Anda edit (maksimal 10 MB).
+    - Klik **Import** untuk memulai proses unggah. Baris dengan **NIK** + **Cycle No** yang sama akan diperbarui; baris baru akan menambah siklus (roster karyawan dibuat otomatis jika belum ada).
 
 **Format kolom Excel yang diterima (sesuai urutan):**
 
-| Kolom         | Wajib | Keterangan            |
-| :------------ | :---: | :-------------------- |
-| NIK           |   ✓   | Nomor Induk Karyawan  |
-| Full Name     |   —   | Informasional         |
-| Position      |   —   | Informasional         |
-| Level         |   —   | Informasional         |
-| Pattern       |   —   | Informasional         |
-| Cycle No      |   ✓   | Nomor siklus          |
-| Work Start    |   ✓   | Tanggal mulai kerja   |
-| Work End      |   ✓   | Tanggal selesai kerja |
-| Adjusted Days |   —   | Koreksi hari kerja    |
-| Leave Start   |   —   | Tanggal mulai cuti    |
-| Leave End     |   —   | Tanggal selesai cuti  |
-| Remarks       |   —   | Catatan               |
-| Status        |   —   | Informasional         |
+| Kolom         | Wajib | Keterangan                                                                     |
+| :------------ | :---: | :----------------------------------------------------------------------------- |
+| NIK           |   ✓   | Nomor Induk Karyawan                                                           |
+| Full Name     |   —   | Informasional                                                                  |
+| Position      |   —   | Informasional                                                                  |
+| Level         |   —   | Informasional                                                                  |
+| Cycle No      |   ✓   | Nomor siklus                                                                   |
+| Work Start    |   ✓   | Tanggal mulai kerja                                                            |
+| Work End      |   —   | Dihitung otomatis (Work Start + Work Days level + Adjusted Days); boleh kosong |
+| Adjusted Days |   ✓   | Koreksi hari kerja (default 0)                                                 |
+| Leave Start   |   —   | Dihitung otomatis (Work End + 1 hari); boleh kosong                            |
+| Leave End     |   —   | Dihitung otomatis (Leave Start + 15 hari); boleh kosong                        |
+| Remarks       |   —   | Catatan                                                                        |
+| Status        |   —   | Ditetapkan otomatis oleh sistem dari tanggal; boleh kosong                     |
 
 Jika ada baris yang gagal divalidasi, sistem menampilkan daftar kesalahan di dalam modal (baris mana dan kolom apa yang bermasalah).
 
@@ -315,16 +324,10 @@ Jika ada baris yang gagal divalidasi, sistem menampilkan daftar kesalahan di dal
     <img
         src="images/roster-import-modal.png"
         alt="Modal Import Roster Data dengan field pilih file Excel, keterangan format kolom, dan tombol Import berwarna biru"
-        style="max-width: 60%; width: 60%; height: auto;"
+        style="max-width: 80%; width: 80%; height: auto;"
     />
     <br><em>Gambar 3.7 — Modal impor data roster dari Excel</em>
 </p>
-
-### 3.5 Ekspor Data Roster
-
-Setelah memilih project di halaman **Rosters**, klik tombol **Export** (hijau) di pojok kanan atas. File Excel akan langsung diunduh berisi data seluruh roster untuk project yang dipilih.
-
-**Catatan:** Tombol **Export** hanya aktif apabila project sudah dipilih.
 
 ### 3.6 Calendar View
 
@@ -353,8 +356,8 @@ Nama karyawan pada kolom pertama adalah tautan yang dapat diklik untuk langsung 
 <p align="center" id="gambar-3-8">
     <img
         src="images/roster-calendar.png"
-        alt="Calendar View menampilkan tabel dengan kolom Employee, NIK, Position, diikuti kolom tanggal 1 hingga 31; setiap sel berisi badge W (Work Day), L (Leave Day), atau tanda abu-abu (Off Day)"
-        style="max-width: 90%; width: 90%; height: auto;"
+        alt="Halaman Roster Calendar View: filter Select Project, Month, Year, tombol Filter, Create Periodic Leave, dan Back to List; legenda W Work Day, L Leave Day, dan Off Day; tabel May 2026 dengan kolom Employee, NIK, Position, dan tanggal 1–16 berisi badge W atau L"
+        style="max-width: 85%; width: 85%; height: auto;"
     />
     <br><em>Gambar 3.8 — Calendar View roster per project</em>
 </p>
@@ -367,9 +370,15 @@ Nama karyawan pada kolom pertama adalah tautan yang dapat diklik untuk langsung 
 
 Menu **Periodic Leave Requests** digunakan untuk mengajukan cuti periodik secara massal bagi karyawan roster yang sudah memasuki atau mendekati masa cuti. Navigasi: **HERO SECTION** → **Roster Management** → **Periodic Leave Requests**.
 
+**Integrasi dengan Leave Management:** Setiap cuti periodik yang berhasil dibuat dari modul ini juga tercatat di menu **Leave Management** → **Requests** sebagai pengajuan cuti **individu per karyawan** (masing-masing dengan nomor register, tanggal cuti, status persetujuan, dan data flight jika ada). Batch di **Periodic Leave Requests** mengelompokkan pengajuan massal; detail dan alur persetujuan per karyawan dapat dilacak dari kedua menu tersebut.
+
 ### 4.1 Daftar Batch
 
-Halaman indeks menampilkan daftar seluruh batch pengajuan yang pernah dibuat, dengan kolom:
+Halaman indeks (**Periodic Leave Request Batches**) menampilkan seluruh batch pengajuan cuti periodik yang pernah dibuat. Di pojok kanan atas kartu tersedia tombol **+ Create Periodic Leave Request** (biru).
+
+Jika belum ada batch, halaman menampilkan pesan **No periodic leave requests found** beserta tombol **+ Create Periodic Leave Request** di tengah layar untuk memulai pengajuan pertama (lihat [Gambar 4.1](#gambar-4-1)).
+
+Setelah ada data, tabel batch menampilkan kolom:
 
 - **Batch ID** — Kode unik batch; klik untuk membuka detail.
 - **Total Requests** — Jumlah pengajuan cuti dalam batch ini.
@@ -380,17 +389,26 @@ Halaman indeks menampilkan daftar seluruh batch pengajuan yang pernah dibuat, de
 <p align="center" id="gambar-4-1">
     <img
         src="images/roster-periodic-index.png"
-        alt="Halaman Periodic Leave Requests menampilkan tabel daftar batch dengan kolom Batch ID, Total Requests, Notes, Created At, dan Actions"
-        style="max-width: 90%; width: 90%; height: auto;"
+        alt="Halaman Periodic Leave Requests: judul dan breadcrumb Home / Periodic Leave Requests; kartu Periodic Leave Request Batches dengan tombol Create Periodic Leave Request; tampilan kosong No periodic leave requests found dan tombol Create di tengah"
+        style="max-width: 85%; width: 85%; height: auto;"
     />
-    <br><em>Gambar 4.1 — Daftar batch Periodic Leave Requests</em>
+    <br><em>Gambar 4.1 — Halaman indeks Periodic Leave Requests (belum ada batch)</em>
 </p>
 
-Klik tombol **Create Periodic Leave Request** di pojok kanan atas untuk membuat pengajuan baru.
+Akses untuk mengajukan cuti periodik juga tersedia langsung melalui halaman roster.
 
 ### 4.2 Membuat Periodic Leave Request
 
 Halaman **Create Periodic Leave Request** terdiri atas beberapa bagian yang harus diisi secara berurutan.
+
+<p align="center" id="gambar-4-2">
+    <img
+        src="images/roster-periodic-create.png"
+        alt="Halaman Create Periodic Leave Request: breadcrumb Home / Periodic Leave Requests / Create; kartu Filter Periodic Leave Employees dengan Project, Department, Look Ahead Days, dan Search Employees; kartu Employee List kosong; Approval Preview; serta Notes & Submit dengan textarea dan tombol Submit Leave Request"
+        style="max-width: 80%; width: 80%; height: auto;"
+    />
+    <br><em>Gambar 4.2 — Halaman Create Periodic Leave Request (tampilan awal)</em>
+</p>
 
 #### Langkah-langkah — Filter Karyawan
 
@@ -400,17 +418,17 @@ Isi filter berikut lalu klik **Search Employees**:
 
 - **Project** _(wajib)_ — Pilih project bertipe roster.
 - **Department** _(opsional)_ — Biarkan kosong untuk semua departemen, atau pilih departemen tertentu.
-- **Look Ahead Days** — Jumlah hari ke depan sebagai rentang pencarian karyawan yang akan memasuki masa cuti (default: 14 hari, maksimal 60 hari).
+- **Look Ahead Days** — Jumlah hari ke depan sebagai rentang pencarian karyawan yang akan memasuki masa cuti (default: 14 hari).
 
 Klik **Search Employees** untuk memuat daftar karyawan.
 
-<p align="center" id="gambar-4-2">
+<p align="center" id="gambar-4-3">
     <img
         src="images/roster-periodic-create-filter.png"
-        alt="Bagian Filter Periodic Leave Employees dengan dropdown Project, Department, input Look Ahead Days, dan tombol Search Employees"
-        style="max-width: 90%; width: 90%; height: auto;"
+        alt="Kartu Filter Periodic Leave Employees: dropdown Project wajib Select Project, dropdown Department All Departments dengan keterangan opsional, input Look Ahead Days bernilai 14 dengan keterangan Days ahead, dan tombol biru Search Employees"
+        style="max-width: 80%; width: 80%; height: auto;"
     />
-    <br><em>Gambar 4.2 — Filter pencarian karyawan untuk Periodic Leave</em>
+    <br><em>Gambar 4.3 — Filter pencarian karyawan untuk Periodic Leave</em>
 </p>
 
 #### Langkah-langkah — Pemilihan Karyawan
@@ -428,39 +446,51 @@ Tabel karyawan yang memenuhi kriteria akan muncul dengan kolom:
 
 Gunakan tombol **Select All** atau **Deselect All** untuk memilih/membatalkan semua sekaligus. Badge **X selected** di pojok kanan kartu memperlihatkan jumlah karyawan yang dipilih.
 
-<p align="center" id="gambar-4-3">
+<p align="center" id="gambar-4-4">
     <img
         src="images/roster-periodic-create-employees.png"
-        alt="Tabel Employee List dengan checkbox di tiap baris, kolom NIK, Employee Name, Position, Department, Start Date, End Date, Roster Note, Status (badge Due/Upcoming), dan kolom Flight"
-        style="max-width: 90%; width: 90%; height: auto;"
+        alt="Halaman Create Periodic Leave Request setelah Search Employees: filter Project KPUC Malinau terisi; kartu Employee List dengan badge 2 selected, tombol Select All dan Deselect All, tabel karyawan berisi NIK, nama, posisi, departemen, Start Date, End Date, Status badge hari, dan ikon Flight pada baris terpilih"
+        style="max-width: 85%; width: 85%; height: auto;"
     />
-    <br><em>Gambar 4.3 — Daftar karyawan yang dapat disertakan dalam batch</em>
+    <br><em>Gambar 4.4 — Daftar karyawan yang dapat disertakan dalam batch</em>
 </p>
 
-**Menambah data tiket penerbangan (opsional):**
-Klik ikon pesawat di kolom **Flight?** pada baris karyawan. Modal **Add Flight Request** terbuka. Centang _Employee needs flight ticket reservation_, lalu isi segmen penerbangan (From, To, Date, Time, Airline). Tambah segmen lebih dari satu jika karyawan memerlukan penerbangan transit dengan klik **Add Flight Segment**. Klik **Save Flight Data** untuk menyimpan.
+**Menambah data tiket penerbangan per karyawan (opsional):**
+
+Klik ikon pesawat di kolom **Flight?** pada baris karyawan. Modal **Add Flight Request** terbuka. Centang _Employee needs flight ticket reservation_, lalu isi segmen penerbangan (From, To, Date, Time, Airline). Tambah segmen lebih dari satu jika karyawan memerlukan penerbangan transit dengan klik **Add Flight Segment**. Klik **Save Flight Data** untuk menyimpan. Permintaan tiket pesawat akan masuk ke menu **Flight Management** yang akan diproses oleh HO Balikpapan.
+
+<p align="center" id="gambar-4-5">
+    <img
+        src="images/roster-periodic-create-flight.png"
+        alt="Modal Add Flight Request Aidin Salindeho: checkbox Employee needs flight ticket reservation, tombol Add Flight Segment, form Flight 1 dengan From, To, Date, Time, Airline, serta tombol Cancel dan Save Flight Data"
+        style="max-width: 70%; width: 70%; height: auto;"
+    />
+    <br><em>Gambar 4.5 — Modal Add Flight Request (tiket penerbangan)</em>
+</p>
 
 #### Langkah-langkah — Approval & Pengiriman
 
 **3. Approval Preview**
 
-Setelah karyawan dipilih, bagian **Approval Preview** memuat alur persetujuan per departemen secara otomatis. Pilih approver yang sesuai untuk setiap departemen yang terwakili dalam batch.
+Setelah karyawan dipilih, bagian **Approval Preview** memuat alur persetujuan **per departemen** secara otomatis. Pilih approver yang sesuai untuk setiap departemen yang terwakili dalam batch.
 
 **4. Notes & Submit**
 
 - **Periodic Leave Notes** _(opsional)_ — Isi catatan umum untuk seluruh batch ini.
 - Klik tombol **Submit Leave Request (N Employees)** untuk mengirim semua pengajuan sekaligus. Nilai N menunjukkan jumlah karyawan yang dipilih.
 
-<p align="center" id="gambar-4-4">
+<p align="center" id="gambar-4-6">
     <img
         src="images/roster-periodic-create-approval.png"
-        alt="Panel Approval Preview di kiri menampilkan selector approver per departemen; panel Notes & Submit di kanan berisi textarea Periodic Leave Notes dan tombol Submit Leave Request"
-        style="max-width: 90%; width: 90%; height: auto;"
+        alt="Panel Approval Preview dengan kartu Plant dan Production masing-masing 1 employee, field pencarian approver, status Belum ada approver yang dipilih, dan Approval Rules Information; panel Notes & Submit berisi textarea Periodic Leave Notes serta tombol hijau Submit Leave Request (2 Employees) dan Cancel"
+        style="max-width: 85%; width: 85%; height: auto;"
     />
-    <br><em>Gambar 4.4 — Approval Preview dan panel Notes & Submit</em>
+    <br><em>Gambar 4.6 — Approval Preview dan panel Notes & Submit</em>
 </p>
 
 **Catatan:** Tombol **Submit** hanya aktif jika setidaknya satu karyawan sudah dipilih dan approver sudah ditentukan untuk setiap departemen yang terlibat.
+
+Setelah **Submit Leave Request** berhasil, cuti yang diajukan per karyawan akan dapat dilihat di **Leave Management** → **Requests** (masing-masing karyawan) serta di halaman detail batch **Periodic Leave Requests** (dikelompokkan per departemen).
 
 ### 4.3 Detail Batch
 
@@ -483,18 +513,21 @@ Di bawah informasi utama, pengajuan dalam batch dikelompokkan berdasarkan **Depa
 - **Start Date**, **End Date**, **Days** — Rentang dan jumlah hari cuti.
 - **Status** — Status masing-masing pengajuan.
 - **Flight** — Informasi tiket (jika ada).
-- **Action** — Tombol untuk melihat detail pengajuan individual.
+- **Action** — Tombol untuk melihat detail pengajuan individual (halaman yang sama dengan membuka baris terkait di **Leave Management** → **Requests**).
 
-<p align="center" id="gambar-4-5">
+<p align="center" id="gambar-4-7">
     <img
         src="images/roster-periodic-show.png"
-        alt="Halaman detail batch Periodic Leave Request menampilkan Batch Information di kiri, Batch Actions di kanan, dan tabel request dikelompokkan per departemen di bawahnya"
-        style="max-width: 90%; width: 90%; height: auto;"
+        alt="Halaman Periodic Leave Request Batch leave_20260519161130: Batch Information kiri berisi Batch ID, Created At, Total Requests, Created By; Batch Actions kanan dengan Cancel All Pending Requests dan Back to List; tabel Plant berisi register, NIK, karyawan, tanggal cuti, status Pending, info flight Draft, dan tombol View"
+        style="max-width: 85%; width: 85%; height: auto;"
     />
-    <br><em>Gambar 4.5 — Halaman detail batch Periodic Leave Request</em>
+    <br><em>Gambar 4.7 — Halaman detail batch Periodic Leave Request</em>
 </p>
 
 ---
+
+<br>
+<br>
 
 ## 5. Kesalahan & Bantuan
 
