@@ -416,6 +416,7 @@ class RosterController extends Controller
     public function export(Request $request)
     {
         $projectId = $request->get('project_id');
+        $search = $request->get('search', '');
         $fileName = 'roster-export-'.date('Y-m-d').'.xlsx';
 
         if ($projectId) {
@@ -423,7 +424,7 @@ class RosterController extends Controller
                 abort(403);
             }
 
-            return Excel::download(new RosterExport($projectId), $fileName);
+            return Excel::download(new RosterExport($projectId, null, $search), $fileName);
         }
 
         $scope = UserProject::assignmentScope(auth()->user());
@@ -431,7 +432,7 @@ class RosterController extends Controller
             abort(403, 'Tidak ada proyek yang di-assign untuk akun Anda.');
         }
 
-        return Excel::download(new RosterExport(null, $scope), $fileName);
+        return Excel::download(new RosterExport(null, $scope, $search), $fileName);
     }
 
     /**

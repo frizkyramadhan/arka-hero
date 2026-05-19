@@ -5,6 +5,7 @@ namespace App\Imports;
 use App\Models\Administration;
 use App\Models\Roster;
 use App\Models\RosterDetail;
+use App\Services\RosterCycleDateCalculator;
 use App\Support\UserProject;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
@@ -83,18 +84,10 @@ class RosterImport implements ToCollection, WithHeadingRow
     {
         $errors = [];
 
-        // Get required fields (support both old and new format)
         $nik = $this->getColumnValue($row, 'nik');
         $cycleNo = $this->getColumnValue($row, 'cycle_no');
         $workStart = $this->getColumnValue($row, 'work_start');
-        $workEnd = $this->getColumnValue($row, 'work_end');
 
-        // Optional fields (for backward compatibility, Position, Level, Pattern are informational only)
-        $position = $this->getColumnValue($row, 'position');
-        $level = $this->getColumnValue($row, 'level');
-        $pattern = $this->getColumnValue($row, 'pattern');
-
-        // Validate required fields
         if (empty($nik)) {
             $errors[] = 'NIK is required';
         }
@@ -107,16 +100,12 @@ class RosterImport implements ToCollection, WithHeadingRow
             $errors[] = 'Work Start is required';
         }
 
-        if (empty($workEnd)) {
-            $errors[] = 'Work End is required';
-        }
-
         if (! empty($errors)) {
             return ['success' => false, 'errors' => $errors];
         }
 
-        // Find administration by NIK
-        $administration = Administration::where('nik', $nik)
+        $administration = Administration::with('level')
+            ->where('nik', $nik)
             ->where('is_active', 1)
             ->first();
 
@@ -128,105 +117,55 @@ class RosterImport implements ToCollection, WithHeadingRow
             return ['success' => false, 'errors' => ['Tidak ada akses ke proyek untuk NIK: '.$nik]];
         }
 
-        // Check if level has roster config
         if (! $administration->level || ! $administration->level->hasRosterConfig()) {
             return ['success' => false, 'errors' => ['Level does not have roster configuration']];
         }
 
-        // Get or create roster
-        $roster = $this->getOrCreateRoster($administration);
-
-        // Validate dates - handle various formats including Excel serial dates
         try {
             $workStartDate = $this->parseDate($workStart);
-            $workEndDate = $this->parseDate($workEnd);
         } catch (\Exception $e) {
-            return ['success' => false, 'errors' => ['Invalid date format: '.$e->getMessage()]];
+            return ['success' => false, 'errors' => ['Invalid Work Start date format: '.$e->getMessage()]];
         }
 
-        if ($workEndDate->lt($workStartDate)) {
-            return ['success' => false, 'errors' => ['Work End must be after Work Start']];
-        }
-
-        // Parse optional dates
-        $leaveStartDate = null;
-        $leaveEndDate = null;
-        $leaveStart = $this->getColumnValue($row, 'leave_start');
-        $leaveEnd = $this->getColumnValue($row, 'leave_end');
-
-        if (! empty($leaveStart)) {
-            try {
-                $leaveStartDate = $this->parseDate($leaveStart);
-            } catch (\Exception $e) {
-                return ['success' => false, 'errors' => ['Invalid Leave Start date format']];
-            }
-        }
-
-        if (! empty($leaveEnd)) {
-            try {
-                $leaveEndDate = $this->parseDate($leaveEnd);
-            } catch (\Exception $e) {
-                return ['success' => false, 'errors' => ['Invalid Leave End date format']];
-            }
-        }
-
-        if ($leaveStartDate && $leaveEndDate && $leaveEndDate->lt($leaveStartDate)) {
-            return ['success' => false, 'errors' => ['Leave End must be after Leave Start']];
-        }
-
-        if ($leaveStartDate && $workEndDate && $leaveStartDate->lt($workEndDate)) {
-            return ['success' => false, 'errors' => ['Leave Start must be after or equal to Work End']];
-        }
-
-        // Get adjusted days - ensure it's always 0 if null or empty
         $adjustedDaysRaw = $this->getColumnValue($row, 'adjusted_days');
         $adjustedDays = 0;
         if ($adjustedDaysRaw !== null && $adjustedDaysRaw !== '' && $adjustedDaysRaw !== '0') {
             $adjustedDays = (int) $adjustedDaysRaw;
         }
+
+        $workDays = RosterCycleDateCalculator::getWorkDaysFromLevel($administration->level);
+        $calculatedDates = RosterCycleDateCalculator::calculate($workStartDate, $workDays, $adjustedDays);
+
+        $workEndDate = $calculatedDates['work_end'];
+        $leaveStartDate = $calculatedDates['leave_start'];
+        $leaveEndDate = $calculatedDates['leave_end'];
+
         $remarks = $this->getColumnValue($row, 'remarks') ?? '';
-        $status = $this->getColumnValue($row, 'status') ?? 'scheduled';
 
-        // Validate status
-        $validStatuses = ['scheduled', 'active', 'on_leave', 'completed'];
-        if (! in_array($status, $validStatuses)) {
-            $status = 'scheduled';
-        }
+        $roster = $this->getOrCreateRoster($administration);
 
-        // Check if cycle already exists
         $existingDetail = RosterDetail::where('roster_id', $roster->id)
             ->where('cycle_no', $cycleNo)
             ->first();
 
-        if ($existingDetail) {
-            // Update existing cycle
-            $existingDetail->update([
-                'work_start' => $workStartDate,
-                'work_end' => $workEndDate,
-                'adjusted_days' => $adjustedDays,
-                'leave_start' => $leaveStartDate,
-                'leave_end' => $leaveEndDate,
-                'remarks' => $remarks,
-                'status' => $status,
-            ]);
+        $cycleData = [
+            'work_start' => $workStartDate,
+            'work_end' => $workEndDate,
+            'adjusted_days' => $adjustedDays,
+            'leave_start' => $leaveStartDate,
+            'leave_end' => $leaveEndDate,
+            'remarks' => $remarks,
+            'status' => 'scheduled',
+        ];
 
-            // Auto-update status based on dates
+        if ($existingDetail) {
+            $existingDetail->update($cycleData);
             $existingDetail->updateStatus();
         } else {
-            // Create new cycle
-            $newDetail = RosterDetail::create([
+            $newDetail = RosterDetail::create(array_merge($cycleData, [
                 'roster_id' => $roster->id,
                 'cycle_no' => $cycleNo,
-                'work_start' => $workStartDate,
-                'work_end' => $workEndDate,
-                'adjusted_days' => $adjustedDays,
-                'leave_start' => $leaveStartDate,
-                'leave_end' => $leaveEndDate,
-                'remarks' => $remarks,
-                'status' => $status,
-            ]);
-
-            // Auto-update status based on dates
+            ]));
             $newDetail->updateStatus();
         }
 
@@ -259,7 +198,6 @@ class RosterImport implements ToCollection, WithHeadingRow
 
     private function getColumnValue($row, $columnName)
     {
-        // Try different column name variations
         $variations = [
             strtolower($columnName),
             str_replace('_', ' ', strtolower($columnName)),
@@ -281,7 +219,6 @@ class RosterImport implements ToCollection, WithHeadingRow
 
     /**
      * Parse date from various formats including Excel serial dates
-     * Supports: Y-m-d, d/m/Y, d-m-Y, d.m.Y, Excel serial number, etc.
      */
     private function parseDate($value)
     {
@@ -289,25 +226,21 @@ class RosterImport implements ToCollection, WithHeadingRow
             return null;
         }
 
-        // Handle Excel serial date number (numeric value)
         if (is_numeric($value)) {
             try {
                 $timestamp = ExcelDate::excelToTimestamp($value);
 
                 return Carbon::createFromTimestamp($timestamp);
             } catch (\Exception $e) {
-                // If not Excel date, try as regular number (Unix timestamp)
                 if (is_numeric($value) && $value > 0 && $value < 2147483647) {
                     return Carbon::createFromTimestamp($value);
                 }
             }
         }
 
-        // Try Carbon parse (handles most date formats)
         try {
             return Carbon::parse($value);
         } catch (\Exception $e) {
-            // Try common date formats manually
             $formats = [
                 'Y-m-d',
                 'd/m/Y',
@@ -338,17 +271,13 @@ class RosterImport implements ToCollection, WithHeadingRow
 
     private function isEmptyRow($row)
     {
-        $requiredFields = ['nik', 'cycle_no', 'work_start', 'work_end'];
-        $hasAnyValue = false;
-
-        foreach ($row as $key => $value) {
-            if (! empty($value) && trim($value) !== '') {
-                $hasAnyValue = true;
-                break;
+        foreach ($row as $value) {
+            if (! empty($value) && (is_string($value) ? trim($value) !== '' : true)) {
+                return false;
             }
         }
 
-        return ! $hasAnyValue;
+        return true;
     }
 
     public function getSuccessCount()

@@ -28,10 +28,13 @@ class RosterExport implements FromCollection, ShouldAutoSize, WithColumnFormatti
      */
     private ?array $scopeProjectIds;
 
-    public function __construct($projectId = null, ?array $scopeProjectIds = null)
+    private ?string $search;
+
+    public function __construct($projectId = null, ?array $scopeProjectIds = null, ?string $search = null)
     {
         $this->projectId = $projectId;
         $this->scopeProjectIds = $scopeProjectIds;
+        $this->search = $search !== null && trim($search) !== '' ? trim($search) : null;
     }
 
     public function collection()
@@ -57,6 +60,16 @@ class RosterExport implements FromCollection, ShouldAutoSize, WithColumnFormatti
             } else {
                 $query->whereIn('project_id', $this->scopeProjectIds);
             }
+        }
+
+        if ($this->search !== null) {
+            $search = $this->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('nik', 'like', "%{$search}%")
+                    ->orWhereHas('employee', function ($employeeQuery) use ($search) {
+                        $employeeQuery->where('fullname', 'like', "%{$search}%");
+                    });
+            });
         }
 
         $administrations = $query->orderBy('nik')->get();

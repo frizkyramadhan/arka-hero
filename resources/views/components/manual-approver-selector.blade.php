@@ -54,8 +54,8 @@
         ->map(function ($approver) {
             return [
                 'id' => $approver->id,
-                'name' => $approver->name,
-                'email' => $approver->email,
+                'name' => $approver->name ?? '',
+                'email' => $approver->email ?? '',
             ];
         })
         ->values();
@@ -653,6 +653,19 @@
                 // Selected approver IDs
                 let selectedIds = @json($selectedApproversData->pluck('id')->toArray());
 
+                function approverDisplayName(approver) {
+                    const name = (approver.name || '').trim();
+                    if (name) {
+                        return name;
+                    }
+                    const email = (approver.email || '').trim();
+                    return email || 'Unknown';
+                }
+
+                function approverSearchHaystack(approver) {
+                    return ((approver.name || '') + ' ' + (approver.email || '')).toLowerCase();
+                }
+
                 // Search functionality
                 $searchInput.on('input', function() {
                     const searchTerm = $(this).val().toLowerCase().trim();
@@ -668,8 +681,7 @@
                         if (selectedIds.some(id => String(id) === String(approver.id))) {
                             return false;
                         }
-                        return approver.name.toLowerCase().includes(searchTerm) ||
-                            approver.email.toLowerCase().includes(searchTerm);
+                        return approverSearchHaystack(approver).includes(searchTerm);
                     });
 
                     // Render approver buttons
@@ -681,9 +693,9 @@
                                 .addClass('approver-item-btn')
                                 .data('approver-id', approver.id)
                                 .html(
-                                    '<span class="approver-item-name">' + approver.name +
+                                    '<span class="approver-item-name">' + approverDisplayName(approver) +
                                     '</span>' +
-                                    '<span class="approver-item-email">' + approver.email +
+                                    '<span class="approver-item-email">' + (approver.email || '') +
                                     '</span>'
                                 );
                             $approverList.append($btn);
@@ -717,8 +729,8 @@
                         .html(
                             '<span class="approver-order">' + order + '</span>' +
                             '<div class="approver-info">' +
-                            '<span class="approver-name">' + approver.name + '</span>' +
-                            '<span class="approver-email">' + approver.email + '</span>' +
+                            '<span class="approver-name">' + approverDisplayName(approver) + '</span>' +
+                            '<span class="approver-email">' + (approver.email || '') + '</span>' +
                             '</div>' +
                             '<button type="button" class="btn-remove-approver" data-approver-id="' +
                             approverId + '">' +
