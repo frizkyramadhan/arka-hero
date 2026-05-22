@@ -78,6 +78,43 @@ class LetterNumber extends Model
         }
     }
 
+    /**
+     * URL halaman dokumen terkait untuk Integration Information / View Document.
+     */
+    public function relatedDocumentRoute(): ?string
+    {
+        if (! $this->related_document_type || ! $this->related_document_id) {
+            return null;
+        }
+
+        $id = $this->related_document_id;
+
+        return match ($this->related_document_type) {
+            'officialtravel' => route('officialtravels.show', $id),
+            'recruitment_request' => route('recruitment.requests.show', $id),
+            'recruitment_offering', 'recruitment_hiring' => route('recruitment.sessions.candidate', $id),
+            'flight_request_issuance' => route('flight-issuances.show', $id),
+            'employee_bond' => route('employee-bonds.show', $id),
+            default => null,
+        };
+    }
+
+    /**
+     * Label tombol View … pada kartu Integration Information.
+     */
+    public function relatedDocumentLinkLabel(): string
+    {
+        return match ($this->related_document_type) {
+            'officialtravel' => 'Official Travel Letter',
+            'recruitment_request' => 'Recruitment Request',
+            'recruitment_offering' => 'Recruitment Session',
+            'recruitment_hiring' => 'Recruitment Session',
+            'flight_request_issuance' => 'Letter of Guarantee',
+            'employee_bond' => 'Employee Bond',
+            default => 'Document',
+        };
+    }
+
     // Accessor untuk mendapatkan data employee melalui administration
     public function getEmployeeAttribute()
     {

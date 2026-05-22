@@ -187,6 +187,11 @@
                             </div>
                         </div>
 
+                        @include('flight-requests.partials.standalone-followers-form', [
+                            'followerEmployeeOptions' => $followerEmployeeOptions,
+                            'existingFollowers' => collect(),
+                        ])
+
                         <!-- LOT followers (same info as detail; card chrome matches other create cards) -->
                         <div id="lot_followers_card" class="card card-primary card-outline elevation-3 mb-3"
                             style="display: none;">
@@ -504,6 +509,9 @@
                     $('#source_document_group').show();
                     $('#source_document_label_text').text('Select Employee');
                     $('#manual_input_group').show();
+                    if (typeof toggleStandaloneFollowersCard === 'function') {
+                        toggleStandaloneFollowersCard();
+                    }
                 } else {
                     $('#source_document_group').hide();
                     $('#manual_input_group').hide();
@@ -527,6 +535,9 @@
                     $('#employee_info_card').show();
                     $('#flight_details_card').show();
                     clearFollowersFromNotes();
+                    if (typeof toggleStandaloneFollowersCard === 'function') {
+                        toggleStandaloneFollowersCard();
+                    }
                 } else {
                     // Show employee dropdown
                     $('#source_document_group').show();
@@ -666,7 +677,11 @@
 
                 // Show flight details card
                 $('#flight_details_card').show();
+                if (typeof toggleStandaloneFollowersCard === 'function') {
+                    toggleStandaloneFollowersCard();
+                }
             }
+            window.fillEmployeeInfo = fillEmployeeInfo;
 
             // Clear Employee Information
             function clearEmployeeInfo() {
@@ -687,7 +702,11 @@
                 // Hide flight details card and clear follower info from notes
                 $('#flight_details_card').hide();
                 clearFollowersFromNotes();
+                if (typeof toggleStandaloneFollowersCard === 'function') {
+                    toggleStandaloneFollowersCard();
+                }
             }
+            window.clearEmployeeInfo = clearEmployeeInfo;
 
             // Clear Followers Information from Notes Textarea (legacy auto-append removed)
             function clearFollowersFromNotes() {
@@ -861,4 +880,5 @@
             detailIndex = $('.flight-detail-item').length;
         }
     </script>
+    @include('flight-requests.partials.standalone-followers-scripts')
 @endsection

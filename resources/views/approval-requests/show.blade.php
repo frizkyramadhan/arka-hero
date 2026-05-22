@@ -75,9 +75,22 @@
                         @endif
                     @endif
                 </div>
-                <div class="document-status-pill status-pending-approval">
-                    <i class="fas fa-clock"></i>
-                    Pending Approval
+                <div @class([
+                    'document-status-pill',
+                    'status-pending-approval' => (int) $approvalPlan->status === 0,
+                    'status-approved' => (int) $approvalPlan->status === 1,
+                    'status-rejected' => (int) $approvalPlan->status === 2,
+                ])>
+                    @if ((int) $approvalPlan->status === 1)
+                        <i class="fas fa-check-circle"></i>
+                        Approved
+                    @elseif ((int) $approvalPlan->status === 2)
+                        <i class="fas fa-times-circle"></i>
+                        Rejected
+                    @else
+                        <i class="fas fa-clock"></i>
+                        Pending Approval
+                    @endif
                 </div>
             </div>
         </div>
@@ -596,7 +609,15 @@
                             </div>
                         </div>
                     @elseif($approvalPlan->document_type === 'leave_request')
-                        @php $document = App\Models\LeaveRequest::with(['employee.administrations.position.department', 'employee.administrations.project', 'leaveType', 'requestedBy'])->find($approvalPlan->document_id); @endphp
+                        @php
+                            $document = App\Models\LeaveRequest::with([
+                                'employee.administrations.position.department',
+                                'employee.administrations.project',
+                                'leaveType',
+                                'requestedBy',
+                            ])->find($approvalPlan->document_id);
+                            $leaveEntitlement = $document?->matchingEntitlement();
+                        @endphp
 
                         <!-- Leave Request Information Card -->
                         <div class="document-card document-info-card">
@@ -651,9 +672,25 @@
                                             <i class="fas fa-calculator"></i>
                                         </div>
                                         <div class="info-content">
-                                            <div class="info-label">Total Days</div>
-                                            <div class="info-value">{{ $document->total_days }}
-                                                {{ $document->total_days > 1 ? 'days' : 'day' }}</div>
+                                            <div class="leave-days-grid">
+                                                <div class="info-label">Total Days</div>
+                                                <div class="info-label">Sisa Cuti</div>
+                                                <div class="info-value leave-days-total">
+                                                    {{ $document->total_days }}
+                                                    {{ $document->total_days > 1 ? 'days' : 'day' }}
+                                                </div>
+                                                <div class="info-value leave-days-remaining-value">
+                                                    @if ($leaveEntitlement)
+                                                        <span
+                                                            class="badge badge-{{ $leaveEntitlement->remaining_days > 0 ? 'info' : 'secondary' }}">
+                                                            {{ $leaveEntitlement->remaining_days }}
+                                                            {{ $leaveEntitlement->remaining_days > 1 ? 'days' : 'day' }}
+                                                        </span>
+                                                    @else
+                                                        <span class="text-muted">N/A</span>
+                                                    @endif
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                     <div class="info-item">
@@ -674,7 +711,8 @@
                                         <div class="info-content">
                                             <div class="info-label">Requested At</div>
                                             <div class="info-value">
-                                                {{ $document->created_at ? format_datetime_with_weekday($document->created_at) : 'N/A' }}</div>
+                                                {{ $document->created_at ? format_datetime_with_weekday($document->created_at) : 'N/A' }}
+                                            </div>
                                         </div>
                                     </div>
                                     <div class="info-item">
@@ -753,6 +791,9 @@
                                 'officialTravel.details.follower.employee',
                                 'officialTravel.details.follower.position.department',
                                 'officialTravel.details.follower.project',
+                                'followers.employee',
+                                'followers.administration.position.department',
+                                'followers.administration.project',
                             ])->find($approvalPlan->document_id);
 
                             $employee = $document->employee;
@@ -872,45 +913,9 @@
                             </div>
                         </div>
 
-                        @if (
-                            $document->request_type === \App\Models\FlightRequest::TYPE_TRAVEL_BASED &&
-                                $document->officialTravel &&
-                                $document->officialTravel->details->isNotEmpty())
-                            <div class="flight-request-card followers-card flight-request-lot-followers mb-4">
-                                <div class="card-head">
-                                    <h2><i class="fas fa-users"></i> Followers <span
-                                            class="followers-count">{{ $document->officialTravel->details->count() }}</span>
-                                    </h2>
-                                </div>
-                                <div class="card-body p-0">
-                                    <div class="followers-list">
-                                        @foreach ($document->officialTravel->details as $detail)
-                                            <div class="follower-item">
-                                                <div class="follower-info">
-                                                    <div class="follower-name">
-                                                        {{ $detail->follower->employee->fullname ?? 'Unknown Employee' }}
-                                                    </div>
-                                                    <div class="follower-position">
-                                                        {{ $detail->follower->position->position_name ?? 'No Position' }}
-                                                    </div>
-                                                    <div class="follower-meta">
-                                                        <span class="follower-nik"><i class="fas fa-id-card"></i>
-                                                            {{ $detail->follower->nik }}</span>
-                                                        <span class="follower-department"><i class="fas fa-sitemap"></i>
-                                                            {{ $detail->follower->position->department->department_name ?? 'No Department' }}</span>
-                                                    </div>
-                                                    <div class="follower-project">
-                                                        <i class="fas fa-project-diagram"></i>
-                                                        {{ $detail->follower->project->project_code ?? 'No Code' }} :
-                                                        {{ $detail->follower->project->project_name ?? 'No Project' }}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        @endforeach
-                                    </div>
-                                </div>
-                            </div>
-                        @endif
+                        @include('flight-requests.partials.followers-display-card', [
+                            'flightRequest' => $document,
+                        ])
 
                         <!-- Flight Details -->
                         <div class="flight-request-card flight-details-card">
@@ -1045,71 +1050,103 @@
 
                 <!-- Approval Form -->
                 <div class="col-lg-4">
-                    <!-- Approval Decision -->
-                    <div class="document-card approval-card">
-                        <div class="card-head">
-                            <h2><i class="fas fa-user-shield"></i> Approval Decision</h2>
-                        </div>
-                        <div class="card-body">
-                            <!-- Decision Buttons -->
-                            <div class="decision-buttons mb-4">
-                                <div class="decision-header">
-                                    <h3>Choose Your Decision</h3>
-                                    <p>Select one of the options below to proceed</p>
-                                </div>
-                                <div class="decision-options">
-                                    <button type="button" class="decision-btn approve-btn" data-status="1">
-                                        <div class="btn-icon">
-                                            <i class="fas fa-check-circle"></i>
-                                        </div>
-                                        <div class="btn-content">
-                                            <div class="btn-title">Approve</div>
-                                        </div>
-                                    </button>
-                                    <button type="button" class="decision-btn reject-btn" data-status="2">
-                                        <div class="btn-icon">
-                                            <i class="fas fa-times-circle"></i>
-                                        </div>
-                                        <div class="btn-content">
-                                            <div class="btn-title">Reject</div>
-                                        </div>
-                                    </button>
-                                </div>
+                    @if ((int) $approvalPlan->status === 0)
+                        <!-- Approval Decision -->
+                        <div class="document-card approval-card">
+                            <div class="card-head">
+                                <h2><i class="fas fa-user-shield"></i> Approval Decision</h2>
                             </div>
+                            <div class="card-body">
+                                <!-- Decision Buttons -->
+                                <div class="decision-buttons mb-4">
+                                    <div class="decision-header">
+                                        <h3>Choose Your Decision</h3>
+                                        <p>Select one of the options below to proceed</p>
+                                    </div>
+                                    <div class="decision-options">
+                                        <button type="button" class="decision-btn approve-btn" data-status="1">
+                                            <div class="btn-icon">
+                                                <i class="fas fa-check-circle"></i>
+                                            </div>
+                                            <div class="btn-content">
+                                                <div class="btn-title">Approve</div>
+                                            </div>
+                                        </button>
+                                        <button type="button" class="decision-btn reject-btn" data-status="2">
+                                            <div class="btn-icon">
+                                                <i class="fas fa-times-circle"></i>
+                                            </div>
+                                            <div class="btn-content">
+                                                <div class="btn-title">Reject</div>
+                                            </div>
+                                        </button>
+                                    </div>
+                                </div>
 
-                            <!-- Approval Form -->
-                            <form action="{{ route('approval.requests.process', $approvalPlan->id) }}" method="POST"
-                                id="approvalForm">
-                                @csrf
-                                <input type="hidden" name="status" id="status" value="">
+                                <!-- Approval Form -->
+                                <form action="{{ route('approval.requests.process', $approvalPlan->id) }}"
+                                    method="POST" id="approvalForm">
+                                    @csrf
+                                    <input type="hidden" name="status" id="status" value="">
 
-                                <div class="form-group">
-                                    <label for="remarks">Approval Notes <span class="text-danger">*</span></label>
-                                    <textarea class="form-control @error('remarks') is-invalid @enderror" name="remarks" id="remarks" rows="4"
-                                        placeholder="Please provide your approval details:
+                                    <div class="form-group">
+                                        <label for="remarks">Approval Notes <span class="text-danger">*</span></label>
+                                        <textarea class="form-control @error('remarks') is-invalid @enderror" name="remarks" id="remarks" rows="4"
+                                            placeholder="Please provide your approval details:
 • Decision rationale
 • Any conditions or requirements
 • Additional notes or observations"
-                                        required>{{ old('remarks') }}</textarea>
-                                    @error('remarks')
-                                        <div class="invalid-feedback">{{ $message }}</div>
-                                    @enderror
-                                </div>
+                                            required>{{ old('remarks') }}</textarea>
+                                        @error('remarks')
+                                            <div class="invalid-feedback">{{ $message }}</div>
+                                        @enderror
+                                    </div>
 
-                                <div class="form-actions">
-                                    <button type="submit" class="btn btn-success btn-block submit-btn" disabled>
-                                        <i class="fas fa-paper-plane"></i>
-                                        Submit Decision
-                                    </button>
-                                    <a href="{{ route('approval.requests.index') }}"
-                                        class="btn btn-secondary btn-block mt-2">
-                                        <i class="fas fa-times"></i>
-                                        Cancel
-                                    </a>
-                                </div>
-                            </form>
+                                    <div class="form-actions">
+                                        <button type="submit" class="btn btn-success btn-block submit-btn" disabled>
+                                            <i class="fas fa-paper-plane"></i>
+                                            Submit Decision
+                                        </button>
+                                        <a href="{{ route('approval.requests.index') }}"
+                                            class="btn btn-secondary btn-block mt-2">
+                                            <i class="fas fa-times"></i>
+                                            Cancel
+                                        </a>
+                                    </div>
+                                </form>
+                            </div>
                         </div>
-                    </div>
+                    @else
+                        <div class="document-card approval-card">
+                            <div class="card-head">
+                                <h2><i class="fas fa-user-shield"></i> Your Decision</h2>
+                            </div>
+                            <div class="card-body">
+                                <div
+                                    class="alert @if ((int) $approvalPlan->status === 1) alert-success @else alert-danger @endif mb-3 text-center">
+                                    <strong>
+                                        @if ((int) $approvalPlan->status === 1)
+                                            You approved this request.
+                                        @else
+                                            You rejected this request.
+                                        @endif
+                                    </strong>
+                                </div>
+                                @if ($approvalPlan->remarks)
+                                    <div class="form-group mb-0">
+                                        <label>Your Notes</label>
+                                        <div class="form-control bg-light" style="height: auto; min-height: 6rem;">
+                                            {{ $approvalPlan->remarks }}</div>
+                                    </div>
+                                @endif
+                                <a href="{{ route('approval.requests.index') }}"
+                                    class="btn btn-secondary btn-block mt-3">
+                                    <i class="fas fa-arrow-left"></i>
+                                    Back to List
+                                </a>
+                            </div>
+                        </div>
+                    @endif
                     <!-- Approval Status -->
                     <div class="document-card approval-status-card">
                         <div class="card-head">
@@ -1390,6 +1427,16 @@ if ($plan->status === 1) {
             color: #ffffff;
         }
 
+        .status-approved {
+            background-color: #28a745;
+            color: #ffffff;
+        }
+
+        .status-rejected {
+            background-color: #dc3545;
+            color: #ffffff;
+        }
+
         /* Content Styles */
         .document-content {
             padding: 0 15px;
@@ -1561,6 +1608,22 @@ if ($plan->status === 1) {
             font-size: 12px;
             color: #777;
             margin-bottom: 4px;
+        }
+
+        .leave-days-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            column-gap: 1.5rem;
+            row-gap: 4px;
+        }
+
+        .leave-days-grid .info-label {
+            margin-bottom: 0;
+        }
+
+        .leave-days-remaining-value .badge {
+            font-size: 0.875rem;
+            font-weight: 500;
         }
 
         .overtime-remarks-item {
@@ -2646,89 +2709,91 @@ if ($plan->status === 1) {
 @endsection
 
 @section('scripts')
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const approveBtn = document.querySelector('.approve-btn');
-            const rejectBtn = document.querySelector('.reject-btn');
-            const statusInput = document.getElementById('status');
-            const submitBtn = document.querySelector('.submit-btn');
-            const remarkTextarea = document.getElementById('remarks');
+    @if ((int) $approvalPlan->status === 0)
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                const approveBtn = document.querySelector('.approve-btn');
+                const rejectBtn = document.querySelector('.reject-btn');
+                const statusInput = document.getElementById('status');
+                const submitBtn = document.querySelector('.submit-btn');
+                const remarkTextarea = document.getElementById('remarks');
 
-            // Handle decision button clicks
-            function selectDecision(status) {
-                // Remove active class from all buttons
-                approveBtn.classList.remove('active');
-                rejectBtn.classList.remove('active');
+                // Handle decision button clicks
+                function selectDecision(status) {
+                    // Remove active class from all buttons
+                    approveBtn.classList.remove('active');
+                    rejectBtn.classList.remove('active');
 
-                // Add active class to selected button
-                if (status === '1') {
-                    approveBtn.classList.add('active');
-                } else if (status === '2') {
-                    rejectBtn.classList.add('active');
+                    // Add active class to selected button
+                    if (status === '1') {
+                        approveBtn.classList.add('active');
+                    } else if (status === '2') {
+                        rejectBtn.classList.add('active');
+                    }
+
+                    // Update hidden input
+                    statusInput.value = status;
+
+                    // Enable submit button if remark is filled
+                    checkFormValidity();
                 }
 
-                // Update hidden input
-                statusInput.value = status;
+                // Handle button clicks
+                approveBtn.addEventListener('click', function() {
+                    selectDecision('1');
+                });
 
-                // Enable submit button if remark is filled
-                checkFormValidity();
-            }
+                rejectBtn.addEventListener('click', function() {
+                    selectDecision('2');
+                });
 
-            // Handle button clicks
-            approveBtn.addEventListener('click', function() {
-                selectDecision('1');
+                // Check form validity
+                function checkFormValidity() {
+                    const hasStatus = statusInput.value !== '';
+                    const hasRemark = remarkTextarea.value.trim() !== '';
+
+                    if (hasStatus && hasRemark) {
+                        submitBtn.disabled = false;
+                        submitBtn.classList.remove('btn-secondary');
+                        submitBtn.classList.add('btn-success');
+                    } else {
+                        submitBtn.disabled = true;
+                        submitBtn.classList.remove('btn-success');
+                        submitBtn.classList.add('btn-secondary');
+                    }
+                }
+
+                // Listen for remark changes
+                remarkTextarea.addEventListener('input', checkFormValidity);
+
+                // Form submission
+                document.getElementById('approvalForm').addEventListener('submit', function(e) {
+                    if (!statusInput.value) {
+                        e.preventDefault();
+                        alert('Please select a decision first.');
+                        return;
+                    }
+
+                    if (!remarkTextarea.value.trim()) {
+                        e.preventDefault();
+                        alert('Please provide approval notes.');
+                        return;
+                    }
+
+                    const status = statusInput.value;
+                    let confirmMessage = '';
+
+                    if (status === '1') {
+                        confirmMessage = 'Are you sure you want to approve this request?';
+                    } else if (status === '2') {
+                        confirmMessage = 'Are you sure you want to reject this request?';
+                    }
+
+                    if (!confirm(confirmMessage)) {
+                        e.preventDefault();
+                    }
+                });
             });
-
-            rejectBtn.addEventListener('click', function() {
-                selectDecision('2');
-            });
-
-            // Check form validity
-            function checkFormValidity() {
-                const hasStatus = statusInput.value !== '';
-                const hasRemark = remarkTextarea.value.trim() !== '';
-
-                if (hasStatus && hasRemark) {
-                    submitBtn.disabled = false;
-                    submitBtn.classList.remove('btn-secondary');
-                    submitBtn.classList.add('btn-success');
-                } else {
-                    submitBtn.disabled = true;
-                    submitBtn.classList.remove('btn-success');
-                    submitBtn.classList.add('btn-secondary');
-                }
-            }
-
-            // Listen for remark changes
-            remarkTextarea.addEventListener('input', checkFormValidity);
-
-            // Form submission
-            document.getElementById('approvalForm').addEventListener('submit', function(e) {
-                if (!statusInput.value) {
-                    e.preventDefault();
-                    alert('Please select a decision first.');
-                    return;
-                }
-
-                if (!remarkTextarea.value.trim()) {
-                    e.preventDefault();
-                    alert('Please provide approval notes.');
-                    return;
-                }
-
-                const status = statusInput.value;
-                let confirmMessage = '';
-
-                if (status === '1') {
-                    confirmMessage = 'Are you sure you want to approve this request?';
-                } else if (status === '2') {
-                    confirmMessage = 'Are you sure you want to reject this request?';
-                }
-
-                if (!confirm(confirmMessage)) {
-                    e.preventDefault();
-                }
-            });
-        });
-    </script>
+        </script>
+    @endif
 @endsection

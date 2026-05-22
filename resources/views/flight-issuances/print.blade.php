@@ -239,6 +239,78 @@
                 Bersama ini kami ajukan surat permohonan issued tiket karyawan kami sebagai berikut:
             </div>
 
+            @foreach ($issuance->flightRequests as $frForFollowers)
+                @php
+                    $hasLotFollowers =
+                        $frForFollowers->request_type === \App\Models\FlightRequest::TYPE_TRAVEL_BASED &&
+                        $frForFollowers->officialTravel &&
+                        $frForFollowers->officialTravel->details->isNotEmpty();
+                    $hasStandaloneFollowers =
+                        $frForFollowers->request_type === \App\Models\FlightRequest::TYPE_STANDALONE &&
+                        $frForFollowers->followers->isNotEmpty();
+                @endphp
+                @if ($hasLotFollowers || $hasStandaloneFollowers)
+                    <div class="body-intro" style="margin-top: 10px;">
+                        <strong>Followers{{ $issuance->flightRequests->count() > 1 ? ' — ' . ($frForFollowers->form_number ?? 'FR') : '' }}</strong>
+                        <table style="width: 100%; border-collapse: collapse; margin-top: 6px; font-size: 12px;">
+                            <thead>
+                                <tr>
+                                    <th style="border: 1px solid #333; padding: 4px; text-align: center; width: 5%;">No.</th>
+                                    <th style="border: 1px solid #333; padding: 4px;">Name</th>
+                                    <th style="border: 1px solid #333; padding: 4px;">NIK / KTP</th>
+                                    <th style="border: 1px solid #333; padding: 4px;">Position</th>
+                                    <th style="border: 1px solid #333; padding: 4px;">Department</th>
+                                    <th style="border: 1px solid #333; padding: 4px;">Project</th>
+                                    <th style="border: 1px solid #333; padding: 4px;">Phone</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if ($hasLotFollowers)
+                                    @foreach ($frForFollowers->officialTravel->details as $fIdx => $detail)
+                                        <tr>
+                                            <td style="border: 1px solid #333; padding: 4px; text-align: center;">{{ $fIdx + 1 }}</td>
+                                            <td style="border: 1px solid #333; padding: 4px;">{{ $detail->follower->employee->fullname ?? 'N/A' }}</td>
+                                            <td style="border: 1px solid #333; padding: 4px;">{{ $detail->follower->nik ?? 'N/A' }}</td>
+                                            <td style="border: 1px solid #333; padding: 4px;">{{ $detail->follower->position->position_name ?? '-' }}</td>
+                                            <td style="border: 1px solid #333; padding: 4px;">{{ $detail->follower->position->department->department_name ?? '-' }}</td>
+                                            <td style="border: 1px solid #333; padding: 4px;">{{ $detail->follower->project->project_name ?? '-' }}</td>
+                                            <td style="border: 1px solid #333; padding: 4px;">-</td>
+                                        </tr>
+                                    @endforeach
+                                @else
+                                    @foreach ($frForFollowers->followers as $fIdx => $follower)
+                                        @php
+                                            $isEmployeeFollower = ! $follower->isManual();
+                                            $printPosition =
+                                                $follower->position ??
+                                                ($follower->administration?->position?->position_name ?? '-');
+                                            $printDepartment =
+                                                $follower->department ??
+                                                ($follower->administration?->position?->department?->department_name ??
+                                                    '-');
+                                            $printProject = $follower->administration?->project;
+                                            $printProjectLabel = $printProject
+                                                ? ($printProject->project_code ?? '') .
+                                                    ($printProject->project_name ? ' : ' . $printProject->project_name : '')
+                                                : $follower->project ?? '-';
+                                        @endphp
+                                        <tr>
+                                            <td style="border: 1px solid #333; padding: 4px; text-align: center;">{{ $fIdx + 1 }}</td>
+                                            <td style="border: 1px solid #333; padding: 4px;">{{ $follower->displayName() }}</td>
+                                            <td style="border: 1px solid #333; padding: 4px;">{{ $follower->idLabel() }}: {{ $follower->nik ?? 'N/A' }}</td>
+                                            <td style="border: 1px solid #333; padding: 4px;">{{ $isEmployeeFollower ? $printPosition : '-' }}</td>
+                                            <td style="border: 1px solid #333; padding: 4px;">{{ $isEmployeeFollower ? $printDepartment : '-' }}</td>
+                                            <td style="border: 1px solid #333; padding: 4px;">{{ $isEmployeeFollower ? $printProjectLabel : '-' }}</td>
+                                            <td style="border: 1px solid #333; padding: 4px;">{{ $follower->phone_number ?? '-' }}</td>
+                                        </tr>
+                                    @endforeach
+                                @endif
+                            </tbody>
+                        </table>
+                    </div>
+                @endif
+            @endforeach
+
             <!-- Ticket Details -->
             <div class="ticket-details">
                 @php

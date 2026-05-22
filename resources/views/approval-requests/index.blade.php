@@ -31,6 +31,17 @@
                     <div class="row">
                         <div class="col-md-3">
                             <div class="form-group">
+                                <label for="approval_status">Status</label>
+                                <select class="form-control" id="approval_status">
+                                    <option value="all">All</option>
+                                    <option value="pending" selected>Pending</option>
+                                    <option value="approved">Approved</option>
+                                    <option value="rejected">Rejected</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-group">
                                 <label for="document_type">Document Type</label>
                                 <select class="form-control" id="document_type">
                                     <option value="">All Types</option>
@@ -43,19 +54,19 @@
                                 </select>
                             </div>
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-2">
                             <div class="form-group">
                                 <label for="date1">Date From</label>
                                 <input type="date" class="form-control" id="date1">
                             </div>
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-2">
                             <div class="form-group">
                                 <label for="date2">Date To</label>
                                 <input type="date" class="form-control" id="date2">
                             </div>
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-2">
                             <div class="form-group">
                                 <label>&nbsp;</label>
                                 <button type="button" class="btn btn-primary btn-block" onclick="applyFilters()">
@@ -72,9 +83,9 @@
                 <div class="card-header">
                     <h3 class="card-title">
                         <i class="fas fa-list mr-2"></i>
-                        <strong>Pending Approval Requests</strong>
+                        <strong>Approval Requests</strong>
                     </h3>
-                    <div class="card-tools">
+                    <div class="card-tools" id="bulkApproveTools">
                         <button type="button" class="btn btn-success" onclick="bulkApprove()">
                             <i class="fas fa-check-double mr-2"></i> Bulk Approve
                         </button>
@@ -85,7 +96,7 @@
                         <table class="table table-striped table-hover" id="approvalRequestsTable">
                             <thead>
                                 <tr>
-                                    <th class="align-middle" width="5%">
+                                    <th class="align-middle checkbox-column" width="5%">
                                         <input type="checkbox" id="selectAll">
                                     </th>
                                     <th class="align-middle">Document Type</th>
@@ -93,7 +104,7 @@
                                     <th class="align-middle">Remarks</th>
                                     <th class="align-middle">Submitted By</th>
                                     <th class="align-middle">Submitted At</th>
-                                    <th class="align-middle">Current Approval</th>
+                                    <th class="align-middle">Status</th>
                                     <th class="text-center align-middle">Action</th>
                                 </tr>
                             </thead>
@@ -148,6 +159,19 @@
 
     <script>
         $(function() {
+            function isPendingFilter() {
+                return $('#approval_status').val() === 'pending';
+            }
+
+            function toggleBulkActions() {
+                var showBulk = isPendingFilter();
+                $('#bulkApproveTools').toggle(showBulk);
+                table.column(0).visible(showBulk);
+                if (!showBulk) {
+                    $('#selectAll').prop('checked', false);
+                }
+            }
+
             // Initialize DataTable
             var table = $('#approvalRequestsTable').DataTable({
                 processing: true,
@@ -155,6 +179,7 @@
                 ajax: {
                     url: '{{ route('approval.requests.data') }}',
                     data: function(d) {
+                        d.approval_status = $('#approval_status').val();
                         d.document_type = $('#document_type').val();
                         d.date1 = $('#date1').val();
                         d.date2 = $('#date2').val();
@@ -188,6 +213,7 @@
                         data: 'id',
                         orderable: false,
                         searchable: false,
+                        visible: isPendingFilter(),
                         render: function(data) {
                             return '<input type="checkbox" class="approval-checkbox" value="' +
                                 data + '">';
@@ -209,18 +235,15 @@
                         data: 'submitted_at'
                     },
                     {
-                        data: 'current_approval',
+                        data: 'status',
                         orderable: false,
                         searchable: false
                     },
                     {
-                        data: 'id',
+                        data: 'action',
                         orderable: false,
                         searchable: false,
-                        render: function(data) {
-                            return '<a href="{{ url('approval/requests') }}/' + data +
-                                '" class="btn btn-sm btn-primary"><i class="fas fa-eye"></i> Review</a>';
-                        }
+                        className: 'text-center'
                     }
                 ],
                 pageLength: 25,
@@ -250,8 +273,11 @@
 
             // Apply filters function
             window.applyFilters = function() {
-                table.ajax.reload();
+                toggleBulkActions();
+                table.ajax.reload(null, false);
             };
+
+            toggleBulkActions();
 
             // Bulk approve function
             window.bulkApprove = function() {

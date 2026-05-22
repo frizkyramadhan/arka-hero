@@ -477,6 +477,10 @@
                                                     available.</p>
                                             @endif
                                         </div>
+
+                                        @include('flight-issuances.partials.fr-followers-block', [
+                                            'flightRequest' => $flightRequest,
+                                        ])
                                     </div>
                                 </div>
                             @endforeach
@@ -564,6 +568,25 @@
             vertical-align: middle;
             border: none;
             color: #212529;
+        }
+
+        .compact-fr-card .fr-followers-block {
+            margin-top: 0.5rem;
+        }
+
+        .compact-fr-card .fr-followers-block .followers-card {
+            margin-bottom: 0;
+            box-shadow: none;
+            border: 1px solid #e9ecef;
+        }
+
+        .compact-fr-card .fr-followers-block .followers-card .card-head {
+            padding: 8px 12px;
+            background: #f1f3f5;
+        }
+
+        .compact-fr-card .fr-followers-block .followers-card .card-body {
+            padding: 0;
         }
 
         .compact-flight-table {

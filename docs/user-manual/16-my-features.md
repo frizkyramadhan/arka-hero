@@ -461,7 +461,7 @@ Bagian ini **diselaraskan** dengan dokumen _Official Travel Management (LOT)_ �
 - **Cancel** — meninggalkan halaman tanpa mengirim (pastikan data tidak hilang jika layar memperingatkan).
 
 5. Untuk melihat detail atau mengubah entri yang sudah ada: kembali ke daftar, lalu gunakan **View** atau **Edit** pada baris terkait (ketersediaan **Edit** mengikuti status dan kebijakan sistem).
-6. HR akan memproses konfirmasi, antara lain menetapkan nomor LOT resmi (contoh format **ARKA/Bxxxx/HR/IV/2026**) dan menentukan **approver** sesuai prosedur kantor.
+6. HR akan memproses konfirmasi, antara lain menetapkan nomor LOT resmi (contoh format **ARKA/Bxxxx/HR-HCS/IV/2026**) dan menentukan **approver** sesuai prosedur kantor.
 
 <a id="section-5-lot-arrival-departure-close"></a>
 
@@ -523,7 +523,7 @@ Klik **New Request**. Halaman **Create Flight Request** terbuka (breadcrumb umum
 
 **Perbedaan per tipe**
 
-- **Standalone** — Tiket tidak terikat cuti atau LOT. **Employee Information** umumnya dari profil akun; centang **Fill employee information manually** bila Anda harus mengisi sendiri data pemohon ([Gambar 6.3](#my-flight-create-standalone), [Gambar 6.3b](#my-flight-create-standalone-manual)). Field yang masih kosong atau bertanda **—** ikuti perilaku form sampai terisi.
+- **Standalone** — Tiket tidak terikat cuti atau LOT. **Employee Information** umumnya dari profil akun; centang **Fill employee information manually** bila Anda harus mengisi sendiri data pemohon ([Gambar 6.3](#my-flight-create-standalone), [Gambar 6.3b](#my-flight-create-standalone-manual)). Pada **Standalone** saja, kartu **Followers** (opsional) memungkinkan menambah pengikut lewat **Add Follower**: pilih karyawan di dropdown (**NIK - Nama**) atau centang checkbox di baris untuk isian manual (**Title**, **Name**, **NIK / KTP**, **Phone**). Detail lengkap pengikut ada di panduan **Flight Management** ([`14-flight-management.md`](14-flight-management.md#flight-create-standalone-followers)). Field yang masih kosong atau bertanda **—** ikuti perilaku form sampai terisi.
 - **Leave Request (Cuti)** — Cuti yang dipilih harus sudah ada (lihat [My Leave Request](#section-4-my-leave-request)). Pada **Select Leave Request**, pilih baris yang tepat (biasanya memuat nomor register dan rentang tanggal). Data karyawan dan ringkasan perjalanan terisi otomatis dari cuti tersebut ([Gambar 6.4](#my-flight-create-leave-based)).
 - **Official Travel (LOT)** — LOT harus sudah tercatat (lihat [My Official Travel Request](#section-5-my-official-travel)). Pada **Select Official Travel**, pilih LOT yang benar. Data pemohon utama dan blok **Followers** mengikuti LOT; **daftar pengikut tidak diubah di halaman tiket** — jika salah, perbaiki pada pengajuan LOT atau koordinasikan dengan HR ([Gambar 6.5](#my-flight-create-official-travel-lot)).
 
@@ -545,6 +545,15 @@ Pada **Leave Request** atau **Official Travel**, opsi mirip **Fill employee info
         style="max-width: 80%; width: 80%; height: auto;"
     />
 <br><em>Gambar 6.3b — Standalone isian manual</em>
+</p>
+
+<p align="center" id="my-flight-create-standalone-followers">
+    <img
+        src="images/my-flight-request-create-standalone-followers.png"
+        alt="Create Flight Request Standalone — kartu Followers optional standalone only Add Follower tabel Employee Manual Title Name NIK KTP Phone checkbox karyawan atau manual Flight Details Create Flight Request"
+        style="max-width: 80%; width: 80%; height: auto;"
+    />
+<br><em>Gambar 6.3c — Standalone dengan kartu Followers</em>
 </p>
 
 <p align="center" id="my-flight-create-leave-based">

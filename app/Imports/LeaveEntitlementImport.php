@@ -12,10 +12,9 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Maatwebsite\Excel\Concerns\ToCollection;
-use Maatwebsite\Excel\Concerns\WithHeadingRow;
 use PhpOffice\PhpSpreadsheet\Shared\Date;
 
-class LeaveEntitlementImport implements ToCollection, WithHeadingRow
+class LeaveEntitlementImport implements ToCollection
 {
     private $leaveTypes;
 
@@ -27,8 +26,6 @@ class LeaveEntitlementImport implements ToCollection, WithHeadingRow
 
     public function __construct()
     {
-        // Get leave types ordered by code (same as export)
-        // Exclude "Cuti Periodik Site" from import (same as export)
         $this->leaveTypes = LeaveType::where('is_active', true)
             ->where(function ($query) {
                 $query->where('name', '!=', 'Cuti Periodik Site')
@@ -37,34 +34,43 @@ class LeaveEntitlementImport implements ToCollection, WithHeadingRow
             ->orderBy('code')
             ->get();
 
-        // Log leave types for debugging
         Log::info('Leave Types loaded for import', [
-            'types' => $this->leaveTypes->map(function ($lt) {
-                return [
-                    'id' => $lt->id,
-                    'name' => $lt->name,
-                    'normalized' => $this->normalizeColumnName($lt->name),
-                    'category' => $lt->category,
-                ];
-            })->toArray(),
+            'types' => $this->leaveTypes->map(fn ($lt) => [
+                'id' => $lt->id,
+                'name' => $lt->name,
+                'category' => $lt->category,
+            ])->toArray(),
         ]);
     }
 
     public function collection(Collection $rows)
     {
-        $rowNumber = 2; // Start from 2 (row 1 is header)
+        if ($rows->isEmpty()) {
+            return;
+        }
 
-        foreach ($rows as $row) {
-            $rowArray = $row->toArray();
+        $headerRowIndex = $this->detectHeaderRowIndex($rows);
+        $groupRow = $headerRowIndex > 0 ? $rows[$headerRowIndex - 1]->toArray() : [];
+        $detailRow = $rows[$headerRowIndex]->toArray();
+        $columnKeys = $this->buildColumnKeys($groupRow, $detailRow);
 
-            // Skip completely empty rows
+        Log::info('Leave entitlement import header detected', [
+            'header_row_index' => $headerRowIndex,
+            'column_keys' => $columnKeys,
+        ]);
+
+        $rowNumber = $headerRowIndex + 2;
+
+        for ($i = $headerRowIndex + 1; $i < $rows->count(); $i++) {
+            $rowValues = $rows[$i]->toArray();
+            $rowArray = $this->mapRowValues($columnKeys, $rowValues);
+
             if ($this->isEmptyRow($rowArray)) {
                 $rowNumber++;
 
                 continue;
             }
 
-            // Process row with transaction
             DB::beginTransaction();
             try {
                 $result = $this->processRow($rowArray, $rowNumber);
@@ -97,26 +103,21 @@ class LeaveEntitlementImport implements ToCollection, WithHeadingRow
             $rowNumber++;
         }
 
-        // Log summary
         Log::info('Leave Entitlement Import Completed', [
-            'total_rows' => $rowNumber - 2,
+            'total_rows' => max(0, $rowNumber - $headerRowIndex - 2),
             'success' => $this->successCount,
             'skipped' => $this->skippedCount,
             'errors' => count($this->errors),
         ]);
     }
 
-    private function processRow($row, $rowNumber)
+    private function processRow(array $row, int $rowNumber): array
     {
-        $errors = [];
-
-        // 1. Validate NIK (REQUIRED)
         $nik = $this->resolveNikFromRow($row);
         if ($nik === null || $nik === '') {
             return ['success' => false, 'errors' => ['NIK is required']];
         }
 
-        // 2. Find employee by NIK
         $administration = Administration::where('nik', $nik)
             ->where('is_active', 1)
             ->first();
@@ -125,10 +126,197 @@ class LeaveEntitlementImport implements ToCollection, WithHeadingRow
             return ['success' => false, 'errors' => ["NIK '{$nik}' not found or not active"]];
         }
 
-        $employee = $administration->employee;
+        if ($this->isCompactLayout($row)) {
+            return $this->processCompactRow($row, $administration, $administration->employee);
+        }
 
-        // 3. Validate period dates (REQUIRED)
-        // Try both 'start_period' and 'Start Period' (with space)
+        return $this->processLegacyRow($row, $administration, $administration->employee);
+    }
+
+    /**
+     * One row per employee: annual block (G-I) + LSL block (J-N).
+     */
+    private function processCompactRow(array $row, Administration $administration, $employee): array
+    {
+        $errors = [];
+        $processed = false;
+
+        $depositDays = (int) ($this->getColumnValue($row, 'deposit_days') ?? 0);
+        if ($depositDays < 0) {
+            return ['success' => false, 'errors' => ['Deposit Days cannot be negative']];
+        }
+
+        $annualStart = $this->getAnnualStartPeriod($row);
+        $annualEnd = $this->getAnnualEndPeriod($row);
+        $cutiTahunan = $this->getColumnValue($row, 'cuti_tahunan');
+
+        $lslStart = $this->getLslStartPeriod($row);
+        $lslEnd = $this->getLslEndPeriod($row);
+        $lslStaff = $this->getColumnValue($row, 'cuti_panjang_staff');
+        $lslNonStaff = $this->getColumnValue($row, 'cuti_panjang_non_staff');
+
+        $hasAnnualData = $this->hasValue($annualStart) || $this->hasValue($annualEnd) || $this->hasValue($cutiTahunan);
+        $hasLslData = $this->hasValue($lslStart) || $this->hasValue($lslEnd)
+            || $this->hasValue($lslStaff) || $this->hasValue($lslNonStaff) || $depositDays > 0;
+
+        if ($hasAnnualData) {
+            if (! $this->hasValue($annualStart) || ! $this->hasValue($annualEnd)) {
+                $errors[] = 'Start Period and End Period (Periode Tahunan) are required when updating Cuti Tahunan';
+            } else {
+                $periodStart = $this->parseDate($annualStart);
+                $periodEnd = $this->parseDate($annualEnd);
+
+                if (! $periodStart || ! $periodEnd) {
+                    $errors[] = 'Invalid annual period date format. Use e.g. 13 Dec 2025, DD/MM/YYYY, or YYYY-MM-DD';
+                } elseif ($periodStart >= $periodEnd) {
+                    $errors[] = 'Annual Start Period must be before End Period';
+                } else {
+                    $this->importAnnualBlock($employee, $periodStart, $periodEnd, $cutiTahunan);
+                    $processed = true;
+                }
+            }
+        }
+
+        if ($hasLslData) {
+            if (! $this->hasValue($lslStart) || ! $this->hasValue($lslEnd)) {
+                $errors[] = 'Start Period and End Period (Periode Cuti Panjang) are required when updating Cuti Panjang';
+            } else {
+                $periodStart = $this->parseDate($lslStart);
+                $periodEnd = $this->parseDate($lslEnd);
+
+                if (! $periodStart || ! $periodEnd) {
+                    $errors[] = 'Invalid LSL period date format. Use e.g. 13 Dec 2024, DD/MM/YYYY, or YYYY-MM-DD';
+                } elseif ($periodStart >= $periodEnd) {
+                    $errors[] = 'LSL Start Period must be before End Period';
+                } else {
+                    $this->importLslBlock($employee, $administration, $periodStart, $periodEnd, $lslStaff, $lslNonStaff, $depositDays);
+                    $processed = true;
+                }
+            }
+        }
+
+        if (! empty($errors)) {
+            return ['success' => false, 'errors' => $errors];
+        }
+
+        if (! $processed) {
+            return ['success' => false, 'errors' => ['No entitlement data to import for this row']];
+        }
+
+        return ['success' => true, 'errors' => []];
+    }
+
+    private function importAnnualBlock($employee, Carbon $periodStart, Carbon $periodEnd, mixed $cutiTahunanRaw): void
+    {
+        foreach ($this->leaveTypes as $leaveType) {
+            if (! in_array($leaveType->category, ['annual', 'paid', 'unpaid'], true)) {
+                continue;
+            }
+
+            $existing = $this->findEntitlementForPeriod(
+                $employee->id,
+                (int) $leaveType->id,
+                $periodStart,
+                $periodEnd,
+            );
+
+            if ($leaveType->category === 'annual') {
+                $entitledDays = $this->normalizeEntitledDays($cutiTahunanRaw);
+            } else {
+                if (! $existing) {
+                    continue;
+                }
+                $entitledDays = (int) $existing->entitled_days;
+            }
+
+            $takenDays = $existing ? (int) $existing->taken_days : 0;
+            $entitledDays = max($entitledDays, $takenDays);
+
+            if ($entitledDays === 0 && ! $existing && $leaveType->category !== 'annual') {
+                continue;
+            }
+
+            if ($entitledDays === 0 && ! $existing && $leaveType->category === 'annual' && ! $this->hasValue($cutiTahunanRaw)) {
+                continue;
+            }
+
+            $this->saveImportedEntitlement(
+                $employee->id,
+                (int) $leaveType->id,
+                $periodStart,
+                $periodEnd,
+                $entitledDays,
+                $takenDays,
+                0,
+            );
+        }
+    }
+
+    private function importLslBlock(
+        $employee,
+        Administration $administration,
+        Carbon $periodStart,
+        Carbon $periodEnd,
+        mixed $lslStaffRaw,
+        mixed $lslNonStaffRaw,
+        int $depositDays,
+    ): void {
+        $levelName = $administration->level?->name ?? '';
+        $isStaff = $this->isStaffLevel($levelName);
+
+        foreach ($this->leaveTypes as $leaveType) {
+            if ($leaveType->category !== 'lsl') {
+                continue;
+            }
+
+            $isCutiPanjangStaff = stripos($leaveType->name, 'Staff') !== false
+                && stripos($leaveType->name, 'Non') === false;
+            $isCutiPanjangNonStaff = stripos($leaveType->name, 'Non Staff') !== false;
+
+            if ($isStaff && ! $isCutiPanjangStaff) {
+                continue;
+            }
+            if (! $isStaff && ! $isCutiPanjangNonStaff) {
+                continue;
+            }
+
+            $rawValue = $isCutiPanjangStaff ? $lslStaffRaw : $lslNonStaffRaw;
+            $existing = $this->findEntitlementForPeriod(
+                $employee->id,
+                (int) $leaveType->id,
+                $periodStart,
+                $periodEnd,
+            );
+
+            if (! $this->hasValue($rawValue) && ! $existing && $depositDays === 0) {
+                continue;
+            }
+
+            $entitledDays = $this->hasValue($rawValue)
+                ? $this->normalizeEntitledDays($rawValue)
+                : ($existing ? (int) $existing->entitled_days : 0);
+
+            $takenDays = $existing ? (int) $existing->taken_days : 0;
+            $entitledDays = max($entitledDays, $takenDays);
+
+            if ($entitledDays === 0 && ! $existing && $depositDays === 0) {
+                continue;
+            }
+
+            $this->saveImportedEntitlement(
+                $employee->id,
+                (int) $leaveType->id,
+                $periodStart,
+                $periodEnd,
+                $entitledDays,
+                $takenDays,
+                $depositDays,
+            );
+        }
+    }
+
+    private function processLegacyRow(array $row, Administration $administration, $employee): array
+    {
         $startPeriod = $this->getColumnValue($row, 'start_period')
             ?: $this->getColumnValue($row, 'start period')
             ?: $this->getColumnValue($row, 'Start Period');
@@ -140,69 +328,49 @@ class LeaveEntitlementImport implements ToCollection, WithHeadingRow
             return ['success' => false, 'errors' => ['Start Period and End Period are required']];
         }
 
-        // 4. Parse dates
         $periodStart = $this->parseDate($startPeriod);
         $periodEnd = $this->parseDate($endPeriod);
 
         if (! $periodStart || ! $periodEnd) {
-            return ['success' => false, 'errors' => ['Invalid date format. Use YYYY-MM-DD or Excel date format']];
+            return ['success' => false, 'errors' => ['Invalid date format. Use e.g. 01 Jan 2026, DD/MM/YYYY, or YYYY-MM-DD']];
         }
 
         if ($periodStart >= $periodEnd) {
             return ['success' => false, 'errors' => ['Start Period must be before End Period']];
         }
 
-        // 5. Get deposit days
+        $periodType = $this->resolvePeriodTypeFromRow($row);
         $depositDays = (int) ($this->getColumnValue($row, 'deposit_days') ?? 0);
+
         if ($depositDays < 0) {
             return ['success' => false, 'errors' => ['Deposit Days cannot be negative']];
         }
 
-        // 6. Process each leave type
         foreach ($this->leaveTypes as $leaveType) {
-            // Get entitled_days from Excel (export shows entitled_days - the source of truth)
-            // Excel contains entitled_days (the actual entitlement value)
+            if (! $this->shouldProcessLeaveTypeForPeriod($leaveType, $periodType)) {
+                continue;
+            }
+
             $entitledDays = $this->getLeaveTypeValue($row, $leaveType->name);
+            $entitledDays = $this->normalizeEntitledDays($entitledDays);
 
-            // Default to 0 if not found or empty
-            $entitledDays = is_numeric($entitledDays) ? max(0, (int) $entitledDays) : 0;
-
-            // Check if this is a "Cuti Panjang" leave type
             $isCutiPanjang = stripos($leaveType->name, 'Cuti Panjang') !== false;
 
             if ($isCutiPanjang) {
-                // Determine employee level (Staff/Non Staff) - same logic as export
-                $level = $administration->level;
-                $levelName = $level ? $level->name : '';
+                $levelName = $administration->level?->name ?? '';
                 $isStaff = $this->isStaffLevel($levelName);
-
-                // Check if leave type matches employee level
-                $isCutiPanjangStaff = stripos($leaveType->name, 'Staff') !== false &&
-                    stripos($leaveType->name, 'Non') === false;
+                $isCutiPanjangStaff = stripos($leaveType->name, 'Staff') !== false
+                    && stripos($leaveType->name, 'Non') === false;
                 $isCutiPanjangNonStaff = stripos($leaveType->name, 'Non Staff') !== false;
 
-                // Skip if level doesn't match
                 if ($isStaff && ! $isCutiPanjangStaff) {
-                    Log::info('Skipping Cuti Panjang mismatch for Staff', [
-                        'nik' => $nik,
-                        'leave_type' => $leaveType->name,
-                        'employee_level' => $level ? $level->name : 'N/A',
-                    ]);
-
-                    continue; // Skip "Cuti Panjang - Non Staff" for Staff employees
+                    continue;
                 }
                 if (! $isStaff && ! $isCutiPanjangNonStaff) {
-                    Log::info('Skipping Cuti Panjang mismatch for Non Staff', [
-                        'nik' => $nik,
-                        'leave_type' => $leaveType->name,
-                        'employee_level' => $level ? $level->name : 'N/A',
-                    ]);
-
-                    continue; // Skip "Cuti Panjang - Staff" for Non Staff employees
+                    continue;
                 }
             }
 
-            // Skip if 0 and no existing record (don't create unnecessary records)
             $existing = $this->findEntitlementForPeriod(
                 $employee->id,
                 (int) $leaveType->id,
@@ -210,37 +378,15 @@ class LeaveEntitlementImport implements ToCollection, WithHeadingRow
                 $periodEnd,
             );
 
-            // Preserve taken_days from existing record (taken_days is auto-updated by system)
-            // taken_days should NOT be changed via import - it's calculated from approved leave requests
-            $takenDays = $existing ? $existing->taken_days : 0;
+            $takenDays = $existing ? (int) $existing->taken_days : 0;
+            $entitledDays = max($entitledDays, $takenDays);
 
-            // Excel contains entitled_days (the actual entitlement value)
-            // Import directly without calculation - this is the source of truth
-            // Ensure entitled_days is at least equal to taken_days (cannot have negative remaining)
-            if ($entitledDays < $takenDays) {
-                $entitledDays = $takenDays;
-            }
-
-            // Skip if entitled_days is 0 and no existing record
-            // But process if: entitled_days > 0 OR existing record exists OR is paid/unpaid leave
-            $isPaidOrUnpaid = in_array($leaveType->category, ['paid', 'unpaid']);
-            if ($entitledDays == 0 && ! $existing && ! $isPaidOrUnpaid) {
+            $isPaidOrUnpaid = in_array($leaveType->category, ['paid', 'unpaid'], true);
+            if ($entitledDays === 0 && ! $existing && ! $isPaidOrUnpaid) {
                 continue;
             }
 
-            // Set deposit_days only for LSL category
             $finalDepositDays = ($leaveType->category === 'lsl') ? $depositDays : 0;
-
-            // Log for debugging
-            Log::info("Processing leave entitlement for NIK {$nik}", [
-                'leave_type' => $leaveType->name,
-                'entitled_days_from_excel' => $entitledDays,
-                'taken_days_preserved' => $takenDays,
-                'calculated_remaining_days' => max(0, $entitledDays - $takenDays),
-                'deposit_days' => $finalDepositDays,
-                'existing_id' => $existing ? $existing->id : null,
-                'employee_level' => $administration->level ? $administration->level->name : 'N/A',
-            ]);
 
             $this->saveImportedEntitlement(
                 $employee->id,
@@ -256,10 +402,162 @@ class LeaveEntitlementImport implements ToCollection, WithHeadingRow
         return ['success' => true, 'errors' => []];
     }
 
+    private function detectHeaderRowIndex(Collection $rows): int
+    {
+        foreach ($rows as $index => $row) {
+            $values = array_map(
+                fn ($value) => strtolower(trim((string) $value)),
+                $row->toArray()
+            );
+
+            $hasCutiTahunan = $this->rowContains($values, 'cuti tahunan');
+            $hasTipePeriode = $this->rowContains($values, 'tipe periode');
+            $hasStartPeriod = $this->rowContains($values, 'start period');
+
+            if ($hasCutiTahunan || $hasTipePeriode || ($hasStartPeriod && $index > 0)) {
+                return $index;
+            }
+        }
+
+        foreach ($rows as $index => $row) {
+            $values = array_map(
+                fn ($value) => strtolower(trim((string) $value)),
+                $row->toArray()
+            );
+
+            if (in_array('nik', $values, true)) {
+                return $index;
+            }
+        }
+
+        return min(1, max(0, $rows->count() - 1));
+    }
+
     /**
-     * Match existing row by calendar dates. Plain where('period_start', 'Y-m-d') can miss rows
-     * stored with a time component so Eloquent would attempt INSERT and hit leave_ent_unique_period.
+     * @return list<string>
      */
+    private function buildColumnKeys(array $groupRow, array $detailRow): array
+    {
+        $keys = [];
+        $startPeriodCount = 0;
+        $endPeriodCount = 0;
+        $maxColumns = max(count($groupRow), count($detailRow));
+
+        for ($index = 0; $index < $maxColumns; $index++) {
+            $headerText = trim((string) ($detailRow[$index] ?? ''));
+
+            if ($headerText === '') {
+                $headerText = trim((string) ($groupRow[$index] ?? ''));
+            }
+
+            $normalized = $this->normalizeColumnName($headerText);
+
+            if ($normalized === 'start_period') {
+                $keys[] = $startPeriodCount === 0 ? 'start_period' : 'start_period_'.$startPeriodCount;
+                $startPeriodCount++;
+
+                continue;
+            }
+
+            if ($normalized === 'end_period') {
+                $keys[] = $endPeriodCount === 0 ? 'end_period' : 'end_period_'.$endPeriodCount;
+                $endPeriodCount++;
+
+                continue;
+            }
+
+            $keys[] = $normalized !== '' ? $normalized : '__empty_'.count($keys);
+        }
+
+        return $keys;
+    }
+
+    private function mapRowValues(array $columnKeys, array $rowValues): array
+    {
+        $mapped = [];
+
+        foreach ($columnKeys as $index => $key) {
+            if (str_starts_with($key, '__empty_')) {
+                continue;
+            }
+            $mapped[$key] = $rowValues[$index] ?? null;
+        }
+
+        return $mapped;
+    }
+
+    private function isCompactLayout(array $row): bool
+    {
+        if ($this->resolvePeriodTypeFromRow($row) !== null) {
+            return false;
+        }
+
+        return array_key_exists('cuti_tahunan', $row)
+            || array_key_exists('cuti_panjang_staff', $row)
+            || array_key_exists('cuti_panjang_non_staff', $row)
+            || array_key_exists('start_period_1', $row);
+    }
+
+    private function getAnnualStartPeriod(array $row): mixed
+    {
+        return $this->getColumnValue($row, 'start_period')
+            ?: $this->getColumnByIndex($row, 6);
+    }
+
+    private function getAnnualEndPeriod(array $row): mixed
+    {
+        return $this->getColumnValue($row, 'end_period')
+            ?: $this->getColumnByIndex($row, 7);
+    }
+
+    private function getLslStartPeriod(array $row): mixed
+    {
+        return $this->getColumnValue($row, 'start_period_1')
+            ?: $this->getColumnByIndex($row, 9);
+    }
+
+    private function getLslEndPeriod(array $row): mixed
+    {
+        return $this->getColumnValue($row, 'end_period_1')
+            ?: $this->getColumnByIndex($row, 10);
+    }
+
+    private function getColumnByIndex(array $row, int $index): mixed
+    {
+        $values = array_values($row);
+
+        return $values[$index] ?? null;
+    }
+
+    private function normalizeEntitledDays(mixed $value): int
+    {
+        if ($value === null || $value === '') {
+            return 0;
+        }
+
+        if (! is_numeric($value)) {
+            return 0;
+        }
+
+        return max(0, (int) $value);
+    }
+
+    private function hasValue(mixed $value): bool
+    {
+        return $value !== null && trim((string) $value) !== '';
+    }
+
+    private function rowContains(array $values, string $needle): bool
+    {
+        foreach ($values as $value) {
+            if (str_contains($value, $needle)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private function findEntitlementForPeriod(
         string $employeeId,
         int $leaveTypeId,
@@ -317,9 +615,6 @@ class LeaveEntitlementImport implements ToCollection, WithHeadingRow
         }
     }
 
-    /**
-     * @throws \Throwable
-     */
     private function syncEntitlementAfterConflict(
         string $employeeId,
         int $leaveTypeId,
@@ -380,13 +675,46 @@ class LeaveEntitlementImport implements ToCollection, WithHeadingRow
             || (str_contains($msg, 'Duplicate entry') && str_contains($msg, 'leave_entitlements'));
     }
 
-    /**
-     * Check if row is completely empty
-     */
-    private function isEmptyRow($row)
+    private function resolvePeriodTypeFromRow(array $row): ?string
+    {
+        $raw = $this->getColumnValue($row, 'tipe_periode')
+            ?: $this->getColumnValue($row, 'tipe periode')
+            ?: $this->getColumnValue($row, 'Tipe Periode');
+
+        if ($raw === null || trim((string) $raw) === '') {
+            return null;
+        }
+
+        $normalized = strtolower(trim((string) $raw));
+
+        if (str_contains($normalized, 'panjang') || $normalized === 'lsl') {
+            return 'lsl';
+        }
+
+        if (str_contains($normalized, 'tahunan') || $normalized === 'annual') {
+            return 'annual';
+        }
+
+        return null;
+    }
+
+    private function shouldProcessLeaveTypeForPeriod(LeaveType $leaveType, ?string $periodType): bool
+    {
+        if ($periodType === null) {
+            return true;
+        }
+
+        if ($periodType === 'lsl') {
+            return $leaveType->category === 'lsl';
+        }
+
+        return in_array($leaveType->category, ['annual', 'paid', 'unpaid'], true);
+    }
+
+    private function isEmptyRow(array $row): bool
     {
         foreach ($row as $value) {
-            if (! empty($value) && trim($value) !== '') {
+            if ($this->hasValue($value)) {
                 return false;
             }
         }
@@ -394,10 +722,6 @@ class LeaveEntitlementImport implements ToCollection, WithHeadingRow
         return true;
     }
 
-    /**
-     * Resolve NIK slugs/header quirks and numeric Excel cells.
-     * Falls back to column index 1 (column B) — same order as LeaveEntitlementExport (Nama, NIK, ...).
-     */
     private function resolveNikFromRow(array $row): ?string
     {
         $candidates = [
@@ -417,7 +741,6 @@ class LeaveEntitlementImport implements ToCollection, WithHeadingRow
             }
         }
 
-        // Column B when slug keys are wrong (e.g. empty header cells → numeric keys in heading row)
         $sequential = array_values($row);
         if (isset($sequential[1])) {
             $normalized = $this->normalizeNikCellValue($sequential[1]);
@@ -463,24 +786,18 @@ class LeaveEntitlementImport implements ToCollection, WithHeadingRow
         return $asString === '' ? null : $asString;
     }
 
-    /**
-     * Get column value with multiple possible key formats
-     */
-    private function getColumnValue($row, $columnName)
+    private function getColumnValue(array $row, string $columnName): mixed
     {
         $normalized = $this->normalizeColumnName($columnName);
 
-        // Try normalized key first
-        if (isset($row[$normalized])) {
+        if (array_key_exists($normalized, $row)) {
             return $row[$normalized];
         }
 
-        // Try original key
-        if (isset($row[$columnName])) {
+        if (array_key_exists($columnName, $row)) {
             return $row[$columnName];
         }
 
-        // Try other common variations
         $variations = [
             strtolower($columnName),
             str_replace('_', ' ', strtolower($columnName)),
@@ -488,7 +805,7 @@ class LeaveEntitlementImport implements ToCollection, WithHeadingRow
         ];
 
         foreach ($variations as $variation) {
-            if (isset($row[$variation])) {
+            if (array_key_exists($variation, $row)) {
                 return $row[$variation];
             }
         }
@@ -496,14 +813,8 @@ class LeaveEntitlementImport implements ToCollection, WithHeadingRow
         return null;
     }
 
-    /**
-     * Get leave type value from row with comprehensive column matching
-     * Handles special characters like / and -
-     * Uses Laravel Excel's actual WithHeadingRow behavior
-     */
-    private function getLeaveTypeValue($row, $leaveTypeName)
+    private function getLeaveTypeValue(array $row, string $leaveTypeName): mixed
     {
-        // Log available columns in first row for debugging
         static $loggedColumns = false;
         if (! $loggedColumns) {
             Log::info('Excel columns detected', [
@@ -512,139 +823,67 @@ class LeaveEntitlementImport implements ToCollection, WithHeadingRow
             $loggedColumns = true;
         }
 
-        // APPROACH 1: Try all possible variations (includes Laravel Excel actual behavior)
-        // Variation #3 in generateColumnVariations() matches Laravel Excel's actual behavior:
-        // - Removes slashes "/" entirely
-        // - Replaces spaces with underscores "_"
-        // - Replaces dashes "-" with underscores "_"
         $variations = $this->generateColumnVariations($leaveTypeName);
         foreach ($variations as $variation) {
-            if (isset($row[$variation])) {
-                Log::debug('Column match found using variation', [
-                    'leave_type' => $leaveTypeName,
-                    'matched_column' => $variation,
-                    'value' => $row[$variation],
-                ]);
-
+            if (array_key_exists($variation, $row)) {
                 return $row[$variation];
             }
         }
 
-        // APPROACH 2: Case-insensitive partial match (LAST RESORT)
-        // Remove all non-alphanumeric characters and compare
         $cleanName = strtolower(preg_replace('/[^a-zA-Z0-9]/', '', $leaveTypeName));
         foreach (array_keys($row) as $column) {
             $cleanColumn = strtolower(preg_replace('/[^a-zA-Z0-9]/', '', $column));
             if ($cleanColumn === $cleanName) {
-                Log::debug('Column match found using alphanumeric comparison', [
-                    'leave_type' => $leaveTypeName,
-                    'matched_column' => $column,
-                    'value' => $row[$column],
-                ]);
-
                 return $row[$column];
             }
         }
 
-        // Log if not found
-        Log::warning('Column not found for leave type', [
-            'leave_type' => $leaveTypeName,
-            'tried_variations' => $variations,
-            'available_columns' => array_keys($row),
-        ]);
-
         return null;
     }
 
-    /**
-     * Generate all possible column name variations for matching
-     * Handles special characters like /, -, and spaces
-     *
-     * Laravel Excel's actual WithHeadingRow behavior:
-     * - Removes slashes "/" entirely (not replaced)
-     * - Replaces spaces with underscores "_"
-     * - Keeps dashes "-" as-is or converts to underscores
-     */
-    private function generateColumnVariations($name)
+    private function generateColumnVariations(string $name): array
     {
         $variations = [];
 
-        // 1. Original name (as-is from database)
         $variations[] = $name;
-
-        // 2. Lowercase version
         $variations[] = strtolower($name);
 
-        // 3. Laravel Excel ACTUAL behavior - Remove slashes, spaces to underscores
-        // "Melahirkan/cuti hamil" → "melahirkancuti_hamil" (slash removed, space to underscore)
-        // "Naik Haji/Ziarah Agama" → "naik_hajiziarah_agama" (slash removed, spaces to underscores)
-        $laravelExcelActual = str_replace('/', '', $name); // Remove slashes first
-        $laravelExcelActual = str_replace(' ', '_', $laravelExcelActual); // Spaces to underscores
-        $laravelExcelActual = str_replace('-', '_', $laravelExcelActual); // Dashes to underscores
-        $laravelExcelActual = preg_replace('/_+/', '_', strtolower($laravelExcelActual)); // Collapse multiple underscores
+        $laravelExcelActual = str_replace('/', '', $name);
+        $laravelExcelActual = str_replace(' ', '_', $laravelExcelActual);
+        $laravelExcelActual = str_replace('-', '_', $laravelExcelActual);
+        $laravelExcelActual = preg_replace('/_+/', '_', strtolower($laravelExcelActual));
         $laravelExcelActual = trim($laravelExcelActual, '_');
         $variations[] = $laravelExcelActual;
 
-        // 4. Laravel Excel Str::slug() behavior (fallback)
-        // "Melahirkan/cuti hamil" → "melahirkan-cuti-hamil"
         $slug = strtolower(preg_replace('/[^a-zA-Z0-9]+/', '-', $name));
-        $slug = trim($slug, '-');
-        $variations[] = $slug;
+        $variations[] = trim($slug, '-');
 
-        // 5. Same as slug but with underscores
-        // "Melahirkan/cuti hamil" → "melahirkan_cuti_hamil"
         $underscore = strtolower(preg_replace('/[^a-zA-Z0-9]+/', '_', $name));
-        $underscore = trim($underscore, '_');
-        $variations[] = $underscore;
+        $variations[] = trim($underscore, '_');
 
-        // 6. Replace only /, -, and spaces with underscore (our normalize method)
-        $normalized = $this->normalizeColumnName($name);
-        $variations[] = $normalized;
+        $variations[] = $this->normalizeColumnName($name);
 
-        // 7. Replace only /, -, and spaces with dash
         $dashNormalized = str_replace([' ', '/', '-'], '-', $name);
         $dashNormalized = preg_replace('/-+/', '-', strtolower($dashNormalized));
-        $dashNormalized = trim($dashNormalized, '-');
-        $variations[] = $dashNormalized;
+        $variations[] = trim($dashNormalized, '-');
 
-        // 8. Remove all special chars, just alphanumeric
-        // "Melahirkan/cuti hamil" → "melahirkancutihamil"
-        $alphanumeric = strtolower(preg_replace('/[^a-zA-Z0-9]/', '', $name));
-        $variations[] = $alphanumeric;
+        $variations[] = strtolower(preg_replace('/[^a-zA-Z0-9]/', '', $name));
+        $variations[] = str_replace(' ', '_', strtolower($name));
 
-        // 9. Spaces to underscores only, keep other chars
-        // "Cuti Panjang - Staff" → "cuti_panjang_-_staff"
-        $spaceToUnderscore = str_replace(' ', '_', strtolower($name));
-        $variations[] = $spaceToUnderscore;
-
-        // 10. All special chars to single underscore then clean up
-        // "Cuti Panjang - Staff" → "cuti_panjang_staff"
         $allToUnderscore = preg_replace('/[^a-zA-Z0-9]+/', '_', $name);
         $allToUnderscore = preg_replace('/_+/', '_', strtolower($allToUnderscore));
-        $allToUnderscore = trim($allToUnderscore, '_');
-        $variations[] = $allToUnderscore;
+        $variations[] = trim($allToUnderscore, '_');
 
-        // 11. All special chars to single dash then clean up
-        // "Cuti Panjang - Staff" → "cuti-panjang-staff"
         $allToDash = preg_replace('/[^a-zA-Z0-9]+/', '-', $name);
         $allToDash = preg_replace('/-+/', '-', strtolower($allToDash));
-        $allToDash = trim($allToDash, '-');
-        $variations[] = $allToDash;
+        $variations[] = trim($allToDash, '-');
 
-        // Remove duplicates, empty strings, and return
-        $variations = array_filter(array_unique($variations), function ($v) {
-            return ! empty($v);
-        });
-
-        return array_values($variations);
+        return array_values(array_filter(array_unique($variations), fn ($v) => ! empty($v)));
     }
 
-    /**
-     * Determine if level is considered staff (same logic as export)
-     */
-    private function isStaffLevel($levelName)
+    private function isStaffLevel(string $levelName): bool
     {
-        if (empty($levelName)) {
+        if ($levelName === '') {
             return false;
         }
 
@@ -660,237 +899,143 @@ class LeaveEntitlementImport implements ToCollection, WithHeadingRow
             'FM',
         ];
 
-        return in_array($levelName, $staffLevels);
+        return in_array($levelName, $staffLevels, true);
     }
 
-    /**
-     * Normalize column name for consistent matching
-     * Matches WithHeadingRow behavior
-     */
-    private function normalizeColumnName($name)
+    private function normalizeColumnName(string $name): string
     {
-        // Replace spaces, slashes, and dashes with underscore
         $normalized = str_replace([' ', '/', '-'], '_', $name);
-
-        // Replace multiple consecutive underscores with single underscore
         $normalized = preg_replace('/_+/', '_', $normalized);
-
-        // Convert to lowercase
         $normalized = strtolower($normalized);
 
-        // Trim underscores from start and end
-        $normalized = trim($normalized, '_');
-
-        return $normalized;
+        return trim($normalized, '_');
     }
 
-    /**
-     * Parse date from various formats including all Excel date formats
-     * Prioritizes dd/mm/yyyy format (Indonesian/European format)
-     */
-    private function parseDate($dateValue)
+    private function parseDate(mixed $dateValue): ?Carbon
     {
         if (empty($dateValue)) {
             return null;
         }
 
-        // Trim whitespace
-        $dateValue = trim($dateValue);
+        $dateValue = trim((string) $dateValue);
 
-        // Handle Excel date serial number (numeric value)
         if (is_numeric($dateValue)) {
             try {
                 $dateTime = Date::excelToDateTimeObject((float) $dateValue);
 
                 return Carbon::instance($dateTime)->startOfDay();
             } catch (\Exception $e) {
-                // If it's a numeric string that looks like a date (e.g., "20240115")
                 if (strlen($dateValue) == 8 && is_numeric($dateValue)) {
                     try {
                         return Carbon::createFromFormat('Ymd', $dateValue)->startOfDay();
                     } catch (\Exception $e2) {
-                        // Continue to other formats
                     }
                 }
             }
         }
 
-        // Smart detection for dd/mm/yyyy vs mm/dd/yyyy format
-        // If date contains slashes or dashes, try to detect format intelligently
         if (preg_match('/^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})$/', $dateValue, $matches)) {
             $firstPart = (int) $matches[1];
             $secondPart = (int) $matches[2];
-            $year = (int) $matches[3];
             $separator = $matches[0][strpos($matches[0], $matches[1]) + strlen($matches[1])];
 
-            // If first part > 12, it MUST be day (dd/mm/yyyy format)
             if ($firstPart > 12) {
                 try {
-                    $format = 'd'.$separator.'m'.$separator.'Y';
-                    $date = Carbon::createFromFormat($format, $dateValue);
+                    $date = Carbon::createFromFormat('d'.$separator.'m'.$separator.'Y', $dateValue);
                     if ($date && $date->year >= 1900 && $date->year <= 2100) {
                         return $date->startOfDay();
                     }
                 } catch (\Exception $e) {
-                    // Continue
                 }
-            }
-            // If second part > 12, it MUST be day (mm/dd/yyyy format)
-            elseif ($secondPart > 12) {
+            } elseif ($secondPart > 12) {
                 try {
-                    $format = 'm'.$separator.'d'.$separator.'Y';
-                    $date = Carbon::createFromFormat($format, $dateValue);
+                    $date = Carbon::createFromFormat('m'.$separator.'d'.$separator.'Y', $dateValue);
                     if ($date && $date->year >= 1900 && $date->year <= 2100) {
                         return $date->startOfDay();
                     }
                 } catch (\Exception $e) {
-                    // Continue
                 }
-            }
-            // If both parts <= 12, prioritize dd/mm/yyyy (Indonesian format)
-            else {
-                // Try dd/mm/yyyy first (priority for Indonesian format)
+            } else {
                 try {
-                    $format = 'd'.$separator.'m'.$separator.'Y';
-                    $date = Carbon::createFromFormat($format, $dateValue);
-                    if ($date && $date->year >= 1900 && $date->year <= 2100) {
-                        // Validate: day should be <= 31, month should be <= 12
-                        if ($date->day <= 31 && $date->month <= 12) {
-                            return $date->startOfDay();
-                        }
+                    $date = Carbon::createFromFormat('d'.$separator.'m'.$separator.'Y', $dateValue);
+                    if ($date && $date->year >= 1900 && $date->year <= 2100 && $date->day <= 31 && $date->month <= 12) {
+                        return $date->startOfDay();
                     }
                 } catch (\Exception $e) {
-                    // Try mm/dd/yyyy as fallback
                     try {
-                        $format = 'm'.$separator.'d'.$separator.'Y';
-                        $date = Carbon::createFromFormat($format, $dateValue);
+                        $date = Carbon::createFromFormat('m'.$separator.'d'.$separator.'Y', $dateValue);
                         if ($date && $date->year >= 1900 && $date->year <= 2100) {
                             return $date->startOfDay();
                         }
                     } catch (\Exception $e2) {
-                        // Continue to other formats
                     }
                 }
             }
         }
 
-        // Try specific date formats with dd/mm/yyyy prioritized
+        foreach (['d M Y', 'j M Y', 'd M, Y'] as $format) {
+            try {
+                $date = Carbon::createFromFormat($format, $dateValue);
+                if ($date && $date->year >= 1900 && $date->year <= 2100) {
+                    return $date->startOfDay();
+                }
+            } catch (\Exception $e) {
+            }
+        }
+
         $formats = [
-            // Prioritize dd/mm/yyyy formats first (Indonesian/European format)
-            'd/m/Y',           // 15/01/2024 (PRIORITY)
-            'd-m-Y',           // 15-01-2024 (PRIORITY)
-            'd.m.Y',           // 15.01.2024 (PRIORITY)
-            'd/m/Y H:i',       // 15/01/2024 10:30
-            'd/m/Y H:i:s',     // 15/01/2024 10:30:45
-
-            // Standard formats
-            'Y-m-d',           // 2024-01-15
-            'Y/m/d',           // 2024/01/15
-            'Y.m.d',           // 2024.01.15
-            'Ymd',             // 20240115
-
-            // mm/dd/yyyy formats (lower priority)
-            'm/d/Y',           // 01/15/2024
-            'm-d-Y',           // 01-15-2024
-            'm.d.Y',           // 01.15.2024
-
-            // Formats with leading zeros optional (dd/mm prioritized)
-            'j/n/Y',           // 15/1/2024 (no leading zeros - day/month)
-            'j-n-Y',           // 15-1-2024
-            'n/j/Y',           // 1/15/2024 (no leading zeros - month/day)
-            'n-j-Y',           // 1-15-2024
-
-            // Formats with 2-digit year (dd/mm prioritized)
-            'd/m/y',           // 15/01/24
-            'd-m-y',           // 15-01-24
-            'm/d/y',           // 01/15/24
-            'm-d-y',           // 01-15-24
-            'y-m-d',           // 24-01-15
-
-            // Other formats
-            'dmY',             // 15012024
-            'mdY',             // 01152024
-
-            // Formats with month name (English)
-            'd M Y',           // 15 Jan 2024
-            'd F Y',           // 15 January 2024
-            'M d, Y',          // Jan 15, 2024
-            'F d, Y',          // January 15, 2024
-            'd M, Y',          // 15 Jan, 2024
-            'd F, Y',          // 15 January, 2024
-            'Y M d',           // 2024 Jan 15
-            'Y F d',           // 2024 January 15
-
-            // Formats with month name (abbreviated)
-            'd-M-Y',           // 15-Jan-2024
-            'd-F-Y',           // 15-January-2024
-            'M-d-Y',           // Jan-15-2024
-            'F-d-Y',           // January-15-2024
-
-            // Excel common formats
-            'Y-m-d H:i',       // 2024-01-15 10:30
-            'Y-m-d H:i:s',     // 2024-01-15 10:30:45
+            'd/m/Y', 'd-m-Y', 'd.m.Y', 'Y-m-d', 'Y/m/d', 'Y.m.d', 'Ymd',
+            'm/d/Y', 'm-d-Y', 'm.d.Y', 'd M Y', 'd F Y', 'M d, Y', 'F d, Y',
         ];
 
         foreach ($formats as $format) {
             try {
                 $date = Carbon::createFromFormat($format, $dateValue);
-                // Validate that the parsed date is reasonable
                 if ($date && $date->year >= 1900 && $date->year <= 2100) {
                     return $date->startOfDay();
                 }
             } catch (\Exception $e) {
-                continue;
             }
         }
 
-        // Last resort: try to extract date from string with regex
-        // This handles cases like "15/01/2024 00:00:00" or other mixed formats
         if (preg_match('/(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})/', $dateValue, $matches)) {
             try {
                 $day = (int) $matches[1];
                 $month = (int) $matches[2];
                 $year = (int) $matches[3];
-
-                // Validate ranges
                 if ($day >= 1 && $day <= 31 && $month >= 1 && $month <= 12 && $year >= 1900 && $year <= 2100) {
                     return Carbon::create($year, $month, $day)->startOfDay();
                 }
             } catch (\Exception $e) {
-                // Continue
             }
         }
 
-        // Try reverse format (YYYY-MM-DD from string)
         if (preg_match('/(\d{4})[\/\-\.](\d{1,2})[\/\-\.](\d{1,2})/', $dateValue, $matches)) {
             try {
                 $year = (int) $matches[1];
                 $month = (int) $matches[2];
                 $day = (int) $matches[3];
-
-                // Validate ranges
                 if ($day >= 1 && $day <= 31 && $month >= 1 && $month <= 12 && $year >= 1900 && $year <= 2100) {
                     return Carbon::create($year, $month, $day)->startOfDay();
                 }
             } catch (\Exception $e) {
-                // Continue
             }
         }
 
         return null;
     }
 
-    public function getErrors()
+    public function getErrors(): array
     {
         return $this->errors;
     }
 
-    public function getSuccessCount()
+    public function getSuccessCount(): int
     {
         return $this->successCount;
     }
 
-    public function getSkippedCount()
+    public function getSkippedCount(): int
     {
         return $this->skippedCount;
     }

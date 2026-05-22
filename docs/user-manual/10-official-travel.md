@@ -87,10 +87,10 @@ Jika membuat nomor surat lewat **Create New**, tampil form **Create Letter Numbe
 </p>
 
 **3. Travel Information**  
-Pada kartu **Travel Information**: **LOT Number** memakai pola `ARKA/[Letter Number]/HR/bulan-romawi/tahun`; isian disesuaikan setelah Anda memilih nomor surat di langkah sebelumnya (ada teks bantuan di bawah field). Isi **LOT Date**, **LOT Origin** (dropdown **project asal**), dan **Main Traveler**. **Title**, **Business Unit**, dan **Department** di bagian bawah kartu adalah **ringkasan otomatis** dari karyawan yang dipilih sebagai Main Traveler — tidak perlu diketik di sini.
+Pada kartu **Travel Information**: **LOT Number** memakai pola `ARKA/[Letter Number]/HR-[Project Code]/bulan-romawi/tahun`; isian disesuaikan setelah Anda memilih nomor surat dan **LOT Origin** di langkah sebelumnya (ada teks bantuan di bawah field). Isi **LOT Date**, **LOT Origin** (dropdown **project asal**), dan **Main Traveler**. **Title**, **Business Unit**, dan **Department** di bagian bawah kartu adalah **ringkasan otomatis** dari karyawan yang dipilih sebagai Main Traveler — tidak perlu diketik di sini.
 
 <p align="center" id="step-03-travel-information">
-<img src="images/official-travels-step-03-travel-information.png" alt="Kartu Travel Information: LOT Number (template ARKA/[Letter Number]/HR/...), LOT Date, LOT Origin, Main Traveler, serta Title/Business Unit/Department read-only" style="max-width: 75%; width: 75%; height: auto;" />
+<img src="images/official-travels-step-03-travel-information.png" alt="Kartu Travel Information: LOT Number (template ARKA/[Letter Number]/HR-[Project Code]/...), LOT Date, LOT Origin, Main Traveler, serta Title/Business Unit/Department read-only" style="max-width: 75%; width: 75%; height: auto;" />
 </p>
 
 **4. Destination & schedule** (kartu berikutnya pada form yang sama) mengatur **itinerary** dan jadwal ringkas:

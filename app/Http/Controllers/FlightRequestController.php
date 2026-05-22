@@ -8,6 +8,7 @@ use App\Models\BusinessPartner;
 use App\Models\Employee;
 use App\Models\FlightRequest;
 use App\Models\FlightRequestDetail;
+use App\Models\FlightRequestFollower;
 use App\Models\LeaveRequest;
 use App\Models\Officialtravel;
 use Illuminate\Http\Request;
@@ -137,8 +138,9 @@ class FlightRequestController extends Controller
     {
         $title = 'Create Flight Request';
         $businessPartners = BusinessPartner::active()->get();
+        $followerEmployeeOptions = $this->followerEmployeeOptions();
 
-        return view('flight-requests.create', compact('businessPartners', 'title'));
+        return view('flight-requests.create', compact('businessPartners', 'title', 'followerEmployeeOptions'));
     }
 
     /**
@@ -526,6 +528,8 @@ class FlightRequestController extends Controller
                 ]);
             }
 
+            $this->syncStandaloneFollowers($flightRequest, $validated['request_type'], $request);
+
             // If submitted, create approval plans using manual approvers (same pattern as official travel)
             if ($request->submit_action === 'submit') {
                 if (empty($manualApprovers)) {
@@ -585,6 +589,9 @@ class FlightRequestController extends Controller
             'officialTravel.details.follower.employee',
             'officialTravel.details.follower.position.department',
             'officialTravel.details.follower.project',
+            'followers.employee',
+            'followers.administration.position.department',
+            'followers.administration.project',
             'details',
             'issuances.issuanceDetails',
             'issuances.businessPartner',
@@ -603,7 +610,13 @@ class FlightRequestController extends Controller
     public function edit($id)
     {
         $title = 'Edit Flight Request';
-        $flightRequest = FlightRequest::with(['details', 'employee', 'administration'])->findOrFail($id);
+        $flightRequest = FlightRequest::with([
+            'details',
+            'employee',
+            'administration',
+            'followers.employee',
+            'followers.administration',
+        ])->findOrFail($id);
 
         if (! in_array($flightRequest->status, [FlightRequest::STATUS_DRAFT, FlightRequest::STATUS_SUBMITTED])) {
             return redirect()->route('flight-requests.show', $id)
@@ -612,8 +625,9 @@ class FlightRequestController extends Controller
 
         $employees = Employee::with(['activeAdministration'])->get();
         $businessPartners = BusinessPartner::active()->get();
+        $followerEmployeeOptions = $this->followerEmployeeOptions();
 
-        return view('flight-requests.edit', compact('flightRequest', 'employees', 'businessPartners', 'title'));
+        return view('flight-requests.edit', compact('flightRequest', 'employees', 'businessPartners', 'title', 'followerEmployeeOptions'));
     }
 
     /**
@@ -714,9 +728,11 @@ class FlightRequestController extends Controller
                 ]);
             }
 
+            $this->syncStandaloneFollowers($flightRequest, $validated['request_type'], $request);
+
             DB::commit();
 
-            $redirectTo = ($flightRequest->requested_by && $flightRequest->requested_by === Auth::id())
+            $redirectTo = $request->routeIs('flight-requests.my-requests.update')
                 ? route('flight-requests.my-requests.show', $flightRequest->id)
                 : route('flight-requests.show', $flightRequest->id);
 
@@ -961,6 +977,9 @@ class FlightRequestController extends Controller
             'officialTravel.details.follower.employee',
             'officialTravel.details.follower.position.department',
             'officialTravel.details.follower.project',
+            'followers.employee',
+            'followers.administration.position.department',
+            'followers.administration.project',
             'details',
             'issuances.issuanceDetails',
             'issuances.businessPartner',
@@ -1003,7 +1022,9 @@ class FlightRequestController extends Controller
             'total_travel_days' => '',
         ];
 
-        return view('flight-requests.my-create', compact('employee', 'administration', 'title', 'myProfileData'));
+        $followerEmployeeOptions = $this->followerEmployeeOptions();
+
+        return view('flight-requests.my-create', compact('employee', 'administration', 'title', 'myProfileData', 'followerEmployeeOptions'));
     }
 
     /**
@@ -1018,11 +1039,16 @@ class FlightRequestController extends Controller
             return back()->with('toast_error', 'Employee not found.');
         }
 
-        // For standalone or when no source document selected, use current user's employee
+        // For standalone without manual employee input, use current user's employee
         $isStandalone = $request->request_type === 'standalone';
         $hasLeave = $request->filled('leave_request_id');
         $hasTravel = $request->filled('official_travel_id');
-        if ($isStandalone || (! $hasLeave && ! $hasTravel)) {
+        if ($isStandalone && ! $request->boolean('fill_manually')) {
+            $request->merge([
+                'employee_id' => $employee->id,
+                'administration_id' => $employee->activeAdministration->id ?? null,
+            ]);
+        } elseif (! $isStandalone && ! $hasLeave && ! $hasTravel) {
             $request->merge([
                 'employee_id' => $employee->id,
                 'administration_id' => $employee->activeAdministration->id ?? null,
@@ -1048,6 +1074,8 @@ class FlightRequestController extends Controller
             'officialTravel.details.follower.employee',
             'officialTravel.details.follower.position.department',
             'officialTravel.details.follower.project',
+            'followers.employee',
+            'followers.administration',
         ])->where('requested_by', $user->id)->findOrFail($id);
 
         if (! in_array($flightRequest->status, [FlightRequest::STATUS_DRAFT, FlightRequest::STATUS_SUBMITTED])) {
@@ -1060,6 +1088,8 @@ class FlightRequestController extends Controller
         if ($administration) {
             $administration->load(['position.department', 'project']);
         }
+
+        $followerEmployeeOptions = $this->followerEmployeeOptions();
 
         $myProfileData = [
             'employee_id' => $employee?->id,
@@ -1076,7 +1106,7 @@ class FlightRequestController extends Controller
             'total_travel_days' => '',
         ];
 
-        return view('flight-requests.my-edit', compact('flightRequest', 'title', 'employee', 'administration', 'myProfileData'));
+        return view('flight-requests.my-edit', compact('flightRequest', 'title', 'employee', 'administration', 'myProfileData', 'followerEmployeeOptions'));
     }
 
     /**
@@ -1152,10 +1182,187 @@ class FlightRequestController extends Controller
             'officialTravel.details.follower.employee',
             'officialTravel.details.follower.position.department',
             'officialTravel.details.follower.project',
+            'followers.employee',
+            'followers.administration.position.department',
+            'followers.administration.project',
             'requestedBy',
             'approvalPlans.approver',
         ])->findOrFail($id);
 
         return view('flight-requests.print', compact('title', 'subtitle', 'flightRequest'));
+    }
+
+    /**
+     * Active administrations for standalone follower employee select (same pool as LOT followers).
+     */
+    protected function followerEmployeeOptions()
+    {
+        return Administration::with([
+            'employee',
+            'position.department',
+            'project',
+        ])
+            ->where('is_active', 1)
+            ->whereHas('employee')
+            ->orderBy('nik', 'asc')
+            ->get()
+            ->map(function ($admin) {
+                $position = $admin->position;
+                $department = $position && $position->department ? $position->department->department_name : '-';
+
+                return [
+                    'id' => $admin->id,
+                    'employee_id' => $admin->employee_id,
+                    'nik' => $admin->nik,
+                    'fullname' => $admin->employee->fullname ?? 'Unknown',
+                    'position' => $position ? ($position->position_name ?? '-') : '-',
+                    'project' => $admin->project->project_name ?? '-',
+                    'department' => $department,
+                    'phone_number' => $admin->employee->phone ?? $admin->employee->phone_number ?? '',
+                ];
+            });
+    }
+
+    /**
+     * Validate and persist followers for standalone flight requests only.
+     */
+    protected function syncStandaloneFollowers(FlightRequest $flightRequest, string $requestType, Request $request): void
+    {
+        $flightRequest->followers()->delete();
+
+        if ($requestType !== FlightRequest::TYPE_STANDALONE) {
+            return;
+        }
+
+        $rows = $request->input('followers', []);
+        if (! is_array($rows) || empty($rows)) {
+            return;
+        }
+
+        $rules = [];
+        $seenAdministrationIds = [];
+        foreach ($rows as $index => $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+
+            $isManual = ! empty($row['is_manual']);
+            $hasEmployee = ! empty($row['administration_id']);
+            $hasManual = trim((string) ($row['follower_name'] ?? '')) !== ''
+                || trim((string) ($row['nik'] ?? '')) !== ''
+                || trim((string) ($row['phone_number'] ?? '')) !== '';
+
+            if (! $isManual && ! $hasEmployee && ! $hasManual) {
+                continue;
+            }
+
+            $rules["followers.{$index}.title"] = 'nullable|in:Mr.,Mrs.,Inf.,Mr,Mrs,Inf';
+
+            if ($isManual) {
+                $rules["followers.{$index}.follower_name"] = 'required|string|max:255';
+                $rules["followers.{$index}.nik"] = 'required|string|max:50';
+                $rules["followers.{$index}.phone_number"] = 'required|string|max:20';
+            } else {
+                $rules["followers.{$index}.administration_id"] = 'required|exists:administrations,id';
+            }
+        }
+
+        if (! empty($rules)) {
+            $request->validate($rules, [
+                'followers.*.administration_id.required' => 'Please select an employee for each follower row.',
+                'followers.*.administration_id.exists' => 'Selected follower employee is invalid.',
+                'followers.*.follower_name.required' => 'Follower name is required for manual input.',
+                'followers.*.nik.required' => 'ID Number / NIK is required for manual follower.',
+                'followers.*.phone_number.required' => 'Phone number is required for manual follower.',
+            ]);
+        }
+
+        $sortOrder = 0;
+        foreach ($rows as $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+
+            $isManual = ! empty($row['is_manual']);
+            $sortOrder++;
+
+            if ($isManual) {
+                $name = trim((string) ($row['follower_name'] ?? ''));
+                $nik = trim((string) ($row['nik'] ?? ''));
+                $phone = trim((string) ($row['phone_number'] ?? ''));
+
+                if ($name === '' && $nik === '' && $phone === '') {
+                    $sortOrder--;
+
+                    continue;
+                }
+
+                FlightRequestFollower::create([
+                    'flight_request_id' => $flightRequest->id,
+                    'sort_order' => $sortOrder,
+                    'title' => $this->normalizeFollowerTitle($row['title'] ?? null),
+                    'employee_id' => null,
+                    'administration_id' => null,
+                    'follower_name' => $name,
+                    'nik' => $nik,
+                    'phone_number' => $phone,
+                ]);
+
+                continue;
+            }
+
+            $administrationId = $row['administration_id'] ?? null;
+            if (! $administrationId) {
+                $sortOrder--;
+
+                continue;
+            }
+
+            if (in_array($administrationId, $seenAdministrationIds, true)) {
+                continue;
+            }
+            $seenAdministrationIds[] = $administrationId;
+
+            $admin = Administration::with(['employee', 'position.department', 'project'])->find($administrationId);
+            if (! $admin) {
+                continue;
+            }
+
+            $position = $admin->position;
+            $department = $position && $position->department ? $position->department->department_name : null;
+
+            FlightRequestFollower::create([
+                'flight_request_id' => $flightRequest->id,
+                'sort_order' => $sortOrder,
+                'title' => $this->normalizeFollowerTitle($row['title'] ?? null),
+                'employee_id' => $admin->employee_id,
+                'administration_id' => $admin->id,
+                'follower_name' => $admin->employee->fullname ?? null,
+                'nik' => $admin->nik,
+                'phone_number' => $admin->employee->phone ?? $admin->employee->phone_number ?? null,
+                'position' => $position ? $position->position_name : null,
+                'department' => $department,
+                'project' => $admin->project->project_name ?? null,
+            ]);
+        }
+    }
+
+    protected function normalizeFollowerTitle(?string $title): ?string
+    {
+        $title = trim((string) $title);
+        if ($title === '') {
+            return null;
+        }
+
+        $map = [
+            'Mr' => 'Mr.',
+            'Mr.' => 'Mr.',
+            'Mrs' => 'Mrs.',
+            'Mrs.' => 'Mrs.',
+            'Inf' => 'Inf.',
+            'Inf.' => 'Inf.',
+        ];
+
+        return $map[$title] ?? null;
     }
 }

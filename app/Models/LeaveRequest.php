@@ -125,6 +125,66 @@ class LeaveRequest extends Model
         return $this->hasMany(FlightRequest::class, 'leave_request_id');
     }
 
+    /**
+     * Resolve the leave entitlement that matches this request's leave period.
+     */
+    public function matchingEntitlement(): ?LeaveEntitlement
+    {
+        $baseQuery = fn () => LeaveEntitlement::query()
+            ->where('employee_id', $this->employee_id)
+            ->where('leave_type_id', $this->leave_type_id);
+
+        if (filled($this->leave_period)) {
+            $normalizedPeriod = trim($this->leave_period);
+
+            $byLabel = $baseQuery()
+                ->get()
+                ->first(fn (LeaveEntitlement $entitlement) => $entitlement->periodLabel() === $normalizedPeriod);
+
+            if ($byLabel) {
+                return $byLabel;
+            }
+
+            $parsedPeriod = self::parseLeavePeriodLabel($this->leave_period);
+            if ($parsedPeriod) {
+                $byDates = $baseQuery()
+                    ->whereDate('period_start', $parsedPeriod['start'])
+                    ->whereDate('period_end', $parsedPeriod['end'])
+                    ->first();
+
+                if ($byDates) {
+                    return $byDates;
+                }
+            }
+        }
+
+        if ($this->start_date && $this->end_date) {
+            return $baseQuery()
+                ->where('period_start', '<=', $this->start_date)
+                ->where('period_end', '>=', $this->end_date)
+                ->first();
+        }
+
+        return null;
+    }
+
+    private static function parseLeavePeriodLabel(string $label): ?array
+    {
+        $parts = preg_split('/\s*-\s*/', trim($label), 2);
+        if (count($parts) !== 2) {
+            return null;
+        }
+
+        try {
+            return [
+                'start' => \Carbon\Carbon::parse(trim($parts[0]))->toDateString(),
+                'end' => \Carbon\Carbon::parse(trim($parts[1]))->toDateString(),
+            ];
+        } catch (\Throwable) {
+            return null;
+        }
+    }
+
     // Business Logic Methods
     public function calculateTotalDays()
     {

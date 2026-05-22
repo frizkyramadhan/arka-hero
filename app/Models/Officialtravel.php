@@ -622,6 +622,59 @@ class Officialtravel extends Model
         return User::whereIn('id', $this->manual_approvers)->get();
     }
 
+    /**
+     * Format official travel (LOT) number.
+     * Pattern: ARKA/[Letter Number]/HR-[Project Code]/bulan-romawi/tahun
+     */
+    public static function formatOfficialTravelNumber(string $letterNumber, string $projectCode, ?\DateTimeInterface $date = null): string
+    {
+        $date = $date ? \Carbon\Carbon::parse($date) : now();
+        $romanMonth = self::monthToRoman((int) $date->format('n'));
+
+        return sprintf('ARKA/%s/HR-%s/%s/%s', $letterNumber, $projectCode, $romanMonth, $date->format('Y'));
+    }
+
+    /**
+     * Placeholder LOT number shown before letter number and project are selected.
+     */
+    public static function officialTravelNumberPlaceholder(?string $projectCode = null, ?\DateTimeInterface $date = null): string
+    {
+        $date = $date ? \Carbon\Carbon::parse($date) : now();
+        $romanMonth = self::monthToRoman((int) $date->format('n'));
+        $projectPart = $projectCode ?: '[Project Code]';
+
+        return sprintf('ARKA/[Letter Number]/HR-%s/%s/%s', $projectPart, $romanMonth, $date->format('Y'));
+    }
+
+    private static function monthToRoman(int $number): string
+    {
+        $map = [
+            'M' => 1000,
+            'CM' => 900,
+            'D' => 500,
+            'CD' => 400,
+            'C' => 100,
+            'XC' => 90,
+            'L' => 50,
+            'XL' => 40,
+            'X' => 10,
+            'IX' => 9,
+            'V' => 5,
+            'IV' => 4,
+            'I' => 1,
+        ];
+
+        $result = '';
+        foreach ($map as $roman => $value) {
+            while ($number >= $value) {
+                $result .= $roman;
+                $number -= $value;
+            }
+        }
+
+        return $result;
+    }
+
     // Auto-assign letter number on creation jika tidak ada
     protected static function boot()
     {

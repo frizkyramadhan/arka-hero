@@ -83,6 +83,11 @@ class FlightRequest extends Model
         return $this->hasMany(FlightRequestDetail::class);
     }
 
+    public function followers()
+    {
+        return $this->hasMany(FlightRequestFollower::class)->orderBy('sort_order');
+    }
+
     public function issuances()
     {
         return $this->belongsToMany(

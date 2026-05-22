@@ -271,37 +271,11 @@
                                     </ul>
                                 </div>
 
-                                @php
-                                    $documentLink = '#';
-                                    $documentName = 'Document';
-                                    switch ($letterNumber->related_document_type) {
-                                        case 'officialtravel':
-                                            $documentLink = route(
-                                                'officialtravels.show',
-                                                $letterNumber->related_document_id,
-                                            );
-                                            $documentName = 'Official Travel Letter';
-                                            break;
-                                        case 'recruitment_request':
-                                            $documentLink = route(
-                                                'recruitment.requests.show',
-                                                $letterNumber->related_document_id,
-                                            );
-                                            $documentName = 'Recruitment Request';
-                                            break;
-                                        case 'recruitment_offering':
-                                            $documentLink = route(
-                                                'recruitment.sessions.candidate',
-                                                $letterNumber->related_document_id,
-                                            );
-                                            $documentName = 'Recruitment Request';
-                                            break;
-                                    }
-                                @endphp
-
-                                <a href="{{ $documentLink }}" class="btn btn-success">
-                                    <i class="fas fa-external-link-alt"></i> View {{ $documentName }}
-                                </a>
+                                @if ($letterNumber->relatedDocumentRoute())
+                                    <a href="{{ $letterNumber->relatedDocumentRoute() }}" class="btn btn-success">
+                                        <i class="fas fa-external-link-alt"></i> View {{ $letterNumber->relatedDocumentLinkLabel() }}
+                                    </a>
+                                @endif
                             </div>
                         </div>
                     @endif

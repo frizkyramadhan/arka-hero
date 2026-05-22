@@ -185,7 +185,7 @@ class FlightRequestIssuanceController extends Controller
         }
 
         // Get all selected flight requests
-        $flightRequests = FlightRequest::with(['details', 'employee', 'administration'])
+        $flightRequests = FlightRequest::with($this->flightRequestFollowerRelations())
             ->whereIn('id', $flightRequestIds)
             ->get();
 
@@ -352,8 +352,7 @@ class FlightRequestIssuanceController extends Controller
     {
         $title = 'Flight Issuance Details';
         $issuance = FlightRequestIssuance::with([
-            'flightRequests.details',
-            'flightRequests.employee',
+            'flightRequests' => fn ($q) => $q->with($this->flightRequestFollowerRelations()),
             'businessPartner',
             'issuedBy',
             'letterNumber',
@@ -372,9 +371,7 @@ class FlightRequestIssuanceController extends Controller
         $issuance = FlightRequestIssuance::with([
             'issuanceDetails',
             'businessPartner',
-            'flightRequests.details',
-            'flightRequests.employee',
-            'flightRequests.administration',
+            'flightRequests' => fn ($q) => $q->with($this->flightRequestFollowerRelations()),
         ])->findOrFail($id);
         $businessPartners = BusinessPartner::active()->get();
         $letterNumbers = LetterNumber::where('status', 'reserved')
@@ -619,12 +616,30 @@ class FlightRequestIssuanceController extends Controller
     public function print($id)
     {
         $issuance = FlightRequestIssuance::with([
-            'flightRequests.details',
+            'flightRequests' => fn ($q) => $q->with($this->flightRequestFollowerRelations()),
             'businessPartner',
             'issuedBy',
             'issuanceDetails.employee',
         ])->findOrFail($id);
 
         return view('flight-issuances.print', compact('issuance'));
+    }
+
+    /**
+     * Eager-load relations needed to display flight request followers.
+     */
+    protected function flightRequestFollowerRelations(): array
+    {
+        return [
+            'details',
+            'employee',
+            'administration',
+            'followers.employee',
+            'followers.administration.position.department',
+            'followers.administration.project',
+            'officialTravel.details.follower.employee',
+            'officialTravel.details.follower.position.department',
+            'officialTravel.details.follower.project',
+        ];
     }
 }

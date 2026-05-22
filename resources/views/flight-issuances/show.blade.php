@@ -192,6 +192,9 @@
                                                         {{ $fr->requested_at ? $fr->requested_at->format('d F Y') : '-' }}</span>
                                                 </div>
                                             </div>
+                                            @include('flight-issuances.partials.fr-followers-block', [
+                                                'flightRequest' => $fr,
+                                            ])
                                         </div>
                                     @endforeach
                                 </div>
@@ -571,6 +574,25 @@
         .issuance-detail-item i {
             color: #3498db;
             width: 16px;
+        }
+
+        .issuance-item .fr-followers-block {
+            margin-top: 12px;
+        }
+
+        .issuance-item .fr-followers-block .followers-card {
+            margin-bottom: 0;
+            box-shadow: none;
+            border: 1px solid #dee2e6;
+        }
+
+        .issuance-item .fr-followers-block .followers-card .card-head {
+            padding: 10px 14px;
+            background: #fff;
+        }
+
+        .issuance-item .fr-followers-block .followers-card .card-body {
+            padding: 0;
         }
 
         .actions-list {

@@ -203,7 +203,9 @@
                     const option = $('<option>')
                         .val(number.id)
                         .text(displayText)
-                        .data('number', number)
+                        .attr('data-letter-number', number.letter_number)
+                        .attr('data-project-code', proj)
+                        .attr('data-project-id', number.project_id || '')
                         .attr('title', [
                             proj ? `Project: ${proj}` : '',
                             number.remarks ? number.remarks : '',
@@ -219,6 +221,7 @@
 
                 // Trigger Select2 update and change event
                 $select.trigger('change');
+                $(document).trigger('letter-number-options:updated', [$select]);
 
                 // If there's a selected value, show status
                 if (selectedValue) {
