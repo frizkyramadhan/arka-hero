@@ -1,12 +1,13 @@
 @extends('layouts.main')
 
-@section('title', ($isEditMode ?? false ? 'Edit' : 'Add') . ' Employee Leave Entitlements - ' . $employee->fullname)
+@section('title', ($isEditMode ?? false ? 'Edit' : 'Tambah') . ' Hak Cuti ' . ($scopeTitle ?? 'Tahunan') . ' - ' .
+    $employee->fullname)
 
 @section('content')
     @php
         // Get active administration (is_active = 1)
         $activeAdministration = $employee->administrations->where('is_active', 1)->first();
-        
+
         // If no active administration, use the last one
         if (!$activeAdministration) {
             $activeAdministration = $employee->administrations->sortByDesc('doh')->first();
@@ -16,20 +17,20 @@
         // - If termination_reason = "end of contract" → count from first DOH (continuity)
         // - If termination_reason != "end of contract" → count from DOH after termination (reset)
         $allAdministrations = $employee->administrations->whereNotNull('doh')->sortBy('doh')->values();
-        
+
         $serviceStartDoh = null;
         $serviceStartNik = null;
-        
+
         if ($allAdministrations->count() > 0) {
             // Start with first DOH (earliest)
             $serviceStartDoh = $allAdministrations->first()->doh;
             $serviceStartNik = $allAdministrations->first()->nik;
-            
+
             // Check each administration for termination reason
             foreach ($allAdministrations as $admin) {
                 if ($admin->termination_date && $admin->termination_reason) {
                     $terminationReason = strtolower(trim($admin->termination_reason));
-                    
+
                     // If termination is NOT "end of contract", reset to next DOH
                     if ($terminationReason !== 'end of contract') {
                         // Find next administration after this termination
@@ -43,10 +44,23 @@
             }
         }
     @endphp
-    
+
     @if ($businessRules)
+        @php
+            $lslPeriodDatesByLeaveTypeId = $lslPeriodDatesByLeaveTypeId ?? [];
+            $activeLslPeriod = collect($lslPeriodDatesByLeaveTypeId)->first();
+            $entitlementScope = $entitlementScope ?? 'annual';
+            $isLslScope = $entitlementScope === 'lsl';
+            $bannerPeriod =
+                ($isEditMode ?? false) && ($periodDates ?? null)
+                    ? $periodDates
+                    : ($isLslScope && $activeLslPeriod
+                        ? $activeLslPeriod
+                        : $periodDates ?? null);
+            $periodLabel = $isLslScope ? 'Periode Cuti Panjang' : 'Periode Tahunan';
+        @endphp
         <!-- Info Banner - Full Width -->
-        <div class="info-banner">
+        <div class="info-banner {{ $isLslScope ? 'info-banner--lsl' : 'info-banner--annual' }}">
             <div class="info-banner-content">
                 <div class="employee-info">
                     <div class="employee-name">{{ $employee->fullname }}</div>
@@ -54,18 +68,17 @@
                         {{ $activeAdministration->project->project_code ?? 'N/A' }} -
                         {{ $activeAdministration->nik ?? 'N/A' }}
                     </div>
-                    @if ($periodDates)
-                        <div class="period-info">
-                            <i class="far fa-calendar-alt"></i> {{ $periodDates['start']->format('d F Y') }}
-                            - {{ $periodDates['end']->format('d F Y') }}
-                        </div>
+                    @if ($bannerPeriod)
+                        <x-leave-entitlement-period :start="$bannerPeriod['start']" :end="$bannerPeriod['end']" :category="$isLslScope ? 'lsl' : null" variant="banner" />
                     @endif
                 </div>
-                @if ($periodDates)
-                    <div class="period-year">
-                        {{ $currentYear }}
-                    </div>
-                @endif
+                <div class="period-year">
+                    @if ($isEditMode ?? false)
+                        <i class="fas fa-edit mr-1"></i>{{ $periodLabel }}
+                    @else
+                        + {{ $periodLabel }}
+                    @endif
+                </div>
             </div>
         </div>
     @endif
@@ -73,6 +86,17 @@
     <section class="content">
         <div class="container-fluid">
             @if ($businessRules)
+                @if ($isLslScope)
+                    <p class="text-muted small mb-3">
+                        <i class="fas fa-hourglass-half text-warning"></i> Form cuti panjang — periode 5/6 tahun, saldo
+                        default 50 hari.
+                    </p>
+                @else
+                    <p class="text-muted small mb-3">
+                        <i class="fas fa-calendar-alt text-info"></i> Form cuti tahunan — periode 1 tahun (tahunan,
+                        berbayar, tanpa upah).
+                    </p>
+                @endif
 
                 <div class="row">
                     <!-- Sidebar: Employee Info -->
@@ -89,7 +113,8 @@
                                             {{ $activeAdministration->level->name ?? 'N/A' }}</div>
                                     </div>
                                     <div class="info-section">
-                                        <div class="info-label"><i class="fas fa-user-tag text-secondary"></i> Position</div>
+                                        <div class="info-label"><i class="fas fa-user-tag text-secondary"></i> Position
+                                        </div>
                                         <div class="info-value">
                                             {{ $activeAdministration->position->position_name ?? 'N/A' }}</div>
                                     </div>
@@ -99,7 +124,8 @@
                                             @if ($serviceStartDoh)
                                                 {{ \Carbon\Carbon::parse($serviceStartDoh)->format('d M Y') }}
                                                 @if ($serviceStartNik && $activeAdministration && $serviceStartNik != $activeAdministration->nik)
-                                                    <br><small class="text-info"><i class="fas fa-info-circle"></i> From NIK: {{ $serviceStartNik }}</small>
+                                                    <br><small class="text-info"><i class="fas fa-info-circle"></i> From
+                                                        NIK: {{ $serviceStartNik }}</small>
                                                 @endif
                                             @else
                                                 N/A
@@ -145,6 +171,7 @@
                         <form method="POST" action="{{ route('leave.entitlements.employee.update', $employee->id) }}">
                             @csrf
                             @method('PUT')
+                            <input type="hidden" name="entitlement_scope" value="{{ $entitlementScope }}">
 
                             <!-- Hidden fields for period dates -->
                             @if ($periodDates)
@@ -160,51 +187,30 @@
                                 $globalIndex = 0;
                             @endphp
 
-                            <!-- Tab Navigation -->
-                            <div class="card card-primary card-outline">
-                                <div class="card-header p-0 border-bottom-0">
-                                    <ul class="nav nav-tabs" role="tablist">
-                                        @foreach ($groupedLeavesForDisplay as $cat => $catLeaves)
-                                            @php
-                                                $catId = str_replace(' ', '', strtolower($cat));
-                                                $catColor =
-                                                    [
-                                                        'paid' => 'success',
-                                                        'periodic' => 'info',
-                                                        'lsl' => 'warning',
-                                                        'unpaid' => 'secondary',
-                                                    ][strtolower($cat)] ?? 'primary';
-                                                $isActive = $loop->first;
-                                            @endphp
-                                            <li class="nav-item">
-                                                <a class="nav-link {{ $isActive ? 'active' : '' }}"
-                                                    id="{{ $catId }}-tab" data-toggle="tab"
-                                                    href="#{{ $catId }}" role="tab">
-                                                    <i class="fas fa-circle text-{{ $catColor }} mr-2"></i>
-                                                    {{ ucfirst($cat) }} Leave
-                                                    <span
-                                                        class="badge badge-{{ $catColor }} ml-2">{{ $catLeaves->count() }}</span>
-                                                </a>
-                                            </li>
-                                        @endforeach
-                                    </ul>
+                            <!-- Tab Navigation / single scope form -->
+                            <div class="card card-primary card-outline {{ $isLslScope ? 'card-warning' : '' }}">
+                                <div class="card-header">
+                                    <h3 class="card-title">
+                                        <i class="fas fa-{{ $isLslScope ? 'hourglass-half' : 'calendar-alt' }} mr-2"></i>
+                                        {{ $isEditMode ?? false ? 'Edit' : 'Tambah' }} Hak Cuti
+                                        {{ $scopeTitle ?? 'Tahunan' }}
+                                    </h3>
                                 </div>
-                                <div class="card-body">
+                                @if ($periodDates)
+                                    <div class="card-body pb-0">
+                                        <x-leave-entitlement-period :start="$periodDates['start']" :end="$periodDates['end']" :category="$isLslScope ? 'lsl' : null"
+                                            variant="panel" />
+                                    </div>
+                                @endif
+                                <div class="card-body pt-2">
                                     <div class="tab-content" id="leaveTabsContent">
                                         @foreach ($groupedLeavesForDisplay as $cat => $catLeaves)
                                             @php
                                                 $catId = str_replace(' ', '', strtolower($cat));
-                                                $catColor =
-                                                    [
-                                                        'paid' => 'success',
-                                                        'periodic' => 'info',
-                                                        'lsl' => 'warning',
-                                                        'unpaid' => 'secondary',
-                                                    ][strtolower($cat)] ?? 'primary';
-                                                $isActive = $loop->first;
+                                                $isActive = true;
                                             @endphp
-                                            <div class="tab-pane fade {{ $isActive ? 'show active' : '' }}"
-                                                id="{{ $catId }}" role="tabpanel">
+                                            <div class="tab-pane fade show active" id="{{ $catId }}"
+                                                role="tabpanel">
                                                 <div class="table-responsive">
                                                     <table class="table table-hover table-bordered table-sm">
                                                         <thead>
@@ -219,8 +225,22 @@
                                                         <tbody>
                                                             @foreach ($catLeaves as $leave)
                                                                 @php
+                                                                    $rowPeriodDates = $periodDates;
+                                                                    if (
+                                                                        !($isEditMode ?? false) &&
+                                                                        strtolower($cat) === 'lsl' &&
+                                                                        !empty(
+                                                                            $lslPeriodDatesByLeaveTypeId[
+                                                                                $leave['id'] ?? null
+                                                                            ] ?? null
+                                                                        )
+                                                                    ) {
+                                                                        $rowPeriodDates =
+                                                                            $lslPeriodDatesByLeaveTypeId[$leave['id']];
+                                                                    }
+
                                                                     $existingEntitlement = null;
-                                                                    if ($periodDates) {
+                                                                    if ($rowPeriodDates) {
                                                                         $existingEntitlement = \App\Models\LeaveEntitlement::where(
                                                                             'employee_id',
                                                                             $employee->id,
@@ -228,11 +248,13 @@
                                                                             ->where('leave_type_id', $leave['id'])
                                                                             ->whereDate(
                                                                                 'period_start',
-                                                                                $periodDates['start']->format('Y-m-d'),
+                                                                                $rowPeriodDates['start']->format(
+                                                                                    'Y-m-d',
+                                                                                ),
                                                                             )
                                                                             ->whereDate(
                                                                                 'period_end',
-                                                                                $periodDates['end']->format('Y-m-d'),
+                                                                                $rowPeriodDates['end']->format('Y-m-d'),
                                                                             )
                                                                             ->first();
                                                                     }
@@ -249,18 +271,35 @@
                                                                         $defaultValue = $leave['calculated_days'];
                                                                     }
                                                                 @endphp
-                                                                <tr>
+                                                                <tr
+                                                                    class="{{ strtolower($cat) === 'lsl' ? 'lsl-table-row' : '' }}">
                                                                     <td>
                                                                         <strong>{{ $leave['name'] }}</strong>
                                                                         @if ($leave['code'] ?? null)
                                                                             <br><small
                                                                                 class="text-muted">{{ $leave['code'] }}</small>
                                                                         @endif
+                                                                        @if ($rowPeriodDates)
+                                                                            <br>
+                                                                            <x-leave-entitlement-period :start="$rowPeriodDates['start']"
+                                                                                :end="$rowPeriodDates['end']" :category="strtolower($cat) === 'lsl' ? 'lsl' : null"
+                                                                                variant="badge" />
+                                                                        @endif
                                                                     </td>
                                                                     <td class="text-center">
-                                                                        <span
-                                                                            class="badge badge-secondary">{{ $leave['default_days'] }}
-                                                                            days</span>
+                                                                        @if (in_array(strtolower($cat), ['lsl', 'annual'], true) && ($leave['carried_over'] ?? 0) > 0)
+                                                                            <span class="badge badge-secondary">{{ $leave['base_days'] ?? $leave['default_days'] }} days</span>
+                                                                            <br><small class="text-success">+ {{ $leave['carried_over'] }} carry over</small>
+                                                                        @else
+                                                                            <span class="badge badge-secondary">{{ $leave['default_days'] }}
+                                                                                days</span>
+                                                                        @endif
+                                                                        @if ($existingEntitlement && in_array(strtolower($cat), ['lsl', 'annual'], true) && ($leave['default_days'] ?? 0) < $existingEntitlement->entitled_days)
+                                                                            @php
+                                                                                $storedCarryOver = max(0, $existingEntitlement->entitled_days - (int) ($leave['default_days'] ?? 0));
+                                                                            @endphp
+                                                                            <br><small class="text-muted">Termasuk carry over: {{ $storedCarryOver }} hari</small>
+                                                                        @endif
                                                                     </td>
                                                                     <td class="text-center">
                                                                         <div class="input-group input-group-sm"
@@ -269,7 +308,8 @@
                                                                                 name="entitlements[{{ $globalIndex }}][entitled_days]"
                                                                                 class="form-control text-center"
                                                                                 value="{{ old('entitlements.' . $globalIndex . '.entitled_days', $defaultValue) }}"
-                                                                                min="0" max="365">
+                                                                                min="0"
+                                                                                max="{{ strtolower($cat) === 'lsl' ? 999 : 365 }}">
                                                                             <div class="input-group-append">
                                                                                 <span
                                                                                     class="input-group-text"><small>days</small></span>
@@ -278,13 +318,13 @@
                                                                         <input type="hidden"
                                                                             name="entitlements[{{ $globalIndex }}][leave_type_id]"
                                                                             value="{{ $leave['id'] }}">
-                                                                        @if ($periodDates)
+                                                                        @if ($rowPeriodDates)
                                                                             <input type="hidden"
                                                                                 name="entitlements[{{ $globalIndex }}][period_start]"
-                                                                                value="{{ $periodDates['start']->format('Y-m-d') }}">
+                                                                                value="{{ $rowPeriodDates['start']->format('Y-m-d') }}">
                                                                             <input type="hidden"
                                                                                 name="entitlements[{{ $globalIndex }}][period_end]"
-                                                                                value="{{ $periodDates['end']->format('Y-m-d') }}">
+                                                                                value="{{ $rowPeriodDates['end']->format('Y-m-d') }}">
                                                                         @endif
                                                                     </td>
                                                                     <td class="text-center">
@@ -316,9 +356,9 @@
                                             class="btn btn-secondary">
                                             <i class="fas fa-arrow-left mr-2"></i> Back to Summary
                                         </a>
-                                        <button type="submit" class="btn btn-success">
+                                        <button type="submit" class="btn btn-{{ $isLslScope ? 'warning' : 'success' }}">
                                             <i class="fas fa-{{ $isEditMode ?? false ? 'save' : 'plus' }} mr-2"></i>
-                                            {{ $isEditMode ?? false ? 'Save Changes' : 'Create Entitlements' }}
+                                            {{ ($isEditMode ?? false ? 'Simpan Perubahan' : 'Simpan Hak Cuti') . ' ' . ($scopeTitle ?? 'Tahunan') }}
                                         </button>
                                     </div>
                                 </div>
@@ -333,6 +373,7 @@
 @endsection
 
 @push('styles')
+    @include('leave-entitlements.partials.period-styles')
     <style>
         /* Info Banner - Same style as travel-header, Full Width */
         .info-banner {
@@ -344,6 +385,21 @@
             margin-bottom: 30px;
             background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .info-banner--lsl {
+            background: linear-gradient(135deg, #856404 0%, #ffc107 100%);
+            color: #212529;
+        }
+
+        .info-banner--lsl .employee-details,
+        .info-banner--lsl .period-info,
+        .info-banner--lsl .leave-period-banner__type {
+            color: rgba(33, 37, 41, 0.85);
+        }
+
+        .card-warning.card-outline {
+            border-top: 3px solid #ffc107;
         }
 
         .info-banner-content {
@@ -442,10 +498,11 @@
             // Input validation and formatting
             $('input[type="number"]').on('input', function() {
                 var value = parseInt($(this).val()) || 0;
+                var maxVal = parseInt($(this).attr('max')) || 365;
                 if (value < 0) {
                     $(this).val(0);
-                } else if (value > 365) {
-                    $(this).val(365);
+                } else if (value > maxVal) {
+                    $(this).val(maxVal);
                 }
             });
 

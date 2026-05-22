@@ -10,6 +10,8 @@ use App\Models\LeaveEntitlement;
 use App\Models\LeaveType;
 use App\Models\Project;
 use App\Models\User;
+use App\Services\AdministrationYearsOfServiceCalculator;
+use App\Services\LeaveEntitlementCarryOverService;
 use App\Support\UserProject;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
@@ -481,9 +483,9 @@ class LeaveEntitlementController extends Controller
                 'leave_type_id' => $request->leave_type_id,
                 'period_start' => $request->period_start,
                 'period_end' => $request->period_end,
-                'entitled_days' => $request->entitled_days,
-                'deposit_days' => $request->deposit_days ?? 0,
-                'taken_days' => $request->taken_days ?? 0,
+                'entitled_days' => (int) $request->entitled_days,
+                'deposit_days' => (int) ($request->deposit_days ?? $leaveType->getDepositDays()),
+                'taken_days' => (int) ($request->taken_days ?? 0),
             ]);
 
             DB::commit();
@@ -844,7 +846,11 @@ class LeaveEntitlementController extends Controller
 
                         if ($shouldCreate) {
                             // Calculate period dates based on project group rules
-                            $periodDates = $this->calculatePeriodDates($employee, $currentYear);
+                            $periodDates = $this->calculatePeriodDates($employee, $currentYear, $leaveType);
+
+                            if ($periodDates === null) {
+                                continue;
+                            }
 
                             // Check if entitlement already exists - only create if not exists
                             // Use whereDate for proper date comparison with datetime columns
@@ -855,13 +861,27 @@ class LeaveEntitlementController extends Controller
                                 ->first();
 
                             if (! $existingEntitlement) {
+                                $levelName = $this->getEmployeeLevelName($employee);
+                                $createAttributes = $this->carryOverService()->buildCreateAttributes(
+                                    $employee->id,
+                                    $leaveType,
+                                    $periodDates['start'],
+                                    $periodDates['end'],
+                                    0,
+                                    $levelName
+                                );
+
+                                if (! $this->carryOverService()->supportsCarryOver($leaveType, $levelName)) {
+                                    $createAttributes['entitled_days'] = $entitlementDays;
+                                }
+
                                 LeaveEntitlement::create([
                                     'employee_id' => $employee->id,
                                     'leave_type_id' => $leaveType->id,
                                     'period_start' => $periodDates['start'],
                                     'period_end' => $periodDates['end'],
-                                    'entitled_days' => $entitlementDays,
-                                    'deposit_days' => $leaveType->getDepositDays(),
+                                    'entitled_days' => $createAttributes['entitled_days'],
+                                    'deposit_days' => $createAttributes['deposit_days'],
                                     'taken_days' => 0,
                                 ]);
 
@@ -914,7 +934,9 @@ class LeaveEntitlementController extends Controller
             'leaveEntitlements.leaveType',
         ]);
 
-        return view('leave-entitlements.show', compact('employee'))
+        $addEntitlementContext = $this->buildAddEntitlementContext($employee);
+
+        return view('leave-entitlements.show', compact('employee', 'addEntitlementContext'))
             ->with('title', 'Employee Leave Entitlements - '.$employee->fullname);
     }
 
@@ -961,10 +983,17 @@ class LeaveEntitlementController extends Controller
         $employee->load(['administrations.project', 'administrations.level']);
         $leaveType = \App\Models\LeaveType::findOrFail($leaveTypeId);
 
+        if (! $periodStart || ! $periodEnd) {
+            $periodStart = $calculationDetails['entitlement_period']['start'] ?? null;
+            $periodEnd = $calculationDetails['entitlement_period']['end'] ?? null;
+        }
+
         return view('leave-entitlements.calculation-details', compact(
             'employee',
             'leaveType',
-            'calculationDetails'
+            'calculationDetails',
+            'periodStart',
+            'periodEnd'
         ))->with('title', 'Leave Calculation Details - '.$employee->fullname);
     }
 
@@ -1041,10 +1070,16 @@ class LeaveEntitlementController extends Controller
         // Get employee business rules info
         $businessRules = $this->getEmployeeBusinessRules($employee);
 
+        if (! $businessRules) {
+            return back()->with(['toast_error' => 'Unable to load employee business rules.']);
+        }
+
         // Check if specific period is provided in query parameter
         $periodDates = null;
         $currentYear = now()->year;
-        $isEditMode = false; // Flag to distinguish edit vs add mode
+        $isEditMode = false;
+        $entitlementScope = $request->query('scope', 'annual');
+        $addEntitlementContext = $this->buildAddEntitlementContext($employee);
 
         if ($request->has('period_start') && $request->has('period_end')) {
             // Edit mode: Use provided period dates - parse and ensure they are start/end of day
@@ -1053,24 +1088,75 @@ class LeaveEntitlementController extends Controller
                 'end' => Carbon::parse($request->period_end)->endOfDay(),
             ];
             $currentYear = $periodDates['start']->year;
-            $isEditMode = true; // This is edit mode - use existing entitlement values
+            $isEditMode = true;
+
+            $periodPresenter = \App\Support\LeaveEntitlementPeriodPresenter::make(
+                $periodDates['start'],
+                $periodDates['end']
+            );
+            $entitlementScope = $periodPresenter->isLsl ? 'lsl' : 'annual';
         } else {
-            // Add mode: Default to current year period (for "Add Entitlements" button)
-            $periodDates = $this->calculatePeriodDates($employee, $currentYear);
-            // Ensure dates are start/end of day
-            $periodDates['start'] = $periodDates['start']->startOfDay();
-            $periodDates['end'] = $periodDates['end']->endOfDay();
-            $isEditMode = false; // This is add mode - use default calculated values
+            if (! in_array($entitlementScope, ['annual', 'lsl'], true)) {
+                return redirect()
+                    ->route('leave.entitlements.employee.show', $employee)
+                    ->with('toast_error', 'Jenis entitlement tidak valid. Pilih Tambah Tahunan atau Tambah Cuti Panjang.');
+            }
+
+            if ($entitlementScope === 'lsl') {
+                if (! $addEntitlementContext['can_add_lsl']) {
+                    return redirect()
+                        ->route('leave.entitlements.employee.show', $employee)
+                        ->with('toast_error', $addEntitlementContext['lsl_blocked_reason'] ?? 'Cuti panjang tidak dapat ditambahkan saat ini.');
+                }
+
+                $lslPeriod = $addEntitlementContext['lsl_period'];
+                $periodDates = [
+                    'start' => $lslPeriod['start']->copy()->startOfDay(),
+                    'end' => $lslPeriod['end']->copy()->endOfDay(),
+                ];
+            } else {
+                if (! $addEntitlementContext['can_add_annual']) {
+                    return redirect()
+                        ->route('leave.entitlements.employee.show', $employee)
+                        ->with('toast_error', $addEntitlementContext['annual_blocked_reason'] ?? 'Entitlement tahunan tidak dapat ditambahkan saat ini.');
+                }
+
+                $periodDates = $this->calculatePeriodDates($employee, $currentYear);
+                if ($periodDates === null) {
+                    return back()->with(['toast_error' => 'Unable to calculate annual period dates.']);
+                }
+                $periodDates['start'] = $periodDates['start']->startOfDay();
+                $periodDates['end'] = $periodDates['end']->endOfDay();
+            }
+
+            $isEditMode = false;
         }
+
+        $businessRules = $this->filterEligibleLeavesByScope($businessRules, $entitlementScope);
+
+        if (empty($businessRules['eligible_leaves'])) {
+            return redirect()
+                ->route('leave.entitlements.employee.show', $employee)
+                ->with('toast_error', 'Tidak ada jenis cuti yang eligible untuk ditambahkan.');
+        }
+
+        $lslPeriodDatesByLeaveTypeId = $this->buildLSLPeriodDatesMap($employee, $currentYear);
+        $this->applyCarryOverToEligibleLeaves($businessRules, $employee, $periodDates, $lslPeriodDatesByLeaveTypeId);
+
+        $scopeTitle = $entitlementScope === 'lsl' ? 'Cuti Panjang' : 'Tahunan';
 
         return view('leave-entitlements.edit', compact(
             'employee',
             'leaveTypes',
             'businessRules',
             'periodDates',
+            'lslPeriodDatesByLeaveTypeId',
             'currentYear',
-            'isEditMode'
-        ))->with('title', ($isEditMode ? 'Edit' : 'Add').' Employee Leave Entitlements - '.$employee->fullname);
+            'isEditMode',
+            'entitlementScope',
+            'addEntitlementContext',
+            'scopeTitle'
+        ))->with('title', ($isEditMode ? 'Edit' : 'Tambah').' Hak Cuti '.$scopeTitle.' - '.$employee->fullname);
     }
 
     /**
@@ -1090,6 +1176,7 @@ class LeaveEntitlementController extends Controller
             'entitlements.*.period_end' => 'nullable|date|after:entitlements.*.period_start',
             'period_start' => 'nullable|date',
             'period_end' => 'nullable|date|after:period_start',
+            'entitlement_scope' => 'nullable|in:annual,lsl',
         ]);
 
         DB::beginTransaction();
@@ -1116,6 +1203,18 @@ class LeaveEntitlementController extends Controller
 
             foreach ($request->entitlements as $entitlementData) {
                 $leaveType = LeaveType::findOrFail($entitlementData['leave_type_id']);
+
+                if ($request->filled('entitlement_scope')) {
+                    $scope = $request->entitlement_scope;
+                    $annualCategories = ['annual', 'paid', 'unpaid'];
+                    if ($scope === 'lsl' && $leaveType->category !== 'lsl') {
+                        continue;
+                    }
+                    if ($scope === 'annual' && ! in_array($leaveType->category, $annualCategories, true)) {
+                        continue;
+                    }
+                }
+
                 $entitledDays = (int) $entitlementData['entitled_days'];
 
                 // Use the determined period dates (from form level or default)
@@ -1123,7 +1222,26 @@ class LeaveEntitlementController extends Controller
                 $entitlementPeriodStart = $periodStart;
                 $entitlementPeriodEnd = $periodEnd;
 
-                if (! empty($entitlementData['period_start']) && ! empty($entitlementData['period_end'])) {
+                if ($leaveType->category === 'lsl') {
+                    if ($request->has('period_start') && $request->has('period_end')) {
+                        $refStart = Carbon::parse($request->period_start);
+                        $refEnd = Carbon::parse($request->period_end);
+                        $referenceDate = $refStart->copy()->addDays((int) floor($refStart->diffInDays($refEnd) / 2));
+                    } else {
+                        $referenceDate = $this->resolveReferenceDateForYear(now()->year);
+                    }
+
+                    $lslPeriod = $this->calculateLSLPeriodDatesForEmployee(
+                        $employee,
+                        $leaveType,
+                        $referenceDate
+                    );
+
+                    if ($lslPeriod !== null) {
+                        $entitlementPeriodStart = $lslPeriod['start'];
+                        $entitlementPeriodEnd = $lslPeriod['end'];
+                    }
+                } elseif (! empty($entitlementData['period_start']) && ! empty($entitlementData['period_end'])) {
                     $entitlementPeriodStart = Carbon::parse($entitlementData['period_start']);
                     $entitlementPeriodEnd = Carbon::parse($entitlementData['period_end']);
                 }
@@ -1136,10 +1254,8 @@ class LeaveEntitlementController extends Controller
                     ->first();
 
                 $takenDays = $existingEntitlement ? $existingEntitlement->taken_days : 0;
-                $remainingDays = max(0, $entitledDays - $takenDays);
 
-                // Use updateOrCreate with exact period matching
-                // This ensures CREATE behavior for different periods, UPDATE for same periods
+                // Manual add/edit: use entitled_days from form. Carry over applies on generate only.
                 LeaveEntitlement::updateOrCreate([
                     'employee_id' => $employee->id,
                     'leave_type_id' => $entitlementData['leave_type_id'],
@@ -1259,7 +1375,11 @@ class LeaveEntitlementController extends Controller
 
                 if ($shouldCreate) {
                     // Calculate period dates based on project group rules
-                    $periodDates = $this->calculatePeriodDates($employee, $year);
+                    $periodDates = $this->calculatePeriodDates($employee, $year, $leaveType);
+
+                    if ($periodDates === null) {
+                        continue;
+                    }
 
                     // Check if entitlement already exists - only create if not exists
                     // Use whereDate for proper date comparison with datetime columns
@@ -1270,13 +1390,27 @@ class LeaveEntitlementController extends Controller
                         ->first();
 
                     if (! $existingEntitlement) {
+                        $levelName = $this->getEmployeeLevelName($employee);
+                        $createAttributes = $this->carryOverService()->buildCreateAttributes(
+                            $employee->id,
+                            $leaveType,
+                            $periodDates['start'],
+                            $periodDates['end'],
+                            0,
+                            $levelName
+                        );
+
+                        if (! $this->carryOverService()->supportsCarryOver($leaveType, $levelName)) {
+                            $createAttributes['entitled_days'] = $entitlementDays;
+                        }
+
                         LeaveEntitlement::create([
                             'employee_id' => $employee->id,
                             'leave_type_id' => $leaveType->id,
                             'period_start' => $periodDates['start'],
                             'period_end' => $periodDates['end'],
-                            'entitled_days' => $entitlementDays,
-                            'deposit_days' => $leaveType->getDepositDays(),
+                            'entitled_days' => $createAttributes['entitled_days'],
+                            'deposit_days' => $createAttributes['deposit_days'],
                             'taken_days' => 0,
                         ]);
                         $generated++;
@@ -1319,57 +1453,42 @@ class LeaveEntitlementController extends Controller
      */
     private function getServiceStartDoh($employee)
     {
-        $allAdministrations = $employee->administrations
-            ->whereNotNull('doh')
-            ->sortBy('doh')
-            ->values();
+        $administration = $this->getActiveAdministration($employee);
 
-        if ($allAdministrations->count() === 0) {
+        if (! $administration) {
             return null;
         }
 
-        // Start with first DOH (earliest)
-        $serviceStartDoh = $allAdministrations->first()->doh;
+        $startDoh = $this->yearsOfServiceCalculator()->getServiceStartDoh(
+            $administration,
+            $employee->administrations
+        );
 
-        // Check each administration in chronological order
-        foreach ($allAdministrations as $admin) {
-            // Check if this administration has termination
-            if ($admin->termination_date && $admin->termination_reason) {
-                // Normalize termination reason (case insensitive)
-                $terminationReason = strtolower(trim($admin->termination_reason));
-
-                // If termination reason is NOT "end of contract", reset calculation from next DOH
-                if ($terminationReason !== 'end of contract') {
-                    // Find next administration after this termination
-                    $nextAdmin = $allAdministrations->filter(function ($next) use ($admin) {
-                        return $next->doh && $admin->termination_date && $next->doh > $admin->termination_date;
-                    })->first();
-
-                    if ($nextAdmin) {
-                        // Reset service start to the next DOH after non-contract termination
-                        $serviceStartDoh = $nextAdmin->doh;
-                    }
-                    // If no next administration found, service start remains at last reset point
-                }
-                // If termination reason IS "end of contract", continue using current service start (no reset)
-            }
-        }
-
-        return $serviceStartDoh;
+        return $startDoh?->format('Y-m-d');
     }
 
     /**
-     * Calculate period start and end dates based on project group and DOH
+     * Calculate period start and end dates based on project group and DOH.
+     * LSL uses multi-year cycles from eligible_after_years on the leave type.
+     *
+     * @return array{start: Carbon, end: Carbon}|null
      */
-    private function calculatePeriodDates($employee, $year)
+    private function calculatePeriodDates($employee, $year, ?LeaveType $leaveType = null)
     {
-        $administration = $employee->administrations->where('is_active', 1)->first();
-        if (! $administration) {
-            $administration = $employee->administrations->first();
+        if ($leaveType !== null && $leaveType->category === 'lsl') {
+            return $this->calculateLSLPeriodDatesForEmployee(
+                $employee,
+                $leaveType,
+                $this->resolveReferenceDateForYear($year)
+            );
         }
-        $project = $administration->project;
 
-        // Use service start DOH for period calculation
+        $administration = $this->getActiveAdministration($employee);
+        if (! $administration) {
+            return null;
+        }
+
+        $project = $administration->project;
         $serviceStartDoh = $this->getServiceStartDoh($employee);
         $doh = $serviceStartDoh ? Carbon::parse($serviceStartDoh) : Carbon::parse($administration->doh);
 
@@ -1379,24 +1498,195 @@ class LeaveEntitlementController extends Controller
                 'start' => Carbon::create($year, 1, 1),
                 'end' => Carbon::create($year, 12, 31),
             ];
-        } else {
-            // Group 1 (Non-roster): DOH-based period
-            // Period starts from DOH month/day of the year
-            $periodStart = Carbon::create($year, $doh->month, $doh->day);
-
-            // If DOH date hasn't occurred yet this year, use previous year's period
-            if ($periodStart->isFuture()) {
-                $periodStart = Carbon::create($year - 1, $doh->month, $doh->day);
-            }
-
-            // Period ends one day before the same date next year
-            $periodEnd = $periodStart->copy()->addYear()->subDay();
-
-            return [
-                'start' => $periodStart,
-                'end' => $periodEnd,
-            ];
         }
+
+        // Group 1 (Non-roster): DOH-based period
+        $periodStart = Carbon::create($year, $doh->month, $doh->day);
+
+        if ($periodStart->isFuture()) {
+            $periodStart = Carbon::create($year - 1, $doh->month, $doh->day);
+        }
+
+        $periodEnd = $periodStart->copy()->addYear()->subDay();
+
+        return [
+            'start' => $periodStart,
+            'end' => $periodEnd,
+        ];
+    }
+
+    private function yearsOfServiceCalculator(): AdministrationYearsOfServiceCalculator
+    {
+        return app(AdministrationYearsOfServiceCalculator::class);
+    }
+
+    private function getActiveAdministration($employee)
+    {
+        $administration = $employee->administrations->where('is_active', 1)->first();
+
+        if (! $administration) {
+            $administration = $employee->administrations->first();
+        }
+
+        return $administration;
+    }
+
+    private function resolveReferenceDateForYear(int $year): Carbon
+    {
+        if ($year === now()->year) {
+            return now()->copy()->startOfDay();
+        }
+
+        return Carbon::create($year, 12, 31)->startOfDay();
+    }
+
+    /**
+     * @return array{start: Carbon, end: Carbon}|null
+     */
+    private function calculateLSLPeriodDatesForEmployee(
+        $employee,
+        LeaveType $leaveType,
+        ?Carbon $referenceDate = null
+    ): ?array {
+        $administration = $this->getActiveAdministration($employee);
+
+        if (! $administration || ! $administration->doh) {
+            return null;
+        }
+
+        return $this->yearsOfServiceCalculator()->calculateLSLPeriodDates(
+            $administration,
+            $employee->administrations,
+            (int) $leaveType->eligible_after_years,
+            $referenceDate
+        );
+    }
+
+    /**
+     * @return array<int, array{start: Carbon, end: Carbon}>
+     */
+    private function buildLSLPeriodDatesMap($employee, int $year): array
+    {
+        $referenceDate = $this->resolveReferenceDateForYear($year);
+        $map = [];
+
+        foreach (LeaveType::where('category', 'lsl')->where('is_active', true)->get() as $leaveType) {
+            $period = $this->calculateLSLPeriodDatesForEmployee($employee, $leaveType, $referenceDate);
+
+            if ($period !== null) {
+                $map[$leaveType->id] = $period;
+            }
+        }
+
+        return $map;
+    }
+
+    /**
+     * @return array{
+     *     annual_period: ?array{start: Carbon, end: Carbon},
+     *     lsl_period: ?array{start: Carbon, end: Carbon},
+     *     can_add_annual: bool,
+     *     can_add_lsl: bool,
+     *     annual_blocked_reason: ?string,
+     *     lsl_blocked_reason: ?string
+     * }
+     */
+    private function buildAddEntitlementContext(Employee $employee): array
+    {
+        $currentYear = now()->year;
+        $annualPeriod = $this->calculatePeriodDates($employee, $currentYear);
+        $lslPeriodMap = $this->buildLSLPeriodDatesMap($employee, $currentYear);
+        $lslPeriod = collect($lslPeriodMap)->first();
+
+        $canAddAnnual = false;
+        $canAddLsl = false;
+        $annualBlockedReason = null;
+        $lslBlockedReason = null;
+
+        if ($annualPeriod !== null) {
+            $annualActive = $this->isPeriodCurrentlyActive($annualPeriod['start'], $annualPeriod['end']);
+            $hasAnnualEntitlements = $this->hasEntitlementsForPeriod(
+                $employee,
+                $annualPeriod['start'],
+                $annualPeriod['end'],
+                ['annual', 'paid', 'unpaid']
+            );
+
+            $canAddAnnual = ! ($annualActive && $hasAnnualEntitlements);
+
+            if ($annualActive && $hasAnnualEntitlements) {
+                $annualBlockedReason = 'Periode tahunan aktif.';
+            }
+        } else {
+            $annualBlockedReason = 'Periode tahunan tidak dapat dihitung (periksa data DOH karyawan).';
+        }
+
+        if ($lslPeriod !== null) {
+            $lslActive = $this->isPeriodCurrentlyActive($lslPeriod['start'], $lslPeriod['end']);
+            $hasLslEntitlements = $this->hasEntitlementsForPeriod(
+                $employee,
+                $lslPeriod['start'],
+                $lslPeriod['end'],
+                ['lsl']
+            );
+
+            $canAddLsl = ! ($lslActive && $hasLslEntitlements);
+
+            if ($lslActive && $hasLslEntitlements) {
+                $lslBlockedReason = 'Periode cuti panjang aktif.';
+            }
+        } else {
+            $lslBlockedReason = 'Belum eligible cuti panjang.';
+        }
+
+        return [
+            'annual_period' => $annualPeriod,
+            'lsl_period' => $lslPeriod,
+            'can_add_annual' => $canAddAnnual,
+            'can_add_lsl' => $canAddLsl,
+            'annual_blocked_reason' => $annualBlockedReason,
+            'lsl_blocked_reason' => $lslBlockedReason,
+        ];
+    }
+
+    private function isPeriodCurrentlyActive(Carbon $start, Carbon $end): bool
+    {
+        return now()->startOfDay()->between($start->copy()->startOfDay(), $end->copy()->endOfDay());
+    }
+
+    /**
+     * @param  array<int, string>  $categories
+     */
+    private function hasEntitlementsForPeriod(Employee $employee, Carbon $start, Carbon $end, array $categories): bool
+    {
+        return LeaveEntitlement::query()
+            ->where('employee_id', $employee->id)
+            ->whereDate('period_start', $start->format('Y-m-d'))
+            ->whereDate('period_end', $end->format('Y-m-d'))
+            ->whereHas('leaveType', fn ($query) => $query->whereIn('category', $categories))
+            ->exists();
+    }
+
+    /**
+     * @param  array<string, mixed>  $businessRules
+     * @return array<string, mixed>
+     */
+    private function filterEligibleLeavesByScope(array $businessRules, string $scope): array
+    {
+        $annualCategories = ['annual', 'paid', 'unpaid'];
+
+        $businessRules['eligible_leaves'] = collect($businessRules['eligible_leaves'] ?? [])
+            ->filter(function (array $leave) use ($scope, $annualCategories) {
+                if ($scope === 'lsl') {
+                    return ($leave['category'] ?? '') === 'lsl';
+                }
+
+                return in_array($leave['category'] ?? '', $annualCategories, true);
+            })
+            ->values()
+            ->all();
+
+        return $businessRules;
     }
 
     /**
@@ -1498,9 +1788,8 @@ class LeaveEntitlementController extends Controller
                 return $this->calculatePeriodicDays($levelName);
 
             case 'lsl':
-                // LSL eligibility: 60 months for staff, 72 months for non-staff
-                $requiredMonths = $isStaff ? 60 : 72;
-                if ($monthsOfService < $requiredMonths) {
+                $requiredMonths = ((int) $leaveType->eligible_after_years) * 12;
+                if ($requiredMonths <= 0 || $monthsOfService < $requiredMonths) {
                     return 0;
                 }
 
@@ -1923,6 +2212,75 @@ class LeaveEntitlementController extends Controller
 
             return back()->with('failures', $failures)->with('toast_warning', 'Impor entitlement gagal.');
         }
+    }
+
+    private function carryOverService(): LeaveEntitlementCarryOverService
+    {
+        return app(LeaveEntitlementCarryOverService::class);
+    }
+
+    private function getEmployeeLevelName(Employee $employee): ?string
+    {
+        return $this->getActiveAdministration($employee)?->level?->name;
+    }
+
+    /**
+     * @param  array<string, mixed>  $businessRules
+     * @param  array{start: Carbon, end: Carbon}|null  $periodDates
+     * @param  array<int, array{start: Carbon, end: Carbon}>  $lslPeriodDatesByLeaveTypeId
+     */
+    private function applyCarryOverToEligibleLeaves(
+        array &$businessRules,
+        Employee $employee,
+        ?array $periodDates,
+        array $lslPeriodDatesByLeaveTypeId
+    ): void {
+        if (empty($businessRules['eligible_leaves'])) {
+            return;
+        }
+
+        $levelName = $this->getEmployeeLevelName($employee);
+
+        foreach ($businessRules['eligible_leaves'] as &$leave) {
+            $category = $leave['category'] ?? '';
+            if (! in_array($category, ['lsl', 'annual'], true)) {
+                continue;
+            }
+
+            $leaveTypeId = $leave['id'] ?? null;
+            if (! $leaveTypeId) {
+                continue;
+            }
+
+            $leaveType = LeaveType::find($leaveTypeId);
+            if (! $leaveType || ! $this->carryOverService()->supportsCarryOver($leaveType, $levelName)) {
+                continue;
+            }
+
+            $periodStart = null;
+            if ($category === 'lsl') {
+                $periodStart = $lslPeriodDatesByLeaveTypeId[$leaveTypeId]['start'] ?? null;
+            } elseif ($periodDates !== null) {
+                $periodStart = $periodDates['start'];
+            }
+
+            if ($periodStart === null) {
+                continue;
+            }
+
+            $calculation = $this->carryOverService()->calculate(
+                $employee->id,
+                $leaveType,
+                $periodStart,
+                $levelName
+            );
+
+            $leave['calculated_days'] = $calculation['entitled_days'];
+            $leave['carried_over'] = $calculation['carried_over'];
+            $leave['base_days'] = $calculation['base_days'];
+        }
+
+        unset($leave);
     }
 
     /**

@@ -10,14 +10,15 @@
 
 Flight Request Form (FRF) adalah sistem permintaan tiket penerbangan untuk karyawan ARKA. Module ini terintegrasi dengan Leave Request dan Official Travel Request, dengan approval workflow melalui `approval_plans`.
 
-### Database Structure (6 Tables)
+### Database Structure (7 Tables)
 
 1. **business_partners** - Master data vendor/supplier untuk booking tiket
 2. **flight_requests** - Main header form (employee info, status, approval tracking)
-3. **flight_request_details** - User input untuk booking request (tanggal, rute, maskapai, waktu)
-4. **flight_request_issuances** - Letter of Guarantee/LG (independent) - 1 LG bisa untuk beberapa FR
-5. **flight_request_issuance** (pivot) - Menghubungkan FR dengan LG (Many-to-Many)
-6. **flight_request_issuance_details** - Detail tiket per LG (booking code, passenger name, ticket price)
+3. **flight_request_followers** - Pengikut pada FRF **standalone** (employee_id atau input manual: nama, NIK, telepon)
+4. **flight_request_details** - User input untuk booking request (tanggal, rute, maskapai, waktu)
+5. **flight_request_issuances** - Letter of Guarantee/LG (independent) - 1 LG bisa untuk beberapa FR
+6. **flight_request_issuance** (pivot) - Menghubungkan FR dengan LG (Many-to-Many)
+7. **flight_request_issuance_details** - Detail tiket per LG (booking code, passenger name, ticket price)
 
 ### Key Features
 

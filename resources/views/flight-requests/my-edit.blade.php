@@ -197,6 +197,11 @@
                             </div>
                         </div>
 
+                        @include('flight-requests.partials.standalone-followers-form', [
+                            'followerEmployeeOptions' => $followerEmployeeOptions,
+                            'existingFollowers' => $flightRequest->request_type === 'standalone' ? $flightRequest->followers : collect(),
+                        ])
+
                         @php
                             $editLotFollowerDetails =
                                 $flightRequest->request_type === \App\Models\FlightRequest::TYPE_TRAVEL_BASED &&
@@ -601,7 +606,11 @@
                 $('#total_travel_days').val(data.total_travel_days || '');
                 $('#employee_info_card').show();
                 $('#flight_details_card').show();
+                if (typeof toggleStandaloneFollowersCard === 'function') {
+                    toggleStandaloneFollowersCard();
+                }
             }
+            window.fillEmployeeInfo = fillEmployeeInfo;
 
             $('#request_type').on('change', function() {
                 const requestType = $(this).val();
@@ -845,4 +854,5 @@
             detailIndex = $('.flight-detail-item').length;
         }
     </script>
+    @include('flight-requests.partials.standalone-followers-scripts')
 @endsection

@@ -209,6 +209,11 @@
                             </div>
                         </div>
 
+                        @include('flight-requests.partials.standalone-followers-form', [
+                            'followerEmployeeOptions' => $followerEmployeeOptions,
+                            'existingFollowers' => $flightRequest->request_type === 'standalone' ? $flightRequest->followers : collect(),
+                        ])
+
                         <!-- Flight Details -->
                         <div class="card card-info card-outline elevation-3">
                             <div class="card-header">
@@ -498,6 +503,9 @@
                     $('#source_document_group').show();
                     $('#source_document_label_text').text('Select Employee');
                     $('#manual_input_group').show();
+                    if (typeof toggleStandaloneFollowersCard === 'function') {
+                        toggleStandaloneFollowersCard();
+                    }
                 } else {
                     $('#source_document_group').hide();
                     $('#manual_input_group').hide();
@@ -688,7 +696,12 @@
                 $('#phone_number').val(data.phone_number || '');
                 $('#purpose_of_travel').val(data.purpose_of_travel || '');
                 $('#total_travel_days').val(data.total_travel_days || '');
+                $('#flight_details_card').show();
+                if (typeof toggleStandaloneFollowersCard === 'function') {
+                    toggleStandaloneFollowersCard();
+                }
             }
+            window.fillEmployeeInfo = fillEmployeeInfo;
 
             // Add Followers Information to Notes Textarea
             function addFollowersToNotes(followers) {
@@ -828,4 +841,5 @@
             detailIndex = $('.flight-detail-item').length;
         }
     </script>
+    @include('flight-requests.partials.standalone-followers-scripts')
 @endsection

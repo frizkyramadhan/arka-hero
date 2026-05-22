@@ -1,11 +1,18 @@
 # Leave Management
 
+| **Versi** | **Tanggal** | **Revisi (ringkas)**                                                                                                                                                                                                                         |
+| :-------- | :---------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1.1       | 2026-05-20  | **Export/Import entitlement** baru: **satu baris per karyawan**, header **dua baris**, hanya **periode terakhir** (tahunan & cuti panjang), format tanggal **`d M Y`**, **carry over** LSL & annual **Manager/Director** saat **Generate**. |
+| 1.0       | —           | Panduan awal: dashboard HR, **Leave Entitlements** (generate, export/import, per karyawan), **Requests**, **Reports**, **My Leave Request**, troubleshooting.                                                                                |
+
 Panduan ini untuk **staff HR** yang mengoperasikan modul cuti/izin di ARKA HERO (**dashboard**, **entitlements**, **requests**, **reports**) dan untuk **karyawan** yang mengajukan lewat menu pribadi. Fitur ini mengacu pada form cuti / Formulir Izin Meninggalkan Pekerjaan dan Formulir Cuti Panjang, sehingga semua aktivitas yang menggunakan form tersebut akan diakomodir oleh fitur ini.
 
 | **Istilah**                       | Arti singkat                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
 | --------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Leave Management**              | Grup menu di **HERO SECTION** untuk dashboard HR, daftar pengajuan, saldo cuti, dan laporan.                                                                                                                                                                                                                                                                                                                                                                         |
 | **Leave Entitlement**             | Hak/saldo cuti per karyawan per periode dan jenis cuti; menjadi acuan saat mengajukan **Leave Request**. Ketentuan **Leave Entitlement** sangat mengacu pada **DOH** di **Employee Management**                                                                                                                                                                                                                                                                      |
+| **Deposit Days**                  | Kolom saldo deposit pada blok **Periode Cuti Panjang** di berkas **Export**/**Import**; hanya relevan untuk entitlement kategori **LSL**.                                                                                                                                                                                                                                                                                                                            |
+| **Carry Over**                    | Sisa hari periode sebelumnya yang ditambahkan ke hak periode baru. Untuk **LSL** mengikuti flag **carry over** di **Leave Types**; untuk **Cuti Tahunan** hanya level **Manager** dan **Director**. Dihitung otomatis saat **Generate Entitlements**, **bukan** saat **Add**/**Edit** manual.                                                                                                                                                                      |
 | **Leave Period**                  | Rentang periode saldo yang terisi otomatis dari **entitlements** saat memilih karyawan dan jenis cuti.                                                                                                                                                                                                                                                                                                                                                               |
 | **Leave Request**                 | Pengajuan izin/cuti sesuai **Leave Type** yang berlaku seperti Annual Leave (Cuti Tahunan), Special Leave (Menikah, Sakit, dsb), Unpaid Leave (Izin tidak dibayar), LSL (Cuti Panjang); memiliki **Register No.**, status alur persetujuan, dan dapat dihubungkan dengan **Flight Request**. Pengajuan **Cuti Periodik** di site (misal cuti jam/jadwal shift rutin atau pengaturan rosters) tidak diajukan dari menu ini melainkan dikelola terpisah di fitur lain. |
 | **Approver Selection**            | Pemilihan satu atau lebih **approver** untuk menyetujui pengajuan sebelum **Save & Submit**.                                                                                                                                                                                                                                                                                                                                                                         |
@@ -58,8 +65,8 @@ Sebelum tim rutin hanya menjalankan **Generate Entitlements**, pastikan fondasi 
 | Tahap                     | Uraian                                                                                                                                                                                                                                                                           |
 | :------------------------ | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Master di sistem**      | **Leave Types** (kategori paid/unpaid, nama kolom di layar), **Projects**, serta penempatan karyawan (**Employee Management**) untuk administration aktif — keliru di master akan ikut terbawa ke saldo.                                                                         |
-| **Export**                | Di halaman **Entitlements**, pilih **project**, **Load Employees**, lalu **Export**. Berguna untuk: mendapatkan **template** struktur kolom + opsional **data saldo** (`include_data`) sebagai baseline; dokumentasi; atau penyelerasian dengan spreadsheet HR lain **offline**. |
-| **Import**                | Dipakai saat **setup awal** atau **koreksi massal** dalam bentuk Excel (format `.xlsx`/`.xls` sesuai batas aplikasi). Isi berkas mengikuti hasil/kolom dari ekspor; setelah unggah, perbaiki entri yang gagal lewat tabel **Import Validation Errors** lalu unggah ulang.        |
+| **Export**                | Di halaman **Entitlements**, pilih **project**, **Load Employees**, lalu **Export**. Menghasilkan berkas Excel **satu baris per karyawan** dengan header **dua baris** (identitas, **Periode Tahunan**, **Periode Cuti Panjang**, **Deposit Days**). Hanya **periode entitlement terakhir** per karyawan yang diekspor untuk cuti tahunan dan cuti panjang. Berguna untuk template, rekonsiliasi, atau koreksi massal **offline**. |
+| **Import**                | Dipakai saat **setup awal** atau **koreksi massal** dalam bentuk Excel (`.xlsx`/`.xls`, maks. **10 MB**). Struktur kolom mengikuti hasil **Export** terbaru; satu baris dapat memperbarui blok **Periode Tahunan** dan/atau **Periode Cuti Panjang** sekaligus. Perbaiki baris gagal lewat **Import Validation Errors** lalu unggah ulang.                                                                                         |
 | **Generate Entitlements** | Menjalankan pengisian saldo cuti **secara otomatis dan massal** untuk **semua karyawan aktif** pada **project** yang Anda pilih — Anda tidak perlu mengisi tiap orang secara manual.                                                                                             |
 
 ### 2.1 Halaman **Leave Entitlement Management** — secara massal
@@ -92,6 +99,7 @@ Jendela ini muncul saat Anda akan atau baru saja menjalankan **Generate Entitlem
 - **Jenis cuti yang dibuatkan** — kombinasi **Paid Leave**, **Unpaid Leave**, **Annual Leave** (sering setelah masa kerja tertentu), **LSL** (ambang masa kerja mengikuti aturan sistem) — detail pasti ada di teks jendela.
 - **Periode berlaku** — mengacu pada **DOH** di **Employee Management** dan **tahun/periode berjalan** (misalnya **Current Year**).
 - **Anti-duplikat** — untuk **periode yang sama**, entitlement yang **sudah ada** akan **dilewati** sehingga tidak terjadi penggandaan data.
+- **Carry over (hanya saat Generate)** — untuk **LSL** dengan flag **carry over** aktif di **Leave Types**, sisa periode sebelumnya ditambahkan ke hak periode baru. Untuk **Cuti Tahunan**, carry over otomatis hanya untuk level **Manager** dan **Director**. Penambahan/edit manual lewat **Add Entitlements** / **Edit** memakai angka yang Anda isi di formulir, **tanpa** carry over otomatis.
 - **Service Start DOH** (cara menghitung masa kerja untuk keperluan aturan cuti):
     - Penghentian **End of Contract** → masa kerja dapat **diteruskan** dari **DOH pertama** (misalnya rehire dalam satu rantai kontrak).
     - Alasan berhenti **selain** _End of Contract_ → masa kerja **dihitung ulang** dari **DOH penempatan baru**.
@@ -107,19 +115,38 @@ Jendela ini muncul saat Anda akan atau baru saja menjalankan **Generate Entitlem
 
 4. Setelah data termuat, tampil kartu **Employee Remaining Leave Entitlements**: ringkasan saldo per karyawan dan kolom **Actions**. Nama kolom jenis cuti mengikuti **Leave Types** (misalnya **Cuti Tahunan**, **Sakit**, **Ijin Tanpa Upah**, **Cuti Panjang**) yang diconfigurasi di **Master Data** → **Leave Management Data** → **Leave Types**.
 
-5. **Export** — unduh berkas Excel (template beserta data, sesuai parameter **project**). Berikut **contoh** bentuk berkas yang akan Anda edit di aplikasi spreadsheet luar (nama kolom, warna header, dan jumlah kolom dapat sedikit berbeda mengikuti **Leave Types** serta **project** Anda):
+5. **Export** — unduh berkas Excel (template kosong atau berisi data saldo, sesuai parameter **project**). Berkas memakai **satu baris per karyawan** dan **dua baris header** berwarna. Hanya **periode entitlement terakhir** yang ditampilkan per karyawan — jika ada cuti tahunan `01 Jan 2025 – 31 Dec 2025` dan `01 Jan 2026 – 31 Dec 2026`, yang diekspor hanya periode **2026**; aturan yang sama untuk **Periode Cuti Panjang**.
 
-6. Edit nilai di Excel sesuai kebutuhan — **pertahankan struktur kolom dan format template** dari hasil **Export** agar **Import** dapat memprosesnya.
+**Struktur kolom berkas Export / template Import**
+
+| Grup (baris 1) | Kolom (baris 2) | Isi data (baris 3 ke bawah) |
+| :------------- | :-------------- | :-------------------------- |
+| _(merge vertikal A1:A2 … F1:F2)_ | **Nama**, **NIK**, **Level**, **Position**, **DOH**, **Project** | Identitas karyawan dari administration aktif |
+| **Periode Tahunan** _(G1:I1)_ | **Start Period**, **End Period**, **Cuti Tahunan** | Periode & jumlah hari cuti tahunan terbaru |
+| **Periode Cuti Panjang** _(J1:M1)_ | **Start Period**, **End Period**, **Cuti Panjang - Staff**, **Cuti Panjang - Non Staff** | Periode & jumlah hari LSL terbaru; isi kolom Staff **atau** Non Staff sesuai **Level** karyawan |
+| **Deposit Days** _(N1:N2 merge vertikal)_ | _(sama)_ | Nilai **deposit days** LSL (kosong jika nol) |
+
+**Format tanggal:** **`d M Y`** (contoh `01 Jan 2026`, `13 Dec 2025`) — dapat dibaca manusia dan diproses kembali saat **Import**.
+
+6. Edit nilai di Excel sesuai kebutuhan — **pertahankan struktur dua baris header dan nama kolom** dari hasil **Export** agar **Import** dapat memprosesnya. Jangan hapus baris header grup (baris 1) atau nama kolom (baris 2).
 
 <p align="center" id="leave-entitlements-export-template-excel">
     <img
         src="images/leave_entitlements_export_template_excel.png"
-        alt="Contoh template Excel entitlement: kolom identitas (Nama, NIK, Position, DOH, Project, Start Period, End Period dengan format tanggal DD-MM-YYYY); kolom jenis cuti berwarna (misalnya Cuti Tahunan, Karyawan sendiri kawin, Sakit, Izin Tanpa Upah, Cuti Panjang - Staff)"
+        alt="Template Excel entitlement: baris 1 grup Periode Tahunan dan Periode Cuti Panjang; baris 2 kolom Nama NIK Level Position DOH Project Start Period End Period Cuti Tahunan Cuti Panjang Staff Non Staff Deposit Days; format tanggal d M Y; satu baris per karyawan"
         style="max-width: 100%; width: 100%; height: auto;"
-    /><br/><em>Gambar 2.1c — Contoh berkas/template Excel entitlement hasil <strong>Export</strong> (struktur kolom mengikuti <strong>Leave Types</strong> dan project Anda).</em>
+    /><br/><em>Gambar 2.1c — Contoh berkas/template Excel entitlement hasil <strong>Export</strong> (header dua baris, satu baris per karyawan, periode terakhir saja).</em>
 </p>
 
-7. **Import:** dari kartu filter yang sama, klik **Import** untuk membuka **Import Leave Entitlements**, pilih **Select Excel File**, lalu **Import**. Jika ada kesalahan, perbaiki berdasarkan **Import Validation Errors**, lalu unggah ulang.
+7. **Import:** dari kartu filter yang sama, klik **Import** untuk membuka **Import Leave Entitlements**, pilih **Select Excel File**, lalu **Import**. Sistem mendeteksi header di **baris 2** (format baru) atau **baris 1** (format lama). Jika ada kesalahan, perbaiki berdasarkan **Import Validation Errors**, lalu unggah ulang.
+
+**Catatan Import (format baru):**
+
+- Satu baris Excel dapat memperbarui **Periode Tahunan** (kolom G–I) dan/atau **Periode Cuti Panjang** (kolom J–N) sekaligus.
+- **Cuti Panjang - Staff** / **Cuti Panjang - Non Staff** — hanya kolom yang sesuai **Level** karyawan yang diproses; kolom lain dilewati tanpa error.
+- Jenis cuti **Paid** / **Unpaid** tidak ada di Excel; jika sudah ada di sistem untuk periode tahunan yang sama, nilainya **dipertahankan** saat import.
+- Kolom **(Terpakai)** / **taken days** tidak diimpor — pemakaian cuti tetap dihitung dari pengajuan yang disetujui di sistem.
+- Format lama (kolom **Tipe Periode**, satu periode per baris) masih dapat diimpor untuk kompatibilitas berkas lama.
 
 **Import Validation Errors — pesan yang umum muncul**
 
@@ -132,16 +159,22 @@ Tabel di layar menampilkan **Sheet**, **Row**, **Column** (sering berisi referen
 | Berkas       | _The file may not be greater than 10MB._                        | Perkecil atau bagi data; batas **10 MB**.                                                                                          |
 | Baris data   | _NIK is required_                                               | Isi kolom **NIK** pada baris tersebut.                                                                                             |
 | Baris data   | _NIK '…' not found or not active_                               | Pastikan **NIK** sama dengan karyawan yang administration-nya **aktif** di sistem.                                                 |
-| Baris data   | _Start Period and End Period are required_                      | Isi **Start Period** dan **End Period** (nama kolom bisa mengikuti template **Export**).                                           |
-| Baris data   | _Invalid date format. Use YYYY-MM-DD or Excel date format_      | Format tanggal tidak dikenali — gunakan format tanggal standar atau format tanggal Excel (angka serial) seperti dari **Export**.   |
-| Baris data   | _Start Period must be before End Period_                        | Tanggal mulai harus **lebih awal** dari tanggal akhir periode.                                                                     |
+| Baris data   | _Start Period and End Period are required_                       | Isi **Start Period** dan **End Period** pada blok periode yang Anda ubah (tahunan atau cuti panjang).                               |
+| Baris data   | _Start Period and End Period (Periode Tahunan) are required…_  | Anda mengisi **Cuti Tahunan** tanpa melengkapi tanggal periode tahunan (kolom G–H).                                                |
+| Baris data   | _Start Period and End Period (Periode Cuti Panjang) are required…_ | Anda mengisi kolom cuti panjang/deposit tanpa melengkapi tanggal periode LSL (kolom J–K).                                       |
+| Baris data   | _Invalid date format. Use e.g. 01 Jan 2026, DD/MM/YYYY…_         | Format tanggal tidak dikenali — gunakan format export (**`d M Y`**, mis. `01 Jan 2026`) atau format tanggal Excel standar.           |
+| Baris data   | _Invalid annual period date format…_ / _Invalid LSL period date format…_ | Tanggal pada blok **Periode Tahunan** atau **Periode Cuti Panjang** tidak valid.                                            |
+| Baris data   | _Start Period must be before End Period_ / _Annual Start Period must be before End Period_ | Tanggal mulai harus **lebih awal** dari tanggal akhir periode.                              |
+| Baris data   | _No entitlement data to import for this row_                     | Baris tidak memiliki data entitlement yang dapat diproses (NIK ada tetapi semua kolom periode/kolom cuti kosong).                    |
 | Baris data   | _Deposit Days cannot be negative_                               | Kolom **Deposit Days** tidak boleh bernilai negatif.                                                                               |
 | Gagal sistem | Pesan _System error_, _Import Failed_, atau teks kesalahan umum | Coba lagi; jika berulang, hubungi **administrator** dengan ringkasan waktu impor dan cuplikan pesan (tanpa mengirim **password**). |
 
 **Catatan:**
 
-- Untuk kombinasi **Cuti Panjang Staff / Non Staff** yang tidak sesuai level jabatan, sistem biasanya **melewati** kolom yang tidak relevan **tanpa** menampilkan error baris untuk hal itu.
-- Nilai non-angka pada kolom jenis cuti sering dianggap **nol**, bukan selalu sebagai error baris.
+- **Export** menampilkan hanya **periode entitlement terakhir** per karyawan (bukan seluruh riwayat periode).
+- Untuk kombinasi **Cuti Panjang Staff / Non Staff** yang tidak sesuai level jabatan, sistem **melewati** kolom yang tidak relevan **tanpa** menampilkan error baris.
+- Nilai non-angka pada kolom jumlah hari cuti sering dianggap **nol**, bukan selalu sebagai error baris.
+- **Carry over** hanya dihitung otomatis saat **Generate Entitlements**; angka hasil **Import** atau **Edit** manual adalah nilai yang disimpan apa adanya.
 
 ---
 
@@ -599,7 +632,7 @@ Fitur **My Leave Request** dipakai untuk pengajuan cuti atau izin yang biasanya 
 | Gejala / pesan (contoh)                                     | Kemungkinan penyebab                                                                                                                       | Apa yang bisa dicoba                                                                                                                                                      |
 | ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Leave Period** kosong / **Leave Type** tidak bisa dipilih | Belum ada **entitlement** aktif untuk karyawan & jenis cuti tersebut                                                                       | Pastikan HR sudah **Generate** / impor saldo di **Entitlements** untuk project dan periode yang benar.                                                                    |
-| **Import Validation Errors** setelah **Import**             | Format berkas (tipe/ukuran), **NIK** tidak aktif, **Start**/**End Period** kosong atau tanggal tidak valid, **Deposit Days** negatif, dll. | Rincian pesan umum ada pada **bagian 2.1** (_Import Validation Errors — pesan yang umum muncul_); perbaiki baris di Excel mengikuti **Error Message**, lalu unggah ulang. |
+| **Import Validation Errors** setelah **Import**             | Format berkas, **NIK** tidak aktif, tanggal periode kosong/tidak valid, struktur header berubah, **Deposit Days** negatif, baris tanpa data entitlement, dll. | Rincian pesan umum ada pada **bagian 2.1** (_Import Validation Errors — pesan yang umum muncul_); pertahankan **dua baris header** format export terbaru; perbaiki baris di Excel, lalu unggah ulang. |
 | Tidak bisa **Save & Submit** / pesan approver               | **Approver Selection** belum memenuhi jumlah/aturan                                                                                        | Tambahkan approver valid lewat pencarian sampai persyaratan terpenuhi.                                                                                                    |
 | **Pending** terus tanpa keputusan                           | Approver belum bertindak atau notifikasi tidak terbaca                                                                                     | Hubungi approver terkait lewat saluran resmi perusahaan.                                                                                                                  |
 | Cuti berbayar terdeteksi tanpa dokumen                      | Lampiran belum diunggah                                                                                                                    | Unggah dokumen di detail pengajuan sebelum tenggat **Auto Conversion** (lihat laporan pemantauan).                                                                        |

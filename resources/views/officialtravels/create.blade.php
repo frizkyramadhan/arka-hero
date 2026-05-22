@@ -71,7 +71,7 @@
                                             </div>
                                             <small class="form-text text-muted">
                                                 <i class="fas fa-info-circle"></i>
-                                                LOT number will be auto-generated when you select a letter number above
+                                                LOT number will be auto-generated when you select a letter number and LOT origin above
                                             </small>
                                         </div>
                                     </div>
@@ -109,6 +109,7 @@
                                                 <option value="">Select Origin Project</option>
                                                 @foreach ($projects as $project)
                                                     <option value="{{ $project->id }}"
+                                                        data-project-code="{{ $project->project_code }}"
                                                         {{ old('official_travel_origin') == $project->id ? 'selected' : '' }}>
                                                         {{ $project->project_code }} - {{ $project->project_name }}
                                                     </option>
@@ -666,8 +667,9 @@
                 document.querySelector('.select2-search__field').focus();
             });
 
-            // Update LOT Number when letter number is selected
+            // Update LOT Number when letter number or LOT origin is selected
             updateLOTNumberDisplay();
+            refreshLotNumberDisplay();
 
             // Handle old data restoration for letter number selection
             @if (old('letter_number_id'))
@@ -746,33 +748,64 @@
             });
 
             // LOT Number Update Functions
+            function getSelectedProjectCode() {
+                const originCode = $('#official_travel_origin').find('option:selected').data('project-code');
+                if (originCode) {
+                    return originCode;
+                }
+
+                const letterOption = $('[name="letter_number_id"]').find('option:selected');
+                const letterProjectCode = letterOption.attr('data-project-code');
+                if (letterProjectCode) {
+                    return letterProjectCode;
+                }
+
+                return '[Project Code]';
+            }
+
+            function syncLotOriginFromLetterNumber() {
+                const letterOption = $('[name="letter_number_id"]').find('option:selected');
+                const projectId = letterOption.attr('data-project-id');
+                if (!projectId) {
+                    return;
+                }
+
+                const $origin = $('#official_travel_origin');
+                if (!$origin.val()) {
+                    $origin.val(projectId).trigger('change');
+                }
+            }
+
+            function buildLotNumber(letterNumber, projectCode) {
+                const currentMonth = '{{ $romanMonth }}';
+                const currentYear = '{{ now()->year }}';
+                const letterPart = letterNumber || '[Letter Number]';
+
+                return `ARKA/${letterPart}/HR-${projectCode}/${currentMonth}/${currentYear}`;
+            }
+
+            function refreshLotNumberDisplay() {
+                syncLotOriginFromLetterNumber();
+
+                const selectedOption = $('[name="letter_number_id"]').find('option:selected');
+                const letterNumber = selectedOption.val()
+                    ? (selectedOption.attr('data-letter-number') || selectedOption.text().split(' - ')[0])
+                    : null;
+                const projectCode = getSelectedProjectCode();
+                const lotNumber = buildLotNumber(letterNumber, projectCode);
+
+                $('#official_travel_number').val(lotNumber);
+
+                if (selectedOption.val() && letterNumber && projectCode !== '[Project Code]') {
+                    $('#official_travel_number').addClass('alert-success').removeClass('alert-warning');
+                } else {
+                    $('#official_travel_number').addClass('alert-warning').removeClass('alert-success');
+                }
+            }
+
             function updateLOTNumberDisplay() {
-                // Listen for letter number selection changes
-                $(document).on('change', '[name="letter_number_id"]', function() {
-                    const selectedOption = $(this).find('option:selected');
-                    const letterNumber = selectedOption.text().split(' - ')[
-                        0]; // Extract letter number part
-
-                    if (selectedOption.val() && letterNumber) {
-                        // Generate LOT number with selected letter number
-                        const currentMonth = '{{ $romanMonth }}';
-                        const currentYear = '{{ now()->year }}';
-                        const lotNumber = `ARKA/${letterNumber}/HR/${currentMonth}/${currentYear}`;
-
-                        $('#official_travel_number').val(lotNumber);
-
-                        // Visual feedback
-                        $('#official_travel_number').addClass('alert-success').removeClass('alert-warning');
-                    } else {
-                        // Reset to placeholder if no letter number selected
-                        const currentMonth = '{{ $romanMonth }}';
-                        const currentYear = '{{ now()->year }}';
-                        const defaultLot = `ARKA/[Letter Number]/HR/${currentMonth}/${currentYear}`;
-
-                        $('#official_travel_number').val(defaultLot);
-                        $('#official_travel_number').addClass('alert-warning').removeClass('alert-success');
-                    }
-                });
+                $(document).on('change', '[name="letter_number_id"], #official_travel_origin', refreshLotNumberDisplay);
+                $(document).on('letter-number-options:updated', refreshLotNumberDisplay);
             }
 
             // Approval Preview Functions

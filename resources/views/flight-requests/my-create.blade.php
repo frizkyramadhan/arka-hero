@@ -184,6 +184,11 @@
                             </div>
                         </div>
 
+                        @include('flight-requests.partials.standalone-followers-form', [
+                            'followerEmployeeOptions' => $followerEmployeeOptions,
+                            'existingFollowers' => collect(),
+                        ])
+
                         <div id="lot_followers_card" class="card card-primary card-outline elevation-3 mb-3"
                             style="display: none;">
                             <div class="card-header">
@@ -489,7 +494,11 @@
                 $('#total_travel_days').val(data.total_travel_days || '');
                 $('#employee_info_card').show();
                 $('#flight_details_card').show();
+                if (typeof toggleStandaloneFollowersCard === 'function') {
+                    toggleStandaloneFollowersCard();
+                }
             }
+            window.fillEmployeeInfo = fillEmployeeInfo;
 
             $('#request_type').on('change', function() {
                 const requestType = $(this).val();
@@ -519,11 +528,17 @@
                 } else if (requestType === 'standalone') {
                     $('#source_document_group').hide();
                     $('#manual_input_group').show();
+                    if (typeof toggleStandaloneFollowersCard === 'function') {
+                        toggleStandaloneFollowersCard();
+                    }
                     if ($('#fill_manually').is(':checked')) {
                         $('#employee_id').val('');
                         $('#administration_id').val('');
                         $('#employee_info_card').show();
                         $('#flight_details_card').show();
+                        if (typeof toggleStandaloneFollowersCard === 'function') {
+                            toggleStandaloneFollowersCard();
+                        }
                     } else {
                         fillEmployeeInfo(myProfileData);
                         $('#employee_info_card').show();
@@ -548,6 +563,9 @@
                     clearEmployeeInfo();
                     $('#employee_info_card').show();
                     $('#flight_details_card').show();
+                    if (typeof toggleStandaloneFollowersCard === 'function') {
+                        toggleStandaloneFollowersCard();
+                    }
                 } else {
                     fillEmployeeInfo(myProfileData);
                     $('#employee_info_card').show();
@@ -694,4 +712,5 @@
             detailIndex = $('.flight-detail-item').length;
         }
     </script>
+    @include('flight-requests.partials.standalone-followers-scripts')
 @endsection

@@ -187,25 +187,39 @@
                 <div class="card-header">
                     <h3 class="card-title"><i class="fas fa-calendar-alt"></i> Leave Entitlements Summary</h3>
                     <div class="card-tools">
-                        <a href="{{ route('leave.entitlements.employee.edit', $employee->id) }}" class="btn btn-primary">
-                            <i class="fas fa-plus"></i> Add Entitlements
-                        </a>
+                        @include('leave-entitlements.partials.add-entitlement-buttons', [
+                            'employee' => $employee,
+                            'addEntitlementContext' => $addEntitlementContext ?? [],
+                        ])
                     </div>
                 </div>
                 <div class="card-body">
                     @if ($employee->leaveEntitlements->count() > 0)
+                        @include('leave-entitlements.partials.period-type-guide')
                         @php
                             // Get available periods from entitlements
-                            $allPeriods = $employee->leaveEntitlements->map(function ($entitlement) {
+                            $allPeriods = $employee->leaveEntitlements->map(function ($entitlement) use ($employee) {
+                                $periodEntitlements = $employee->leaveEntitlements->filter(function ($ent) use ($entitlement) {
+                                    return $ent->period_start->format('Y-m-d') === $entitlement->period_start->format('Y-m-d')
+                                        && $ent->period_end->format('Y-m-d') === $entitlement->period_end->format('Y-m-d');
+                                });
+                                $category = \App\Support\LeaveEntitlementPeriodPresenter::categoryFromEntitlements($periodEntitlements);
+                                $presenter = \App\Support\LeaveEntitlementPeriodPresenter::make(
+                                    $entitlement->period_start,
+                                    $entitlement->period_end,
+                                    $category,
+                                );
+
                                 return [
                                     'id' => $entitlement->id,
                                     'year' => $entitlement->period_start->year,
                                     'period_start' => $entitlement->period_start,
                                     'period_end' => $entitlement->period_end,
-                                    'display' =>
-                                        $entitlement->period_start->year . '-' . $entitlement->period_end->year,
+                                    'display' => $presenter->labelShort,
                                     'formatted_start' => $entitlement->period_start->format('d M Y'),
                                     'formatted_end' => $entitlement->period_end->format('d M Y'),
+                                    'presenter' => $presenter,
+                                    'is_lsl' => $presenter->isLsl,
                                 ];
                             });
 
@@ -266,7 +280,7 @@
                             <div class="col-md-4">
                                 <div class="card card-outline card-primary">
                                     <div class="card-header">
-                                        <h3 class="card-title"><i class="fas fa-list"></i> Available Periods</h3>
+                                        <h3 class="card-title"><i class="fas fa-list"></i> Daftar Periode Hak Cuti</h3>
                                     </div>
                                     <div class="card-body p-0">
                                         <ul class="list-group list-group-flush" id="periodList">
@@ -291,7 +305,7 @@
                                                         })
                                                         ->count();
                                                 @endphp
-                                                <li class="list-group-item period-item {{ $isActive ? 'active' : '' }}"
+                                                <li class="list-group-item period-item {{ $isActive ? 'active' : '' }} {{ ($period['is_lsl'] ?? false) ? 'period-item--lsl' : '' }}"
                                                     data-period="{{ $periodKey }}"
                                                     onclick="selectPeriod('{{ $periodKey }}')"
                                                     style="cursor: pointer; padding: 0.5rem 0.75rem;">
@@ -310,11 +324,13 @@
                                                                     {{ $period['display'] }}
                                                                 </strong>
                                                             </div>
-                                                            <small class="{{ $isActive ? 'text-white-50' : 'text-muted' }}"
-                                                                style="font-size: 0.75rem; display: block; line-height: 1.3;">
-                                                                {{ $period['formatted_start'] }} -
-                                                                {{ $period['formatted_end'] }}
-                                                            </small>
+                                                            <x-leave-entitlement-period
+                                                                :start="$period['period_start']"
+                                                                :end="$period['period_end']"
+                                                                :category="($period['is_lsl'] ?? false) ? 'lsl' : null"
+                                                                variant="list-item"
+                                                                :active="$isActive"
+                                                            />
                                                         </div>
                                                         <div class="ml-2">
                                                             <span class="badge badge-{{ $isActive ? 'light' : 'info' }}"
@@ -354,12 +370,23 @@
                                     <div class="card-header">
                                         <h3 class="card-title">
                                             <i class="fas fa-info-circle"></i>
-                                            Entitlement Details
+                                            Rincian Hak Cuti
                                             @if ($selectedPeriod)
-                                                <span class="badge badge-light ml-2">
-                                                    {{ $selectedPeriod['formatted_start'] }} -
-                                                    {{ $selectedPeriod['formatted_end'] }}
-                                                </span>
+                                                @php
+                                                    $selectedPresenter = $selectedPeriod['presenter']
+                                                        ?? \App\Support\LeaveEntitlementPeriodPresenter::make(
+                                                            $selectedPeriod['period_start'],
+                                                            $selectedPeriod['period_end'],
+                                                            ($selectedPeriod['is_lsl'] ?? false) ? 'lsl' : null,
+                                                        );
+                                                @endphp
+                                                <x-leave-entitlement-period
+                                                    :start="$selectedPeriod['period_start']"
+                                                    :end="$selectedPeriod['period_end']"
+                                                    :category="$selectedPresenter->isLsl ? 'lsl' : null"
+                                                    variant="badge"
+                                                    class="ml-2"
+                                                />
                                             @endif
                                         </h3>
                                         <div class="card-tools">
@@ -370,6 +397,15 @@
                                         </div>
                                     </div>
                                     <div class="card-body">
+                                        @if ($selectedPeriod ?? null)
+                                            <x-leave-entitlement-period
+                                                :start="$selectedPeriod['period_start']"
+                                                :end="$selectedPeriod['period_end']"
+                                                :category="($selectedPeriod['is_lsl'] ?? false) ? 'lsl' : null"
+                                                variant="panel"
+                                                class="mb-3"
+                                            />
+                                        @endif
                                         @if ($groupedEntitlements->count() > 0)
                                             @foreach ($groupedEntitlements as $category => $entitlements)
                                                 @php
@@ -382,11 +418,15 @@
                                                             ->values();
                                                     }
                                                 @endphp
-                                                <div class="card card-secondary card-outline mb-3">
+                                                <div class="card card-secondary card-outline mb-3 {{ $category === 'lsl' ? 'border-warning' : '' }}">
                                                     <div class="card-header py-2">
                                                         <h6 class="card-title mb-0">
-                                                            <i class="fas fa-list mr-2"></i>
-                                                            {{ ucfirst($category) }} Leave
+                                                            <i class="fas fa-{{ $category === 'lsl' ? 'hourglass-half' : 'list' }} mr-2"></i>
+                                                            @if ($category === 'lsl')
+                                                                Cuti Panjang (LSL)
+                                                            @else
+                                                                {{ ucfirst($category) }} Leave
+                                                            @endif
                                                             <span
                                                                 class="badge badge-secondary ml-2">{{ $entitlements->count() }}</span>
                                                         </h6>
@@ -408,7 +448,7 @@
                                                                 </thead>
                                                                 <tbody>
                                                                     @foreach ($entitlements as $entitlement)
-                                                                        <tr>
+                                                                        <tr class="{{ ($entitlement->leaveType->category ?? '') === 'lsl' ? 'lsl-table-row' : '' }}">
                                                                             <td>
                                                                                 <b>{{ $entitlement->leaveType->name }}</b>
                                                                                 @if ($entitlement->leaveType->code)
@@ -468,6 +508,12 @@
                             <i class="fas fa-calendar-times fa-3x text-muted mb-3"></i>
                             <h5 class="text-muted">No Leave Entitlements Found</h5>
                             <p class="text-muted">This employee doesn't have any leave entitlements yet.</p>
+                            <div class="d-flex flex-column align-items-center mt-3">
+                                @include('leave-entitlements.partials.add-entitlement-buttons', [
+                                    'employee' => $employee,
+                                    'addEntitlementContext' => $addEntitlementContext ?? [],
+                                ])
+                            </div>
                         </div>
                     @endif
                 </div>
@@ -477,6 +523,7 @@
 @endsection
 
 @section('styles')
+    @include('leave-entitlements.partials.period-styles')
     <style>
         .period-item {
             border-left: 3px solid transparent;

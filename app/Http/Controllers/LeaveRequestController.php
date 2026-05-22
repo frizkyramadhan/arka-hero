@@ -2230,11 +2230,18 @@ class LeaveRequestController extends Controller
         $leaveType = LeaveType::findOrFail($leaveTypeId);
         $fromMyEntitlementsCalculation = true;
 
+        if (! $periodStart || ! $periodEnd) {
+            $periodStart = $calculationDetails['entitlement_period']['start'] ?? null;
+            $periodEnd = $calculationDetails['entitlement_period']['end'] ?? null;
+        }
+
         return view('leave-entitlements.calculation-details', compact(
             'employee',
             'leaveType',
             'calculationDetails',
-            'fromMyEntitlementsCalculation'
+            'fromMyEntitlementsCalculation',
+            'periodStart',
+            'periodEnd'
         ))->with('title', 'Leave Calculation Details - '.$employee->fullname);
     }
 

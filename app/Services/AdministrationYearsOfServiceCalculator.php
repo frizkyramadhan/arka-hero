@@ -21,7 +21,7 @@ class AdministrationYearsOfServiceCalculator
     /**
      * @return array{start_doh: mixed, end_date: Carbon}|null
      */
-    private function getServicePeriodForAdministration(object $administration, Collection $administrations): ?array
+    public function getServicePeriodForAdministration(object $administration, Collection $administrations): ?array
     {
         if (! $administration->doh) {
             return null;
@@ -30,6 +30,61 @@ class AdministrationYearsOfServiceCalculator
         $periodMap = $this->buildServicePeriodMap($administrations);
 
         return $periodMap[$administration->id] ?? null;
+    }
+
+    public function getServiceStartDoh(object $administration, Collection $administrations): ?Carbon
+    {
+        $period = $this->getServicePeriodForAdministration($administration, $administrations);
+
+        if ($period === null) {
+            return null;
+        }
+
+        return Carbon::parse($period['start_doh'])->startOfDay();
+    }
+
+    /**
+     * LSL entitlement window: each cycle spans eligible_after_years, starting when
+     * continuous service (from start DOH) reaches eligible_after_years.
+     *
+     * @return array{start: Carbon, end: Carbon}|null
+     */
+    public function calculateLSLPeriodDates(
+        object $administration,
+        Collection $administrations,
+        int $eligibleAfterYears,
+        ?Carbon $referenceDate = null
+    ): ?array {
+        if ($eligibleAfterYears <= 0) {
+            return null;
+        }
+
+        $servicePeriod = $this->getServicePeriodForAdministration($administration, $administrations);
+
+        if ($servicePeriod === null) {
+            return null;
+        }
+
+        $referenceDate = ($referenceDate ?? Carbon::now())->copy()->startOfDay();
+        $startDoh = Carbon::parse($servicePeriod['start_doh'])->startOfDay();
+        $firstPeriodStart = $startDoh->copy()->addYears($eligibleAfterYears);
+
+        if ($referenceDate->lt($firstPeriodStart)) {
+            return null;
+        }
+
+        $periodStart = $firstPeriodStart->copy();
+        $periodEnd = $periodStart->copy()->addYears($eligibleAfterYears)->subDay();
+
+        while ($referenceDate->gt($periodEnd)) {
+            $periodStart->addYears($eligibleAfterYears);
+            $periodEnd = $periodStart->copy()->addYears($eligibleAfterYears)->subDay();
+        }
+
+        return [
+            'start' => $periodStart,
+            'end' => $periodEnd,
+        ];
     }
 
     /**

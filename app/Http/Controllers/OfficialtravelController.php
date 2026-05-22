@@ -330,9 +330,9 @@ class OfficialtravelController extends Controller
         $accommodations = Accommodation::where('accommodation_status', 1)->get();
         $transportations = Transportation::where('transportation_status', 1)->get();
 
-        // Travel Number will be generated based on selected letter number
+        // Travel Number will be generated based on selected letter number and LOT origin project
         $romanMonth = $this->numberToRoman(now()->month);
-        $travelNumber = sprintf('ARKA/[Letter Number]/HR/%s/%s', $romanMonth, now()->year);
+        $travelNumber = Officialtravel::officialTravelNumberPlaceholder();
 
         // Load employees with their relationships
         $employees = $this->administrationsForOfficialTravelSelectQuery()->get()->map(function ($employee) {
@@ -461,7 +461,7 @@ class OfficialtravelController extends Controller
             $letterNumberId = null;
             $letterNumberString = null;
             $letterNumberRecord = null;
-            $romanMonth = $this->numberToRoman(now()->month);
+            $projectCode = Project::findOrFail($request->official_travel_origin)->project_code;
 
             if ($request->letter_number_id) {
                 // Use existing letter number
@@ -470,8 +470,8 @@ class OfficialtravelController extends Controller
                     $letterNumberId = $letterNumberRecord->id;
                     $letterNumberString = $letterNumberRecord->letter_number;
 
-                    // Generate LOT number using selected letter number
-                    $travelNumber = sprintf('ARKA/%s/HR/%s/%s', $letterNumberString, $romanMonth, now()->year);
+                    // Generate LOT number using selected letter number and project code
+                    $travelNumber = Officialtravel::formatOfficialTravelNumber($letterNumberString, $projectCode);
                 } else {
                     throw new \Exception('Selected letter number is not available or not reserved. Current status: '.($letterNumberRecord ? $letterNumberRecord->status : 'not found'));
                 }
@@ -482,7 +482,7 @@ class OfficialtravelController extends Controller
                     ->first();
 
                 $sequence = $lastTravel ? (int) substr($lastTravel->official_travel_number, 6, 4) + 1 : 1;
-                $travelNumber = sprintf('ARKA/B%04d/HR/%s/%s', $sequence, $romanMonth, now()->year);
+                $travelNumber = Officialtravel::formatOfficialTravelNumber(sprintf('B%04d', $sequence), $projectCode);
             }
 
             // Check if generated travel number already exists
@@ -849,8 +849,8 @@ class OfficialtravelController extends Controller
                 if (! $letterNumberRecord || $letterNumberRecord->status !== 'reserved') {
                     throw new \Exception('Nomor surat tidak tersedia atau belum di-reserve. Status: '.($letterNumberRecord ? $letterNumberRecord->status : 'not found'));
                 }
-                $romanMonth = $this->numberToRoman(now()->month);
-                $travelNumber = sprintf('ARKA/%s/HR/%s/%s', $letterNumberRecord->letter_number, $romanMonth, now()->year);
+                $projectCode = Project::findOrFail($request->official_travel_origin)->project_code;
+                $travelNumber = Officialtravel::formatOfficialTravelNumber($letterNumberRecord->letter_number, $projectCode);
                 if (Officialtravel::where('official_travel_number', $travelNumber)->where('id', '!=', $officialtravel->id)->exists()) {
                     throw new \Exception('Nomor LOT dari surat ini sudah digunakan: '.$travelNumber);
                 }

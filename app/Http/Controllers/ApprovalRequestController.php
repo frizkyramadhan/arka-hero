@@ -25,7 +25,7 @@ class ApprovalRequestController extends Controller
     public function index()
     {
         $title = 'Approval Requests';
-        $subtitle = 'Pending Approvals';
+        $subtitle = 'Approval Requests';
 
         return view('approval-requests.index', compact('title', 'subtitle'));
     }
@@ -55,9 +55,16 @@ class ApprovalRequestController extends Controller
                 'overtimeRequest.requestedBy',
                 'overtimeRequest.details.administration.employee',
             ])
-                ->where('approver_id', Auth::id())
-                ->where('is_open', true)
-                ->where('status', 0); // pending
+                ->where('approver_id', Auth::id());
+
+            $approvalStatus = $request->get('approval_status', 'pending');
+            if ($approvalStatus === 'pending') {
+                $approvalPlans->where('status', 0);
+            } elseif ($approvalStatus === 'approved') {
+                $approvalPlans->where('status', 1);
+            } elseif ($approvalStatus === 'rejected') {
+                $approvalPlans->where('status', 2);
+            }
 
             // Filter by document type
             if (! empty($request->get('document_type'))) {
@@ -180,34 +187,6 @@ class ApprovalRequestController extends Controller
 
                     return '-';
                 })
-                ->addColumn('current_approval', function ($approvalPlan) {
-                    $currentInfo = $this->getCurrentApprovalInfo($approvalPlan->document_id, $approvalPlan->document_type);
-
-                    if (! $currentInfo) {
-                        return '<span class="badge badge-secondary">No Info</span>';
-                    }
-
-                    $statusClass = match ($currentInfo['status']) {
-                        'pending' => 'badge-warning',
-                        'completed' => 'badge-success',
-                        'rejected' => 'badge-danger',
-                        default => 'badge-secondary'
-                    };
-
-                    $statusText = ucfirst($currentInfo['status']);
-                    $message = $currentInfo['message'];
-                    $progress = "({$currentInfo['completed_orders']}/{$currentInfo['total_orders']})";
-
-                    return "
-                        <div class='text-left'>
-                            <span class='badge {$statusClass}'>{$statusText}</span>
-                            <br>
-                            <small class='text-muted'>{$message}</small>
-                            <br>
-                            <small class='text-info'>{$progress}</small>
-                        </div>
-                    ";
-                })
                 ->addColumn('remarks', function ($approvalPlan) {
                     if ($approvalPlan->document_type === 'officialtravel') {
                         return $approvalPlan->officialtravel && $approvalPlan->officialtravel->traveler
@@ -315,12 +294,37 @@ class ApprovalRequestController extends Controller
                     return '-';
                 })
                 ->addColumn('status', function ($approvalPlan) {
-                    return '<span class="badge badge-warning">Pending</span>';
+                    $statusBadge = match ((int) $approvalPlan->status) {
+                        1 => '<span class="badge badge-success">Approved</span>',
+                        2 => '<span class="badge badge-danger">Rejected</span>',
+                        default => '<span class="badge badge-warning">Pending</span>',
+                    };
+
+                    $currentInfo = $this->getCurrentApprovalInfo($approvalPlan->document_id, $approvalPlan->document_type);
+                    if (! $currentInfo) {
+                        return "<div class='text-left'>{$statusBadge}</div>";
+                    }
+
+                    $message = e($currentInfo['message']);
+                    $progress = "({$currentInfo['completed_orders']}/{$currentInfo['total_orders']})";
+
+                    return "
+                        <div class='text-left'>
+                            {$statusBadge}
+                            <br>
+                            <small class='text-muted'>{$message}</small>
+                            <br>
+                            <small class='text-info'>{$progress}</small>
+                        </div>
+                    ";
+                })
+                ->addColumn('status_value', function ($approvalPlan) {
+                    return (int) $approvalPlan->status;
                 })
                 ->addColumn('action', function ($model) {
                     return view('approval-requests.action', compact('model'))->render();
                 })
-                ->rawColumns(['action', 'status', 'current_approval', 'remarks', 'document_number'])
+                ->rawColumns(['action', 'status', 'remarks', 'document_number'])
                 ->toJson();
         } catch (\Exception $e) {
             Log::error('Error in getApprovalRequests: '.$e->getMessage());
@@ -345,13 +349,8 @@ class ApprovalRequestController extends Controller
             return redirect()->back()->with('toast_error', 'You are not authorized to approve this request.');
         }
 
-        // Check if already processed
-        if ($approvalPlan->status !== 0) {
-            return redirect()->back()->with('toast_error', 'This request has already been processed.');
-        }
-
         $title = 'Approval Request';
-        $subtitle = 'Review and Approve';
+        $subtitle = $approvalPlan->status === 0 ? 'Review and Approve' : 'Approval Detail';
 
         // Get current approval information
         $currentApprovalInfo = $this->getCurrentApprovalInfo($approvalPlan->document_id, $approvalPlan->document_type);
@@ -556,7 +555,6 @@ class ApprovalRequestController extends Controller
         // Get all approval plans for this document ordered by approval_order
         $allApprovalPlans = ApprovalPlan::with('approver')->where('document_id', $documentId)
             ->where('document_type', $documentType)
-            ->where('is_open', true)
             ->orderBy('approval_order', 'asc')
             ->get();
 
@@ -828,9 +826,16 @@ class ApprovalRequestController extends Controller
         try {
             $documentType = $request->get('document_type', 'all');
 
-            $query = ApprovalPlan::where('approver_id', Auth::id())
-                ->where('is_open', true)
-                ->where('status', 0);
+            $query = ApprovalPlan::where('approver_id', Auth::id());
+
+            $approvalStatus = $request->get('approval_status', 'pending');
+            if ($approvalStatus === 'pending') {
+                $query->where('status', 0);
+            } elseif ($approvalStatus === 'approved') {
+                $query->where('status', 1);
+            } elseif ($approvalStatus === 'rejected') {
+                $query->where('status', 2);
+            }
 
             if ($documentType !== 'all') {
                 $query->where('document_type', $documentType);

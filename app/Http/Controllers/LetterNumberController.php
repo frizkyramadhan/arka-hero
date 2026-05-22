@@ -557,6 +557,7 @@ class LetterNumberController extends Controller
                     'letter_date' => $number->letter_date,
                     'subject_name' => $number->subject->subject_name ?? $number->custom_subject,
                     'remarks' => $number->remarks,
+                    'project_id' => $number->project_id,
                     'project_code' => $number->project?->project_code ?? $number->project_code,
                 ];
             });

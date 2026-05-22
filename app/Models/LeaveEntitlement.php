@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\LeaveEntitlementCarryOverService;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -16,7 +17,7 @@ class LeaveEntitlement extends Model
         'period_end',
         'entitled_days',
         'deposit_days',
-        'taken_days'
+        'taken_days',
     ];
 
     protected $casts = [
@@ -69,6 +70,11 @@ class LeaveEntitlement extends Model
         return $this->remaining_days >= $days;
     }
 
+    public function periodLabel(): string
+    {
+        return $this->period_start->format('d M Y').' - '.$this->period_end->format('d M Y');
+    }
+
     public function updateTakenDays()
     {
         $this->taken_days = $this->leaveRequests()
@@ -115,6 +121,13 @@ class LeaveEntitlement extends Model
             ];
         });
 
+        $defaultDays = (int) ($this->leaveType->default_days ?? 0);
+        $levelName = $this->employee?->administrations?->where('is_active', 1)->first()?->level?->name;
+        $carryOverService = app(LeaveEntitlementCarryOverService::class);
+        $carriedOver = $this->leaveType && $carryOverService->supportsCarryOver($this->leaveType, $levelName)
+            ? max(0, $this->entitled_days - $defaultDays)
+            : 0;
+
         return [
             'entitlement_period' => [
                 'start' => $this->period_start->format('d M Y'),
@@ -122,6 +135,8 @@ class LeaveEntitlement extends Model
             ],
             'leave_type' => $this->leaveType->name ?? 'Unknown',
             'total_entitlement' => $this->entitled_days,
+            'carried_over' => $carriedOver,
+            'base_entitlement' => max(0, $this->entitled_days - $carriedOver),
             'taken_days' => $totalTakenDays,
             'total_cancelled_days' => $totalCancelledDays,
             'total_effective_days' => $totalEffectiveDays,
@@ -129,6 +144,8 @@ class LeaveEntitlement extends Model
             'leave_requests' => $leaveRequestsData,
             'calculation_summary' => [
                 'total_entitlement' => $this->entitled_days,
+                'base_entitlement' => max(0, $this->entitled_days - $carriedOver),
+                'carried_over' => $carriedOver,
                 'total_taken' => $totalTakenDays,
                 'total_cancelled' => $totalCancelledDays,
                 'total_effective' => $totalEffectiveDays,
