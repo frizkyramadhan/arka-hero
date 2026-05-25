@@ -6,6 +6,7 @@
     'documentType' => null, // 'recruitment_request', 'leave_request', 'officialtravel', 'flight_request'
     'mode' => 'edit', // 'edit' or 'view' - view mode is read-only, only displays selected approvers
     'documentId' => null, // Document ID to fetch approval plans in view mode
+    'lockedApproverIds' => [], // Approver user IDs that cannot be removed/changed (e.g. already decided)
 ])
 
 @php
@@ -16,9 +17,9 @@
         ->orderBy('name')
         ->get();
 
-    // Get approval plans if in view mode and documentId is provided
+    // Get approval plans when documentId is provided (view mode or partial edit with locked approvers)
     $approvalPlans = collect();
-    if ($mode === 'view' && $documentId && $documentType) {
+    if ($documentId && $documentType) {
         $approvalPlans = \App\Models\ApprovalPlan::where('document_id', $documentId)
             ->where('document_type', $documentType)
             ->with('approver')
@@ -26,6 +27,11 @@
             ->get()
             ->keyBy('approver_id');
     }
+
+    $lockedApproverIds = collect($lockedApproverIds ?? [])
+        ->map(fn ($id) => (int) $id)
+        ->values()
+        ->all();
 
     // Get selected approvers data with approval status
     $selectedApproversData = collect($selectedApprovers)
@@ -106,14 +112,15 @@
                         $order = $approver->approval_order ?? $index + 1;
                         $status = $approver->status;
                         $statusInfo = $status !== null ? $statusMap[$status] ?? null : null;
+                        $isLocked = ! $isViewMode && in_array((int) $approver->id, $lockedApproverIds, true);
                     @endphp
-                    <div class="selected-approver-badge {{ $isViewMode ? 'view-mode-badge' : '' }}"
-                        data-approver-id="{{ $approver->id }}">
+                    <div class="selected-approver-badge {{ $isViewMode || $isLocked ? 'view-mode-badge' : '' }} {{ $isLocked ? 'locked-approver-badge' : '' }}"
+                        data-approver-id="{{ $approver->id }}" @if ($isLocked) data-locked="1" @endif>
                         <span class="approver-order">{{ $order }}</span>
                         <div class="approver-info">
                             <div class="approver-header">
                                 <span class="approver-name">{{ $approver->name }}</span>
-                                @if ($isViewMode && $statusInfo)
+                                @if (($isViewMode || $isLocked) && $statusInfo)
                                     <span class="approval-status-badge badge {{ $statusInfo['class'] }}">
                                         <i class="fas {{ $statusInfo['icon'] }}"></i> {{ $statusInfo['label'] }}
                                     </span>
@@ -126,10 +133,12 @@
                                 </div>
                             @endif
                         </div>
-                        @if (!$isViewMode)
+                        @if (! $isViewMode && ! $isLocked)
                             <button type="button" class="btn-remove-approver" data-approver-id="{{ $approver->id }}">
                                 <i class="fas fa-times"></i>
                             </button>
+                        @endif
+                        @if (! $isViewMode)
                             <input type="hidden" name="manual_approvers[]" value="{{ $approver->id }}">
                         @endif
                     </div>
@@ -621,6 +630,11 @@
     .approver-remarks strong {
         color: #212529;
     }
+
+    .locked-approver-badge {
+        opacity: 0.95;
+        border-style: dashed;
+    }
 </style>
 
 <script>
@@ -652,6 +666,45 @@
 
                 // Selected approver IDs
                 let selectedIds = @json($selectedApproversData->pluck('id')->toArray());
+                const lockedIds = @json($lockedApproverIds);
+                let insertAtIndex = null;
+
+                function isLockedId(id) {
+                    return lockedIds.some(function(lockedId) {
+                        return String(lockedId) === String(id);
+                    });
+                }
+
+                function buildApproverBadge(approverId, approver) {
+                    return $('<div>')
+                        .addClass('selected-approver-badge')
+                        .attr('data-approver-id', approverId)
+                        .html(
+                            '<span class="approver-order"></span>' +
+                            '<div class="approver-info">' +
+                            '<span class="approver-name">' + approverDisplayName(approver) + '</span>' +
+                            '<span class="approver-email">' + (approver.email || '') + '</span>' +
+                            '</div>' +
+                            '<button type="button" class="btn-remove-approver" data-approver-id="' +
+                            approverId + '">' +
+                            '<i class="fas fa-times"></i></button>' +
+                            '<input type="hidden" name="manual_approvers[]" value="' + approverId +
+                            '">'
+                        );
+                }
+
+                function insertBadgeAtIndex($badge, index) {
+                    const $badges = $selectedList.find('.selected-approver-badge');
+                    if (index <= 0 || $badges.length === 0) {
+                        $selectedList.prepend($badge);
+                        return;
+                    }
+                    if (index >= $badges.length) {
+                        $selectedList.append($badge);
+                        return;
+                    }
+                    $badges.eq(index - 1).after($badge);
+                }
 
                 function approverDisplayName(approver) {
                     const name = (approver.name || '').trim();
@@ -719,25 +772,13 @@
                     }
 
                     // Add to selected
-                    selectedIds.push(approverId);
-                    const order = selectedIds.length;
+                    if (insertAtIndex !== null) {
+                        selectedIds.splice(insertAtIndex, 0, approverId);
+                    } else {
+                        selectedIds.push(approverId);
+                    }
 
-                    // Create badge
-                    const $badge = $('<div>')
-                        .addClass('selected-approver-badge')
-                        .attr('data-approver-id', approverId)
-                        .html(
-                            '<span class="approver-order">' + order + '</span>' +
-                            '<div class="approver-info">' +
-                            '<span class="approver-name">' + approverDisplayName(approver) + '</span>' +
-                            '<span class="approver-email">' + (approver.email || '') + '</span>' +
-                            '</div>' +
-                            '<button type="button" class="btn-remove-approver" data-approver-id="' +
-                            approverId + '">' +
-                            '<i class="fas fa-times"></i></button>' +
-                            '<input type="hidden" name="manual_approvers[]" value="' + approverId +
-                            '">'
-                        );
+                    const $badge = buildApproverBadge(approverId, approver);
 
                     // Hide empty message if exists
                     $component.find('.selected-approvers-container .text-muted').hide();
@@ -745,7 +786,12 @@
                     // Remove disabled empty input if exists
                     $component.find('input[name="manual_approvers[]"][disabled]').remove();
 
-                    $selectedList.append($badge);
+                    if (insertAtIndex !== null) {
+                        insertBadgeAtIndex($badge, insertAtIndex);
+                        insertAtIndex = null;
+                    } else {
+                        $selectedList.append($badge);
+                    }
                     updateOrderNumbers();
 
                     // Remove from search results
@@ -781,7 +827,13 @@
                 $selectedList.on('click', '.btn-remove-approver', function(e) {
                     e.stopPropagation();
                     const approverId = $(this).data('approver-id');
+
+                    if (isLockedId(approverId)) {
+                        return;
+                    }
+
                     const $badge = $(this).closest('.selected-approver-badge');
+                    insertAtIndex = $selectedList.find('.selected-approver-badge').index($badge);
 
                     // Remove from selected IDs
                     selectedIds = selectedIds.filter(id => String(id) !== String(approverId));
