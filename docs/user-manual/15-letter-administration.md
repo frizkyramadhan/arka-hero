@@ -344,13 +344,13 @@ Nomor surat **Reserved** dapat dipilih saat membuat atau mengedit dokumen di mod
 4. Klik **View …** (misalnya **View Letter of Guarantee**, **View Official Travel Letter**, **View Recruitment Session**) untuk membuka halaman dokumen terkait.
 5. Panel **Status Information** di kanan menampilkan **Status: Used** — nomor tidak dapat diubah lagi; tombol **Actions** hanya **Back to List**.
 
-| **Document Type** (contoh di layar) | **Tombol tautan** | **Halaman tujuan** |
-| :---------------------------------- | :---------------- | :----------------- |
-| `Officialtravel` | **View Official Travel Letter** | Detail LOT |
-| `Recruitment_request` | **View Recruitment Request** | Detail FPTK |
-| `Recruitment_offering` / `Recruitment_hiring` | **View Recruitment Session** | Detail sesi kandidat (rekrutmen) |
-| `Flight_request_issuance` | **View Letter of Guarantee** | Detail LG (**Flight Management** → **Issuances**) |
-| `Employee_bond` | **View Employee Bond** | Detail employee bond |
+| **Document Type** (contoh di layar)           | **Tombol tautan**               | **Halaman tujuan**                                |
+| :-------------------------------------------- | :------------------------------ | :------------------------------------------------ |
+| `Officialtravel`                              | **View Official Travel Letter** | Detail LOT                                        |
+| `Recruitment_request`                         | **View Recruitment Request**    | Detail FPTK                                       |
+| `Recruitment_offering` / `Recruitment_hiring` | **View Recruitment Session**    | Detail sesi kandidat (rekrutmen)                  |
+| `Flight_request_issuance`                     | **View Letter of Guarantee**    | Detail LG (**Flight Management** → **Issuances**) |
+| `Employee_bond`                               | **View Employee Bond**          | Detail employee bond                              |
 
 <p align="center" id="letter-numbers-detail-integration">
     <img

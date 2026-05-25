@@ -490,6 +490,7 @@ Route::group(['middleware' => ['auth']], function () {
 
             // FPTK Actions
             Route::post('/{id}/submit', [RecruitmentRequestController::class, 'submitForApproval'])->name('submit');
+            Route::put('/{id}/update-approvers', [RecruitmentRequestController::class, 'updateApprovers'])->name('update-approvers');
 
             // Approval Routes - New 3-level approval system
             Route::get('/{id}/acknowledge', [RecruitmentRequestController::class, 'showAcknowledgmentForm'])->name('acknowledge-form');

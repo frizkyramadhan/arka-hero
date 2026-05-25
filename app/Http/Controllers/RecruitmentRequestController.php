@@ -27,7 +27,7 @@ class RecruitmentRequestController extends Controller
         $this->letterNumberService = $letterNumberService;
         $this->middleware('permission:recruitment-requests.show')->only('index', 'show', 'getRecruitmentRequests', 'getFPTKData');
         $this->middleware('permission:recruitment-requests.create')->only('create', 'store');
-        $this->middleware('permission:recruitment-requests.edit')->only('edit', 'update', 'acknowledge', 'approveByPM', 'approveByDirector', 'approve', 'reject', 'assignLetterNumber');
+        $this->middleware('permission:recruitment-requests.edit')->only('edit', 'update', 'updateApprovers', 'acknowledge', 'approveByPM', 'approveByDirector', 'approve', 'reject', 'assignLetterNumber');
         $this->middleware('permission:recruitment-requests.delete')->only('destroy');
 
         // Personal/self-service permissions
@@ -653,6 +653,131 @@ class RecruitmentRequestController extends Controller
             return redirect()->back()
                 ->withInput()
                 ->with('toast_error', 'Terjadi kesalahan saat mengupdate FPTK. Silakan coba lagi.');
+        }
+    }
+
+    /**
+     * Update manual approvers while FPTK is submitted; only pending steps may change.
+     */
+    public function updateApprovers(Request $request, $id)
+    {
+        $fptk = RecruitmentRequest::findOrFail($id);
+
+        if ($denied = UserProject::guardProjectInAssignmentScope((int) $fptk->project_id)) {
+            return $denied;
+        }
+
+        if (! $fptk->canChangeApprovers()) {
+            return redirect()->route('recruitment.requests.show', $id)
+                ->with('toast_error', 'Approver tidak dapat diubah karena tidak ada langkah persetujuan yang masih Pending atau FPTK tidak dalam status Submitted.');
+        }
+
+        $request->validate([
+            'manual_approvers' => 'required|array|min:1',
+            'manual_approvers.*' => 'exists:users,id',
+        ], [
+            'manual_approvers.required' => 'Please select at least one approver.',
+            'manual_approvers.array' => 'Approvers must be an array.',
+            'manual_approvers.min' => 'Please select at least one approver.',
+            'manual_approvers.*.exists' => 'One or more selected approvers are invalid.',
+        ]);
+
+        $submittedApprovers = $request->manual_approvers ?? [];
+        if (! is_array($submittedApprovers)) {
+            $submittedApprovers = [];
+        }
+        $submittedApprovers = array_values(array_map('intval', array_filter($submittedApprovers)));
+
+        if (empty($submittedApprovers)) {
+            return redirect()->back()
+                ->with('toast_error', 'Please select at least one approver.');
+        }
+
+        if (count($submittedApprovers) !== count(array_unique($submittedApprovers))) {
+            return redirect()->back()
+                ->with('toast_error', 'Approver tidak boleh duplikat.');
+        }
+
+        $existingPlans = ApprovalPlan::where('document_id', $fptk->id)
+            ->where('document_type', 'recruitment_request')
+            ->orderBy('approval_order')
+            ->get()
+            ->keyBy('approval_order');
+
+        $lockedPlans = $existingPlans->filter(fn (ApprovalPlan $plan) => (int) $plan->status !== 0);
+
+        foreach ($lockedPlans as $order => $plan) {
+            $index = (int) $order - 1;
+            if (! isset($submittedApprovers[$index]) || (int) $submittedApprovers[$index] !== (int) $plan->approver_id) {
+                return redirect()->back()
+                    ->with('toast_error', 'Approver yang sudah disetujui atau ditolak tidak dapat diubah atau dihapus.');
+            }
+        }
+
+        $currentApprovers = array_values(array_map('intval', $fptk->manual_approvers ?? []));
+        $approversChanged = json_encode($currentApprovers) !== json_encode($submittedApprovers);
+
+        if (! $approversChanged) {
+            return redirect()->route('recruitment.requests.show', $id)
+                ->with('toast_info', 'No changes to approver selection.');
+        }
+
+        try {
+            DB::beginTransaction();
+
+            $fptk->update(['manual_approvers' => $submittedApprovers]);
+
+            $ordersPresent = [];
+            $createdPending = 0;
+
+            foreach ($submittedApprovers as $index => $approverId) {
+                $order = $index + 1;
+                $ordersPresent[] = $order;
+                $plan = $existingPlans->get($order);
+
+                if ($plan && (int) $plan->status !== 0) {
+                    continue;
+                }
+
+                if ($plan) {
+                    $plan->delete();
+                }
+
+                ApprovalPlan::create([
+                    'document_id' => $fptk->id,
+                    'document_type' => 'recruitment_request',
+                    'approver_id' => $approverId,
+                    'status' => 0,
+                    'is_open' => true,
+                    'is_read' => false,
+                    'approval_order' => $order,
+                ]);
+                $createdPending++;
+            }
+
+            ApprovalPlan::where('document_id', $fptk->id)
+                ->where('document_type', 'recruitment_request')
+                ->where('status', 0)
+                ->whereNotIn('approval_order', $ordersPresent)
+                ->delete();
+
+            DB::commit();
+
+            $message = $createdPending > 0
+                ? 'Approver pending berhasil diperbarui. '.$createdPending.' langkah pending menunggu keputusan.'
+                : 'Approver selection updated.';
+
+            return redirect()->route('recruitment.requests.show', $id)
+                ->with('toast_success', $message);
+        } catch (Exception $e) {
+            DB::rollBack();
+            Log::error('Error updating FPTK approvers: '.$e->getMessage(), [
+                'recruitment_request_id' => $id,
+                'exception' => $e,
+            ]);
+
+            return redirect()->back()
+                ->with('toast_error', 'Terjadi kesalahan saat mengubah approver. Silakan coba lagi.');
         }
     }
 

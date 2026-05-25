@@ -353,19 +353,53 @@
 
                 <!-- Right Column -->
                 <div class="col-lg-4">
+                    @php
+                        $canChangeApprovers = ! Request::is('recruitment/my-requests*')
+                            && $fptk->canChangeApprovers()
+                            && auth()->user()->can('recruitment-requests.edit');
+                    @endphp
+
                     <!-- Manual Approvers Card -->
-                    @if (!empty($fptk->manual_approvers))
+                    @if (! empty($fptk->manual_approvers) || $canChangeApprovers)
                         <div class="fptk-card mb-4">
                             <div class="card-head">
                                 <h2><i class="fas fa-users"></i> Approval Status</h2>
                             </div>
                             <div class="card-body py-2">
-                                @include('components.manual-approver-selector', [
-                                    'selectedApprovers' => $fptk->manual_approvers ?? [],
-                                    'mode' => 'view',
-                                    'documentType' => 'recruitment_request',
-                                    'documentId' => $fptk->id,
-                                ])
+                                @if ($canChangeApprovers)
+                                    <form action="{{ route('recruitment.requests.update-approvers', $fptk->id) }}"
+                                        method="POST">
+                                        @csrf
+                                        @method('PUT')
+                                        @include('components.manual-approver-selector', [
+                                            'selectedApprovers' => old('manual_approvers', $fptk->manual_approvers ?? []),
+                                            'required' => true,
+                                            'multiple' => true,
+                                            'helpText' => 'Pilih minimal 1 approver dengan role approver',
+                                            'documentType' => 'recruitment_request',
+                                            'documentId' => $fptk->id,
+                                            'lockedApproverIds' => $fptk->getLockedApproverIds(),
+                                        ])
+                                        <div class="mt-3">
+                                            <small class="text-muted d-block mb-2">
+                                                <i class="fas fa-info-circle"></i>
+                                                Approver yang sudah <strong>Approved</strong> / <strong>Rejected</strong>
+                                                tidak dapat diubah. Hanya langkah yang masih
+                                                <strong>Pending</strong> yang dapat diganti atau dihapus.
+                                            </small>
+                                            <button type="submit" class="btn btn-primary btn-block">
+                                                <i class="fas fa-save"></i> Update Approvers
+                                            </button>
+                                        </div>
+                                    </form>
+                                @else
+                                    @include('components.manual-approver-selector', [
+                                        'selectedApprovers' => $fptk->manual_approvers ?? [],
+                                        'mode' => 'view',
+                                        'documentType' => 'recruitment_request',
+                                        'documentId' => $fptk->id,
+                                    ])
+                                @endif
                             </div>
                         </div>
                     @endif
