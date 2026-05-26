@@ -491,463 +491,464 @@
                 </div>
             </div>
         </div>
-    @endsection
+    </div>
+@endsection
 
-    @section('styles')
-        <!-- Select2 -->
-        <link rel="stylesheet" href="{{ asset('assets/plugins/select2/css/select2.min.css') }}">
-        <link rel="stylesheet" href="{{ asset('assets/plugins/select2-bootstrap4-theme/select2-bootstrap4.min.css') }}">
+@section('styles')
+    <!-- Select2 -->
+    <link rel="stylesheet" href="{{ asset('assets/plugins/select2/css/select2.min.css') }}">
+    <link rel="stylesheet" href="{{ asset('assets/plugins/select2-bootstrap4-theme/select2-bootstrap4.min.css') }}">
 
-        <style>
-            /* Custom Styles for Candidate Detail */
-            .content-wrapper-custom {
-                background-color: #f8fafc;
-                min-height: 100vh;
-                padding-bottom: 40px;
+    <style>
+        /* Custom Styles for Candidate Detail */
+        .content-wrapper-custom {
+            background-color: #f8fafc;
+            min-height: 100vh;
+            padding-bottom: 40px;
+        }
+
+        /* Header */
+        .candidate-header {
+            position: relative;
+            height: 120px;
+            color: white;
+            padding: 20px 30px;
+            margin-bottom: 30px;
+            background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .candidate-header-content {
+            position: relative;
+            z-index: 2;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .candidate-number {
+            font-size: 13px;
+            margin-bottom: 4px;
+            opacity: 0.9;
+            letter-spacing: 1px;
+        }
+
+        .candidate-name {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .candidate-email {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .candidate-status-pill {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+        }
+
+        .candidate-status-pill .badge {
+            font-size: 0.875rem;
+            padding: 0.5rem 0.75rem;
+            border-radius: 0.375rem;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        /* Content Styles */
+        .candidate-content {
+            padding: 0 20px;
+        }
+
+        /* Cards */
+        .candidate-card {
+            background: white;
+            border-radius: 6px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+
+        .card-head {
+            padding: 15px 20px;
+            border-bottom: 1px solid #e9ecef;
+            background-color: #f8f9fa;
+        }
+
+        .card-head h2 {
+            margin: 0;
+            font-size: 16px;
+            font-weight: 600;
+            color: #2c3e50;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .card-body {
+            padding: 20px;
+        }
+
+        /* Info Grid */
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+            padding: 20px;
+        }
+
+        .info-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+        }
+
+        .info-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 14px;
+            background-color: #3498db;
+        }
+
+        .info-content {
+            flex: 1;
+        }
+
+        .info-label {
+            font-size: 12px;
+            color: #777;
+            margin-bottom: 4px;
+        }
+
+        .info-value {
+            font-weight: 600;
+            color: #333;
+        }
+
+        /* Sessions Card */
+        .sessions-count {
+            background: #3498db;
+            color: white;
+            font-size: 14px;
+            border-radius: 4px;
+            padding: 2px 8px;
+            margin-left: 8px;
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+        }
+
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 6px;
+        }
+
+        .stat-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 16px;
+        }
+
+        .stat-content {
+            flex: 1;
+        }
+
+        .stat-value {
+            font-size: 18px;
+            font-weight: 600;
+            color: #2c3e50;
+            line-height: 1;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #777;
+            margin-top: 2px;
+        }
+
+        /* Action Buttons */
+        .candidate-action-buttons {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 10px;
+        }
+
+        .btn-action {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 10px 16px;
+            border-radius: 4px;
+            font-weight: 500;
+            font-size: 14px;
+            transition: all 0.2s;
+            gap: 8px;
+            color: white;
+            text-decoration: none;
+            border: none;
+            cursor: pointer;
+        }
+
+        .back-btn {
+            background-color: #64748b;
+        }
+
+        .back-btn:hover {
+            color: white;
+        }
+
+        .edit-btn {
+            background-color: #3498db;
+        }
+
+        .edit-btn:hover {
+            color: white;
+        }
+
+        .download-btn {
+            background-color: #27ae60;
+        }
+
+        .download-btn:hover {
+            color: white;
+        }
+
+        /* Split Button Styling */
+        .btn-group {
+            display: flex;
+            width: 100%;
+        }
+
+        .btn-group .btn-action {
+            flex: 1;
+            border-radius: 4px 0 0 4px;
+        }
+
+        .btn-group .dropdown-toggle-split {
+            flex: 0 0 auto;
+            border-radius: 0 4px 4px 0;
+            border-left: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .btn-group .dropdown-menu {
+            min-width: 120px;
+        }
+
+        .btn-group .dropdown-item {
+            padding: 8px 12px;
+            font-size: 14px;
+        }
+
+        .btn-group .dropdown-item:hover {
+            background-color: #f8f9fa;
+        }
+
+        .btn-group .dropdown-item.text-danger:hover {
+            background-color: #fee;
+        }
+
+        .apply-btn {
+            background-color: #8e44ad;
+        }
+
+        .apply-btn:hover {
+            color: white;
+        }
+
+        .blacklist-btn {
+            background-color: #333;
+        }
+
+        .delete-btn {
+            background-color: #e74c3c;
+        }
+
+        .blacklist-btn:hover,
+        .delete-btn:hover {
+            color: white;
+        }
+
+        .unblacklist-btn {
+            background-color: #f39c12;
+        }
+
+        .unblacklist-btn:hover {
+            color: white;
+        }
+
+        .print-btn {
+            background-color: #007bff;
+        }
+
+        .print-btn:hover {
+            color: white;
+        }
+
+        .btn-action:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+
+        /* Responsive Adjustments */
+        @media (max-width: 992px) {
+            .info-grid {
+                grid-template-columns: 1fr;
             }
 
-            /* Header */
+            .candidate-content .row {
+                display: flex;
+                flex-direction: column;
+            }
+
+            .candidate-content .col-lg-8 {
+                order: 1;
+                width: 100%;
+            }
+
+            .candidate-content .col-lg-4 {
+                order: 2;
+                width: 100%;
+            }
+
+            .candidate-card {
+                margin-bottom: 20px;
+            }
+
+            .candidate-content {
+                padding: 0 15px;
+            }
+        }
+
+        @media (max-width: 768px) {
             .candidate-header {
+                height: auto;
+                padding: 15px;
                 position: relative;
-                height: 120px;
-                color: white;
-                padding: 20px 30px;
-                margin-bottom: 30px;
-                background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
-                box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
             }
 
             .candidate-header-content {
-                position: relative;
-                z-index: 2;
-                height: 100%;
-                display: flex;
-                flex-direction: column;
-                justify-content: center;
-            }
-
-            .candidate-number {
-                font-size: 13px;
-                margin-bottom: 4px;
-                opacity: 0.9;
-                letter-spacing: 1px;
+                padding-right: 80px;
             }
 
             .candidate-name {
-                font-size: 24px;
-                font-weight: 600;
-                margin-bottom: 8px;
-            }
-
-            .candidate-email {
-                font-size: 14px;
-                opacity: 0.9;
+                font-size: 20px;
             }
 
             .candidate-status-pill {
                 position: absolute;
-                top: 20px;
-                right: 20px;
-            }
-
-            .candidate-status-pill .badge {
-                font-size: 0.875rem;
-                padding: 0.5rem 0.75rem;
-                border-radius: 0.375rem;
-                font-weight: 500;
-                display: inline-flex;
-                align-items: center;
-                gap: 0.5rem;
-            }
-
-            /* Content Styles */
-            .candidate-content {
-                padding: 0 20px;
-            }
-
-            /* Cards */
-            .candidate-card {
-                background: white;
-                border-radius: 6px;
-                box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-                margin-bottom: 20px;
-            }
-
-            .card-head {
-                padding: 15px 20px;
-                border-bottom: 1px solid #e9ecef;
-                background-color: #f8f9fa;
-            }
-
-            .card-head h2 {
-                margin: 0;
-                font-size: 16px;
-                font-weight: 600;
-                color: #2c3e50;
-                display: flex;
-                align-items: center;
-                gap: 8px;
+                top: 15px;
+                right: 15px;
+                margin-top: 0;
+                align-self: flex-start;
             }
 
             .card-body {
-                padding: 20px;
-            }
-
-            /* Info Grid */
-            .info-grid {
-                display: grid;
-                grid-template-columns: repeat(2, 1fr);
-                gap: 20px;
-                padding: 20px;
+                padding: 15px;
             }
 
             .info-item {
-                display: flex;
-                align-items: flex-start;
-                gap: 12px;
+                padding: 10px 0;
             }
 
-            .info-icon {
-                width: 32px;
-                height: 32px;
-                border-radius: 4px;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                color: white;
-                font-size: 14px;
-                background-color: #3498db;
-            }
-
-            .info-content {
-                flex: 1;
-            }
-
-            .info-label {
-                font-size: 12px;
-                color: #777;
-                margin-bottom: 4px;
-            }
-
-            .info-value {
-                font-weight: 600;
-                color: #333;
-            }
-
-            /* Sessions Card */
-            .sessions-count {
-                background: #3498db;
-                color: white;
-                font-size: 14px;
-                border-radius: 4px;
-                padding: 2px 8px;
-                margin-left: 8px;
-            }
-
-            /* Stats Grid */
             .stats-grid {
-                display: grid;
-                grid-template-columns: repeat(2, 1fr);
-                gap: 15px;
-            }
-
-            .stat-item {
-                display: flex;
-                align-items: center;
-                gap: 12px;
-                padding: 15px;
-                background: #f8f9fa;
-                border-radius: 6px;
-            }
-
-            .stat-icon {
-                width: 40px;
-                height: 40px;
-                border-radius: 50%;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                color: white;
-                font-size: 16px;
-            }
-
-            .stat-content {
-                flex: 1;
-            }
-
-            .stat-value {
-                font-size: 18px;
-                font-weight: 600;
-                color: #2c3e50;
-                line-height: 1;
-            }
-
-            .stat-label {
-                font-size: 12px;
-                color: #777;
-                margin-top: 2px;
-            }
-
-            /* Action Buttons */
-            .candidate-action-buttons {
-                display: grid;
                 grid-template-columns: 1fr;
-                gap: 10px;
             }
+        }
 
-            .btn-action {
+        /* Preserve desktop layout above 992px */
+        @media (min-width: 993px) {
+            .candidate-content .row {
                 display: flex;
-                align-items: center;
-                justify-content: center;
-                padding: 10px 16px;
-                border-radius: 4px;
-                font-weight: 500;
-                font-size: 14px;
-                transition: all 0.2s;
-                gap: 8px;
-                color: white;
-                text-decoration: none;
-                border: none;
-                cursor: pointer;
+                flex-wrap: wrap;
             }
 
-            .back-btn {
-                background-color: #64748b;
+            .candidate-content .col-lg-8 {
+                flex: 0 0 66.666667%;
+                max-width: 66.666667%;
             }
 
-            .back-btn:hover {
-                color: white;
+            .candidate-content .col-lg-4 {
+                flex: 0 0 33.333333%;
+                max-width: 33.333333%;
             }
+        }
+    </style>
+@endsection
 
-            .edit-btn {
-                background-color: #3498db;
-            }
+@section('scripts')
+    <!-- Select2 -->
+    <script src="{{ asset('assets/plugins/select2/js/select2.full.min.js') }}"></script>
 
-            .edit-btn:hover {
-                color: white;
-            }
+    <script>
+        $(function() {
+            // Initialize Select2
+            $('.select2bs4').select2({
+                theme: 'bootstrap4'
+            });
 
-            .download-btn {
-                background-color: #27ae60;
-            }
+            // Modal functionality
+            $(document).on('click', '.btn-apply', function() {
+                var id = $(this).data('id');
+                $('#apply_candidate_id').val(id);
+                $('#applyModal').modal('show');
+            });
 
-            .download-btn:hover {
-                color: white;
-            }
+            $(document).on('click', '.btn-blacklist', function() {
+                var id = $(this).data('id');
+                $('#blacklistForm').attr('action', "{{ route('recruitment.candidates.blacklist', ':id') }}"
+                    .replace(':id', id));
+                $('#blacklistModal').modal('show');
+            });
 
-            /* Split Button Styling */
-            .btn-group {
-                display: flex;
-                width: 100%;
-            }
+            // Form submissions
+            $('#applyForm').on('submit', function(e) {
+                e.preventDefault();
+                var formData = $(this).serialize();
+                var id = $('#apply_candidate_id').val();
 
-            .btn-group .btn-action {
-                flex: 1;
-                border-radius: 4px 0 0 4px;
-            }
-
-            .btn-group .dropdown-toggle-split {
-                flex: 0 0 auto;
-                border-radius: 0 4px 4px 0;
-                border-left: 1px solid rgba(255, 255, 255, 0.2);
-            }
-
-            .btn-group .dropdown-menu {
-                min-width: 120px;
-            }
-
-            .btn-group .dropdown-item {
-                padding: 8px 12px;
-                font-size: 14px;
-            }
-
-            .btn-group .dropdown-item:hover {
-                background-color: #f8f9fa;
-            }
-
-            .btn-group .dropdown-item.text-danger:hover {
-                background-color: #fee;
-            }
-
-            .apply-btn {
-                background-color: #8e44ad;
-            }
-
-            .apply-btn:hover {
-                color: white;
-            }
-
-            .blacklist-btn {
-                background-color: #333;
-            }
-
-            .delete-btn {
-                background-color: #e74c3c;
-            }
-
-            .blacklist-btn:hover,
-            .delete-btn:hover {
-                color: white;
-            }
-
-            .unblacklist-btn {
-                background-color: #f39c12;
-            }
-
-            .unblacklist-btn:hover {
-                color: white;
-            }
-
-            .print-btn {
-                background-color: #007bff;
-            }
-
-            .print-btn:hover {
-                color: white;
-            }
-
-            .btn-action:hover {
-                opacity: 0.9;
-                transform: translateY(-1px);
-            }
-
-            /* Responsive Adjustments */
-            @media (max-width: 992px) {
-                .info-grid {
-                    grid-template-columns: 1fr;
-                }
-
-                .candidate-content .row {
-                    display: flex;
-                    flex-direction: column;
-                }
-
-                .candidate-content .col-lg-8 {
-                    order: 1;
-                    width: 100%;
-                }
-
-                .candidate-content .col-lg-4 {
-                    order: 2;
-                    width: 100%;
-                }
-
-                .candidate-card {
-                    margin-bottom: 20px;
-                }
-
-                .candidate-content {
-                    padding: 0 15px;
-                }
-            }
-
-            @media (max-width: 768px) {
-                .candidate-header {
-                    height: auto;
-                    padding: 15px;
-                    position: relative;
-                }
-
-                .candidate-header-content {
-                    padding-right: 80px;
-                }
-
-                .candidate-name {
-                    font-size: 20px;
-                }
-
-                .candidate-status-pill {
-                    position: absolute;
-                    top: 15px;
-                    right: 15px;
-                    margin-top: 0;
-                    align-self: flex-start;
-                }
-
-                .card-body {
-                    padding: 15px;
-                }
-
-                .info-item {
-                    padding: 10px 0;
-                }
-
-                .stats-grid {
-                    grid-template-columns: 1fr;
-                }
-            }
-
-            /* Preserve desktop layout above 992px */
-            @media (min-width: 993px) {
-                .candidate-content .row {
-                    display: flex;
-                    flex-wrap: wrap;
-                }
-
-                .candidate-content .col-lg-8 {
-                    flex: 0 0 66.666667%;
-                    max-width: 66.666667%;
-                }
-
-                .candidate-content .col-lg-4 {
-                    flex: 0 0 33.333333%;
-                    max-width: 33.333333%;
-                }
-            }
-        </style>
-    @endsection
-
-    @section('scripts')
-        <!-- Select2 -->
-        <script src="{{ asset('assets/plugins/select2/js/select2.full.min.js') }}"></script>
-
-        <script>
-            $(function() {
-                // Initialize Select2
-                $('.select2bs4').select2({
-                    theme: 'bootstrap4'
-                });
-
-                // Modal functionality
-                $(document).on('click', '.btn-apply', function() {
-                    var id = $(this).data('id');
-                    $('#apply_candidate_id').val(id);
-                    $('#applyModal').modal('show');
-                });
-
-                $(document).on('click', '.btn-blacklist', function() {
-                    var id = $(this).data('id');
-                    $('#blacklistForm').attr('action', "{{ route('recruitment.candidates.blacklist', ':id') }}"
-                        .replace(':id', id));
-                    $('#blacklistModal').modal('show');
-                });
-
-                // Form submissions
-                $('#applyForm').on('submit', function(e) {
-                    e.preventDefault();
-                    var formData = $(this).serialize();
-                    var id = $('#apply_candidate_id').val();
-
-                    $.ajax({
-                        url: "{{ route('recruitment.candidates.apply-to-fptk', ':id') }}".replace(
-                            ':id', id),
-                        type: 'POST',
-                        data: formData,
-                        success: function(response) {
-                            $('#applyModal').modal('hide');
-                            location.reload();
-                            toastr.success('Candidate applied to FPTK successfully');
-                        },
-                        error: function(xhr) {
-                            toastr.error('Error applying candidate to FPTK');
-                        }
-                    });
-                });
-
-                $('#blacklistForm').on('submit', function(e) {
-                    // Let the form submit normally since controller returns redirect
-                    $('#blacklistModal').modal('hide');
+                $.ajax({
+                    url: "{{ route('recruitment.candidates.apply-to-fptk', ':id') }}".replace(
+                        ':id', id),
+                    type: 'POST',
+                    data: formData,
+                    success: function(response) {
+                        $('#applyModal').modal('hide');
+                        location.reload();
+                        toastr.success('Candidate applied to FPTK successfully');
+                    },
+                    error: function(xhr) {
+                        toastr.error('Error applying candidate to FPTK');
+                    }
                 });
             });
-        </script>
-    @endsection
+
+            $('#blacklistForm').on('submit', function(e) {
+                // Let the form submit normally since controller returns redirect
+                $('#blacklistModal').modal('hide');
+            });
+        });
+    </script>
+@endsection

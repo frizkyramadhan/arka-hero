@@ -831,28 +831,49 @@
             // Letter Number Integration
             bindLetterNumberIntegration() {
                 const self = this;
-                // Monitor letter number selection changes
-                $(document).on('change', 'select[name="letter_number_id"]', function() {
-                    const selectedOption = $(this).find('option:selected');
-                    const letterNumberId = $(this).val();
 
-                    if (letterNumberId && selectedOption.data('number')) {
-                        const letterData = selectedOption.data('number');
+                function refreshFPTKFromLetterSelection() {
+                    const selectedOption = $('select[name="letter_number_id"]').find('option:selected');
+                    const letterData = self.getLetterDataFromOption(selectedOption);
+
+                    if (letterData) {
                         self.generateFPTKNumber(letterData);
-                    } else {
-                        // Keep current FPTK number if no letter selected
+                    } else if (!selectedOption.val()) {
                         $('#fptk_number').val('{{ $fptk->request_number }}');
                     }
-                });
+                }
+
+                // Monitor letter number selection changes
+                $(document).on('change', 'select[name="letter_number_id"]', refreshFPTKFromLetterSelection);
 
                 // Monitor project selection changes to update FPTK number
-                $('#project_id').on('change', function() {
-                    const selectedLetterOption = $('select[name="letter_number_id"]').find('option:selected');
-                    if (selectedLetterOption.data('number')) {
-                        const letterData = selectedLetterOption.data('number');
-                        self.generateFPTKNumber(letterData);
+                $('#project_id').on('change', refreshFPTKFromLetterSelection);
+
+                // Regenerate when letter options are loaded asynchronously
+                $(document).on('letter-number-options:updated', refreshFPTKFromLetterSelection);
+            },
+
+            getLetterDataFromOption($option) {
+                if (!$option.val()) {
+                    return null;
+                }
+
+                const letterNumber = $option.attr('data-letter-number') || $option.data('letterNumber');
+                if (!letterNumber) {
+                    const legacy = $option.data('number');
+                    if (typeof legacy === 'string') {
+                        return { letter_number: legacy };
                     }
-                });
+                    if (legacy && legacy.letter_number) {
+                        return legacy;
+                    }
+                    return null;
+                }
+
+                return {
+                    letter_number: letterNumber,
+                    project_code: $option.attr('data-project-code') || $option.data('projectCode') || null,
+                };
             },
 
             // Generate FPTK number based on selected letter
@@ -869,8 +890,8 @@
                     }
                     letterNumber = parseInt(letterNumber).toString().padStart(4, '0');
 
-                    // Get selected project code
-                    const projectCode = this.getSelectedProjectCode();
+                    // Prefer project code from letter number, then selected project
+                    const projectCode = letterData.project_code || this.getSelectedProjectCode();
 
                     // Generate FPTK number: [Letter Number]/HCS-[Project Code]/FPTK/[Roman Month]/[Year]
                     const fptkNumber = `${letterNumber}/HCS-${projectCode}/FPTK/${romanMonth}/${currentYear}`;

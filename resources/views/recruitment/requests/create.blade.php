@@ -913,28 +913,50 @@
             });
 
             function setupLetterNumberIntegration() {
-                // Monitor letter number selection changes
-                $(document).on('change', 'select[name="letter_number_id"]', function() {
-                    const selectedOption = $(this).find('option:selected');
-                    const letterNumberId = $(this).val();
+                function getLetterDataFromOption($option) {
+                    if (!$option.val()) {
+                        return null;
+                    }
 
-                    if (letterNumberId && selectedOption.data('number')) {
-                        const letterData = selectedOption.data('number');
+                    const letterNumber = $option.attr('data-letter-number') || $option.data('letterNumber');
+                    if (!letterNumber) {
+                        const legacy = $option.data('number');
+                        if (typeof legacy === 'string') {
+                            return { letter_number: legacy };
+                        }
+                        if (legacy && legacy.letter_number) {
+                            return legacy;
+                        }
+                        return null;
+                    }
+
+                    return {
+                        letter_number: letterNumber,
+                        project_code: $option.attr('data-project-code') || $option.data('projectCode') || null,
+                    };
+                }
+
+                function refreshFPTKFromLetterSelection() {
+                    const selectedOption = $('select[name="letter_number_id"]').find('option:selected');
+                    const letterData = getLetterDataFromOption(selectedOption);
+
+                    if (letterData) {
                         generateFPTKNumber(letterData);
+                    } else if (selectedOption.val()) {
+                        clearFPTKNumber();
                     } else {
                         clearFPTKNumber();
                     }
-                });
+                }
+
+                // Monitor letter number selection changes
+                $(document).on('change', 'select[name="letter_number_id"]', refreshFPTKFromLetterSelection);
 
                 // Monitor project selection changes to update FPTK number
-                $('#project_id').on('change', function() {
-                    const selectedLetterOption = $('select[name="letter_number_id"]').find(
-                        'option:selected');
-                    if (selectedLetterOption.data('number')) {
-                        const letterData = selectedLetterOption.data('number');
-                        generateFPTKNumber(letterData);
-                    }
-                });
+                $('#project_id').on('change', refreshFPTKFromLetterSelection);
+
+                // Regenerate when letter options are loaded asynchronously
+                $(document).on('letter-number-options:updated', refreshFPTKFromLetterSelection);
 
                 // Generate FPTK number based on selected letter
                 function generateFPTKNumber(letterData) {
@@ -951,17 +973,18 @@
                         // Format as 4 digits
                         letterNumber = parseInt(letterNumber).toString().padStart(4, '0');
 
-                        // Get selected project code
-                        const projectSelect = $('#project_id');
-                        const selectedProjectText = projectSelect.find('option:selected').text().trim();
-                        let projectCode = '000H'; // default
+                        // Prefer project code from letter number, then selected project
+                        let projectCode = letterData.project_code || '000H';
+                        if (!letterData.project_code) {
+                            const projectSelect = $('#project_id');
+                            const selectedProjectText = projectSelect.find('option:selected').text().trim();
 
-                        if (selectedProjectText && selectedProjectText !== 'Select Project' &&
-                            selectedProjectText !== '') {
-                            // Extract project code from "CODE - Project Name" format
-                            const projectParts = selectedProjectText.split(' - ');
-                            if (projectParts.length > 0 && projectParts[0].trim() !== '') {
-                                projectCode = projectParts[0].trim();
+                            if (selectedProjectText && selectedProjectText !== 'Select Project' &&
+                                selectedProjectText !== '') {
+                                const projectParts = selectedProjectText.split(' - ');
+                                if (projectParts.length > 0 && projectParts[0].trim() !== '') {
+                                    projectCode = projectParts[0].trim();
+                                }
                             }
                         }
 
