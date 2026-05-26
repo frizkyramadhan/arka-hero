@@ -185,11 +185,11 @@ class LetterAdministrationImport implements ToModel, WithHeadingRow, WithValidat
                 'user_id' => auth()->id(),
             ];
 
-            // Handle year: use from import if provided, otherwise derive from letter_date
+            // Handle year: use from import if provided, otherwise use current year
             if (!empty($row['year'])) {
                 $year = $row['year'];
             } else {
-                $year = isset($letterData['letter_date']) ? date('Y', strtotime($letterData['letter_date'])) : date('Y');
+                $year = (int) date('Y');
             }
             $letterData['year'] = $year;
 

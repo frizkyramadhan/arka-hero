@@ -18,7 +18,7 @@ Panduan ini menjelaskan modul rekrutmen di ARKA HERO untuk **staf HR** yang meng
 | **Approver Selection**     | Pemilihan satu atau lebih **approver** sebelum **Save & Submit** atau **Submit for Approval**; alur persetujuan mengikuti **My Approvals**.                                                                                          |
 | **Update Approvers**       | Tombol pada kartu **Approval Status** (detail FPTK **Submitted**) untuk mengganti approver yang masih **Pending**; approver yang sudah memutuskan tidak dapat diubah.                                                                |
 | **Recruitment Session**    | Satu proses rekrutmen yang menghubungkan **kandidat** dengan FPTK/MPP yang **Approved**/**Active**; berjalan per tahap (**CV Review**, **Psikotes**, **Interview HR-User-Trainer**, **Offering**, **MCU**, **Hiring & Onboarding**). |
-| **Candidate (CV)**         | Data pelamar beserta curriculum vitae; disimpan di **Candidates (CV)** dan dapat dihubungkan ke FPTK lewat sesi.                                                                                                                     |
+| **Candidate (CV)**         | Data pelamar beserta curriculum vitae di **bank CV** (pool kandidat); dapat dipilih dan dimasukkan ke FPTK **Approved** atau baris MPP **Active** lewat **Recruitment Session**.                                                     |
 | **Global Status**          | Status kandidat di pool: **Available**, **In Process**, **Hired**, **Blacklisted**.                                                                                                                                                  |
 | **Final Status**           | Status akhir sesi: **In Process**, **Hired**, **Rejected**, **Withdrawn**, **Cancelled**.                                                                                                                                            |
 | **My Recruitment Request** | Submenu **My Features** bagi karyawan untuk mengajukan dan memantau FPTK mandiri (nomor sementara **REQxxxxx** sampai HR menetapkan nomor resmi).                                                                                    |
@@ -28,15 +28,15 @@ Panduan ini menjelaskan modul rekrutmen di ARKA HERO untuk **staf HR** yang meng
 
 ## 1. Ringkasan Menu
 
-| **Menu**                   | **Navigasi (sidebar)**                                              | **Uraian**                                                                                             |
-| :------------------------- | :------------------------------------------------------------------ | :----------------------------------------------------------------------------------------------------- |
-| **Dashboard**              | **HERO SECTION** → **Recruitment Management** → **Dashboard**       | Ringkasan FPTK aktif, pool kandidat, sesi, grafik tahap, dan sesi terbaru.                             |
-| **Requests (FPTK)**        | **HERO SECTION** → **Recruitment Management** → **Requests (FPTK)** | Daftar permintaan FPTK HR; filter, tambah, ubah, ajukan, cetak, assign nomor surat.                    |
-| **Requests (MPP)**         | **HERO SECTION** → **Recruitment Management** → **Requests (MPP)**  | Daftar **Man Power Plan** per proyek; tambah dan kelola rencana kebutuhan tenaga kerja.                |
-| **Candidates (CV)**        | **HERO SECTION** → **Recruitment Management** → **Candidates (CV)** | Pool kandidat/CV; tambah, ubah, apply ke FPTK, blacklist.                                              |
-| **Sessions**               | **HERO SECTION** → **Recruitment Management** → **Sessions**        | Daftar FPTK/MPP yang siap rekrutmen beserta progres kandidat; pintu masuk ke detail sesi per kandidat. |
-| **Reports**                | **HERO SECTION** → **Recruitment Management** → **Reports**         | Pintu masuk laporan funnel, aging, time-to-hire, offer acceptance, assessment, stale candidates.       |
-| **My Recruitment Request** | **My Features** → **My Recruitment Request**                        | Self-service karyawan: daftar, buat, ubah, lihat FPTK mandiri.                                         |
+| **Menu**                   | **Navigasi (sidebar)**                                              | **Uraian**                                                                                                   |
+| :------------------------- | :------------------------------------------------------------------ | :----------------------------------------------------------------------------------------------------------- |
+| **Dashboard**              | **HERO SECTION** → **Recruitment Management** → **Dashboard**       | Ringkasan FPTK aktif, pool kandidat, sesi, grafik tahap, dan sesi terbaru.                                   |
+| **Requests (FPTK)**        | **HERO SECTION** → **Recruitment Management** → **Requests (FPTK)** | Daftar permintaan FPTK HR; filter, tambah, ubah, ajukan, cetak, assign nomor surat.                          |
+| **Requests (MPP)**         | **HERO SECTION** → **Recruitment Management** → **Requests (MPP)**  | Daftar **Man Power Plan** per proyek; tambah dan kelola rencana kebutuhan tenaga kerja.                      |
+| **Candidates (CV)**        | **HERO SECTION** → **Recruitment Management** → **Candidates (CV)** | **Bank CV** / pool kandidat; simpan profil pelamar, lalu pilih kandidat untuk FPTK/MPP lewat sesi rekrutmen. |
+| **Sessions**               | **HERO SECTION** → **Recruitment Management** → **Sessions**        | Daftar FPTK/MPP yang siap rekrutmen beserta progres kandidat; pintu masuk ke detail sesi per kandidat.       |
+| **Reports**                | **HERO SECTION** → **Recruitment Management** → **Reports**         | Pintu masuk laporan funnel, aging, time-to-hire, offer acceptance, assessment, stale candidates.             |
+| **My Recruitment Request** | **My Features** → **My Recruitment Request**                        | Self-service karyawan: daftar, buat, ubah, lihat FPTK mandiri.                                               |
 
 **Catatan peran:** Menu **Dashboard** sampai **Reports** hanya tampil jika akun memiliki hak akses rekrutmen HR. **My Recruitment Request** tampil terpisah di grup **My Features** dan tidak membuka submenu **Recruitment Management**.
 
@@ -48,25 +48,24 @@ Panduan ini menjelaskan modul rekrutmen di ARKA HERO untuk **staf HR** yang meng
 
 1. **Login** ke ARKA HERO.
 2. Di sidebar, buka **HERO SECTION** → **Recruitment Management** → **Dashboard**.
-3. Judul halaman: **Recruitment Dashboard**; breadcrumb aktif: **Recruitment Analytics and Overview**.
-4. Baca kartu ringkasan:
+3. Baca kartu ringkasan:
 
 - **Active/Approved FPTK** — jumlah permintaan FPTK yang masih aktif/disahkan (**All requests currently active**).
 - **Candidate Pool** — kandidat **Available** atau **In Process** (**Available or in process**).
 - **Total Sessions** — total sesi rekrutmen sepanjang waktu (**All time applications**).
 - **New Applications** — sesi baru pada bulan berjalan (**Applications in [bulan tahun]**).
 
-5. Tinjau grafik **Active Sessions by Stage** (donut) dan panel **Quick Statistics**: **Success Rate**, **Active Rate**, **Rejection Rate**.
-6. Pada tabel **Recent Sessions**, baca kolom **FPTK/MPP Number**, **Position**, **Candidate**, **Stage**, **Status**, **Applied Date**; gunakan ikon **View** atau tombol **View All** untuk ke halaman **Sessions**.
-7. Panel **Stage Breakdown** menampilkan jumlah sesi per tahap aktif; **Quick Actions** → **View All Sessions** membuka daftar sesi lengkap.
+4. Tinjau grafik **Active Sessions by Stage** (donut) dan panel **Quick Statistics**: **Success Rate**, **Active Rate**, **Rejection Rate**.
+5. Pada tabel **Recent Sessions**, baca kolom **FPTK/MPP Number**, **Position**, **Candidate**, **Stage**, **Status**, **Applied Date**; gunakan ikon **View** atau tombol **View All** untuk ke halaman **Sessions**.
+6. Panel **Stage Breakdown** menampilkan jumlah sesi per tahap aktif; **Quick Actions** → **View All Sessions** membuka daftar sesi lengkap.
 
 <p align="center" id="recruitment-dashboard">
     <img
         src="images/recruitment-management-dashboard.png"
-        alt="Recruitment Dashboard: kartu Active/Approved FPTK, Candidate Pool, Total Sessions, New Applications; grafik Active Sessions by Stage; Quick Statistics Success/Active/Rejection Rate; tabel Recent Sessions dan Stage Breakdown"
+        alt="Recruitment Dashboard judul Recruitment Analytics and Overview breadcrumb Home; kartu Active/Approved FPTK 20, Candidate Pool 122, Total Sessions 31, New Applications 1; donut Active Sessions by Stage Psikotes interview MCU; Quick Statistics Success Rate Active Rate Rejection Rate; tabel Recent Sessions kolom FPTK/MPP Number Position Candidate Stage Status Applied Date Action; Stage Breakdown dan Quick Actions View All Sessions"
         style="max-width: 90%; width: 90%; height: auto;"
     />
-<br><em>Gambar 2.1 — Recruitment Dashboard (placeholder — tangkap layar sesuai lingkungan Anda)</em>
+<br><em>Gambar 2.1 — Recruitment Dashboard</em>
 </p>
 
 ---
@@ -89,10 +88,10 @@ Panduan ini menjelaskan modul rekrutmen di ARKA HERO untuk **staf HR** yang meng
 <p align="center" id="recruitment-fptk-list">
     <img
         src="images/recruitment-requests-fptk-list.png"
-        alt="Halaman Recruitment Request FPTK: tombol Export dan Add, panel Filter, tabel Request Number Department Position Level Employment Type Status Requested By Action"
+        alt="Recruitment Request FPTK breadcrumb Home FPTK tombol Add panel Filter Request Number Department Position Level Date From Date To Status Reset tabel No Request Number Department Position Level Employment Type Status badge Submitted Approved Closed Requested By Action ikon View pagination Showing entries"
         style="max-width: 90%; width: 90%; height: auto;"
     />
-<br><em>Gambar 3.1 — Daftar Requests (FPTK) (placeholder)</em>
+<br><em>Gambar 3.1 — Daftar Requests (FPTK)</em>
 </p>
 
 ### 3.2 Form tambah atau ubah FPTK (_Create Recruitment Request (FPTK)_ / _Edit Recruitment Request (FPTK)_)
@@ -105,8 +104,8 @@ Pilih nomor surat kategori **FPTK** lewat komponen **Letter Number**. Setelah di
 
 **2. FPTK Information**
 
-- **FPTK Number** — hanya baca; ter-generate dari **Letter Number**.
-- **Request Date** — tanggal permintaan (umumnya hari ini, hanya baca).
+- **FPTK Number** — ter-generate dari **Letter Number**.
+- **Request Date** — tanggal permintaan.
 - **Department**, **Project**, **Position**, **Level** — wajib.
 - **Job Description** — wajib; uraian tugas posisi.
 
@@ -130,7 +129,7 @@ Pilih nomor surat kategori **FPTK** lewat komponen **Letter Number**. Setelah di
 
 **6. Approver Selection**
 
-Pilih minimal satu approver (**Pilih minimal 1 approver dengan role approver**). Wajib diisi sebelum pengajuan.
+Pilih approver sesuai dengan aturan approval yang berlaku. Klik **Approval Rules Information** untuk melihat aturanya. Wajib diisi sebelum pengajuan.
 
 **7. Simpan**
 
@@ -141,10 +140,10 @@ Pilih minimal satu approver (**Pilih minimal 1 approver dengan role approver**).
 <p align="center" id="recruitment-fptk-create">
     <img
         src="images/recruitment-requests-fptk-create.png"
-        alt="Form Create Recruitment Request FPTK: Letter Number, FPTK Information, Request Details, Requirements, Additional Requirements, Approver Selection, Save as Draft Save and Submit Cancel"
+        alt="Create Recruitment Request FPTK breadcrumb Add New Letter Number Refresh List Create New FPTK Information Request Details Requirements Additional Requirements Approver Selection Save as Draft Save and Submit Cancel"
         style="max-width: 85%; width: 85%; height: auto;"
     />
-<br><em>Gambar 3.2 — Form Create Recruitment Request (FPTK) (placeholder)</em>
+<br><em>Gambar 3.2 — Form Create Recruitment Request (FPTK)</em>
 </p>
 
 **Catatan:** Pengajuan mandiri karyawan lewat **My Recruitment Request** tidak memakai **Letter Number** di form awal; nomor sementara **REQxxxxx** diganti HR setelah konfirmasi — lihat [bagian 8](#section-8-my-recruitment-request).
@@ -159,6 +158,24 @@ Buka detail lewat ikon **View** pada daftar. Judul: **Detail Recruitment Request
 - **Approval Status** — daftar approver berurutan dengan badge status (**Pending**, **Approved**, **Rejected**, dll.) bila sudah diajukan. Pada FPTK **Submitted** yang masih punya langkah **Pending**, HR dapat membuka form **Approver Selection** di kartu yang sama (lihat [mengubah approver pending](#mengubah-approver-pending) di bawah).
 - **Requested By** — pembuat permintaan.
 - Tabel **Recruitment Sessions** — muncul setelah ada kandidat terdaftar; kolom tahap (**CV Review**, **Psikotes**, **Tes Teori**, **Interview HR**, **Interview User**, **Offering**, **MCU**, **Hire**, **Onboarding**, **Final Status**).
+
+<p align="center" id="recruitment-fptk-detail-reading">
+    <img
+        src="images/recruitment-requests-fptk-detail-submitted-overview.png"
+        alt="Detail FPTK Submitted badge Submitted header nomor FPTK tanggal kartu FPTK Information Department Project Position Level Required Quantity Required Date Employment Type Request Reason Theory Test Requirement Not Required kartu Approval Status daftar approver Approved dan Pending Job Description Requirements"
+        style="max-width: 71%; width: 71%; height: auto;"
+    />
+<br><em>Gambar 3.3 — Membaca halaman detail FPTK Submitted: <strong>FPTK Information</strong> dan <strong>Approval Status</strong></em>
+</p>
+
+<p align="center" id="recruitment-fptk-job-description-requirements">
+    <img
+        src="images/recruitment-requests-fptk-job-description-requirements.png"
+        alt="Job Description and Requirements Job Description Gender Marital Status Age Range Education Required Skills Required Experience Physical Requirements Mental Requirements Other Requirements Theory Test Requirement Not Required Requested By Back to List Print FPTK"
+        style="max-width: 71%; width: 71%; height: auto;"
+    />
+<br><em>Gambar 3.4 — <strong>Job Description &amp; Requirements</strong>, kebutuhan posisi, dan <strong>Requested By</strong> pada detail FPTK Submitted</em>
+</p>
 
 **Aksi (panel kanan, sesuai status dan hak akses)**
 
@@ -198,22 +215,13 @@ Fitur ini hanya untuk **HR** dengan hak **`recruitment-requests.edit`**, pada de
 - Urutan approver mengikuti nomor **1**, **2**, **3**, … pada badge; approver terkunci tetap di posisi semula.
 - Approver **tidak boleh duplikat** dalam satu FPTK.
 
-<p align="center" id="recruitment-fptk-update-approvers">
+<p align="center" id="recruitment-fptk-approval-status-update">
     <img
-        src="images/recruitment-requests-fptk-update-approvers.png"
-        alt="Detail FPTK Submitted kartu Approval Status: approver pertama badge Approved terkunci tanpa tombol hapus, approver kedua Pending dengan tombol hapus, kotak pencarian approver, tombol Update Approvers"
-        style="max-width: 85%; width: 85%; height: auto;"
+        src="images/recruitment-requests-fptk-approval-status-update.png"
+        alt="Kartu Approval Status pencarian approver daftar urut 1 Hanggoro Approved 2 Wahyu Ansyar Approved terkunci border putus-putus 3 Achmad Faonizan 4 Eddy Nasri Pending tombol x catatan Approver Approved Rejected tidak dapat diubah hanya Pending dapat diganti tombol Update Approvers"
+        style="max-width: 50%; width: 50%; height: auto;"
     />
-<br><em>Gambar 3.3a — Mengubah approver pending pada FPTK Submitted (placeholder)</em>
-</p>
-
-<p align="center" id="recruitment-fptk-detail-approved">
-    <img
-        src="images/recruitment-requests-fptk-detail-approved.png"
-        alt="Detail FPTK Approved: header nomor resmi badge Approved, FPTK Information, Approval Status, Requested By, tabel Recruitment Sessions, Print FPTK Back to List"
-        style="max-width: 90%; width: 90%; height: auto;"
-    />
-<br><em>Gambar 3.3 — Detail FPTK Approved dengan Recruitment Sessions (placeholder)</em>
+<br><em>Gambar 3.5 — Kartu Approval Status: approver terkunci (Approved) dan pending (ikon ×) dengan tombol Update Approvers</em>
 </p>
 
 ---
@@ -235,7 +243,7 @@ Fitur ini hanya untuk **HR** dengan hak **`recruitment-requests.edit`**, pada de
         alt="Daftar Man Power Plan MPP: filter MPP Number Project Status Year, tabel MPP Number Project Title Plan Existing Diff Completion Status Action"
         style="max-width: 90%; width: 90%; height: auto;"
     />
-<br><em>Gambar 4.1 — Daftar Requests (MPP) (placeholder)</em>
+<br><em>Gambar 4.1 — Daftar <strong>Man Power Plan (MPP)</strong>: filter, tabel Plan/Existing/Diff/Completion, dan aksi View/Edit/Delete</em>
 </p>
 
 ### Langkah-langkah — membuat MPP (_Add New_)
@@ -243,13 +251,69 @@ Fitur ini hanya untuk **HR** dengan hak **`recruitment-requests.edit`**, pada de
 1. Klik **Add**. Form **MPP Information**:
     - **Project**, **Title** (wajib), **Description** (opsional).
 2. Isi baris detail posisi (tabel di form): **Position**, **Plan Quantity**, **Existing Quantity** — sistem menghitung **Difference**.
-3. Simpan sesuai tombol di layar (**Save** / setara). MPP berstatus **Active** siap dipakai di **Sessions** untuk rekrutmen per detail posisi.
+3. Simpan sesuai tombol di layar (**Save MPP** / **Cancel**). MPP berstatus **Active** siap dipakai di **Sessions** untuk rekrutmen per detail posisi.
+
+<p align="center" id="recruitment-mpp-create">
+    <img
+        src="images/recruitment-requests-mpp-create.png"
+        alt="Form Create new MPP document MPP Information Project Title Description Position Details Add Position Plan Existing Diff Theory Test Agreement Type Save MPP Cancel"
+        style="max-width: 85%; width: 85%; height: auto;"
+    />
+<br><em>Gambar 4.2 — Form <strong>Create new MPP document</strong>: <strong>MPP Information</strong>, tabel detail posisi, dan tombol <strong>Save MPP</strong></em>
+</p>
+
+### Langkah-langkah — melihat detail MPP (_MPP Details_)
+
+1. Dari daftar **Man Power Plan (MPP)**, klik ikon **View** (biru) pada kolom **Action**.
+2. Halaman **MPP Details** menampilkan:
+    - Kartu **MPP Information** — **MPP Number**, **Project**, **Status**, **Created By**, **Title** (dan **Description** jika diisi).
+    - Empat kartu ringkasan: **Total Plan**, **Total Existing**, **Total Diff**, **Completion** (%).
+    - Tabel **Position Details & Recruitment Sessions** — per baris posisi: jabatan/department, **Qty Unit**, **Plan** / **Existing** / **Diff** (kolom **S**, **NS**, **Total**), **Theory Test**, **Status** posisi (**Pending** atau **Fulfilled**), dan aksi baris.
+
+**Aksi di header (kanan atas kartu MPP Information)**
+
+| Tombol        | Kapan tampil             | Fungsi                                                                                                                               |
+| :------------ | :----------------------- | :----------------------------------------------------------------------------------------------------------------------------------- |
+| **Edit**      | MPP berstatus **Active** | Membuka form ubah data MPP dan detail posisi.                                                                                        |
+| **Close MPP** | MPP berstatus **Active** | Menutup MPP (konfirmasi SweetAlert). Setelah ditutup, sesi rekrutmen baru **tidak** dapat dibuat; status berubah menjadi **Closed**. |
+| **Back**      | Selalu                   | Kembali ke daftar **Requests (MPP)**.                                                                                                |
+
+**Aksi per baris posisi (kolom Action)**
+
+| Tombol            | Kapan tampil                                                     | Fungsi                                                                                                                                                                                                             |
+| :---------------- | :--------------------------------------------------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **View Sessions** | Selalu (ikon mata, biru)                                         | Menampilkan atau menyembunyikan daftar **Recruitment Sessions** untuk posisi tersebut. Sub-tabel menampilkan **Session Number**, **Candidate**, **Applied Date**, **Current Stage**, **Progress**, dan **Status**. |
+| **Add Candidate** | MPP **Active** dan posisi belum **Fulfilled** (ikon plus, hijau) | Membuka modal **Add Candidate to MPP Detail** — cari kandidat/CV lalu hubungkan ke baris MPP untuk memulai sesi rekrutmen. Tombol yang sama juga tersedia di area sesi yang dibuka.                                |
+
+**Aksi pada sub-tabel sesi (setelah View Sessions)**
+
+| Tombol   | Fungsi                                                                                                       |
+| :------- | :----------------------------------------------------------------------------------------------------------- |
+| **View** | Membuka halaman timeline sesi kandidat di tab baru (**Recruitment Session** — lihat bagian **6. Sessions**). |
+
+<p align="center" id="recruitment-mpp-detail">
+    <img
+        src="images/recruitment-requests-mpp-detail.png"
+        alt="MPP Details MPP Information Total Plan Existing Diff Completion Position Details Recruitment Sessions View Sessions Add Candidate session Hired Current Stage Hire Progress Edit Close MPP Back"
+        style="max-width: 90%; width: 90%; height: auto;"
+    />
+<br><em>Gambar 4.3 — Halaman <strong>MPP Details</strong>: ringkasan plan/existing/diff, tabel posisi dengan sesi rekrutmen (contoh baris diperluas), dan tombol <strong>Edit</strong>, <strong>Close MPP</strong>, <strong>Back</strong></em>
+</p>
 
 **Catatan:** Rekrutmen dari MPP tidak memakai alur FPTK/letter number yang sama; sesi kandidat terhubung ke baris **MPP Detail** (posisi dalam rencana).
 
 ---
 
 ## 5. Untuk HR — **Candidates (CV)**
+
+Menu **Candidates (CV)** berfungsi sebagai **bank CV** (_candidate pool_) — repositori data pelamar dan berkas CV yang **terpisah** dari permintaan rekrutmen (**Requests (FPTK)** / **Requests (MPP)**). HR terlebih dahulu menyimpan dan mengelola profil kandidat di sini; kandidat dengan **Global Status** **Available** dapat dipilih dan dimasukkan ke proses rekrutmen dengan cara:
+
+- **Apply to FPTK** — dari detail kandidat, pilih FPTK **Approved** yang masih membuka slot (lihat bagian **3. Requests (FPTK)**).
+- **Add Candidate** — dari detail **MPP Details**, pilih kandidat untuk baris posisi MPP **Active** (lihat bagian **4. Requests (MPP)**).
+
+Kedua cara di atas membuat **Recruitment Session** baru yang menghubungkan kandidat dengan FPTK atau MPP, lalu melanjutkan tahap rekrutmen di menu **Sessions** (lihat bagian **6**).
+
+<br>
 
 ### Langkah-langkah — daftar kandidat
 
@@ -261,34 +325,51 @@ Fitur ini hanya untuk **HR** dengan hak **`recruitment-requests.edit`**, pada de
 <p align="center" id="recruitment-candidates-list">
     <img
         src="images/recruitment-candidates-list.png"
-        alt="Recruitment Candidates CV: tombol Add, filter, tabel Candidate Number Full Name Email Phone Education Position Applied Global Status Registration Date Action"
+        alt="Recruitment Candidates CV tombol Add filter Candidate Number Full Name Email Phone Education Level Position Applied Global Status Registration Date From To Reset tabel Candidate Number Full Name Global Status Available In Process Action View Edit Delete"
         style="max-width: 90%; width: 90%; height: auto;"
     />
-<br><em>Gambar 5.1 — Daftar Candidates (CV) (placeholder)</em>
+<br><em>Gambar 5.1 — Daftar <strong>Recruitment Candidates (CV)</strong>: filter, status <strong>Available</strong>/<strong>In Process</strong>, dan aksi View/Edit/Delete</em>
 </p>
 
 ### Langkah-langkah — menambah kandidat (_Add New_)
 
-Form **Add New** terdiri dari:
+1. Dari daftar **Recruitment Candidates (CV)**, klik **Add**.
+2. Isi form **Add New Candidate**:
 
 **1. Personal Information** — **Full Name**, **Email**, **Phone Number**, **Date of Birth**, **Address** (wajib).
 
-**2. Professional Information** — **Last Education Level**, **Major/Field**, **Position Applied**, **Years of Experience**, **Skills**, **Certifications**, dll. sesuai field di layar.
+**2. Professional Information** — **Last Education Level**, **Years of Experience** (wajib); **Position Applied For**, **Skills & Competencies**, **Certifications**, **Previous Companies** (opsional).
 
-**3. CV Upload** — unggah berkas CV (format dan ukuran mengikuti teks bantuan di form, umumnya PDF).
+**3. Salary Information** — **Current Salary**, **Expected Salary** (opsional).
 
-**4. Simpan** — **Save** / **Cancel** ke daftar.
+**4. Remarks** _(panel kanan)_ — **Additional Notes** (opsional).
+
+**5. CV Upload** — unggah berkas CV (**PDF**, **DOC**, **DOCX**, **ZIP**, **RAR**; maks. 10 MB).
+
+**6. Simpan** — **Save Candidate** atau **Back** ke daftar.
+
+<p align="center" id="recruitment-candidates-create">
+    <img
+        src="images/recruitment-candidates-create.png"
+        alt="Add New Candidate Personal Information Professional Information Salary Information Remarks CV Upload Save Candidate Back"
+        style="max-width: 90%; width: 90%; height: auto;"
+    />
+<br><em>Gambar 5.2 — Form <strong>Add New Candidate</strong>: data pribadi, profesional, gaji, unggah CV, dan tombol <strong>Save Candidate</strong></em>
+</p>
 
 ### Langkah-langkah — detail kandidat dan aksi
 
 Buka kandidat lewat **View**. Panel aksi umum:
 
-- **Download CV** — unduh lampiran CV.
-- **Apply to FPTK** — modal **Apply to FPTK**: pilih FPTK **Approved** yang masih membuka slot; sistem membuat **Recruitment Session** baru.
+- **Download CV** — unduh lampiran CV dari bank CV.
+- **Apply to FPTK** — modal **Apply to FPTK**: pilih FPTK **Approved** yang masih membuka slot; sistem membuat **Recruitment Session** baru dan menghubungkan kandidat ke permintaan FPTK tersebut.
+- **Add Candidate** _(dari daftar)_ — pintasan serupa **Apply to FPTK** untuk kandidat **Available** (ikon plus biru pada kolom **Action** di daftar).
 - **Blacklist** / **Remove from Blacklist** — modal **Blacklist Candidate** dengan **Blacklist Reason** wajib.
 - **Edit**, **Print** (jika tersedia), **Delete** (sesuai status dan hak akses).
 
-**Catatan:** Kandidat **Blacklisted** tidak dapat dilamar ke FPTK baru. **Global Status** berubah otomatis saat masuk sesi (**In Process**) atau selesai (**Hired**).
+Untuk MPP, kandidat dari bank CV juga dapat dimasukkan lewat **Add Candidate** pada detail **MPP Details** (bukan dari halaman detail kandidat).
+
+**Catatan:** Bank CV bukan dokumen rekrutmen tersendiri — kandidat baru masuk proses hanya setelah dihubungkan ke FPTK/MPP lewat **Recruitment Session**. Kandidat **Blacklisted** tidak dapat dilamar ke FPTK/MPP baru. **Global Status** berubah otomatis saat masuk sesi (**In Process**) atau selesai (**Hired**).
 
 ---
 
