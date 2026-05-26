@@ -74,7 +74,7 @@ class LetterNumberApiController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to create letter number: '.$e->getMessage(),
+                'message' => 'Failed to create letter number: ' . $e->getMessage(),
             ], 500);
         }
     }
@@ -132,7 +132,7 @@ class LetterNumberApiController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to mark letter number as used: '.$e->getMessage(),
+                'message' => 'Failed to mark letter number as used: ' . $e->getMessage(),
             ], 500);
         }
     }
@@ -177,7 +177,7 @@ class LetterNumberApiController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to retrieve available numbers: '.$e->getMessage(),
+                'message' => 'Failed to retrieve available numbers: ' . $e->getMessage(),
             ], 500);
         }
     }
@@ -217,7 +217,7 @@ class LetterNumberApiController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to cancel letter number: '.$e->getMessage(),
+                'message' => 'Failed to cancel letter number: ' . $e->getMessage(),
             ], 500);
         }
     }
@@ -252,7 +252,7 @@ class LetterNumberApiController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to retrieve letter subjects: '.$e->getMessage(),
+                'message' => 'Failed to retrieve letter subjects: ' . $e->getMessage(),
             ], 500);
         }
     }
@@ -311,7 +311,7 @@ class LetterNumberApiController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to retrieve letter number details: '.$e->getMessage(),
+                'message' => 'Failed to retrieve letter number details: ' . $e->getMessage(),
             ], 500);
         }
     }
@@ -357,7 +357,7 @@ class LetterNumberApiController extends Controller
             }
 
             // Generate the letter number
-            $letterNumber = $category->category_code.sprintf('%04d', $nextSequence);
+            $letterNumber = $category->category_code . sprintf('%04d', $nextSequence);
 
             return response()->json([
                 'success' => true,
@@ -382,7 +382,7 @@ class LetterNumberApiController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to preview next number: '.$e->getMessage(),
+                'message' => 'Failed to preview next number: ' . $e->getMessage(),
             ], 500);
         }
     }
@@ -437,7 +437,7 @@ class LetterNumberApiController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to check availability: '.$e->getMessage(),
+                'message' => 'Failed to check availability: ' . $e->getMessage(),
             ], 500);
         }
     }

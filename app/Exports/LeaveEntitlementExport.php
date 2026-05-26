@@ -5,6 +5,7 @@ namespace App\Exports;
 use App\Models\Administration;
 use App\Models\LeaveEntitlement;
 use App\Models\LeaveType;
+use App\Services\AdministrationYearsOfServiceCalculator;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Maatwebsite\Excel\Concerns\FromCollection;
@@ -29,6 +30,8 @@ class LeaveEntitlementExport implements FromCollection, ShouldAutoSize, WithCust
 
     private ?int $projectId;
 
+    private AdministrationYearsOfServiceCalculator $yearsOfServiceCalculator;
+
     public function __construct($includeData = true, $projectId = null)
     {
         $leaveTypes = LeaveType::where('is_active', true)
@@ -48,6 +51,7 @@ class LeaveEntitlementExport implements FromCollection, ShouldAutoSize, WithCust
         );
         $this->includeData = $includeData;
         $this->projectId = $projectId;
+        $this->yearsOfServiceCalculator = app(AdministrationYearsOfServiceCalculator::class);
     }
 
     public function startCell(): string
@@ -69,7 +73,7 @@ class LeaveEntitlementExport implements FromCollection, ShouldAutoSize, WithCust
         }
 
         $administrations = $administrationsQuery
-            ->with(['employee', 'project', 'position', 'level'])
+            ->with(['employee.administrations', 'project', 'position', 'level'])
             ->get();
 
         $employeeIds = $administrations->pluck('employee_id')->filter()->unique();
@@ -212,7 +216,7 @@ class LeaveEntitlementExport implements FromCollection, ShouldAutoSize, WithCust
             'level' => $administration->level->name ?? '',
             'position' => $administration->position->position_name ?? '',
             'project' => $administration->project->project_code ?? '',
-            'doh' => $administration->doh ? $this->formatDisplayDate($administration->doh) : '',
+            'doh' => $this->resolveServiceStartDohForExport($administration),
             'annual_start' => $annualEntitlement ? $this->formatDisplayDate($annualEntitlement->period_start) : '',
             'annual_end' => $annualEntitlement ? $this->formatDisplayDate($annualEntitlement->period_end) : '',
             'cuti_tahunan' => $annualEntitlement ? (int) $annualEntitlement->entitled_days : '',
@@ -283,6 +287,31 @@ class LeaveEntitlementExport implements FromCollection, ShouldAutoSize, WithCust
         }
 
         return $candidateFirst->period_end->gt($currentFirst->period_end);
+    }
+
+    /**
+     * Service Start DOH (bukan DOH penempatan aktif terakhir):
+     * EOC rehire → DOH rantai kontrak pertama; terminasi selain EOC → DOH penempatan baru.
+     */
+    private function resolveServiceStartDohForExport(Administration $administration): string
+    {
+        $employee = $administration->employee;
+        if (! $employee) {
+            return '';
+        }
+
+        $serviceStartDoh = $this->yearsOfServiceCalculator->getServiceStartDoh(
+            $administration,
+            $employee->administrations
+        );
+
+        if ($serviceStartDoh) {
+            return $this->formatDisplayDate($serviceStartDoh);
+        }
+
+        return $administration->doh
+            ? $this->formatDisplayDate($administration->doh)
+            : '';
     }
 
     private function formatDisplayDate(mixed $date): string
