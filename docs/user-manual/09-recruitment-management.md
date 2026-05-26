@@ -18,6 +18,7 @@ Panduan ini menjelaskan modul rekrutmen di ARKA HERO untuk **staf HR** yang meng
 | **Approver Selection**     | Pemilihan satu atau lebih **approver** sebelum **Save & Submit** atau **Submit for Approval**; alur persetujuan mengikuti **My Approvals**.                                                                                          |
 | **Update Approvers**       | Tombol pada kartu **Approval Status** (detail FPTK **Submitted**) untuk mengganti approver yang masih **Pending**; approver yang sudah memutuskan tidak dapat diubah.                                                                |
 | **Recruitment Session**    | Satu proses rekrutmen yang menghubungkan **kandidat** dengan FPTK/MPP yang **Approved**/**Active**; berjalan per tahap (**CV Review**, **Psikotes**, **Interview HR-User-Trainer**, **Offering**, **MCU**, **Hiring & Onboarding**). |
+| **Transition Stage**       | Tombol HR pada **Recruitment Timeline** untuk memindahkan sesi kandidat ke tahap rekrutmen lain secara manual (dengan alasan audit); memerlukan izin khusus.                                                                         |
 | **Candidate (CV)**         | Data pelamar beserta curriculum vitae di **bank CV** (pool kandidat); dapat dipilih dan dimasukkan ke FPTK **Approved** atau baris MPP **Active** lewat **Recruitment Session**.                                                     |
 | **Global Status**          | Status kandidat di pool: **Available**, **In Process**, **Hired**, **Blacklisted**.                                                                                                                                                  |
 | **Final Status**           | Status akhir sesi: **In Process**, **Hired**, **Rejected**, **Withdrawn**, **Cancelled**.                                                                                                                                            |
@@ -157,7 +158,7 @@ Buka detail lewat ikon **View** pada daftar. Judul: **Detail Recruitment Request
 - Kartu **FPTK Information** — department, project, position, level, quantity, required date, employment type, alasan, kebutuhan tes teori, job description, requirements.
 - **Approval Status** — daftar approver berurutan dengan badge status (**Pending**, **Approved**, **Rejected**, dll.) bila sudah diajukan. Pada FPTK **Submitted** yang masih punya langkah **Pending**, HR dapat membuka form **Approver Selection** di kartu yang sama (lihat [mengubah approver pending](#mengubah-approver-pending) di bawah).
 - **Requested By** — pembuat permintaan.
-- Tabel **Recruitment Sessions** — muncul setelah ada kandidat terdaftar; kolom tahap (**CV Review**, **Psikotes**, **Tes Teori**, **Interview HR**, **Interview User**, **Offering**, **MCU**, **Hire**, **Onboarding**, **Final Status**).
+- Tabel **Recruitment Sessions** — muncul setelah ada kandidat terdaftar; kolom tahap (**CV Review**, **Psikotes**, **Tes Teori**, **Interview HR**, **Interview User**, **Offering**, **MCU**, **Hiring & Onboarding**, **Final Status**).
 
 <p align="center" id="recruitment-fptk-detail-reading">
     <img
@@ -359,13 +360,43 @@ Kedua cara di atas membuat **Recruitment Session** baru yang menghubungkan kandi
 
 ### Langkah-langkah — detail kandidat dan aksi
 
-Buka kandidat lewat **View**. Panel aksi umum:
+1. Dari daftar **Recruitment Candidates (CV)**, klik ikon **View** (biru) pada kolom **Action**.
+2. Halaman detail menampilkan **Candidate Number**, nama, email, dan badge **Global Status** (misalnya **Available**, **In Process**, **Hired**, **Blacklisted**).
+3. Baca kartu **Candidate Information**, **Address**, **Skills & Competencies**, **Previous Companies**, dan **Recruitment Sessions** (daftar sesi yang sudah menghubungkan kandidat ke FPTK/MPP).
+4. Contoh di bawah: kandidat berstatus **Available** yang **belum** dimasukkan ke FPTK/MPP — bagian **Recruitment Sessions** masih kosong (_No recruitment sessions found for this candidate_) dan tombol **Apply to FPTK** tersedia untuk memulai proses rekrutmen.
 
-- **Download CV** — unduh lampiran CV dari bank CV.
-- **Apply to FPTK** — modal **Apply to FPTK**: pilih FPTK **Approved** yang masih membuka slot; sistem membuat **Recruitment Session** baru dan menghubungkan kandidat ke permintaan FPTK tersebut.
-- **Add Candidate** _(dari daftar)_ — pintasan serupa **Apply to FPTK** untuk kandidat **Available** (ikon plus biru pada kolom **Action** di daftar).
-- **Blacklist** / **Remove from Blacklist** — modal **Blacklist Candidate** dengan **Blacklist Reason** wajib.
-- **Edit**, **Print** (jika tersedia), **Delete** (sesuai status dan hak akses).
+<p align="center" id="recruitment-candidates-detail-available">
+    <img
+        src="images/recruitment-candidates-detail-available.png"
+        alt="Detail kandidat Available Candidate Information Address Skills Recruitment Sessions kosong Apply to FPTK Back to List Edit Download CV Blacklist Delete Print Statistics"
+        style="max-width: 90%; width: 90%; height: auto;"
+    />
+<br><em>Gambar 5.3 — Detail kandidat <strong>Available</strong> di bank CV: belum ada sesi rekrutmen, siap dihubungkan ke FPTK lewat <strong>Apply to FPTK</strong></em>
+</p>
+
+5. Contoh berikut: kandidat berstatus **In Process** — sudah dimasukkan ke FPTK/MPP lewat **Recruitment Session**. Badge **In Process** muncul di header; kartu **Recruitment Sessions** menampilkan tabel dengan **Session Number**, **FPTK/MPP No.**, **Position**, **Department**, **Status**, **Applied Date**, dan tombol **View** untuk membuka timeline sesi. Tombol **Apply to FPTK** **tidak** tampil karena kandidat sedang dalam proses rekrutmen.
+
+<p align="center" id="recruitment-candidates-detail-in-process">
+    <img
+        src="images/recruitment-candidates-detail-in-process.png"
+        alt="Detail kandidat In Process Recruitment Sessions Session Number FPTK MPP No Position Department Status Applied Date View Statistics Applications"
+        style="max-width: 90%; width: 90%; height: auto;"
+    />
+<br><em>Gambar 5.4 — Detail kandidat <strong>In Process</strong>: sudah terhubung ke FPTK/MPP (contoh nomor MPP), dengan daftar <strong>Recruitment Sessions</strong></em>
+</p>
+
+**Aksi (panel kanan, sesuai status dan hak akses)**
+
+| Tombol                    | Fungsi                                                                                                                                                                                                 |
+| :------------------------ | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Back to List**          | Kembali ke daftar bank CV.                                                                                                                                                                             |
+| **Edit**                  | Ubah data kandidat.                                                                                                                                                                                    |
+| **Download CV**           | Unduh lampiran CV kandidat.                                                                                                                                                                            |
+| **Apply to FPTK**         | Modal **Apply to FPTK**: pilih FPTK **Approved** yang masih membuka slot; sistem membuat **Recruitment Session** baru. Tersedia untuk kandidat **Available** (juga di kartu **Recruitment Sessions**). |
+| **Blacklist**             | Modal **Blacklist Candidate** dengan **Blacklist Reason** wajib; kandidat tidak dapat dilamar ke FPTK/MPP baru.                                                                                        |
+| **Remove from Blacklist** | Muncul jika kandidat sudah **Blacklisted**; mengembalikan kandidat ke pool.                                                                                                                            |
+
+**Pintasan dari daftar:** ikon plus biru pada kolom **Action** (hanya kandidat **Available**) membuka alur yang sama dengan **Apply to FPTK**.
 
 Untuk MPP, kandidat dari bank CV juga dapat dimasukkan lewat **Add Candidate** pada detail **MPP Details** (bukan dari halaman detail kandidat).
 
@@ -387,18 +418,49 @@ Sesi rekrutmen menghubungkan **kandidat** dengan FPTK **Approved** atau baris **
 <p align="center" id="recruitment-sessions-list">
     <img
         src="images/recruitment-sessions-list.png"
-        alt="Recruitment Sessions: filter FPTK/MPP Number Department Position Required Date, tabel Source Project FPTK MPP No Position Candidate Count Overall Progress Final Status Action"
-        style="max-width: 90%; width: 90%; height: auto;"
+        alt="Recruitment Sessions filter Source FPTK MPP Project FPTK MPP No Position Candidate Count Overall Progress Final Status Hired In Process Required Date Action View Add Dashboard"
+        style="max-width: 80%; width: 80%; height: auto;"
     />
-<br><em>Gambar 6.1 — Daftar Recruitment Sessions (placeholder)</em>
+<br><em>Gambar 6.1 — Daftar <strong>Recruitment Sessions</strong>: sumber FPTK/MPP, progres, status akhir, dan aksi View/Add</em>
 </p>
 
-### 6.2 Halaman sesi FPTK/MPP (Approved)
+<br>
+<br>
 
-Dari daftar sesi, **View** membuka halaman dengan header nomor FPTK/MPP, proyek, status, dan tabel kandidat (kolom tahap sama seperti di detail FPTK).
+### 6.2 Halaman sesi FPTK/MPP (Approved / Active)
 
-- **Add Candidate** — modal **Add Candidate**: cari nama/email/posisi di **Search Candidate/CV**, pilih **Select** pada hasil, konfirmasi penambahan sesi.
-- **Close Request** — menutup FPTK/MPP yang sudah terpenuhi (konfirmasi di layar); rekrutmen baru ke permintaan tersebut tidak dibuka lagi.
+1. Dari daftar **Recruitment Sessions**, klik **View** (atau **Add** untuk langsung menambah kandidat) pada baris FPTK **Approved** atau MPP **Active**.
+2. Header menampilkan proyek, nomor **FPTK/MPP**, tanggal, dan badge status (**Approved** untuk FPTK, **Active** untuk MPP).
+3. Baca bagian utama halaman:
+    - **FPTK Information** / **MPP Detail** — metadata permintaan (department, posisi, quantity, employment type, theory test requirement, dll.).
+    - **Recruitment Progress** — ringkasan visual kandidat **Hired**, **In Process**, **Rejected**; catatan tahap yang di-skip (misalnya posisi tanpa **Tes Teori**).
+    - **Summary** _(panel kanan)_ — **Total**, **Hired**, **In Process**, **Fill Rate** (%).
+    - **Candidate Sessions** — tabel progres per kandidat per tahap (**CV Review**, **Psikotes**, **Interview HR**, **Interview User**, **Offering**, **MCU**, **Hiring & Onboarding**, **Final Status**).
+
+**Quick Actions (panel kanan)**
+
+| Tombol               | Fungsi                                                                                                                                              |
+| :------------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Add Candidate**    | Modal **Add Candidate to FPTK** / **MPP Detail**: cari kandidat di bank CV (**Search Candidate/CV**), pilih **Select**, konfirmasi penambahan sesi. |
+| **View Dashboard**   | Kembali ke **Recruitment Dashboard**.                                                                                                               |
+| **Back to Sessions** | Kembali ke daftar **Recruitment Sessions**.                                                                                                         |
+| **Close Request**    | _(FPTK saja, belum **Closed**)_ Menutup permintaan rekrutmen; konfirmasi di layar; sesi baru tidak dapat dibuat lagi.                               |
+
+**Aksi pada tabel Candidate Sessions**
+
+| Tombol     | Fungsi                                                                 |
+| :--------- | :--------------------------------------------------------------------- |
+| **View**   | Membuka **Recruitment Timeline** sesi kandidat (lihat §**6.3**).       |
+| **Delete** | Menghapus sesi kandidat dari permintaan (sesuai hak akses dan status). |
+
+<p align="center" id="recruitment-sessions-fptk-approved">
+    <img
+        src="images/recruitment-sessions-fptk-approved.png"
+        alt="Halaman sesi FPTK Approved 0005 HCS-000H FPTK VIII 2025 Accounting Major Supervisor FPTK Information Theory Test Not Required Recruitment Progress Candidate Sessions Eka Sari CV Review In Process Quick Actions Summary"
+        style="max-width: 90%; width: 90%; height: auto;"
+    />
+<br><em>Gambar 6.2 — Halaman sesi FPTK <strong>Approved</strong>: <strong>FPTK Information</strong>, catatan skip <strong>Tes Teori</strong>, <strong>Recruitment Progress</strong>, <strong>Candidate Sessions</strong> (Eka Sari), <strong>Summary</strong>, dan <strong>Quick Actions</strong></em>
+</p>
 
 ### 6.3 Detail sesi per kandidat (_Recruitment Timeline_)
 
@@ -406,58 +468,211 @@ Klik **View** pada baris kandidat (dari tabel sesi FPTK/MPP atau **Recent Sessio
 
 **Recruitment Timeline** — urutan tahap dengan indikator warna (abu = belum, kuning = berjalan, hijau = lulus, merah = gagal). Tahap aktif dapat dibuka untuk input penilaian (ikon/edit pada tahap yang **unlocked**).
 
-| Tahap (UI)     | Ringkasan                                                                                                                                                     |
-| :------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **CV Review**  | Keputusan **Recommended** / **Not Recommended** + **Review Date**, **Notes**.                                                                                 |
-| **Psikotes**   | Skor **Psikotes Online** dan **Psikotes Offline**; kriteria layar: ≥ 40 lanjut, &lt; 40 tidak direkomendasikan.                                               |
-| **Tes Teori**  | Hanya jika FPTK mencentang tes teori atau posisi mekanik; skor dan keputusan lulus/gagal.                                                                     |
-| **Interview**  | Sub-tipe **HR Interview**, **User Interview**, **Trainer Interview** (pilih **Interview Type**); keputusan per wawancara; semua wajib selesai sebelum lanjut. |
-| **Offering**   | **Offering Letter Number** (selector surat), keputusan offering (**Accepted** / **Rejected**).                                                                |
-| **MCU**        | **Fit to Work**, **Unfit**, atau **Follow Up** + **Review Date**, **Notes**.                                                                                  |
-| **Hire**       | Data **Personal Data** kandidat (KTP, DOB, dll.) — info layar: data otomatis masuk ke **Employee** dan **Administration**.                                    |
-| **Onboarding** | Kolom terpisah di tabel ringkasan; melengkapi proses onboarding setelah **Hire**.                                                                             |
+| Tahap (UI)              | Ringkasan                                                                                                                                                                                                                              |
+| :---------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **CV Review**           | Keputusan **Recommended** / **Not Recommended** + **Review Date**, **Notes**.                                                                                                                                                          |
+| **Psikotes**            | Skor **Psikotes Online** dan **Psikotes Offline**; kriteria layar: ≥ 40 lanjut, &lt; 40 tidak direkomendasikan.                                                                                                                        |
+| **Tes Teori**           | Hanya jika FPTK mencentang tes teori atau posisi mekanik; skor dan keputusan lulus/gagal.                                                                                                                                              |
+| **Interview**           | Sub-tipe **HR Interview**, **User Interview**, **Trainer Interview** (pilih **Interview Type**); keputusan per wawancara; semua wajib selesai sebelum lanjut.                                                                          |
+| **Offering**            | **Offering Letter Number** (selector surat), keputusan offering (**Accepted** / **Rejected**).                                                                                                                                         |
+| **MCU**                 | **Fit to Work**, **Unfit**, atau **Follow Up** + **Review Date**, **Notes**.                                                                                                                                                           |
+| **Hiring & Onboarding** | Formulir gabungan **Personal Data**, **Administration Data**, dan **Agreement** (judul modal di layar: **Hire Stage**). Setelah **Submit Hire**, data otomatis masuk ke **Employee Management** (**Employee** dan **Administration**). |
 
 **Pengecualian alur**
 
-| Kondisi                                                    | Tahap yang dijalankan                               |
-| :--------------------------------------------------------- | :-------------------------------------------------- |
-| **Employment Type** = **Internship** atau **Daily Worker** | Hanya **MCU** dan **Hire** (proses disederhanakan). |
-| Posisi **tanpa Tes Teori**                                 | Tahap **Tes Teori** dilewati; progress disesuaikan. |
+| Kondisi                                                    | Tahap yang dijalankan                                              |
+| :--------------------------------------------------------- | :----------------------------------------------------------------- |
+| **Employment Type** = **Internship** atau **Daily Worker** | Hanya **MCU** dan **Hiring & Onboarding** (proses disederhanakan). |
+| Posisi **tanpa Tes Teori**                                 | Tahap **Tes Teori** dilewati; progress disesuaikan.                |
 
 <p align="center" id="recruitment-session-timeline">
     <img
         src="images/recruitment-session-candidate-timeline.png"
-        alt="Detail sesi kandidat: header nama kandidat badge In Process, Recruitment Timeline CV Review Psikotes Tes Teori Interview Offering MCU Hire, tombol aksi tahap aktif"
+        alt="Recruitment Timeline sesi kandidat Eka Sari In Process HO Balikpapan: timeline CV Review Psikotes Interview Offering MCU Hiring Onboarding Session Information FPTK Quick Actions Back to Session Transition Stage Progress Summary"
         style="max-width: 90%; width: 90%; height: auto;"
     />
-<br><em>Gambar 6.2 — Recruitment Timeline sesi kandidat (placeholder)</em>
+<br><em>Gambar 6.3 — <strong>Recruitment Timeline</strong> sesi kandidat <strong>In Process</strong>: timeline tahap, <strong>Session Information</strong>/FPTK, <strong>Quick Actions</strong>, dan <strong>Progress Summary</strong></em>
 </p>
+
+**Quick Actions (panel kanan)**
+
+| Tombol               | Fungsi                                                                                                                                                                                                |
+| :------------------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Back to Session**  | Kembali ke halaman sesi FPTK/MPP (daftar **Candidate Sessions** per permintaan).                                                                                                                      |
+| **Transition Stage** | Memindahkan sesi kandidat ke **tahap rekrutmen lain** secara manual. Hanya tampil jika akun Anda memiliki izin mengubah tahap sesi (**recruitment-sessions.edit-stages**). Lihat penjelasan di bawah. |
+
+#### Tombol **Transition Stage**
+
+Gunakan **Transition Stage** bila HR perlu **memindahkan posisi tahap** sesi kandidat tanpa menunggu alur penilaian otomatis — misalnya koreksi administratif, penyesuaian alur khusus, atau pemulihan setelah kesalahan input. Tombol ini **bukan** pengganti pengisian modal penilaian; setelah pindah tahap, HR tetap mengisi assessment di tahap yang aktif bila diperlukan.
+
+**Langkah-langkah**
+
+1. Di halaman **Recruitment Timeline** sesi kandidat, panel **Quick Actions** → klik **Transition Stage**.
+2. Modal **Transition Stage** menampilkan **Current Stage** (tahap saat ini).
+3. Pilih **Target Stage** — daftar tahap yang valid untuk sesi ini (mengikuti jenis FPTK/MPP; tahap saat ini tidak muncul di daftar). Contoh label: **CV Review**, **Psikotes**, **Interview**, **Offering**, **MCU**, **Hiring & Onboarding**.
+4. Isi **Reason for Transition** (wajib) — alasan perpindahan; sistem **mencatat** teks ini untuk audit.
+5. _(Opsional)_ Centang **Force Transition (bypass validation rules)** hanya jika Anda sengaja perlu **melewati aturan validasi** normal (misalnya melewati tahap yang assessment-nya gagal). Gunakan dengan hati-hati.
+6. Baca peringatan kuning bila muncul (transisi **mundur** atau **melompati** satu/lebih tahap).
+7. Klik **Transition Stage** di modal → konfirmasi _Transition to selected stage? This will update the recruitment progress._ → proses selesai.
+
+<p align="center" id="recruitment-session-transition-stage">
+    <img
+        src="images/recruitment-session-transition-stage.png"
+        alt="Modal Transition Stage Current Stage CV Review Target Stage Reason for Transition Force Transition bypass validation rules Cancel Transition Stage"
+        style="max-width: 50%; width: 50%; height: auto;"
+    />
+<br><em>Gambar 6.3b — Modal <strong>Transition Stage</strong>: <strong>Current Stage</strong>, <strong>Target Stage</strong>, <strong>Reason for Transition</strong>, opsi <strong>Force Transition</strong>, dan tombol aksi</em>
+</p>
+
+**Apa yang berubah setelah transisi berhasil**
+
+- **Current Stage** pindah ke **Target Stage** yang dipilih.
+- **Stage Status** kembali **Pending** (tahap baru menunggu penilaian/input).
+- **Overall Progress** dan ringkasan di **Progress Summary** disesuaikan.
+- Pesan sukses di layar menyebut tahap asal dan tujuan.
+
+**Aturan validasi (tanpa Force Transition)**
+
+| Arah transisi                                  | Perilaku umum                                                                                                                          |
+| :--------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------- |
+| **Maju** (ke tahap berikutnya atau lebih jauh) | Diizinkan.                                                                                                                             |
+| **Mundur** (ke tahap sebelumnya)               | Diizinkan **kecuali** ada tahap di antara yang assessment-nya **gagal** (mis. **Not Recommended**, psikotes gagal) — transisi ditolak. |
+| **Ke tahap yang sama**                         | Ditolak.                                                                                                                               |
+
+Daftar **Target Stage** mengikuti alur sesi: FPTK **Internship**/**Daily Worker** hanya **MCU** dan **Hiring & Onboarding**; posisi tanpa tes teori tidak menampilkan **Tes Teori** (selaras §**6.3** _Pengecualian alur_).
+
+<br>
 
 ### 6.4 Mengisi penilaian per tahap (modal)
 
-Setiap tahap membuka modal khusus; pola umum:
+Setiap tahap aktif pada **Recruitment Timeline** membuka modal khusus. Pola umum:
 
-1. Klik tahap aktif pada **Recruitment Timeline**.
-2. Isi field wajib (bertanda merah).
-3. Pilih keputusan (**Recommended**, **Pass**, **Approve**, **Fit to Work**, dll. sesuai tahap).
-4. **Submit Decision** / **Submit Assessment** — konfirmasi **You cannot edit after submission**.
-5. Jika lulus, sistem memindahkan **current stage** ke tahap berikutnya; jika gagal, **Final Status** menjadi **Rejected**.
+1. Klik tahap yang **unlocked** (ikon/edit) pada timeline atau baris tahap di tabel **Assessments**.
+2. Isi field wajib (bertanda merah / asterisk).
+3. Pilih keputusan atau skor sesuai tahap (**Recommended**, **Pass**, **Accepted**, **Fit to Work**, dll.).
+4. Klik **Submit Decision** / **Submit Assessment** / **Submit Offering** — konfirmasi _You cannot edit after submission_.
+5. Jika lulus, **current stage** berpindah ke tahap berikutnya; jika gagal, **Final Status** dapat menjadi **Rejected**.
 
-**Penjelasan singkat — modal CV Review (_Choose Your Decision_)**
+Tahap yang muncul mengikuti jenis posisi (misalnya **Tes Teori** dan **Trainer Interview** hanya untuk posisi mekanik/teknis; **Internship**/**Daily Worker** hanya **MCU** dan **Hiring & Onboarding** — lihat tabel pengecualian di §**6.3**).
+
+#### Modal **CV Review** (_Choose Your Decision_)
 
 - **CV Review Decision** — **Recommended** atau **Not Recommended**.
 - **Review Date**, **Notes** (wajib).
 - **Submit Decision** aktif setelah keputusan dipilih.
 
-**Penjelasan singkat — modal Interview**
+<p align="center" id="recruitment-session-modal-cv-review">
+    <img
+        src="images/recruitment-session-modal-cv-review.png"
+        alt="Modal CV Review Choose Your Decision CV Review Decision Recommended Not Recommended Review Date Notes Submit Decision Cancel"
+        style="max-width: 70%; width: 70%; height: auto;"
+    />
+<br><em>Gambar 6.4a — Modal <strong>CV Review</strong> (<strong>Choose Your Decision</strong>): keputusan Recommended/Not Recommended, <strong>Review Date</strong>, <strong>Notes</strong>, dan tombol <strong>Submit Decision</strong></em>
+</p>
+
+#### Modal **Psikotes** (_Psikotes Assessment_)
+
+- **Psikotes Online** — **Rata-rata Hasil** (kriteria ≥ 40 lanjut, &lt; 40 tidak direkomendasikan).
+- **Psikotes Offline** — skor **TIU** (kriteria ≥ 8 lanjut, &lt; 8 kurang).
+- **Review Date** (wajib), **Catatan** (opsional).
+- **Submit Assessment**.
+
+<p align="center" id="recruitment-session-modal-psikotes">
+    <img
+        src="images/recruitment-session-modal-psikotes.png"
+        alt="Modal Psikotes Assessment Psikotes Online Rata-rata Hasil Psikotes Offline Skor TIU Review Date Catatan Submit Assessment Close"
+        style="max-width: 70%; width: 70%; height: auto;"
+    />
+<br><em>Gambar 6.4b — Modal <strong>Psikotes Assessment</strong>: skor <strong>Psikotes Online</strong> dan <strong>Psikotes Offline</strong> (TIU), kriteria kelulusan, <strong>Review Date</strong>, <strong>Catatan</strong>, dan <strong>Submit Assessment</strong></em>
+</p>
+
+#### Modal **Tes Teori** (_Tes Teori Assessment_)
+
+Hanya untuk posisi yang memerlukan tes teori.
+
+- Petunjuk kategori skor (Mechanic Senior/Advance/Mechanic/Helper/Belum Kompeten).
+- **Skor Tes Teori**, **Review Date** (wajib), **Catatan** (opsional).
+- **Submit Assessment**.
+
+<p align="center" id="recruitment-session-modal-tes-teori">
+    <img
+        src="images/recruitment-session-modal-tes-teori.png"
+        alt="Modal Tes Teori Assessment Skor Tes Teori Review Date Catatan Submit Assessment"
+        style="max-width: 70%; width: 70%; height: auto;"
+    />
+<br><em>Gambar 6.4c — Modal <strong>Tes Teori</strong> (placeholder)</em>
+</p>
+
+#### Modal **Interview** (_Choose Your Decision_)
 
 - **Interview Type** — **HR Interview**, **User Interview**, **Trainer Interview** (tipe yang sudah selesai disabled).
-- **Interview Decision**, tanggal, catatan, dan field penilaian sesuai form.
-- Ulangi untuk setiap tipe wawancara yang diwajibkan posisi tersebut.
+- Ringkasan status wawancara yang sudah diisi (jika ada).
+- **Interview Decision** — **Recommended** atau **Not Recommended**.
+- **Notes**, **Review Date** (wajib).
+- Ulangi pengisian untuk setiap tipe wawancara yang diwajibkan posisi tersebut.
 
-**Penjelasan singkat — modal Hire (_Hire Stage_)**
+<p align="center" id="recruitment-session-modal-interview">
+    <img
+        src="images/recruitment-session-modal-interview.png"
+        alt="Modal Interview Choose Your Decision Interview Type Select Interview Type Interview Decision Recommended Not Recommended Notes Review Date Submit Decision Cancel"
+        style="max-width: 70%; width: 70%; height: auto;"
+    />
+<br><em>Gambar 6.4d — Modal <strong>Interview</strong> (<strong>Choose Your Decision</strong>): <strong>Interview Type</strong>, keputusan Recommended/Not Recommended, <strong>Notes</strong>, <strong>Review Date</strong>, dan <strong>Submit Decision</strong></em>
+</p>
 
-Banner info: _The data you enter here will be automatically saved to the Employee and Administration records._ Isi **Personal Data** (minimal **Fullname**, **Identity Card No**, dan field wajib lain), lalu submit. Setelah sukses, status sesi dapat menjadi **Hired**.
+#### Modal **Offering** (_Offering Stage_)
+
+- **Offering Letter Number** — pilih nomor surat lewat selector (**Letter Administration**); nomor offering terisi otomatis.
+- **Offering Decision** — **Accepted** atau **Rejected**.
+- **Notes** (opsional), **Review Date** (wajib).
+- **Submit Offering**.
+
+<p align="center" id="recruitment-session-modal-offering">
+    <img
+        src="images/recruitment-session-modal-offering.png"
+        alt="Modal Offering Stage Letter Number Select Offering Letter Number Refresh List Create New Offering Decision Accepted Rejected Notes Review Date Submit Offering Close"
+        style="max-width: 70%; width: 70%; height: auto;"
+    />
+<br><em>Gambar 6.4e — Modal <strong>Offering Stage</strong>: pemilihan <strong>Letter Number</strong>, keputusan Accepted/Rejected, <strong>Notes</strong>, <strong>Review Date</strong>, dan <strong>Submit Offering</strong></em>
+</p>
+
+#### Modal **MCU** (_Medical Check Up Assessment_)
+
+- **MCU Result** — **Fit to Work**, **Unfit**, atau **Follow Up**.
+- **Notes** (opsional), **Review Date** (wajib).
+- **Submit Assessment**.
+
+<p align="center" id="recruitment-session-modal-mcu">
+    <img
+        src="images/recruitment-session-modal-mcu.png"
+        alt="Modal Medical Check Up Assessment MCU Result Fit to Work Unfit Follow Up Notes Review Date Submit Assessment Close"
+        style="max-width: 70%; width: 70%; height: auto;"
+    />
+<br><em>Gambar 6.4f — Modal <strong>Medical Check Up Assessment</strong>: <strong>MCU Result</strong> (Fit to Work/Unfit/Follow Up), <strong>Notes</strong>, <strong>Review Date</strong>, dan <strong>Submit Assessment</strong></em>
+</p>
+
+#### Modal **Hiring & Onboarding**
+
+Tahap **Hiring & Onboarding** menggabungkan penyelesaian rekrutmen dan onboarding kandidat dalam **satu formulir** (judul modal di layar: **Hire Stage**).
+
+**Penting:** Setelah Anda klik **Submit Hire**, data yang diisi **otomatis tersimpan** ke modul **Employee Management** sebagai data karyawan (**Employee** dan **Administration**). Anda **tidak perlu** memasukkan ulang data yang sama secara manual di **Employee Management**.
+
+Banner info biru di bagian atas modal menyampaikan hal yang sama.
+
+- **Personal Data** — **Fullname**, **Identity Card No**, **Place/Date of Birth**, **Religion**, **Gender**, **Marital Status**, **Phone**, **Address**, **Email** (wajib sesuai form).
+- **Administration Data** — **NIK**, **Date of Hire**, **Place of Hire (POH)**, **Class**, **Position**, **Department** (terisi otomatis dari posisi), **Project**, **Grade**, **Level**, **FPTK No** (terisi otomatis).
+- **Agreement** — **Letter Number** (selector surat PKWT/PKWTT; **Refresh List**, **Create New**), **Agreement Type** (mengikuti **Employment Type** FPTK).
+- **Notes** (opsional), **Review Date** (wajib).
+- **Submit Hire** — setelah sukses, sesi kandidat dapat berstatus **Hired**.
+
+<p align="center" id="recruitment-session-modal-hire">
+    <img
+        src="images/recruitment-session-modal-hire.png"
+        alt="Modal Hiring Onboarding Hire Stage Personal Data Administration Data Agreement Letter Number Submit Hire info data otomatis Employee Management"
+        style="max-width: 70%; width: 70%; height: auto;"
+    />
+<br><em>Gambar 6.4g — Modal <strong>Hiring &amp; Onboarding</strong> (<strong>Hire Stage</strong>): <strong>Personal Data</strong>, <strong>Administration Data</strong>, <strong>Agreement</strong>; setelah <strong>Submit Hire</strong> data otomatis masuk ke <strong>Employee Management</strong></em>
+</p>
 
 ---
 
