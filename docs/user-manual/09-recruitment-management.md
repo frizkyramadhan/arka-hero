@@ -565,7 +565,7 @@ Tahap yang muncul mengikuti jenis posisi (misalnya **Tes Teori** dan **Trainer I
     <img
         src="images/recruitment-session-modal-cv-review.png"
         alt="Modal CV Review Choose Your Decision CV Review Decision Recommended Not Recommended Review Date Notes Submit Decision Cancel"
-        style="max-width: 70%; width: 70%; height: auto;"
+        style="max-width: 50%; width: 50%; height: auto;"
     />
 <br><em>Gambar 6.4a — Modal <strong>CV Review</strong> (<strong>Choose Your Decision</strong>): keputusan Recommended/Not Recommended, <strong>Review Date</strong>, <strong>Notes</strong>, dan tombol <strong>Submit Decision</strong></em>
 </p>
@@ -600,7 +600,7 @@ Hanya untuk posisi yang memerlukan tes teori.
         alt="Modal Tes Teori Assessment Skor Tes Teori Review Date Catatan Submit Assessment"
         style="max-width: 70%; width: 70%; height: auto;"
     />
-<br><em>Gambar 6.4c — Modal <strong>Tes Teori</strong> (placeholder)</em>
+<br><em>Gambar 6.4c — Modal <strong>Tes Teori Assessment</strong>: petunjuk <strong>Kategori Berdasarkan Skor</strong> (Mechanic Senior/Advance/Mechanic/Helper Mechanic/Belum Kompeten), <strong>Skor Tes Teori</strong>, <strong>Review Date</strong> (wajib), <strong>Catatan</strong> (opsional), dan <strong>Submit Assessment</strong></em>
 </p>
 
 #### Modal **Interview** (_Choose Your Decision_)
@@ -615,7 +615,7 @@ Hanya untuk posisi yang memerlukan tes teori.
     <img
         src="images/recruitment-session-modal-interview.png"
         alt="Modal Interview Choose Your Decision Interview Type Select Interview Type Interview Decision Recommended Not Recommended Notes Review Date Submit Decision Cancel"
-        style="max-width: 70%; width: 70%; height: auto;"
+        style="max-width: 50%; width: 50%; height: auto;"
     />
 <br><em>Gambar 6.4d — Modal <strong>Interview</strong> (<strong>Choose Your Decision</strong>): <strong>Interview Type</strong>, keputusan Recommended/Not Recommended, <strong>Notes</strong>, <strong>Review Date</strong>, dan <strong>Submit Decision</strong></em>
 </p>
@@ -631,7 +631,7 @@ Hanya untuk posisi yang memerlukan tes teori.
     <img
         src="images/recruitment-session-modal-offering.png"
         alt="Modal Offering Stage Letter Number Select Offering Letter Number Refresh List Create New Offering Decision Accepted Rejected Notes Review Date Submit Offering Close"
-        style="max-width: 70%; width: 70%; height: auto;"
+        style="max-width: 50%; width: 50%; height: auto;"
     />
 <br><em>Gambar 6.4e — Modal <strong>Offering Stage</strong>: pemilihan <strong>Letter Number</strong>, keputusan Accepted/Rejected, <strong>Notes</strong>, <strong>Review Date</strong>, dan <strong>Submit Offering</strong></em>
 </p>
@@ -646,7 +646,7 @@ Hanya untuk posisi yang memerlukan tes teori.
     <img
         src="images/recruitment-session-modal-mcu.png"
         alt="Modal Medical Check Up Assessment MCU Result Fit to Work Unfit Follow Up Notes Review Date Submit Assessment Close"
-        style="max-width: 70%; width: 70%; height: auto;"
+        style="max-width: 50%; width: 50%; height: auto;"
     />
 <br><em>Gambar 6.4f — Modal <strong>Medical Check Up Assessment</strong>: <strong>MCU Result</strong> (Fit to Work/Unfit/Follow Up), <strong>Notes</strong>, <strong>Review Date</strong>, dan <strong>Submit Assessment</strong></em>
 </p>
@@ -663,15 +663,29 @@ Banner info biru di bagian atas modal menyampaikan hal yang sama.
 - **Administration Data** — **NIK**, **Date of Hire**, **Place of Hire (POH)**, **Class**, **Position**, **Department** (terisi otomatis dari posisi), **Project**, **Grade**, **Level**, **FPTK No** (terisi otomatis).
 - **Agreement** — **Letter Number** (selector surat PKWT/PKWTT; **Refresh List**, **Create New**), **Agreement Type** (mengikuti **Employment Type** FPTK).
 - **Notes** (opsional), **Review Date** (wajib).
-- **Submit Hire** — setelah sukses, sesi kandidat dapat berstatus **Hired**.
+- **Submit Hire** — setelah sukses, sesi kandidat dapat berstatus **Hired** dan proses rekrutmen selesai.
 
 <p align="center" id="recruitment-session-modal-hire">
     <img
-        src="images/recruitment-session-modal-hire.png"
-        alt="Modal Hiring Onboarding Hire Stage Personal Data Administration Data Agreement Letter Number Submit Hire info data otomatis Employee Management"
-        style="max-width: 70%; width: 70%; height: auto;"
+        src="images/recruitment-session-modal-hire-personal-data.png"
+        alt="Modal Hire Stage Personal Data Fullname Identity Card No Place Date of Birth Religion Gender Marital Status Phone Address Email"
+        style="max-width: 60%; width: 60%; height: auto;"
     />
-<br><em>Gambar 6.4g — Modal <strong>Hiring &amp; Onboarding</strong> (<strong>Hire Stage</strong>): <strong>Personal Data</strong>, <strong>Administration Data</strong>, <strong>Agreement</strong>; setelah <strong>Submit Hire</strong> data otomatis masuk ke <strong>Employee Management</strong></em>
+<br><em>Gambar 6.4g (1) — Modal <strong>Hiring &amp; Onboarding</strong> (<strong>Hire Stage</strong>): bagian <strong>Personal Data</strong> — banner info data otomatis ke <strong>Employee Management</strong>, identitas dan kontak kandidat</em>
+<br><br>
+    <img
+        src="images/recruitment-session-modal-hire-administration.png"
+        alt="Modal Hire Stage Administration Data NIK Date of Hire POH Class Position Department Project Grade Level FPTK No"
+        style="max-width: 60%; width: 60%; height: auto;"
+    />
+<br><em>Gambar 6.4g (2) — Bagian <strong>Administration Data</strong>: <strong>NIK</strong>, <strong>Date of Hire</strong>, <strong>POH</strong>, <strong>Class</strong>, <strong>Position</strong>, <strong>Department</strong> (otomatis dari posisi), <strong>Project</strong>, <strong>Grade</strong>, <strong>Level</strong>, dan <strong>FPTK No</strong> (otomatis)</em>
+<br><br>
+    <img
+        src="images/recruitment-session-modal-hire-agreement.png"
+        alt="Modal Hire Stage Agreement Letter Number PKWT Agreement Type Notes Review Date Submit Hire Close"
+        style="max-width: 60%; width: 60%; height: auto;"
+    />
+<br><em>Gambar 6.4g (3) — Bagian <strong>Agreement</strong>: selector <strong>Letter Number</strong> (PKWT/PKWTT), <strong>Agreement Type</strong>, <strong>Notes</strong>, <strong>Review Date</strong>, dan tombol <strong>Submit Hire</strong></em>
 </p>
 
 ---
@@ -695,7 +709,7 @@ Buka **HERO SECTION** → **Recruitment Management** → **Reports**. Judul: **R
         alt="Recruitment Reports: kartu Recruitment Funnel Request Aging Time-to-Hire Offer Acceptance Rate Interview Assessment Analytics Stale Candidates dengan tombol View Report"
         style="max-width: 90%; width: 90%; height: auto;"
     />
-<br><em>Gambar 7.1 — Halaman Reports (placeholder)</em>
+<br><em>Gambar 7.1 — Halaman <strong>Reports</strong> (<strong>HR Analytics &amp; Reports</strong>): enam kartu laporan — <strong>Recruitment Funnel by Stage</strong>, <strong>Request Aging &amp; SLA</strong>, <strong>Time-to-Hire Analysis</strong>, <strong>Offer Acceptance Rate</strong>, <strong>Interview &amp; Assessment Analytics</strong>, dan <strong>Stale Candidates Report</strong> — masing-masing dengan tombol <strong>View Report</strong></em>
 </p>
 
 Pada masing-masing laporan, gunakan filter yang tersedia di layar lalu **Export** / **View Report** sesuai label tombol.
@@ -704,50 +718,131 @@ Pada masing-masing laporan, gunakan filter yang tersedia di layar lalu **Export*
 
 <a id="section-8-my-recruitment-request"></a>
 
-## 8. Untuk karyawan — **My Recruitment Request**
+## 8. My Recruitment Request
 
-Bagian ini untuk **semua karyawan** yang berhak mengajukan FPTK mandiri. Navigasi: **My Features** → **My Recruitment Request** (bukan submenu **Recruitment Management**).
+**My Recruitment Request** digunakan untuk mengajukan **FPTK** (_Formulir Permintaan Tenaga Kerja_) — dokumen resmi permintaan rekrutmen karyawan baru. Nomor FPTK resmi akan ditetapkan oleh HR setelah konfirmasi.
 
-**Alur singkat karyawan**
+**Navigasi:** **My Features** → **My Recruitment Request**
 
-1. Buat permintaan (**Add**) → isi form **Create My Recruitment Request (FPTK)** → **Submit to HR** (menyimpan **Draft** dengan nomor **REQxxxxx**).
-2. HR meninjau, dapat mengubah/mengajukan ke approver, menetapkan **Letter Number** / nomor FPTK resmi.
-3. Setelah **Approved**, karyawan memantau **Recruitment Sessions** di detail permintaan.
+**Catatan:** Halaman ini menampilkan permintaan rekrutmen yang relevan dengan proyek dan departemen Anda.
 
-Narasi lengkap (daftar, filter, form, detail Draft/Approved, tabel sesi) selaras dengan bab **My Dashboard & My Features** — lihat **bagian 8** pada `16-my-features.md` dan figur berikut:
+### Langkah-langkah — Daftar & Filter Permintaan Rekrutmen
 
-<p align="center" id="my-recruitment-requests-list-ref">
+Dari sidebar **My Features**, buka **My Recruitment Request**. Halaman **My Recruitment Requests** menampilkan breadcrumb (misalnya **My Dashboard / My Recruitment Request**), judul bagian yang dapat menampilkan permintaan Anda (misalnya dengan nama pengguna), ringkasan filter aktif bila ada (proyek atau departemen yang dipilih), tombol **+ Add**, bilah **Filter**, dan tabel dengan kolom seperti **No**, **FPTK Number**, **Position**, **Department**, **Project**, **Request By**, **Status**, **Requested At**, dan **Actions**. Pada **Actions**, baris berstatus **Draft** biasanya menampilkan **View** dan **Edit**; setelah diajukan (misalnya **Submitted**), umumnya hanya **View** yang tersedia — kombinasi mengikuti status dan hak akses.
+
+<p align="center" id="my-recruitment-requests-list">
     <img
         src="images/my-recruitment-requests-list.png"
-        alt="My Recruitment Requests daftar FPTK karyawan"
+        alt="My Recruitment Requests breadcrumb Add Filter tabel FPTK Number Position Department Project Request By Status Requested At Actions View Edit"
         style="max-width: 90%; width: 90%; height: auto;"
     />
-<br><em>Gambar 8.1 — My Recruitment Requests (reuse dari My Features)</em>
+<br><em>Gambar 8.1 — Daftar My Recruitment Requests</em>
 </p>
 
-<p align="center" id="my-recruitment-create-ref">
+Tombol **Add** membuka form FPTK baru.
+
+**Filter** tersedia:
+
+- **Status** — Draft, Acknowledged, PM Approved, Approved, Rejected, Cancelled.
+
+### Langkah-langkah — Membuat Permintaan Rekrutmen Baru
+
+Klik **Add**. Halaman **Create My Recruitment Request (FPTK)** terbuka (breadcrumb **Home / My Recruitment Requests / Add New**). Banner informasi menjelaskan bahwa permintaan akan dikirim ke HR dan **nomor FPTK resmi ditetapkan HR setelah konfirmasi**.
+
+**1. FPTK Information**
+
+- **Request Number** — hanya baca; nomor sementara berformat **REQxxxxx** sampai HR menetapkan nomor resmi.
+- **Request Date** — tanggal pengajuan; biasanya terisi otomatis dan tidak dapat diubah di layar ini.
+- **Department**, **Project**, **Position**, **Level** — wajib dipilih dari dropdown.
+- **Job Description** — wajib; uraian tugas dan tanggung jawab posisi.
+
+**2. Request Details**
+
+- **Required Quantity** — jumlah orang yang dibutuhkan (minimal 1).
+- **Required Date** — tanggal di mana tenaga kerja diharapkan tersedia.
+- **Request Reason** — pilih alasan permintaan dari daftar (misalnya penggantian, tambahan workplan, dll.). Jika layar Anda menampilkan opsi **Other**, isi juga field alasan tambahan yang diminta.
+- **Employment Type** — jenis kontrak (misalnya **PKWTT**, **PKWT**, harian, magang) sesuai pilihan di form.
+
+**3. Requirements**
+
+- **Gender** dan **Marital Status** — wajib.
+- **Min Age** dan **Max Age** — opsional; pastikan nilai minimum tidak lebih besar dari maksimum jika keduanya diisi.
+- **Education**, **Required Skills**, **Required Experience** — pelengkap sesuai kebutuhan posisi.
+
+**4. Additional Requirements** _(panel kanan)_
+
+Isi **Physical Requirements**, **Mental Requirements**, dan **Other Requirements** bila relevan. Centang **Posisi ini memerlukan Tes Teori** jika posisi membutuhkan kompetensi teknis atau tes teori sesuai kebijakan Anda.
+
+**5. Selesai**
+
+- **Submit to HR** — menyimpan permintaan sebagai **Draft** dengan nomor **REQxxxxx**; Anda dapat mengubahnya kemudian dan mengajukan untuk approval melalui alur edit/detail sesuai pesan sukses di layar dan tombol yang tersedia setelah data tersimpan.
+- **Cancel** — kembali ke [daftar](#my-recruitment-requests-list) tanpa menyimpan.
+
+<p align="center" id="my-recruitment-create">
     <img
         src="images/my-recruitment-request-create-fptk.png"
-        alt="Create My Recruitment Request FPTK"
+        alt="Create My Recruitment Request FPTK breadcrumb Add New banner HR FPTK Information Request Details Requirements Additional Requirements Submit to HR Cancel"
         style="max-width: 85%; width: 85%; height: auto;"
     />
 <br><em>Gambar 8.2 — Create My Recruitment Request (FPTK)</em>
 </p>
 
-<p align="center" id="my-recruitment-sessions-ref">
+<a id="my-recruitment-request-detail"></a>
+
+### Detail permintaan (Draft / belum direview HR)
+
+Pada [daftar](#my-recruitment-requests-list), klik **View** pada baris yang ingin dibuka.
+
+Selama permintaan masih **Draft** dan **belum direview atau ditindaklanjuti oleh HR** seperti penetapan nomor surat resmi, nomor di header biasanya tetap berformat **REQxxxxx** — itu adalah **nomor sementara** dari pengajuan mandiri. **Nomor FPTK resmi** (polanya mengikuti penomoran perusahaan, misalnya **xxxx/HCS-[kode proyek]/FPTK/bulan/tahun**) diberikan oleh **HR setelah konfirmasi**, sebagaimana dijelaskan di banner form pembuatan.
+
+Badge **Draft** pada judul menandakan Anda masih dapat menyunting data. Halaman detail menampilkan ringkasan **FPTK Information** (department, project, position, level, jumlah kebutuhan, tanggal dibutuhkan, jenis kontrak, alasan permintaan, kebutuhan tes teori, dll.), **Job Description & Requirements**, serta kartu **Requested By** (nama, email, cap waktu pembuatan).
+
+<p align="center" id="my-recruitment-detail-draft">
     <img
-        src="images/my-recruitment-recruitment-sessions.png"
-        alt="Recruitment Sessions pada detail FPTK Approved"
+        src="images/my-recruitment-request-detail-draft.png"
+        alt="Detail permintaan FPTK Draft REQ00001 FPTK Information Job Description Requirements Requested By Back to List Edit Print FPTK"
         style="max-width: 90%; width: 90%; height: auto;"
     />
-<br><em>Gambar 8.3 — Recruitment Sessions (tampilan karyawan)</em>
+<br><em>Gambar 8.3 — Detail permintaan FPTK (Draft)</em>
 </p>
 
-**Catatan penting untuk karyawan**
+**Tombol aksi pada Draft di jalur ini**
 
-- **Submit for Approval** pada detail **My Recruitment Request** umumnya **tidak** ditampilkan; kelanjutan approval dan nomor resmi ditangani **HR**.
-- **Assign Letter Number** hanya tersedia untuk HR di menu **Requests (FPTK)**.
-- Approver yang dipilih pada form HR berbeda dengan pengajuan mandiri; karyawan cukup melengkapi data permintaan dan menunggu tindak lanjut HR.
+- **Back to List** — kembali ke **My Recruitment Requests**.
+- **Edit** — membuka form perubahan (**Update Recruitment Request**); perbaiki isi di sini selama masih **Draft** dan sebelum HR mengunci alur pengeditan.
+- **Print FPTK** — cetak/preview dokumen di tab baru.
+
+Di halaman detail **My Recruitment Requests**, tombol **Submit for Approval** umumnya **tidak** ditampilkan untuk pengguna personal pada status **Draft**; kelanjutan hingga acknowledgment dan nomor resmi mengikuti prosedur **HR**. Jika layar Anda menampilkan opsi pengajuan lain (misalnya setelah pembaruan sistem), ikuti petunjuk yang muncul.
+
+<a id="my-recruitment-sessions"></a>
+
+### Detail permintaan dan proses rekrutmen (Recruitment Sessions)
+
+Setelah HR memproses pengajuan, nomor berubah dari **REQxxxxx** menjadi **nomor FPTK resmi** (misalnya **xxxx/HCS-[kode proyek]/FPTK/bulan/tahun**). Badge status bisa **Submitted**, **Acknowledged**, **Approved**, atau lainnya — cuplikan di bawah memakai **Approved**.
+
+Detail halaman memuat kartu **FPTK Information**, **Job Description & Requirements**, **Requested By**, serta blok tes teori jika ada. Di jalur personal, **Edit** biasanya hilang setelah bukan draft; **Back to List** dan **Print FPTK** tetap tersedia.
+
+<p align="center" id="my-recruitment-detail-approved-sessions">
+    <img
+        src="images/my-recruitment-request-detail-approved-sessions.png"
+        alt="Detail FPTK Approved nomor resmi badge Approved FPTK Information Requested By Job Description Requirements Back to List Print FPTK"
+        style="max-width: 90%; width: 90%; height: auto;"
+    />
+<br><em>Gambar 8.4 — Detail permintaan FPTK (Approved)</em>
+</p>
+
+**Recruitment Sessions** menampilkan badge jumlah session dan satu baris per kandidat. Kolom: **CV Review**, **Psikotes**, **Tes Teori**, **Interview HR**, **Interview User**, **Offering**, **MCU**, **Hire**, **Onboarding**, **Final Status**, **Action** (**View**). Simbol sel menandakan selesai, sedang berjalan, atau belum dimulai. Pada halaman detail utuh, kotak **Theory Test Requirement** di atas tabel dapat menjelaskan jika tes teori dilewati — cocokkan dengan kolom **Tes Teori** tiap baris.
+
+<p align="center" id="my-recruitment-sessions-table">
+    <img
+        src="images/my-recruitment-recruitment-sessions.png"
+        alt="Recruitment Sessions judul badge jumlah tabel No Candidate Name CV Review Psikotes Tes Teori Interview HR User Offering MCU Hire Onboarding Final Status In Process Hired Action View"
+        style="max-width: 90%; width: 90%; height: auto;"
+    />
+<br><em>Gambar 8.5 — Recruitment Sessions</em>
+</p>
+
+Untuk pertanyaan tentang tahapan atau keputusan pada seorang kandidat, koordinasikan dengan tim **HR** yang menangani FPTK tersebut.
 
 ---
 
