@@ -101,7 +101,7 @@
                                         <select class="form-control @error('marital') is-invalid @enderror"
                                             id="marital" name="marital">
                                             <option value="">Select marital status</option>
-                                            @foreach (['S-0', 'M-0', 'M-1', 'M-2', 'M-3'] as $maritalOpt)
+                                            @foreach (['S-0', 'M-0', 'M-1', 'M-2', 'M-3', 'D-1', 'D-2', 'D-3'] as $maritalOpt)
                                                 <option value="{{ $maritalOpt }}"
                                                     {{ old('marital', $employees->marital) == $maritalOpt ? 'selected' : '' }}>
                                                     {{ $maritalOpt }}

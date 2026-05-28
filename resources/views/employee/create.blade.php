@@ -343,6 +343,15 @@
                                                     <option value="M-3"
                                                         {{ old('marital') == 'M-3' ? 'selected' : '' }}>M-3
                                                     </option>
+                                                    <option value="D-1"
+                                                        {{ old('marital') == 'D-1' ? 'selected' : '' }}>D-1
+                                                    </option>
+                                                    <option value="D-2"
+                                                        {{ old('marital') == 'D-2' ? 'selected' : '' }}>D-2
+                                                    </option>
+                                                    <option value="D-3"
+                                                        {{ old('marital') == 'D-3' ? 'selected' : '' }}>D-3
+                                                    </option>
                                                 </select>
                                                 @if ($errors->any('marital'))
                                                     <span class="text-danger">{{ $errors->first('marital') }}</span>
