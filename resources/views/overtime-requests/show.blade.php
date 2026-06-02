@@ -208,11 +208,10 @@
                         $isUser = $u instanceof \App\Models\User;
                         $editable = $overtimeRequest->isEditable();
                         $deletable = $overtimeRequest->isDeletable();
-                        $draftOrRejected = in_array($overtimeRequest->status, ['draft', 'rejected'], true);
                         $permEdit = $fromPersonal ? 'personal.overtime.edit-own' : 'overtime-requests.edit';
                         $permDelete = $fromPersonal ? 'personal.overtime.cancel-own' : 'overtime-requests.delete';
                         $canEdit = $isUser && $editable && $u->can($permEdit);
-                        $canSubmit = $canEdit && $draftOrRejected;
+                        $canSubmit = $canEdit && $overtimeRequest->canSubmitForApproval();
                         $canDelete = $isUser && $deletable && $u->can($permDelete);
                         $canFinishHr =
                             !$fromPersonal &&

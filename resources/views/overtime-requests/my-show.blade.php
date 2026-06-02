@@ -207,9 +207,8 @@
                         $isUser = $u instanceof \App\Models\User;
                         $editable = $overtimeRequest->isEditable();
                         $deletable = $overtimeRequest->isDeletable();
-                        $draftOrRejected = in_array($overtimeRequest->status, ['draft', 'rejected'], true);
                         $canEdit = $isUser && $editable && $u->can('personal.overtime.edit-own');
-                        $canSubmit = $canEdit && $draftOrRejected;
+                        $canSubmit = $canEdit && $overtimeRequest->canSubmitForApproval();
                         $canDelete = $isUser && $deletable && $u->can('personal.overtime.cancel-own');
                     @endphp
 
