@@ -107,10 +107,15 @@ class OvertimeRequest extends Model
 
     public function isEditable(): bool
     {
-        return in_array($this->status, [self::STATUS_DRAFT, self::STATUS_REJECTED], true);
+        return $this->status === self::STATUS_DRAFT;
     }
 
     public function isDeletable(): bool
+    {
+        return $this->status === self::STATUS_DRAFT;
+    }
+
+    public function canSubmitForApproval(): bool
     {
         return $this->isEditable();
     }

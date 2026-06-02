@@ -77,9 +77,9 @@
                 </div>
                 <div @class([
                     'document-status-pill',
-                    'status-pending-approval' => (int) $approvalPlan->status === 0,
+                    'status-pending-approval' => $canTakeAction ?? ((int) $approvalPlan->status === 0 && $approvalPlan->is_open),
                     'status-approved' => (int) $approvalPlan->status === 1,
-                    'status-rejected' => (int) $approvalPlan->status === 2,
+                    'status-rejected' => (int) $approvalPlan->status === 2 || ((int) $approvalPlan->status === 0 && ! $approvalPlan->is_open && ($currentApprovalInfo['status'] ?? '') === 'rejected'),
                 ])>
                     @if ((int) $approvalPlan->status === 1)
                         <i class="fas fa-check-circle"></i>
@@ -87,6 +87,9 @@
                     @elseif ((int) $approvalPlan->status === 2)
                         <i class="fas fa-times-circle"></i>
                         Rejected
+                    @elseif ((int) $approvalPlan->status === 0 && ! $approvalPlan->is_open)
+                        <i class="fas fa-ban"></i>
+                        No Longer Required
                     @else
                         <i class="fas fa-clock"></i>
                         Pending Approval
@@ -1050,7 +1053,7 @@
 
                 <!-- Approval Form -->
                 <div class="col-lg-4">
-                    @if ((int) $approvalPlan->status === 0)
+                    @if (!empty($canTakeAction))
                         <!-- Approval Decision -->
                         <div class="document-card approval-card">
                             <div class="card-head">
@@ -1114,6 +1117,49 @@
                                         </a>
                                     </div>
                                 </form>
+                            </div>
+                        </div>
+                    @elseif ((int) $approvalPlan->status === 0 && ! $approvalPlan->is_open)
+                        <div class="document-card approval-card">
+                            <div class="card-head">
+                                <h2><i class="fas fa-user-shield"></i> Approval Closed</h2>
+                            </div>
+                            <div class="card-body">
+                                <div class="alert alert-secondary mb-3 text-center">
+                                    <strong>
+                                        @if (($currentApprovalInfo['status'] ?? '') === 'rejected')
+                                            This request was rejected by a previous approver. No action is required from you.
+                                        @else
+                                            This request is no longer open for your approval.
+                                        @endif
+                                    </strong>
+                                </div>
+                                <a href="{{ route('approval.requests.index') }}"
+                                    class="btn btn-secondary btn-block">
+                                    <i class="fas fa-arrow-left"></i>
+                                    Back to List
+                                </a>
+                            </div>
+                        </div>
+                    @elseif ((int) $approvalPlan->status === 0)
+                        <div class="document-card approval-card">
+                            <div class="card-head">
+                                <h2><i class="fas fa-user-shield"></i> Waiting for Prior Approval</h2>
+                            </div>
+                            <div class="card-body">
+                                <div class="alert alert-warning mb-3 text-center">
+                                    <strong>
+                                        Previous approvals must be completed before you can review this request.
+                                    </strong>
+                                    @if (!empty($currentApprovalInfo['message']))
+                                        <div class="mt-2 text-muted">{{ $currentApprovalInfo['message'] }}</div>
+                                    @endif
+                                </div>
+                                <a href="{{ route('approval.requests.index') }}"
+                                    class="btn btn-secondary btn-block">
+                                    <i class="fas fa-arrow-left"></i>
+                                    Back to List
+                                </a>
                             </div>
                         </div>
                     @else
@@ -2709,8 +2755,8 @@ if ($plan->status === 1) {
 @endsection
 
 @section('scripts')
-    @if ((int) $approvalPlan->status === 0)
-        <script>
+    @if (!empty($canTakeAction))
+    <script>
             document.addEventListener('DOMContentLoaded', function() {
                 const approveBtn = document.querySelector('.approve-btn');
                 const rejectBtn = document.querySelector('.reject-btn');

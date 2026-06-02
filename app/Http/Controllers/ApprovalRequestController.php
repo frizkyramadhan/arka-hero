@@ -59,7 +59,7 @@ class ApprovalRequestController extends Controller
 
             $approvalStatus = $request->get('approval_status', 'pending');
             if ($approvalStatus === 'pending') {
-                $approvalPlans->where('status', 0);
+                $approvalPlans->where('status', 0)->where('is_open', true);
             } elseif ($approvalStatus === 'approved') {
                 $approvalPlans->where('status', 1);
             } elseif ($approvalStatus === 'rejected') {
@@ -321,6 +321,9 @@ class ApprovalRequestController extends Controller
                 ->addColumn('status_value', function ($approvalPlan) {
                     return (int) $approvalPlan->status;
                 })
+                ->addColumn('is_open', function ($approvalPlan) {
+                    return $approvalPlan->is_open ? 1 : 0;
+                })
                 ->addColumn('action', function ($model) {
                     return view('approval-requests.action', compact('model'))->render();
                 })
@@ -350,12 +353,15 @@ class ApprovalRequestController extends Controller
         }
 
         $title = 'Approval Request';
-        $subtitle = $approvalPlan->status === 0 ? 'Review and Approve' : 'Approval Detail';
+        $canTakeAction = (int) $approvalPlan->status === 0
+            && $approvalPlan->is_open
+            && $this->canProcessApproval($approvalPlan);
+        $subtitle = $canTakeAction ? 'Review and Approve' : 'Approval Detail';
 
         // Get current approval information
         $currentApprovalInfo = $this->getCurrentApprovalInfo($approvalPlan->document_id, $approvalPlan->document_type);
 
-        return view('approval-requests.show', compact('title', 'subtitle', 'approvalPlan', 'currentApprovalInfo'));
+        return view('approval-requests.show', compact('title', 'subtitle', 'approvalPlan', 'currentApprovalInfo', 'canTakeAction'));
     }
 
     /**
@@ -371,9 +377,13 @@ class ApprovalRequestController extends Controller
                 return redirect()->back()->with('toast_error', 'You are not authorized to approve this request.');
             }
 
-            // Check if already processed
+            // Check if already processed or closed (e.g. earlier approver rejected)
             if ($approvalPlan->status !== 0) {
                 return redirect()->back()->with('toast_error', 'This request has already been processed.');
+            }
+
+            if (! $approvalPlan->is_open) {
+                return redirect()->back()->with('toast_error', 'This request is no longer open for approval.');
             }
 
             // Check sequential approval order
@@ -830,7 +840,7 @@ class ApprovalRequestController extends Controller
 
             $approvalStatus = $request->get('approval_status', 'pending');
             if ($approvalStatus === 'pending') {
-                $query->where('status', 0);
+                $query->where('status', 0)->where('is_open', true);
             } elseif ($approvalStatus === 'approved') {
                 $query->where('status', 1);
             } elseif ($approvalStatus === 'rejected') {
@@ -889,6 +899,13 @@ class ApprovalRequestController extends Controller
 
                         if ($approvalPlan->status !== 0) {
                             $errors[] = "Request ID {$id}: Request has already been processed.";
+                            $failCount++;
+
+                            continue;
+                        }
+
+                        if (! $approvalPlan->is_open) {
+                            $errors[] = "Request ID {$id}: Request is no longer open for approval.";
                             $failCount++;
 
                             continue;

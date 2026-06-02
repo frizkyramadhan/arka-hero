@@ -17,7 +17,7 @@ Panduan ini menjelaskan modul **Overtime Management** di ARKA HERO: ringkasan da
 | **Register No.**        | Nomor register permintaan lembur, format **YYOT-xxxxx** (misalnya **26OT-00002**); dibuat otomatis saat permintaan disimpan. |
 | **Approver Selection**  | Pemilihan approver manual (biasanya **dua** orang berurutan) sebelum pengajuan.                                              |
 | **Close Request**       | Tindakan HR pada permintaan **Approved** untuk menandai selesai (modal **Mark as finished**).                                |
-| **Submit for Approval** | Mengajukan draft atau permintaan ditolak ke alur approval.                                                                   |
+| **Submit for Approval** | Mengajukan permintaan **Draft** ke alur approval (hanya dari status draft).                                                 |
 
 ---
 
@@ -116,7 +116,7 @@ Panduan ini menjelaskan modul **Overtime Management** di ARKA HERO: ringkasan da
 
 ### Langkah-langkah — **Add Overtime Request** / **Edit Overtime Request**
 
-1. Dari daftar, klik **Add**, atau buka **Edit** dari baris draft/ditolak yang boleh diubah.
+1. Dari daftar, klik **Add**, atau buka **Edit** dari baris berstatus **Draft** yang boleh diubah.
 2. Breadcrumb: **Home** → **Overtime Requests** → **Add New** (atau judul edit dengan nomor register).
 
 **Overtime Information**
@@ -176,7 +176,7 @@ Panduan ini menjelaskan modul **Overtime Management** di ARKA HERO: ringkasan da
 
 - **Back to list** — kembali ke **Overtime Requests**.
 - **Edit** — jika status masih **Draft**.
-- **Submit for Approval** — untuk **Draft** atau **Rejected** (konfirmasi di layar).
+- **Submit for Approval** — hanya untuk status **Draft** (konfirmasi di layar).
 - **Delete** — hapus permintaan yang masih boleh dihapus.
 - **Close Request** — hanya pada status **Approved** dan jika Anda berhak menutup lembur.
 
@@ -350,7 +350,7 @@ Setelah **Pending** / **Approved**, tombol mengikuti status dan hak akses Anda (
 | **Export to Excel** tidak mengunduh                                 | Filter belum diisi                                                        | Sama seperti memuat tabel — isi filter lalu ekspor                                                           |
 | **Close Request** tidak muncul                                      | Status bukan **Approved** atau bukan akun HR penutup                      | Tunggu approval selesai; pastikan lembur sudah disetujui                                                     |
 | Permintaan tidak muncul di daftar HR                                | Di luar project yang di-assign akun HR                                    | Gunakan akun/filter proyek yang sesuai; cek assignment project                                               |
-| **Edit** / **Delete** tidak tampil                                  | Status sudah **Pending** / **Approved** / **Finished** atau bukan pembuat | Hanya draft (dan rejected jika diizinkan) yang dapat diubah pemohon                                          |
+| **Edit** / **Delete** tidak tampil                                  | Status sudah **Pending** / **Approved** / **Rejected** / **Finished** atau bukan pembuat | Hanya **Draft** yang dapat diubah atau dihapus pemohon/HR sesuai hak akses                                 |
 
 ### Menghubungi administrator
 

@@ -1,5 +1,5 @@
 @if ($model)
-    @if ((int) $model->status === 0)
+    @if ((int) $model->status === 0 && $model->is_open)
         <a href="{{ route('approval.requests.show', $model->id) }}" class="btn btn-sm btn-primary" title="Review">
             <i class="fas fa-eye"></i> Review
         </a>

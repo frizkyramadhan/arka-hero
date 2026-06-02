@@ -86,8 +86,7 @@ class OvertimeRequestController extends Controller
                     $html .= '<a href="'.route('overtime.requests.edit', $row).'" class="btn btn-sm btn-warning mr-1" title="Edit"><i class="fas fa-edit"></i></a>';
                 }
                 if (
-                    $row->isEditable()
-                    && in_array($row->status, [OvertimeRequest::STATUS_DRAFT, OvertimeRequest::STATUS_REJECTED], true)
+                    $row->canSubmitForApproval()
                     && $row->canBeEditedBy(Auth::user())
                 ) {
                     $html .= '<form method="POST" action="'.route('overtime.requests.submit-for-approval', $row).'" class="d-inline mr-1" onsubmit="return confirm(\'Submit this request for approval?\');">'
@@ -395,8 +394,7 @@ class OvertimeRequestController extends Controller
                     $html .= ' <a href="'.route('overtime.my-requests.edit', $row).'" class="btn btn-sm btn-warning"><i class="fas fa-edit"></i></a>';
                 }
                 if (
-                    $row->isEditable()
-                    && in_array($row->status, [OvertimeRequest::STATUS_DRAFT, OvertimeRequest::STATUS_REJECTED], true)
+                    $row->canSubmitForApproval()
                     && $row->canBeEditedBy(Auth::user())
                 ) {
                     $html .= ' <form method="POST" action="'.route('overtime.my-requests.submit-for-approval', $row).'" class="d-inline" onsubmit="return confirm(\'Submit this request for approval?\');">'
@@ -772,7 +770,7 @@ class OvertimeRequestController extends Controller
     }
 
     /**
-     * HR: submit draft/rejected request for approval (from detail or list).
+     * HR: submit draft request for approval (from detail or list).
      */
     public function submitForApproval(OvertimeRequest $overtimeRequest)
     {
@@ -780,7 +778,7 @@ class OvertimeRequestController extends Controller
     }
 
     /**
-     * Self-service: submit draft/rejected request for approval.
+     * Self-service: submit draft request for approval.
      */
     public function myRequestsSubmitForApproval(OvertimeRequest $overtimeRequest)
     {
@@ -798,10 +796,10 @@ class OvertimeRequestController extends Controller
             return $r;
         }
 
-        if (! $overtimeRequest->isEditable()) {
+        if (! $overtimeRequest->canSubmitForApproval()) {
             return redirect()
                 ->to($this->overtimeDetailUrl($overtimeRequest))
-                ->with('toast_error', 'Only draft or rejected requests can be submitted for approval.');
+                ->with('toast_error', 'Only draft requests can be submitted for approval.');
         }
 
         $manualApprovers = $this->normalizeManualApprovers($overtimeRequest->manual_approvers ?? []);

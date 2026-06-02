@@ -214,7 +214,13 @@
                         orderable: false,
                         searchable: false,
                         visible: isPendingFilter(),
-                        render: function(data) {
+                        render: function(data, type, row) {
+                            if (!isPendingFilter()
+                                || parseInt(row.status_value, 10) !== 0
+                                || parseInt(row.is_open, 10) !== 1) {
+                                return '';
+                            }
+
                             return '<input type="checkbox" class="approval-checkbox" value="' +
                                 data + '">';
                         }
