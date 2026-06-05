@@ -138,7 +138,7 @@ class OfficialtravelController extends Controller
             'adjustApprovedItinerary',
         ]);
         $this->middleware('permission:official-travels.create')->only('create');
-        $this->middleware('permission:official-travels.edit')->only('edit');
+        $this->middleware('permission:official-travels.edit')->only('edit', 'updateApprovers');
         $this->middleware('permission:official-travels.delete')->only('destroy');
 
         $this->middleware('permission:official-travels.stamp')->only([
@@ -970,6 +970,131 @@ class OfficialtravelController extends Controller
 
             return redirect()->back()
                 ->with('toast_error', 'Failed to delete Official Travel. '.$e->getMessage());
+        }
+    }
+
+    /**
+     * Update manual approvers while LOT is submitted; only pending steps may change.
+     */
+    public function updateApprovers(Request $request, $id)
+    {
+        $officialtravel = Officialtravel::findOrFail($id);
+
+        if ($denied = UserProject::guardProjectInAssignmentScope((int) $officialtravel->official_travel_origin)) {
+            return $denied;
+        }
+
+        if (! $officialtravel->canChangeApprovers()) {
+            return redirect()->route('officialtravels.show', $id)
+                ->with('toast_error', 'Approver tidak dapat diubah karena tidak ada langkah persetujuan yang masih Pending atau LOT tidak dalam status Submitted.');
+        }
+
+        $request->validate([
+            'manual_approvers' => 'required|array|min:1',
+            'manual_approvers.*' => 'exists:users,id',
+        ], [
+            'manual_approvers.required' => 'Please select at least one approver.',
+            'manual_approvers.array' => 'Approvers must be an array.',
+            'manual_approvers.min' => 'Please select at least one approver.',
+            'manual_approvers.*.exists' => 'One or more selected approvers are invalid.',
+        ]);
+
+        $submittedApprovers = $request->manual_approvers ?? [];
+        if (! is_array($submittedApprovers)) {
+            $submittedApprovers = [];
+        }
+        $submittedApprovers = array_values(array_map('intval', array_filter($submittedApprovers)));
+
+        if (empty($submittedApprovers)) {
+            return redirect()->back()
+                ->with('toast_error', 'Please select at least one approver.');
+        }
+
+        if (count($submittedApprovers) !== count(array_unique($submittedApprovers))) {
+            return redirect()->back()
+                ->with('toast_error', 'Approver tidak boleh duplikat.');
+        }
+
+        $existingPlans = ApprovalPlan::where('document_id', $officialtravel->id)
+            ->where('document_type', 'officialtravel')
+            ->orderBy('approval_order')
+            ->get()
+            ->keyBy('approval_order');
+
+        $lockedPlans = $existingPlans->filter(fn (ApprovalPlan $plan) => (int) $plan->status !== 0);
+
+        foreach ($lockedPlans as $order => $plan) {
+            $index = (int) $order - 1;
+            if (! isset($submittedApprovers[$index]) || (int) $submittedApprovers[$index] !== (int) $plan->approver_id) {
+                return redirect()->back()
+                    ->with('toast_error', 'Approver yang sudah disetujui atau ditolak tidak dapat diubah atau dihapus.');
+            }
+        }
+
+        $currentApprovers = array_values(array_map('intval', $officialtravel->manual_approvers ?? []));
+        $approversChanged = json_encode($currentApprovers) !== json_encode($submittedApprovers);
+
+        if (! $approversChanged) {
+            return redirect()->route('officialtravels.show', $id)
+                ->with('toast_info', 'No changes to approver selection.');
+        }
+
+        try {
+            DB::beginTransaction();
+
+            $officialtravel->update(['manual_approvers' => $submittedApprovers]);
+
+            $ordersPresent = [];
+            $createdPending = 0;
+
+            foreach ($submittedApprovers as $index => $approverId) {
+                $order = $index + 1;
+                $ordersPresent[] = $order;
+                $plan = $existingPlans->get($order);
+
+                if ($plan && (int) $plan->status !== 0) {
+                    continue;
+                }
+
+                if ($plan) {
+                    $plan->delete();
+                }
+
+                ApprovalPlan::create([
+                    'document_id' => $officialtravel->id,
+                    'document_type' => 'officialtravel',
+                    'approver_id' => $approverId,
+                    'status' => 0,
+                    'is_open' => true,
+                    'is_read' => false,
+                    'approval_order' => $order,
+                ]);
+                $createdPending++;
+            }
+
+            ApprovalPlan::where('document_id', $officialtravel->id)
+                ->where('document_type', 'officialtravel')
+                ->where('status', 0)
+                ->whereNotIn('approval_order', $ordersPresent)
+                ->delete();
+
+            DB::commit();
+
+            $message = $createdPending > 0
+                ? 'Approver pending berhasil diperbarui. '.$createdPending.' langkah pending menunggu keputusan.'
+                : 'Approver selection updated.';
+
+            return redirect()->route('officialtravels.show', $id)
+                ->with('toast_success', $message);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Error updating LOT approvers: '.$e->getMessage(), [
+                'officialtravel_id' => $id,
+                'exception' => $e,
+            ]);
+
+            return redirect()->back()
+                ->with('toast_error', 'Terjadi kesalahan saat mengubah approver. Silakan coba lagi.');
         }
     }
 
