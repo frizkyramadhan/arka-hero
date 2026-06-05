@@ -215,19 +215,54 @@
                         </div>
                     @endif
 
+                    @php
+                        $fromMy = isset($fromMyRequests) && $fromMyRequests;
+                        $canChangeApprovers = ! $fromMy
+                            && $flightRequest->canChangeApprovers()
+                            && auth()->user()->can('flight-requests.edit');
+                    @endphp
+
                     <!-- Manual Approvers Card - sembunyikan jika FR completed/cancelled (tetap tampil saat rejected) -->
-                    @if (!empty($flightRequest->manual_approvers) && !in_array($flightRequest->status, ['completed', 'cancelled']))
+                    @if ((! empty($flightRequest->manual_approvers) || $canChangeApprovers) && ! in_array($flightRequest->status, ['completed', 'cancelled']))
                         <div class="flight-request-card mb-4">
                             <div class="card-head">
-                                <h2><i class="fas fa-users"></i> Selected Approvers</h2>
+                                <h2><i class="fas fa-users"></i> Approval Status</h2>
                             </div>
                             <div class="card-body py-2">
-                                @include('components.manual-approver-selector', [
-                                    'selectedApprovers' => $flightRequest->manual_approvers ?? [],
-                                    'mode' => 'view',
-                                    'documentType' => 'flight_request',
-                                    'documentId' => $flightRequest->id,
-                                ])
+                                @if ($canChangeApprovers)
+                                    <form action="{{ route('flight-requests.update-approvers', $flightRequest->id) }}"
+                                        method="POST">
+                                        @csrf
+                                        @method('PUT')
+                                        @include('components.manual-approver-selector', [
+                                            'selectedApprovers' => old('manual_approvers', $flightRequest->manual_approvers ?? []),
+                                            'required' => true,
+                                            'multiple' => true,
+                                            'helpText' => 'Pilih minimal 1 approver dengan role approver',
+                                            'documentType' => 'flight_request',
+                                            'documentId' => $flightRequest->id,
+                                            'lockedApproverIds' => $flightRequest->getLockedApproverIds(),
+                                        ])
+                                        <div class="mt-3">
+                                            <small class="text-muted d-block mb-2">
+                                                <i class="fas fa-info-circle"></i>
+                                                Approver yang sudah <strong>Approved</strong> / <strong>Rejected</strong>
+                                                tidak dapat diubah. Hanya langkah yang masih
+                                                <strong>Pending</strong> yang dapat diganti atau dihapus.
+                                            </small>
+                                            <button type="submit" class="btn btn-primary btn-block">
+                                                <i class="fas fa-save"></i> Update Approvers
+                                            </button>
+                                        </div>
+                                    </form>
+                                @else
+                                    @include('components.manual-approver-selector', [
+                                        'selectedApprovers' => $flightRequest->manual_approvers ?? [],
+                                        'mode' => 'view',
+                                        'documentType' => 'flight_request',
+                                        'documentId' => $flightRequest->id,
+                                    ])
+                                @endif
                             </div>
                         </div>
                     @endif

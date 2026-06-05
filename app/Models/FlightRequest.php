@@ -114,6 +114,56 @@ class FlightRequest extends Model
             ->where('document_type', 'flight_request');
     }
 
+    public function approval_plans()
+    {
+        return $this->approvalPlans();
+    }
+
+    /**
+     * True when no approval plan has moved past pending (status 0).
+     */
+    public function hasNoApprovalActionsYet(): bool
+    {
+        if ($this->relationLoaded('approval_plans')) {
+            return $this->approval_plans->every(fn (ApprovalPlan $plan) => (int) $plan->status === 0);
+        }
+
+        return ! $this->approvalPlans()->where('status', '!=', 0)->exists();
+    }
+
+    /**
+     * Approver IDs that already have a final decision (approved/rejected/etc.) and cannot be changed.
+     *
+     * @return array<int, int>
+     */
+    public function getLockedApproverIds(): array
+    {
+        return $this->approvalPlans()
+            ->where('status', '!=', 0)
+            ->pluck('approver_id')
+            ->map(fn ($id) => (int) $id)
+            ->unique()
+            ->values()
+            ->all();
+    }
+
+    public function hasPendingApprovers(): bool
+    {
+        if ($this->status !== self::STATUS_SUBMITTED) {
+            return false;
+        }
+
+        return $this->approvalPlans()->where('status', 0)->exists();
+    }
+
+    /**
+     * Pending approvers may be changed while FR is submitted and at least one step is still pending.
+     */
+    public function canChangeApprovers(): bool
+    {
+        return $this->hasPendingApprovers();
+    }
+
     // Helper Methods
     public function hasIssuance(): bool
     {

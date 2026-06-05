@@ -858,6 +858,7 @@ Route::group(['middleware' => ['auth']], function () {
             Route::put('/{flightRequest}', [FlightRequestController::class, 'update'])->name('update');
             Route::delete('/{flightRequest}', [FlightRequestController::class, 'destroy'])->name('destroy');
             Route::post('/{flightRequest}/submit', [FlightRequestController::class, 'submit'])->name('submit');
+            Route::put('/{flightRequest}/update-approvers', [FlightRequestController::class, 'updateApprovers'])->name('update-approvers');
             Route::post('/{flightRequest}/cancel', [FlightRequestController::class, 'cancel'])->name('cancel');
             Route::post('/{flightRequest}/complete', [FlightRequestController::class, 'complete'])->name('complete');
             Route::get('/{flightRequest}/print', [FlightRequestController::class, 'print'])->name('print');
