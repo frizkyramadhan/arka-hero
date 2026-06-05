@@ -273,6 +273,7 @@ Route::group(['middleware' => ['auth']], function () {
     Route::resource('officialtravels', OfficialtravelController::class);
     Route::get('officialtravels-approver-selector', [OfficialtravelController::class, 'getApproverSelector'])->name('officialtravels.approverSelector');
     Route::post('officialtravels/{officialtravel}/submit', [OfficialtravelController::class, 'submitForApproval'])->name('officialtravels.submit');
+    Route::put('officialtravels/{officialtravel}/update-approvers', [OfficialtravelController::class, 'updateApprovers'])->name('officialtravels.update-approvers');
 
     Route::get('officialtravels/{officialtravel}/arrival', [OfficialtravelController::class, 'showArrivalForm'])->name('officialtravels.showArrivalForm');
     Route::post('officialtravels/{officialtravel}/arrival', [OfficialtravelController::class, 'arrivalStamp'])->name('officialtravels.arrivalStamp');

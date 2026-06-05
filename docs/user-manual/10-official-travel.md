@@ -2,10 +2,11 @@
 
 # Official Travel Management (LOT)
 
-| **Versi** | **Tanggal** | **Revisi (ringkas)**                                                                                                         |
-| :-------- | :---------- | :--------------------------------------------------------------------------------------------------------------------------- |
-| 1.1       | 2026-05-13  | **Multi-stop** & destinasi **manual** (centang).                                                                             |
-| 1.0       | 2026-05-08  | Panduan LOT: dashboard & permintaan HR, formulir, stempel & tutup, laporan, **My Official Travel Request**, troubleshooting. |
+| **Versi** | **Tanggal** | **Revisi (ringkas)**                                                                                                                                      |
+| :-------- | :---------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1.2       | 2026-06-05  | **Update Approvers** pada detail LOT **Submitted**: hanya langkah **Pending** yang dapat diganti; approver yang sudah **Approved**/**Rejected** terkunci. |
+| 1.1       | 2026-05-13  | **Multi-stop** & destinasi **manual** (centang).                                                                                                          |
+| 1.0       | 2026-05-08  | Panduan LOT: dashboard & permintaan HR, formulir, stempel & tutup, laporan, **My Official Travel Request**, troubleshooting.                              |
 
 Panduan ini menjelaskan **Letter of Travel (LOT)** / perjalanan dinas resmi di ARKA HERO untuk **staf HR** yang mengelola data LOT (dashboard, daftar permintaan, alur kedatangan–keberangkatan, pelaporan) dan untuk **karyawan selain HR** yang mengajukan lewat menu pribadi/personal.
 
@@ -17,6 +18,7 @@ Panduan ini menjelaskan **Letter of Travel (LOT)** / perjalanan dinas resmi di A
 | **Travel Stops Timeline**                                  | Riwayat perjalanan yang terdiri dari urutan **Stop** / **Checkpoint**; tiap stop dapat memiliki waktu kedatangan (**Arrival**) dan keberangkatan (**Departure**) (keberangkatan).                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
 | **Stop** / **Checkpoint** / **Destination**                | Titik tujuan sepanjang perjalanan dinas (LOT). Satu perjalanan dapat terdiri dari beberapa stop/checkpoint/tujuan. Pada setiap tujuan, dicatat waktu kedatangan (**Arrival**) dan waktu keberangkatan (**Departure**). Tujuan dapat berupa project internal perusahaan, kota, dinas, vendor, dsb. Aturan utama: <br>- Minimal ada satu tujuan di setiap LOT. <br>- Jika terdapat beberapa tujuan, maka pemilihan tujuan bukan berarti urutan perjalanan. <br>- Jika di salah satu tujuan sudah ada pencatatan waktu kedatangan, maka tujuan lain tidak bisa melakukan pencatatan yang sama sampai sudah ada pencatatan waktu keberangkatan di lokasi pertama. |
 | **Approver Selection**                                     | Pemilihan satu atau lebih **approver** yang menyetujui pengajuan.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| **Update Approvers**                                       | Tombol pada kartu **Approval Status** (detail LOT **Submitted**) untuk mengganti approver yang masih **Pending**; approver yang sudah memutuskan tidak dapat diubah.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
 | **Flight Request**                                         | Bagian opsional untuk kebutuhan tiket pesawat (terhubung modul penerbangan jika dipakai).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
 | **Master Data** → **Transportations** / **Accommodations** | Data referensi untuk pilihan **Transportation** dan **Accommodation** pada formulir LOT (di **GENERAL SECTION**).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
 
@@ -140,6 +142,48 @@ Cari approver (nama atau email), baca **Approval Rules Information** untuk menge
 
 **11.** Untuk LOT dari **My Official Travel Request** (nomor **REQxxxxx**), buka detail LOT, klik **Konfirmasi & Isi Nomor Surat**; pilih nomor surat (seperti langkah 2), tentukan approver (seperti langkah 7), **Update**; lalu di detail LOT klik **Submit for Approval** untuk meneruskan ke proses approval.
 
+### Detail LOT — status dan alur persetujuan
+
+Setelah LOT dibuat atau diajukan, buka detail lewat **View** dari daftar **Official Travels**. Panel kanan menampilkan **Travel Stops Timeline**, **Flight Request** (jika ada), dan kartu **Approval Status** (daftar approver beserta status langkah).
+
+**Aksi (panel kanan dan tombol aksi, sesuai status dan hak akses)**
+
+| Status                        | Aksi umum                                                                                                                      |
+| :---------------------------- | :----------------------------------------------------------------------------------------------------------------------------- |
+| **Draft**                     | **Edit**, **Delete**, **Submit for Approval**                                                                                  |
+| **Submitted**                 | Approver memproses lewat **My Approvals**; HR dapat **Update Approvers** selama masih ada langkah **Pending** (lihat di bawah) |
+| **Approved** / **Open**       | **Record Arrival**, **Record Departure**, **Edit itinerary** (jika berwenang), **Close Official Travel**, **Print**            |
+| Semua (kecuali ditolak/batal) | **Print**, **Back to List**                                                                                                    |
+
+**Catatan:** Setelah **Submit for Approval**, isian LOT (traveler, destinasi, jadwal, transportasi, dll.) **tidak dapat diedit** lagi lewat **Edit**; yang masih dapat disesuaikan HR hanya **approver pada langkah Pending** lewat **Update Approvers** di kartu **Approval Status**.
+
+**Penjelasan singkat — alur persetujuan LOT**
+
+1. Pembuat (HR atau karyawan via **My Official Travel Request** yang dikonfirmasi HR) menyimpan **Draft** atau mengajukan (**Submitted**).
+2. **Approver** yang dipilih memberi keputusan di **My Approvals** (jenis dokumen **Official Travel**).
+3. Setelah **Approved**, perjalanan dapat distempel (**Arrival** / **Departure**) dan ditutup sesuai bagian 4.
+
+<a id="mengubah-approver-pending-lot"></a>
+
+### Langkah-langkah — mengubah approver yang masih **Pending** (_Update Approvers_)
+
+Fitur ini hanya untuk **HR** dengan hak **`official-travels.edit`**, pada detail LOT berstatus **Submitted**, dan **bukan** dari halaman **My Official Travel Request** karyawan.
+
+1. Buka detail LOT (**View** dari daftar **Official Travels**).
+2. Pada kartu **Approval Status** di kolom kanan, baca daftar approver:
+    - Approver yang sudah **Approved** atau **Rejected** ditampilkan dengan badge status dan **tidak** memiliki tombol hapus (terkunci, border putus-putus).
+    - Approver yang masih **Pending** dapat dihapus (ikon **×**) lalu diganti lewat kotak pencarian approver.
+3. Untuk **mengganti** approver pending: klik **×** pada baris pending, ketik nama/email approver pengganti (minimal 2 karakter), pilih dari daftar — orang baru akan masuk pada **urutan yang sama**.
+4. Anda juga dapat **menghapus** approver pending di akhir daftar atau **menambah** approver pending baru di urutan belakang, selama minimal satu approver tetap ada dan approver terkunci tidak diubah.
+5. Klik **Update Approvers**. Pesan sukses mengonfirmasi pembaruan langkah pending; approver baru menerima antrean di **My Approvals**.
+
+**Catatan:**
+
+- Form **Update Approvers** **tidak** muncul jika semua langkah sudah diputuskan (tidak ada **Pending** tersisa) atau LOT bukan **Submitted**.
+- Urutan approver mengikuti nomor **1**, **2**, **3**, … pada badge; approver terkunci tetap di posisi semula.
+- Approver **tidak boleh duplikat** dalam satu LOT.
+- Tampilan kartu **Approval Status** memakai komponen yang sama dengan modul FPTK; perilaku terkunci/pending identik.
+
 ---
 
 ## 4. Alur Perjalanan Dinas — **Arrivals**, **Departures**, **Stops/Checkpoint**, **Edit Destination**, **Close**
@@ -249,18 +293,20 @@ Bagi karyawan dengan peran “user” (menu **My Features**), pengajuan pribadi 
 
 ## 7. Kesalahan & bantuan
 
-| Gejala / pesan (contoh)                                            | Kemungkinan penyebab                                                                                            | Apa yang bisa dicoba                                                                                                                                                                          |
-| :----------------------------------------------------------------- | :-------------------------------------------------------------------------------------------------------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Tombol **Close** tidak muncul padahal satu destinasi sudah selesai | Akun Anda **bukan** penugasan **LOT Origin**, atau belum ada stop dengan **arrival + departure** lengkap        | Penutupan dini hanya untuk project **LOT Origin**. Pastikan minimal **satu** checkpoint **lengkap** untuk skenario dini; lengkapi **semua** stop untuk penutupan penuh.                       |
-| Tombol **Add** / **Record Arrival** / **Close** tidak muncul       | Akun tidak memiliki **hak akses** atau penugasan project yang diperlukan                                        | Hubungi **tim HR / pengelola akses** agar peran dan penugasan project disesuaikan dengan tugas Anda.                                                                                          |
-| **LOT Number** tidak terisi                                        | **Letter Number** belum dipilih atau aturan surat kantor belum terpenuhi                                        | Pilih kembali surat; ikuti kebijakan **Letter Administration** (nomor surat) di perusahaan Anda.                                                                                              |
-| Tabel **Reports** selalu kosong                                    | Filter belum diisi cukup (sering wajib minimal satu kriteria)                                                   | Pilih setidaknya satu kriteria, lalu muat ulang.                                                                                                                                              |
-| Tidak dapat **Confirm Arrival** / **Confirm Departure**            | Urutan **checkpoint** / fase paralel–kunci belum memungkinkan, atau akun bukan penanggung stempel destinasi itu | Periksa **Travel Stops Timeline** dan aturan multi–destinasi di bagian 4; pastikan **departure** pada stop yang sedang mengunci sudah selesai bila stop lain menunggu; tanyakan HR bila ragu. |
-| Pesan wajib pilih approver ( **Approver Selection** )              | Jumlah approver belum memenuhi syarat                                                                           | Pilih approver lewat pencarian hingga memenuhi aturan.                                                                                                                                        |
-| Pesan tidak dapat menutup LOT                                      | Syarat penutupan (penuh atau dini dari origin) belum terpenuhi, atau akun tidak berwenang                       | Baca [menutup perjalanan](#langkah-langkah--menutup-perjalanan-close); penutupan dini memerlukan akun **LOT Origin** dan minimal satu stop **lengkap**.                                       |
-| Menu **Print** tidak punya panah / hanya satu tombol               | LOT hanya **satu** destinasi tanpa baris itinerary terpisah                                                     | Yang ada split button hanya untuk LOT **multi-stop**; LOT tunggal tetap satu tombol **Print**.                                                                                                |
-| Kartu **Edit itinerary** tidak tampil                              | LOT belum **Approved**, tidak punya stop, atau Anda bukan staf **LOT Origin**                                   | Periksa status dan **project asal** LOT; kartu ini untuk penugasan **LOT Origin**.                                                                                                            |
-| Akses ditolak, atau halaman “tidak ditemukan”                      | Tautan atau nomor bukan milik data Anda, atau bukan bagian wewenang Anda                                        | Buka kembali dari **menu** dan daftar; jangan menebak tautan; pastikan memakai akun yang benar.                                                                                               |
+| Gejala / pesan (contoh)                                            | Kemungkinan penyebab                                                                                            | Apa yang bisa dicoba                                                                                                                                                                                               |
+| :----------------------------------------------------------------- | :-------------------------------------------------------------------------------------------------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Tombol **Close** tidak muncul padahal satu destinasi sudah selesai | Akun Anda **bukan** penugasan **LOT Origin**, atau belum ada stop dengan **arrival + departure** lengkap        | Penutupan dini hanya untuk project **LOT Origin**. Pastikan minimal **satu** checkpoint **lengkap** untuk skenario dini; lengkapi **semua** stop untuk penutupan penuh.                                            |
+| Tombol **Add** / **Record Arrival** / **Close** tidak muncul       | Akun tidak memiliki **hak akses** atau penugasan project yang diperlukan                                        | Hubungi **tim HR / pengelola akses** agar peran dan penugasan project disesuaikan dengan tugas Anda.                                                                                                               |
+| **LOT Number** tidak terisi                                        | **Letter Number** belum dipilih atau aturan surat kantor belum terpenuhi                                        | Pilih kembali surat; ikuti kebijakan **Letter Administration** (nomor surat) di perusahaan Anda.                                                                                                                   |
+| Tabel **Reports** selalu kosong                                    | Filter belum diisi cukup (sering wajib minimal satu kriteria)                                                   | Pilih setidaknya satu kriteria, lalu muat ulang.                                                                                                                                                                   |
+| Tidak dapat **Confirm Arrival** / **Confirm Departure**            | Urutan **checkpoint** / fase paralel–kunci belum memungkinkan, atau akun bukan penanggung stempel destinasi itu | Periksa **Travel Stops Timeline** dan aturan multi–destinasi di bagian 4; pastikan **departure** pada stop yang sedang mengunci sudah selesai bila stop lain menunggu; tanyakan HR bila ragu.                      |
+| Pesan wajib pilih approver ( **Approver Selection** )              | Jumlah approver belum memenuhi syarat                                                                           | Pilih approver lewat pencarian hingga memenuhi aturan.                                                                                                                                                             |
+| LOT **Submitted** tidak bisa **Edit** isian perjalanan             | LOT sudah diajukan ke approver                                                                                  | Isian LOT (traveler, destinasi, jadwal, dll.) tidak bisa **Edit** lagi; untuk ganti approver pending gunakan **Update Approvers** di kartu **Approval Status** (lihat [bagian 3](#mengubah-approver-pending-lot)). |
+| Tombol **Update Approvers** tidak tampil                           | Semua langkah sudah diputuskan atau status bukan **Submitted**                                                  | Normal jika tidak ada langkah **Pending**; selesaikan alur approval atau buat LOT baru bila perlu.                                                                                                                 |
+| Pesan tidak dapat menutup LOT                                      | Syarat penutupan (penuh atau dini dari origin) belum terpenuhi, atau akun tidak berwenang                       | Baca [menutup perjalanan](#langkah-langkah--menutup-perjalanan-close); penutupan dini memerlukan akun **LOT Origin** dan minimal satu stop **lengkap**.                                                            |
+| Menu **Print** tidak punya panah / hanya satu tombol               | LOT hanya **satu** destinasi tanpa baris itinerary terpisah                                                     | Yang ada split button hanya untuk LOT **multi-stop**; LOT tunggal tetap satu tombol **Print**.                                                                                                                     |
+| Kartu **Edit itinerary** tidak tampil                              | LOT belum **Approved**, tidak punya stop, atau Anda bukan staf **LOT Origin**                                   | Periksa status dan **project asal** LOT; kartu ini untuk penugasan **LOT Origin**.                                                                                                                                 |
+| Akses ditolak, atau halaman “tidak ditemukan”                      | Tautan atau nomor bukan milik data Anda, atau bukan bagian wewenang Anda                                        | Buka kembali dari **menu** dan daftar; jangan menebak tautan; pastikan memakai akun yang benar.                                                                                                                    |
 
 ### Eskalasi ke HR / tim dukungan
 
