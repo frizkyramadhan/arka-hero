@@ -11,6 +11,7 @@ use App\Models\FlightRequestDetail;
 use App\Models\FlightRequestFollower;
 use App\Models\LeaveRequest;
 use App\Models\Officialtravel;
+use App\Support\UserProject;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -24,7 +25,7 @@ class FlightRequestController extends Controller
         // Admin/HCS permissions
         $this->middleware('permission:flight-requests.show')->only('index', 'data', 'show');
         $this->middleware('permission:flight-requests.create')->only('create', 'store');
-        $this->middleware('permission:flight-requests.edit')->only('edit', 'update');
+        $this->middleware('permission:flight-requests.edit')->only('edit', 'update', 'updateApprovers');
         $this->middleware('permission:flight-requests.delete')->only('destroy', 'cancel');
 
         // Personal permissions
@@ -103,7 +104,7 @@ class FlightRequestController extends Controller
             $actions = '<div class="btn-group">';
             $actions .= '<a href="'.route('flight-requests.show', $request->id).'" class="btn btn-sm btn-info mr-1" title="View"><i class="fas fa-eye"></i></a>';
 
-            if (in_array($request->status, [FlightRequest::STATUS_DRAFT, FlightRequest::STATUS_SUBMITTED])) {
+            if ($request->status === FlightRequest::STATUS_DRAFT) {
                 $actions .= '<a href="'.route('flight-requests.edit', $request->id).'" class="btn btn-sm btn-warning" title="Edit"><i class="fas fa-edit"></i></a>';
             }
 
@@ -618,7 +619,7 @@ class FlightRequestController extends Controller
             'followers.administration',
         ])->findOrFail($id);
 
-        if (! in_array($flightRequest->status, [FlightRequest::STATUS_DRAFT, FlightRequest::STATUS_SUBMITTED])) {
+        if ($flightRequest->status !== FlightRequest::STATUS_DRAFT) {
             return redirect()->route('flight-requests.show', $id)
                 ->with('toast_error', 'Cannot edit Flight Request with current status.');
         }
@@ -637,7 +638,7 @@ class FlightRequestController extends Controller
     {
         $flightRequest = FlightRequest::findOrFail($id);
 
-        if (! in_array($flightRequest->status, [FlightRequest::STATUS_DRAFT, FlightRequest::STATUS_SUBMITTED])) {
+        if ($flightRequest->status !== FlightRequest::STATUS_DRAFT) {
             return back()->with('toast_error', 'Cannot update Flight Request with current status.');
         }
 
@@ -774,6 +775,131 @@ class FlightRequestController extends Controller
             Log::error('Flight Request deletion failed: '.$e->getMessage());
 
             return back()->with('toast_error', 'Failed to delete Flight Request.');
+        }
+    }
+
+    /**
+     * Update manual approvers while FR is submitted; only pending steps may change.
+     */
+    public function updateApprovers(Request $request, $id)
+    {
+        $flightRequest = FlightRequest::with('administration')->findOrFail($id);
+
+        if ($flightRequest->administration && ($denied = UserProject::guardProjectInAssignmentScope((int) $flightRequest->administration->project_id))) {
+            return $denied;
+        }
+
+        if (! $flightRequest->canChangeApprovers()) {
+            return redirect()->route('flight-requests.show', $id)
+                ->with('toast_error', 'Approver tidak dapat diubah karena tidak ada langkah persetujuan yang masih Pending atau Flight Request tidak dalam status Submitted.');
+        }
+
+        $request->validate([
+            'manual_approvers' => 'required|array|min:1',
+            'manual_approvers.*' => 'exists:users,id',
+        ], [
+            'manual_approvers.required' => 'Please select at least one approver.',
+            'manual_approvers.array' => 'Approvers must be an array.',
+            'manual_approvers.min' => 'Please select at least one approver.',
+            'manual_approvers.*.exists' => 'One or more selected approvers are invalid.',
+        ]);
+
+        $submittedApprovers = $request->manual_approvers ?? [];
+        if (! is_array($submittedApprovers)) {
+            $submittedApprovers = [];
+        }
+        $submittedApprovers = array_values(array_map('intval', array_filter($submittedApprovers)));
+
+        if (empty($submittedApprovers)) {
+            return redirect()->back()
+                ->with('toast_error', 'Please select at least one approver.');
+        }
+
+        if (count($submittedApprovers) !== count(array_unique($submittedApprovers))) {
+            return redirect()->back()
+                ->with('toast_error', 'Approver tidak boleh duplikat.');
+        }
+
+        $existingPlans = ApprovalPlan::where('document_id', $flightRequest->id)
+            ->where('document_type', 'flight_request')
+            ->orderBy('approval_order')
+            ->get()
+            ->keyBy('approval_order');
+
+        $lockedPlans = $existingPlans->filter(fn (ApprovalPlan $plan) => (int) $plan->status !== 0);
+
+        foreach ($lockedPlans as $order => $plan) {
+            $index = (int) $order - 1;
+            if (! isset($submittedApprovers[$index]) || (int) $submittedApprovers[$index] !== (int) $plan->approver_id) {
+                return redirect()->back()
+                    ->with('toast_error', 'Approver yang sudah disetujui atau ditolak tidak dapat diubah atau dihapus.');
+            }
+        }
+
+        $currentApprovers = array_values(array_map('intval', $flightRequest->manual_approvers ?? []));
+        $approversChanged = json_encode($currentApprovers) !== json_encode($submittedApprovers);
+
+        if (! $approversChanged) {
+            return redirect()->route('flight-requests.show', $id)
+                ->with('toast_info', 'No changes to approver selection.');
+        }
+
+        try {
+            DB::beginTransaction();
+
+            $flightRequest->update(['manual_approvers' => $submittedApprovers]);
+
+            $ordersPresent = [];
+            $createdPending = 0;
+
+            foreach ($submittedApprovers as $index => $approverId) {
+                $order = $index + 1;
+                $ordersPresent[] = $order;
+                $plan = $existingPlans->get($order);
+
+                if ($plan && (int) $plan->status !== 0) {
+                    continue;
+                }
+
+                if ($plan) {
+                    $plan->delete();
+                }
+
+                ApprovalPlan::create([
+                    'document_id' => $flightRequest->id,
+                    'document_type' => 'flight_request',
+                    'approver_id' => $approverId,
+                    'status' => 0,
+                    'is_open' => true,
+                    'is_read' => false,
+                    'approval_order' => $order,
+                ]);
+                $createdPending++;
+            }
+
+            ApprovalPlan::where('document_id', $flightRequest->id)
+                ->where('document_type', 'flight_request')
+                ->where('status', 0)
+                ->whereNotIn('approval_order', $ordersPresent)
+                ->delete();
+
+            DB::commit();
+
+            $message = $createdPending > 0
+                ? 'Approver pending berhasil diperbarui. '.$createdPending.' langkah pending menunggu keputusan.'
+                : 'Approver selection updated.';
+
+            return redirect()->route('flight-requests.show', $id)
+                ->with('toast_success', $message);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Error updating Flight Request approvers: '.$e->getMessage(), [
+                'flight_request_id' => $id,
+                'exception' => $e,
+            ]);
+
+            return redirect()->back()
+                ->with('toast_error', 'Terjadi kesalahan saat mengubah approver. Silakan coba lagi.');
         }
     }
 
@@ -951,7 +1077,7 @@ class FlightRequestController extends Controller
             })
             ->addColumn('actions', function ($row) {
                 $actions = '<a href="'.route('flight-requests.my-requests.show', $row->id).'" class="btn btn-sm btn-info"><i class="fas fa-eye"></i></a>';
-                if (in_array($row->status, [FlightRequest::STATUS_DRAFT, FlightRequest::STATUS_SUBMITTED])) {
+                if ($row->status === FlightRequest::STATUS_DRAFT) {
                     $actions .= ' <a href="'.route('flight-requests.my-requests.edit', $row->id).'" class="btn btn-sm btn-warning"><i class="fas fa-edit"></i></a>';
                 }
 
@@ -1078,7 +1204,7 @@ class FlightRequestController extends Controller
             'followers.administration',
         ])->where('requested_by', $user->id)->findOrFail($id);
 
-        if (! in_array($flightRequest->status, [FlightRequest::STATUS_DRAFT, FlightRequest::STATUS_SUBMITTED])) {
+        if ($flightRequest->status !== FlightRequest::STATUS_DRAFT) {
             return redirect()->route('flight-requests.my-requests.show', $id)
                 ->with('toast_error', 'Cannot edit Flight Request with current status.');
         }
