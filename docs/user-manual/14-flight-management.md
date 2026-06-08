@@ -1,5 +1,10 @@
 # Flight Management
 
+| **Versi** | **Tanggal** | **Revisi (ringkas)**                                                                                                                                                                      |
+| :-------- | :---------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1.1       | 2026-06-05  | **Update Approvers** pada detail FRF **Submitted**: hanya langkah **Pending** yang dapat diganti; approver yang sudah **Approved**/**Rejected** terkunci. Tombol **Edit** hanya untuk **Draft**. |
+| 1.0       | —           | Panduan awal: dashboard HR, **Requests (FRF)**, **Issuances (LG)**, **My Flight Request**, troubleshooting.                                                                               |
+
 <div style="text-align: justify; text-justify: inter-word;">
 
 Panduan ini menjelaskan modul **Flight Management** di ARKA HERO: pengelolaan permintaan tiket penerbangan (**Flight Request Form / FRF**) untuk **staf HR** (menu grup **Flight Management** di **GAMMA SECTION**), serta pengajuan mandiri oleh **karyawan** lewat **My Features** → **My Flight Request**.
@@ -22,6 +27,7 @@ Panduan ini menjelaskan modul **Flight Management** di ARKA HERO: pengelolaan pe
 | **Business Partner**         | Vendor atau mitra bisnis penerbit tiket; dipilih pada LG dan muncul di grafik dashboard.                 |
 | **Issued Number**            | Nomor unik LG (misalnya **FR0001/ARKA/LG/I/2026**); terisi otomatis setelah **Letter Number** dipilih.   |
 | **Approver Selection**       | Pemilihan approver manual sebelum pengajuan FRF atau penerbitan LG.                                      |
+| **Update Approvers**         | Tombol pada kartu **Approval Status** (detail FRF **Submitted**) untuk mengganti approver yang masih **Pending**; approver yang sudah memutuskan tidak dapat diubah. |
 
 ---
 
@@ -235,10 +241,42 @@ Pada tipe **Standalone**, HR atau karyawan dapat menambahkan **pengikut** yang i
 ### Langkah-langkah — melihat detail FRF (HR)
 
 1. Dari daftar **Flight Requests**, klik **View** pada baris yang dipilih.
-2. Halaman detail menampilkan **Employee Information** (serta **REQUEST TYPE** — **Leave Based**, **Travel Based**, atau **Standalone**, dengan referensi cuti/LOT bila ada), **Followers** (dari LOT atau Standalone; tidak ada untuk Leave Based), **Flight Details**, **Selected Approvers**, dan **Notes**.
+2. Halaman detail menampilkan **Employee Information** (serta **REQUEST TYPE** — **Leave Based**, **Travel Based**, atau **Standalone**, dengan referensi cuti/LOT bila ada), **Followers** (dari LOT atau Standalone; tidak ada untuk Leave Based), **Flight Details**, **Approval Status** (daftar approver), dan **Notes**.
 3. Pada **Travel Based**, kartu **Followers** menampilkan daftar dari LOT (nama, jabatan, NIK, departemen, proyek) beserta badge jumlah pengikut. Pada **Standalone**, pengikut karyawan menampilkan jabatan/departemen/proyek; pengikut manual hanya nama, NIK/KTP, dan telepon.
-4. Tombol **Edit** (Draft), **Delete** (Draft), **Cancel**, **Print**, dan **Back to List** mengikuti status dan hak akses.
-5. Jika FRF berstatus **Approved** atau **Issued**, kartu **Letter of Guarantee (LG)** tampil di **panel kanan** (di bawah **Selected Approvers**). Gunakan tombol **Add LG** pada kartu tersebut untuk membuat LG langsung dari FRF ini — lihat [Jalur 1 — dari detail FRF](#jalur-1--dari-detail-frf-approvedissued) ([Gambar 4.2](#flight-request-detail-add-lg)) di bagian **Issuances**. Jika LG sudah pernah dibuat, daftar LG tampil di kartu yang sama beserta tautan **View Details**.
+
+**Aksi (panel kanan dan tombol aksi, sesuai status dan hak akses)**
+
+| Status                        | Aksi umum                                                                                                                      |
+| :---------------------------- | :----------------------------------------------------------------------------------------------------------------------------- |
+| **Draft**                     | **Edit**, **Delete**, **Submit for Approval**, **Cancel**, **Print**                                                           |
+| **Submitted**                 | Approver memproses lewat **My Approvals**; HR dapat **Update Approvers** selama masih ada langkah **Pending** (lihat di bawah) |
+| **Approved** / **Issued**     | **Add LG**, **Cancel** (jika diizinkan), **Print**                                                                             |
+| Semua (kecuali ditolak/batal) | **Print**, **Back to List**                                                                                                    |
+
+**Catatan:** Setelah **Submit for Approval** / **Save & Submit**, isian FRF (pemohon, segmen penerbangan, pengikut, dll.) **tidak dapat diedit** lagi lewat **Edit**; yang masih dapat disesuaikan HR hanya **approver pada langkah Pending** lewat **Update Approvers** di kartu **Approval Status**. Tombol **Edit** pada daftar **Flight Requests** dan halaman detail **hanya** tampil untuk status **Draft**.
+
+4. Jika FRF berstatus **Approved** atau **Issued**, kartu **Letter of Guarantee (LG)** tampil di **panel kanan** (di bawah **Approval Status**). Gunakan tombol **Add LG** pada kartu tersebut untuk membuat LG langsung dari FRF ini — lihat [Jalur 1 — dari detail FRF](#jalur-1--dari-detail-frf-approvedissued) ([Gambar 4.2](#flight-request-detail-add-lg)) di bagian **Issuances**. Jika LG sudah pernah dibuat, daftar LG tampil di kartu yang sama beserta tautan **View Details**.
+
+<a id="mengubah-approver-pending-frf"></a>
+
+### Langkah-langkah — mengubah approver yang masih **Pending** (_Update Approvers_)
+
+Fitur ini hanya untuk **HR** dengan hak **`flight-requests.edit`**, pada detail FRF berstatus **Submitted**, dan **bukan** dari halaman **My Flight Request** karyawan.
+
+1. Buka detail FRF (**View** dari daftar **Flight Requests**).
+2. Pada kartu **Approval Status** di kolom kanan, baca daftar approver:
+    - Approver yang sudah **Approved** atau **Rejected** ditampilkan dengan badge status dan **tidak** memiliki tombol hapus (terkunci, border putus-putus).
+    - Approver yang masih **Pending** dapat dihapus (ikon **×**) lalu diganti lewat kotak pencarian approver.
+3. Untuk **mengganti** approver pending: klik **×** pada baris pending, ketik nama/email approver pengganti (minimal 2 karakter), pilih dari daftar — orang baru akan masuk pada **urutan yang sama**.
+4. Anda juga dapat **menghapus** approver pending di akhir daftar atau **menambah** approver pending baru di urutan belakang, selama minimal satu approver tetap ada dan approver terkunci tidak diubah.
+5. Klik **Update Approvers**. Pesan sukses mengonfirmasi pembaruan langkah pending; approver baru menerima antrean di **My Approvals**.
+
+**Catatan:**
+
+- Form **Update Approvers** **tidak** muncul jika semua langkah sudah diputuskan (tidak ada **Pending** tersisa) atau FRF bukan **Submitted**.
+- Urutan approver mengikuti nomor **1**, **2**, **3**, … pada badge; approver terkunci tetap di posisi semula.
+- Approver **tidak boleh duplikat** dalam satu FRF.
+- Perilaku kartu **Approval Status** selaras dengan modul FPTK dan LOT.
 
 <p align="center" id="flight-detail-standalone-followers">
     <img
@@ -251,12 +289,12 @@ Pada tipe **Standalone**, HR atau karyawan dapat menambahkan **pengikut** yang i
 
 ### Langkah-langkah — **Edit Flight Request** (HR)
 
-1. Buka detail FRF, lalu klik **Edit** (atau **Edit** langsung dari kolom **Actions** pada daftar jika tersedia).
+1. Buka detail FRF berstatus **Draft**, lalu klik **Edit** (atau **Edit** langsung dari kolom **Actions** pada daftar — tombol **Edit** **hanya** muncul untuk baris **Draft**).
 2. Ubah **Request Type**, data pemohon, **Followers** (hanya **Standalone**), **Flight Details**, **Notes**, atau **Approver Selection** sesuai kebutuhan.
 3. Klik **Update Flight Request** / **Submit** sesuai tombol yang tampil.
 4. Setelah disimpan dari menu **Requests**, sistem mengarahkan kembali ke halaman detail FRF di **Flight Management** → **Requests**, bukan ke **My Flight Request**.
 
-**Catatan:** Pengeditan umumnya hanya untuk status **Draft**.
+**Catatan:** Pengeditan **hanya** untuk status **Draft**. FRF **Submitted** tidak dapat diedit; gunakan **Update Approvers** untuk mengganti approver pending (lihat [bagian di atas](#mengubah-approver-pending-frf)).
 
 ---
 
@@ -420,7 +458,7 @@ Tabel pada halaman **My Flight Request** adalah **satu daftar gabungan** untuk s
 <br><em>Gambar 5.1 — Daftar My Flight Requests</em>
 </p>
 
-Gunakan daftar ini untuk **memantau status** yang sama untuk semua jalur (**Draft**, **Submitted**, **Approved**, **Issued**, dll.) dan membuka detail **View** / **Edit** bila tombol tersebut tersedia. Kolom **Request Type** memuat badge seperti **Leave Based**, **Travel Based**, dan **Standalone**; tombol pada kolom **Actions** mengikuti status dan hak akses. Contoh halaman detail setelah **View**: status **Draft** pada Gambar 5.7; **Submitted** dengan kartu approver pada Gambar 5.8. Alur persetujuan cuti atau LOT tetap berjalan di modul masing-masing; permintaan tiket mengikuti kebijakan **Flight Management** dan koordinasi **HR HO Balikpapan**.
+Gunakan daftar ini untuk **memantau status** yang sama untuk semua jalur (**Draft**, **Submitted**, **Approved**, **Issued**, dll.) dan membuka detail **View** / **Edit** bila tombol tersebut tersedia. Tombol **Edit** pada kolom **Actions** **hanya** tampil untuk status **Draft** — FRF **Submitted** tidak memiliki **Edit** di daftar maupun di detail. Kolom **Request Type** memuat badge seperti **Leave Based**, **Travel Based**, dan **Standalone**. Contoh halaman detail setelah **View**: status **Draft** pada Gambar 5.7; **Submitted** dengan kartu **Approval Status** pada Gambar 5.8. Alur persetujuan cuti atau LOT tetap berjalan di modul masing-masing; permintaan tiket mengikuti kebijakan **Flight Management** dan koordinasi **HR HO Balikpapan**.
 
 **Filter** tersedia:
 
@@ -520,7 +558,7 @@ Cuplikan berikut adalah contoh detail permintaan **Travel Based** yang mengacu p
 <br><em>Gambar 5.7 — Detail tiket Draft (Travel Based)</em>
 </p>
 
-Setelah permintaan **diajukan** dan masuk ke pemrosesan HR / alur tiket, badge status pada judul detail dapat berubah menjadi **Submitted** (atau status lain yang ditampilkan di lingkungan Anda). Pada tahap ini, halaman detail biasanya menampilkan kartu **Selected Approvers** berisi daftar approver dengan badge status tiap orang (**Pending** sampai ada yang menyetujui atau menolak). Konten **Employee Information**, **Followers**, dan **Flight Details** tetap sebagai referensi; Anda **tidak lagi menyunting** data utama seperti pada **Draft** — tombol **Edit** / **Delete** sering **hilang** atau tidak tersedia. Panel **Actions** pada contoh berikut menyediakan **Back to My Requests**, **Cancel**, dan **Print** (susunan pasti mengikuti status dan hak akses).
+Setelah permintaan **diajukan** dan masuk ke pemrosesan HR / alur tiket, badge status pada judul detail dapat berubah menjadi **Submitted** (atau status lain yang ditampilkan di lingkungan Anda). Pada tahap ini, halaman detail biasanya menampilkan kartu **Approval Status** berisi daftar approver dengan badge status tiap orang (**Pending** sampai ada yang menyetujui atau menolak). Konten **Employee Information**, **Followers**, dan **Flight Details** tetap sebagai referensi; Anda **tidak lagi menyunting** data utama seperti pada **Draft** — tombol **Edit** / **Delete** **tidak** tersedia. HR yang membuka detail yang sama dari menu **Flight Management** → **Requests** dapat mengganti approver pending lewat **Update Approvers** (lihat [bagian 3](#mengubah-approver-pending-frf)). Panel **Actions** pada contoh berikut menyediakan **Back to My Requests**, **Cancel**, dan **Print** (susunan pasti mengikuti status dan hak akses).
 
 <p align="center" id="my-flight-request-detail-submitted">
     <img
@@ -562,7 +600,10 @@ Setelah berhasil, status permintaan menjadi **Cancelled**. Tombol **Cancel** **t
 | Validasi pengikut manual               | **Name**, **NIK**, atau **Phone** kosong saat **Fill follower information manually** dicentang       | Lengkapi ketiga field pada baris yang bermasalah                                                 |
 | Validasi pengikut karyawan             | Dropdown karyawan belum dipilih                                                                      | Pilih **NIK - Nama** pada baris tersebut                                                         |
 | Pengikut LOT salah                     | FRF bertipe **Travel Based**                                                                         | Ubah pengikut di pengajuan **Official Travel (LOT)**, bukan di FRF                               |
-| Tidak bisa mengubah FRF                | Status bukan **Draft** / **Submitted** (sesuai kebijakan)                                            | Hubungi HR; buat permintaan baru jika diperlukan                                                 |
+| FRF **Submitted** tidak bisa **Edit**  | FRF sudah diajukan ke approver                                                                       | Isian FRF tidak bisa **Edit** lagi; HR mengganti approver pending lewat **Update Approvers** di kartu **Approval Status** (lihat [bagian 3](#mengubah-approver-pending-frf)). |
+| Tombol **Edit** tidak tampil di daftar | Status bukan **Draft**                                                                               | Normal — **Edit** hanya untuk **Draft**. FRF **Submitted** hanya **View** (dan **Update Approvers** di detail untuk HR). |
+| Tombol **Update Approvers** tidak tampil | Semua langkah sudah diputuskan atau status bukan **Submitted**                                     | Normal jika tidak ada langkah **Pending**; selesaikan alur approval atau buat FRF baru bila perlu. |
+| Tidak bisa mengubah FRF (selain approver) | Status bukan **Draft**                                                                            | Hubungi HR; buat permintaan baru jika diperlukan                                                 |
 | **Continue with Selected FR** nonaktif | Belum ada FRF dicentang, atau FRF tidak memenuhi syarat LG                                           | Centang minimal satu FRF berstatus **Approved** / **Issued**                                     |
 | Tidak bisa **Edit LG**                 | FRF terkait sudah **Completed**                                                                      | Koordinasikan dengan administrator; buat LG baru jika diperlukan                                 |
 | Validasi tiket LG                      | **Passenger Name** kosong saat **Manual** tidak dicentang / sebaliknya                               | Pilih karyawan **atau** centang **Manual** dan isi nama                                          |

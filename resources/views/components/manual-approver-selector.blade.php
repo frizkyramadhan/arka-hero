@@ -44,6 +44,11 @@
             // Get approval plan for this approver
             $approvalPlan = $approvalPlans->get($id);
 
+            $statusAt = null;
+            if ($approvalPlan && (int) $approvalPlan->status !== 0 && $approvalPlan->updated_at) {
+                $statusAt = $approvalPlan->updated_at->format('d/m/Y H:i');
+            }
+
             return (object) [
                 'id' => $approver->id,
                 'name' => $approver->name,
@@ -51,6 +56,7 @@
                 'status' => $approvalPlan ? $approvalPlan->status : null,
                 'remarks' => $approvalPlan ? $approvalPlan->remarks : null,
                 'approval_order' => $approvalPlan ? $approvalPlan->approval_order : null,
+                'status_at' => $statusAt,
             ];
         })
         ->filter();
@@ -127,7 +133,12 @@
                                 @endif
                             </div>
                             <span class="approver-email">{{ $approver->email }}</span>
-                            @if ($isViewMode && $approver->remarks)
+                            @if (($isViewMode || $isLocked) && $statusInfo && (int) $status !== 0 && $approver->status_at)
+                                <div class="approver-status-at">
+                                    <i class="far fa-clock"></i> {{ $approver->status_at }}
+                                </div>
+                            @endif
+                            @if (($isViewMode || $isLocked) && $approver->remarks)
                                 <div class="approver-remarks">
                                     <i class="fas fa-comment-alt"></i> {{ $approver->remarks }}
                                 </div>
@@ -610,6 +621,16 @@
         padding: 0.25rem 0.5rem;
         font-weight: 600;
         white-space: nowrap;
+    }
+
+    .approver-status-at {
+        margin-top: 0.35rem;
+        font-size: 0.8rem;
+        color: #6c757d;
+    }
+
+    .approver-status-at i {
+        margin-right: 0.25rem;
     }
 
     .approver-remarks {

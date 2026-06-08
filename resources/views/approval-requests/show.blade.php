@@ -1349,17 +1349,21 @@ if ($plan->status === 1) {
                                                     </div>
                                                 </div>
 
-                                                @if ($plan->status !== 0 && $plan->remarks)
-                                                    <div class="step-remarks">
-                                                        <div class="remarks-label">
-                                                            <i class="fas fa-comment"></i> Remarks:
+                                                @if ($plan->status !== 0)
+                                                    @if ($plan->remarks)
+                                                        <div class="step-remarks">
+                                                            <div class="remarks-label">
+                                                                <i class="fas fa-comment"></i> Remarks:
+                                                            </div>
+                                                            <div class="remarks-content">{{ $plan->remarks }}</div>
                                                         </div>
-                                                        <div class="remarks-content">{{ $plan->remarks }}</div>
-                                                        <div class="remarks-time">
+                                                    @endif
+                                                    @if ($plan->updated_at)
+                                                        <div class="step-status-at">
                                                             <i class="far fa-clock"></i>
-                                                            {{ $plan->updated_at ? date('d M Y H:i', strtotime($plan->updated_at)) : 'N/A' }}
+                                                            {{ $plan->updated_at->format('d/m/Y H:i') }}
                                                         </div>
-                                                    </div>
+                                                    @endif
                                                 @endif
 
                                                 @if ($plan->id === $approvalPlan->id && $plan->status === 0)
@@ -2294,7 +2298,9 @@ if ($plan->status === 1) {
             line-height: 1.4;
         }
 
-        .remarks-time {
+        .remarks-time,
+        .step-status-at {
+            margin-top: 8px;
             font-size: 0.8rem;
             color: #95a5a6;
             display: flex;
