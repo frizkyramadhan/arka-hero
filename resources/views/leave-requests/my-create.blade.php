@@ -40,8 +40,8 @@
 
     <section class="content">
         <div class="container-fluid">
-            <form method="POST" action="{{ route('leave.my-requests.store') }}" enctype="multipart/form-data"
-                autocomplete="off">
+            <form id="myLeaveRequestForm" method="POST" action="{{ route('leave.my-requests.store') }}"
+                enctype="multipart/form-data" autocomplete="off">
                 @csrf
                 {{-- Hidden fields for employee and project --}}
                 <input type="hidden" name="employee_id" id="employee_id" value="{{ $defaultEmployeeId }}">
@@ -1552,8 +1552,8 @@
             // FORM SUBMISSION HANDLER
             // ============================================================================
 
-            // Ensure total_days is always set before form submission
-            $('form').on('submit', function(e) {
+            // Ensure total_days is always set before form submission (scoped — avoid catching sidebar logout form)
+            $('#myLeaveRequestForm').on('submit', function(e) {
                 // Get total_days from hidden field
                 let totalDays = $('#total_days_hidden').val();
 
