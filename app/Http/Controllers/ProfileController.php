@@ -20,6 +20,7 @@ use App\Models\Operableunit;
 use App\Models\Project;
 use App\Models\Taxidentification;
 use App\Models\User;
+use App\Services\AdministrationYearsOfServiceCalculator;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -1119,6 +1120,12 @@ class ProfileController extends Controller
             ->orderBy('administrations.nik', 'desc')
             ->get();
 
+        $serviceStartDoh = null;
+        if ($activeAdministration) {
+            $serviceStartDoh = app(AdministrationYearsOfServiceCalculator::class)
+                ->getServiceStartDoh($activeAdministration, $administrations);
+        }
+
         $profile = Image::where('employee_id', $employee->id)
             ->where('is_profile', '=', '1')
             ->first();
@@ -1145,6 +1152,7 @@ class ProfileController extends Controller
             'images',
             'activeAdministration',
             'administrations',
+            'serviceStartDoh',
             'profile'
         ));
     }

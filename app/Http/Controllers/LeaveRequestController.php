@@ -1910,11 +1910,14 @@ class LeaveRequestController extends Controller
     {
         $leaveTypes = LeaveType::where('is_active', true)->orderBy('code', 'asc')->get();
 
-        // Get user's project and department from their administration
         $user = Auth::user();
-        $administration = $user->employee && $user->employee->administrations ? $user->employee->administrations->first() : null;
-        $project = $administration ? $administration->project : null;
-        $department = $administration ? $administration->department : null;
+        $employee = $user->employee;
+        $administration = $employee?->activeAdministration;
+        if ($administration) {
+            $administration->load(['project', 'position.department']);
+        }
+        $project = $administration?->project;
+        $department = $administration?->position?->department;
 
         // Projects from user_project assignment
         $projects = UserProject::projectsForSelect();

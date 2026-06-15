@@ -11,6 +11,7 @@ use App\Models\FlightRequestDetail;
 use App\Models\FlightRequestFollower;
 use App\Models\LeaveRequest;
 use App\Models\Officialtravel;
+use App\Services\AdministrationYearsOfServiceCalculator;
 use App\Support\UserProject;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -1133,6 +1134,13 @@ class FlightRequestController extends Controller
             $administration->load(['position.department', 'project']);
         }
 
+        $serviceStartDoh = null;
+        if ($employee && $administration) {
+            $administrations = Administration::where('employee_id', $employee->id)->get();
+            $serviceStartDoh = app(AdministrationYearsOfServiceCalculator::class)
+                ->getServiceStartDoh($administration, $administrations);
+        }
+
         $myProfileData = [
             'employee_id' => $employee?->id,
             'administration_id' => $administration?->id,
@@ -1141,7 +1149,9 @@ class FlightRequestController extends Controller
             'position' => $administration && $administration->position ? $administration->position->position_name : '',
             'department' => $administration && $administration->position && $administration->position->department ? $administration->position->department->department_name : '',
             'poh' => $administration && isset($administration->poh) ? $administration->poh : '',
-            'doh' => $administration && $administration->doh ? $administration->doh->format('d F Y') : '',
+            'doh' => $serviceStartDoh
+                ? $serviceStartDoh->format('d F Y')
+                : ($administration && $administration->doh ? $administration->doh->format('d F Y') : ''),
             'project' => $administration && $administration->project ? ($administration->project->project_name ?? $administration->project->project_code) : '',
             'phone_number' => $employee?->phone ?? $employee?->phone_number ?? '',
             'purpose_of_travel' => '',

@@ -261,13 +261,14 @@
                                                 {{ ucfirst($activeAdministration->class ?? '-') }}</dd>
                                             <dt class="col-sm-4">Date of Hire (DOH)</dt>
                                             <dd class="col-sm-8">
-                                                {{ $activeAdministration->doh ? date('d M Y', strtotime($activeAdministration->doh)) : '-' }}
+                                                @if ($serviceStartDoh)
+                                                    {{ $serviceStartDoh->format('d M Y') }}
+                                                @elseif ($activeAdministration->doh)
+                                                    {{ date('d M Y', strtotime($activeAdministration->doh)) }}
+                                                @else
+                                                    -
+                                                @endif
                                             </dd>
-                                            @if ($activeAdministration->foc)
-                                                <dt class="col-sm-4">End of Contract (FOC)</dt>
-                                                <dd class="col-sm-8">
-                                                    {{ date('d M Y', strtotime($activeAdministration->foc)) }}</dd>
-                                            @endif
                                         </dl>
                                     </div>
                                 @endif
