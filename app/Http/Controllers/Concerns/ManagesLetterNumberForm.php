@@ -60,6 +60,23 @@ trait ManagesLetterNumberForm
         ];
     }
 
+    /**
+     * @return array<string, mixed>
+     */
+    protected function letterNumberBaseRules(): array
+    {
+        return [
+            'letter_date' => 'required|date',
+            'destination' => 'nullable|string|max:200',
+            'remarks' => 'nullable|string',
+            'project_code' => 'nullable|string|max:50',
+            'project_id' => $this->letterNumberProjectIdRules(),
+            'subject_id' => 'nullable|exists:letter_subjects,id',
+            'custom_subject' => 'nullable|string|max:200',
+            'administration_id' => 'nullable|exists:administrations,id',
+        ];
+    }
+
     protected function userHasAccessToLetterNumberProject(LetterNumber $letterNumber): bool
     {
         return auth()->user()->projects()

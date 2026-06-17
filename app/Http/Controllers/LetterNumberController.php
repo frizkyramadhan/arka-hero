@@ -20,8 +20,8 @@ class LetterNumberController extends Controller
     public function __construct()
     {
         $this->middleware('permission:letter-numbers.show')->only(['index', 'show']);
-        $this->middleware('permission:letter-numbers.create')->only('create');
-        $this->middleware('permission:letter-numbers.edit')->only('edit');
+        $this->middleware('permission:letter-numbers.create')->only(['create', 'store']);
+        $this->middleware('permission:letter-numbers.edit')->only(['edit', 'update']);
         $this->middleware('permission:letter-numbers.delete')->only('destroy');
     }
 
@@ -219,14 +219,9 @@ class LetterNumberController extends Controller
 
     public function store(Request $request)
     {
-        $rules = [
+        $rules = array_merge($this->letterNumberBaseRules(), [
             'letter_category_id' => 'required|exists:letter_categories,id',
-            'letter_date' => 'required|date',
-            'destination' => 'nullable|string|max:200',
-            'remarks' => 'nullable|string',
-            'project_code' => 'nullable|string|max:50',
-            'project_id' => $this->letterNumberProjectIdRules(),
-        ];
+        ]);
 
         // Validate category access based on user permissions
         $category = LetterCategory::find($request->letter_category_id);
@@ -247,7 +242,7 @@ class LetterNumberController extends Controller
                     $rules['duration'] = 'nullable';
                     $rules['start_date'] = 'nullable|date';
                     $rules['end_date'] = 'nullable|date|after:start_date';
-                    $rules['pkwt_type'] = 'required|in:PKWT, PKWTT';
+                    $rules['pkwt_type'] = 'required|in:PKWT,PKWTT';
                     break;
 
                 case 'PAR':
@@ -270,14 +265,23 @@ class LetterNumberController extends Controller
 
         $request->validate($rules);
 
-        $letterNumber = new LetterNumber;
-        $letterNumber->fill($this->letterNumberPayload($request));
+        try {
+            $letterNumber = LetterNumber::createWithRetry(array_merge(
+                $this->letterNumberPayload($request),
+                ['user_id' => auth()->id()]
+            ));
 
-        $letterNumber->user_id = auth()->id();
-        $letterNumber->save();
+            return redirect()->route('letter-numbers.index')
+                ->with('toast_success', 'Letter number created successfully: '.$letterNumber->letter_number);
+        } catch (\Illuminate\Database\QueryException $e) {
+            if ($e->getCode() == 23000) {
+                return back()->withInput()->with('toast_error', 'Failed to create letter number: duplicate or invalid reference data.');
+            }
 
-        return redirect()->route('letter-numbers.index')
-            ->with('toast_success', 'Letter number created successfully: '.$letterNumber->letter_number);
+            throw $e;
+        } catch (\Exception $e) {
+            return back()->withInput()->with('toast_error', 'Failed to create letter number: '.$e->getMessage());
+        }
     }
 
     public function show($id)
@@ -346,13 +350,9 @@ class LetterNumberController extends Controller
                 ->with('toast_error', 'Letter number cannot be updated because it has been used or cancelled');
         }
 
-        $rules = [
-            'letter_date' => 'required|date',
-            'destination' => 'nullable|string|max:200',
-            'remarks' => 'nullable|string',
-            'project_code' => 'nullable|string|max:50',
-            'project_id' => $this->letterNumberProjectIdRules(),
-        ];
+        $rules = array_merge($this->letterNumberBaseRules(), [
+            'letter_category_id' => 'required|exists:letter_categories,id',
+        ]);
 
         // Validate category access based on user permissions
         $category = LetterCategory::find($request->letter_category_id);
@@ -373,7 +373,7 @@ class LetterNumberController extends Controller
                     $rules['duration'] = 'nullable';
                     $rules['start_date'] = 'nullable|date';
                     $rules['end_date'] = 'nullable|date|after:start_date';
-                    $rules['pkwt_type'] = 'nullable|in:PKWT, PKWTT';
+                    $rules['pkwt_type'] = 'nullable|in:PKWT,PKWTT';
                     break;
 
                 case 'PAR':
@@ -396,12 +396,21 @@ class LetterNumberController extends Controller
 
         $request->validate($rules);
 
-        $letterNumber->fill($this->letterNumberPayload($request));
+        try {
+            $letterNumber->fill($this->letterNumberPayload($request));
+            $letterNumber->save();
 
-        $letterNumber->save();
+            return redirect()->route('letter-numbers.index')
+                ->with('toast_success', 'Letter number updated successfully: '.$letterNumber->letter_number);
+        } catch (\Illuminate\Database\QueryException $e) {
+            if ($e->getCode() == 23000) {
+                return back()->withInput()->with('toast_error', 'Failed to update letter number: duplicate or invalid reference data.');
+            }
 
-        return redirect()->route('letter-numbers.index')
-            ->with('toast_success', 'Letter number updated successfully: '.$letterNumber->letter_number);
+            throw $e;
+        } catch (\Exception $e) {
+            return back()->withInput()->with('toast_error', 'Failed to update letter number: '.$e->getMessage());
+        }
     }
 
     public function destroy($id)
