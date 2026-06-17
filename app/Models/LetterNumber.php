@@ -149,59 +149,65 @@ class LetterNumber extends Model
     public function generateLetterNumberReliable()
     {
         // Pastikan relasi category sudah di-load
-        if (!$this->relationLoaded('category')) {
+        if (! $this->relationLoaded('category')) {
             $this->load('category');
         }
 
         $category = $this->category;
-        $year = date('Y', strtotime($this->letter_date));
+        if (! $category) {
+            throw new \Exception('Letter category not found for ID: '.$this->letter_category_id);
+        }
+
+        $year = $this->letter_date instanceof \Carbon\Carbon
+            ? $this->letter_date->year
+            : (int) date('Y', strtotime((string) $this->letter_date));
         $projectId = $this->project_id;
 
-        // Gunakan database transaction dengan retry logic
         return DB::transaction(function () use ($category, $year, $projectId) {
-            $maxAttempts = 5;
+            // Lock rows for this category/year/project so concurrent creates serialize.
+            static::where('letter_category_id', $this->letter_category_id)
+                ->where('year', $year)
+                ->where('project_id', $projectId)
+                ->lockForUpdate()
+                ->orderBy('sequence_number', 'desc')
+                ->first();
+
+            $nextSequence = (int) static::where('letter_category_id', $this->letter_category_id)
+                ->where('year', $year)
+                ->where('project_id', $projectId)
+                ->max('sequence_number') + 1;
+
+            $maxAttempts = 50;
             $attempt = 0;
 
-            do {
+            while ($attempt < $maxAttempts) {
                 $attempt++;
 
-                // Dapatkan sequence number terbaru dengan lock
-                // Sequence per category/year/project_id
-                $query = static::where('letter_category_id', $this->letter_category_id)
-                    ->where('year', $year)
-                    ->where('project_id', $projectId);
-
-                // Gunakan lockForUpdate untuk mencegah race condition
-                $lastNumber = $query->lockForUpdate()
-                    ->orderBy('sequence_number', 'desc')
-                    ->first();
-
-                $nextSequence = $lastNumber ? $lastNumber->sequence_number + 1 : 1;
-
-                // Set sequence dan generate letter number
                 $this->sequence_number = $nextSequence;
                 $this->year = $year;
                 $formattedSequence = sprintf('%04d', $nextSequence);
-
-                // Format letter number (format asli tanpa tahun)
                 $this->letter_number = "{$category->category_code}{$formattedSequence}";
 
-                // Cek apakah letter number sudah ada untuk category/year/project yang sama (double check)
+                // Match DB unique index: letter_number + year + project_id
                 $exists = static::where('letter_number', $this->letter_number)
                     ->where('year', $year)
-                    ->where('letter_category_id', $this->letter_category_id)
                     ->where('project_id', $projectId)
                     ->exists();
 
-                if (!$exists) {
-                    return true; // Berhasil generate unique number
+                if (! $exists) {
+                    return true;
                 }
 
-                // Jika masih ada, tunggu dan coba lagi
-                if ($attempt < $maxAttempts) {
-                    usleep(200000); // Tunggu 0.2 detik
-                }
-            } while ($attempt < $maxAttempts);
+                Log::warning('Letter number slot occupied, skipping to next sequence', [
+                    'letter_number' => $this->letter_number,
+                    'year' => $year,
+                    'project_id' => $projectId,
+                    'letter_category_id' => $this->letter_category_id,
+                    'next_sequence' => $nextSequence,
+                ]);
+
+                $nextSequence++;
+            }
 
             throw new \Exception("Failed to generate unique letter number after {$maxAttempts} attempts");
         });
