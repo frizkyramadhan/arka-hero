@@ -410,9 +410,9 @@
                     <!-- Cancellation Requests Section -->
                     @if ($leaveRequest->cancellations->count() > 0)
                         @php
-                            $isAdmin = auth()->user()->can('leave-requests.delete');
+                            $canManageCancellation = auth()->user()->can('leave-requests.cancel');
                             $fromMyRequests = request()->routeIs('leave.my-requests.show');
-                            $showAdminActions = $isAdmin && !$fromMyRequests;
+                            $showAdminActions = $canManageCancellation && ! $fromMyRequests;
                         @endphp
                         <div class="card mb-4 card-outline card-warning">
                             <div class="card-header bg-warning">
@@ -669,6 +669,10 @@
                                 (auth()->user()->can('leave-requests.delete') ||
                                     (auth()->user()->can('personal.leave.edit-own') &&
                                         $leaveRequest->employee_id === auth()->user()->employee_id));
+
+                            $canRequestCancellation = auth()->user()->can('leave-requests.cancel') &&
+                                (auth()->user()->can('leave-requests.show') ||
+                                    $leaveRequest->employee_id === auth()->user()->employee_id);
                         @endphp
 
                         <a href="{{ $backRoute }}" class="btn-action back-btn">
@@ -731,20 +735,10 @@
                             @endif
                         @endif
 
-                        @if ($leaveRequest->canBeCancelled())
-                            @if ($fromMyRequests || (auth()->user()->can('personal.leave.view-own') && !auth()->user()->can('leave-requests.show')))
-                                {{-- Personal user bisa batalkan requestnya sendiri --}}
-                                @if ($leaveRequest->employee_id === auth()->user()->employee_id)
-                                    <a href="{{ $cancellationFormRoute }}" class="btn-action cancel-btn">
-                                        <i class="fas fa-times-circle"></i> Request Cancellation
-                                    </a>
-                                @endif
-                            @else
-                                {{-- Admin cancel --}}
-                                <a href="{{ $cancellationFormRoute }}" class="btn-action cancel-btn">
-                                    <i class="fas fa-times-circle"></i> Request Cancellation
-                                </a>
-                            @endif
+                        @if ($leaveRequest->canBeCancelled() && $canRequestCancellation)
+                            <a href="{{ $cancellationFormRoute }}" class="btn-action cancel-btn">
+                                <i class="fas fa-times-circle"></i> Request Cancellation
+                            </a>
                         @endif
 
                         @if (
