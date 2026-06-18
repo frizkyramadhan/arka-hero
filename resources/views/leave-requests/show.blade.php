@@ -670,9 +670,12 @@
                                     (auth()->user()->can('personal.leave.edit-own') &&
                                         $leaveRequest->employee_id === auth()->user()->employee_id));
 
-                            $canRequestCancellation = auth()->user()->can('leave-requests.cancel') &&
-                                (auth()->user()->can('leave-requests.show') ||
-                                    $leaveRequest->employee_id === auth()->user()->employee_id);
+                            $isHrCancellation = auth()->user()->can('leave-requests.cancel')
+                                && auth()->user()->can('leave-requests.show');
+                            $canRequestCancellation = (auth()->user()->can('leave-requests.cancel')
+                                    || auth()->user()->can('personal.leave.cancel-own'))
+                                && ($isHrCancellation
+                                    || $leaveRequest->employee_id === auth()->user()->employee_id);
                         @endphp
 
                         <a href="{{ $backRoute }}" class="btn-action back-btn">

@@ -80,8 +80,8 @@ class LeaveRequestController extends Controller
         // - edit() - admin can edit all, personal can edit own (if has personal.leave.edit-own)
         // - update() - admin can update all, personal can update own (if has personal.leave.edit-own)
         // - store() - admin can create for anyone, personal can create for self
-        // - showCancellationForm() - HR can cancel any (leave-requests.cancel + show), others cancel own only
-        // - storeCancellation() - HR can cancel any (leave-requests.cancel + show), others cancel own only
+        // - showCancellationForm() - HR: leave-requests.cancel + show; personal: personal.leave.cancel-own (own only)
+        // - storeCancellation() - HR: leave-requests.cancel + show; personal: personal.leave.cancel-own (own only)
         // - destroy() - admin (leave-requests.delete) or employee (personal.leave.edit-own, own request only); see method body
         // - getLeaveTypeInfo() - admin can access with leave-requests.show, personal can access with personal.leave.create-own or personal.leave.edit-own
         // Note: These methods are NOT in middleware to allow dual access
@@ -1699,24 +1699,12 @@ class LeaveRequestController extends Controller
     /**
      * Show cancellation request form
      *
-     * ADMIN/HR: Can cancel any leave request (permission: leave-requests.cancel + leave-requests.show)
-     * PERSONAL/USER: Can cancel their own leave requests (permission: leave-requests.cancel)
+     * ADMIN/HR: leave-requests.cancel + leave-requests.show
+     * PERSONAL/USER: personal.leave.cancel-own (own requests only)
      */
     public function showCancellationForm(LeaveRequest $leaveRequest)
     {
-        /** @var \App\Models\User $user */
-        $user = auth()->user();
-
-        if (! $user->can('leave-requests.cancel')) {
-            abort(403, 'Unauthorized action. You do not have permission to cancel leave requests.');
-        }
-
-        // HR (leave-requests.show) may cancel any; others only their own
-        if (! $user->can('leave-requests.show')) {
-            if ($leaveRequest->employee_id !== $user->employee_id) {
-                abort(403, 'You can only cancel your own leave requests.');
-            }
-        }
+        $this->assertCanRequestLeaveCancellation($this->authUser(), $leaveRequest);
 
         if ($r = $this->guardLeaveRequestProjectForHrUser($leaveRequest)) {
             return $r;
@@ -1733,24 +1721,13 @@ class LeaveRequestController extends Controller
     /**
      * Store cancellation request
      *
-     * ADMIN/HR: Can cancel any leave request (permission: leave-requests.cancel + leave-requests.show)
-     * PERSONAL/USER: Can request cancellation for their own leave requests (permission: leave-requests.cancel)
+     * ADMIN/HR: leave-requests.cancel + leave-requests.show
+     * PERSONAL/USER: personal.leave.cancel-own (own requests only)
      */
     public function storeCancellation(Request $request, LeaveRequest $leaveRequest)
     {
-        /** @var \App\Models\User $user */
-        $user = auth()->user();
-
-        if (! $user->can('leave-requests.cancel')) {
-            abort(403, 'Unauthorized action. You do not have permission to cancel leave requests.');
-        }
-
-        // HR (leave-requests.show) may cancel any; others only their own
-        if (! $user->can('leave-requests.show')) {
-            if ($leaveRequest->employee_id !== $user->employee_id) {
-                abort(403, 'You can only cancel your own leave requests.');
-            }
-        }
+        $user = $this->authUser();
+        $this->assertCanRequestLeaveCancellation($user, $leaveRequest);
 
         if ($r = $this->guardLeaveRequestProjectForHrUser($leaveRequest)) {
             return $r;
@@ -2246,7 +2223,7 @@ class LeaveRequestController extends Controller
     /**
      * Show cancellation request form for personal user
      *
-     * PERSONAL/USER: Can only cancel their own leave requests (permission: leave-requests.cancel)
+     * PERSONAL/USER: personal.leave.cancel-own (own requests only)
      */
     public function myRequestsCancellationForm(LeaveRequest $leaveRequest)
     {
@@ -2265,7 +2242,7 @@ class LeaveRequestController extends Controller
     /**
      * Store cancellation request for personal user
      *
-     * PERSONAL/USER: Can only cancel their own leave requests (permission: leave-requests.cancel)
+     * PERSONAL/USER: personal.leave.cancel-own (own requests only)
      */
     public function myRequestsStoreCancellation(Request $request, LeaveRequest $leaveRequest)
     {
@@ -2280,6 +2257,34 @@ class LeaveRequestController extends Controller
         // Call the existing storeCancellation method which will handle all logic
         // The storeCancellation method already has redirect logic for personal users
         return $this->storeCancellation($request, $leaveRequest);
+    }
+
+    // ========================================
+    // PRIVATE HELPERS
+    // ========================================
+
+    private function authUser(): User
+    {
+        /** @var User|null $user */
+        $user = auth()->user();
+        if (! $user instanceof User) {
+            abort(403);
+        }
+
+        return $user;
+    }
+
+    private function assertCanRequestLeaveCancellation(User $user, LeaveRequest $leaveRequest): void
+    {
+        if (! $user->can('leave-requests.cancel') && ! $user->can('personal.leave.cancel-own')) {
+            abort(403, 'Unauthorized action. You do not have permission to cancel leave requests.');
+        }
+
+        $isHrCancellation = $user->can('leave-requests.cancel') && $user->can('leave-requests.show');
+
+        if (! $isHrCancellation && $leaveRequest->employee_id !== $user->employee_id) {
+            abort(403, 'You can only cancel your own leave requests.');
+        }
     }
 
     /**
