@@ -40,11 +40,12 @@ class LeaveRequestController extends Controller
         $this->middleware('permission:leave-requests.create')->only('create', 'store');
 
         // Edit any leave request
-        $this->middleware('permission:leave-requests.edit')->only('edit', 'update', 'deleteDocument', 'upload');
+        $this->middleware('permission:leave-requests.edit')->only('edit', 'update', 'deleteDocument', 'upload', 'close');
 
-        // Delete/cancel any leave request and manage cancellations
-        // Note: destroy() uses dual permission inside the method; showCancellationForm/storeCancellation are dual access (see below)
-        $this->middleware('permission:leave-requests.delete')->only('approveCancellation', 'rejectCancellation', 'close');
+        // Delete leave request (destroy) and close completed requests
+        // Note: destroy() uses dual permission inside the method; showCancellationForm/storeCancellation use leave-requests.cancel (see below)
+        $this->middleware('permission:leave-requests.delete')->only('destroy');
+        $this->middleware('permission:leave-requests.cancel')->only('approveCancellation', 'rejectCancellation');
 
         // AJAX methods for admin (project info, employees by project)
         // Note: getLeaveTypeInfo is handled as dual access method (see below)
@@ -79,8 +80,8 @@ class LeaveRequestController extends Controller
         // - edit() - admin can edit all, personal can edit own (if has personal.leave.edit-own)
         // - update() - admin can update all, personal can update own (if has personal.leave.edit-own)
         // - store() - admin can create for anyone, personal can create for self
-        // - showCancellationForm() - admin can cancel any, personal can cancel own (if has personal.leave.cancel-own)
-        // - storeCancellation() - admin can cancel any, personal can cancel own (if has personal.leave.cancel-own)
+        // - showCancellationForm() - HR can cancel any (leave-requests.cancel + show), others cancel own only
+        // - storeCancellation() - HR can cancel any (leave-requests.cancel + show), others cancel own only
         // - destroy() - admin (leave-requests.delete) or employee (personal.leave.edit-own, own request only); see method body
         // - getLeaveTypeInfo() - admin can access with leave-requests.show, personal can access with personal.leave.create-own or personal.leave.edit-own
         // Note: These methods are NOT in middleware to allow dual access
@@ -110,7 +111,7 @@ class LeaveRequestController extends Controller
 
         $employees = $rows
             ->unique('id')
-            ->sortBy(fn (Employee $e) => mb_strtolower((string) ($e->nik ?? '')))
+            ->sortBy(fn(Employee $e) => mb_strtolower((string) ($e->nik ?? '')))
             ->values()
             ->map(function (Employee $e) {
                 $nik = (string) ($e->nik ?? '');
@@ -120,7 +121,7 @@ class LeaveRequestController extends Controller
                     'id' => $e->id,
                     'nik' => $nik,
                     'fullname' => $name,
-                    'label' => $nik !== '' ? $nik.' — '.$name : $name,
+                    'label' => $nik !== '' ? $nik . ' — ' . $name : $name,
                 ];
             });
 
@@ -129,11 +130,11 @@ class LeaveRequestController extends Controller
             ->orderBy('code')
             ->get(['id', 'code', 'name'])
             ->values()
-            ->map(fn (LeaveType $lt) => [
+            ->map(fn(LeaveType $lt) => [
                 'id' => $lt->id,
                 'code' => $lt->code,
                 'name' => $lt->name,
-                'label' => ($lt->code ? $lt->code.' — '.$lt->name : $lt->name),
+                'label' => ($lt->code ? $lt->code . ' — ' . $lt->name : $lt->name),
             ]);
 
         return response()->json([
@@ -152,11 +153,11 @@ class LeaveRequestController extends Controller
             ->orderBy('code')
             ->get(['id', 'code', 'name'])
             ->values()
-            ->map(fn (LeaveType $lt) => [
+            ->map(fn(LeaveType $lt) => [
                 'id' => $lt->id,
                 'code' => $lt->code,
                 'name' => $lt->name,
-                'label' => ($lt->code ? $lt->code.' — '.$lt->name : $lt->name),
+                'label' => ($lt->code ? $lt->code . ' — ' . $lt->name : $lt->name),
             ]);
 
         return response()->json([
@@ -260,16 +261,16 @@ class LeaveRequestController extends Controller
                     $statusBadge = '<span class="badge badge-dark">Closed</span>';
                     break;
                 default:
-                    $statusBadge = '<span class="badge badge-secondary">'.ucfirst($request->status).'</span>';
+                    $statusBadge = '<span class="badge badge-secondary">' . ucfirst($request->status) . '</span>';
             }
 
             $actions = '<div class="btn-group" role="group">';
-            $actions .= '<a href="'.route('leave.requests.show', $request).'" class="btn btn-info btn-sm mr-1"><i class="fas fa-eye"></i></a>';
-            $actions .= '<a href="'.route('leave.requests.edit', $request).'" class="btn btn-warning btn-sm mr-1"><i class="fas fa-edit"></i></a>';
+            $actions .= '<a href="' . route('leave.requests.show', $request) . '" class="btn btn-info btn-sm mr-1"><i class="fas fa-eye"></i></a>';
+            $actions .= '<a href="' . route('leave.requests.edit', $request) . '" class="btn btn-warning btn-sm mr-1"><i class="fas fa-edit"></i></a>';
 
             if ($request->canBeDeletedBeforeApproval() && auth()->user()->can('leave-requests.delete')) {
-                $actions .= '<form method="POST" action="'.route('leave.requests.destroy', $request).'" class="d-inline" onsubmit="return confirm(\'Delete this leave request? This cannot be undone.\');">';
-                $actions .= csrf_field().method_field('DELETE');
+                $actions .= '<form method="POST" action="' . route('leave.requests.destroy', $request) . '" class="d-inline" onsubmit="return confirm(\'Delete this leave request? This cannot be undone.\');">';
+                $actions .= csrf_field() . method_field('DELETE');
                 $actions .= '<button type="submit" class="btn btn-danger btn-sm mr-1" title="Delete"><i class="fas fa-trash"></i></button></form>';
             }
 
@@ -303,10 +304,10 @@ class LeaveRequestController extends Controller
                 'register_number' => e($request->register_number ?? '—'),
                 'employee' => $request->employee->fullname ?? 'N/A',
                 'project' => e($request->administration?->project?->project_code ?? '—'),
-                'leave_type' => '<span class="badge badge-info">'.$leaveTypeName.'</span>'.$documentIcon.$moneyIcon,
+                'leave_type' => '<span class="badge badge-info">' . $leaveTypeName . '</span>' . $documentIcon . $moneyIcon,
                 'start_date' => $request->start_date->format('d/m/Y'),
                 'end_date' => $request->end_date->format('d/m/Y'),
-                'total_days' => $request->total_days.' days',
+                'total_days' => $request->total_days . ' days',
                 'status' => $statusBadge,
                 'requested_at' => $request->requested_at ? $request->requested_at->format('d/m/Y H:i') : 'N/A',
                 'action' => $actions,
@@ -491,6 +492,8 @@ class LeaveRequestController extends Controller
 
         // Handle LSL flexible calculation
         $takenDays = $totalDays; // Default value
+        $cashoutEnabled = false;
+        $cashoutDays = 0;
         if ($isLSL) {
             // Get taken days from manual input or use total_days as fallback
             $takenDays = $request->lsl_taken_days ?? $totalDays;
@@ -535,10 +538,10 @@ class LeaveRequestController extends Controller
             $originalName = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
             $extension = $file->getClientOriginalExtension();
             $timestamp = now()->format('YmdHis');
-            $fileName = $originalName.'_'.$timestamp.'.'.$extension;
+            $fileName = $originalName . '_' . $timestamp . '.' . $extension;
 
             // Generate temporary ID for folder before creating record
-            $tempId = 'temp_'.time().'_'.rand(1000, 9999);
+            $tempId = 'temp_' . time() . '_' . rand(1000, 9999);
             $supportingDocumentPath = $file->storeAs("leave_requests/{$tempId}", $fileName, 'private');
         }
 
@@ -567,7 +570,7 @@ class LeaveRequestController extends Controller
 
             // Determine if this is a batch request (for roster flow)
             $isBatchRequest = $flowType === 'roster' ? true : false;
-            $batchId = $isBatchRequest ? 'BATCH_'.time().'_'.$request->employee_id : null;
+            $batchId = $isBatchRequest ? 'BATCH_' . time() . '_' . $request->employee_id : null;
 
             // Normalize manual_approvers array - following pattern from OfficialtravelController
             $manualApprovers = $request->manual_approvers ?? [];
@@ -606,7 +609,7 @@ class LeaveRequestController extends Controller
             // Add LSL flexible fields if this is LSL
             if ($isLSL) {
                 $leaveRequestData['lsl_taken_days'] = $takenDays; // From manual input or calculated
-                $leaveRequestData['lsl_cashout_days'] = $cashoutEnabled ? ($request->lsl_cashout_days ?? 0) : 0;
+                $leaveRequestData['lsl_cashout_days'] = $cashoutDays;
             }
 
             // Create leave request
@@ -620,7 +623,7 @@ class LeaveRequestController extends Controller
 
             // Move file to correct folder with leave request ID
             if ($supportingDocumentPath) {
-                $newPath = "leave_requests/{$leaveRequest->id}/".basename($supportingDocumentPath);
+                $newPath = "leave_requests/{$leaveRequest->id}/" . basename($supportingDocumentPath);
                 Storage::disk('private')->move($supportingDocumentPath, $newPath);
                 $leaveRequest->update(['supporting_document' => $newPath]);
 
@@ -694,7 +697,7 @@ class LeaveRequestController extends Controller
                 }
             }
 
-            return back()->with(['toast_error' => 'Failed to create leave request: '.$e->getMessage()]);
+            return back()->with(['toast_error' => 'Failed to create leave request: ' . $e->getMessage()]);
         }
     }
 
@@ -989,7 +992,7 @@ class LeaveRequestController extends Controller
                 $originalName = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
                 $extension = $file->getClientOriginalExtension();
                 $timestamp = now()->format('YmdHis');
-                $fileName = $originalName.'_'.$timestamp.'.'.$extension;
+                $fileName = $originalName . '_' . $timestamp . '.' . $extension;
                 $supportingDocumentPath = $file->storeAs("leave_requests/{$leaveRequest->id}", $fileName, 'private');
             }
 
@@ -1052,7 +1055,7 @@ class LeaveRequestController extends Controller
             }
 
             // Update auto conversion date based on leave type and document status
-            $leaveRequest->updateAutoConversionDate($request->leave_type_id, (bool) $supportingDocumentPath);
+            $leaveRequest->updateAutoConversionDate($request->leave_type_id);
 
             DB::commit();
 
@@ -1069,7 +1072,7 @@ class LeaveRequestController extends Controller
         } catch (\Exception $e) {
             DB::rollback();
 
-            return back()->with(['toast_error' => 'Failed to update leave request: '.$e->getMessage()])->withInput();
+            return back()->with(['toast_error' => 'Failed to update leave request: ' . $e->getMessage()])->withInput();
         }
     }
 
@@ -1154,7 +1157,7 @@ class LeaveRequestController extends Controller
 
             return back()->with(['toast_success' => 'Supporting document deleted successfully.']);
         } catch (\Exception $e) {
-            return back()->with(['toast_error' => 'Failed to delete document: '.$e->getMessage()]);
+            return back()->with(['toast_error' => 'Failed to delete document: ' . $e->getMessage()]);
         }
     }
 
@@ -1199,8 +1202,8 @@ class LeaveRequestController extends Controller
 
             // Store the new document
             $file = $request->file('supporting_document');
-            $fileName = 'leave_request_'.$leaveRequest->id.'_'.time().'.'.$file->getClientOriginalExtension();
-            $filePath = 'leave_requests/'.$fileName;
+            $fileName = 'leave_request_' . $leaveRequest->id . '_' . time() . '.' . $file->getClientOriginalExtension();
+            $filePath = 'leave_requests/' . $fileName;
 
             Storage::disk('private')->put($filePath, file_get_contents($file));
 
@@ -1209,7 +1212,7 @@ class LeaveRequestController extends Controller
 
             return back()->with(['toast_success' => 'Supporting document uploaded successfully.']);
         } catch (\Exception $e) {
-            return back()->with(['toast_error' => 'Failed to upload document: '.$e->getMessage()]);
+            return back()->with(['toast_error' => 'Failed to upload document: ' . $e->getMessage()]);
         }
     }
 
@@ -1257,12 +1260,12 @@ class LeaveRequestController extends Controller
             DB::commit();
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Failed to delete leave request: '.$e->getMessage(), [
+            Log::error('Failed to delete leave request: ' . $e->getMessage(), [
                 'leave_request_id' => $leaveRequest->id,
                 'trace' => $e->getTraceAsString(),
             ]);
 
-            return back()->with('toast_error', 'Failed to delete leave request: '.$e->getMessage());
+            return back()->with('toast_error', 'Failed to delete leave request: ' . $e->getMessage());
         }
 
         if ($redirectToMyList) {
@@ -1301,7 +1304,7 @@ class LeaveRequestController extends Controller
     /**
      * Get employees by project for AJAX
      */
-    public function getEmployeesByProject($projectId)
+    public function getEmployeesByProject(int|string $projectId)
     {
         $project = Project::findOrFail($projectId);
 
@@ -1329,7 +1332,7 @@ class LeaveRequestController extends Controller
     /**
      * Get leave types by employee for AJAX
      */
-    public function getLeaveTypesByEmployee($employeeId)
+    public function getLeaveTypesByEmployee(string $employeeId)
     {
         // Check if user is accessing their own data or has admin permission
         $user = Auth::user();
@@ -1370,7 +1373,7 @@ class LeaveRequestController extends Controller
                     ],
                     'period_start' => $entitlement->period_start->format('Y-m-d'),
                     'period_end' => $entitlement->period_end->format('Y-m-d'),
-                    'period_display' => $entitlement->period_start->format('d M Y').' - '.$entitlement->period_end->format('d M Y'),
+                    'period_display' => $entitlement->period_start->format('d M Y') . ' - ' . $entitlement->period_end->format('d M Y'),
                     'remaining_days' => $entitlement->remaining_days, // Accessor will calculate automatically
                     'entitled_days' => $entitlement->entitled_days,
                     'taken_days' => $entitlement->taken_days,
@@ -1385,7 +1388,7 @@ class LeaveRequestController extends Controller
     /**
      * Get project information including leave_type for AJAX
      */
-    public function getProjectInfo($projectId)
+    public function getProjectInfo(int|string $projectId)
     {
         $project = Project::findOrFail($projectId);
 
@@ -1403,7 +1406,7 @@ class LeaveRequestController extends Controller
         ]);
     }
 
-    public function getLeavePeriod($employeeId, $leaveTypeId)
+    public function getLeavePeriod(string $employeeId, int|string $leaveTypeId)
     {
         // Check if user is accessing their own data or has admin permission
         $user = Auth::user();
@@ -1428,7 +1431,7 @@ class LeaveRequestController extends Controller
             // Format tanggal menjadi format yang lebih user-friendly
             $startDate = \Carbon\Carbon::parse($leaveEntitlement->period_start)->format('d M Y');
             $endDate = \Carbon\Carbon::parse($leaveEntitlement->period_end)->format('d M Y');
-            $formattedPeriod = $startDate.' - '.$endDate;
+            $formattedPeriod = $startDate . ' - ' . $endDate;
 
             return response()->json([
                 'success' => true,
@@ -1463,7 +1466,7 @@ class LeaveRequestController extends Controller
                 $leaveRequest->id,
                 '-days',
                 $leaveRequest->total_days,
-                'Leave request: '.$leaveRequest->leaveType->name
+                'Leave request: ' . $leaveRequest->leaveType->name
             );
         }
     }
@@ -1471,7 +1474,7 @@ class LeaveRequestController extends Controller
     /**
      * Get employee leave balance for AJAX calls
      */
-    public function getEmployeeLeaveBalance($employeeId)
+    public function getEmployeeLeaveBalance(string $employeeId)
     {
         try {
             $employee = Employee::findOrFail($employeeId);
@@ -1543,7 +1546,7 @@ class LeaveRequestController extends Controller
 
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to load leave balance: '.$e->getMessage(),
+                'message' => 'Failed to load leave balance: ' . $e->getMessage(),
             ], 500);
         }
     }
@@ -1557,7 +1560,7 @@ class LeaveRequestController extends Controller
      * ADMIN/HR: Can access with permission:leave-requests.show
      * PERSONAL/USER: Can access with permission:personal.leave.create-own or personal.leave.edit-own
      */
-    public function getLeaveTypeInfo($leaveTypeId)
+    public function getLeaveTypeInfo(int|string $leaveTypeId)
     {
         /** @var \App\Models\User $user */
         $user = auth()->user();
@@ -1593,7 +1596,7 @@ class LeaveRequestController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to load leave type info: '.$e->getMessage(),
+                'message' => 'Failed to load leave type info: ' . $e->getMessage(),
             ], 500);
         }
     }
@@ -1602,7 +1605,7 @@ class LeaveRequestController extends Controller
      * Update leave entitlements for approved leave request
      * Using same logic as ApprovalPlanController for consistency
      */
-    private function updateLeaveEntitlements($leaveRequest)
+    private function updateLeaveEntitlements(LeaveRequest $leaveRequest): void
     {
         try {
             Log::info('Updating leave entitlements for leave request (immediate calculation)', [
@@ -1647,7 +1650,7 @@ class LeaveRequestController extends Controller
                 ]);
             }
         } catch (\Exception $e) {
-            Log::error('Error updating leave entitlements (immediate calculation): '.$e->getMessage(), [
+            Log::error('Error updating leave entitlements (immediate calculation): ' . $e->getMessage(), [
                 'leave_request_id' => $leaveRequest->id,
                 'employee_id' => $leaveRequest->employee_id,
                 'leave_type_id' => $leaveRequest->leave_type_id,
@@ -1689,31 +1692,27 @@ class LeaveRequestController extends Controller
 
             return back()->with(['toast_success' => 'Leave request closed successfully.']);
         } catch (\Exception $e) {
-            return back()->with(['toast_error' => 'Failed to close leave request: '.$e->getMessage()]);
+            return back()->with(['toast_error' => 'Failed to close leave request: ' . $e->getMessage()]);
         }
     }
 
     /**
      * Show cancellation request form
      *
-     * ADMIN/HR: Can cancel any leave request (permission: leave-requests.delete)
-     * PERSONAL/USER: Can cancel their own leave requests (permission: personal.leave.cancel-own)
-     *
-     * Note: Protected by middleware 'permission:leave-requests.delete' for admin
-     * Personal users need manual check
+     * ADMIN/HR: Can cancel any leave request (permission: leave-requests.cancel + leave-requests.show)
+     * PERSONAL/USER: Can cancel their own leave requests (permission: leave-requests.cancel)
      */
     public function showCancellationForm(LeaveRequest $leaveRequest)
     {
         /** @var \App\Models\User $user */
         $user = auth()->user();
 
-        // Check if user has either admin or personal permission
-        if (! $user->can('leave-requests.delete') && ! $user->can('personal.leave.cancel-own')) {
+        if (! $user->can('leave-requests.cancel')) {
             abort(403, 'Unauthorized action. You do not have permission to cancel leave requests.');
         }
 
-        // If personal user (has personal permission but not admin permission), ensure they can only cancel their own
-        if ($user->can('personal.leave.cancel-own') && ! $user->can('leave-requests.delete')) {
+        // HR (leave-requests.show) may cancel any; others only their own
+        if (! $user->can('leave-requests.show')) {
             if ($leaveRequest->employee_id !== $user->employee_id) {
                 abort(403, 'You can only cancel your own leave requests.');
             }
@@ -1734,24 +1733,20 @@ class LeaveRequestController extends Controller
     /**
      * Store cancellation request
      *
-     * ADMIN/HR: Can cancel any leave request directly (permission: leave-requests.delete)
-     * PERSONAL/USER: Can request cancellation for their own leave requests (permission: personal.leave.cancel-own)
-     *
-     * Note: Protected by middleware 'permission:leave-requests.delete' for admin
-     * Personal users need manual check
+     * ADMIN/HR: Can cancel any leave request (permission: leave-requests.cancel + leave-requests.show)
+     * PERSONAL/USER: Can request cancellation for their own leave requests (permission: leave-requests.cancel)
      */
     public function storeCancellation(Request $request, LeaveRequest $leaveRequest)
     {
         /** @var \App\Models\User $user */
         $user = auth()->user();
 
-        // Check if user has either admin or personal permission
-        if (! $user->can('leave-requests.delete') && ! $user->can('personal.leave.cancel-own')) {
+        if (! $user->can('leave-requests.cancel')) {
             abort(403, 'Unauthorized action. You do not have permission to cancel leave requests.');
         }
 
-        // If personal user (has personal permission but not admin permission), ensure they can only cancel their own
-        if ($user->can('personal.leave.cancel-own') && ! $user->can('leave-requests.delete')) {
+        // HR (leave-requests.show) may cancel any; others only their own
+        if (! $user->can('leave-requests.show')) {
             if ($leaveRequest->employee_id !== $user->employee_id) {
                 abort(403, 'You can only cancel your own leave requests.');
             }
@@ -1770,7 +1765,7 @@ class LeaveRequestController extends Controller
         }
 
         $request->validate([
-            'days_to_cancel' => 'required|integer|min:1|max:'.$availableDaysToCancel,
+            'days_to_cancel' => 'required|integer|min:1|max:' . $availableDaysToCancel,
             'reason' => 'required|string|max:1000',
         ], [
             'days_to_cancel.max' => "You can only cancel up to {$availableDaysToCancel} day(s). {$totalCancelledDays} day(s) have already been cancelled from this leave request.",
@@ -1798,8 +1793,8 @@ class LeaveRequestController extends Controller
             //     'path' => $path,
             //     'full_url' => $fullUrl,
             //     'user_id' => $user->id,
-            //     'has_admin_permission' => $user->can('leave-requests.delete'),
-            //     'has_personal_permission' => $user->can('personal.leave.cancel-own')
+            //     'has_cancel_permission' => $user->can('leave-requests.cancel'),
+            //     'has_show_permission' => $user->can('leave-requests.show')
             // ]);
 
             // Check route name - ini adalah cara paling reliable
@@ -1830,7 +1825,7 @@ class LeaveRequestController extends Controller
             return redirect()->route('leave.requests.show', $leaveRequest)
                 ->with('toast_success', 'Cancellation request submitted successfully. Waiting for HR confirmation.');
         } catch (\Exception $e) {
-            return back()->with(['toast_error' => 'Failed to submit cancellation request: '.$e->getMessage()])
+            return back()->with(['toast_error' => 'Failed to submit cancellation request: ' . $e->getMessage()])
                 ->withInput();
         }
     }
@@ -1858,7 +1853,7 @@ class LeaveRequestController extends Controller
 
             return back()->with(['toast_success' => 'Cancellation request approved successfully.']);
         } catch (\Exception $e) {
-            return back()->with(['toast_error' => 'Failed to approve cancellation request: '.$e->getMessage()]);
+            return back()->with(['toast_error' => 'Failed to approve cancellation request: ' . $e->getMessage()]);
         }
     }
 
@@ -1885,7 +1880,7 @@ class LeaveRequestController extends Controller
 
             return back()->with(['toast_success' => 'Cancellation request rejected successfully.']);
         } catch (\Exception $e) {
-            return back()->with(['toast_error' => 'Failed to reject cancellation request: '.$e->getMessage()]);
+            return back()->with(['toast_error' => 'Failed to reject cancellation request: ' . $e->getMessage()]);
         }
     }
 
@@ -2092,7 +2087,7 @@ class LeaveRequestController extends Controller
                 return e($row->administration?->project?->project_code ?? '—');
             })
             ->addColumn('leave_type', function ($row) {
-                return '<span class="badge badge-info">'.($row->leaveType->name ?? 'N/A').'</span>';
+                return '<span class="badge badge-info">' . ($row->leaveType->name ?? 'N/A') . '</span>';
             })
             ->addColumn('start_date', function ($row) {
                 return $row->start_date ? \Carbon\Carbon::parse($row->start_date)->format('d/m/Y') : 'N/A';
@@ -2101,7 +2096,7 @@ class LeaveRequestController extends Controller
                 return $row->end_date ? \Carbon\Carbon::parse($row->end_date)->format('d/m/Y') : 'N/A';
             })
             ->addColumn('total_days', function ($row) {
-                return $row->total_days.' days';
+                return $row->total_days . ' days';
             })
             ->addColumn('status_badge', function ($row) {
                 $badges = [
@@ -2114,7 +2109,7 @@ class LeaveRequestController extends Controller
                     'auto_approved' => '<span class="badge badge-success">Auto Approved</span>',
                 ];
 
-                return $badges[$row->status] ?? '<span class="badge badge-secondary">'.e(ucfirst((string) $row->status)).'</span>';
+                return $badges[$row->status] ?? '<span class="badge badge-secondary">' . e(ucfirst((string) $row->status)) . '</span>';
             })
             ->addColumn('requested_at', function ($row) {
                 return $row->requested_at ? \Carbon\Carbon::parse($row->requested_at)->format('d/m/Y H:i') : 'N/A';
@@ -2122,15 +2117,15 @@ class LeaveRequestController extends Controller
             ->addColumn('action', function ($row) use ($user) {
                 $btn = '<div class="btn-group" role="group">';
 
-                $btn .= '<a href="'.route('leave.my-requests.show', $row->id).'" class="btn btn-info btn-sm mr-1"><i class="fas fa-eye"></i></a>';
+                $btn .= '<a href="' . route('leave.my-requests.show', $row->id) . '" class="btn btn-info btn-sm mr-1"><i class="fas fa-eye"></i></a>';
 
                 if ($row->status === 'draft' || $row->status === 'pending') {
-                    $btn .= '<a href="'.route('leave.my-requests.edit', $row->id).'" class="btn btn-warning btn-sm mr-1"><i class="fas fa-edit"></i></a>';
+                    $btn .= '<a href="' . route('leave.my-requests.edit', $row->id) . '" class="btn btn-warning btn-sm mr-1"><i class="fas fa-edit"></i></a>';
                 }
 
                 if ($row->canBeDeletedBeforeApproval() && $user->can('personal.leave.edit-own')) {
-                    $btn .= '<form method="POST" action="'.route('leave.my-requests.destroy', $row->id).'" class="d-inline" onsubmit="return confirm(\'Delete this leave request? This cannot be undone.\');">';
-                    $btn .= csrf_field().method_field('DELETE');
+                    $btn .= '<form method="POST" action="' . route('leave.my-requests.destroy', $row->id) . '" class="d-inline" onsubmit="return confirm(\'Delete this leave request? This cannot be undone.\');">';
+                    $btn .= csrf_field() . method_field('DELETE');
                     $btn .= '<button type="submit" class="btn btn-danger btn-sm mr-1" title="Delete"><i class="fas fa-trash"></i></button></form>';
                 }
 
@@ -2245,13 +2240,13 @@ class LeaveRequestController extends Controller
             'fromMyEntitlementsCalculation',
             'periodStart',
             'periodEnd'
-        ))->with('title', 'Leave Calculation Details - '.$employee->fullname);
+        ))->with('title', 'Leave Calculation Details - ' . $employee->fullname);
     }
 
     /**
      * Show cancellation request form for personal user
      *
-     * PERSONAL/USER: Can only cancel their own leave requests (permission: personal.leave.cancel-own)
+     * PERSONAL/USER: Can only cancel their own leave requests (permission: leave-requests.cancel)
      */
     public function myRequestsCancellationForm(LeaveRequest $leaveRequest)
     {
@@ -2270,7 +2265,7 @@ class LeaveRequestController extends Controller
     /**
      * Store cancellation request for personal user
      *
-     * PERSONAL/USER: Can only cancel their own leave requests (permission: personal.leave.cancel-own)
+     * PERSONAL/USER: Can only cancel their own leave requests (permission: leave-requests.cancel)
      */
     public function myRequestsStoreCancellation(Request $request, LeaveRequest $leaveRequest)
     {
@@ -2312,7 +2307,7 @@ class LeaveRequestController extends Controller
         if (! $user instanceof User) {
             return null;
         }
-        if (! $user->can('leave-requests.show') && ! $user->can('leave-requests.edit') && ! $user->can('leave-requests.delete')) {
+        if (! $user->can('leave-requests.show') && ! $user->can('leave-requests.edit') && ! $user->can('leave-requests.delete') && ! $user->can('leave-requests.cancel')) {
             return null;
         }
         $leaveRequest->loadMissing('administration');
