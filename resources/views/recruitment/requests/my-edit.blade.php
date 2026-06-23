@@ -292,7 +292,7 @@
                                             <label for="required_age_min">Min Age</label>
                                             <input type="number" name="required_age_min" id="required_age_min"
                                                 class="form-control @error('required_age_min') is-invalid @enderror"
-                                                min="17" max="65" value="{{ old('required_age_min', $fptk->required_age_min) }}" placeholder="17">
+                                                min="17" max="65" value="{{ old('required_age_min', $fptk->required_age_min) }}" placeholder="Optional">
                                             @error('required_age_min')
                                                 <div class="invalid-feedback">{{ $message }}</div>
                                             @enderror
@@ -303,7 +303,7 @@
                                             <label for="required_age_max">Max Age</label>
                                             <input type="number" name="required_age_max" id="required_age_max"
                                                 class="form-control @error('required_age_max') is-invalid @enderror"
-                                                min="17" max="65" value="{{ old('required_age_max', $fptk->required_age_max) }}" placeholder="65">
+                                                min="17" max="65" value="{{ old('required_age_max', $fptk->required_age_max) }}" placeholder="Optional">
                                             @error('required_age_max')
                                                 <div class="invalid-feedback">{{ $message }}</div>
                                             @enderror
@@ -460,9 +460,9 @@
                 $(this).find('[required]').each(function() {
                     if (!$(this).val()) { ok = false; $(this).addClass('is-invalid'); } else { $(this).removeClass('is-invalid'); }
                 });
-                var minA = parseInt($('#required_age_min').val());
-                var maxA = parseInt($('#required_age_max').val());
-                if (minA && maxA && minA > maxA) { ok = false; $('#required_age_max').addClass('is-invalid'); }
+                var minA = parseInt($('#required_age_min').val(), 10);
+                var maxA = parseInt($('#required_age_max').val(), 10);
+                if (!isNaN(minA) && !isNaN(maxA) && minA > maxA) { ok = false; $('#required_age_max').addClass('is-invalid'); }
                 if (!ok) { e.preventDefault(); alert('Please fill in all required fields and ensure min age ≤ max age.'); }
             });
 

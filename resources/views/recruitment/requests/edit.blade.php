@@ -365,7 +365,7 @@
                                                 class="form-control @error('required_age_min') is-invalid @enderror"
                                                 min="17" max="65"
                                                 value="{{ old('required_age_min', $fptk->required_age_min) }}"
-                                                placeholder="17">
+                                                placeholder="Optional">
                                             @error('required_age_min')
                                                 <div class="invalid-feedback">{{ $message }}</div>
                                             @enderror
@@ -378,7 +378,7 @@
                                                 class="form-control @error('required_age_max') is-invalid @enderror"
                                                 min="17" max="65"
                                                 value="{{ old('required_age_max', $fptk->required_age_max) }}"
-                                                placeholder="65">
+                                                placeholder="Optional">
                                             @error('required_age_max')
                                                 <div class="invalid-feedback">{{ $message }}</div>
                                             @enderror
@@ -720,8 +720,8 @@
                     }
                 });
 
-                // Age validation
-                $('#required_age_min, #required_age_max').on('input', this.validateAgeRange);
+                // Age validation on blur only (avoid clearing partial input while typing)
+                $('#required_age_min, #required_age_max').on('blur', this.validateAgeRange);
             },
 
             // Initialize approval status card
@@ -801,7 +801,10 @@
                 // Age validation
                 if (!this.isAgeRangeValid()) {
                     isValid = false;
+                    $('#required_age_max').addClass('is-invalid');
                     errorMessage += 'Minimum age cannot be greater than maximum age.\n';
+                } else {
+                    $('#required_age_max').removeClass('is-invalid');
                 }
 
                 if (!isValid) {
@@ -811,21 +814,30 @@
                 return isValid;
             },
 
-            // Validate age range
+            // Validate age range (visual feedback only; never clear user input)
             validateAgeRange() {
-                const minAge = parseInt($('#required_age_min').val());
-                const maxAge = parseInt($('#required_age_max').val());
+                const minAge = parseInt($('#required_age_min').val(), 10);
+                const maxAge = parseInt($('#required_age_max').val(), 10);
+                const $maxField = $('#required_age_max');
 
-                if (minAge && maxAge && minAge > maxAge) {
-                    $('#required_age_max').val('');
+                if (Number.isNaN(minAge) || Number.isNaN(maxAge)) {
+                    $maxField.removeClass('is-invalid');
+                    return;
                 }
+
+                $maxField.toggleClass('is-invalid', minAge > maxAge);
             },
 
             // Check if age range is valid
             isAgeRangeValid() {
-                const minAge = parseInt($('#required_age_min').val());
-                const maxAge = parseInt($('#required_age_max').val());
-                return !(minAge && maxAge && minAge > maxAge);
+                const minAge = parseInt($('#required_age_min').val(), 10);
+                const maxAge = parseInt($('#required_age_max').val(), 10);
+
+                if (Number.isNaN(minAge) || Number.isNaN(maxAge)) {
+                    return true;
+                }
+
+                return minAge <= maxAge;
             },
 
             // Letter Number Integration

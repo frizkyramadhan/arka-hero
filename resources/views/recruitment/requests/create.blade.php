@@ -361,7 +361,7 @@
                                             <input type="number" name="required_age_min" id="required_age_min"
                                                 class="form-control @error('required_age_min') is-invalid @enderror"
                                                 min="17" max="65" value="{{ old('required_age_min') }}"
-                                                placeholder="17">
+                                                placeholder="Optional">
                                             @error('required_age_min')
                                                 <div class="invalid-feedback">{{ $message }}</div>
                                             @enderror
@@ -373,7 +373,7 @@
                                             <input type="number" name="required_age_max" id="required_age_max"
                                                 class="form-control @error('required_age_max') is-invalid @enderror"
                                                 min="17" max="65" value="{{ old('required_age_max') }}"
-                                                placeholder="65">
+                                                placeholder="Optional">
                                             @error('required_age_max')
                                                 <div class="invalid-feedback">{{ $message }}</div>
                                             @enderror
@@ -736,14 +736,18 @@
                 }
             });
 
-            // Age validation
-            $('#required_age_min, #required_age_max').on('input', function() {
-                var minAge = parseInt($('#required_age_min').val());
-                var maxAge = parseInt($('#required_age_max').val());
+            // Age validation on blur only (avoid interfering while typing)
+            $('#required_age_min, #required_age_max').on('blur', function() {
+                var minAge = parseInt($('#required_age_min').val(), 10);
+                var maxAge = parseInt($('#required_age_max').val(), 10);
+                var $maxField = $('#required_age_max');
 
-                if (minAge && maxAge && minAge > maxAge) {
-                    $('#required_age_max').val();
+                if (isNaN(minAge) || isNaN(maxAge)) {
+                    $maxField.removeClass('is-invalid');
+                    return;
                 }
+
+                $maxField.toggleClass('is-invalid', minAge > maxAge);
             });
 
             // Form validation
@@ -764,10 +768,10 @@
                 });
 
                 // Age validation
-                var minAge = parseInt($('#required_age_min').val());
-                var maxAge = parseInt($('#required_age_max').val());
+                var minAge = parseInt($('#required_age_min').val(), 10);
+                var maxAge = parseInt($('#required_age_max').val(), 10);
 
-                if (minAge && maxAge && minAge > maxAge) {
+                if (!isNaN(minAge) && !isNaN(maxAge) && minAge > maxAge) {
                     isValid = false;
                     errorMessage += 'Minimum age cannot be greater than maximum age.\n';
                 }
