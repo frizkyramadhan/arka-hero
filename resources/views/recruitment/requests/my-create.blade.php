@@ -335,7 +335,7 @@
                                             <input type="number" name="required_age_min" id="required_age_min"
                                                 class="form-control @error('required_age_min') is-invalid @enderror"
                                                 min="17" max="65" value="{{ old('required_age_min') }}"
-                                                placeholder="17">
+                                                placeholder="Optional">
                                             @error('required_age_min')
                                                 <div class="invalid-feedback">{{ $message }}</div>
                                             @enderror
@@ -347,7 +347,7 @@
                                             <input type="number" name="required_age_max" id="required_age_max"
                                                 class="form-control @error('required_age_max') is-invalid @enderror"
                                                 min="17" max="65" value="{{ old('required_age_max') }}"
-                                                placeholder="65">
+                                                placeholder="Optional">
                                             @error('required_age_max')
                                                 <div class="invalid-feedback">{{ $message }}</div>
                                             @enderror
@@ -542,9 +542,9 @@
                         $(this).removeClass('is-invalid');
                     }
                 });
-                var minAge = parseInt($('#required_age_min').val());
-                var maxAge = parseInt($('#required_age_max').val());
-                if (minAge && maxAge && minAge > maxAge) {
+                var minAge = parseInt($('#required_age_min').val(), 10);
+                var maxAge = parseInt($('#required_age_max').val(), 10);
+                if (!isNaN(minAge) && !isNaN(maxAge) && minAge > maxAge) {
                     isValid = false;
                     $('#required_age_max').addClass('is-invalid');
                 }

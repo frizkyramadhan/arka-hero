@@ -15,6 +15,7 @@ use App\Support\UserProject;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -207,8 +208,7 @@ class RecruitmentRequestController extends Controller
             'other_reason' => 'required_if:request_reason,other|nullable|string|max:1000',
             'job_description' => 'required|string|max:2000',
             'required_gender' => 'required|in:male,female,any',
-            'required_age_min' => 'nullable|integer|min:17|max:65',
-            'required_age_max' => 'nullable|integer|min:17|max:65|gte:required_age_min',
+            ...$this->fptkRequirementAgeRules(),
             'required_marital_status' => 'required|in:single,married,any',
             'required_education' => 'nullable|string|max:500',
             'required_skills' => 'nullable|string|max:1000',
@@ -536,8 +536,7 @@ class RecruitmentRequestController extends Controller
             'other_reason' => 'required_if:request_reason,other|nullable|string|max:1000',
             'job_description' => 'required|string|max:2000',
             'required_gender' => 'required|in:male,female,any',
-            'required_age_min' => 'nullable|integer|min:17|max:65',
-            'required_age_max' => 'nullable|integer|min:17|max:65|gte:required_age_min',
+            ...$this->fptkRequirementAgeRules(),
             'required_marital_status' => 'required|in:single,married,any',
             'required_education' => 'nullable|string|max:500',
             'required_skills' => 'nullable|string|max:1000',
@@ -1568,8 +1567,7 @@ class RecruitmentRequestController extends Controller
             'other_reason' => 'required_if:request_reason,other|nullable|string|max:1000',
             'job_description' => 'required|string|max:2000',
             'required_gender' => 'required|in:male,female,any',
-            'required_age_min' => 'nullable|integer|min:17|max:65',
-            'required_age_max' => 'nullable|integer|min:17|max:65|gte:required_age_min',
+            ...$this->fptkRequirementAgeRules(),
             'required_marital_status' => 'required|in:single,married,any',
             'required_education' => 'nullable|string|max:500',
             'required_skills' => 'nullable|string|max:1000',
@@ -1897,8 +1895,7 @@ class RecruitmentRequestController extends Controller
             'other_reason' => 'required_if:request_reason,other|nullable|string|max:1000',
             'job_description' => 'required|string|max:2000',
             'required_gender' => 'required|in:male,female,any',
-            'required_age_min' => 'nullable|integer|min:17|max:65',
-            'required_age_max' => 'nullable|integer|min:17|max:65|gte:required_age_min',
+            ...$this->fptkRequirementAgeRules(),
             'required_marital_status' => 'required|in:single,married,any',
             'required_education' => 'nullable|string|max:500',
             'required_skills' => 'nullable|string|max:1000',
@@ -1976,5 +1973,25 @@ class RecruitmentRequestController extends Controller
                 ->with('toast_error', 'Failed to update recruitment request: '.$e->getMessage())
                 ->withInput();
         }
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function fptkRequirementAgeRules(): array
+    {
+        return [
+            'required_age_min' => 'nullable|integer|min:17|max:65',
+            'required_age_max' => [
+                'nullable',
+                'integer',
+                'min:17',
+                'max:65',
+                Rule::when(
+                    fn ($input) => filled($input->required_age_min ?? null),
+                    ['gte:required_age_min']
+                ),
+            ],
+        ];
     }
 }
