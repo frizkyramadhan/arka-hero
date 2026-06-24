@@ -550,6 +550,8 @@ Route::group(['middleware' => ['auth']], function () {
             Route::get('/', [RecruitmentSessionController::class, 'index'])->name('index');
             Route::get('/data', [RecruitmentSessionController::class, 'getSessions'])->name('data');
             Route::get('/dashboard', [RecruitmentSessionController::class, 'dashboard'])->name('dashboard');
+            Route::get('/search-employees', [RecruitmentSessionController::class, 'searchEmployeesForHire'])->name('search-employees');
+            Route::get('/employees/{employeeId}/hire-prefill', [RecruitmentSessionController::class, 'getEmployeeHirePrefill'])->name('employee-hire-prefill');
             Route::get('/{id}', [RecruitmentSessionController::class, 'show'])->name('show');
             Route::get('/candidate/{id}', [RecruitmentSessionController::class, 'showSession'])->name('candidate');
             Route::post('/', [RecruitmentSessionController::class, 'store'])->name('store');
@@ -562,6 +564,7 @@ Route::group(['middleware' => ['auth']], function () {
             Route::post('/{sessionId}/update-offering', [RecruitmentSessionController::class, 'updateOffering'])->name('update-offering');
             Route::post('/{sessionId}/update-mcu', [RecruitmentSessionController::class, 'updateMcu'])->name('update-mcu');
             Route::post('/{sessionId}/update-hiring', [RecruitmentSessionController::class, 'updateHiring'])->name('update-hiring');
+            Route::post('/{sessionId}/register-employee', [RecruitmentSessionController::class, 'registerEmployeeFromHire'])->name('register-employee');
 
             Route::post('/{sessionId}/transition-stage', [RecruitmentSessionController::class, 'transitionStage'])->name('transition-stage');
             Route::post('/{sessionId}/close-request', [RecruitmentSessionController::class, 'closeRequest'])->name('close-request');

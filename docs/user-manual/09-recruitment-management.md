@@ -476,7 +476,7 @@ Klik **View** pada baris kandidat (dari tabel sesi FPTK/MPP atau **Recent Sessio
 | **Interview**           | Sub-tipe **HR Interview**, **User Interview**, **Trainer Interview** (pilih **Interview Type**); keputusan per wawancara; semua wajib selesai sebelum lanjut.                                                                          |
 | **Offering**            | **Offering Letter Number** (selector surat), keputusan offering (**Accepted** / **Rejected**).                                                                                                                                         |
 | **MCU**                 | **Fit to Work**, **Unfit**, atau **Follow Up** + **Review Date**, **Notes**.                                                                                                                                                           |
-| **Hiring & Onboarding** | Formulir gabungan **Personal Data**, **Administration Data**, dan **Agreement** (judul modal di layar: **Hire Stage**). Setelah **Submit Hire**, data otomatis masuk ke **Employee Management** (**Employee** dan **Administration**). |
+| **Hiring & Onboarding** | Formulir gabungan **Personal Data** / **Existing Employee**, **Administration Data**, dan **Agreement** (judul modal di layar: **Hire Stage**). **Submit Hire** menyelesaikan rekrutmen; registrasi ke **Employee Management** bersifat opsional. |
 
 **Pengecualian alur**
 
@@ -653,17 +653,30 @@ Hanya untuk posisi yang memerlukan tes teori.
 
 #### Modal **Hiring & Onboarding**
 
-Tahap **Hiring & Onboarding** menggabungkan penyelesaian rekrutmen dan onboarding kandidat dalam **satu formulir** (judul modal di layar: **Hire Stage**).
+Tahap **Hiring & Onboarding** menyelesaikan rekrutmen kandidat melalui formulir **Hire Stage**.
 
-**Penting:** Setelah Anda klik **Submit Hire**, data yang diisi **otomatis tersimpan** ke modul **Employee Management** sebagai data karyawan (**Employee** dan **Administration**). Anda **tidak perlu** memasukkan ulang data yang sama secara manual di **Employee Management**.
+**Submit Hire** selalu:
 
-Banner info biru di bagian atas modal menyampaikan hal yang sama.
+- Menyimpan data **Agreement** (surat perjanjian, tipe kontrak, notes, review date).
+- Menandai sesi kandidat sebagai **Hired** dan menaikkan kuota FPTK/MPP.
 
-- **Personal Data** — **Fullname**, **Identity Card No**, **Place/Date of Birth**, **Religion**, **Gender**, **Marital Status**, **Phone**, **Address**, **Email** (wajib sesuai form).
-- **Administration Data** — **NIK**, **Date of Hire**, **Place of Hire (POH)**, **Class**, **Position**, **Department** (terisi otomatis dari posisi), **Project**, **Grade**, **Level**, **FPTK No** (terisi otomatis).
-- **Agreement** — **Letter Number** (selector surat PKWT/PKWTT; **Refresh List**, **Create New**), **Agreement Type** (mengikuti **Employment Type** FPTK).
+**Registrasi ke Employee Management bersifat opsional:**
+
+- Centang **Register to Employee Management** pada form Hire jika ingin sekaligus mendaftarkan karyawan ke **Employee Management**.
+- Pilih **Registration Type**:
+  - **New Employee** — isi **Personal Data** dan **Administration Data** (karyawan baru).
+  - **Existing Employee** — cari karyawan yang sudah ada di sistem (nama / NIK / KTP). Data personal dan administration diambil dari **Employee Management** apa adanya; tidak ada form administration tambahan dan tidak ada perubahan record administration.
+- Jika tidak dicentang, rekrutmen tetap selesai (**Hired**) tanpa membuat record karyawan.
+- Untuk sesi **Hired** yang belum terdaftar, gunakan tombol **Register Employee** di halaman timeline sesi kandidat (opsi **New Employee** / **Existing Employee** sama).
+
+Field saat registrasi diaktifkan:
+
+- **Registration Type** — **New Employee** atau **Existing Employee**.
+- **Personal Data** (hanya mode **New Employee**) — **Fullname**, **Identity Card No**, **Place/Date of Birth**, **Religion**, **Gender**, **Marital Status**, **Phone**, **Address**, **Email**.
+- **Existing Employee** (hanya mode **Existing Employee**) — pencarian karyawan (Select2); ringkasan read-only personal + administration setelah dipilih.
+- **Administration Data** (hanya mode **New Employee**) — **NIK**, **Date of Hire**, **Place of Hire (POH)**, **Class**, **Position**, **Department** (otomatis dari posisi), **Project**, **Grade**, **Level**, **FPTK No** (otomatis).
+- **Agreement** — **Letter Number**, **Agreement Type** (mengikuti **Employment Type** FPTK).
 - **Notes** (opsional), **Review Date** (wajib).
-- **Submit Hire** — setelah sukses, sesi kandidat dapat berstatus **Hired** dan proses rekrutmen selesai.
 
 <p align="center" id="recruitment-session-modal-hire">
     <img

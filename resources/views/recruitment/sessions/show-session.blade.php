@@ -53,6 +53,22 @@
                     <span class="{{ $pill['class'] }}">
                         <i class="fas {{ $pill['icon'] }}"></i> {{ $pill['label'] }}
                     </span>
+                    @if ($session->status === 'hired')
+                        @if ($session->hiring && $session->hiring->isEmployeeRegistered())
+                            <a href="{{ route('employees.show', $session->hiring->employee_id) }}"
+                                class="btn btn-sm btn-light ml-2 fptk-view-employee-btn">
+                                <i class="fas fa-user"></i> View Employee
+                            </a>
+                        @else
+                            <span class="badge badge-warning ml-2">
+                                <i class="fas fa-exclamation-triangle"></i> Employee not registered
+                            </span>
+                            <button type="button" class="btn btn-sm btn-primary ml-2" data-toggle="modal"
+                                data-target="#registerEmployeeModal">
+                                <i class="fas fa-user-plus"></i> Register Employee
+                            </button>
+                        @endif
+                    @endif
                 </div>
             </div>
         </div>
@@ -1221,6 +1237,19 @@
             display: inline-flex;
             align-items: center;
             gap: 0.5rem;
+        }
+
+        .fptk-view-employee-btn {
+            font-weight: 600;
+            color: #2c3e50;
+            border: none;
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .fptk-view-employee-btn:hover {
+            background: #fff;
+            color: #1a252f;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
         }
 
         /* Content & Card Styles */
@@ -2473,25 +2502,232 @@
                 if (hireSubmitBtn) hireSubmitBtn.disabled = !hasLetter;
             }
 
-            // Initialize FOC visibility based on employment type
+            // Initialize FOC visibility based on employment type and register checkbox
             function initializeFOCVisibility() {
                 const employmentType = getEmploymentType();
-                if (employmentType === 'pkwt') {
+                const registerEmployee = $('#register_to_employee').is(':checked');
+                const hireMode = $('#hire_employee_sections').find('input[name="registration_mode"]:checked').val() || 'new';
+                if (employmentType === 'pkwt' && registerEmployee && hireMode === 'new') {
                     $('#foc_container').show();
                     $('#administration_foc').attr('required', true);
                 } else {
                     $('#foc_container').hide();
-                    $('#administration_foc').removeAttr('required').val('');
+                    $('#administration_foc').removeAttr('required');
                 }
             }
+
+            function renderExistingEmployeeSummary(suffix, employee, admin) {
+                $('#existing_summary_fullname' + suffix).text(employee.fullname || '-');
+                $('#existing_summary_identity' + suffix).text(employee.identity_card || '-');
+                $('#existing_summary_nik' + suffix).text(admin.nik || '-');
+                $('#existing_summary_position' + suffix).text(admin.position_name || '-');
+                $('#existing_summary_department' + suffix).text(admin.department_name || '-');
+                $('#existing_summary_project' + suffix).text(admin.project_code || '-');
+                $('#existing_summary_doh' + suffix).text(admin.doh || '-');
+                $('#existing_summary_poh' + suffix).text(admin.poh || '-');
+                $('#existing_summary_class' + suffix).text(admin.class || '-');
+                $('#existing_summary_level' + suffix).text(admin.level_name || '-');
+                $('#existing_summary_grade' + suffix).text(admin.grade_name || '-');
+                $('#existing_summary_agreement' + suffix).text(admin.agreement || '-');
+                $('#existing_summary_foc' + suffix).text(admin.foc || '-');
+            }
+
+            function clearExistingEmployeeSummary(suffix) {
+                $('#existing_employee_summary' + suffix).addClass('d-none');
+                renderExistingEmployeeSummary(suffix, {}, {});
+            }
+
+            function updateRegistrationSubmitLabels(suffix, mode) {
+                if (suffix === '_register') {
+                    const $title = $('#registerEmployeeModalTitle');
+                    const $btn = $('#register_employee_submit_btn');
+                    const $form = $('#registerEmployeeForm');
+
+                    if (mode === 'existing') {
+                        $title.html('<i class="fas fa-link"></i> Link Employee to Hiring Session');
+                        $btn.text('Update Hiring Session');
+                        $form.attr('data-confirm-message', 'Link the selected employee to this hiring session?');
+                    } else {
+                        $title.html('<i class="fas fa-user-plus"></i> Register Employee');
+                        $btn.text('Register Employee');
+                        $form.attr('data-confirm-message', 'Register this candidate as an employee?');
+                    }
+                } else if (suffix === '') {
+                    const $btn = $('#hire_submit_btn');
+                    const registerEmployee = $('#register_to_employee').is(':checked');
+                    const sectionsVisible = !$('#hire_employee_sections').hasClass('d-none');
+
+                    if (registerEmployee && sectionsVisible && mode === 'existing') {
+                        $btn.text('Submit Hire & Link Employee');
+                    } else if (registerEmployee && sectionsVisible && mode === 'new') {
+                        $btn.text('Submit Hire & Register Employee');
+                    } else {
+                        $btn.text('Submit Hire');
+                    }
+                }
+            }
+
+            function toggleRegistrationMode(suffix) {
+                const $container = $('#hire_employee_sections' + suffix);
+                const mode = $container.find('input[name="registration_mode"]:checked').val() || 'new';
+                const sectionsVisible = !$container.hasClass('d-none');
+                const $newPanel = $('#new_employee_panel' + suffix);
+                const $existingPanel = $('#existing_employee_panel' + suffix);
+                const $adminPanel = $('#administration_panel' + suffix);
+                const $newFields = $newPanel.find('[data-required-when-register]');
+                const $adminFields = $adminPanel.find('[data-required-when-register]');
+                const $existingSelect = $('#existing_employee_id' + suffix);
+
+                if (mode === 'existing') {
+                    $newPanel.addClass('d-none');
+                    $existingPanel.removeClass('d-none');
+                    $adminPanel.addClass('d-none');
+                    $newFields.removeAttr('required').prop('disabled', true);
+                    $adminFields.removeAttr('required').prop('disabled', true);
+                    if (sectionsVisible) {
+                        $existingSelect.attr('required', true).prop('disabled', false);
+                    } else {
+                        $existingSelect.removeAttr('required').prop('disabled', true);
+                    }
+                    if (suffix === '_register') {
+                        $('#register_foc_container').addClass('d-none').find('input').removeAttr('required').prop('disabled', true);
+                    }
+                } else {
+                    $newPanel.removeClass('d-none');
+                    $existingPanel.addClass('d-none');
+                    $adminPanel.removeClass('d-none');
+                    $newFields.prop('disabled', false);
+                    $adminFields.prop('disabled', false);
+                    if (sectionsVisible) {
+                        $newFields.attr('required', true);
+                        $adminFields.attr('required', true);
+                    }
+                    $existingSelect.removeAttr('required').prop('disabled', true);
+                    if (suffix === '_register') {
+                        $('#register_foc_container').removeClass('d-none').find('input').prop('disabled', false);
+                        if ($('#register_foc_container input').length) {
+                            $('#register_foc_container input').attr('required', true);
+                        }
+                    }
+                }
+
+                if (suffix === '') {
+                    initializeFOCVisibility();
+                }
+
+                updateRegistrationSubmitLabels(suffix, mode);
+            }
+
+            function initExistingEmployeeSelect2(suffix) {
+                const $select = $('#existing_employee_id' + suffix);
+                if (!$select.length || $select.hasClass('select2-hidden-accessible')) {
+                    return;
+                }
+
+                const dropdownParent = suffix === '_register' ? $('#registerEmployeeModal') : $('#hireModal');
+
+                $select.select2({
+                    theme: 'bootstrap4',
+                    placeholder: 'Search by name, NIK, or identity card...',
+                    allowClear: true,
+                    width: '100%',
+                    dropdownParent: dropdownParent,
+                    ajax: {
+                        url: '{{ route('recruitment.sessions.search-employees') }}',
+                        dataType: 'json',
+                        delay: 250,
+                        data: function(params) {
+                            return {
+                                q: params.term
+                            };
+                        },
+                        processResults: function(data) {
+                            return {
+                                results: data.map(function(item) {
+                                    return {
+                                        id: item.id,
+                                        text: item.text,
+                                        fullname: item.fullname,
+                                        identity_card: item.identity_card,
+                                        nik: item.nik
+                                    };
+                                })
+                            };
+                        },
+                        cache: true
+                    }
+                }).on('select2:select', function(e) {
+                    const data = e.params.data;
+                    $('#existing_employee_summary' + suffix).removeClass('d-none');
+                    loadEmployeeHirePrefill(suffix, data.id);
+                }).on('select2:clear', function() {
+                    clearExistingEmployeeSummary(suffix);
+                });
+            }
+
+            function loadEmployeeHirePrefill(suffix, employeeId) {
+                if (!employeeId) {
+                    return;
+                }
+
+                const prefillUrl = '{{ url('recruitment/sessions/employees') }}/' + employeeId + '/hire-prefill';
+
+                $.getJSON(prefillUrl, function(response) {
+                    const admin = response.administration || {};
+                    const employee = response.employee || {};
+
+                    renderExistingEmployeeSummary(suffix, employee, admin);
+                    $('#existing_employee_summary' + suffix).removeClass('d-none');
+                });
+            }
+
+            function toggleHireEmployeeSections() {
+                const registerEmployee = $('#register_to_employee').is(':checked');
+                const $sections = $('#hire_employee_sections');
+                const $fields = $sections.find('[data-required-when-register]');
+
+                if (registerEmployee) {
+                    $sections.removeClass('d-none');
+                    toggleRegistrationMode('');
+                } else {
+                    $sections.addClass('d-none');
+                    $fields.removeAttr('required');
+                    $('#existing_employee_id').removeAttr('required').prop('disabled', true);
+                }
+
+                initializeFOCVisibility();
+            }
+
+            $(document).on('change', '.registration-mode-radio', function() {
+                toggleRegistrationMode($(this).data('suffix') || '');
+            });
+
+            $(document).on('change', '#register_to_employee', toggleHireEmployeeSections);
 
             // Reset Hire modal state when shown
             $('#hireModal').on('show.bs.modal', function() {
                 $('#hiring_letter_number').val('Select letter number above').removeClass('alert-success')
                     .addClass('alert-warning');
                 if (hireSubmitBtn) hireSubmitBtn.disabled = true;
-                initializeFOCVisibility();
+                toggleHireEmployeeSections();
+                initExistingEmployeeSelect2('');
             });
+
+            if ($('#register_to_employee').length) {
+                toggleHireEmployeeSections();
+            } else if ($('#hire_employee_sections_register').length) {
+                toggleRegistrationMode('_register');
+            }
+
+            initExistingEmployeeSelect2('');
+            initExistingEmployeeSelect2('_register');
+
+            if ($('#existing_employee_id_register').val()) {
+                loadEmployeeHirePrefill('_register', $('#existing_employee_id_register').val());
+            }
+            if ($('#existing_employee_id').val()) {
+                loadEmployeeHirePrefill('', $('#existing_employee_id').val());
+            }
 
             // Global confirmation for all stage submit forms
             $(document).on('submit', 'form.confirm-submit', function(e) {
@@ -2739,6 +2975,44 @@
         if (selectedPositionMagangHarian) {
             $('#hire_position_id_magang_harian').trigger('change');
         }
+
+        function bindPositionDepartment(positionSelector, departmentSelector) {
+            $(positionSelector).on('change', function() {
+                var position_id = $(this).val();
+                if (position_id) {
+                    $.ajax({
+                        url: "{{ route('employees.getDepartment') }}",
+                        type: 'GET',
+                        data: { position_id: position_id },
+                        dataType: 'json',
+                        success: function(data) {
+                            $(departmentSelector).val(data && data.department_name ? data.department_name : '');
+                        },
+                        error: function() {
+                            $(departmentSelector).val('');
+                        }
+                    });
+                } else {
+                    $(departmentSelector).val('');
+                }
+            });
+        }
+
+        bindPositionDepartment('#hire_position_id_register', '#hire_department_register');
+        bindPositionDepartment('#hire_position_id_magang_harian_register', '#hire_department_magang_harian_register');
+
+        $('#registerEmployeeModal').on('shown.bs.modal', function() {
+            toggleRegistrationMode('_register');
+            initExistingEmployeeSelect2('_register');
+            var selectedRegisterPosition = $('#hire_position_id_register').val();
+            if (selectedRegisterPosition) {
+                $('#hire_position_id_register').trigger('change');
+            }
+            var selectedRegisterMagang = $('#hire_position_id_magang_harian_register').val();
+            if (selectedRegisterMagang) {
+                $('#hire_position_id_magang_harian_register').trigger('change');
+            }
+        });
 
         // Toggle notes expand/collapse functionality
         $(document).on('click', '.toggle-notes-btn', function() {
