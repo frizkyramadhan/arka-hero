@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Administration;
 use App\Models\Department;
 use App\Models\Employee;
 use App\Models\ManPowerPlan;
@@ -15,6 +14,7 @@ use App\Models\RecruitmentPsikotes;
 use App\Models\RecruitmentRequest;
 use App\Models\RecruitmentSession;
 use App\Models\RecruitmentTesTeori;
+use App\Services\RecruitmentHireEmployeeService;
 use App\Services\RecruitmentSessionService;
 use App\Support\UserProject;
 use Exception;
@@ -22,15 +22,20 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\Rule;
 
 class RecruitmentSessionController extends Controller
 {
     protected $sessionService;
 
+    protected $hireEmployeeService;
+
     public function __construct(
-        RecruitmentSessionService $sessionService
+        RecruitmentSessionService $sessionService,
+        RecruitmentHireEmployeeService $hireEmployeeService
     ) {
         $this->sessionService = $sessionService;
+        $this->hireEmployeeService = $hireEmployeeService;
         $this->middleware('permission:recruitment-sessions.show')->only('index', 'show', 'showSession', 'getSessions', 'getSessionData', 'getSessionsByFPTK', 'getSessionsByCandidate');
         $this->middleware('permission:recruitment-sessions.create')->only('store');
         $this->middleware('permission:recruitment-sessions.edit-stages')->only('transitionStage');
@@ -656,7 +661,7 @@ class RecruitmentSessionController extends Controller
             'interviews',
             'offering',
             'mcu',
-            'hiring',
+            'hiring.employee',
             'documents',
         ])->findOrFail($id);
         $subtitle = 'Session Details: '.$session->session_number;
@@ -1641,90 +1646,35 @@ class RecruitmentSessionController extends Controller
 
     public function updateHiring(Request $request, $sessionId)
     {
-        $request->validate([
-            'employee' => 'required|array',
-            'employee.fullname' => 'required|string',
-            'employee.identity_card' => 'required|string|unique:employees,identity_card',
-            'employee.emp_pob' => 'required|string',
-            'employee.emp_dob' => 'required|date',
-            'employee.religion_id' => 'required|exists:religions,id',
-            'employee.gender' => 'nullable|in:male,female',
-            'administration' => 'required|array',
-            'administration.nik' => 'required|string|unique:administrations,nik',
-            'administration.doh' => 'required|date',
-            'administration.poh' => 'required|string',
-            'administration.class' => 'required|in:Staff,Non Staff',
-            'administration.position_id' => 'required|exists:positions,id',
-            'administration.project_id' => 'required|exists:projects,id',
-            'administration.level_id' => 'required_if:agreement_type,pkwt|required_if:agreement_type,pkwtt|nullable|exists:levels,id',
-            'administration.foc' => 'required_if:agreement_type,pkwt|nullable|date',
-            'hiring_letter_number_id' => 'required|exists:letter_numbers,id',
-            'agreement_type' => 'required|in:pkwt,pkwtt,magang,harian',
-            'notes' => 'nullable|string',
-            'reviewed_at' => 'required|date',
-        ], [
-            'employee.fullname.required' => 'Fullname is required',
-            'employee.identity_card.required' => 'Identity Card No is required',
-            'employee.identity_card.unique' => 'Identity Card already exists. Please use a different Identity Card.',
-            'employee.emp_pob.required' => 'Place of Birth is required',
-            'employee.emp_dob.required' => 'Date of Birth is required',
-            'employee.religion_id.required' => 'Religion is required',
-            'administration.nik.required' => 'NIK is required',
-            'administration.nik.unique' => 'NIK already exists. Please use a different NIK.',
-            'administration.doh.required' => 'Date of Hire is required',
-            'administration.poh.required' => 'Place of Hire is required',
-            'administration.class.required' => 'Class is required',
-            'administration.position_id.required' => 'Position is required',
-            'administration.project_id.required' => 'Project is required',
-            'administration.level_id.required_if' => 'Level is required for PKWT and PKWTT agreements',
-            'administration.foc.required_if' => 'FOC is required for PKWT agreement',
-            'hiring_letter_number_id.required' => 'Hiring Letter Number is required',
-            'agreement_type.required' => 'Agreement Type is required',
-            'reviewed_at.required' => 'Review Date is required',
-        ]);
+        $registerToEmployee = $request->boolean('register_to_employee');
+
+        $rules = array_merge(
+            $this->hireCompletionValidationRules(),
+            $registerToEmployee ? $this->employeeRegistrationValidationRules(
+                $request->input('agreement_type', 'pkwt'),
+                $request->input('registration_mode', 'new')
+            ) : []
+        );
+
+        $request->validate($rules, $this->hireValidationMessages());
 
         try {
             DB::beginTransaction();
 
             $session = RecruitmentSession::with(['candidate', 'hiring', 'fptk', 'mppDetail.mpp'])->findOrFail($sessionId);
 
-            // Ensure we are in Hire stage
             if ($session->current_stage !== 'hire') {
                 return back()->with('toast_error', 'Session is not in Hire stage.');
             }
 
-            // Fetch letter number (PKWT)
             $letterNumber = \App\Models\LetterNumber::findOrFail($request->hiring_letter_number_id);
+            $agreementType = $this->resolveAgreementType($session, $request->input('agreement_type'));
+            $fullLetterNumber = $this->buildHiringLetterNumber($letterNumber->letter_number);
 
-            // Build full formatted letter number for PKWT hiring display and storage
-            $romanMonths = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'];
-            $now = now();
-            $romanMonth = $romanMonths[((int) $now->format('n')) - 1];
-            $year = $now->format('Y');
-            // Remove any leading alpha prefix (e.g., PKWT0001 -> 0001) to keep base as numeric for storage format
-            $base = preg_replace('/^[A-Za-z]+/', '', $letterNumber->letter_number);
-            $fullLetterNumber = $base.'/ARKA-HO/PKWT-I/'.$romanMonth.'/'.$year;
-
-            // Get agreement type from FPTK or MPP Detail
-            $agreementType = null;
-            if ($session->fptk_id && $session->fptk) {
-                // For FPTK: get from employment_type
-                $agreementType = \App\Models\RecruitmentHiring::getAgreementTypeFromEmploymentType($session->fptk->employment_type);
-            } elseif ($session->mpp_detail_id && $session->mppDetail) {
-                // For MPP: get from agreement_type in MPP Detail
-                $agreementType = $session->mppDetail->agreement_type ?? 'pkwt';
-            }
-
-            // Fallback to pkwt if still null
-            if (! $agreementType) {
-                $agreementType = 'pkwt';
-            }
-
-            // Create or update Hiring record with full formatted letter number
-            $session->hiring()->updateOrCreate(
+            $hiring = $session->hiring()->updateOrCreate(
                 ['session_id' => $sessionId],
                 [
-                    'agreement_type' => $agreementType, // Auto-set from FPTK employment_type
+                    'agreement_type' => $agreementType,
                     'letter_number' => $fullLetterNumber,
                     'notes' => $request->notes,
                     'reviewed_by' => auth()->id(),
@@ -1732,7 +1682,6 @@ class RecruitmentSessionController extends Controller
                 ]
             );
 
-            // Mark letter number as used for recruitment_hiring
             try {
                 $letterNumber->markAsUsed('recruitment_hiring', $session->id, auth()->id());
             } catch (\Throwable $e) {
@@ -1743,110 +1692,15 @@ class RecruitmentSessionController extends Controller
                 ]);
             }
 
-            // Create or update Employee and Administration based on submitted data
-            $employeeData = $request->input('employee', []);
-            $adminData = $request->input('administration', []);
-
-            // Prefill from candidate and FPTK if not provided
-            $candidate = $session->candidate;
-            $fptk = $session->fptk()->with(['project', 'position', 'level'])->first();
-            if (! $employeeData) {
-                $employeeData = [];
-            }
-            if (! $adminData) {
-                $adminData = [];
+            if ($registerToEmployee) {
+                $employee = $this->registerEmployeeFromRequest($session, $request, $agreementType);
+                $this->hireEmployeeService->markHiringEmployeeRegistered($hiring, $employee);
             }
 
-            $employeePayload = [
-                'fullname' => $employeeData['fullname'] ?? ($candidate->fullname ?? ''),
-                'emp_pob' => $employeeData['emp_pob'] ?? '-',
-                'emp_dob' => $employeeData['emp_dob'] ?? now()->toDateString(),
-                'blood_type' => $employeeData['blood_type'] ?? null,
-                'religion_id' => $employeeData['religion_id'] ?? null,
-                'nationality' => $employeeData['nationality'] ?? null,
-                'gender' => $employeeData['gender'] ?? null,
-                'marital' => $employeeData['marital'] ?? null,
-                'address' => $employeeData['address'] ?? $candidate->address ?? null,
-                'village' => $employeeData['village'] ?? null,
-                'ward' => $employeeData['ward'] ?? null,
-                'district' => $employeeData['district'] ?? null,
-                'city' => $employeeData['city'] ?? null,
-                'phone' => $employeeData['phone'] ?? ($candidate->phone ?? null),
-                'email' => $employeeData['email'] ?? ($candidate->email ?? null),
-                'identity_card' => $employeeData['identity_card'],
-                'user_id' => auth()->id(),
-            ];
-
-            // Reuse existing Employee by identity_card if exists; otherwise create
-            $employee = Employee::where('identity_card', $employeePayload['identity_card'])->first();
-            if ($employee) {
-                $employee->update($employeePayload);
-            } else {
-                $employee = Employee::create($employeePayload);
-            }
-
-            // Deactivate previous active administration if exists
-            Administration::where('employee_id', $employee->id)->where('is_active', 1)->update(['is_active' => 0]);
-
-            // Get position to automatically determine department
-            // For FPTK: use fptk->position_id, for MPP: use mppDetail->position_id
-            $positionId = $adminData['position_id'] ?? null;
-            if (! $positionId) {
-                if ($session->fptk_id && $session->fptk) {
-                    $positionId = $session->fptk->position_id ?? null;
-                } elseif ($session->mpp_detail_id && $session->mppDetail) {
-                    $positionId = $session->mppDetail->position_id ?? null;
-                }
-            }
-            $position = \App\Models\Position::with('department')->find($positionId);
-
-            // Get project_id
-            $projectId = $adminData['project_id'] ?? null;
-            if (! $projectId) {
-                if ($session->fptk_id && $session->fptk) {
-                    $projectId = $session->fptk->project_id ?? null;
-                } elseif ($session->mpp_detail_id && $session->mppDetail && $session->mppDetail->mpp) {
-                    $projectId = $session->mppDetail->mpp->project_id ?? null;
-                }
-            }
-
-            // Get request number (FPTK number or MPP number)
-            $requestNumber = $adminData['no_fptk'] ?? null;
-            if (! $requestNumber) {
-                if ($session->fptk_id && $session->fptk) {
-                    $requestNumber = $session->fptk->request_number ?? null;
-                } elseif ($session->mpp_detail_id && $session->mppDetail && $session->mppDetail->mpp) {
-                    $requestNumber = $session->mppDetail->mpp->mpp_number ?? null;
-                }
-            }
-
-            // Map administration payload
-            $administrationPayload = [
-                'employee_id' => $employee->id,
-                'project_id' => $projectId,
-                'position_id' => $positionId,
-                'grade_id' => $adminData['grade_id'] ?? null,
-                'level_id' => $adminData['level_id'] ?? null,
-                'nik' => $adminData['nik'],
-                'class' => $adminData['class'],
-                'doh' => $adminData['doh'],
-                'poh' => $adminData['poh'],
-                'foc' => $agreementType === 'pkwt' ? ($adminData['foc'] ?? null) : null,
-                'agreement' => $adminData['agreement'] ?? strtoupper($agreementType),
-                'no_fptk' => $requestNumber,
-                'is_active' => 1,
-                'user_id' => auth()->id(),
-            ];
-
-            Administration::create($administrationPayload);
-
-            // Update candidate global status to hired at Hiring stage
-            // Business rule: once Hiring is saved (agreement issued), candidate becomes globally hired
             if ($session->candidate && $session->candidate->global_status !== 'hired') {
                 $session->candidate->update(['global_status' => 'hired']);
             }
 
-            // Mark stage as completed and complete the session
             $session->update([
                 'stage_status' => 'completed',
                 'stage_completed_at' => now(),
@@ -1857,34 +1711,24 @@ class RecruitmentSessionController extends Controller
                 'overall_progress' => 100.0,
             ]);
 
-            // Update FPTK positions filled if session is from FPTK
             if ($session->fptk_id && $session->fptk) {
                 $session->fptk->incrementPositionsFilled();
             }
 
-            // Update MPP Detail existing quantity if session is from MPP
             if ($session->mpp_detail_id && $session->mppDetail) {
-                // Reload hiring relationship to ensure we have the latest data
                 $session->load('hiring');
-
-                // Get agreement_type from hiring record if available, otherwise use the one we determined
-                $finalAgreementType = $agreementType;
-                if ($session->hiring && $session->hiring->agreement_type) {
-                    $finalAgreementType = $session->hiring->agreement_type;
-                }
-
-                // Auto-increment based on MPP Detail needs (which one is still needed)
-                // This will check diff_s and diff_ns to determine staff or non-staff
-                // Agreement type is only used as tie-breaker if both have same diff
+                $finalAgreementType = $session->hiring?->agreement_type ?? $agreementType;
                 $session->mppDetail->autoIncrementExistingQuantity($finalAgreementType);
-
-                // Check fulfillment
                 $session->mppDetail->checkFulfillment();
             }
 
             DB::commit();
 
-            return back()->with('toast_success', 'Hiring saved. Candidate hired successfully.');
+            $message = $registerToEmployee
+                ? 'Hiring saved. Candidate hired and registered to Employee Management.'
+                : 'Hiring saved. Candidate hired successfully. Employee registration was skipped.';
+
+            return back()->with('toast_success', $message);
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Failed to update hiring', [
@@ -1895,6 +1739,125 @@ class RecruitmentSessionController extends Controller
 
             return back()->with('toast_error', 'Failed to update hiring. Please try again.');
         }
+    }
+
+    public function registerEmployeeFromHire(Request $request, $sessionId)
+    {
+        $session = RecruitmentSession::with(['candidate', 'hiring', 'fptk', 'mppDetail.mpp'])->findOrFail($sessionId);
+
+        if ($session->status !== 'hired') {
+            return back()->with('toast_error', 'Employee can only be registered for hired sessions.');
+        }
+
+        if (! $session->hiring) {
+            return back()->with('toast_error', 'Hiring record not found for this session.');
+        }
+
+        if ($session->hiring->isEmployeeRegistered()) {
+            return back()->with('toast_error', 'Employee is already registered for this session.');
+        }
+
+        $agreementType = $session->hiring->agreement_type ?? $this->resolveAgreementType($session);
+        $registrationMode = $request->input('registration_mode', 'new');
+
+        $request->validate(
+            $this->employeeRegistrationValidationRules($agreementType, $registrationMode),
+            $this->hireValidationMessages()
+        );
+
+        try {
+            DB::beginTransaction();
+
+            $employee = $this->registerEmployeeFromRequest($session, $request, $agreementType);
+
+            $this->hireEmployeeService->markHiringEmployeeRegistered($session->hiring, $employee);
+
+            DB::commit();
+
+            return back()->with('toast_success', 'Employee registered successfully from recruitment session.');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Failed to register employee from hire', [
+                'session_id' => $sessionId,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return back()->with('toast_error', 'Failed to register employee. Please try again.');
+        }
+    }
+
+    public function searchEmployeesForHire(Request $request)
+    {
+        $search = trim((string) $request->get('q', ''));
+
+        if (strlen($search) < 2) {
+            return response()->json([]);
+        }
+
+        $query = Employee::query()
+            ->with(['administrations' => function ($q) {
+                $q->where('is_active', 1);
+            }]);
+
+        UserProject::scopeQueryToEmployeesLinkedViaAdministrations($query, 'employees.id');
+
+        $query->where(function ($q) use ($search) {
+            $q->where('fullname', 'like', "%{$search}%")
+                ->orWhere('identity_card', 'like', "%{$search}%")
+                ->orWhereHas('administrations', function ($adminQuery) use ($search) {
+                    $adminQuery->where('is_active', 1)
+                        ->where('nik', 'like', "%{$search}%");
+                });
+        });
+
+        $employees = $query->orderBy('fullname')->limit(15)->get();
+
+        $results = $employees->map(function (Employee $employee) {
+            $activeAdmin = $employee->administrations->firstWhere('is_active', 1);
+
+            return [
+                'id' => $employee->id,
+                'text' => (($activeAdmin->nik ?? null) ?: '-').' - '.$employee->fullname,
+                'fullname' => $employee->fullname,
+                'identity_card' => $employee->identity_card,
+                'nik' => $activeAdmin->nik ?? null,
+            ];
+        })->values();
+
+        return response()->json($results);
+    }
+
+    public function getEmployeeHirePrefill($employeeId)
+    {
+        $employee = Employee::with(['administrations' => function ($q) {
+            $q->where('is_active', 1)->with(['position.department', 'project', 'grade', 'level']);
+        }])->findOrFail($employeeId);
+
+        $activeAdmin = $employee->administrations->firstWhere('is_active', 1);
+
+        return response()->json([
+            'employee' => [
+                'id' => $employee->id,
+                'fullname' => $employee->fullname,
+                'identity_card' => $employee->identity_card,
+                'email' => $employee->email,
+                'phone' => $employee->phone,
+            ],
+            'administration' => $activeAdmin ? [
+                'nik' => $activeAdmin->nik,
+                'class' => $activeAdmin->class,
+                'poh' => $activeAdmin->poh,
+                'doh' => $activeAdmin->doh ? format_date_with_weekday($activeAdmin->doh) : null,
+                'foc' => $activeAdmin->foc ? format_date_with_weekday($activeAdmin->foc) : null,
+                'agreement' => $activeAdmin->agreement,
+                'position_name' => $activeAdmin->position->position_name ?? null,
+                'department_name' => $activeAdmin->position->department->department_name ?? null,
+                'project_code' => $activeAdmin->project->project_code ?? null,
+                'grade_name' => $activeAdmin->grade->name ?? null,
+                'level_name' => $activeAdmin->level->name ?? null,
+            ] : [],
+        ]);
     }
 
     public function transitionStage(Request $request, $sessionId)
@@ -2152,5 +2115,126 @@ class RecruitmentSessionController extends Controller
 
             return redirect()->route('recruitment.sessions.index')->with('toast_error', 'Failed to close recruitment request.');
         }
+    }
+
+    private function hireCompletionValidationRules(): array
+    {
+        return [
+            'register_to_employee' => 'nullable|boolean',
+            'hiring_letter_number_id' => 'required|exists:letter_numbers,id',
+            'agreement_type' => 'required|in:pkwt,pkwtt,magang,harian',
+            'notes' => 'nullable|string',
+            'reviewed_at' => 'required|date',
+        ];
+    }
+
+    private function employeeRegistrationValidationRules(string $agreementType, string $mode = 'new'): array
+    {
+        $administrationRules = [
+            'registration_mode' => 'required|in:new,existing',
+            'administration' => 'required|array',
+            'administration.nik' => [
+                'required',
+                'string',
+                Rule::unique('administrations', 'nik')->where(fn ($q) => $q->where('is_active', 1)),
+            ],
+            'administration.doh' => 'required|date',
+            'administration.poh' => 'required|string',
+            'administration.class' => 'required|in:Staff,Non Staff',
+            'administration.position_id' => 'required|exists:positions,id',
+            'administration.project_id' => 'required|exists:projects,id',
+            'administration.level_id' => 'required_if:agreement_type,pkwt|required_if:agreement_type,pkwtt|nullable|exists:levels,id',
+            'administration.foc' => 'required_if:agreement_type,pkwt|nullable|date',
+        ];
+
+        if ($mode === 'existing') {
+            return [
+                'registration_mode' => 'required|in:new,existing',
+                'employee_id' => [
+                    'required',
+                    'exists:employees,id',
+                    Rule::exists('administrations', 'employee_id')->where(fn ($q) => $q->where('is_active', 1)),
+                ],
+            ];
+        }
+
+        return array_merge($administrationRules, [
+            'employee' => 'required|array',
+            'employee.fullname' => 'required|string',
+            'employee.identity_card' => 'required|string|unique:employees,identity_card',
+            'employee.emp_pob' => 'required|string',
+            'employee.emp_dob' => 'required|date',
+            'employee.religion_id' => 'required|exists:religions,id',
+            'employee.gender' => 'nullable|in:male,female',
+        ]);
+    }
+
+    private function registerEmployeeFromRequest(
+        RecruitmentSession $session,
+        Request $request,
+        string $agreementType
+    ): Employee {
+        if ($request->input('registration_mode', 'new') === 'existing') {
+            return $this->hireEmployeeService->linkExistingEmployeeFromHire($request->employee_id);
+        }
+
+        return $this->hireEmployeeService->registerFromHireData(
+            $session,
+            $request->input('employee', []),
+            $request->input('administration', []),
+            $agreementType
+        );
+    }
+
+    private function hireValidationMessages(): array
+    {
+        return [
+            'employee.fullname.required' => 'Fullname is required',
+            'employee.identity_card.required' => 'Identity Card No is required',
+            'employee.identity_card.unique' => 'Identity Card already exists. Please use a different Identity Card.',
+            'employee.emp_pob.required' => 'Place of Birth is required',
+            'employee.emp_dob.required' => 'Date of Birth is required',
+            'employee.religion_id.required' => 'Religion is required',
+            'employee_id.required' => 'Please select an existing employee',
+            'employee_id.exists' => 'Selected employee is invalid or has no active administration',
+            'registration_mode.required' => 'Registration mode is required',
+            'registration_mode.in' => 'Registration mode is invalid',
+            'administration.nik.required' => 'NIK is required',
+            'administration.nik.unique' => 'NIK already exists. Please use a different NIK.',
+            'administration.doh.required' => 'Date of Hire is required',
+            'administration.poh.required' => 'Place of Hire is required',
+            'administration.class.required' => 'Class is required',
+            'administration.position_id.required' => 'Position is required',
+            'administration.project_id.required' => 'Project is required',
+            'administration.level_id.required_if' => 'Level is required for PKWT and PKWTT agreements',
+            'administration.foc.required_if' => 'FOC is required for PKWT agreement',
+            'hiring_letter_number_id.required' => 'Hiring Letter Number is required',
+            'agreement_type.required' => 'Agreement Type is required',
+            'reviewed_at.required' => 'Review Date is required',
+        ];
+    }
+
+    private function resolveAgreementType(RecruitmentSession $session, ?string $fallback = null): string
+    {
+        if ($session->fptk_id && $session->fptk) {
+            return \App\Models\RecruitmentHiring::getAgreementTypeFromEmploymentType($session->fptk->employment_type);
+        }
+
+        if ($session->mpp_detail_id && $session->mppDetail) {
+            return $session->mppDetail->agreement_type ?? 'pkwt';
+        }
+
+        return $fallback ?? 'pkwt';
+    }
+
+    private function buildHiringLetterNumber(string $letterNumber): string
+    {
+        $romanMonths = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'];
+        $now = now();
+        $romanMonth = $romanMonths[((int) $now->format('n')) - 1];
+        $year = $now->format('Y');
+        $base = preg_replace('/^[A-Za-z]+/', '', $letterNumber);
+
+        return $base.'/ARKA-HO/PKWT-I/'.$romanMonth.'/'.$year;
     }
 }

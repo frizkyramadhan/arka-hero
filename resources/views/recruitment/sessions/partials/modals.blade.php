@@ -502,425 +502,16 @@
                             <span aria-hidden="true">&times;</span>
                         </button>
                         <strong>Info:</strong>
-                        <p>The data you enter here will be automatically saved to the Employee and Administration
-                            records.</p>
+                        <p>Submit Hire completes the recruitment session and updates FPTK/MPP quota. Registering the
+                            employee to Employee Management is optional — enable the checkbox below to register a
+                            <strong>new</strong> employee or <strong>link an existing</strong> employee.</p>
                     </div>
                     @csrf
-                    <div class="card mb-3">
-                        <div class="card-header"><strong>Personal Data</strong></div>
-                        <div class="card-body">
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <div class="form-group">
-                                        <label>Fullname <span class="text-danger">*</span></label>
-                                        <input type="text"
-                                            class="form-control @error('employee.fullname') is-invalid @enderror"
-                                            name="employee[fullname]"
-                                            value="{{ old('employee.fullname', $session->candidate->fullname) }}"
-                                            required>
-                                        @error('employee.fullname')
-                                            <div class="invalid-feedback">{{ $message }}</div>
-                                        @enderror
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="form-group">
-                                        <label>Identity Card No <span class="text-danger">*</span></label>
-                                        <input type="text"
-                                            class="form-control @error('employee.identity_card') is-invalid @enderror"
-                                            name="employee[identity_card]"
-                                            value="{{ old('employee.identity_card') }}"
-                                            placeholder="Enter KTP/ID number" required>
-                                        @error('employee.identity_card')
-                                            <div class="invalid-feedback">{{ $message }}</div>
-                                        @enderror
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="form-group">
-                                        <label>Place of Birth <span class="text-danger">*</span></label>
-                                        <input type="text"
-                                            class="form-control @error('employee.emp_pob') is-invalid @enderror"
-                                            name="employee[emp_pob]" value="{{ old('employee.emp_pob') }}"
-                                            placeholder="Enter birthplace" required>
-                                        @error('employee.emp_pob')
-                                            <div class="invalid-feedback">{{ $message }}</div>
-                                        @enderror
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="form-group">
-                                        <label>Date of Birth <span class="text-danger">*</span></label>
-                                        <input type="date"
-                                            class="form-control @error('employee.emp_dob') is-invalid @enderror"
-                                            name="employee[emp_dob]"
-                                            value="{{ old('employee.emp_dob', optional($session->candidate->date_of_birth)->format('Y-m-d')) }}"
-                                            required>
-                                        @error('employee.emp_dob')
-                                            <div class="invalid-feedback">{{ $message }}</div>
-                                        @enderror
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="form-group">
-                                        <label>Religion <span class="text-danger">*</span></label>
-                                        <select
-                                            class="form-control @error('employee.religion_id') is-invalid @enderror"
-                                            name="employee[religion_id]" required>
-                                            <option value="">Select religion</option>
-                                            @foreach (\App\Models\Religion::get() as $religion)
-                                                <option value="{{ $religion->id }}"
-                                                    {{ old('employee.religion_id') == $religion->id ? 'selected' : '' }}>
-                                                    {{ $religion->religion_name }}
-                                                </option>
-                                            @endforeach
-                                        </select>
-                                        @error('employee.religion_id')
-                                            <div class="invalid-feedback">{{ $message }}</div>
-                                        @enderror
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="form-group">
-                                        <label>Gender</label>
-                                        <select class="form-control @error('employee.gender') is-invalid @enderror"
-                                            name="employee[gender]">
-                                            <option value="">Select gender</option>
-                                            <option value="male"
-                                                {{ old('employee.gender') == 'male' ? 'selected' : '' }}>Male</option>
-                                            <option value="female"
-                                                {{ old('employee.gender') == 'female' ? 'selected' : '' }}>Female
-                                            </option>
-                                        </select>
-                                        @error('employee.gender')
-                                            <div class="invalid-feedback">{{ $message }}</div>
-                                        @enderror
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="form-group">
-                                        <label>Marital Status</label>
-                                        <input type="text"
-                                            class="form-control @error('employee.marital') is-invalid @enderror"
-                                            name="employee[marital]" value="{{ old('employee.marital') }}"
-                                            placeholder="Single/Married/etc">
-                                        @error('employee.marital')
-                                            <div class="invalid-feedback">{{ $message }}</div>
-                                        @enderror
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="form-group">
-                                        <label>Phone</label>
-                                        <input type="text"
-                                            class="form-control @error('employee.phone') is-invalid @enderror"
-                                            name="employee[phone]"
-                                            value="{{ old('employee.phone', $session->candidate->phone) }}">
-                                        @error('employee.phone')
-                                            <div class="invalid-feedback">{{ $message }}</div>
-                                        @enderror
-                                    </div>
-                                </div>
-                                <div class="col-md-12">
-                                    <div class="form-group">
-                                        <label>Address</label>
-                                        <input type="text"
-                                            class="form-control @error('employee.address') is-invalid @enderror"
-                                            name="employee[address]"
-                                            value="{{ old('employee.address', $session->candidate->address) }}">
-                                        @error('employee.address')
-                                            <div class="invalid-feedback">{{ $message }}</div>
-                                        @enderror
-                                    </div>
-                                </div>
-                                <div class="col-md-12">
-                                    <div class="form-group">
-                                        <label>Email</label>
-                                        <input type="email"
-                                            class="form-control @error('employee.email') is-invalid @enderror"
-                                            name="employee[email]"
-                                            value="{{ old('employee.email', $session->candidate->email) }}">
-                                        @error('employee.email')
-                                            <div class="invalid-feedback">{{ $message }}</div>
-                                        @enderror
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="card">
-                        <div class="card-header"><strong>Administration Data</strong></div>
-                        <div class="card-body">
-                            @if (in_array(optional($session->fptk)->employment_type, ['magang', 'harian']))
-                                {{-- Administration Data for Magang and Harian --}}
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label>{{ optional($session->fptk)->employment_type === 'magang' ? 'NIM' : 'NID' }}
-                                                <span class="text-danger">*</span></label>
-                                            <input type="text"
-                                                class="form-control @error('administration.nik') is-invalid @enderror"
-                                                name="administration[nik]" value="{{ old('administration.nik') }}"
-                                                placeholder="Enter {{ optional($session->fptk)->employment_type === 'magang' ? 'NIM' : 'NID' }}"
-                                                required>
-                                            @error('administration.nik')
-                                                <div class="invalid-feedback">{{ $message }}</div>
-                                            @enderror
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label>Date of Hire <span class="text-danger">*</span></label>
-                                            <input type="date"
-                                                class="form-control @error('administration.doh') is-invalid @enderror"
-                                                name="administration[doh]"
-                                                value="{{ old('administration.doh', now()->format('Y-m-d')) }}"
-                                                required>
-                                            @error('administration.doh')
-                                                <div class="invalid-feedback">{{ $message }}</div>
-                                            @enderror
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label>Place of Hire (POH) <span class="text-danger">*</span></label>
-                                            <input type="text"
-                                                class="form-control @error('administration.poh') is-invalid @enderror"
-                                                name="administration[poh]" value="{{ old('administration.poh') }}"
-                                                placeholder="Enter POH" required>
-                                            @error('administration.poh')
-                                                <div class="invalid-feedback">{{ $message }}</div>
-                                            @enderror
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label>Class <span class="text-danger">*</span></label>
-                                            <select
-                                                class="form-control @error('administration.class') is-invalid @enderror"
-                                                name="administration[class]" required>
-                                                <option value="">Select class</option>
-                                                <option value="Staff"
-                                                    {{ old('administration.class') == 'Staff' ? 'selected' : '' }}>
-                                                    Staff
-                                                </option>
-                                                <option value="Non Staff"
-                                                    {{ old('administration.class') == 'Non Staff' ? 'selected' : '' }}>
-                                                    Non
-                                                    Staff</option>
-                                            </select>
-                                            @error('administration.class')
-                                                <div class="invalid-feedback">{{ $message }}</div>
-                                            @enderror
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label>Position <span class="text-danger">*</span></label>
-                                            <select
-                                                class="form-control @error('administration.position_id') is-invalid @enderror"
-                                                name="administration[position_id]" id="hire_position_id_magang_harian"
-                                                required>
-                                                <option value="">Select position</option>
-                                                @foreach (\App\Models\Position::orderBy('position_name', 'asc')->get() as $position)
-                                                    <option value="{{ $position->id }}"
-                                                        {{ old('administration.position_id', optional($session->fptk)->position_id) == $position->id ? 'selected' : '' }}>
-                                                        {{ $position->position_name }}</option>
-                                                @endforeach
-                                            </select>
-                                            @error('administration.position_id')
-                                                <div class="invalid-feedback">{{ $message }}</div>
-                                            @enderror
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label>Department</label>
-                                            <input type="text" class="form-control"
-                                                id="hire_department_magang_harian" readonly>
-                                            <small class="form-text text-muted">Department will be automatically filled
-                                                based on position selection</small>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label>Project <span class="text-danger">*</span></label>
-                                            <select
-                                                class="form-control @error('administration.project_id') is-invalid @enderror"
-                                                name="administration[project_id]" required>
-                                                <option value="">Select project</option>
-                                                @foreach (\App\Models\Project::orderBy('project_code', 'asc')->get() as $project)
-                                                    <option value="{{ $project->id }}"
-                                                        {{ old('administration.project_id', optional($session->fptk)->project_id) == $project->id ? 'selected' : '' }}>
-                                                        {{ $project->project_code }}</option>
-                                                @endforeach
-                                            </select>
-                                            @error('administration.project_id')
-                                                <div class="invalid-feedback">{{ $message }}</div>
-                                            @enderror
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label>FPTK No</label>
-                                            <input type="text" class="form-control" name="administration[no_fptk]"
-                                                value="{{ optional($session->fptk)->request_number }}" readonly>
-                                        </div>
-                                    </div>
-                                </div>
-                            @else
-                                {{-- Administration Data for PKWT and PKWTT --}}
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label>NIK <span class="text-danger">*</span></label>
-                                            <input type="text"
-                                                class="form-control @error('administration.nik') is-invalid @enderror"
-                                                name="administration[nik]" value="{{ old('administration.nik') }}"
-                                                placeholder="Enter employee NIK" required>
-                                            @error('administration.nik')
-                                                <div class="invalid-feedback">{{ $message }}</div>
-                                            @enderror
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label>Date of Hire <span class="text-danger">*</span></label>
-                                            <input type="date"
-                                                class="form-control @error('administration.doh') is-invalid @enderror"
-                                                name="administration[doh]"
-                                                value="{{ old('administration.doh', now()->format('Y-m-d')) }}"
-                                                required>
-                                            @error('administration.doh')
-                                                <div class="invalid-feedback">{{ $message }}</div>
-                                            @enderror
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label>Place of Hire (POH) <span class="text-danger">*</span></label>
-                                            <input type="text"
-                                                class="form-control @error('administration.poh') is-invalid @enderror"
-                                                name="administration[poh]" value="{{ old('administration.poh') }}"
-                                                placeholder="Enter POH" required>
-                                            @error('administration.poh')
-                                                <div class="invalid-feedback">{{ $message }}</div>
-                                            @enderror
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label>Class <span class="text-danger">*</span></label>
-                                            <select
-                                                class="form-control @error('administration.class') is-invalid @enderror"
-                                                name="administration[class]" required>
-                                                <option value="">Select class</option>
-                                                <option value="Staff"
-                                                    {{ old('administration.class') == 'Staff' ? 'selected' : '' }}>
-                                                    Staff
-                                                </option>
-                                                <option value="Non Staff"
-                                                    {{ old('administration.class') == 'Non Staff' ? 'selected' : '' }}>
-                                                    Non
-                                                    Staff</option>
-                                            </select>
-                                            @error('administration.class')
-                                                <div class="invalid-feedback">{{ $message }}</div>
-                                            @enderror
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label>Position <span class="text-danger">*</span></label>
-                                            <select
-                                                class="form-control @error('administration.position_id') is-invalid @enderror"
-                                                name="administration[position_id]" id="hire_position_id" required>
-                                                <option value="">Select position</option>
-                                                @foreach (\App\Models\Position::orderBy('position_name', 'asc')->get() as $position)
-                                                    <option value="{{ $position->id }}"
-                                                        {{ old('administration.position_id', optional($session->fptk)->position_id) == $position->id ? 'selected' : '' }}>
-                                                        {{ $position->position_name }}</option>
-                                                @endforeach
-                                            </select>
-                                            @error('administration.position_id')
-                                                <div class="invalid-feedback">{{ $message }}</div>
-                                            @enderror
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label>Department</label>
-                                            <input type="text" class="form-control" id="hire_department" readonly>
-                                            <small class="form-text text-muted">Department will be automatically filled
-                                                based on position selection</small>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label>Project <span class="text-danger">*</span></label>
-                                            <select
-                                                class="form-control @error('administration.project_id') is-invalid @enderror"
-                                                name="administration[project_id]" required>
-                                                <option value="">Select project</option>
-                                                @foreach (\App\Models\Project::orderBy('project_code', 'asc')->get() as $project)
-                                                    <option value="{{ $project->id }}"
-                                                        {{ old('administration.project_id', optional($session->fptk)->project_id) == $project->id ? 'selected' : '' }}>
-                                                        {{ $project->project_code }}</option>
-                                                @endforeach
-                                            </select>
-                                            @error('administration.project_id')
-                                                <div class="invalid-feedback">{{ $message }}</div>
-                                            @enderror
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label>Grade</label>
-                                            <select
-                                                class="form-control @error('administration.grade_id') is-invalid @enderror"
-                                                name="administration[grade_id]">
-                                                <option value="">Select grade</option>
-                                                @foreach (\App\Models\Grade::where('is_active', 1)->orderBy('name', 'asc')->get() as $grade)
-                                                    <option value="{{ $grade->id }}"
-                                                        {{ old('administration.grade_id') == $grade->id ? 'selected' : '' }}>
-                                                        {{ $grade->name }}</option>
-                                                @endforeach
-                                            </select>
-                                            @error('administration.grade_id')
-                                                <div class="invalid-feedback">{{ $message }}</div>
-                                            @enderror
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label>Level <span class="text-danger">*</span></label>
-                                            <select
-                                                class="form-control @error('administration.level_id') is-invalid @enderror"
-                                                name="administration[level_id]" required>
-                                                <option value="">Select level</option>
-                                                @foreach (\App\Models\Level::where('is_active', 1)->orderBy('name', 'asc')->get() as $level)
-                                                    <option value="{{ $level->id }}"
-                                                        {{ old('administration.level_id') == $level->id ? 'selected' : '' }}>
-                                                        {{ $level->name }}</option>
-                                                @endforeach
-                                            </select>
-                                            @error('administration.level_id')
-                                                <div class="invalid-feedback">{{ $message }}</div>
-                                            @enderror
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label>FPTK No</label>
-                                            <input type="text" class="form-control" name="administration[no_fptk]"
-                                                value="{{ optional($session->fptk)->request_number }}" readonly>
-                                        </div>
-                                    </div>
-                                </div>
-                            @endif
-                        </div>
-                    </div>
+                    @include('recruitment.sessions.partials.hire-employee-fields', [
+                        'session' => $session,
+                        'suffix' => '',
+                        'showRegisterCheckbox' => true,
+                    ])
 
                     <div class="card mt-3">
                         <div class="card-header"><strong>Agreement</strong></div>
@@ -1012,14 +603,14 @@
 
                             <!-- FOC (only for PKWT) -->
                             @if ($employmentType === 'pkwt')
-                                <div class="row">
+                                <div class="row" id="foc_container" style="display: none;">
                                     <div class="col-md-6">
                                         <div class="form-group">
                                             <label>Finish of Contract (FOC) <span class="text-danger">*</span></label>
                                             <input type="date"
                                                 class="form-control @error('administration.foc') is-invalid @enderror"
                                                 name="administration[foc]" value="{{ old('administration.foc') }}"
-                                                id="administration_foc">
+                                                id="administration_foc" data-required-when-register>
                                             @error('administration.foc')
                                                 <div class="invalid-feedback">{{ $message }}</div>
                                             @enderror
@@ -1056,6 +647,66 @@
                     <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
                     <button type="submit" class="btn btn-primary submit-btn" id="hire_submit_btn" disabled>Submit
                         Hire</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Register Employee Modal (post-hire) -->
+<div class="modal fade" id="registerEmployeeModal">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="registerEmployeeModalTitle">
+                    <i class="fas fa-user-plus"></i> Register Employee
+                </h4>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <form method="POST" class="confirm-submit" id="registerEmployeeForm"
+                data-confirm-message="Register this candidate as an employee?"
+                action="{{ route('recruitment.sessions.register-employee', $session->id) }}">
+                @csrf
+                <div class="modal-body">
+                    <div class="alert alert-info">
+                        <strong>Info:</strong> This session is already hired. Register a <strong>new</strong> employee (with personal and administration data) or
+                        <strong>link an existing</strong> employee from Employee Management. For existing employees, current administration data is used as-is.
+                    </div>
+                    @php
+                        $registerAgreementType = optional($session->hiring)->agreement_type;
+                        if (! $registerAgreementType) {
+                            if ($session->fptk_id && $session->fptk) {
+                                $registerAgreementType = $session->fptk->employment_type;
+                            } elseif ($session->mpp_detail_id && $session->mppDetail) {
+                                $registerAgreementType = $session->mppDetail->agreement_type ?? 'pkwt';
+                            } else {
+                                $registerAgreementType = 'pkwt';
+                            }
+                        }
+                    @endphp
+                    <input type="hidden" name="agreement_type" value="{{ $registerAgreementType }}">
+                    @include('recruitment.sessions.partials.hire-employee-fields', [
+                        'session' => $session,
+                        'suffix' => '_register',
+                        'showRegisterCheckbox' => false,
+                    ])
+                    @if ($registerAgreementType === 'pkwt')
+                        <div class="form-group" id="register_foc_container">
+                            <label>Finish of Contract (FOC) <span class="text-danger">*</span></label>
+                            <input type="date"
+                                class="form-control @error('administration.foc') is-invalid @enderror"
+                                name="administration[foc]" value="{{ old('administration.foc') }}" required>
+                            @error('administration.foc')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                        </div>
+                    @endif
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary" id="register_employee_submit_btn">Register Employee</button>
                 </div>
             </form>
         </div>

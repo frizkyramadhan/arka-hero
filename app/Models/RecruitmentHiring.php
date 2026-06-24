@@ -10,15 +10,19 @@ class RecruitmentHiring extends Model
 
     protected $fillable = [
         'session_id',
+        'employee_id',
         'agreement_type',
         'letter_number',
         'notes',
         'reviewed_by',
-        'reviewed_at'
+        'reviewed_at',
+        'employee_registered_at',
+        'employee_registered_by',
     ];
 
     protected $casts = [
         'reviewed_at' => 'datetime',
+        'employee_registered_at' => 'datetime',
     ];
 
     protected $dates = [
@@ -46,6 +50,21 @@ class RecruitmentHiring extends Model
     public function reviewer()
     {
         return $this->belongsTo(User::class, 'reviewed_by');
+    }
+
+    public function employee()
+    {
+        return $this->belongsTo(Employee::class, 'employee_id');
+    }
+
+    public function employeeRegisteredBy()
+    {
+        return $this->belongsTo(User::class, 'employee_registered_by');
+    }
+
+    public function isEmployeeRegistered(): bool
+    {
+        return $this->employee_id !== null;
     }
 
     /**
