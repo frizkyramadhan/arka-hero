@@ -2,10 +2,11 @@
 
 # Recruitment Management
 
-| **Versi** | **Tanggal** | **Revisi (ringkas)**                                                                                                                                                                      |
-| :-------- | :---------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1.1       | 2026-05-25  | **Update Approvers** pada detail FPTK **Submitted**: hanya langkah **Pending** yang dapat diganti; approver yang sudah **Approved**/**Rejected** terkunci.                                |
-| 1.0       | 2026-05-25  | Panduan awal: dashboard HR, **Requests (FPTK)** & **Requests (MPP)**, **Candidates (CV)**, **Sessions** (alur tahap rekrutmen), **Reports**, **My Recruitment Request**, troubleshooting. |
+| **Versi** | **Tanggal** | **Revisi (ringkas)**                                                                                                                                                                                                                                                                                                             |
+| :-------- | :---------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1.2       | 2026-06-23  | **Hiring & Onboarding** — registrasi ke Employee Management **opsional**; **Registration Type** (**New Employee** / **Existing Employee**); mode existing menautkan karyawan tanpa form Administration; tombol dinamis (**Register Employee**, **Update Hiring Session**, **View Employee**); badge **Employee not registered**. |
+| 1.1       | 2026-05-25  | **Update Approvers** pada detail FPTK **Submitted**: hanya langkah **Pending** yang dapat diganti; approver yang sudah **Approved**/**Rejected** terkunci.                                                                                                                                                                       |
+| 1.0       | 2026-05-25  | Panduan awal: dashboard HR, **Requests (FPTK)** & **Requests (MPP)**, **Candidates (CV)**, **Sessions** (alur tahap rekrutmen), **Reports**, **My Recruitment Request**, troubleshooting.                                                                                                                                        |
 
 Panduan ini menjelaskan modul rekrutmen di ARKA HERO untuk **staf HR** yang mengoperasikan menu grup **Recruitment Management** di **HERO SECTION** (dashboard, permintaan FPTK/MPP, kandidat, sesi rekrutmen, laporan) dan untuk **semua karyawan** yang mengajukan permintaan tenaga kerja lewat **My Features** → **My Recruitment Request**.
 
@@ -468,14 +469,14 @@ Klik **View** pada baris kandidat (dari tabel sesi FPTK/MPP atau **Recent Sessio
 
 **Recruitment Timeline** — urutan tahap dengan indikator warna (abu = belum, kuning = berjalan, hijau = lulus, merah = gagal). Tahap aktif dapat dibuka untuk input penilaian (ikon/edit pada tahap yang **unlocked**).
 
-| Tahap (UI)              | Ringkasan                                                                                                                                                                                                                              |
-| :---------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **CV Review**           | Keputusan **Recommended** / **Not Recommended** + **Review Date**, **Notes**.                                                                                                                                                          |
-| **Psikotes**            | Skor **Psikotes Online** dan **Psikotes Offline**; kriteria layar: ≥ 40 lanjut, &lt; 40 tidak direkomendasikan.                                                                                                                        |
-| **Tes Teori**           | Hanya jika FPTK mencentang tes teori atau posisi mekanik; skor dan keputusan lulus/gagal.                                                                                                                                              |
-| **Interview**           | Sub-tipe **HR Interview**, **User Interview**, **Trainer Interview** (pilih **Interview Type**); keputusan per wawancara; semua wajib selesai sebelum lanjut.                                                                          |
-| **Offering**            | **Offering Letter Number** (selector surat), keputusan offering (**Accepted** / **Rejected**).                                                                                                                                         |
-| **MCU**                 | **Fit to Work**, **Unfit**, atau **Follow Up** + **Review Date**, **Notes**.                                                                                                                                                           |
+| Tahap (UI)              | Ringkasan                                                                                                                                                                                                                                         |
+| :---------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **CV Review**           | Keputusan **Recommended** / **Not Recommended** + **Review Date**, **Notes**.                                                                                                                                                                     |
+| **Psikotes**            | Skor **Psikotes Online** dan **Psikotes Offline**; kriteria layar: ≥ 40 lanjut, &lt; 40 tidak direkomendasikan.                                                                                                                                   |
+| **Tes Teori**           | Hanya jika FPTK mencentang tes teori atau posisi mekanik; skor dan keputusan lulus/gagal.                                                                                                                                                         |
+| **Interview**           | Sub-tipe **HR Interview**, **User Interview**, **Trainer Interview** (pilih **Interview Type**); keputusan per wawancara; semua wajib selesai sebelum lanjut.                                                                                     |
+| **Offering**            | **Offering Letter Number** (selector surat), keputusan offering (**Accepted** / **Rejected**).                                                                                                                                                    |
+| **MCU**                 | **Fit to Work**, **Unfit**, atau **Follow Up** + **Review Date**, **Notes**.                                                                                                                                                                      |
 | **Hiring & Onboarding** | Formulir gabungan **Personal Data** / **Existing Employee**, **Administration Data**, dan **Agreement** (judul modal di layar: **Hire Stage**). **Submit Hire** menyelesaikan rekrutmen; registrasi ke **Employee Management** bersifat opsional. |
 
 **Pengecualian alur**
@@ -651,54 +652,78 @@ Hanya untuk posisi yang memerlukan tes teori.
 <br><em>Gambar 6.4f — Modal <strong>Medical Check Up Assessment</strong>: <strong>MCU Result</strong> (Fit to Work/Unfit/Follow Up), <strong>Notes</strong>, <strong>Review Date</strong>, dan <strong>Submit Assessment</strong></em>
 </p>
 
-#### Modal **Hiring & Onboarding**
+#### Modal **Hiring & Onboarding** (_Hire Stage_)
 
-Tahap **Hiring & Onboarding** menyelesaikan rekrutmen kandidat melalui formulir **Hire Stage**.
+Tahap **Hiring & Onboarding** menyelesaikan rekrutmen kandidat melalui modal **Hire Stage**.
 
-**Submit Hire** selalu:
+**Langkah-langkah:**
 
-- Menyimpan data **Agreement** (surat perjanjian, tipe kontrak, notes, review date).
-- Menandai sesi kandidat sebagai **Hired** dan menaikkan kuota FPTK/MPP.
+1. Pada **Recruitment Timeline**, klik tahap **Hiring & Onboarding**.
+2. (Opsional) Centang **Register to Employee Management** jika ingin sekaligus mendaftarkan atau menautkan karyawan ke **Employee Management** — lihat §**Registrasi karyawan (opsional)** di bawah.
+3. Isi bagian **Agreement**:
+    - Pilih **Letter Number** dari dropdown (**Refresh List** / **Create New** jika perlu); nilai **Letter Number** di bawah terisi otomatis.
+    - **Agreement Type** terpilih otomatis sesuai **Employment Type** FPTK (misalnya **PKWT**, **PKWTT**, **Intern**, **Daily**).
+4. Isi **Notes** (opsional) dan **Review Date** (wajib).
+5. Klik tombol submit di footer modal — label tombol mengikuti opsi registrasi (lihat tabel di bawah).
+6. Konfirmasi dialog; sesi ditandai **Hired** dan kuota FPTK/MPP diperbarui.
 
-**Registrasi ke Employee Management bersifat opsional:**
+**Field wajib (selalu ditampilkan):**
 
-- Centang **Register to Employee Management** pada form Hire jika ingin sekaligus mendaftarkan karyawan ke **Employee Management**.
-- Pilih **Registration Type**:
-  - **New Employee** — isi **Personal Data** dan **Administration Data** (karyawan baru).
-  - **Existing Employee** — cari karyawan yang sudah ada di sistem (nama / NIK / KTP). Data personal dan administration diambil dari **Employee Management** apa adanya; tidak ada form administration tambahan dan tidak ada perubahan record administration.
-- Jika tidak dicentang, rekrutmen tetap selesai (**Hired**) tanpa membuat record karyawan.
-- Untuk sesi **Hired** yang belum terdaftar, gunakan tombol **Register Employee** di halaman timeline sesi kandidat (opsi **New Employee** / **Existing Employee** sama).
+- **Agreement** — **Letter Number** (selector surat), **Agreement Type** (otomatis dari FPTK).
+- **Notes** (opsional).
+- **Review Date** (wajib).
 
-Field saat registrasi diaktifkan:
+**Registrasi karyawan (opsional):**
 
-- **Registration Type** — **New Employee** atau **Existing Employee**.
-- **Personal Data** (hanya mode **New Employee**) — **Fullname**, **Identity Card No**, **Place/Date of Birth**, **Religion**, **Gender**, **Marital Status**, **Phone**, **Address**, **Email**.
-- **Existing Employee** (hanya mode **Existing Employee**) — pencarian karyawan (Select2); ringkasan read-only personal + administration setelah dipilih.
-- **Administration Data** (hanya mode **New Employee**) — **NIK**, **Date of Hire**, **Place of Hire (POH)**, **Class**, **Position**, **Department** (otomatis dari posisi), **Project**, **Grade**, **Level**, **FPTK No** (otomatis).
-- **Agreement** — **Letter Number**, **Agreement Type** (mengikuti **Employment Type** FPTK).
-- **Notes** (opsional), **Review Date** (wajib).
+- Checkbox **Register to Employee Management** — jika tidak dicentang, rekrutmen tetap selesai (**Hired**) tanpa membuat atau menautkan record karyawan.
+- Jika dicentang, pilih **Registration Type**:
+    - **New Employee** — isi **Personal Data** dan **Administration Data** untuk karyawan baru.
+    - **Existing Employee** — cari karyawan yang sudah ada (nama / NIK / KTP); ringkasan read-only personal + administration dari **Employee Management**; tidak ada form **Administration Data** tambahan dan tidak ada perubahan record administration.
+
+| Kondisi                                        | Label tombol submit (modal **Hire Stage**) |
+| :--------------------------------------------- | :----------------------------------------- |
+| Checkbox tidak dicentang                       | **Submit Hire**                            |
+| Checkbox dicentang, mode **New Employee**      | **Submit Hire & Register Employee**        |
+| Checkbox dicentang, mode **Existing Employee** | **Submit Hire & Link Employee**            |
+
+**Status karyawan setelah Hired:**
+
+- Karyawan sudah ditautkan — badge **Hired** dan tombol **View Employee** (halaman detail karyawan).
+- Belum ditautkan — badge **Employee not registered** dan tombol **Register Employee** (modal pasca-hire dengan opsi **New Employee** / **Existing Employee**; tombol **Register Employee** atau **Update Hiring Session**).
+
+**Field tambahan saat registrasi diaktifkan (mode New Employee):**
+
+- **Personal Data** — **Fullname**, **Identity Card No**, **Place/Date of Birth**, **Religion**, **Gender**, **Marital Status**, **Phone**, **Address**, **Email**.
+- **Administration Data** — **NIK**, **Date of Hire**, **Place of Hire (POH)**, **Class**, **Position**, **Department** (otomatis dari posisi), **Project**, **Grade**, **Level**, **FPTK No** (otomatis), **FOC** (wajib untuk PKWT).
 
 <p align="center" id="recruitment-session-modal-hire">
     <img
-        src="images/recruitment-session-modal-hire-personal-data.png"
-        alt="Modal Hire Stage Personal Data Fullname Identity Card No Place Date of Birth Religion Gender Marital Status Phone Address Email"
+        src="images/recruitment-session-modal-hire-stage.png"
+        alt="Modal Hire Stage banner Info Register to Employee Management checkbox Agreement Letter Number PKWT Agreement Type Notes Review Date Submit Hire Close"
         style="max-width: 60%; width: 60%; height: auto;"
     />
-<br><em>Gambar 6.4g (1) — Modal <strong>Hiring &amp; Onboarding</strong> (<strong>Hire Stage</strong>): bagian <strong>Personal Data</strong> — banner info data otomatis ke <strong>Employee Management</strong>, identitas dan kontak kandidat</em>
+<br><em>Gambar 6.4g — Modal <strong>Hiring &amp; Onboarding</strong> (<strong>Hire Stage</strong>): banner <strong>Info</strong>, checkbox opsional <strong>Register to Employee Management</strong>, bagian <strong>Agreement</strong> (<strong>Letter Number</strong>, <strong>Agreement Type</strong>), <strong>Notes</strong>, <strong>Review Date</strong>, dan tombol <strong>Submit Hire</strong></em>
+<br><br>
+    <img
+        src="images/recruitment-session-modal-hire-personal-data.png"
+        alt="Modal Hire Stage Registration Type New Employee Personal Data Fullname Identity Card Religion Gender"
+        style="max-width: 60%; width: 60%; height: auto;"
+    />
+<br><em>Gambar 6.4g (1) — <strong>Registration Type</strong> dan bagian <strong>Personal Data</strong> (muncul jika checkbox registrasi dicentang, mode <strong>New Employee</strong>)</em>
 <br><br>
     <img
         src="images/recruitment-session-modal-hire-administration.png"
         alt="Modal Hire Stage Administration Data NIK Date of Hire POH Class Position Department Project Grade Level FPTK No"
         style="max-width: 60%; width: 60%; height: auto;"
     />
-<br><em>Gambar 6.4g (2) — Bagian <strong>Administration Data</strong>: <strong>NIK</strong>, <strong>Date of Hire</strong>, <strong>POH</strong>, <strong>Class</strong>, <strong>Position</strong>, <strong>Department</strong> (otomatis dari posisi), <strong>Project</strong>, <strong>Grade</strong>, <strong>Level</strong>, dan <strong>FPTK No</strong> (otomatis)</em>
+<br><em>Gambar 6.4g (2) — Bagian <strong>Administration Data</strong> (mode <strong>New Employee</strong>): <strong>NIK</strong>, <strong>Date of Hire</strong>, <strong>POH</strong>, <strong>Class</strong>, <strong>Position</strong>, <strong>Department</strong>, <strong>Project</strong>, <strong>Grade</strong>, <strong>Level</strong>, <strong>FPTK No</strong></em>
 <br><br>
     <img
         src="images/recruitment-session-modal-hire-agreement.png"
-        alt="Modal Hire Stage Agreement Letter Number PKWT Agreement Type Notes Review Date Submit Hire Close"
+        alt="Modal Hire Stage Agreement Letter Number PKWT Agreement Type Notes Review Date Submit Hire"
         style="max-width: 60%; width: 60%; height: auto;"
     />
-<br><em>Gambar 6.4g (3) — Bagian <strong>Agreement</strong>: selector <strong>Letter Number</strong> (PKWT/PKWTT), <strong>Agreement Type</strong>, <strong>Notes</strong>, <strong>Review Date</strong>, dan tombol <strong>Submit Hire</strong></em>
+<br><em>Gambar 6.4g (3) — Cuplikan bagian <strong>Agreement</strong> dengan selector <strong>Letter Number</strong> dan <strong>Submit Hire</strong> (varian tanpa registrasi karyawan)</em>
 </p>
 
 ---

@@ -1798,7 +1798,10 @@ class RecruitmentSessionController extends Controller
         $query = Employee::query()
             ->with(['administrations' => function ($q) {
                 $q->where('is_active', 1);
-            }]);
+            }])
+            ->whereHas('administrations', function ($q) {
+                $q->where('is_active', 1);
+            });
 
         UserProject::scopeQueryToEmployeesLinkedViaAdministrations($query, 'employees.id');
 
@@ -1816,6 +1819,10 @@ class RecruitmentSessionController extends Controller
         $results = $employees->map(function (Employee $employee) {
             $activeAdmin = $employee->administrations->firstWhere('is_active', 1);
 
+            if (! $activeAdmin) {
+                return null;
+            }
+
             return [
                 'id' => $employee->id,
                 'text' => (($activeAdmin->nik ?? null) ?: '-').' - '.$employee->fullname,
@@ -1823,7 +1830,7 @@ class RecruitmentSessionController extends Controller
                 'identity_card' => $employee->identity_card,
                 'nik' => $activeAdmin->nik ?? null,
             ];
-        })->values();
+        })->filter()->values();
 
         return response()->json($results);
     }
