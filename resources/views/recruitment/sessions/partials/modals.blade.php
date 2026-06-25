@@ -504,7 +504,8 @@
                         <strong>Info:</strong>
                         <p>Submit Hire completes the recruitment session and updates FPTK/MPP quota. Registering the
                             employee to Employee Management is optional — enable the checkbox below to register a
-                            <strong>new</strong> employee or <strong>link an existing</strong> employee.</p>
+                            <strong>new</strong> employee or <strong>link an existing</strong> employee.
+                        </p>
                     </div>
                     @csrf
                     @include('recruitment.sessions.partials.hire-employee-fields', [
@@ -671,12 +672,14 @@
                 @csrf
                 <div class="modal-body">
                     <div class="alert alert-info">
-                        <strong>Info:</strong> This session is already hired. Register a <strong>new</strong> employee (with personal and administration data) or
-                        <strong>link an existing</strong> employee from Employee Management. For existing employees, current administration data is used as-is.
+                        <strong>Info:</strong> This session is already hired. Register a <strong>new</strong> employee
+                        (with personal and administration data) or
+                        <strong>link an existing</strong> employee from Employee Management. For existing employees,
+                        current administration data is used as-is.
                     </div>
                     @php
                         $registerAgreementType = optional($session->hiring)->agreement_type;
-                        if (! $registerAgreementType) {
+                        if (!$registerAgreementType) {
                             if ($session->fptk_id && $session->fptk) {
                                 $registerAgreementType = $session->fptk->employment_type;
                             } elseif ($session->mpp_detail_id && $session->mppDetail) {
@@ -706,7 +709,8 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-                    <button type="submit" class="btn btn-primary" id="register_employee_submit_btn">Register Employee</button>
+                    <button type="submit" class="btn btn-primary" id="register_employee_submit_btn">Register
+                        Employee</button>
                 </div>
             </form>
         </div>

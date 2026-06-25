@@ -1252,6 +1252,22 @@
             box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
         }
 
+        /* Select2 inside Bootstrap modals — keep dropdown and search field above modal content */
+        #hireModal .select2-container,
+        #registerEmployeeModal .select2-container {
+            width: 100% !important;
+        }
+
+        #hireModal .select2-container--open .select2-dropdown,
+        #registerEmployeeModal .select2-container--open .select2-dropdown {
+            z-index: 1060;
+        }
+
+        #hireModal .select2-search__field,
+        #registerEmployeeModal .select2-search__field {
+            width: 100% !important;
+        }
+
         /* Content & Card Styles */
         .fptk-content {
             padding: 0 20px;
@@ -2616,11 +2632,47 @@
                 }
 
                 updateRegistrationSubmitLabels(suffix, mode);
+                refreshExistingEmployeeSelect2(suffix);
+            }
+
+            function destroyExistingEmployeeSelect2(suffix) {
+                const $select = $('#existing_employee_id' + suffix);
+                if ($select.length && $select.hasClass('select2-hidden-accessible')) {
+                    $select.off('select2:select select2:clear select2:open');
+                    $select.select2('destroy');
+                }
+            }
+
+            function shouldInitExistingEmployeeSelect2(suffix) {
+                const $container = $('#hire_employee_sections' + suffix);
+                if (!$container.length || $container.hasClass('d-none')) {
+                    return false;
+                }
+
+                const mode = $container.find('input[name="registration_mode"]:checked').val() || 'new';
+                if (mode !== 'existing' || $('#existing_employee_panel' + suffix).hasClass('d-none')) {
+                    return false;
+                }
+
+                const $select = $('#existing_employee_id' + suffix);
+                return $select.length && !$select.prop('disabled');
+            }
+
+            function refreshExistingEmployeeSelect2(suffix) {
+                destroyExistingEmployeeSelect2(suffix);
+
+                if (!shouldInitExistingEmployeeSelect2(suffix)) {
+                    return;
+                }
+
+                window.requestAnimationFrame(function() {
+                    initExistingEmployeeSelect2(suffix);
+                });
             }
 
             function initExistingEmployeeSelect2(suffix) {
                 const $select = $('#existing_employee_id' + suffix);
-                if (!$select.length || $select.hasClass('select2-hidden-accessible')) {
+                if (!$select.length || $select.hasClass('select2-hidden-accessible') || $select.prop('disabled')) {
                     return;
                 }
 
@@ -2632,18 +2684,30 @@
                     allowClear: true,
                     width: '100%',
                     dropdownParent: dropdownParent,
+                    minimumInputLength: 2,
+                    language: {
+                        inputTooShort: function() {
+                            return 'Type at least 2 characters to search';
+                        },
+                        noResults: function() {
+                            return 'No employees with active administration found';
+                        },
+                        searching: function() {
+                            return 'Searching...';
+                        }
+                    },
                     ajax: {
                         url: '{{ route('recruitment.sessions.search-employees') }}',
                         dataType: 'json',
                         delay: 250,
                         data: function(params) {
                             return {
-                                q: params.term
+                                q: params.term || ''
                             };
                         },
                         processResults: function(data) {
                             return {
-                                results: data.map(function(item) {
+                                results: (data || []).map(function(item) {
                                     return {
                                         id: item.id,
                                         text: item.text,
@@ -2656,10 +2720,17 @@
                         },
                         cache: true
                     }
+                }).on('select2:open', function() {
+                    window.setTimeout(function() {
+                        const searchField = dropdownParent.find('.select2-container--open .select2-search__field').get(0)
+                            || document.querySelector('.select2-container--open .select2-search__field');
+                        if (searchField) {
+                            searchField.focus();
+                        }
+                    }, 0);
                 }).on('select2:select', function(e) {
-                    const data = e.params.data;
                     $('#existing_employee_summary' + suffix).removeClass('d-none');
-                    loadEmployeeHirePrefill(suffix, data.id);
+                    loadEmployeeHirePrefill(suffix, e.params.data.id);
                 }).on('select2:clear', function() {
                     clearExistingEmployeeSummary(suffix);
                 });
@@ -2710,7 +2781,10 @@
                     .addClass('alert-warning');
                 if (hireSubmitBtn) hireSubmitBtn.disabled = true;
                 toggleHireEmployeeSections();
-                initExistingEmployeeSelect2('');
+            });
+
+            $('#hireModal').on('shown.bs.modal', function() {
+                refreshExistingEmployeeSelect2('');
             });
 
             if ($('#register_to_employee').length) {
@@ -2718,9 +2792,6 @@
             } else if ($('#hire_employee_sections_register').length) {
                 toggleRegistrationMode('_register');
             }
-
-            initExistingEmployeeSelect2('');
-            initExistingEmployeeSelect2('_register');
 
             if ($('#existing_employee_id_register').val()) {
                 loadEmployeeHirePrefill('_register', $('#existing_employee_id_register').val());
@@ -3003,7 +3074,7 @@
 
         $('#registerEmployeeModal').on('shown.bs.modal', function() {
             toggleRegistrationMode('_register');
-            initExistingEmployeeSelect2('_register');
+            refreshExistingEmployeeSelect2('_register');
             var selectedRegisterPosition = $('#hire_position_id_register').val();
             if (selectedRegisterPosition) {
                 $('#hire_position_id_register').trigger('change');
