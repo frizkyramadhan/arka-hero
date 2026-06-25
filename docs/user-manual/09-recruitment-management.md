@@ -4,7 +4,7 @@
 
 | **Versi** | **Tanggal** | **Revisi (ringkas)**                                                                                                                                                                                                                                                                                                             |
 | :-------- | :---------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1.2       | 2026-06-23  | **Hiring & Onboarding** — registrasi ke Employee Management **opsional**; **Registration Type** (**New Employee** / **Existing Employee**); mode existing menautkan karyawan tanpa form Administration; tombol dinamis (**Register Employee**, **Update Hiring Session**, **View Employee**); badge **Employee not registered**. |
+| 1.2       | 2026-06-23  | **Hiring & Onboarding** — registrasi ke Employee Management **opsional**; **Registration Type** (**New Employee** / **Existing Employee**); mode existing menautkan karyawan tanpa form Administration; tombol dinamis (**Register Employee**, **Update Hiring Session**, **View Employee**); badge **Employee not registered**. Aturan **Approval Rules Information** FPTK **Replacement**: HO/BO/APS tambah **HCL Director** (urutan 3); Site Project tambah **Operational General Manager** (urutan 2), **HCS Division Manager** (urutan 3). |
 | 1.1       | 2026-05-25  | **Update Approvers** pada detail FPTK **Submitted**: hanya langkah **Pending** yang dapat diganti; approver yang sudah **Approved**/**Rejected** terkunci.                                                                                                                                                                       |
 | 1.0       | 2026-05-25  | Panduan awal: dashboard HR, **Requests (FPTK)** & **Requests (MPP)**, **Candidates (CV)**, **Sessions** (alur tahap rekrutmen), **Reports**, **My Recruitment Request**, troubleshooting.                                                                                                                                        |
 
@@ -132,6 +132,17 @@ Pilih nomor surat kategori **FPTK** lewat komponen **Letter Number**. Setelah di
 **6. Approver Selection**
 
 Pilih approver sesuai dengan aturan approval yang berlaku. Klik **Approval Rules Information** untuk melihat aturanya. Wajib diisi sebelum pengajuan.
+
+Ringkasan aturan untuk **Recruitment Request (FPTK)**:
+
+| Request Reason | Project | Urutan approver (sequential) |
+| :------------- | :------ | :--------------------------- |
+| **Additional** | HO, BO, APS | (1) Division Manager department terkait → (2) HCS Division Manager → (3) HCL Director |
+| **Additional** | Site Project | (1) Project Manager → (2) Operational General Manager → (3) HCS Division Manager |
+| **Replacement** | HO, BO, APS | (1) Division Manager department terkait → (2) HCS Division Manager → (3) HCL Director |
+| **Replacement** | Site Project | (1) Project Manager → (2) Operational General Manager → (3) HCS Division Manager |
+
+Approver yang dipilih harus memiliki role **approver**. Jika approver yang diperlukan tidak tersedia, hubungi **HR HO Balikpapan**.
 
 **7. Simpan**
 

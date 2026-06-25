@@ -215,11 +215,13 @@
                                             <ol class="mt-1">
                                                 <li>Division Manager masing-masing department</li>
                                                 <li>HCS Division Manager</li>
+                                                <li>HCL Director</li>
                                             </ol>
                                         </li>
                                         <li><strong>Site Project:</strong>
                                             <ol class="mt-1">
                                                 <li>Project Manager</li>
+                                                <li>Operational General Manager</li>
                                                 <li>HCS Division Manager</li>
                                             </ol>
                                         </li>
