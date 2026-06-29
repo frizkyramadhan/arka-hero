@@ -73,6 +73,14 @@ class FlightRequestController extends Controller
             $query->where('employee_id', $request->employee_id);
         }
 
+        if ($request->filled('employee_name')) {
+            $term = '%'.addcslashes(trim($request->employee_name), '%_\\').'%';
+            $query->where(function ($q) use ($term) {
+                $q->where('employee_name', 'like', $term)
+                    ->orWhereHas('employee', fn ($eq) => $eq->where('fullname', 'like', $term));
+            });
+        }
+
         if ($request->filled('form_number')) {
             $query->where('form_number', 'like', "%{$request->form_number}%");
         }

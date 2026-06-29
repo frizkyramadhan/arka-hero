@@ -48,17 +48,14 @@
                                             <div class="row">
                                                 <div class="col-md-2">
                                                     <div class="form-group">
-                                                        <label>Status</label>
-                                                        <select class="form-control select2bs4" id="status" name="status">
-                                                            <option value="">- All -</option>
-                                                            <option value="draft">Draft</option>
-                                                            <option value="submitted">Submitted</option>
-                                                            <option value="approved">Approved</option>
-                                                            <option value="issued">Issued</option>
-                                                            <option value="completed">Completed</option>
-                                                            <option value="rejected">Rejected</option>
-                                                            <option value="cancelled">Cancelled</option>
-                                                        </select>
+                                                        <label>Form Number</label>
+                                                        <input type="text" class="form-control" id="form_number" name="form_number" placeholder="Search...">
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-2">
+                                                    <div class="form-group">
+                                                        <label>Employee Name</label>
+                                                        <input type="text" class="form-control" id="employee_name" name="employee_name" placeholder="Search...">
                                                     </div>
                                                 </div>
                                                 <div class="col-md-2">
@@ -74,8 +71,17 @@
                                                 </div>
                                                 <div class="col-md-2">
                                                     <div class="form-group">
-                                                        <label>Form Number</label>
-                                                        <input type="text" class="form-control" id="form_number" name="form_number" placeholder="Search...">
+                                                        <label>Status</label>
+                                                        <select class="form-control select2bs4" id="status" name="status">
+                                                            <option value="">- All -</option>
+                                                            <option value="draft">Draft</option>
+                                                            <option value="submitted">Submitted</option>
+                                                            <option value="approved">Approved</option>
+                                                            <option value="issued">Issued</option>
+                                                            <option value="completed">Completed</option>
+                                                            <option value="rejected">Rejected</option>
+                                                            <option value="cancelled">Cancelled</option>
+                                                        </select>
                                                     </div>
                                                 </div>
                                                 <div class="col-md-2">
@@ -90,6 +96,8 @@
                                                         <input type="date" class="form-control" id="date_to" name="date_to">
                                                     </div>
                                                 </div>
+                                            </div>
+                                            <div class="row">
                                                 <div class="col-md-2">
                                                     <div class="form-group">
                                                         <label>&nbsp;</label>
@@ -169,6 +177,7 @@
                     data: function(d) {
                         d.status = $('#status').val(),
                         d.request_type = $('#request_type').val(),
+                        d.employee_name = $('#employee_name').val(),
                         d.form_number = $('#form_number').val(),
                         d.date_from = $('#date_from').val(),
                         d.date_to = $('#date_to').val()
@@ -234,18 +243,18 @@
                 table.draw();
             });
 
-            $('#form_number, #date_from, #date_to').change(function() {
+            $('#form_number, #employee_name, #date_from, #date_to').change(function() {
                 table.draw();
             });
 
-            $('#form_number').keyup(function() {
+            $('#form_number, #employee_name').keyup(function() {
                 table.draw();
             });
 
             // Handle reset button
             $('#btn-reset').click(function() {
                 $('#status, #request_type').val('').trigger('change');
-                $('#form_number, #date_from, #date_to').val('');
+                $('#employee_name, #form_number, #date_from, #date_to').val('');
                 table.draw();
             });
         });
