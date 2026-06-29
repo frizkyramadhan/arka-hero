@@ -88,7 +88,13 @@
                                     </div>
                                     <div class="info-content">
                                         <div class="info-label">Start Date</div>
-                                        <div class="info-value">{{ format_date_with_weekday($leaveRequest->start_date) }}</div>
+                                        <div class="info-value">
+                                            @if ($leaveRequest->isLSLCashoutOnly())
+                                                <span class="text-muted">— (Cash out only, no leave taken)</span>
+                                            @else
+                                                {{ format_date_with_weekday($leaveRequest->start_date) }}
+                                            @endif
+                                        </div>
                                     </div>
                                 </div>
                                 <div class="info-item">
@@ -97,7 +103,13 @@
                                     </div>
                                     <div class="info-content">
                                         <div class="info-label">End Date</div>
-                                        <div class="info-value">{{ format_date_with_weekday($leaveRequest->end_date) }}</div>
+                                        <div class="info-value">
+                                            @if ($leaveRequest->isLSLCashoutOnly())
+                                                <span class="text-muted">— (Cash out only, no leave taken)</span>
+                                            @else
+                                                {{ format_date_with_weekday($leaveRequest->end_date) }}
+                                            @endif
+                                        </div>
                                     </div>
                                 </div>
                                 <div class="info-item">
@@ -676,7 +688,18 @@
                                     || auth()->user()->can('personal.leave.cancel-own'))
                                 && ($isHrCancellation
                                     || $leaveRequest->employee_id === auth()->user()->employee_id);
+
+                            $printRoute = $fromMyRequests
+                                ? route('leave.my-requests.print', $leaveRequest)
+                                : (auth()->user()->can('personal.leave.view-own') &&
+                                !auth()->user()->can('leave-requests.show')
+                                    ? route('leave.my-requests.print', $leaveRequest)
+                                    : route('leave.requests.print', $leaveRequest));
                         @endphp
+
+                        <a href="{{ $printRoute }}" class="btn-action print-btn" target="_blank">
+                            <i class="fas fa-print"></i> Print
+                        </a>
 
                         <a href="{{ $backRoute }}" class="btn-action back-btn">
                             <i class="fas fa-arrow-left"></i> Back to List

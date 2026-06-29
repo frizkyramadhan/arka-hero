@@ -420,6 +420,13 @@ class LeaveRequest extends Model
         return 0;
     }
 
+    public function isLSLCashoutOnly(): bool
+    {
+        return $this->isLSLFlexible()
+            && (int) ($this->lsl_taken_days ?? 0) === 0
+            && (int) ($this->lsl_cashout_days ?? 0) > 0;
+    }
+
     /**
      * Get total LSL days (leave + cashout)
      */
