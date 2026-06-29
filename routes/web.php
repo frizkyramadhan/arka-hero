@@ -687,6 +687,7 @@ Route::group(['middleware' => ['auth']], function () {
             Route::get('/{leaveRequest}/edit', [LeaveRequestController::class, 'edit'])->name('edit');
             Route::put('/{leaveRequest}', [LeaveRequestController::class, 'update'])->name('update');
             Route::delete('/{leaveRequest}', [LeaveRequestController::class, 'destroy'])->name('destroy');
+            Route::get('/{leaveRequest}/print', [LeaveRequestController::class, 'print'])->name('print');
             Route::get('/{leaveRequest}/download', [LeaveRequestController::class, 'download'])->name('download');
             Route::post('/{leaveRequest}/upload', [LeaveRequestController::class, 'upload'])->name('upload');
             Route::delete('/{leaveRequest}/delete-document', [LeaveRequestController::class, 'deleteDocument'])->name('delete-document');
@@ -718,6 +719,7 @@ Route::group(['middleware' => ['auth']], function () {
         Route::get('/my-requests/create', [LeaveRequestController::class, 'myRequestsCreate'])->name('my-requests.create');
         Route::post('/my-requests', [LeaveRequestController::class, 'myRequestsStore'])->name('my-requests.store');
         Route::get('/my-requests/{leaveRequest}', [LeaveRequestController::class, 'myRequestsShow'])->name('my-requests.show');
+        Route::get('/my-requests/{leaveRequest}/print', [LeaveRequestController::class, 'print'])->name('my-requests.print');
         Route::get('/my-requests/{leaveRequest}/edit', [LeaveRequestController::class, 'myRequestsEdit'])->name('my-requests.edit');
         Route::put('/my-requests/{leaveRequest}', [LeaveRequestController::class, 'myRequestsUpdate'])->name('my-requests.update');
         Route::delete('/my-requests/{leaveRequest}', [LeaveRequestController::class, 'destroy'])->name('my-requests.destroy');

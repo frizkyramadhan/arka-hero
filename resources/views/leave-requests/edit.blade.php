@@ -171,7 +171,7 @@
                                 </div>
 
                                 <!-- Leave Date Selection -->
-                                <div class="row">
+                                <div class="row" id="leave_date_fields_row">
                                     <div class="col-md-6">
                                         <div class="form-group">
                                             <label>
@@ -205,7 +205,7 @@
                                             @enderror
                                         </div>
                                     </div>
-                                    <div class="col-md-6">
+                                    <div class="col-md-6" id="back_to_work_date_col">
                                         <div class="form-group">
                                             <label for="back_to_work_date">
                                                 <i class="fas fa-calendar-plus mr-1"></i>
@@ -306,90 +306,7 @@
                                     </div>
                                 </div>
 
-                                <!-- LSL Flexible Section - ONLY FOR LSL -->
-                                <div class="card card-warning card-outline" id="lsl_flexible_section"
-                                    style="display: none; margin-bottom: 20px;">
-                                    <div class="card-header">
-                                        <h5 class="card-title mb-0">
-                                            <i class="fas fa-coins mr-2"></i>
-                                            <strong>Long Service Leave</strong>
-                                            <small class="text-muted">(Can be combined with cash out)</small>
-                                        </h5>
-                                    </div>
-                                    <div class="card-body">
-                                        <div class="alert alert-warning mb-3">
-                                            <i class="fas fa-info-circle mr-2"></i>
-                                            <strong>Note:</strong> This feature is only available for Long Service Leave
-                                            (LSL)
-                                        </div>
-                                        <div class="row">
-                                            <div class="col-md-4">
-                                                <div class="form-group">
-                                                    <label for="lsl_taken_days">
-                                                        <i class="fas fa-calendar-day mr-1"></i>
-                                                        Leave Days
-                                                    </label>
-                                                    <div class="input-group">
-                                                        <input type="number" name="lsl_taken_days" id="lsl_taken_days"
-                                                            class="form-control" min="0" max="365"
-                                                            placeholder="Enter days"
-                                                            value="{{ old('lsl_taken_days', $leaveRequest->lsl_taken_days ?? 0) }}">
-                                                        <div class="input-group-append">
-                                                            <span class="input-group-text">days</span>
-                                                        </div>
-                                                    </div>
-                                                    <small class="form-text text-muted">Can be edited manually. Calculated
-                                                        from date range by default.</small>
-                                                </div>
-                                            </div>
-                                            <div class="col-md-4">
-                                                <div class="form-group">
-                                                    <label for="lsl_cashout_days">
-                                                        <i class="fas fa-money-bill-wave mr-1"></i>
-                                                        Cash Out
-                                                    </label>
-                                                    <div class="input-group">
-                                                        <div class="input-group-prepend">
-                                                            <span class="input-group-text">
-                                                                <input type="checkbox" id="lsl_cashout_checkbox"
-                                                                    name="lsl_cashout_enabled"
-                                                                    {{ old('lsl_cashout_enabled', ($leaveRequest->lsl_cashout_days ?? 0) > 0 ? 'checked' : '') }}>
-                                                            </span>
-                                                        </div>
-                                                        <input type="number" name="lsl_cashout_days"
-                                                            id="lsl_cashout_days" class="form-control" min="0"
-                                                            max="365"
-                                                            value="{{ old('lsl_cashout_days', $leaveRequest->lsl_cashout_days ?? 0) }}"
-                                                            {{ old('lsl_cashout_enabled', ($leaveRequest->lsl_cashout_days ?? 0) > 0) ? '' : 'disabled' }}>
-                                                        <div class="input-group-append">
-                                                            <span class="input-group-text">days</span>
-                                                        </div>
-                                                    </div>
-                                                    <small class="form-text text-muted">Check to cash out some Long Service
-                                                        Leave days</small>
-                                                </div>
-                                            </div>
-                                            <div class="col-md-4">
-                                                <div class="form-group">
-                                                    <label for="lsl_total_days">
-                                                        <i class="fas fa-calculator mr-1"></i>
-                                                        Total Days
-                                                    </label>
-                                                    <div class="input-group">
-                                                        <input type="number" id="lsl_total_days" class="form-control"
-                                                            readonly
-                                                            value="{{ old('lsl_total_days', ($leaveRequest->lsl_taken_days ?? 0) + ($leaveRequest->lsl_cashout_days ?? 0)) }}">
-                                                        <div class="input-group-append">
-                                                            <span class="input-group-text">days</span>
-                                                        </div>
-                                                    </div>
-                                                    <small class="form-text text-muted">Sum of Leave Days + Cash Out
-                                                        Days</small>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
+                                @include('leave-requests.partials.lsl-flexible-section', ['leaveRequest' => $leaveRequest])
                             </div>
 
                         </div>
@@ -618,7 +535,7 @@
                 attachEventHandlers();
 
                 // Initialize LSL Flexible
-                initializeLSLFlexible();
+                // LSL flexible scripts loaded via partial
 
                 // Load initial data (since this is edit form, data already populated from server)
                 loadInitialData();
@@ -745,7 +662,7 @@
 
                         // Calculate LSL flexible if LSL section is visible
                         if ($('#lsl_flexible_section').is(':visible')) {
-                            calculateLSLFlexible();
+                            calculateLSLFlexible(true);
                         }
                     })
                     .on('cancel.daterangepicker', function() {
@@ -852,32 +769,9 @@
                                 '';
 
                             if (category === 'lsl') {
-                                // Show LSL flexible section
-                                $('#lsl_flexible_section').slideDown();
-                                $('#total_days_input').closest('.form-group').hide();
-
-                                // Populate LSL data from form values (already set by Blade)
-                                const lslTakenDays = $('#lsl_taken_days').val();
-                                const lslCashoutDays = $('#lsl_cashout_days').val();
-                                const lslCashoutEnabled = ($('#lsl_cashout_checkbox').is(':checked') ||
-                                    lslCashoutDays > 0);
-
-                                // Set checkbox state
-                                $('#lsl_cashout_checkbox').prop('checked', lslCashoutEnabled);
-
-                                // Enable/disable cashout field based on checkbox
-                                if (lslCashoutEnabled) {
-                                    $('#lsl_cashout_days').prop('disabled', false);
-                                } else {
-                                    $('#lsl_cashout_days').prop('disabled', true);
-                                }
-
-                                // Calculate and update total days
-                                calculateLSLFlexible();
+                                toggleLSLFlexibleSection(true);
                             } else {
-                                // Hide LSL flexible section
-                                $('#lsl_flexible_section').slideUp();
-                                $('#total_days_input').closest('.form-group').show();
+                                toggleLSLFlexibleSection(false);
                             }
                         }
                     });
@@ -1473,76 +1367,9 @@
             // LSL FLEXIBLE - LONG SERVICE LEAVE WITH CASH OUT
             // ============================================================================
 
-            // Global variable to store entitlement data for LSL validation
             window.entitlementData = null;
 
-            function initializeLSLFlexible() {
-                // Attach LSL specific event handlers
-                $('#lsl_cashout_checkbox').on('change', onLSLCashoutCheckboxChange);
-                $('#lsl_cashout_days').on('input', calculateLSLFlexible);
-                $('#lsl_taken_days').on('input', onLSLTakenDaysChange);
-            }
-
-
-            function onLSLCashoutCheckboxChange() {
-                const isChecked = $(this).is(':checked');
-                $('#lsl_cashout_days').prop('disabled', !isChecked);
-
-                if (!isChecked) {
-                    $('#lsl_cashout_days').val(0);
-                }
-
-                calculateLSLFlexible();
-            }
-
-            function onLSLTakenDaysChange() {
-                calculateLSLFlexible();
-            }
-
-            function calculateLSLFlexible() {
-                // Get taken days from manual input
-                let takenDays = parseInt($('#lsl_taken_days').val()) || 0;
-
-                // Only calculate from date range if taken days is 0 or empty
-                if (takenDays === 0) {
-                    const calculatedDays = calculateActiveDaysFromDateRange();
-                    if (calculatedDays > 0) {
-                        $('#lsl_taken_days').val(calculatedDays);
-                        takenDays = calculatedDays;
-                    }
-                }
-
-                const cashoutDays = parseInt($('#lsl_cashout_days').val()) || 0;
-                const totalDays = takenDays + cashoutDays;
-
-                // Update total days display
-                $('#lsl_total_days').val(totalDays);
-
-                // Update hidden total_days field for form submission
-                $('#total_days_hidden').val(totalDays);
-
-                // Update remaining days validation
-                if (window.entitlementData && window.entitlementData.remaining_days !== undefined) {
-                    const remainingDays = window.entitlementData.remaining_days;
-                    if (totalDays > remainingDays) {
-                        showLSLValidation(
-                            `Total days (${totalDays}) exceeds remaining leave balance (${remainingDays} days)`);
-                        $('#lsl_taken_days').addClass('is-invalid');
-                        $('#lsl_cashout_days').addClass('is-invalid');
-                        $('#lsl_total_days').addClass('is-invalid');
-                    } else {
-                        clearLSLValidation();
-                        $('#lsl_taken_days').removeClass('is-invalid');
-                        $('#lsl_cashout_days').removeClass('is-invalid');
-                        $('#lsl_total_days').removeClass('is-invalid');
-                    }
-                } else {
-                    clearLSLValidation();
-                    $('#lsl_taken_days').removeClass('is-invalid');
-                    $('#lsl_cashout_days').removeClass('is-invalid');
-                    $('#lsl_total_days').removeClass('is-invalid');
-                }
-            }
+            @include('leave-requests.partials.lsl-flexible-scripts')
 
             function calculateActiveDaysFromDateRange() {
                 const startDate = $('#start_date').val();

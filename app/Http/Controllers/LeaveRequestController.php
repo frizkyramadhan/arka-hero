@@ -431,15 +431,20 @@ class LeaveRequestController extends Controller
         $validationRules['total_days'] = 'required|integer|min:1|max:365';
 
         // Add LSL flexible validation (only for LSL)
-        $isLSL = $leaveType && (
-            str_contains(strtolower($leaveType->name), 'long service') ||
-            str_contains(strtolower($leaveType->name), 'cuti panjang') ||
-            str_contains(strtolower($leaveType->category), 'lsl')
-        );
+        $isLSL = $this->isLSLLeaveType($leaveType);
+        $lslUsageMode = $isLSL ? $this->normalizeLSLUsageMode($request->input('lsl_usage_mode')) : null;
 
         if ($isLSL) {
-            $validationRules['lsl_cashout_days'] = 'nullable|integer|min:0';
+            $validationRules['lsl_usage_mode'] = 'required|in:leave_only,cashout_only,combined';
             $validationRules['lsl_taken_days'] = 'nullable|integer|min:0';
+            $validationRules['lsl_cashout_days'] = $lslUsageMode === 'cashout_only'
+                ? 'required|integer|min:1|max:365'
+                : 'nullable|integer|min:0';
+
+            if ($lslUsageMode === 'cashout_only') {
+                $validationRules['start_date'] = 'nullable|date';
+                $validationRules['end_date'] = 'nullable|date|after_or_equal:start_date';
+            }
         }
 
         // Manual approvers - following pattern from OfficialtravelController and RecruitmentRequestController
@@ -456,18 +461,7 @@ class LeaveRequestController extends Controller
         $this->validateLeaveDatesAgainstNationalHolidays($request->back_to_work_date);
 
         if (! $isLSL) {
-            $projectForDays = $request->filled('project_id') ? Project::find($request->project_id) : null;
-            if (! $projectForDays) {
-                $adminForDays = Administration::where('employee_id', $request->employee_id)->where('is_active', 1)->first();
-                $projectForDays = $adminForDays?->project_id ? Project::find($adminForDays->project_id) : null;
-            }
-            $isNonRosterForDays = $projectForDays && $projectForDays->isNonRosterProject();
-            $computedTotal = NationalHoliday::countBillableLeaveDaysInRange(
-                \Carbon\Carbon::parse($request->start_date)->toDateString(),
-                \Carbon\Carbon::parse($request->end_date)->toDateString(),
-                $isNonRosterForDays
-            );
-            $request->merge(['total_days' => $computedTotal]);
+            $request->merge(['total_days' => $this->computeBillableLeaveDaysFromRequest($request)]);
         }
 
         $administrationPreview = Administration::where('employee_id', $request->employee_id)
@@ -482,6 +476,20 @@ class LeaveRequestController extends Controller
 
         // Get total days from request (either calculated or manually entered)
         $totalDays = $request->total_days ?? 0;
+        $takenDays = $totalDays;
+        $cashoutEnabled = false;
+        $cashoutDays = 0;
+
+        if ($isLSL) {
+            $lslTotals = $this->processLSLFlexibleRequest($request);
+            $takenDays = $lslTotals['taken_days'];
+            $cashoutDays = $lslTotals['cashout_days'];
+            $totalDays = $lslTotals['total_days'];
+
+            if ($errors = $this->validateLSLFlexibleBusinessRules($lslTotals['usage_mode'], $takenDays, $cashoutDays, $totalDays)) {
+                return back()->with($errors)->withInput();
+            }
+        }
 
         // Validate total_days is present
         if (! $totalDays || $totalDays <= 0) {
@@ -490,40 +498,8 @@ class LeaveRequestController extends Controller
             ])->withInput();
         }
 
-        // Handle LSL flexible calculation
-        $takenDays = $totalDays; // Default value
-        $cashoutEnabled = false;
-        $cashoutDays = 0;
-        if ($isLSL) {
-            // Get taken days from manual input or use total_days as fallback
-            $takenDays = $request->lsl_taken_days ?? $totalDays;
-            $cashoutEnabled = $request->has('lsl_cashout_enabled'); // Check if checkbox is checked
-            $cashoutDays = $cashoutEnabled ? ($request->lsl_cashout_days ?? 0) : 0;
-            $totalDays = $takenDays + $cashoutDays;
-
-            // Validate LSL flexible business rules
-            if ($totalDays <= 0) {
-                return back()->with([
-                    'lsl_cashout_days' => 'Total days must be greater than 0.',
-                ])->withInput();
-            }
-
-            if ($cashoutDays > $totalDays) {
-                return back()->with([
-                    'lsl_cashout_days' => 'Cash out days cannot exceed total days.',
-                ])->withInput();
-            }
-
-            // Merge calculated total_days into request
-            $request->merge(['total_days' => $totalDays]);
-        }
-
         // Validate total days against remaining days
-        $entitlement = LeaveEntitlement::where('employee_id', $request->employee_id)
-            ->where('leave_type_id', $request->leave_type_id)
-            ->where('period_start', '<=', $request->start_date)
-            ->where('period_end', '>=', $request->end_date)
-            ->first();
+        $entitlement = $this->findLeaveEntitlementForRequest($request, (int) $request->employee_id, (int) $request->leave_type_id);
 
         if ($entitlement && $totalDays > $entitlement->remaining_days) {
             return back()->with([
@@ -744,6 +720,48 @@ class LeaveRequestController extends Controller
     }
 
     /**
+     * Print leave request form.
+     *
+     * ADMIN/HR: leave-requests.show
+     * PERSONAL/USER: personal.leave.view-own (own requests only)
+     */
+    public function print(LeaveRequest $leaveRequest)
+    {
+        /** @var \App\Models\User $user */
+        $user = auth()->user();
+
+        if (! $user->can('leave-requests.show') && ! $user->can('personal.leave.view-own')) {
+            abort(403, 'Unauthorized action. You do not have permission to print leave requests.');
+        }
+
+        if ($user->can('personal.leave.view-own') && ! $user->can('leave-requests.show')) {
+            if ($leaveRequest->employee_id !== $user->employee_id) {
+                abort(403, 'You can only print your own leave requests.');
+            }
+        }
+
+        if ($r = $this->guardLeaveRequestProjectForHrUser($leaveRequest)) {
+            return $r;
+        }
+
+        $leaveRequest->load([
+            'employee.administrations.project',
+            'employee.administrations.position.department',
+            'administration.position.department',
+            'administration.project',
+            'leaveType',
+            'requestedBy',
+            'approvalPlans' => function ($q) {
+                $q->orderBy('approval_order')->orderBy('id')->with([
+                    'approver.administration.position',
+                ]);
+            },
+        ]);
+
+        return view('leave-requests.print', compact('leaveRequest'));
+    }
+
+    /**
      * Show the form for editing the specified resource.
      *
      * ADMIN/HR: Can edit any leave request (permission: leave-requests.edit)
@@ -885,15 +903,20 @@ class LeaveRequestController extends Controller
         }
 
         // Add LSL flexible validation (only for LSL)
-        $isLSL = $leaveType && (
-            str_contains(strtolower($leaveType->name), 'long service') ||
-            str_contains(strtolower($leaveType->name), 'cuti panjang') ||
-            str_contains(strtolower($leaveType->category), 'lsl')
-        );
+        $isLSL = $this->isLSLLeaveType($leaveType);
+        $lslUsageMode = $isLSL ? $this->normalizeLSLUsageMode($request->input('lsl_usage_mode')) : null;
 
         if ($isLSL) {
-            $validationRules['lsl_cashout_days'] = 'nullable|integer|min:0';
+            $validationRules['lsl_usage_mode'] = 'required|in:leave_only,cashout_only,combined';
             $validationRules['lsl_taken_days'] = 'nullable|integer|min:0';
+            $validationRules['lsl_cashout_days'] = $lslUsageMode === 'cashout_only'
+                ? 'required|integer|min:1|max:365'
+                : 'nullable|integer|min:0';
+
+            if ($lslUsageMode === 'cashout_only') {
+                $validationRules['start_date'] = 'nullable|date';
+                $validationRules['end_date'] = 'nullable|date|after_or_equal:start_date';
+            }
         }
 
         // Manual approvers - following pattern from OfficialtravelController and RecruitmentRequestController
@@ -909,18 +932,7 @@ class LeaveRequestController extends Controller
         $this->validateLeaveDatesAgainstNationalHolidays($request->back_to_work_date);
 
         if (! $isLSL) {
-            $projectForDays = $request->filled('project_id') ? Project::find($request->project_id) : null;
-            if (! $projectForDays) {
-                $adminForDays = Administration::where('employee_id', $request->employee_id)->where('is_active', 1)->first();
-                $projectForDays = $adminForDays?->project_id ? Project::find($adminForDays->project_id) : null;
-            }
-            $isNonRosterForDays = $projectForDays && $projectForDays->isNonRosterProject();
-            $computedTotal = NationalHoliday::countBillableLeaveDaysInRange(
-                \Carbon\Carbon::parse($request->start_date)->toDateString(),
-                \Carbon\Carbon::parse($request->end_date)->toDateString(),
-                $isNonRosterForDays
-            );
-            $request->merge(['total_days' => $computedTotal]);
+            $request->merge(['total_days' => $this->computeBillableLeaveDaysFromRequest($request)]);
         }
 
         if ($r = $this->guardLeaveRequestProjectForHrUser($leaveRequest)) {
@@ -935,30 +947,17 @@ class LeaveRequestController extends Controller
         $employeeId = $request->employee_id;
         $leaveTypeId = $request->leave_type_id;
         $totalDays = $request->total_days ?? 0;
-        $takenDays = $totalDays; // Default value
-        $cashoutDays = 0; // Default value
+        $takenDays = $totalDays;
+        $cashoutDays = 0;
 
         if ($isLSL) {
-            // Get taken days from manual input or use total_days as fallback
-            $takenDays = $request->lsl_taken_days ?? $totalDays;
-            $cashoutEnabled = $request->has('lsl_cashout_enabled'); // Check if checkbox is checked
-            $cashoutDays = $cashoutEnabled ? ($request->lsl_cashout_days ?? 0) : 0;
-            $totalDays = $takenDays + $cashoutDays;
+            $lslTotals = $this->processLSLFlexibleRequest($request);
+            $takenDays = $lslTotals['taken_days'];
+            $cashoutDays = $lslTotals['cashout_days'];
+            $totalDays = $lslTotals['total_days'];
 
-            // Merge calculated total_days into request BEFORE validation
-            $request->merge(['total_days' => $totalDays]);
-
-            // Validate LSL flexible business rules
-            if ($totalDays <= 0) {
-                return back()->with([
-                    'total_days' => 'Total days must be greater than 0. Please enter at least 1 day for taken days or cashout days.',
-                ])->withInput();
-            }
-
-            if ($cashoutDays > $totalDays) {
-                return back()->with([
-                    'lsl_cashout_days' => 'Cash out days cannot exceed total days.',
-                ])->withInput();
+            if ($errors = $this->validateLSLFlexibleBusinessRules($lslTotals['usage_mode'], $takenDays, $cashoutDays, $totalDays)) {
+                return back()->with($errors)->withInput();
             }
         }
 
@@ -969,9 +968,7 @@ class LeaveRequestController extends Controller
             ])->withInput();
         }
 
-        $leaveEntitlement = LeaveEntitlement::where('employee_id', $employeeId)
-            ->where('leave_type_id', $leaveTypeId)
-            ->first();
+        $leaveEntitlement = $this->findLeaveEntitlementForRequest($request, (int) $employeeId, (int) $leaveTypeId);
 
         if ($leaveEntitlement && $totalDays > $leaveEntitlement->remaining_days) {
             return back()->with([
@@ -2285,6 +2282,136 @@ class LeaveRequestController extends Controller
         if (! $isHrCancellation && $leaveRequest->employee_id !== $user->employee_id) {
             abort(403, 'You can only cancel your own leave requests.');
         }
+    }
+
+    /**
+     * Billable leave days from start/end date (weekends & holidays excluded for non-roster projects).
+     */
+    private function computeBillableLeaveDaysFromRequest(Request $request): int
+    {
+        $projectForDays = $request->filled('project_id') ? Project::find($request->project_id) : null;
+        if (! $projectForDays) {
+            $adminForDays = Administration::where('employee_id', $request->employee_id)->where('is_active', 1)->first();
+            $projectForDays = $adminForDays?->project_id ? Project::find($adminForDays->project_id) : null;
+        }
+        $isNonRosterForDays = $projectForDays && $projectForDays->isNonRosterProject();
+
+        return NationalHoliday::countBillableLeaveDaysInRange(
+            \Carbon\Carbon::parse($request->start_date)->toDateString(),
+            \Carbon\Carbon::parse($request->end_date)->toDateString(),
+            $isNonRosterForDays
+        );
+    }
+
+    private function isLSLLeaveType(?LeaveType $leaveType): bool
+    {
+        return $leaveType && (
+            str_contains(strtolower($leaveType->name), 'long service') ||
+            str_contains(strtolower($leaveType->name), 'cuti panjang') ||
+            str_contains(strtolower($leaveType->category), 'lsl')
+        );
+    }
+
+    private function normalizeLSLUsageMode(?string $mode): string
+    {
+        return in_array($mode, ['leave_only', 'cashout_only', 'combined'], true) ? $mode : 'leave_only';
+    }
+
+    /**
+     * @return array{usage_mode: string, taken_days: int, cashout_days: int, total_days: int}
+     */
+    private function processLSLFlexibleRequest(Request $request): array
+    {
+        $mode = $this->normalizeLSLUsageMode($request->input('lsl_usage_mode'));
+
+        if ($mode === 'cashout_only') {
+            $today = now()->toDateString();
+            $request->merge([
+                'start_date' => $request->input('start_date') ?: $today,
+                'end_date' => $request->input('end_date') ?: $today,
+                'back_to_work_date' => null,
+            ]);
+            $takenDays = 0;
+            $cashoutDays = (int) ($request->lsl_cashout_days ?? 0);
+        } elseif ($mode === 'leave_only') {
+            $takenDays = (int) ($request->lsl_taken_days ?? 0);
+            if ($takenDays <= 0) {
+                $takenDays = $this->computeBillableLeaveDaysFromRequest($request);
+            }
+            $cashoutDays = 0;
+        } else {
+            $takenDays = (int) ($request->lsl_taken_days ?? 0);
+            if ($takenDays <= 0) {
+                $takenDays = $this->computeBillableLeaveDaysFromRequest($request);
+            }
+            $cashoutDays = (int) ($request->lsl_cashout_days ?? 0);
+        }
+
+        $totalDays = $takenDays + $cashoutDays;
+
+        $request->merge([
+            'total_days' => $totalDays,
+            'lsl_taken_days' => $takenDays,
+            'lsl_cashout_days' => $cashoutDays,
+            'lsl_usage_mode' => $mode,
+        ]);
+
+        return [
+            'usage_mode' => $mode,
+            'taken_days' => $takenDays,
+            'cashout_days' => $cashoutDays,
+            'total_days' => $totalDays,
+        ];
+    }
+
+    /**
+     * @return array<string, string>|null
+     */
+    private function validateLSLFlexibleBusinessRules(string $mode, int $takenDays, int $cashoutDays, int $totalDays): ?array
+    {
+        if ($mode === 'cashout_only' && $cashoutDays <= 0) {
+            return ['lsl_cashout_days' => 'Cash out days must be greater than 0 for cash-out-only requests.'];
+        }
+
+        if ($mode !== 'cashout_only' && $takenDays <= 0) {
+            return ['start_date' => 'Leave days must be greater than 0. Please select a valid leave date range.'];
+        }
+
+        if ($totalDays <= 0) {
+            return ['total_days' => 'Total days must be greater than 0.'];
+        }
+
+        if ($cashoutDays > $totalDays) {
+            return ['lsl_cashout_days' => 'Cash out days cannot exceed total days.'];
+        }
+
+        return null;
+    }
+
+    private function findLeaveEntitlementForRequest(Request $request, int $employeeId, int $leaveTypeId): ?LeaveEntitlement
+    {
+        $start = $request->start_date;
+        $end = $request->end_date;
+
+        if ($start && $end) {
+            $entitlement = LeaveEntitlement::where('employee_id', $employeeId)
+                ->where('leave_type_id', $leaveTypeId)
+                ->where('period_start', '<=', $start)
+                ->where('period_end', '>=', $end)
+                ->first();
+
+            if ($entitlement) {
+                return $entitlement;
+            }
+        }
+
+        $today = now()->toDateString();
+
+        return LeaveEntitlement::where('employee_id', $employeeId)
+            ->where('leave_type_id', $leaveTypeId)
+            ->where('period_start', '<=', $today)
+            ->where('period_end', '>=', $today)
+            ->first();
     }
 
     /**
