@@ -72,6 +72,11 @@ class ApprovalPlan extends Model
         return $this->belongsTo(OvertimeRequest::class, 'document_id', 'id');
     }
 
+    public function roomConsumptionRequest()
+    {
+        return $this->belongsTo(RoomConsumptionRequest::class, 'document_id', 'id');
+    }
+
     /**
      * Check if this approval can be processed (hybrid sequential validation)
      *

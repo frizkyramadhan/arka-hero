@@ -53,6 +53,9 @@ use App\Http\Controllers\PositionController;
 // Approval System Controllers
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ProjectController;
+use App\Http\Controllers\MeetingRoomController;
+use App\Http\Controllers\RoomConsumptionRequestController;
+use App\Http\Controllers\RoomConsumptionReportController;
 use App\Http\Controllers\RecruitmentCandidateController;
 use App\Http\Controllers\RecruitmentReportController;
 use App\Http\Controllers\RecruitmentRequestController;
@@ -145,6 +148,12 @@ Route::group(['middleware' => ['auth']], function () {
         Route::get('/overtime-management', [DashboardController::class, 'overtimeManagement'])
             ->name('overtime-management')
             ->middleware('permission:overtime-requests.show');
+        Route::get('/room-consumption', [DashboardController::class, 'roomConsumptionManagement'])
+            ->name('room-consumption')
+            ->middleware('permission:room-consumption-requests.show');
+        Route::get('/room-consumption/calendar-events', [DashboardController::class, 'roomConsumptionCalendarEvents'])
+            ->name('room-consumption.calendar-events')
+            ->middleware('permission:room-consumption-requests.show');
         Route::get('/personal', [DashboardController::class, 'personal'])->name('personal');
     });
 
@@ -241,6 +250,50 @@ Route::group(['middleware' => ['auth']], function () {
 
     Route::get('accommodations/data', [AccommodationController::class, 'getAccommodations'])->name('accommodations.data');
     Route::resource('accommodations', AccommodationController::class);
+
+    // Meeting Rooms (RCR master)
+    Route::get('meeting-rooms/data', [MeetingRoomController::class, 'data'])->name('meeting-rooms.data');
+    Route::get('meeting-rooms/by-project', [MeetingRoomController::class, 'byProject'])->name('meeting-rooms.by-project');
+    Route::resource('meeting-rooms', MeetingRoomController::class)->except(['show', 'create', 'edit']);
+
+    // Room & Consumption Requests
+    Route::prefix('room-consumption-requests')->name('room-consumption-requests.')->group(function () {
+        Route::get('my-requests/data', [RoomConsumptionRequestController::class, 'myRequestsData'])->name('my-requests.data');
+        Route::get('my-requests/create', [RoomConsumptionRequestController::class, 'myRequestsCreate'])->name('my-requests.create');
+        Route::post('my-requests', [RoomConsumptionRequestController::class, 'myRequestsStore'])->name('my-requests.store');
+        Route::get('my-requests/{roomConsumptionRequest}/edit', [RoomConsumptionRequestController::class, 'myRequestsEdit'])->name('my-requests.edit');
+        Route::put('my-requests/{roomConsumptionRequest}', [RoomConsumptionRequestController::class, 'myRequestsUpdate'])->name('my-requests.update');
+        Route::delete('my-requests/{roomConsumptionRequest}', [RoomConsumptionRequestController::class, 'myRequestsDestroy'])->name('my-requests.destroy');
+        Route::post('my-requests/{roomConsumptionRequest}/submit', [RoomConsumptionRequestController::class, 'myRequestsSubmitForApproval'])->name('my-requests.submit');
+        Route::post('my-requests/{roomConsumptionRequest}/cancel', [RoomConsumptionRequestController::class, 'myRequestsCancel'])->name('my-requests.cancel');
+        Route::post('my-requests/{roomConsumptionRequest}/request-zoom', [RoomConsumptionRequestController::class, 'myRequestsRequestZoomMeeting'])->name('my-requests.request-zoom');
+        Route::post('my-requests/{roomConsumptionRequest}/sync-zoom', [RoomConsumptionRequestController::class, 'myRequestsSyncZoomMeeting'])->name('my-requests.sync-zoom');
+        Route::post('my-requests/{roomConsumptionRequest}/reset-zoom-it-wo', [RoomConsumptionRequestController::class, 'myRequestsResetZoomItWoDebug'])->name('my-requests.reset-zoom-it-wo');
+        Route::get('my-requests/{roomConsumptionRequest}', [RoomConsumptionRequestController::class, 'myRequestShow'])->name('my-requests.show');
+        Route::get('my-requests', [RoomConsumptionRequestController::class, 'myRequests'])->name('my-requests');
+
+        Route::prefix('reports')->name('reports.')->group(function () {
+            Route::get('/', [RoomConsumptionReportController::class, 'index'])->name('index');
+            Route::get('/request-monitoring', [RoomConsumptionReportController::class, 'requestMonitoring'])->name('request-monitoring');
+            Route::get('/request-monitoring/data', [RoomConsumptionReportController::class, 'requestMonitoringData'])->name('request-monitoring.data');
+            Route::get('/request-monitoring/export', [RoomConsumptionReportController::class, 'exportRequestMonitoring'])->name('request-monitoring.export');
+        });
+
+        Route::get('data', [RoomConsumptionRequestController::class, 'data'])->name('data');
+        Route::get('create', [RoomConsumptionRequestController::class, 'create'])->name('create');
+        Route::post('/', [RoomConsumptionRequestController::class, 'store'])->name('store');
+        Route::get('{roomConsumptionRequest}/edit', [RoomConsumptionRequestController::class, 'edit'])->name('edit');
+        Route::put('{roomConsumptionRequest}', [RoomConsumptionRequestController::class, 'update'])->name('update');
+        Route::delete('{roomConsumptionRequest}', [RoomConsumptionRequestController::class, 'destroy'])->name('destroy');
+        Route::post('{roomConsumptionRequest}/submit', [RoomConsumptionRequestController::class, 'submitForApproval'])->name('submit');
+        Route::post('{roomConsumptionRequest}/cancel', [RoomConsumptionRequestController::class, 'cancel'])->name('cancel');
+        Route::post('{roomConsumptionRequest}/request-zoom', [RoomConsumptionRequestController::class, 'requestZoomMeeting'])->name('request-zoom');
+        Route::post('{roomConsumptionRequest}/sync-zoom', [RoomConsumptionRequestController::class, 'syncZoomMeeting'])->name('sync-zoom');
+        Route::post('{roomConsumptionRequest}/reset-zoom-it-wo', [RoomConsumptionRequestController::class, 'resetZoomItWoDebug'])->name('reset-zoom-it-wo');
+        Route::get('{roomConsumptionRequest}/print', [RoomConsumptionRequestController::class, 'print'])->name('print');
+        Route::get('{roomConsumptionRequest}', [RoomConsumptionRequestController::class, 'show'])->name('show');
+        Route::get('/', [RoomConsumptionRequestController::class, 'index'])->name('index');
+    });
 
     Route::get('grades/data', [GradeController::class, 'getGrades'])->name('grades.data');
     Route::post('grades/status/{id}', [GradeController::class, 'changeStatus'])->name('grades.status');

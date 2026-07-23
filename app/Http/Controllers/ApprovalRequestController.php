@@ -11,7 +11,9 @@ use App\Models\LeaveRequest;
 use App\Models\Officialtravel;
 use App\Models\OvertimeRequest;
 use App\Models\RecruitmentRequest;
+use App\Models\RoomConsumptionRequest;
 use App\Models\User;
+use App\Services\ItWoZoomClient;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -54,6 +56,10 @@ class ApprovalRequestController extends Controller
                 'overtimeRequest.project',
                 'overtimeRequest.requestedBy',
                 'overtimeRequest.details.administration.employee',
+                'roomConsumptionRequest.project',
+                'roomConsumptionRequest.meetingRoom',
+                'roomConsumptionRequest.department',
+                'roomConsumptionRequest.requestedBy',
             ])
                 ->where('approver_id', Auth::id());
 
@@ -128,6 +134,12 @@ class ApprovalRequestController extends Controller
                                     ->orWhere('project_code', 'LIKE', "%$search%");
                             });
                     });
+
+                    $query->orWhereHas('roomConsumptionRequest', function ($q) use ($search) {
+                        $q->where('request_number', 'LIKE', "%$search%")
+                            ->orWhere('meeting_title', 'LIKE', "%$search%")
+                            ->orWhere('letter_number', 'LIKE', "%$search%");
+                    });
                 });
             }
 
@@ -138,6 +150,9 @@ class ApprovalRequestController extends Controller
                 ->addColumn('document_type', function ($approvalPlan) {
                     if ($approvalPlan->document_type === 'flight_request_issuance') {
                         return 'Letter of Guarantee (LG)';
+                    }
+                    if ($approvalPlan->document_type === 'room_consumption_request') {
+                        return 'Room & Consumption Request';
                     }
 
                     return ucfirst(str_replace('_', ' ', $approvalPlan->document_type));
@@ -182,6 +197,22 @@ class ApprovalRequestController extends Controller
                             .'<div><strong>'.$code.'</strong></div>'
                             .'<div class="text-muted">'.$dateStr.'</div>'
                             .$list
+                            .'</div>';
+                    } elseif ($approvalPlan->document_type === 'room_consumption_request') {
+                        $rcr = $approvalPlan->roomConsumptionRequest;
+                        if (! $rcr) {
+                            return '-';
+                        }
+
+                        $regNo = e($rcr->request_number ?: ($rcr->meeting_title ?: '—'));
+                        $dateStr = $rcr->meeting_date ? e($rcr->meeting_date->format('d/m/Y')) : '—';
+                        $room = e($rcr->meetingRoom->room_name ?? '—');
+                        $project = e($rcr->project->project_code ?? '—');
+
+                        return '<div class="text-left">'
+                            .'<div><strong>'.$regNo.'</strong></div>'
+                            .'<div class="text-muted">'.$dateStr.' · '.$project.'</div>'
+                            .'<div>'.$room.'</div>'
                             .'</div>';
                     }
 
@@ -242,6 +273,16 @@ class ApprovalRequestController extends Controller
                         }
 
                         return '<div class="text-left overtime-remarks-cell">'.nl2br(e($r)).'</div>';
+                    } elseif ($approvalPlan->document_type === 'room_consumption_request') {
+                        $rcr = $approvalPlan->roomConsumptionRequest;
+                        if (! $rcr) {
+                            return '-';
+                        }
+                        $title = e($rcr->meeting_title ?: '—');
+                        $dept = e($rcr->department->department_name ?? '');
+                        $extra = $dept !== '' ? '<div class="small text-muted mt-1">'.$dept.'</div>' : '';
+
+                        return '<div class="text-left">'.$title.$extra.'</div>';
                     }
 
                     return '-';
@@ -265,6 +306,9 @@ class ApprovalRequestController extends Controller
                     } elseif ($approvalPlan->document_type === 'overtime_request') {
                         return $approvalPlan->overtimeRequest && $approvalPlan->overtimeRequest->requestedBy ?
                             $approvalPlan->overtimeRequest->requestedBy->name : '-';
+                    } elseif ($approvalPlan->document_type === 'room_consumption_request') {
+                        return $approvalPlan->roomConsumptionRequest && $approvalPlan->roomConsumptionRequest->requestedBy ?
+                            $approvalPlan->roomConsumptionRequest->requestedBy->name : '-';
                     }
 
                     return '-';
@@ -289,6 +333,10 @@ class ApprovalRequestController extends Controller
                         $ot = $approvalPlan->overtimeRequest;
 
                         return $ot && $ot->requested_at ? $ot->requested_at->format('d/m/Y H:i') : '-';
+                    } elseif ($approvalPlan->document_type === 'room_consumption_request') {
+                        $rcr = $approvalPlan->roomConsumptionRequest;
+
+                        return $rcr && $rcr->submitted_at ? $rcr->submitted_at->format('d/m/Y H:i') : '-';
                     }
 
                     return '-';
@@ -524,6 +572,10 @@ class ApprovalRequestController extends Controller
             $document = OvertimeRequest::find($approvalPlan->document_id);
 
             return $document ? $document->project_id : null;
+        } elseif ($approvalPlan->document_type === 'room_consumption_request') {
+            $document = RoomConsumptionRequest::find($approvalPlan->document_id);
+
+            return $document ? $document->project_id : null;
         }
 
         return null;
@@ -552,6 +604,10 @@ class ApprovalRequestController extends Controller
             return $document && $document->administration && $document->administration->position ? $document->administration->position->department_id : null;
         } elseif ($approvalPlan->document_type === 'overtime_request') {
             return null;
+        } elseif ($approvalPlan->document_type === 'room_consumption_request') {
+            $document = RoomConsumptionRequest::find($approvalPlan->document_id);
+
+            return $document ? $document->department_id : null;
         }
 
         return null;
@@ -737,6 +793,8 @@ class ApprovalRequestController extends Controller
             $document = FlightRequestIssuance::find($approvalPlan->document_id);
         } elseif ($documentType === 'overtime_request') {
             $document = OvertimeRequest::find($approvalPlan->document_id);
+        } elseif ($documentType === 'room_consumption_request') {
+            $document = RoomConsumptionRequest::find($approvalPlan->document_id);
         } else {
             return; // Invalid document type
         }
@@ -767,6 +825,12 @@ class ApprovalRequestController extends Controller
                     'rejected_at' => now(),
                     'approved_at' => null,
                 ]);
+            } elseif ($documentType === 'room_consumption_request') {
+                $document->update([
+                    'status' => RoomConsumptionRequest::STATUS_REJECTED,
+                    'rejected_at' => now(),
+                    'approved_at' => null,
+                ]);
             } else {
                 $document->update([
                     'status' => 'rejected',
@@ -792,6 +856,11 @@ class ApprovalRequestController extends Controller
                     'rejected_at' => now(),
                     'approved_at' => null,
                 ]);
+            } elseif ($documentType === 'room_consumption_request') {
+                $document->update([
+                    'status' => RoomConsumptionRequest::STATUS_REJECTED,
+                    'rejected_at' => now(),
+                ]);
             } else {
                 $document->update(['status' => 'rejected']);
             }
@@ -802,15 +871,31 @@ class ApprovalRequestController extends Controller
 
         // Check if all sequential approvals are completed
         if ($this->areAllSequentialApprovalsCompleted($approvalPlan, $allApprovalPlans)) {
-            $updateData = $documentType === 'overtime_request'
-                ? ['approved_at' => now(), 'status' => OvertimeRequest::STATUS_APPROVED, 'rejected_at' => null]
-                : ['approved_at' => now(), 'status' => 'approved'];
+            if ($documentType === 'overtime_request') {
+                $updateData = ['approved_at' => now(), 'status' => OvertimeRequest::STATUS_APPROVED, 'rejected_at' => null];
+            } elseif ($documentType === 'room_consumption_request') {
+                $updateData = ['approved_at' => now(), 'status' => RoomConsumptionRequest::STATUS_APPROVED, 'rejected_at' => null];
+            } else {
+                $updateData = ['approved_at' => now(), 'status' => 'approved'];
+            }
             $document->update($updateData);
             $this->closeAllApprovalPlans($document->id, $documentType);
 
             // Update leave entitlements ONLY for leave_request documents
             if ($documentType === 'leave_request') {
                 $this->updateLeaveEntitlements($document);
+            }
+
+            // RCR + need_zoom: create Zoom Meeting IT WO via rest-server
+            if ($documentType === 'room_consumption_request' && $document instanceof RoomConsumptionRequest) {
+                try {
+                    app(ItWoZoomClient::class)->dispatchAfterApproval($document->fresh());
+                } catch (\Throwable $e) {
+                    Log::error('Failed to dispatch IT WO Zoom after RCR approval', [
+                        'rcr_id' => $document->id,
+                        'error' => $e->getMessage(),
+                    ]);
+                }
             }
 
             Log::info("Document {$documentType} ID: {$document->id} approved. All sequential approvals completed.");

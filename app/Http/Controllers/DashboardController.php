@@ -33,6 +33,8 @@ use App\Models\Project;
 use App\Models\RecruitmentCandidate;
 use App\Models\RecruitmentRequest;
 use App\Models\RecruitmentSession;
+use App\Models\RoomConsumptionRequest;
+use App\Models\MeetingRoom;
 use App\Models\Taxidentification;
 use App\Models\User;
 use App\Support\UserProject;
@@ -1282,6 +1284,233 @@ class DashboardController extends Controller
     }
 
     /**
+     * Room & Consumption (RCR) management dashboard.
+     */
+    public function roomConsumptionManagement()
+    {
+        $title = 'Room & Consumption Dashboard';
+        $subtitle = 'Meeting room & consumption requests overview';
+
+        $base = RoomConsumptionRequest::query();
+        UserProject::scopeToAssignedProjects($base, 'project_id');
+
+        $totalRequests = (clone $base)->count();
+
+        $thisMonthCreated = (clone $base)->whereMonth('created_at', now()->month)
+            ->whereYear('created_at', now()->year)
+            ->count();
+        $lastMonthCreated = (clone $base)->whereMonth('created_at', now()->subMonth()->month)
+            ->whereYear('created_at', now()->subMonth()->year)
+            ->count();
+        $createdMonthGrowthPct = $lastMonthCreated > 0
+            ? round((($thisMonthCreated - $lastMonthCreated) / $lastMonthCreated) * 100, 1)
+            : ($thisMonthCreated > 0 ? 100.0 : 0.0);
+
+        $activeMeetingStatuses = [
+            RoomConsumptionRequest::STATUS_SUBMITTED,
+            RoomConsumptionRequest::STATUS_APPROVED,
+            RoomConsumptionRequest::STATUS_COMPLETED,
+        ];
+
+        $thisMonthMeetings = (clone $base)
+            ->whereMonth('meeting_date', now()->month)
+            ->whereYear('meeting_date', now()->year)
+            ->whereIn('status', $activeMeetingStatuses)
+            ->count();
+
+        $needZoomTotal = (clone $base)->where('need_zoom', true)
+            ->whereIn('status', [RoomConsumptionRequest::STATUS_SUBMITTED, RoomConsumptionRequest::STATUS_APPROVED])
+            ->count();
+
+        $needZoomPending = (clone $base)->where('need_zoom', true)
+            ->whereIn('status', [RoomConsumptionRequest::STATUS_SUBMITTED, RoomConsumptionRequest::STATUS_APPROVED])
+            ->where(function ($q) {
+                $q->whereNull('zoom_meeting_id')
+                    ->orWhereIn('zoom_sync_status', ['pending', 'open', 'processing', 'failed', 'error']);
+            })
+            ->count();
+
+        $needZoomReady = (clone $base)->where('need_zoom', true)
+            ->whereNotNull('zoom_meeting_id')
+            ->whereIn('zoom_sync_status', ['completed', 'done', 'synced'])
+            ->count();
+
+        $meetingsToday = (clone $base)->whereDate('meeting_date', now()->toDateString())
+            ->whereIn('status', [RoomConsumptionRequest::STATUS_SUBMITTED, RoomConsumptionRequest::STATUS_APPROVED])
+            ->count();
+
+        $meetingsThisWeek = (clone $base)
+            ->whereBetween('meeting_date', [now()->startOfWeek()->toDateString(), now()->endOfWeek()->toDateString()])
+            ->whereIn('status', [RoomConsumptionRequest::STATUS_SUBMITTED, RoomConsumptionRequest::STATUS_APPROVED])
+            ->count();
+
+        $scopedRcrIds = RoomConsumptionRequest::query()->select('id');
+        UserProject::scopeToAssignedProjects($scopedRcrIds, 'project_id');
+
+        $pendingApprovalSteps = ApprovalPlan::query()
+            ->where('document_type', 'room_consumption_request')
+            ->where('is_open', true)
+            ->where('status', 0)
+            ->whereIn('document_id', $scopedRcrIds)
+            ->count();
+
+        $withConsumption = (clone $base)
+            ->whereHas('items', fn ($q) => $q->where('is_selected', true))
+            ->whereIn('status', $activeMeetingStatuses)
+            ->count();
+
+        $roomsQuery = MeetingRoom::query();
+        UserProject::scopeToAssignedProjects($roomsQuery, 'project_id');
+        $activeRooms = (clone $roomsQuery)->where('status', MeetingRoom::STATUS_ACTIVE)->count();
+        $totalRooms = (clone $roomsQuery)->count();
+
+        $byProject = RoomConsumptionRequest::query()
+            ->join('projects', 'room_consumption_requests.project_id', '=', 'projects.id')
+            ->select(
+                'projects.id',
+                'projects.project_code',
+                'projects.project_name',
+                DB::raw('COUNT(*) as request_count')
+            )
+            ->groupBy('projects.id', 'projects.project_code', 'projects.project_name')
+            ->orderByDesc('request_count')
+            ->limit(8);
+        UserProject::scopeToAssignedProjects($byProject, 'room_consumption_requests.project_id');
+        $byProject = $byProject->get();
+
+        $byRoom = RoomConsumptionRequest::query()
+            ->join('meeting_rooms', 'room_consumption_requests.meeting_room_id', '=', 'meeting_rooms.id')
+            ->select(
+                'meeting_rooms.room_name',
+                DB::raw('COUNT(*) as request_count')
+            )
+            ->whereIn('room_consumption_requests.status', [
+                RoomConsumptionRequest::STATUS_SUBMITTED,
+                RoomConsumptionRequest::STATUS_APPROVED,
+                RoomConsumptionRequest::STATUS_COMPLETED,
+            ])
+            ->groupBy('meeting_rooms.id', 'meeting_rooms.room_name')
+            ->orderByDesc('request_count')
+            ->limit(8);
+        UserProject::scopeToAssignedProjects($byRoom, 'room_consumption_requests.project_id');
+        $byRoom = $byRoom->get();
+
+        $upcomingMeetings = RoomConsumptionRequest::query()
+            ->with(['project', 'meetingRoom', 'requestedBy'])
+            ->whereDate('meeting_date', '>=', now()->toDateString())
+            ->whereIn('status', [RoomConsumptionRequest::STATUS_SUBMITTED, RoomConsumptionRequest::STATUS_APPROVED])
+            ->orderBy('meeting_date')
+            ->orderBy('start_time')
+            ->limit(12);
+        UserProject::scopeToAssignedProjects($upcomingMeetings, 'project_id');
+        $upcomingMeetings = $upcomingMeetings->get();
+
+        $recentRequests = RoomConsumptionRequest::query()
+            ->with(['project', 'meetingRoom', 'requestedBy'])
+            ->orderByDesc('created_at')
+            ->limit(12);
+        UserProject::scopeToAssignedProjects($recentRequests, 'project_id');
+        $recentRequests = $recentRequests->get();
+
+        $calendarRooms = (clone $roomsQuery)
+            ->where('status', MeetingRoom::STATUS_ACTIVE)
+            ->orderBy('room_name')
+            ->get(['id', 'room_name']);
+
+        return view('dashboard.room-consumption', compact(
+            'title',
+            'subtitle',
+            'totalRequests',
+            'thisMonthCreated',
+            'lastMonthCreated',
+            'createdMonthGrowthPct',
+            'thisMonthMeetings',
+            'needZoomTotal',
+            'needZoomPending',
+            'needZoomReady',
+            'withConsumption',
+            'meetingsToday',
+            'meetingsThisWeek',
+            'pendingApprovalSteps',
+            'activeRooms',
+            'totalRooms',
+            'byProject',
+            'byRoom',
+            'upcomingMeetings',
+            'recentRequests',
+            'calendarRooms'
+        ));
+    }
+
+    /**
+     * Calendar events for RCR dashboard (FullCalendar JSON feed).
+     */
+    public function roomConsumptionCalendarEvents(\Illuminate\Http\Request $request)
+    {
+        $start = $request->query('start');
+        $end = $request->query('end');
+
+        $query = RoomConsumptionRequest::query()
+            ->with(['meetingRoom', 'project', 'requestedBy.employee'])
+            ->whereIn('status', [
+                RoomConsumptionRequest::STATUS_SUBMITTED,
+                RoomConsumptionRequest::STATUS_APPROVED,
+                RoomConsumptionRequest::STATUS_COMPLETED,
+            ])
+            ->whereNotNull('meeting_date');
+
+        if ($start && $end) {
+            $query->whereDate('meeting_date', '>=', substr($start, 0, 10))
+                ->whereDate('meeting_date', '<', substr($end, 0, 10));
+        }
+
+        if ($roomId = $request->query('room_id')) {
+            $query->where('meeting_room_id', $roomId);
+        }
+
+        UserProject::scopeToAssignedProjects($query, 'project_id');
+
+        $statusColors = [
+            RoomConsumptionRequest::STATUS_SUBMITTED => '#17a2b8',
+            RoomConsumptionRequest::STATUS_APPROVED => '#28a745',
+            RoomConsumptionRequest::STATUS_COMPLETED => '#007bff',
+        ];
+
+        $events = $query->orderBy('meeting_date')->orderBy('start_time')->get()->map(function (RoomConsumptionRequest $req) use ($statusColors) {
+            $date = $req->meeting_date->format('Y-m-d');
+            $startTime = $req->start_time
+                ? \Carbon\Carbon::parse($req->start_time)->format('H:i:s')
+                : '08:00:00';
+            $endTime = $req->end_time
+                ? \Carbon\Carbon::parse($req->end_time)->format('H:i:s')
+                : '17:00:00';
+            $color = $statusColors[$req->status] ?? '#6c757d';
+            $requester = $req->requestedBy?->employee?->fullname
+                ?: $req->requestedBy?->name;
+
+            return [
+                'id' => $req->id,
+                'title' => ($req->meeting_title ?: 'Meeting').' · '.($req->meetingRoom?->room_name ?? '—'),
+                'start' => $date.'T'.$startTime,
+                'end' => $date.'T'.$endTime,
+                'url' => route('room-consumption-requests.show', $req),
+                'backgroundColor' => $color,
+                'borderColor' => $color,
+                'extendedProps' => [
+                    'status' => $req->status,
+                    'room' => $req->meetingRoom?->room_name,
+                    'project' => $req->project?->project_code,
+                    'requester' => $requester,
+                    'requestNumber' => $req->request_number,
+                    'needZoom' => (bool) $req->need_zoom,
+                ],
+            ];
+        });
+
+        return response()->json($events);
+    }
+
+    /**
      * Get letter administration statistics API.
      *
      * @return \Illuminate\Http\Response
@@ -2033,6 +2262,44 @@ class DashboardController extends Controller
                 ->get();
         }
 
+        // Room & Consumption (sama cakupan dengan My Room & Consumption: requested_by = user)
+        $roomConsumptionStats = [
+            'total' => 0,
+            'draft' => 0,
+            'submitted' => 0,
+            'approved' => 0,
+            'upcoming' => 0,
+        ];
+        $recentRoomConsumptionRequests = collect();
+
+        if ($user->can('personal.room-consumption.view-own')) {
+            $rcrBase = RoomConsumptionRequest::query()
+                ->where('requested_by', $user->id);
+
+            $roomConsumptionStats = [
+                'total' => (clone $rcrBase)->count(),
+                'draft' => (clone $rcrBase)->where('status', RoomConsumptionRequest::STATUS_DRAFT)->count(),
+                'submitted' => (clone $rcrBase)->where('status', RoomConsumptionRequest::STATUS_SUBMITTED)->count(),
+                'approved' => (clone $rcrBase)->whereIn('status', [
+                    RoomConsumptionRequest::STATUS_APPROVED,
+                    RoomConsumptionRequest::STATUS_COMPLETED,
+                ])->count(),
+                'upcoming' => (clone $rcrBase)
+                    ->whereDate('meeting_date', '>=', now()->toDateString())
+                    ->whereIn('status', [
+                        RoomConsumptionRequest::STATUS_SUBMITTED,
+                        RoomConsumptionRequest::STATUS_APPROVED,
+                    ])
+                    ->count(),
+            ];
+
+            $recentRoomConsumptionRequests = (clone $rcrBase)
+                ->with(['project', 'meetingRoom'])
+                ->orderByDesc('created_at')
+                ->limit(5)
+                ->get();
+        }
+
         // Leave Entitlements Summary
         // Calculate taken_days from approved leave requests (considering cancellations)
         $leaveEntitlements = LeaveEntitlement::with(['leaveType'])
@@ -2098,6 +2365,8 @@ class DashboardController extends Controller
             'recentRecruitmentRequests' => $recentRecruitmentRequests,
             'overtimeStats' => $overtimeStats,
             'recentOvertimeRequests' => $recentOvertimeRequests,
+            'roomConsumptionStats' => $roomConsumptionStats,
+            'recentRoomConsumptionRequests' => $recentRoomConsumptionRequests,
             'leaveEntitlements' => $leaveEntitlements,
             'profileCompleteness' => $profileCompleteness,
             'missingSections' => $missingSections,

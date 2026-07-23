@@ -17,6 +17,13 @@
                     @elseif($approvalPlan->document_type === 'overtime_request')
                         @php $document = App\Models\OvertimeRequest::with(['project'])->find($approvalPlan->document_id); @endphp
                         OVERTIME REQUEST
+                    @elseif($approvalPlan->document_type === 'room_consumption_request')
+                        @php $document = App\Models\RoomConsumptionRequest::with(['project'])->find($approvalPlan->document_id); @endphp
+                        @if ($document && $document->project)
+                            {{ $document->project->project_code }} — {{ $document->project->project_name }}
+                        @else
+                            ROOM &amp; CONSUMPTION REQUEST
+                        @endif
                     @elseif($approvalPlan->document_type === 'flight_request_issuance')
                         Letter of Guarantee
                     @else
@@ -42,6 +49,9 @@
                         @else
                             —
                         @endif
+                    @elseif($approvalPlan->document_type === 'room_consumption_request')
+                        @php $document = App\Models\RoomConsumptionRequest::find($approvalPlan->document_id); @endphp
+                        {{ $document->request_number ?? ($document->meeting_title ?? 'RCR') }}
                     @elseif($approvalPlan->document_type === 'flight_request_issuance')
                         @php $document = App\Models\FlightRequestIssuance::find($approvalPlan->document_id); @endphp
                         {{ $document ? $document->issued_number : 'N/A' }}
@@ -64,6 +74,9 @@
                         @else
                             {{ format_date_with_weekday(now()) }}
                         @endif
+                    @elseif($approvalPlan->document_type === 'room_consumption_request')
+                        @php $document = App\Models\RoomConsumptionRequest::find($approvalPlan->document_id); @endphp
+                        {{ format_date_with_weekday($document->meeting_date ?? now()) }}
                     @elseif($approvalPlan->document_type === 'flight_request_issuance')
                         @php $document = App\Models\FlightRequestIssuance::find($approvalPlan->document_id); @endphp
                         @if ($document && $document->issued_date)
@@ -308,6 +321,117 @@
                                     </div>
                                 </div>
                             </div>
+                        @endif
+                    @elseif($approvalPlan->document_type === 'room_consumption_request')
+                        @php
+                            $document = App\Models\RoomConsumptionRequest::with([
+                                'project', 'meetingRoom', 'department', 'requestedBy', 'items',
+                            ])->find($approvalPlan->document_id);
+                        @endphp
+                        @if ($document)
+                        <div class="document-card document-info-card">
+                            <div class="card-head">
+                                <h2><i class="fas fa-door-open"></i> Room &amp; Consumption Information</h2>
+                            </div>
+                            <div class="card-body p-0">
+                                <div class="info-grid">
+                                    <div class="info-item">
+                                        <div class="info-icon" style="background-color: #3498db;"><i class="fas fa-hashtag"></i></div>
+                                        <div class="info-content">
+                                            <div class="info-label">Reg. No</div>
+                                            <div class="info-value">{{ $document->request_number ?? '—' }}</div>
+                                        </div>
+                                    </div>
+                                    <div class="info-item">
+                                        <div class="info-icon" style="background-color: #9b59b6;"><i class="fas fa-door-closed"></i></div>
+                                        <div class="info-content">
+                                            <div class="info-label">Room</div>
+                                            <div class="info-value">{{ $document->meetingRoom->room_name ?? '—' }}</div>
+                                        </div>
+                                    </div>
+                                    <div class="info-item">
+                                        <div class="info-icon" style="background-color: #e67e22;"><i class="fas fa-map-marker-alt"></i></div>
+                                        <div class="info-content">
+                                            <div class="info-label">Location</div>
+                                            <div class="info-value">
+                                                {{ $document->project->project_code ?? '—' }}
+                                                @if ($document->project?->project_name)
+                                                    — {{ $document->project->project_name }}
+                                                @endif
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="info-item">
+                                        <div class="info-icon" style="background-color: #34495e;"><i class="fas fa-building"></i></div>
+                                        <div class="info-content">
+                                            <div class="info-label">Department</div>
+                                            <div class="info-value">{{ $document->department->department_name ?? '—' }}</div>
+                                        </div>
+                                    </div>
+                                    <div class="info-item">
+                                        <div class="info-icon" style="background-color: #e74c3c;"><i class="fas fa-calendar"></i></div>
+                                        <div class="info-content">
+                                            <div class="info-label">Meeting</div>
+                                            <div class="info-value">
+                                                {{ $document->meeting_title }}<br>
+                                                <small>
+                                                    {{ $document->meeting_date ? format_date_with_weekday($document->meeting_date) : '—' }}
+                                                    ·
+                                                    {{ $document->start_time ? \Carbon\Carbon::parse($document->start_time)->format('H:i') : '—' }}
+                                                    –
+                                                    {{ $document->end_time ? \Carbon\Carbon::parse($document->end_time)->format('H:i') : '—' }}
+                                                </small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="info-item">
+                                        <div class="info-icon" style="background-color: #1abc9c;"><i class="fas fa-users"></i></div>
+                                        <div class="info-content">
+                                            <div class="info-label">Attendees</div>
+                                            <div class="info-value">{{ $document->attendees_count }}</div>
+                                        </div>
+                                    </div>
+                                    <div class="info-item">
+                                        <div class="info-icon" style="background-color: #2980b9;"><i class="fas fa-video"></i></div>
+                                        <div class="info-content">
+                                            <div class="info-label">Need Zoom</div>
+                                            <div class="info-value">{{ $document->need_zoom ? 'Yes' : 'No' }}</div>
+                                        </div>
+                                    </div>
+                                    <div class="info-item">
+                                        <div class="info-icon" style="background-color: #8e44ad;"><i class="fas fa-user-tie"></i></div>
+                                        <div class="info-content">
+                                            <div class="info-label">Requester</div>
+                                            <div class="info-value">{{ $document->requestedBy->name ?? '—' }}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                @if ($document->facilities)
+                                    <div class="p-3 border-top">
+                                        <strong>Facilities:</strong>
+                                        <div class="mt-1">{{ $document->facilities }}</div>
+                                    </div>
+                                @endif
+                                @if ($document->notes)
+                                    <div class="p-3 border-top">
+                                        <strong>Notes:</strong>
+                                        <div class="mt-1" style="white-space: pre-wrap;">{{ $document->notes }}</div>
+                                    </div>
+                                @endif
+                                @if ($document->items->where('is_selected', true)->count())
+                                    <div class="p-3 border-top">
+                                        <strong>Consumption:</strong>
+                                        <ul class="mb-0 mt-1">
+                                            @foreach ($document->items->where('is_selected', true) as $item)
+                                                <li>{{ $item->typeLabel() }}@if($item->description) — {{ $item->description }}@endif</li>
+                                            @endforeach
+                                        </ul>
+                                    </div>
+                                @endif
+                            </div>
+                        </div>
+                        @else
+                            <div class="alert alert-warning">Room &amp; Consumption Request document not found.</div>
                         @endif
                     @elseif($approvalPlan->document_type === 'recruitment_request')
                         @php $document = App\Models\RecruitmentRequest::with(['department', 'project', 'position', 'level', 'createdBy'])->find($approvalPlan->document_id); @endphp
@@ -1225,6 +1349,9 @@
                                             @elseif($approvalPlan->document_type === 'overtime_request')
                                                 @php $document = App\Models\OvertimeRequest::with('requestedBy')->find($approvalPlan->document_id); @endphp
                                                 {{ $document && $document->requestedBy ? $document->requestedBy->name : 'N/A' }}
+                                            @elseif($approvalPlan->document_type === 'room_consumption_request')
+                                                @php $document = App\Models\RoomConsumptionRequest::with('requestedBy')->find($approvalPlan->document_id); @endphp
+                                                {{ $document && $document->requestedBy ? $document->requestedBy->name : 'N/A' }}
                                             @endif
                                         </div>
                                         <div class="submitter-meta">
@@ -1245,6 +1372,9 @@
                                                 @elseif($approvalPlan->document_type === 'overtime_request')
                                                     @php $document = App\Models\OvertimeRequest::find($approvalPlan->document_id); @endphp
                                                     {{ $document && $document->requested_at ? format_datetime_with_weekday($document->requested_at) : ($document && $document->created_at ? format_datetime_with_weekday($document->created_at) : 'N/A') }}
+                                                @elseif($approvalPlan->document_type === 'room_consumption_request')
+                                                    @php $document = App\Models\RoomConsumptionRequest::find($approvalPlan->document_id); @endphp
+                                                    {{ $document && $document->submitted_at ? format_datetime_with_weekday($document->submitted_at) : ($document && $document->created_at ? format_datetime_with_weekday($document->created_at) : 'N/A') }}
                                                 @endif
                                             </span>
                                         </div>

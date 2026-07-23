@@ -11,6 +11,7 @@ use App\Models\Officialtravel;
 use App\Models\OvertimeRequest;
 use App\Models\Project;
 use App\Models\RecruitmentRequest;
+use App\Models\RoomConsumptionRequest;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -242,6 +243,10 @@ class ApprovalPlanController extends Controller
             $document = FlightRequest::findOrFail($approval_plan->document_id);
         } elseif ($document_type == 'flight_request_issuance') {
             $document = FlightRequestIssuance::findOrFail($approval_plan->document_id);
+        } elseif ($document_type == 'overtime_request') {
+            $document = OvertimeRequest::findOrFail($approval_plan->document_id);
+        } elseif ($document_type == 'room_consumption_request') {
+            $document = RoomConsumptionRequest::findOrFail($approval_plan->document_id);
         } else {
             return false; // Invalid document type
         }
@@ -269,6 +274,18 @@ class ApprovalPlanController extends Controller
         if ($rejected_count > 0) {
             if ($document_type === 'flight_request_issuance') {
                 $document->update(['approved_at' => null, 'status' => 'rejected']);
+            } elseif ($document_type === 'room_consumption_request') {
+                $document->update([
+                    'status' => RoomConsumptionRequest::STATUS_REJECTED,
+                    'rejected_at' => now(),
+                    'approved_at' => null,
+                ]);
+            } elseif ($document_type === 'overtime_request') {
+                $document->update([
+                    'status' => OvertimeRequest::STATUS_REJECTED,
+                    'rejected_at' => now(),
+                    'approved_at' => null,
+                ]);
             } else {
                 $document->update([
                     'status' => 'rejected',
@@ -390,7 +407,7 @@ class ApprovalPlanController extends Controller
         $request->validate([
             'ids' => 'required|array',
             'ids.*' => 'required|integer',
-            'document_type' => 'required|string|in:officialtravel,recruitment_request,leave_request,flight_request,flight_request_issuance',
+            'document_type' => 'required|string|in:officialtravel,recruitment_request,leave_request,flight_request,flight_request_issuance,overtime_request,room_consumption_request',
             'remarks' => 'nullable|string',
         ]);
 
@@ -434,6 +451,10 @@ class ApprovalPlanController extends Controller
                 $document = FlightRequest::findOrFail($approval_plan->document_id);
             } elseif ($document_type == 'flight_request_issuance') {
                 $document = FlightRequestIssuance::findOrFail($approval_plan->document_id);
+            } elseif ($document_type == 'overtime_request') {
+                $document = OvertimeRequest::findOrFail($approval_plan->document_id);
+            } elseif ($document_type == 'room_consumption_request') {
+                $document = RoomConsumptionRequest::findOrFail($approval_plan->document_id);
             } else {
                 $failCount++;
 
@@ -1249,6 +1270,8 @@ class ApprovalPlanController extends Controller
             $document = FlightRequestIssuance::findOrFail($document_id);
         } elseif ($document_type == 'overtime_request') {
             $document = OvertimeRequest::findOrFail($document_id);
+        } elseif ($document_type == 'room_consumption_request') {
+            $document = RoomConsumptionRequest::findOrFail($document_id);
         } else {
             return false; // Invalid document type
         }

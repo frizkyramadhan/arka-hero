@@ -50,8 +50,9 @@
                                     <option value="leave_request">Leave Request</option>
                                     <option value="flight_request">Flight Request</option>
                                     <option value="flight_request_issuance">Letter of Guarantee (LG)</option>
-                                    <option value="overtime_request">Overtime Request</option>
-                                </select>
+            <option value="overtime_request">Overtime Request</option>
+            <option value="room_consumption_request">Room & Consumption Request</option>
+        </select>
                             </div>
                         </div>
                         <div class="col-md-2">
