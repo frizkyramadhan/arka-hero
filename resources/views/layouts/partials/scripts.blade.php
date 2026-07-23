@@ -81,23 +81,33 @@
 
     // Check for SweetAlert2 messages
     document.addEventListener('DOMContentLoaded', function() {
-        // Handle toast_error from exception handler
+        // Handle toast_error from exception handler / redirects
         @if (session('toast_error'))
-            Swal.fire({
-                icon: '{{ session('alert_type') ?? 'error' }}',
-                title: '{{ session('alert_title') ?? 'Error' }}',
-                text: '{{ session('toast_error') }}',
-                confirmButtonColor: '#3085d6',
-                confirmButtonText: 'OK'
-            });
+            @if (session('toast_error_left'))
+                Swal.fire({
+                    icon: '{{ session('alert_type') ?? 'error' }}',
+                    title: '{{ session('alert_title') ?? 'Error' }}',
+                    html: '<div class="text-left" style="white-space:pre-line">' + @json(session('toast_error')) + '</div>',
+                    confirmButtonColor: '#3085d6',
+                    confirmButtonText: 'OK'
+                });
+            @else
+                Swal.fire({
+                    icon: '{{ session('alert_type') ?? 'error' }}',
+                    title: '{{ session('alert_title') ?? 'Error' }}',
+                    text: @json(session('toast_error')),
+                    confirmButtonColor: '#3085d6',
+                    confirmButtonText: 'OK'
+                });
+            @endif
         @endif
 
-        // Handle toast_success
+        // Handle toast_success (centered by default)
         @if (session('toast_success'))
             Swal.fire({
                 icon: 'success',
                 title: 'Success',
-                text: '{{ session('toast_success') }}',
+                text: @json(session('toast_success')),
                 confirmButtonColor: '#3085d6',
                 confirmButtonText: 'OK'
             });

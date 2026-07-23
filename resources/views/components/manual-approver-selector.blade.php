@@ -300,6 +300,29 @@
                                         Catatan:</strong> Jika approver yang sesuai tidak tersedia di daftar, hubungi
                                     <strong>HR</strong></li>
                             </ul>
+                        @elseif($documentType === 'room_consumption_request')
+                            <h6 class="text-primary mb-2">
+                                <i class="fas fa-door-open mr-1"></i> Room & Consumption Request (RCR)
+                            </h6>
+                            <ul class="mb-0 pl-3">
+                                <li><strong>Project HO, BO, atau APS:</strong>
+                                    <ol class="mt-1">
+                                        <li><strong>DIV / DEPT HEAD</strong></li>
+                                        <li><strong>HCS DIVISION MANAGER</strong></li>
+                                    </ol>
+                                </li>
+                                <li><strong>Site Project:</strong>
+                                    <ol class="mt-1">
+                                        <li><strong>SPV / DEPT HEAD</strong> department masing-masing</li>
+                                        <li><strong>Project Manager</strong></li>
+                                    </ol>
+                                </li>
+                                <li>Urutan di atas adalah panduan; pilih approver dengan role <strong>approver</strong></li>
+                                <li>Approval dilakukan secara <strong>sequential</strong> sesuai urutan yang dipilih</li>
+                                <li class="mt-2"><strong><i class="fas fa-exclamation-triangle text-warning"></i>
+                                        Catatan:</strong> Jika approver yang diperlukan tidak tersedia dalam Approver
+                                    Selection, harap menghubungi <strong>HR HO Balikpapan</strong></li>
+                            </ul>
                         @elseif($documentType === 'flight_request')
                             <h6 class="text-primary mb-2">
                                 <i class="fas fa-plane mr-1"></i> Flight Request (FRF)

@@ -26,7 +26,8 @@ Bab ini ditujukan untuk **seluruh karyawan** yang memiliki akun di sistem ARKA H
 | **Issued**               | Tiket penerbangan telah diterbitkan (khusus Flight Request)                                        |
 | **Finished**             | Lembur telah selesai dan dicatat (khusus Overtime Request)                                         |
 | **Approver**             | Atasan atau pejabat yang berwenang menyetujui/menolak permintaan                                   |
-| **LSL**                  | _Long Service Leave_ — cuti masa kerja panjang yang dapat dikombinasikan dengan _cash out_         |
+| **LSL**                  | _Long Service Leave_ — cuti masa kerja panjang; pada formulir dipilih lewat **LSL Usage Mode** (**Take Leave Only**, **Cash Out Only**, atau **Combined**) |
+| **LSL Usage Mode**       | Cara memakai hak LSL: cuti saja, pencairan tunai saja, atau keduanya sekaligus                                                                            |
 | **Standalone**           | Permintaan tiket penerbangan yang tidak terkait dengan cuti maupun perjalanan dinas                |
 | **Profile Completeness** | Persentase kelengkapan data profil karyawan di sistem                                              |
 
@@ -351,8 +352,8 @@ Bagian ini **diselaraskan** dengan _Leave Management_ — bagian 5: Untuk karyaw
 5. **Isi formulir pengajuan**
     - **Employee** dan **Project**. Data Employee dan Project sudah terisi sesuai dengan data karyawan. Jika data Employee dan Project menampilkan **N/A - N/A**, hubungi HR untuk menghubungkan data karyawan dengan user Anda.
     - **Leave Type** dan **Leave Period** — periode hak biasanya mengikuti entitlement; bila **Leave Period** kosong, hubungi HR soal saldo cuti / **Leave Entitlement**.
-    - **Pola per jenis cuti** — **Cuti Tahunan (1.01)** tanpa dokumen tambahan wajib; **Izin Dibayar (2.xx)** dapat memunculkan **Supporting Document**; **Izin Tanpa Upah (3.01)** wajib isi **Reason**; **Cuti Panjang (4.01)** memunculkan blok **LSL** (**Leave Days**, **Cash Out**, dsb.).
-    - **Leave Date**, **Back to Work Date**, **Total Days** — aturan kalender **roster** / **non-roster** dan **hari libur nasional** sama seperti di panduan HR.
+    - **Pola per jenis cuti** — **Cuti Tahunan (1.01)** tanpa dokumen tambahan wajib; **Izin Dibayar (2.xx)** dapat memunculkan **Supporting Document**; **Izin Tanpa Upah (3.01)** wajib isi **Reason**; **Cuti Panjang (4.01)** memunculkan kartu **LSL** dengan **LSL Usage Mode** (**Take Leave Only**, **Cash Out Only**, **Combined**), **Leave Days**, **Cash Out**, dan **Total Days** (lihat [Leave Management, langkah 7 & Gambar 3.11](11-leave-management.md#leave-request-create-cutipanjang)).
+    - **Leave Date**, **Back to Work Date**, **Total Days** — aturan kalender **roster** / **non-roster** dan **hari libur nasional** sama seperti di panduan HR. Untuk LSL **Cash Out Only**, baris tanggal disembunyikan pada form; detail/cetak menampilkan **—** pada tanggal cuti.
     - **Flight Request** dan **Approver Selection** — centang tiket bila perlu; tambahkan approver sampai aturan di layar terpenuhi. Klik **Approval Rules Information** untuk melihat aturan approval untuk pengajuan cuti.
     - **Save & Submit** atau **Cancel** — kirim ke alur persetujuan, atau tinggalkan form tanpa simpan.
 
@@ -371,7 +372,7 @@ Setelah Anda mengirim pengajuan, pantau statusnya dari daftar **My Leave Request
 
 1. Pada baris permohonan yang dimaksud, di kolom **Actions**, klik **View** (ikon mata).
 2. Halaman **Leave Request Detail** menampilkan nomor register (misalnya **26LV-00004**), tanggal pengajuan, **badge status** utama (**Pending**, **Approved**, **Rejected**, dll.), serta blok **Leave Request Information**: **Employee**, **Leave Type**, **Start Date** / **End Date**, **Total Days**, **Back to Work Date**, **Requested At**, **Leave Period**.
-3. Sebagai contoh, jika Anda mengajukan **Cuti Panjang** (**Long Service Leave**, misalnya kode **4.01**), blok **Additional Information** berisi **LSL Breakdown**: **Leave Taken** (hari dipakai sebagai cuti), **Cash Out** (hari yang dicairkan tunai), dan **Total LSL Used**. Kotak informasi kuning dapat menjelaskan bahwa pengajuan mencakup bagian _cash out_. Blok **Additional Information** tergantung jenis cuti yang dipilih.
+3. Sebagai contoh, jika Anda mengajukan **Cuti Panjang** (**Long Service Leave**, misalnya kode **4.01**), blok **Additional Information** berisi **LSL Breakdown**: **Leave Taken** (hari dipakai sebagai cuti), **Cash Out** (hari yang dicairkan tunai), dan **Total LSL Used**. Bila Anda memilih mode **Cash Out Only**, **Start Date** dan **End Date** pada panel utama menampilkan **— (Cash out only, no leave taken)**. Kotak informasi kuning dapat muncul bila ada hari cash out. Tombol **Print** membuka formulir cetak dengan nomor register di bawah judul **FORMULIR PERMOHONAN CUTI**; pada pencairan saja, **Tanggal Mulai** / **Tanggal Selesai** berisi **—**. Blok **Additional Information** tergantung jenis cuti yang dipilih.
 4. Di sisi kanan, kartu **Flight Request** muncul bila Anda mencentang pemesanan tiket pada formulir. Kartu itu memuat nomor referensi tiket, ringkasan segmen (asal–tujuan dan tanggal), serta status permintaan tiket sendiri. Status **Draft** pada kartu tersebut berarti permintaan tiket yang terikat dengan cuti itu **belum disetujui / belum diproses lebih lanjut** dalam alur tiket — mengikuti keputusan persetujuan cuti dan prosedur **Flight Management** (koordinasi dengan HR HO Balikpapan sesuai kebijakan). Gunakan **View** pada kartu jika tersedia untuk detail penerbangan.
 5. Kartu **Selected Approvers** menampilkan nama dan status tiap **approver** (**Pending** sampai ada keputusan). Tombol seperti **Back to List**, **Edit Request**, dan **View Entitlements** muncul sesuai status pengajuan dan hak akses Anda (**Edit Request** biasanya hanya saat pengajuan masih dapat diubah).
 

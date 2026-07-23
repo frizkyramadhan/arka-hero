@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\V1\DepartmentController;
 use App\Http\Controllers\Api\V1\EmployeeApiController;
 use App\Http\Controllers\Api\V1\EmployeeWorkforceApiController;
+use App\Http\Controllers\Api\V1\ItWoZoomCallbackController;
 use App\Http\Controllers\Api\V1\LeaveReportController;
 use App\Http\Controllers\Api\V1\LeaveTypeController;
 use App\Http\Controllers\Api\V1\LetterNumberApiController;
@@ -133,6 +134,16 @@ Route::prefix('letter-subjects')->group(function () {
 Route::get('letter-subjects/available/{documentType}/{categoryId}', [LetterSubjectController::class, 'getAvailableSubjectsForDocument']);
 Route::get('letter-numbers/available/{categoryCode}', [LetterNumberController::class, 'getAvailableNumbers'])
     ->name('api.letter-numbers.available');
+
+/*
+|--------------------------------------------------------------------------
+| Integrations — IT WO Zoom callback
+|--------------------------------------------------------------------------
+*/
+Route::prefix('v1/integrations/it-wo')->group(function () {
+    Route::post('zoom-callback', ItWoZoomCallbackController::class)
+        ->name('api.v1.integrations.it-wo.zoom-callback');
+});
 
 /*
 |--------------------------------------------------------------------------

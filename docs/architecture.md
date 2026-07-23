@@ -385,7 +385,7 @@ graph TD
 
 ### 8. Master Data Management
 
-**Controllers**: `BankController`, `ReligionController`, `ProjectController`, `DepartmentController`, `PositionController`, `GradeController`, `LevelController`, `TransportationController`, `AccommodationController`
+**Controllers**: `BankController`, `ReligionController`, `ProjectController`, `DepartmentController`, `PositionController`, `GradeController`, `LevelController`, `TransportationController`, `AccommodationController`, `MeetingRoomController`
 
 **Features**:
 
@@ -398,11 +398,31 @@ graph TD
 - Levels - Employee level classifications with roster patterns
 - Transportations - Travel transportation types
 - Accommodations - Travel accommodation types
+- Meeting Rooms - Rooms scoped by `project_id` / `project_code` (RCR master)
 
 **Key Routes**:
 
-- Web: `/banks/*`, `/religions/*`, `/projects/*`, `/departments/*`, `/positions/*`, `/grades/*`, `/levels/*`, `/transportations/*`, `/accommodations/*`
+- Web: `/banks/*`, `/religions/*`, `/projects/*`, `/departments/*`, `/positions/*`, `/grades/*`, `/levels/*`, `/transportations/*`, `/accommodations/*`, `/meeting-rooms/*`
 - API: `/api/v1/master/*` - Master data API endpoints
+
+### 8b. Room & Consumption Request (RCR)
+
+**Controllers**: `MeetingRoomController`, `RoomConsumptionRequestController`  
+**Models**: `MeetingRoom`, `RoomConsumptionRequest`, `RoomConsumptionItem`  
+**Design**: `docs/ROOM_CONSUMPTION_REQUEST_DESIGN.md`
+
+**Features**:
+
+- Master meeting rooms by project location
+- Room & Consumption Request with letter category RCR and Reg. No `seq/HCS-{projectCode}/RCR/{roman}/{year}`
+- Fixed consumption lines (coffee break morning/afternoon, lunch, dinner)
+- Manual approval (`manual_approvers` → `approval_plans`)
+- Admin list + My Features self-service
+- Print form; Zoom/IT WO Phase 2 via `http://192.168.32.37/arka-rest-server` (`POST/GET /api/v1/zoom-meeting-requests`, cat 8 / subcat 35, details in `wo.issue`)
+
+**Key Routes**:
+
+- Web: `/meeting-rooms/*`, `/room-consumption-requests/*`, `/room-consumption-requests/my-requests*`
 
 ### 9. Employee Bonds & Violations
 

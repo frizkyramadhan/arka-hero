@@ -51,9 +51,9 @@
 
                     {{-- My Features Dropdown --}}
                     <li
-                        class="nav-item {{ Request::is('leave/my-*') || Request::is('officialtravels/my-*') || Request::is('recruitment/my-*') || Request::is('profile/my-profile*') || Request::is('flight/my-*') || Request::is('overtime/my-requests*') ? 'menu-open' : '' }}">
+                        class="nav-item {{ Request::is('leave/my-*') || Request::is('officialtravels/my-*') || Request::is('recruitment/my-*') || Request::is('profile/my-profile*') || Request::is('flight/my-*') || Request::is('overtime/my-requests*') || Request::is('room-consumption-requests/my-requests*') ? 'menu-open' : '' }}">
                         <a href="#"
-                            class="nav-link {{ Request::is('leave/my-*') || Request::is('officialtravels/my-*') || Request::is('recruitment/my-*') || Request::is('profile/my-profile*') || Request::is('flight/my-*') || Request::is('overtime/my-requests*') ? 'active' : '' }}">
+                            class="nav-link {{ Request::is('leave/my-*') || Request::is('officialtravels/my-*') || Request::is('recruitment/my-*') || Request::is('profile/my-profile*') || Request::is('flight/my-*') || Request::is('overtime/my-requests*') || Request::is('room-consumption-requests/my-requests*') ? 'active' : '' }}">
                             <i class="nav-icon fas fa-folder-open"></i>
                             <p>
                                 My Features
@@ -115,6 +115,17 @@
                                         class="nav-link {{ Request::is('overtime/my-requests*') ? 'active' : '' }}">
                                         <i class="far fa-circle nav-icon"></i>
                                         <p>My Overtime Request</p>
+                                    </a>
+                                </li>
+                            @endcanany
+
+                            {{-- My Room & Consumption Request --}}
+                            @canany(['personal.room-consumption.view-own', 'personal.room-consumption.create-own'])
+                                <li class="nav-item">
+                                    <a href="{{ route('room-consumption-requests.my-requests') }}"
+                                        class="nav-link {{ Request::is('room-consumption-requests/my-requests*') ? 'active' : '' }}">
+                                        <i class="far fa-circle nav-icon"></i>
+                                        <p>My Room & Consumption</p>
                                     </a>
                                 </li>
                             @endcanany
@@ -521,9 +532,10 @@
                     </li>
                 @endcanany
 
-                {{-- GAMMA SECTION - Flight Management --}}
-                @canany(['flight-requests.show', 'flight-issuances.view', 'flight-issuances.create'])
+                {{-- GAMMA SECTION - Flight + Room & Consumption --}}
+                @canany(['flight-requests.show', 'flight-issuances.view', 'flight-issuances.create', 'room-consumption-requests.show'])
                     <li class="nav-header">GAMMA SECTION</li>
+                    @canany(['flight-requests.show', 'flight-issuances.view', 'flight-issuances.create'])
                     <li
                         class="nav-item {{ Request::is('flight/requests*') || Request::is('flight/issuances*') || Request::is('flight/reports*') || Request::is('dashboard/flight-management') ? 'menu-open' : '' }}">
                         <a href="#"
@@ -569,13 +581,56 @@
                             @endcan
                         </ul>
                     </li>
+                    @endcanany
+
+                    @can('room-consumption-requests.show')
+                        @php
+                            $isRcrMy = Request::is('room-consumption-requests/my-requests*');
+                            $isRcrReports = Request::is('room-consumption-requests/reports*');
+                            $isRcrDashboard = Request::is('dashboard/room-consumption');
+                            $isRcrAdmin =
+                                Request::is('room-consumption-requests*') && !$isRcrMy && !$isRcrReports;
+                            $isRcrMenuOpen = $isRcrAdmin || $isRcrReports || $isRcrDashboard;
+                        @endphp
+                        <li class="nav-item {{ $isRcrMenuOpen ? 'menu-open' : '' }}">
+                            <a href="#" class="nav-link {{ $isRcrMenuOpen ? 'active' : '' }}">
+                                <i class="nav-icon fas fa-door-open"></i>
+                                <p>
+                                    Room & Consumption
+                                    <i class="fas fa-angle-left right"></i>
+                                </p>
+                            </a>
+                            <ul class="nav nav-treeview">
+                                <li class="nav-item">
+                                    <a href="{{ route('dashboard.room-consumption') }}"
+                                        class="nav-link {{ $isRcrDashboard ? 'active' : '' }}">
+                                        <i class="far fa-circle nav-icon"></i>
+                                        <p>Dashboard</p>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="{{ route('room-consumption-requests.index') }}"
+                                        class="nav-link {{ $isRcrAdmin && !Request::is('room-consumption-requests/create') ? 'active' : '' }}">
+                                        <i class="far fa-circle nav-icon"></i>
+                                        <p>Requests</p>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="{{ route('room-consumption-requests.reports.index') }}"
+                                        class="nav-link {{ $isRcrReports ? 'active' : '' }}">
+                                        <i class="far fa-circle nav-icon"></i>
+                                        <p>Reports</p>
+                                    </a>
+                                </li>
+                            </ul>
+                        </li>
+                    @endcan
                 @endcanany
 
                 {{-- GENERAL SECTION --}}
-                @canany(['letter-numbers.show', 'master-data.show', 'business-partners.show'])
+                @canany(['letter-numbers.show', 'master-data.show', 'business-partners.show', 'meeting-rooms.show'])
                     <li class="nav-header">GENERAL SECTION</li>
                 @endcanany
-
                 {{-- Letter Administration --}}
                 @can('letter-numbers.show')
                     <li
@@ -608,12 +663,12 @@
                 @endcan
 
                 {{-- MASTER DATA --}}
-                @canany(['master-data.show', 'business-partners.show', 'national-holidays.show'])
+                @canany(['master-data.show', 'business-partners.show', 'national-holidays.show', 'meeting-rooms.show'])
                     {{-- Master Data Dropdown --}}
                     <li
-                        class="nav-item {{ Request::is('banks*') || Request::is('religions*') || Request::is('positions*') || Request::is('departments*') || Request::is('projects*') || Request::is('grades*') || Request::is('levels*') || Request::is('transportations*') || Request::is('accommodations*') || Request::is('letter-categories*') || Request::is('leave/types*') || Request::is('leave/national-holidays*') || Request::is('business-partners*') ? 'menu-open' : '' }}">
+                        class="nav-item {{ Request::is('banks*') || Request::is('religions*') || Request::is('positions*') || Request::is('departments*') || Request::is('projects*') || Request::is('grades*') || Request::is('levels*') || Request::is('transportations*') || Request::is('accommodations*') || Request::is('meeting-rooms*') || Request::is('letter-categories*') || Request::is('leave/types*') || Request::is('leave/national-holidays*') || Request::is('business-partners*') ? 'menu-open' : '' }}">
                         <a href="#"
-                            class="nav-link {{ Request::is('banks*') || Request::is('religions*') || Request::is('positions*') || Request::is('departments*') || Request::is('projects*') || Request::is('grades*') || Request::is('levels*') || Request::is('transportations*') || Request::is('accommodations*') || Request::is('letter-categories*') || Request::is('leave/types*') || Request::is('leave/national-holidays*') || Request::is('business-partners*') ? 'active' : '' }}">
+                            class="nav-link {{ Request::is('banks*') || Request::is('religions*') || Request::is('positions*') || Request::is('departments*') || Request::is('projects*') || Request::is('grades*') || Request::is('levels*') || Request::is('transportations*') || Request::is('accommodations*') || Request::is('meeting-rooms*') || Request::is('letter-categories*') || Request::is('leave/types*') || Request::is('leave/national-holidays*') || Request::is('business-partners*') ? 'active' : '' }}">
                             <i class="nav-icon fas fa-database"></i>
                             <p>
                                 Master Data
@@ -695,6 +750,21 @@
                                     <p>Accommodations</p>
                                 </a>
                             </li>
+
+                            {{-- Room & Consumption Data --}}
+                            @can('meeting-rooms.show')
+                                <li class="nav-header"
+                                    style="font-size: 0.75rem; color: #6c757d; padding: 0.5rem 1rem 0.25rem;">
+                                    Room & Consumption Data
+                                </li>
+                                <li class="nav-item">
+                                    <a href="{{ route('meeting-rooms.index') }}"
+                                        class="nav-link {{ Request::is('meeting-rooms*') ? 'active' : '' }}">
+                                        <i class="far fa-circle nav-icon"></i>
+                                        <p>Meeting Rooms</p>
+                                    </a>
+                                </li>
+                            @endcan
 
                             {{-- Letter Management Data Group --}}
                             <li class="nav-header"

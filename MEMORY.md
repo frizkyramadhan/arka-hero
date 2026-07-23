@@ -63,6 +63,26 @@
 
 ---
 
+### [017] Room & Consumption Request (RCR) Module (2026-07-20) ✅ COMPLETE
+
+**Challenge**: Need meeting room booking + consumption form matching paper RCR, with letter numbers, manual approval, and future Zoom/IT WO — without waiting on Office Supplies or custom dual-status approval from GA analysis.
+
+**Solution**: Implemented `meeting_rooms` + `room_consumption_requests` + `room_consumption_items`. Manual approval via `room_consumption_request` document type; Reg. No format mirrors FPTK (`0001/HCS-000H/RCR/I/2026`); letter category RCR created manually; Zoom stub columns + IT WO CI3 contract in design doc for Phase 2.
+
+**Phase 2 (2026-07-20)**: CI3 API on `arka-rest-server` — `POST/GET /api/v1/zoom-meeting-requests` creates `wo` with `id_kategori=8` / `id_subkat=35`, all HERO fields packed into `wo.issue` (no ALTER). Idempotency via `id={uuid}` marker in issue. GET parses Meeting ID from `activity`/`komentar`. HERO: `ItWoZoomClient`, auto-dispatch on RCR approval, callback `POST /api/v1/integrations/it-wo/zoom-callback`. Base URL: `http://192.168.32.37/arka-rest-server`.
+
+**IT WO live test (2026-07-20)**: GET by id works (e.g. 8183). POST create works when `requester_nik` exists in `it_wo.karyawan` and `project_code` exists in `it_wo.project`. Admin NIK `17806` not in IT WO master → API 400. Detail button **Request Zoom via IT WO** posts real JSON via `Http::asJson()`. Sample RCR `a24d3339-…` linked to WO `0008189/WO/ITY/VII/2026` (created with Eko NIK 10917 for smoke test).
+
+**Auto-provision karyawan (2026-07-22)**: ~91% HERO NIKs missing from `it_wo.karyawan`. Rest-server `resolveKaryawan()`: NIK → email (rehire: update nik/nama) → INSERT new with HERO position/department (`resolveJabatanId` creates `departemen`/`jabatan` if missing; fallback `ARKA HERO User`/`ARKA HERO`). Same for acknowledge (first RCR approver). HERO payload adds position/department + acknowledge name/email. **Names use `employees.fullname`** (fallback `users.name`). Acknowledge also resolves by email when HERO NIK missing. Rehire nama update only when NIK actually changes.
+
+**Key Files**: `docs/ROOM_CONSUMPTION_REQUEST_DESIGN.md`, `app/Services/ItWoZoomClient.php`, `arka-rest-server/.../Zoom_meeting_requests.php`
+
+**Key Learning**: Prefer form-aligned fixed consumption enums over premature stock coupling. Reuse FPTK number formatting and overtime/LOT manual approval wiring rather than inventing GA-specific approval statuses. For cross-system identity, match by email for rehire NIK changes and auto-provision org masters by name rather than hard-blocking WO create.
+
+**Files**: `docs/ROOM_CONSUMPTION_REQUEST_DESIGN.md`, `MeetingRoom*`, `RoomConsumptionRequest*`, `RoomConsumptionPermissionSeeder`, `ApprovalPlanController`, `ApprovalRequestController`
+
+---
+
 ### [004] Recruitment System Multi-Stage Refactoring (2025-08-XX) ✅ COMPLETE
 
 **Challenge**: Original single-table approach for recruitment assessments (`recruitment_assessments`, `recruitment_offers`) became unwieldy as requirements grew. Different stages had vastly different data structures. Queries were slow, validation was complex.

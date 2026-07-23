@@ -1,23 +1,31 @@
 **Purpose**: Future features and improvements prioritized by value for ARKA HERO HRMS
-**Last Updated**: 2026-01-14
+**Last Updated**: 2026-07-20
 
 # Feature Backlog - ARKA HERO HRMS
+
+## Recently Started / In Progress
+
+### Room & Consumption Request (RCR) ✅ Phase 1
+
+-   **Description**: Meeting room master + Room & Consumption Request with letter category RCR, manual approval, fixed consumption types, My Features portal. Zoom/IT WO Phase 2 implemented (CI3 API + HERO client).
+-   **Documentation**: `docs/ROOM_CONSUMPTION_REQUEST_DESIGN.md`
+-   **Notes**: Supersedes GA Module 5 approval/consumption model (manual approval + form fixed types, not dual custom status / supplies stock).
 
 ## Next Sprint (High Priority)
 
 ### General Affair (GA) Modules Development 🆕
 
--   **Description**: Complete development of 5 GA modules - Office Supplies, Vehicle Administration, Property Management System (PMS), Ticket Reservations, and Meeting Room Reservations
+-   **Description**: Complete development of remaining GA modules - Office Supplies, Vehicle Administration, Property Management System (PMS), Ticket Reservations (Meeting Room / RCR moved to dedicated design)
 -   **User Value**: Comprehensive GA management, automated workflows for supply requests, vehicle tracking, room bookings, integrated system for all GA operations
 -   **Effort**: Large (12 weeks / 3 months)
 -   **Dependencies**: Core ARKA HERO modules (Employees, Projects, Departments, Approval System)
--   **Documentation**: `docs/GA_MODULES_ANALYSIS.md`
+-   **Documentation**: `docs/GA_MODULES_ANALYSIS.md`, `docs/ROOM_CONSUMPTION_REQUEST_DESIGN.md` (RCR)
 -   **Modules Included**:
     -   Office Supplies Module (8 tables, supply request workflow, stock opname)
     -   Vehicle Administration Module (5 tables, fuel tracking, maintenance, ArkFleet integration)
     -   Property Management System (4 tables, room reservations, check-in/out workflow)
     -   Ticket Reservations Module (2 tables, travel ticket booking system)
-    -   Meeting Room Reservations Module (3 tables, dual approval, supply consumption)
+    -   ~~Meeting Room Reservations~~ → implemented as **Room & Consumption Request (RCR)** (see above)
 -   **Implementation Phases**:
     -   Phase 1-2: Foundation & Core Features (4 weeks)
     -   Phase 3-4: Advanced Features & Additional Modules (4 weeks)

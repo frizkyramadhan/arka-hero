@@ -136,6 +136,14 @@
                                 </a>
                             </li>
                         @endcan
+                        @canany(['personal.room-consumption.view-own', 'personal.room-consumption.create-own'])
+                            <li class="nav-item">
+                                <a class="nav-link" href="#" data-tab="room-consumption" role="tab">
+                                    <i class="fas fa-door-open mr-1"></i> <span style="font-size: 93%;">Room &amp;
+                                        Consumption</span>
+                                </a>
+                            </li>
+                        @endcanany
                         @canany(['personal.recruitment.view-own', 'personal.recruitment.create-own'])
                             <li class="nav-item">
                                 <a class="nav-link" href="#" data-tab="recruitment" role="tab">
@@ -375,6 +383,48 @@
                                     </div>
                                 </div>
                                 <a href="{{ route('overtime.my-requests') }}" class="btn btn-sm btn-dark btn-block mt-3">
+                                    View Details <i class="fas fa-arrow-right ml-1"></i>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                @endcan
+
+                @can('personal.room-consumption.view-own')
+                    <div
+                        class="col-lg-4 col-md-6 mb-3 dashboard-tab-content dashboard-tab-overview dashboard-tab-room-consumption">
+                        <div class="card card-outline card-warning shadow-sm h-100">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h6 class="text-muted text-uppercase mb-1"
+                                            style="font-size: 0.75rem; letter-spacing: 0.5px;">
+                                            Room &amp; Consumption
+                                        </h6>
+                                        <h2 class="mb-0 font-weight-bold">{{ $roomConsumptionStats['total'] }}</h2>
+                                        <small class="text-muted">
+                                            <i class="fas fa-hourglass-half text-info mr-1"></i>
+                                            {{ $roomConsumptionStats['submitted'] }} Submitted
+                                            <span class="mx-1">·</span>
+                                            <i class="fas fa-calendar-check text-success mr-1"></i>
+                                            {{ $roomConsumptionStats['upcoming'] }} Upcoming
+                                        </small>
+                                    </div>
+                                    <div class="icon-circle bg-warning">
+                                        <i class="fas fa-door-open"></i>
+                                    </div>
+                                </div>
+                                <div class="mt-3">
+                                    <div class="progress" style="height: 6px;">
+                                        <div class="progress-bar bg-success" role="progressbar"
+                                            style="width: {{ $roomConsumptionStats['total'] > 0 ? ($roomConsumptionStats['approved'] / $roomConsumptionStats['total']) * 100 : 0 }}%"
+                                            aria-valuenow="{{ $roomConsumptionStats['approved'] }}" aria-valuemin="0"
+                                            aria-valuemax="{{ $roomConsumptionStats['total'] }}">
+                                        </div>
+                                    </div>
+                                </div>
+                                <a href="{{ route('room-consumption-requests.my-requests') }}"
+                                    class="btn btn-sm btn-warning btn-block mt-3">
                                     View Details <i class="fas fa-arrow-right ml-1"></i>
                                 </a>
                             </div>
@@ -1049,6 +1099,84 @@
                         </div>
                     </div>
                 </div>
+
+                @can('personal.room-consumption.view-own')
+                    <div
+                        class="col-12 col-lg-6 mb-3 mb-lg-0 dashboard-tab-content dashboard-tab-overview dashboard-tab-room-consumption">
+                        <div class="card card-outline card-warning shadow-sm h-100">
+                            <div class="card-header border-bottom">
+                                <h3 class="card-title mb-0">
+                                    <i class="fas fa-door-open mr-2"></i>
+                                    Recent Room &amp; Consumption
+                                </h3>
+                                <div class="card-tools">
+                                    <a href="{{ route('room-consumption-requests.my-requests') }}"
+                                        class="btn btn-sm btn-warning">
+                                        <i class="fas fa-list mr-1"></i> View All
+                                    </a>
+                                </div>
+                            </div>
+                            <div class="card-body p-0">
+                                @if ($recentRoomConsumptionRequests->isEmpty())
+                                    <div class="text-center py-5">
+                                        <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                                        <p class="text-muted mb-0">Belum ada permintaan ruangan &amp; konsumsi</p>
+                                    </div>
+                                @else
+                                    <div class="list-group list-group-flush">
+                                        @foreach ($recentRoomConsumptionRequests as $rcr)
+                                            <a href="{{ route('room-consumption-requests.my-requests.show', $rcr) }}"
+                                                class="list-group-item list-group-item-action">
+                                                <div class="d-flex justify-content-between align-items-start">
+                                                    <div class="flex-grow-1">
+                                                        <h6 class="mb-1 font-weight-bold">
+                                                            {{ $rcr->meeting_title ?: ($rcr->request_number ?: '—') }}
+                                                            @if ($rcr->need_zoom)
+                                                                <i class="fas fa-video text-purple ml-1"
+                                                                    title="Butuh Zoom"></i>
+                                                            @endif
+                                                        </h6>
+                                                        <p class="mb-1 text-muted small">
+                                                            <i class="fas fa-door-closed mr-1"></i>
+                                                            {{ $rcr->meetingRoom->room_name ?? '—' }}
+                                                            <span class="mx-1">·</span>
+                                                            <i class="far fa-calendar mr-1"></i>
+                                                            {{ $rcr->meeting_date ? $rcr->meeting_date->format('d M Y') : '—' }}
+                                                            @if ($rcr->start_time)
+                                                                ·
+                                                                {{ \Carbon\Carbon::parse($rcr->start_time)->format('H:i') }}
+                                                            @endif
+                                                        </p>
+                                                        <small class="text-muted">
+                                                            <i class="far fa-clock mr-1"></i>
+                                                            {{ $rcr->created_at->format('d M Y, H:i') }}
+                                                        </small>
+                                                    </div>
+                                                    <div class="ml-3">
+                                                        @php
+                                                            $rcrStatus = $rcr->status;
+                                                            $rcrBadge = match ($rcrStatus) {
+                                                                'draft' => 'badge-secondary',
+                                                                'submitted' => 'badge-info',
+                                                                'approved' => 'badge-success',
+                                                                'rejected' => 'badge-danger',
+                                                                'cancelled' => 'badge-dark',
+                                                                'completed' => 'badge-primary',
+                                                                default => 'badge-secondary',
+                                                            };
+                                                        @endphp
+                                                        <span
+                                                            class="badge badge-lg {{ $rcrBadge }}">{{ strtoupper($rcrStatus) }}</span>
+                                                    </div>
+                                                </div>
+                                            </a>
+                                        @endforeach
+                                    </div>
+                                @endif
+                            </div>
+                        </div>
+                    </div>
+                @endcan
             </div>
         </div>
     </section>

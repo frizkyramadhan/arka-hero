@@ -1,5 +1,5 @@
 **Purpose**: Track current work and immediate priorities for ARKA HERO HRMS
-**Last Updated**: 2026-01-09
+**Last Updated**: 2026-07-22
 
 ## Task Management Guidelines
 
@@ -54,6 +54,10 @@ Include relevant context in brackets to help with future AI-assisted coding:
 
 ## Recently Completed
 
+-   `[done] P2: RCR management dashboard [DashboardController@roomConsumptionManagement, calendar-events API, FullCalendar + bulan/tahun/ruangan filter, statistik zoom/konsumsi/approval] (completed: 2026-07-22)`
+-   `[done] P1: IT WO karyawan auto-provision for RCR Zoom [resolveKaryawan NIK→email rehire→INSERT, resolveJabatanId auto-create jabatan/departemen, acknowledge first approver, HERO position/department payload] (completed: 2026-07-22)`
+-   `[done] P1: IT WO Zoom Phase 2 — CI3 API + HERO client [arka-rest-server Zoom_meeting_requests, cat 8/subcat 35, issue packing, ItWoZoomClient, approval dispatch, zoom-callback] (completed: 2026-07-20)`
+-   `[done] P1: Room & Consumption Request (RCR) Phase 1 [docs/ROOM_CONSUMPTION_REQUEST_DESIGN.md, meeting_rooms, room_consumption_requests, manual approval, My Features, IT WO Zoom stub] (completed: 2026-07-20)`
 -   `[done] P0: Enhanced project documentation automation system [AGENTS.md, docs/* templates] (completed: 2026-01-09)`
 -   `[done] P0: Updated architecture documentation with current system state [docs/architecture.md, 140 migrations, 62 controllers, 62 models] (completed: 2026-01-09)`
 -   `[done] P1: Fixed Days to Approve calculation in Excel export [OfficialtravelController export, calculateDaysToApproveHelper() method, Carbon::diffInDays()] (completed: 2025-12-XX)`

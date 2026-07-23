@@ -95,6 +95,7 @@ class LetterNumber extends Model
             'recruitment_offering', 'recruitment_hiring' => route('recruitment.sessions.candidate', $id),
             'flight_request_issuance' => route('flight-issuances.show', $id),
             'employee_bond' => route('employee-bonds.show', $id),
+            'room_consumption_request' => route('room-consumption-requests.show', $id),
             default => null,
         };
     }
@@ -111,6 +112,7 @@ class LetterNumber extends Model
             'recruitment_hiring' => 'Recruitment Session',
             'flight_request_issuance' => 'Letter of Guarantee',
             'employee_bond' => 'Employee Bond',
+            'room_consumption_request' => 'Room & Consumption Request',
             default => 'Document',
         };
     }
