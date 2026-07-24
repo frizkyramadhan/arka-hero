@@ -279,6 +279,7 @@ Route::group(['middleware' => ['auth']], function () {
             Route::get('/request-monitoring/export', [RoomConsumptionReportController::class, 'exportRequestMonitoring'])->name('request-monitoring.export');
         });
 
+        Route::get('zoom-availability', [RoomConsumptionRequestController::class, 'zoomAvailability'])->name('zoom-availability');
         Route::get('data', [RoomConsumptionRequestController::class, 'data'])->name('data');
         Route::get('create', [RoomConsumptionRequestController::class, 'create'])->name('create');
         Route::post('/', [RoomConsumptionRequestController::class, 'store'])->name('store');

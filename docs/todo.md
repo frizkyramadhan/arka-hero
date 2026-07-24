@@ -1,5 +1,5 @@
 **Purpose**: Track current work and immediate priorities for ARKA HERO HRMS
-**Last Updated**: 2026-07-22
+**Last Updated**: 2026-07-24
 
 ## Task Management Guidelines
 
@@ -54,6 +54,8 @@ Include relevant context in brackets to help with future AI-assisted coding:
 
 ## Recently Completed
 
+-   `[done] P1: Fix approval_plans datetime — all steps showed final close time [acted_at column, close is_open without touching timestamps, decisionAt()] (completed: 2026-07-24)`
+-   `[done] P2: RCR form Zoom Meeting ID Availability [Need Zoom checkbox → panel accounts 131/132/134, GET zoom-meeting-availability via rest-server + ItWoZoomClient] (completed: 2026-07-24)`
 -   `[done] P2: RCR management dashboard [DashboardController@roomConsumptionManagement, calendar-events API, FullCalendar + bulan/tahun/ruangan filter, statistik zoom/konsumsi/approval] (completed: 2026-07-22)`
 -   `[done] P1: IT WO karyawan auto-provision for RCR Zoom [resolveKaryawan NIK→email rehire→INSERT, resolveJabatanId auto-create jabatan/departemen, acknowledge first approver, HERO position/department payload] (completed: 2026-07-22)`
 -   `[done] P1: IT WO Zoom Phase 2 — CI3 API + HERO client [arka-rest-server Zoom_meeting_requests, cat 8/subcat 35, issue packing, ItWoZoomClient, approval dispatch, zoom-callback] (completed: 2026-07-20)`

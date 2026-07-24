@@ -307,11 +307,11 @@
                                 </div>
                             @endif
 
-                            @if ($plan->status != 0 && $plan->updated_at)
+                            @if ($plan->status != 0 && $plan->decisionAt())
                                 <div class="approval-time">
                                     <small class="text-muted">
                                         <i class="fas fa-clock"></i>
-                                        {{ $plan->updated_at->format('d/m/Y H:i') }}
+                                        {{ $plan->decisionAt()->format('d/m/Y H:i') }}
                                     </small>
                                 </div>
                             @endif

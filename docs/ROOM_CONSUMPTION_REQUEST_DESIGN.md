@@ -80,7 +80,9 @@ Seeder: `RoomConsumptionPermissionSeeder` (run manually).
 
 ### Trigger
 
-After request **approved** and `need_zoom = true`: HERO auto-calls rest-server via `ItWoZoomClient::dispatchAfterApproval()` (also manual Request Zoom / Sync Zoom buttons on RCR show).
+1. **Create WO** — After RCR **submitted** (not draft) and `need_zoom = true`: `ItWoZoomClient::dispatchOnSubmit()` (`acknowledge` = first RCR approver). Manual Request Zoom / Sync Zoom remain on RCR show.
+2. **Approve L1** — When **first** RCR approval step is approved (`approval_order` minimum): `ItWoZoomClient::syncApproveL1()` → IT WO `app_status_l1 = Approved`, `date_app_l1 = now()`. Does **not** wait for full RCR approval.
+3. **Cancel WO** — When RCR is **rejected**: `ItWoZoomClient::syncCancelOnReject()` → IT WO `status = Canceled`, `app_status_l1 = Disapproved`, `date_app_l1 = now()`.
 
 ### Config (HERO `.env`)
 
@@ -139,6 +141,8 @@ Auth: `X-API-Key` (alias) **or** legacy `arka-key` + optional `X-Source: arka-he
 |--------|-----|
 | POST | `/api/v1/zoom-meeting-requests` |
 | GET | `/api/v1/zoom-meeting-requests/{it_wo_id}` |
+| GET | `/api/v1/zoom-meeting-availability?date=YYYY-MM-DD` — accounts 131/132/134 (same logic as IT WO widget) |
+| PUT | `/api/v1/zoom-meeting-requests/{it_wo_id}` — sync approval (`action`) |
 | DELETE | `/api/v1/zoom-meeting-requests/{it_wo_id}` (debug reset) |
 
 **POST** create:
@@ -175,19 +179,41 @@ Auth: `X-API-Key` (alias) **or** legacy `arka-key` + optional `X-Source: arka-he
 
 **GET** when done: `zoom_topic`, `zoom_meeting_id`, `zoom_join_url`, `zoom_passcode` (parsed from IT WO activity/komentar), `status` (`open`/`processing`/`done`/`cancelled`)
 
+**GET availability** (`/api/v1/zoom-meeting-availability?date=YYYY-MM-DD`): same logic as IT WO `Zoom_m::get_availability` + `zoom_build_availability` (accounts **131 / 132 / 134** → Available / Booked / Unavailable All Day + schedule). HERO form shows this panel when **Need Zoom Meeting ID** is checked (`GET room-consumption-requests/zoom-availability`).
+
+**PUT** sync HERO approval → IT WO L1 / cancel:
+
+```json
+{ "action": "approve_l1" }
+```
+
+or
+
+```json
+{ "action": "cancel" }
+```
+
+- `approve_l1` → `app_status_l1 = Approved`, `date_app_l1 = now()` (idempotent if already Approved)
+- `cancel` → `status = Canceled`, `app_status_l1 = Disapproved`, `date_app_l1 = now()`
+- Response includes `app_status_l1`, `date_app_l1` in `data`
+
 **Webhook (optional):** IT WO → `POST /api/v1/integrations/it-wo/zoom-callback` on HERO (API key header). HERO primarily uses **poll Sync Zoom**.
 
 ### CI3 files
 
 - `arka-rest-server/application/controllers/api/Zoom_meeting_requests.php`
-- `arka-rest-server/application/models/Zoom_meeting_request_model.php` (`resolveKaryawan`, `resolveJabatanId`)
+- `arka-rest-server/application/controllers/api/Zoom_meeting_availability.php`
+- `arka-rest-server/application/models/Zoom_meeting_request_model.php` (`resolveKaryawan`, `resolveJabatanId`, `getAvailability`)
+- `arka-rest-server/application/helpers/zoom_parser_helper.php` (ported from IT WO)
 - Routes in `application/config/routes.php`
 
 ### HERO files
 
-- `app/Services/ItWoZoomClient.php`
+- `app/Services/ItWoZoomClient.php` (`dispatchOnSubmit`, `syncApproveL1`, `syncCancelOnReject`, `getZoomAvailability`)
 - `app/Http/Controllers/Api/V1/ItWoZoomCallbackController.php`
-- Auto-dispatch in `ApprovalRequestController` on full RCR approval
+- Auto-dispatch on submit: `RoomConsumptionRequestController`
+- First-step L1 + reject cancel: `ApprovalRequestController` / `ApprovalPlanController`
+- Form availability UI: `resources/views/room-consumption-requests/form.blade.php`
 
 ## Out of scope (Phase 1 leftovers)
 

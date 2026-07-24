@@ -562,7 +562,7 @@
                                         4 => 'fr-doc-submitted',
                                         default => 'pending',
                                     };
-                                    $lotPlanTs = $plan->updated_at ?? $plan->created_at;
+                                    $lotPlanTs = $plan->decisionAt() ?? $plan->created_at;
                                     $lotApproverPosition = $plan->approver?->administration?->position?->position_name;
                                 @endphp
                                 <div class="approver-block">
@@ -603,7 +603,7 @@
                                         4 => 'fr-doc-submitted',
                                         default => 'pending',
                                     };
-                                    $lotPlanTs = $plan->updated_at ?? $plan->created_at;
+                                    $lotPlanTs = $plan->decisionAt() ?? $plan->created_at;
                                     $lotApproverPosition = $plan->approver?->administration?->position?->position_name;
                                 @endphp
                                 <div class="approver-block">

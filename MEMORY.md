@@ -1,5 +1,5 @@
 **Purpose**: AI's persistent knowledge base for project context and learnings - ARKA HERO HRMS
-**Last Updated**: 2026-01-14
+**Last Updated**: 2026-07-24
 
 ## Memory Maintenance Guidelines
 
@@ -63,6 +63,18 @@
 
 ---
 
+### [018] Approval Plan Decision Timestamp Overwrite (2026-07-24) ✅ COMPLETE
+
+**Challenge**: FPTK (and other docs) with multiple approvers showed the same datetime on every approval step. Early approvers (e.g. early July) appeared as the final close date (e.g. 24 July).
+
+**Solution**: Root cause was `closeAllApprovalPlans()` / `closeOpenApprovalPlans()` mass-updating `is_open`, which Eloquent also refreshed `updated_at` on every open plan — including already-approved ones. UI used `updated_at` as the decision time. Fix: add `approval_plans.acted_at` (set on status → approved/rejected via model boot), close `is_open` via query builder without touching timestamps, display via `ApprovalPlan::decisionAt()`.
+
+**Key Learning**: Never use `updated_at` as a business event timestamp when other lifecycle updates (close, is_read) touch the same row. Store a dedicated `acted_at`. Historical rows already overwritten cannot be recovered without audit logs; backfill from `updated_at` is best-effort only.
+
+**Files**: `ApprovalPlan`, migration `2026_07_24_170000_add_acted_at_to_approval_plans_table`, `ApprovalRequestController`, `ApprovalPlanController`, approval UI blades, `RecruitmentReportController`
+
+---
+
 ### [017] Room & Consumption Request (RCR) Module (2026-07-20) ✅ COMPLETE
 
 **Challenge**: Need meeting room booking + consumption form matching paper RCR, with letter numbers, manual approval, and future Zoom/IT WO — without waiting on Office Supplies or custom dual-status approval from GA analysis.
@@ -70,6 +82,8 @@
 **Solution**: Implemented `meeting_rooms` + `room_consumption_requests` + `room_consumption_items`. Manual approval via `room_consumption_request` document type; Reg. No format mirrors FPTK (`0001/HCS-000H/RCR/I/2026`); letter category RCR created manually; Zoom stub columns + IT WO CI3 contract in design doc for Phase 2.
 
 **Phase 2 (2026-07-20)**: CI3 API on `arka-rest-server` — `POST/GET /api/v1/zoom-meeting-requests` creates `wo` with `id_kategori=8` / `id_subkat=35`, all HERO fields packed into `wo.issue` (no ALTER). Idempotency via `id={uuid}` marker in issue. GET parses Meeting ID from `activity`/`komentar`. HERO: `ItWoZoomClient`, auto-dispatch on RCR approval, callback `POST /api/v1/integrations/it-wo/zoom-callback`. Base URL: `http://192.168.32.37/arka-rest-server`.
+
+**Zoom availability on RCR form (2026-07-24)**: When **Need Zoom Meeting ID** is checked, form shows **Zoom Meeting ID Availability** (accounts 131/132/134) via `GET /api/v1/zoom-meeting-availability` (same logic as IT WO `Zoom_m` + `zoom_parser_helper`). HERO proxy: `room-consumption-requests/zoom-availability`.
 
 **IT WO live test (2026-07-20)**: GET by id works (e.g. 8183). POST create works when `requester_nik` exists in `it_wo.karyawan` and `project_code` exists in `it_wo.project`. Admin NIK `17806` not in IT WO master → API 400. Detail button **Request Zoom via IT WO** posts real JSON via `Http::asJson()`. Sample RCR `a24d3339-…` linked to WO `0008189/WO/ITY/VII/2026` (created with Eko NIK 10917 for smoke test).
 

@@ -141,7 +141,11 @@ class RoomConsumptionRequest extends Model
 
     public function items(): HasMany
     {
-        return $this->hasMany(RoomConsumptionItem::class, 'request_id');
+        $order = array_keys(self::CONSUMPTION_TYPES);
+        $placeholders = implode(',', array_fill(0, count($order), '?'));
+
+        return $this->hasMany(RoomConsumptionItem::class, 'request_id')
+            ->orderByRaw("FIELD(consumption_type, {$placeholders})", $order);
     }
 
     public function approvalPlans(): HasMany

@@ -938,18 +938,20 @@ class RecruitmentReportController extends Controller
 
         if ($daysToApprove !== null) {
             // Calculate days from approval completion to 6 months target
-            $approvalCompletionDate = $latestApproval->updated_at;
-            $slaDeadline = $approvalCompletionDate->addDays($slaTarget);
-            $currentDate = now();
+            $approvalCompletionDate = $latestApproval->decisionAt();
+            if ($approvalCompletionDate) {
+                $slaDeadline = $approvalCompletionDate->copy()->addDays($slaTarget);
+                $currentDate = now();
 
-            if ($currentDate <= $slaDeadline) {
-                $slaStatus = 'Active';
-                $slaClass = 'badge-success';
-                $slaDaysRemaining = $currentDate->diffInDays($slaDeadline);
-            } else {
-                $slaStatus = 'Overdue';
-                $slaClass = 'badge-danger';
-                $slaDaysRemaining = $currentDate->diffInDays($slaDeadline);
+                if ($currentDate <= $slaDeadline) {
+                    $slaStatus = 'Active';
+                    $slaClass = 'badge-success';
+                    $slaDaysRemaining = $currentDate->diffInDays($slaDeadline);
+                } else {
+                    $slaStatus = 'Overdue';
+                    $slaClass = 'badge-danger';
+                    $slaDaysRemaining = $currentDate->diffInDays($slaDeadline);
+                }
             }
         } elseif ($recruitmentRequest->status === 'submitted') {
             $slaStatus = 'Pending Approval';
@@ -1015,10 +1017,10 @@ class RecruitmentReportController extends Controller
                 if ($approvedPlans->count() > 0) {
                     // Get the latest approval by approval_order (step) instead of updated_at
                     $latestApproval = $approvedPlans->sortByDesc('approval_order')->first();
-                    $approvedAt = $latestApproval->updated_at ? $latestApproval->updated_at->format('d/m/Y H:i') : '-';
+                    $approvedAt = $latestApproval->decisionAt() ? $latestApproval->decisionAt()->format('d/m/Y H:i') : '-';
 
                     // Calculate days to approve: from request creation to the LAST approval step completion
-                    $daysToApprove = $latestApproval->updated_at ? $recruitmentRequest->created_at->diffInDays($latestApproval->updated_at) : null;
+                    $daysToApprove = $latestApproval->decisionAt() ? $recruitmentRequest->created_at->diffInDays($latestApproval->decisionAt()) : null;
 
                     $latestApprovalName = $latestApproval->approver ? $latestApproval->approver->name : '-';
                     $approvalRemarks = $latestApproval->remarks ?: '-';
@@ -1033,18 +1035,20 @@ class RecruitmentReportController extends Controller
 
             if ($daysToApprove !== null) {
                 // Calculate days from approval completion to 6 months target
-                $approvalCompletionDate = $latestApproval->updated_at;
-                $slaDeadline = $approvalCompletionDate->addDays($slaTarget);
-                $currentDate = now();
+                $approvalCompletionDate = $latestApproval->decisionAt();
+                if ($approvalCompletionDate) {
+                    $slaDeadline = $approvalCompletionDate->copy()->addDays($slaTarget);
+                    $currentDate = now();
 
-                if ($currentDate <= $slaDeadline) {
-                    $slaStatus = 'Active';
-                    $slaClass = 'badge-success';
-                    $slaDaysRemaining = $currentDate->diffInDays($slaDeadline);
-                } else {
-                    $slaStatus = 'Overdue';
-                    $slaClass = 'badge-danger';
-                    $slaDaysRemaining = $currentDate->diffInDays($slaDeadline);
+                    if ($currentDate <= $slaDeadline) {
+                        $slaStatus = 'Active';
+                        $slaClass = 'badge-success';
+                        $slaDaysRemaining = $currentDate->diffInDays($slaDeadline);
+                    } else {
+                        $slaStatus = 'Overdue';
+                        $slaClass = 'badge-danger';
+                        $slaDaysRemaining = $currentDate->diffInDays($slaDeadline);
+                    }
                 }
             } elseif ($recruitmentRequest->status === 'submitted') {
                 $slaStatus = 'Pending Approval';
@@ -1367,20 +1371,20 @@ class RecruitmentReportController extends Controller
             if ($session->fptk && $session->fptk->approval_plans && $session->fptk->approval_plans->count() > 0) {
                 $approvedPlans = $session->fptk->approval_plans->where('status', 1);
                 if ($approvedPlans->count() > 0) {
-                    $latestApproval = $approvedPlans->sortByDesc('updated_at')->first();
-                    if ($latestApproval->updated_at) {
-                        $approvalDays = $latestApproval->updated_at->diffInDays($session->fptk->created_at);
+                    $latestApproval = $approvedPlans->sortByDesc(fn ($plan) => $plan->decisionAt())->first();
+                    if ($latestApproval->decisionAt()) {
+                        $approvalDays = $latestApproval->decisionAt()->diffInDays($session->fptk->created_at);
                     }
                 }
             }
 
             // Recruitment days: Approval completion to current status
             $recruitmentDays = 0;
-            if ($latestApproval && $latestApproval->updated_at) {
+            if ($latestApproval && $latestApproval->decisionAt()) {
                 if ($hiringDate) {
-                    $recruitmentDays = $hiringDate->diffInDays($latestApproval->updated_at);
+                    $recruitmentDays = $hiringDate->diffInDays($latestApproval->decisionAt());
                 } else {
-                    $recruitmentDays = now()->diffInDays($latestApproval->updated_at);
+                    $recruitmentDays = now()->diffInDays($latestApproval->decisionAt());
                 }
             }
 
@@ -1442,20 +1446,20 @@ class RecruitmentReportController extends Controller
             if ($fptk->approval_plans && $fptk->approval_plans->count() > 0) {
                 $approvedPlans = $fptk->approval_plans->where('status', 1);
                 if ($approvedPlans->count() > 0) {
-                    $latestApproval = $approvedPlans->sortByDesc('updated_at')->first();
-                    if ($latestApproval->updated_at) {
-                        $approvalDays = $latestApproval->updated_at->diffInDays($fptk->created_at);
+                    $latestApproval = $approvedPlans->sortByDesc(fn ($plan) => $plan->decisionAt())->first();
+                    if ($latestApproval->decisionAt()) {
+                        $approvalDays = $latestApproval->decisionAt()->diffInDays($fptk->created_at);
                     }
                 }
             }
 
             // Recruitment days: Approval completion to current status
             $recruitmentDays = 0;
-            if ($latestApproval && $latestApproval->updated_at) {
+            if ($latestApproval && $latestApproval->decisionAt()) {
                 if ($firstHiringDate) {
-                    $recruitmentDays = $firstHiringDate->diffInDays($latestApproval->updated_at);
+                    $recruitmentDays = $firstHiringDate->diffInDays($latestApproval->decisionAt());
                 } else {
-                    $recruitmentDays = now()->diffInDays($latestApproval->updated_at);
+                    $recruitmentDays = now()->diffInDays($latestApproval->decisionAt());
                 }
             }
 
@@ -1627,17 +1631,17 @@ class RecruitmentReportController extends Controller
             if ($session->fptk && $session->fptk->approval_plans && $session->fptk->approval_plans->count() > 0) {
                 $approvedPlans = $session->fptk->approval_plans->where('status', 1);
                 if ($approvedPlans->count() > 0) {
-                    $latestApproval = $approvedPlans->sortByDesc('updated_at')->first();
-                    if ($latestApproval->updated_at) {
-                        $approvalDays = $latestApproval->updated_at->diffInDays($session->fptk->created_at);
+                    $latestApproval = $approvedPlans->sortByDesc(fn ($plan) => $plan->decisionAt())->first();
+                    if ($latestApproval->decisionAt()) {
+                        $approvalDays = $latestApproval->decisionAt()->diffInDays($session->fptk->created_at);
                     }
                 }
             }
 
             // Calculate recruitment days (from approval to hiring)
             $recruitmentDays = 0;
-            if ($latestApproval && $latestApproval->updated_at) {
-                $recruitmentDays = $session->hiring->created_at->diffInDays($latestApproval->updated_at);
+            if ($latestApproval && $latestApproval->decisionAt()) {
+                $recruitmentDays = $session->hiring->created_at->diffInDays($latestApproval->decisionAt());
             }
 
             // Get employment type and expected stages
@@ -2395,7 +2399,7 @@ class RecruitmentReportController extends Controller
                         ->where('approval_plans.document_type', '=', 'recruitment_request')
                         ->where('approval_plans.status', '=', 1);
                 });
-                $query->orderBy('approval_plans.updated_at', $orderDir);
+                $query->orderBy('approval_plans.acted_at', $orderDir);
             } elseif ($column === 'request_number') {
                 $query->orderBy('request_number', $orderDir);
             } else {
@@ -2426,10 +2430,10 @@ class RecruitmentReportController extends Controller
                 if ($approvedPlans->count() > 0) {
                     // Get the latest approval by approval_order (step) instead of updated_at
                     $latestApproval = $approvedPlans->sortByDesc('approval_order')->first();
-                    $approvedAt = $latestApproval->updated_at ? $latestApproval->updated_at->format('d/m/Y H:i') : '-';
+                    $approvedAt = $latestApproval->decisionAt() ? $latestApproval->decisionAt()->format('d/m/Y H:i') : '-';
 
                     // Calculate days to approve: from request creation to the LAST approval step completion
-                    $daysToApprove = $latestApproval->updated_at ? $recruitmentRequest->created_at->diffInDays($latestApproval->updated_at) : null;
+                    $daysToApprove = $latestApproval->decisionAt() ? $recruitmentRequest->created_at->diffInDays($latestApproval->decisionAt()) : null;
 
                     $latestApprovalName = $latestApproval->approver ? $latestApproval->approver->name : '-';
                     $approvalRemarks = $latestApproval->remarks ?: '-';
@@ -2445,18 +2449,20 @@ class RecruitmentReportController extends Controller
 
             if ($daysToApprove !== null) {
                 // Calculate days from approval completion to SLA target
-                $approvalCompletionDate = $latestApproval->updated_at;
-                $slaDeadline = $approvalCompletionDate->addDays($slaTarget);
-                $currentDate = now();
+                $approvalCompletionDate = $latestApproval->decisionAt();
+                if ($approvalCompletionDate) {
+                    $slaDeadline = $approvalCompletionDate->copy()->addDays($slaTarget);
+                    $currentDate = now();
 
-                if ($currentDate <= $slaDeadline) {
-                    $slaStatus = 'Active';
-                    $slaClass = 'badge-success';
-                    $slaDaysRemaining = $currentDate->diffInDays($slaDeadline);
-                } else {
-                    $slaStatus = 'Overdue';
-                    $slaClass = 'badge-danger';
-                    $slaDaysRemaining = -$slaDeadline->diffInDays($currentDate); // Negative value for overdue
+                    if ($currentDate <= $slaDeadline) {
+                        $slaStatus = 'Active';
+                        $slaClass = 'badge-success';
+                        $slaDaysRemaining = $currentDate->diffInDays($slaDeadline);
+                    } else {
+                        $slaStatus = 'Overdue';
+                        $slaClass = 'badge-danger';
+                        $slaDaysRemaining = -$slaDeadline->diffInDays($currentDate); // Negative value for overdue
+                    }
                 }
             } elseif ($recruitmentRequest->status === 'submitted') {
                 $slaStatus = 'Pending Approval';
@@ -2661,20 +2667,20 @@ class RecruitmentReportController extends Controller
             if ($session->fptk && $session->fptk->approval_plans && $session->fptk->approval_plans->count() > 0) {
                 $approvedPlans = $session->fptk->approval_plans->where('status', 1);
                 if ($approvedPlans->count() > 0) {
-                    $latestApproval = $approvedPlans->sortByDesc('updated_at')->first();
-                    if ($latestApproval->updated_at) {
-                        $approvalDays = $latestApproval->updated_at->diffInDays($session->fptk->created_at);
+                    $latestApproval = $approvedPlans->sortByDesc(fn ($plan) => $plan->decisionAt())->first();
+                    if ($latestApproval->decisionAt()) {
+                        $approvalDays = $latestApproval->decisionAt()->diffInDays($session->fptk->created_at);
                     }
                 }
             }
 
             // Recruitment days: Approval completion to current status
             $recruitmentDays = 0;
-            if ($latestApproval && $latestApproval->updated_at) {
+            if ($latestApproval && $latestApproval->decisionAt()) {
                 if ($hiringDate) {
-                    $recruitmentDays = $hiringDate->diffInDays($latestApproval->updated_at);
+                    $recruitmentDays = $hiringDate->diffInDays($latestApproval->decisionAt());
                 } else {
-                    $recruitmentDays = now()->diffInDays($latestApproval->updated_at);
+                    $recruitmentDays = now()->diffInDays($latestApproval->decisionAt());
                 }
             }
 
@@ -2849,20 +2855,20 @@ class RecruitmentReportController extends Controller
             if ($fptk->approval_plans && $fptk->approval_plans->count() > 0) {
                 $approvedPlans = $fptk->approval_plans->where('status', 1);
                 if ($approvedPlans->count() > 0) {
-                    $latestApproval = $approvedPlans->sortByDesc('updated_at')->first();
-                    if ($latestApproval->updated_at) {
-                        $approvalDays = $latestApproval->updated_at->diffInDays($fptk->created_at);
+                    $latestApproval = $approvedPlans->sortByDesc(fn ($plan) => $plan->decisionAt())->first();
+                    if ($latestApproval->decisionAt()) {
+                        $approvalDays = $latestApproval->decisionAt()->diffInDays($fptk->created_at);
                     }
                 }
             }
 
             // Recruitment days: Approval completion to current status
             $recruitmentDays = 0;
-            if ($latestApproval && $latestApproval->updated_at) {
+            if ($latestApproval && $latestApproval->decisionAt()) {
                 if ($firstHiringDate) {
-                    $recruitmentDays = $firstHiringDate->diffInDays($latestApproval->updated_at);
+                    $recruitmentDays = $firstHiringDate->diffInDays($latestApproval->decisionAt());
                 } else {
-                    $recruitmentDays = now()->diffInDays($latestApproval->updated_at);
+                    $recruitmentDays = now()->diffInDays($latestApproval->decisionAt());
                 }
             }
 

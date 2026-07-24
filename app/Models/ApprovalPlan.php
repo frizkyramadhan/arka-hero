@@ -19,14 +19,43 @@ class ApprovalPlan extends Model
         'remarks',
         'is_open',
         'is_read',
-        'approval_order'
+        'approval_order',
+        'acted_at',
     ];
 
     protected $casts = [
         'is_open' => 'boolean',
         'is_read' => 'boolean',
-        'approval_order' => 'integer'
+        'approval_order' => 'integer',
+        'acted_at' => 'datetime',
     ];
+
+    protected static function booted()
+    {
+        static::creating(function (ApprovalPlan $plan) {
+            if (in_array((int) $plan->status, [1, 2], true) && empty($plan->acted_at)) {
+                $plan->acted_at = now();
+            }
+        });
+
+        static::updating(function (ApprovalPlan $plan) {
+            if ($plan->isDirty('status') && in_array((int) $plan->status, [1, 2], true)) {
+                $plan->acted_at = now();
+            }
+        });
+    }
+
+    /**
+     * When this approver approved/rejected (not when the plan row was last touched).
+     */
+    public function decisionAt(): ?\Illuminate\Support\Carbon
+    {
+        if ((int) $this->status === 0) {
+            return null;
+        }
+
+        return $this->acted_at ?? $this->updated_at;
+    }
 
     public function approver()
     {

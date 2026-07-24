@@ -217,6 +217,7 @@ class OfficialtravelResource extends JsonResource
                         'remarks' => $plan->remarks,
                         'is_open' => $plan->is_open,
                         'is_read' => $plan->is_read,
+                        'acted_at' => $plan->acted_at?->format('Y-m-d H:i:s'),
                         'created_at' => $plan->created_at,
                         'updated_at' => $plan->updated_at,
                     ];

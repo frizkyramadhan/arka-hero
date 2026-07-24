@@ -15,11 +15,15 @@ class ItWoZoomClient
     }
 
     /**
-     * After RCR is fully approved and need_zoom=true: create IT WO (idempotent).
+     * After RCR is submitted (not draft) and need_zoom=true: create IT WO (idempotent).
      */
-    public function dispatchAfterApproval(RoomConsumptionRequest $doc): void
+    public function dispatchOnSubmit(RoomConsumptionRequest $doc): void
     {
         if (! $doc->need_zoom) {
+            return;
+        }
+
+        if ($doc->status === RoomConsumptionRequest::STATUS_DRAFT) {
             return;
         }
 
@@ -31,7 +35,7 @@ class ItWoZoomClient
 
         if (! ($result['success'] ?? false)) {
             $doc->update(['zoom_sync_status' => 'failed']);
-            Log::warning('IT WO Zoom create failed after RCR approval', [
+            Log::warning('IT WO Zoom create failed after RCR submit', [
                 'rcr_id' => $doc->id,
                 'message' => $result['message'] ?? 'unknown',
             ]);
@@ -45,6 +49,130 @@ class ItWoZoomClient
             'it_wo_number' => $data['it_wo_number'] ?? null,
             'zoom_sync_status' => $this->mapApiStatus($data['status'] ?? 'open'),
         ]);
+    }
+
+    /** @deprecated Use dispatchOnSubmit() */
+    public function dispatchAfterApproval(RoomConsumptionRequest $doc): void
+    {
+        $this->dispatchOnSubmit($doc);
+    }
+
+    /**
+     * First RCR approval step → IT WO app_status_l1 = Approved.
+     */
+    public function syncApproveL1(RoomConsumptionRequest $doc): void
+    {
+        if (! $doc->need_zoom || empty($doc->it_wo_id)) {
+            return;
+        }
+
+        if ($this->isTrialMode() || Str::startsWith((string) $doc->it_wo_id, 'trial-')) {
+            Log::info('IT WO Zoom approve_l1 skipped (trial mode)', [
+                'rcr_id' => $doc->id,
+                'it_wo_id' => $doc->it_wo_id,
+            ]);
+
+            return;
+        }
+
+        $result = $this->putZoomMeetingAction((string) $doc->it_wo_id, 'approve_l1', $doc->id);
+        if (! ($result['success'] ?? false)) {
+            Log::warning('IT WO Zoom approve_l1 failed after first RCR approval', [
+                'rcr_id' => $doc->id,
+                'it_wo_id' => $doc->it_wo_id,
+                'message' => $result['message'] ?? 'unknown',
+            ]);
+        }
+    }
+
+    /**
+     * RCR rejected → IT WO status = Canceled + L1 Disapproved.
+     */
+    public function syncCancelOnReject(RoomConsumptionRequest $doc): void
+    {
+        if (! $doc->need_zoom || empty($doc->it_wo_id)) {
+            return;
+        }
+
+        if ($this->isTrialMode() || Str::startsWith((string) $doc->it_wo_id, 'trial-')) {
+            $doc->update(['zoom_sync_status' => 'cancelled']);
+            Log::info('IT WO Zoom cancel skipped (trial mode); local status set cancelled', [
+                'rcr_id' => $doc->id,
+                'it_wo_id' => $doc->it_wo_id,
+            ]);
+
+            return;
+        }
+
+        $result = $this->putZoomMeetingAction((string) $doc->it_wo_id, 'cancel', $doc->id);
+        if (! ($result['success'] ?? false)) {
+            Log::warning('IT WO Zoom cancel failed after RCR reject', [
+                'rcr_id' => $doc->id,
+                'it_wo_id' => $doc->it_wo_id,
+                'message' => $result['message'] ?? 'unknown',
+            ]);
+
+            return;
+        }
+
+        $doc->update(['zoom_sync_status' => 'cancelled']);
+    }
+
+    /**
+     * PUT /api/v1/zoom-meeting-requests/{id} with action approve_l1|cancel.
+     *
+     * @return array{success: bool, data?: array<string, mixed>, message?: string}
+     */
+    private function putZoomMeetingAction(string $itWoId, string $action, string $rcrId): array
+    {
+        if (! ctype_digit($itWoId)) {
+            return ['success' => false, 'message' => 'Invalid IT WO id format.'];
+        }
+
+        $url = rtrim((string) config('it_wo.base_url'), '/')
+            .'/api/v1/zoom-meeting-requests/'.urlencode($itWoId);
+
+        try {
+            $response = Http::timeout(30)
+                ->withHeaders($this->headers())
+                ->asJson()
+                ->put($url, ['action' => $action]);
+
+            $body = $response->json();
+            if (! is_array($body)) {
+                $body = [];
+            }
+
+            Log::info('IT WO Zoom PUT '.$action.' response', [
+                'rcr_id' => $rcrId,
+                'it_wo_id' => $itWoId,
+                'http' => $response->status(),
+                'body' => $body,
+            ]);
+
+            if ($response->successful() && ($body['success'] ?? false)) {
+                return [
+                    'success' => true,
+                    'data' => $body['data'] ?? $body,
+                ];
+            }
+
+            return [
+                'success' => false,
+                'message' => $this->extractErrorMessage($body, $response->status()),
+            ];
+        } catch (\Throwable $e) {
+            Log::error('IT WO Zoom PUT '.$action.' exception', [
+                'rcr_id' => $rcrId,
+                'it_wo_id' => $itWoId,
+                'error' => $e->getMessage(),
+            ]);
+
+            return [
+                'success' => false,
+                'message' => 'IT WO connection failed: '.$e->getMessage(),
+            ];
+        }
     }
 
     /**
@@ -158,8 +286,63 @@ class ItWoZoomClient
     }
 
     /**
-     * GET Zoom WO status / parsed Meeting ID from rest-server.
+     * GET Zoom Meeting ID availability for accounts 131/132/134 on a date.
+     * Same data as IT WO Zoom availability widget.
      *
+     * @return array{success: bool, data?: array<string, mixed>, message?: string, trial?: bool}
+     */
+    public function getZoomAvailability(string $date): array
+    {
+        $date = substr($date, 0, 10);
+        if (! preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
+            return ['success' => false, 'message' => 'Invalid date format. Use YYYY-MM-DD.'];
+        }
+
+        if ($this->isTrialMode()) {
+            return [
+                'success' => true,
+                'trial' => true,
+                'data' => [
+                    'date' => $date,
+                    'accounts' => $this->trialAvailabilityAccounts(),
+                ],
+            ];
+        }
+
+        $base = rtrim((string) config('it_wo.base_url'), '/');
+
+        try {
+            $response = Http::withHeaders($this->headers())
+                ->timeout(30)
+                ->get($base.'/api/v1/zoom-meeting-availability', ['date' => $date]);
+
+            $body = $response->json() ?? [];
+
+            if ($response->successful() && ($body['success'] ?? false)) {
+                return [
+                    'success' => true,
+                    'data' => $body['data'] ?? [],
+                ];
+            }
+
+            return [
+                'success' => false,
+                'message' => $this->extractErrorMessage($body, $response->status()),
+            ];
+        } catch (\Throwable $e) {
+            Log::error('IT WO Zoom availability exception', [
+                'date' => $date,
+                'error' => $e->getMessage(),
+            ]);
+
+            return [
+                'success' => false,
+                'message' => 'IT WO connection failed: '.$e->getMessage(),
+            ];
+        }
+    }
+
+    /**
      * @return array{success: bool, data?: array<string, mixed>, message?: string, trial?: bool}
      */
     public function syncZoomMeetingRequest(RoomConsumptionRequest $doc): array
@@ -478,5 +661,43 @@ class ItWoZoomClient
                 'it_wo_number' => $doc->it_wo_number,
             ],
         ];
+    }
+
+    /**
+     * Trial-mode catalog for availability UI when IT_WO_BASE_URL is empty.
+     *
+     * @return array<string, array<string, mixed>>
+     */
+    private function trialAvailabilityAccounts(): array
+    {
+        $catalog = [
+            '131' => [
+                'ARKANANTA131 INTERVIEW ROOM',
+                'ARKNANTA 131 Center Room Meeting',
+                'ARKNANTA Asesmen Room 131',
+            ],
+            '132' => [
+                'ARKA General Meeting Room',
+                'ARKANANTA INTERVIEW ROOM 132',
+                'Assessment Room 132',
+            ],
+            '134' => [
+                'ARKANANTA INTERVIEW ROOM 134',
+                'General Meeting Room 134',
+            ],
+        ];
+
+        $accounts = [];
+        foreach ($catalog as $code => $names) {
+            $accounts[$code] = [
+                'account' => $code,
+                'room_names' => $names,
+                'status' => 'available',
+                'slots' => [],
+                'bookings' => [],
+            ];
+        }
+
+        return $accounts;
     }
 }
