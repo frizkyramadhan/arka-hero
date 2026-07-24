@@ -410,7 +410,7 @@
                                             4 => 'fr-doc-submitted',
                                             default => 'pending',
                                         };
-                                        $planTs = $plan->updated_at ?? $plan->created_at;
+                                        $planTs = $plan->decisionAt() ?? $plan->created_at;
                                         $position = $plan->approver?->administration?->position?->position_name;
                                     @endphp
                                     <div class="signature-approval-status-row">

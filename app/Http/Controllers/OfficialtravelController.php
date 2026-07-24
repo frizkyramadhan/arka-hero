@@ -1705,13 +1705,13 @@ class OfficialtravelController extends Controller
                         $approvedPlans = $officialtravel->approval_plans->where('status', 1);
                         if ($approvedPlans->count() > 0) {
                             $latestApproval = $approvedPlans->sortByDesc(function ($plan) {
-                                return $plan->updated_at ?? $plan->created_at;
+                                return $plan->decisionAt() ?? $plan->created_at;
                             })->first();
                         }
                     }
                     $approveBy = ($latestApproval && $latestApproval->approver) ? $latestApproval->approver->name : '-';
-                    $approveDate = $latestApproval && ($latestApproval->updated_at || $latestApproval->created_at)
-                        ? ($latestApproval->updated_at ?? $latestApproval->created_at)->format('d/m/Y H:i')
+                    $approveDate = $latestApproval && $latestApproval->decisionAt()
+                        ? $latestApproval->decisionAt()->format('d/m/Y H:i')
                         : '-';
                     $approveRemarks = $latestApproval && $latestApproval->remarks ? $latestApproval->remarks : '-';
 

@@ -296,22 +296,21 @@
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        @forelse ($doc->items as $item)
+                                        @php
+                                            $itemsByType = $doc->items->keyBy('consumption_type');
+                                        @endphp
+                                        @foreach (\App\Models\RoomConsumptionRequest::CONSUMPTION_TYPES as $type => $label)
+                                            @php $item = $itemsByType->get($type); @endphp
                                             <tr>
                                                 <td class="text-center">
-                                                    @if ($item->is_selected)
+                                                    @if ($item?->is_selected)
                                                         <i class="fas fa-check text-success"></i>
                                                     @endif
                                                 </td>
-                                                <td>{{ $item->typeLabel() }}</td>
-                                                <td>{{ $item->description ?: '—' }}</td>
+                                                <td>{{ $label }}</td>
+                                                <td>{{ $item?->description ?: '—' }}</td>
                                             </tr>
-                                        @empty
-                                            <tr>
-                                                <td colspan="3" class="text-center text-muted">No consumption items.
-                                                </td>
-                                            </tr>
-                                        @endforelse
+                                        @endforeach
                                     </tbody>
                                 </table>
                             </div>

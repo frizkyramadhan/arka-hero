@@ -462,7 +462,7 @@
                                     default => 'status-pending',
                                 };
                                 $approverName = $plan->approver->name ?? '—';
-                                $planTs = $plan->updated_at ?? $plan->created_at;
+                                $planTs = $plan->decisionAt() ?? $plan->created_at;
                                 $planDate = $st !== 0 && $planTs ? $formatDateId($planTs) : '—';
                             @endphp
                             <tr>

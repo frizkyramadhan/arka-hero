@@ -14,6 +14,7 @@ use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
 
 class RoomConsumptionRequestController extends Controller
@@ -38,7 +39,10 @@ class RoomConsumptionRequestController extends Controller
             'myRequestsSyncZoomMeeting',
             'resetZoomItWoDebug',
             'myRequestsResetZoomItWoDebug',
+            'zoomAvailability',
         ]);
+        $this->middleware('permission:room-consumption-requests.create|personal.room-consumption.create-own|room-consumption-requests.edit|personal.room-consumption.edit-own')
+            ->only(['zoomAvailability']);
     }
 
     private function normalizeManualApprovers($input): array
@@ -204,6 +208,31 @@ class RoomConsumptionRequestController extends Controller
             false,
             route('room-consumption-requests.show', $roomConsumptionRequest)
         );
+    }
+
+    /**
+     * AJAX: Zoom Meeting ID availability (IT WO accounts 131/132/134) for a date.
+     */
+    public function zoomAvailability(Request $request, ItWoZoomClient $client)
+    {
+        $validated = $request->validate([
+            'date' => ['required', 'date_format:Y-m-d'],
+        ]);
+
+        $result = $client->getZoomAvailability($validated['date']);
+
+        if (! ($result['success'] ?? false)) {
+            return response()->json([
+                'success' => false,
+                'message' => $result['message'] ?? 'Failed to load Zoom availability.',
+            ], 422);
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => $result['data'] ?? [],
+            'trial' => (bool) ($result['trial'] ?? false),
+        ]);
     }
 
     public function myRequestsRequestZoomMeeting(RoomConsumptionRequest $roomConsumptionRequest)
@@ -387,7 +416,7 @@ class RoomConsumptionRequestController extends Controller
 
         return view('room-consumption-requests.form', [
             'title' => $isPersonal ? 'My Room & Consumption Request' : 'Room & Consumption Request',
-            'subtitle' => $doc ? 'Edit Request' : 'Create Request',
+            'subtitle' => $doc ? 'Edit Room & Consumption Request' : 'Create Room & Consumption Request',
             'doc' => $doc,
             'projects' => $projects,
             'departments' => $departments,
@@ -542,6 +571,12 @@ class RoomConsumptionRequestController extends Controller
 
             DB::commit();
 
+            if ($submit) {
+                // Form "Save & Submit" — sama seperti tombol Submit for Approval
+                $model->refresh();
+                $this->dispatchZoomItWoAfterSubmit($model);
+            }
+
             $redirect = $isPersonal
                 ? route('room-consumption-requests.my-requests.show', $model)
                 : route('room-consumption-requests.show', $model);
@@ -620,6 +655,10 @@ class RoomConsumptionRequestController extends Controller
             }
 
             DB::commit();
+
+            // Tombol "Submit for Approval" (detail/list) & route my-requests.submit / .submit
+            $model->refresh();
+            $this->dispatchZoomItWoAfterSubmit($model);
 
             return redirect($redirectRoute)->with('toast_success', 'Request submitted for approval.');
         } catch (\Throwable $e) {
@@ -788,6 +827,31 @@ class RoomConsumptionRequestController extends Controller
                 return;
             }
             abort(403);
+        }
+    }
+
+    private function dispatchZoomItWoAfterSubmit(RoomConsumptionRequest $model): void
+    {
+        $doc = $model->fresh() ?? $model;
+
+        if (! $doc->need_zoom) {
+            return;
+        }
+
+        if ($doc->status === RoomConsumptionRequest::STATUS_DRAFT) {
+            Log::warning('Skipped IT WO Zoom dispatch: RCR still draft', ['rcr_id' => $doc->id]);
+
+            return;
+        }
+
+        try {
+            app(ItWoZoomClient::class)->dispatchOnSubmit($doc);
+        } catch (\Throwable $e) {
+            Log::error('Failed to dispatch IT WO Zoom after RCR submit', [
+                'rcr_id' => $doc->id,
+                'status' => $doc->status,
+                'error' => $e->getMessage(),
+            ]);
         }
     }
 

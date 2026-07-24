@@ -610,7 +610,7 @@
                                 </li>
                                 <li class="nav-item">
                                     <a href="{{ route('room-consumption-requests.index') }}"
-                                        class="nav-link {{ $isRcrAdmin && !Request::is('room-consumption-requests/create') ? 'active' : '' }}">
+                                        class="nav-link {{ $isRcrAdmin ? 'active' : '' }}">
                                         <i class="far fa-circle nav-icon"></i>
                                         <p>Requests</p>
                                     </a>

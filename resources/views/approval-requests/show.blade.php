@@ -406,26 +406,84 @@
                                         </div>
                                     </div>
                                 </div>
-                                @if ($document->facilities)
-                                    <div class="p-3 border-top">
-                                        <strong>Facilities:</strong>
-                                        <div class="mt-1">{{ $document->facilities }}</div>
-                                    </div>
-                                @endif
-                                @if ($document->notes)
-                                    <div class="p-3 border-top">
-                                        <strong>Notes:</strong>
-                                        <div class="mt-1" style="white-space: pre-wrap;">{{ $document->notes }}</div>
-                                    </div>
-                                @endif
-                                @if ($document->items->where('is_selected', true)->count())
-                                    <div class="p-3 border-top">
-                                        <strong>Consumption:</strong>
-                                        <ul class="mb-0 mt-1">
-                                            @foreach ($document->items->where('is_selected', true) as $item)
-                                                <li>{{ $item->typeLabel() }}@if($item->description) — {{ $item->description }}@endif</li>
-                                            @endforeach
-                                        </ul>
+
+                                @php
+                                    $rcrFacilities = collect(preg_split('/\s*,\s*/', (string) ($document->facilities ?? ''), -1, PREG_SPLIT_NO_EMPTY))
+                                        ->filter()
+                                        ->values();
+                                    $rcrItemsByType = $document->items->keyBy('consumption_type');
+                                    $rcrHasConsumption = $document->items->where('is_selected', true)->isNotEmpty();
+                                    $rcrHasExtras = $rcrFacilities->isNotEmpty() || filled($document->notes) || $document->items->isNotEmpty();
+                                @endphp
+
+                                @if ($rcrHasExtras)
+                                    <div class="rcr-approval-extras border-top">
+                                        @if ($rcrFacilities->isNotEmpty())
+                                            <div class="rcr-extra-block">
+                                                <div class="rcr-extra-head">
+                                                    <span class="rcr-extra-icon" style="background:#16a085;"><i class="fas fa-tools"></i></span>
+                                                    <span class="rcr-extra-title">Facilities</span>
+                                                </div>
+                                                <div class="rcr-facility-badges">
+                                                    @foreach ($rcrFacilities as $facility)
+                                                        <span class="badge badge-light rcr-facility-badge">{{ $facility }}</span>
+                                                    @endforeach
+                                                </div>
+                                            </div>
+                                        @endif
+
+                                        @if (filled($document->notes))
+                                            <div class="rcr-extra-block">
+                                                <div class="rcr-extra-head">
+                                                    <span class="rcr-extra-icon" style="background:#1abc9c;"><i class="fas fa-sticky-note"></i></span>
+                                                    <span class="rcr-extra-title">Notes</span>
+                                                </div>
+                                                <div class="rcr-notes-box">{{ $document->notes }}</div>
+                                            </div>
+                                        @endif
+
+                                        @if ($document->items->isNotEmpty())
+                                            <div class="rcr-extra-block mb-0">
+                                                <div class="rcr-extra-head">
+                                                    <span class="rcr-extra-icon" style="background:#e67e22;"><i class="fas fa-utensils"></i></span>
+                                                    <span class="rcr-extra-title">Consumption</span>
+                                                    @if ($rcrHasConsumption)
+                                                        <span class="badge badge-success ml-auto">
+                                                            {{ $document->items->where('is_selected', true)->count() }} selected
+                                                        </span>
+                                                    @else
+                                                        <span class="badge badge-secondary ml-auto">None selected</span>
+                                                    @endif
+                                                </div>
+                                                <div class="table-responsive">
+                                                    <table class="table table-sm table-bordered mb-0 rcr-consumption-table">
+                                                        <thead class="thead-light">
+                                                            <tr>
+                                                                <th class="text-center" style="width: 12%;">✓</th>
+                                                                <th style="width: 38%;">Type</th>
+                                                                <th>Description</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            @foreach (\App\Models\RoomConsumptionRequest::CONSUMPTION_TYPES as $type => $label)
+                                                                @php $item = $rcrItemsByType->get($type); @endphp
+                                                                <tr class="{{ $item?->is_selected ? 'rcr-consumption-selected' : 'text-muted' }}">
+                                                                    <td class="text-center">
+                                                                        @if ($item?->is_selected)
+                                                                            <i class="fas fa-check-circle text-success"></i>
+                                                                        @else
+                                                                            <i class="far fa-circle"></i>
+                                                                        @endif
+                                                                    </td>
+                                                                    <td>{{ $label }}</td>
+                                                                    <td>{{ $item?->is_selected ? ($item->description ?: '—') : '—' }}</td>
+                                                                </tr>
+                                                            @endforeach
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            </div>
+                                        @endif
                                     </div>
                                 @endif
                             </div>
@@ -1488,10 +1546,10 @@ if ($plan->status === 1) {
                                                             <div class="remarks-content">{{ $plan->remarks }}</div>
                                                         </div>
                                                     @endif
-                                                    @if ($plan->updated_at)
+                                                    @if ($plan->decisionAt())
                                                         <div class="step-status-at">
                                                             <i class="far fa-clock"></i>
-                                                            {{ $plan->updated_at->format('d/m/Y H:i') }}
+                                                            {{ $plan->decisionAt()->format('d/m/Y H:i') }}
                                                         </div>
                                                     @endif
                                                 @endif
@@ -2886,6 +2944,85 @@ if ($plan->status === 1) {
             text-align: left;
             white-space: pre-wrap;
             word-wrap: break-word;
+        }
+
+        /* RCR approval extras: facilities / notes / consumption */
+        .rcr-approval-extras {
+            padding: 12px 15px 15px;
+            background: #fafbfc;
+        }
+
+        .rcr-extra-block {
+            margin-bottom: 14px;
+        }
+
+        .rcr-extra-head {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        .rcr-extra-icon {
+            width: 28px;
+            height: 28px;
+            border-radius: 4px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-size: 13px;
+            flex-shrink: 0;
+        }
+
+        .rcr-extra-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #343a40;
+        }
+
+        .rcr-facility-badges {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .rcr-facility-badge {
+            border: 1px solid #dee2e6;
+            color: #495057;
+            font-weight: 500;
+            padding: 0.4em 0.65em;
+            font-size: 0.9rem;
+        }
+
+        .rcr-notes-box {
+            background: #fff;
+            border: 1px solid #e9ecef;
+            border-left: 3px solid #1abc9c;
+            border-radius: 4px;
+            padding: 10px 12px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            color: #495057;
+            font-size: 1rem;
+            line-height: 1.5;
+        }
+
+        .rcr-consumption-table {
+            background: #fff;
+            font-size: 0.95rem;
+        }
+
+        .rcr-consumption-table th {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.02em;
+        }
+
+        .rcr-consumption-selected td {
+            background: #f0fff4;
+            color: #212529;
+            font-weight: 500;
         }
     </style>
 @endsection

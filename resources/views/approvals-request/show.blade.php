@@ -92,7 +92,7 @@
                                                                 @endswitch
                                                             </td>
                                                             <td>{{ $plan->remarks ?? '-' }}</td>
-                                                            <td>{{ $plan->updated_at ? $plan->updated_at->format('d-M-Y H:i:s') : '-' }}
+                                                            <td>{{ $plan->decisionAt() ? $plan->decisionAt()->format('d-M-Y H:i:s') : '-' }}
                                                             </td>
                                                         </tr>
                                                     @endforeach

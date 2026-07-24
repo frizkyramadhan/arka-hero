@@ -45,8 +45,8 @@
             $approvalPlan = $approvalPlans->get($id);
 
             $statusAt = null;
-            if ($approvalPlan && (int) $approvalPlan->status !== 0 && $approvalPlan->updated_at) {
-                $statusAt = $approvalPlan->updated_at->format('d/m/Y H:i');
+            if ($approvalPlan && (int) $approvalPlan->status !== 0 && $approvalPlan->decisionAt()) {
+                $statusAt = $approvalPlan->decisionAt()->format('d/m/Y H:i');
             }
 
             return (object) [

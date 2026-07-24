@@ -9,6 +9,7 @@ return [
     | Zoom Meeting ID requests use:
     |   POST {base_url}/api/v1/zoom-meeting-requests
     |   GET  {base_url}/api/v1/zoom-meeting-requests/{it_wo_id}
+    |   GET  {base_url}/api/v1/zoom-meeting-availability?date=YYYY-MM-DD
     |
     | Category / subcategory are fixed on rest-server (not sent by HERO):
     |   id_kategori = 8  (ZOOM MEETING ID)

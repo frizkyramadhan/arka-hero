@@ -88,7 +88,7 @@
                     {{-- Left Column --}}
                     <div class="col-md-8">
                         {{-- Letter Number (create only) --}}
-                        @if (! $doc)
+                        @if (!$doc)
                             <div class="card card-info card-outline elevation-2">
                                 <div class="card-header py-2">
                                     <h3 class="card-title">
@@ -132,7 +132,7 @@
                                                     value="{{ old('request_number', $doc->request_number ?? '') }}"
                                                     placeholder="{{ $doc ? '—' : 'Select Letter Number to Generate Reg. No' }}">
                                             </div>
-                                            @if (! $doc)
+                                            @if (!$doc)
                                                 <small class="form-text text-muted">
                                                     <i class="fas fa-info-circle"></i>
                                                     Reg. No will be auto-generated when you select a letter number above
@@ -346,9 +346,57 @@
                                         </label>
                                     </div>
                                     <small class="form-text text-muted">
-                                        Integrasi IT Work Order (Phase 2)
+                                        Setelah request di-submit (bukan draft), sistem otomatis akan membuat <b>IT Work Order</b>.
+                                        Meeting ID akan muncul di halaman detail (atau hubungi IT HO Balikpapan).
                                     </small>
                                 </div>
+
+                                <div id="zoom-availability-panel" class="mb-3"
+                                    style="{{ old('need_zoom', $doc->need_zoom ?? false) ? '' : 'display:none;' }}">
+                                    <div class="card card-primary card-outline mb-0">
+                                        <div class="card-header py-2">
+                                            <h3 class="card-title mb-0">
+                                                <i class="fas fa-video mr-1"></i>
+                                                <strong>Zoom Meeting ID Availability</strong>
+                                            </h3>
+                                        </div>
+                                        <div class="card-body p-2">
+                                            <div class="form-inline mb-2">
+                                                <label for="zoom_check_date" class="mr-2 mb-0">Date</label>
+                                                <input type="date" id="zoom_check_date" class="form-control form-control-sm mr-2"
+                                                    value="{{ old('meeting_date', optional($doc->meeting_date ?? null)->format('Y-m-d') ?: date('Y-m-d')) }}">
+                                                <button type="button" id="btn-check-zoom-availability"
+                                                    class="btn btn-sm btn-primary">
+                                                    <i class="fas fa-search"></i> Check
+                                                </button>
+                                            </div>
+                                            <div id="zoom-availability-loading" class="text-muted small d-none">
+                                                <i class="fas fa-spinner fa-spin"></i> Loading availability…
+                                            </div>
+                                            <div id="zoom-availability-error" class="alert alert-warning py-1 px-2 mb-2 d-none small"></div>
+                                            <div class="table-responsive">
+                                                <table class="table table-bordered table-sm table-striped mb-0" id="zoom-availability-table">
+                                                    <thead>
+                                                        <tr>
+                                                            <th width="12%">Account</th>
+                                                            <th width="30%">Room</th>
+                                                            <th width="22%">Status</th>
+                                                            <th width="36%">Schedule</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        <tr>
+                                                            <td colspan="4" class="text-muted text-center">
+                                                                Check date to see availability
+                                                            </td>
+                                                        </tr>
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
                                 <div class="form-group mb-0">
                                     <label for="notes">Notes</label>
                                     <textarea name="notes" id="notes" class="form-control" rows="4" placeholder="Additional notes">{{ old('notes', $doc->notes ?? '') }}</textarea>
@@ -550,6 +598,138 @@
             }
             if (!isEdit) {
                 updatePreview();
+            }
+
+            // Zoom Meeting ID Availability (same source as IT WO)
+            const zoomAvailabilityUrl = @json(route('room-consumption-requests.zoom-availability'));
+
+            function escapeHtml(str) {
+                return $('<div>').text(str == null ? '' : String(str)).html();
+            }
+
+            function syncZoomCheckDateFromMeetingDate() {
+                const meetingDate = $('#meeting_date').val();
+                if (meetingDate) {
+                    $('#zoom_check_date').val(meetingDate);
+                }
+            }
+
+            function renderZoomAvailability(data) {
+                const accounts = (data && data.accounts) ? data.accounts : {};
+                const codes = ['131', '132', '134'];
+                let html = '';
+
+                codes.forEach(function(code) {
+                    const info = accounts[code] || {};
+                    const status = info.status || 'available';
+                    const roomNames = info.room_names || [];
+                    const slots = info.slots || [];
+                    const bookings = info.bookings || [];
+
+                    let label = 'Available';
+                    let badge = 'success';
+                    if (status === 'all_day') {
+                        label = 'Unavailable (All Day)';
+                        badge = 'danger';
+                    } else if (status === 'booked') {
+                        label = 'Booked';
+                        badge = 'warning';
+                    }
+
+                    let roomHtml = roomNames.length
+                        ? '<ul class="mb-0 pl-3">' + roomNames.map(function(n) {
+                            return '<li>' + escapeHtml(n) + '</li>';
+                        }).join('') + '</ul>'
+                        : '<em class="text-muted">-</em>';
+
+                    let scheduleHtml = '';
+                    if (status === 'available') {
+                        scheduleHtml = '<em class="text-muted">Free</em>';
+                    } else {
+                        scheduleHtml = escapeHtml(slots.join(', '));
+                        if (bookings.length) {
+                            scheduleHtml += '<ul class="list-unstyled mb-0 mt-1" style="font-size:12px;">';
+                            bookings.forEach(function(b) {
+                                const wo = b.no_wo ? escapeHtml(b.no_wo) + ' — ' : '';
+                                const name = escapeHtml(b.name || '');
+                                const time = escapeHtml(b.meeting_time || '');
+                                const st = b.status ? ', ' + escapeHtml(b.status) : '';
+                                scheduleHtml += '<li>' + wo + name + ' (' + time + st + ')</li>';
+                            });
+                            scheduleHtml += '</ul>';
+                        }
+                    }
+
+                    html += '<tr>' +
+                        '<td><b>' + escapeHtml(code) + '</b></td>' +
+                        '<td>' + roomHtml + '</td>' +
+                        '<td><span class="badge badge-' + badge + '">' + label + '</span></td>' +
+                        '<td>' + scheduleHtml + '</td>' +
+                        '</tr>';
+                });
+
+                $('#zoom-availability-table tbody').html(html);
+            }
+
+            function loadZoomAvailability() {
+                const date = $('#zoom_check_date').val();
+                if (!date) {
+                    $('#zoom-availability-error').removeClass('d-none').text('Please select a date.');
+                    return;
+                }
+
+                $('#zoom-availability-error').addClass('d-none').text('');
+                $('#zoom-availability-loading').removeClass('d-none');
+
+                $.get(zoomAvailabilityUrl, {
+                        date: date
+                    })
+                    .done(function(res) {
+                        if (res && res.success) {
+                            renderZoomAvailability(res.data || {});
+                        } else {
+                            $('#zoom-availability-error').removeClass('d-none')
+                                .text((res && res.message) ? res.message : 'Failed to load availability.');
+                        }
+                    })
+                    .fail(function(xhr) {
+                        let msg = 'Failed to load Zoom availability.';
+                        if (xhr.responseJSON && xhr.responseJSON.message) {
+                            msg = xhr.responseJSON.message;
+                        }
+                        $('#zoom-availability-error').removeClass('d-none').text(msg);
+                    })
+                    .always(function() {
+                        $('#zoom-availability-loading').addClass('d-none');
+                    });
+            }
+
+            function toggleZoomAvailabilityPanel() {
+                const checked = $('#need_zoom').is(':checked');
+                const $panel = $('#zoom-availability-panel');
+                if (checked) {
+                    $panel.show();
+                    syncZoomCheckDateFromMeetingDate();
+                    loadZoomAvailability();
+                } else {
+                    $panel.hide();
+                }
+            }
+
+            $('#need_zoom').on('change', toggleZoomAvailabilityPanel);
+            $('#btn-check-zoom-availability').on('click', function(e) {
+                e.preventDefault();
+                loadZoomAvailability();
+            });
+            $('#meeting_date').on('change', function() {
+                if ($('#need_zoom').is(':checked')) {
+                    syncZoomCheckDateFromMeetingDate();
+                    loadZoomAvailability();
+                }
+            });
+
+            if ($('#need_zoom').is(':checked')) {
+                toggleZoomAvailabilityPanel();
             }
         })();
     </script>

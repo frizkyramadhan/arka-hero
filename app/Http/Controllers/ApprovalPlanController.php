@@ -12,6 +12,7 @@ use App\Models\OvertimeRequest;
 use App\Models\Project;
 use App\Models\RecruitmentRequest;
 use App\Models\RoomConsumptionRequest;
+use App\Services\ItWoZoomClient;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -280,6 +281,14 @@ class ApprovalPlanController extends Controller
                     'rejected_at' => now(),
                     'approved_at' => null,
                 ]);
+                try {
+                    app(ItWoZoomClient::class)->syncCancelOnReject($document->fresh() ?? $document);
+                } catch (\Throwable $e) {
+                    Log::error('Failed to cancel IT WO after RCR reject (ApprovalPlanController)', [
+                        'rcr_id' => $document->id,
+                        'error' => $e->getMessage(),
+                    ]);
+                }
             } elseif ($document_type === 'overtime_request') {
                 $document->update([
                     'status' => OvertimeRequest::STATUS_REJECTED,
@@ -300,7 +309,7 @@ class ApprovalPlanController extends Controller
         if ($this->areAllSequentialApprovalsCompleted($approval_plan)) {
             // Update document status to approved
             $updateData = [
-                'approved_at' => $approval_plan->updated_at,
+                'approved_at' => $approval_plan->decisionAt() ?? now(),
                 'status' => 'approved',
             ];
 
@@ -315,7 +324,7 @@ class ApprovalPlanController extends Controller
             Log::info('Document approved successfully', [
                 'document_type' => $document_type,
                 'document_id' => $document->id,
-                'approved_at' => $approval_plan->updated_at,
+                'approved_at' => $approval_plan->decisionAt(),
                 'approver_id' => $approval_plan->approver_id,
             ]);
         }
@@ -371,18 +380,12 @@ class ApprovalPlanController extends Controller
      */
     public function closeOpenApprovalPlans($document_type, $document_id)
     {
-        // Find all open approval plans for this document
-        $approval_plans = ApprovalPlan::where('document_id', $document_id)
+        // Close without touching updated_at/acted_at (each plan keeps its decision time)
+        ApprovalPlan::where('document_id', $document_id)
             ->where('document_type', $document_type)
             ->where('is_open', 1)
-            ->get();
-
-        // Close all open approval plans
-        if ($approval_plans->count() > 0) {
-            foreach ($approval_plans as $approval_plan) {
-                $approval_plan->update(['is_open' => 0]);
-            }
-        }
+            ->toBase()
+            ->update(['is_open' => 0]);
     }
 
     /**

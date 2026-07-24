@@ -831,6 +831,7 @@ class ApprovalRequestController extends Controller
                     'rejected_at' => now(),
                     'approved_at' => null,
                 ]);
+                $this->syncItWoOnRcrReject($document);
             } else {
                 $document->update([
                     'status' => 'rejected',
@@ -861,12 +862,22 @@ class ApprovalRequestController extends Controller
                     'status' => RoomConsumptionRequest::STATUS_REJECTED,
                     'rejected_at' => now(),
                 ]);
+                $this->syncItWoOnRcrReject($document);
             } else {
                 $document->update(['status' => 'rejected']);
             }
             $this->closeAllApprovalPlans($document->id, $documentType);
 
             return;
+        }
+
+        // RCR first approval step → IT WO L1 Approved (acknowledge step)
+        if ($documentType === 'room_consumption_request'
+            && (int) $approvalPlan->status === 1
+            && $document instanceof RoomConsumptionRequest
+            && $this->isFirstApprovalStep($approvalPlan)
+        ) {
+            $this->syncItWoOnRcrFirstApprove($document);
         }
 
         // Check if all sequential approvals are completed
@@ -886,30 +897,62 @@ class ApprovalRequestController extends Controller
                 $this->updateLeaveEntitlements($document);
             }
 
-            // RCR + need_zoom: create Zoom Meeting IT WO via rest-server
-            if ($documentType === 'room_consumption_request' && $document instanceof RoomConsumptionRequest) {
-                try {
-                    app(ItWoZoomClient::class)->dispatchAfterApproval($document->fresh());
-                } catch (\Throwable $e) {
-                    Log::error('Failed to dispatch IT WO Zoom after RCR approval', [
-                        'rcr_id' => $document->id,
-                        'error' => $e->getMessage(),
-                    ]);
-                }
-            }
-
             Log::info("Document {$documentType} ID: {$document->id} approved. All sequential approvals completed.");
         }
     }
 
     /**
+     * Whether this approval plan is the first step (lowest approval_order) for the document.
+     */
+    private function isFirstApprovalStep(ApprovalPlan $approvalPlan): bool
+    {
+        $minOrder = ApprovalPlan::where('document_id', $approvalPlan->document_id)
+            ->where('document_type', $approvalPlan->document_type)
+            ->min('approval_order');
+
+        if ($minOrder === null) {
+            return (int) $approvalPlan->approval_order <= 1;
+        }
+
+        return (int) $approvalPlan->approval_order === (int) $minOrder;
+    }
+
+    private function syncItWoOnRcrFirstApprove(RoomConsumptionRequest $document): void
+    {
+        try {
+            app(ItWoZoomClient::class)->syncApproveL1($document->fresh() ?? $document);
+        } catch (\Throwable $e) {
+            Log::error('Failed to sync IT WO L1 after first RCR approval', [
+                'rcr_id' => $document->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    private function syncItWoOnRcrReject(RoomConsumptionRequest $document): void
+    {
+        try {
+            app(ItWoZoomClient::class)->syncCancelOnReject($document->fresh() ?? $document);
+        } catch (\Throwable $e) {
+            Log::error('Failed to cancel IT WO after RCR reject', [
+                'rcr_id' => $document->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
      * Close all approval plans for a document
+     *
+     * Uses query builder (toBase) so updated_at / acted_at are not overwritten —
+     * closing is_open must not rewrite each approver's decision timestamp.
      */
     private function closeAllApprovalPlans($documentId, $documentType)
     {
         ApprovalPlan::where('document_id', $documentId)
             ->where('document_type', $documentType)
             ->where('is_open', true)
+            ->toBase()
             ->update(['is_open' => false]);
     }
 
@@ -1004,12 +1047,11 @@ class ApprovalRequestController extends Controller
                             continue;
                         }
 
-                        // Update approval plan
+                        // Update approval plan (acted_at set by ApprovalPlan model boot)
                         $approvalPlan->update([
                             'status' => 1, // approved
                             'remarks' => $request->remarks,
                             'is_read' => $request->remarks ? 0 : 1,
-                            'approved_at' => now(),
                         ]);
 
                         // Process document status
