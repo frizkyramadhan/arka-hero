@@ -156,10 +156,10 @@ Gunakan blok ini sebagai **template lengkap** saat meregenerasi atau menyamakan 
 
 **Template generik (bab lain):**
 
-- **Nama & nomor file target:** (`09-recruitment-management.md`)
-- **Topik & outline:** (bullet besar per `## 1. Dashboard, ## 2. Request (FPTK), ## 3. Request (MPP), ## 4. Candidate (CV), ## 5. Session Approved FPTK/MPP, Candidate Session (CV Review, Psikotes, Interview HR-User-Trainer, Offering, MCU, Hiring & Onboarding), ## 6. Reports, ## 7. My Recruitment Request` dan semua rinciannya)
-- **Pembaca target:** (1-6 untuk HR, 7 untuk semua karyawan)
-- **Menu sidebar (label persis):** (HERO Section -> Recruitment Management)
+- **Nama & nomor file target:** (`19-room-consumption-management.md`)
+- **Topik & outline:** (bullet besar per `## 1. Room & Consumption (Dashboard, Request, Report), ## 2. My Room & Consumption` dan semua rinciannya)
+- **Pembaca target:** (1 untuk HR, 2 untuk semua karyawan)
+- **Menu sidebar (label persis):** (GAMMA Section -> Room & Consumption)
 - **URL contoh (opsional, untuk riset):** (satu base URL; jarang dimasukkan ke narasi)
 - **Screenshot:** daftar `images/…png` + apa yang tampak + nomor figur; tandai **placeholder**
 - **Tabel / katalog khusus:** (jika perlu)
