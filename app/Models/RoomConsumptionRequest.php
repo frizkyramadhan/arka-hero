@@ -50,6 +50,7 @@ class RoomConsumptionRequest extends Model
         'need_zoom',
         'manual_approvers',
         'status',
+        'submitted_by_user',
         'submitted_at',
         'approved_at',
         'rejected_at',
@@ -75,6 +76,7 @@ class RoomConsumptionRequest extends Model
         'completed_at' => 'datetime',
         'manual_approvers' => 'array',
         'need_zoom' => 'boolean',
+        'submitted_by_user' => 'boolean',
         'attendees_count' => 'integer',
     ];
 
@@ -117,6 +119,22 @@ class RoomConsumptionRequest extends Model
         ];
 
         return $map[$month] ?? (string) $month;
+    }
+
+    /**
+     * User submission from My Room & Consumption awaiting HR letter number (REQxxxxx placeholder).
+     */
+    public function isPendingHr(): bool
+    {
+        return (bool) $this->submitted_by_user
+            && empty($this->letter_number_id)
+            && $this->status === self::STATUS_DRAFT;
+    }
+
+    public function usesTemporaryRegNumber(): bool
+    {
+        return is_string($this->request_number)
+            && preg_match('/^REQ\d+$/', $this->request_number) === 1;
     }
 
     public function meetingRoom(): BelongsTo
@@ -185,7 +203,8 @@ class RoomConsumptionRequest extends Model
         }
 
         return $user->can('personal.room-consumption.edit-own')
-            && (int) $this->requested_by === (int) $user->id;
+            && (int) $this->requested_by === (int) $user->id
+            && $this->isPendingHr();
     }
 
     public function canBeDeletedBy(?User $user): bool
@@ -199,7 +218,8 @@ class RoomConsumptionRequest extends Model
         }
 
         return $user->can('personal.room-consumption.cancel-own')
-            && (int) $this->requested_by === (int) $user->id;
+            && (int) $this->requested_by === (int) $user->id
+            && $this->isPendingHr();
     }
 
     public function canRequestZoomItWo(): bool

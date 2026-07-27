@@ -17,7 +17,7 @@ Panduan ini menjelaskan modul **Room & Consumption** di ARKA HERO: pemantauan da
 | **Letter Number**                    | Nomor surat cadangan di **Letter Administration** (kategori **RCR**). Begitu dipilih dan disimpan (termasuk **Draft**), status nomor otomatis **used** (sama seperti LOT/FPTK). |
 | **Meeting Room**                     | Ruangan meeting pada master data (**Meeting Rooms**), terikat ke satu **Project** (lokasi). Hanya status **Active** yang muncul di form RCR.                                    |
 | **Active / Inactive / Maintenance**  | Status master ruangan: aktif untuk booking, nonaktif, atau dalam perawatan.                                                                                                     |
-| **Need Zoom Meeting ID**             | Opsi pada form: setelah request **Submitted** (bukan draft), sistem dapat membuat **IT Work Order** agar IT menyediakan Meeting ID.                                             |
+| **Need Zoom Meeting ID**             | Opsi Zoom di form. **IT Work Order** dibuat otomatis saat request status **Submitted** (setelah HR assign letter + approver lalu Submit for Approval). **Submit to HR** (REQ) belum membuat WO. |
 | **Zoom Meeting ID Availability**     | Panel ketersediaan akun Zoom (**131** / **132** / **134**) per tanggal — mirip widget di IT Work Order.                                                                         |
 | **Approver Selection**               | Pemilihan approver manual berurutan sebelum pengajuan.                                                                                                                          |
 | **Submit for Approval**              | Mengajukan request berstatus **Draft** ke alur approval.                                                                                                                        |
@@ -175,7 +175,7 @@ Tidak wajib memilih konsumsi; biarkan kosong jika hanya memesan ruangan.
     <img
         src="images/room-consumption-request-consumption.png"
         alt="Blok Consumption — Type Coffee Break Pagi Coffee Break Sore Lunch Dinner dengan kolom Deskripsi Jenis Makanan Minuman Optional description"
-        style="max-width: 80%; width: 80%; height: auto;"
+        style="max-width: 75%; width: 75%; height: auto;"
     />
     <br><em>Gambar 3.3 — Form Create: Consumption</em>
 </p>
@@ -220,10 +220,10 @@ Tidak wajib memilih konsumsi; biarkan kosong jika hanya memesan ruangan.
 <p align="center" id="rcr-request-detail">
     <img
         src="images/room-consumption-request-detail.png"
-        alt="Detail Room & Consumption Request — Reg No Meeting Title Room Date Time Status Approval Status Zoom Meeting ID Actions"
-        style="max-width: 90%; width: 90%; height: auto;"
+        alt="Detail Room & Consumption Request Approved — Meeting Details Consumption Zoom Meeting ID IT WO Meeting ID Passcode Buka Zoom Approval Status Print Cancel"
+        style="max-width: 74%; width: 74%; height: auto;"
     />
-    <br><em>Gambar 3.5 — Detail request (placeholder)</em>
+    <br><em>Gambar 3.5 — Detail request (Meeting Details, Zoom Meeting ID, Approval Status)</em>
 </p>
 
 **Kartu Zoom Meeting ID** (jika **Need Zoom Meeting ID** aktif):
@@ -270,10 +270,10 @@ Kolom tabel laporan: **No**, **Reg. No**, **Project**, **Room**, **Title**, **Da
 <p align="center" id="rcr-report">
     <img
         src="images/room-consumption-request-report.png"
-        alt="Report Room & Consumption Requests — Filter Options Tampilkan data Reset Export to Excel tabel Reg No Created At Target Status"
+        alt="Report Room & Consumption Requests — Filter Options Status Project Meeting from to Reg No Requester Room Meeting title Tampilkan data Reset Export to Excel tabel status Approved Cancelled Rejected"
         style="max-width: 90%; width: 90%; height: auto;"
     />
-    <br><em>Gambar 4.1 — Report Room & Consumption Requests (placeholder)</em>
+    <br><em>Gambar 4.1 — Report Room & Consumption Requests</em>
 </p>
 
 **Catatan:** **Target** menampilkan selisih hari (mis. **3 hari**) antara tanggal dibuat dan tanggal meeting — berguna untuk memantau lead time pengajuan.
@@ -297,21 +297,20 @@ Kolom tabel laporan: **No**, **Reg. No**, **Project**, **Room**, **Title**, **Da
 <p align="center" id="my-rcr-list">
     <img
         src="images/my-room-consumption-requests-list.png"
-        alt="My Room & Consumption Requests — Add Filter tabel Reg No Project Room Meeting Date Status Actions"
+        alt="My Room & Consumption Requests — Add Filter tabel Reg No Project Room Meeting Date Time Status Approved Rejected Actions"
         style="max-width: 90%; width: 90%; height: auto;"
     />
-    <br><em>Gambar 5.1 — Daftar My Room & Consumption (placeholder)</em>
+    <br><em>Gambar 5.1 — Daftar My Room & Consumption</em>
 </p>
 
 ---
 
 ### 5.2 Membuat, mengubah, dan mengajukan
 
-Alur form **Create** / **Edit** sama dengan bagian [3.2](#rcr-create-form) (Letter Number, Meeting Information, Consumption, Options/Zoom availability, Approver Selection).
+Alur **My Room & Consumption** mengikuti **My Official Travel**: karyawan **tidak** memilih Letter Number. Sistem memberi nomor sementara **REQxxxxx**; **Reg. No** resmi dan nomor surat **RCR** diassign **HR** saat konfirmasi (edit dari menu **Requests**). Form karyawan: **Meeting Information**, **Consumption**, **Options** (Zoom availability), tanpa **Approver Selection** sampai HR mengonfirmasi.
 
-- Simpan dengan **Save as Draft** atau **Save & Submit**.
-- Dari daftar atau detail **Draft**: **Edit**, **Submit for Approval**, atau **Delete** (hapus draft) sesuai tombol yang tampil.
-- Pastikan letter number kategori **RCR** tersedia di project Anda (koordinasikan dengan admin Letter Administration bila daftar kosong).
+- **Submit to HR** — kirim pengajuan (nomor **REQxxxxx**); redirect ke daftar dengan pesan menunggu HR (sama seperti My Official Travel).
+- Edit pending: **Save Changes** sampai HR mengonfirmasi.
 
 <p align="center" id="my-rcr-create">
     <img

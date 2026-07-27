@@ -27,14 +27,18 @@
             'cancelled' => ['label' => 'Cancelled', 'class' => 'overtime-pill-draft', 'icon' => 'fa-ban'],
             'completed' => ['label' => 'Completed', 'class' => 'overtime-pill-finished', 'icon' => 'fa-flag-checkered'],
         ];
-        $pill = $statusMap[$doc->status] ?? [
-            'label' => ucfirst($doc->status),
-            'class' => 'overtime-pill-draft',
-            'icon' => 'fa-question-circle',
-        ];
+        $pill = $doc->isPendingHr()
+            ? ['label' => 'Menunggu Konfirmasi HR', 'class' => 'overtime-pill-pending', 'icon' => 'fa-clock']
+            : ($statusMap[$doc->status] ?? [
+                'label' => ucfirst($doc->status),
+                'class' => 'overtime-pill-draft',
+                'icon' => 'fa-question-circle',
+            ]);
 
-        $canEdit = $doc->canBeEditedBy(auth()->user());
-        $canSubmit = $canEdit && $doc->canSubmitForApproval();
+        $canEdit = $fromPersonal
+            ? ($doc->isPendingHr() && (int) $doc->requested_by === (int) auth()->id())
+            : $doc->canBeEditedBy(auth()->user());
+        $canSubmit = $canEdit && $doc->canSubmitForApproval() && ! $doc->isPendingHr();
         $canCancel = $doc->canCancel();
         $canManageZoomItWo =
             auth()->user()->can('room-consumption-requests.edit') ||

@@ -217,6 +217,11 @@
                             <i class="fas fa-arrow-left"></i> Back to my list
                         </a>
 
+                        <a href="{{ route('overtime.my-requests.print', $overtimeRequest) }}"
+                            class="btn-action print-btn" target="_blank">
+                            <i class="fas fa-print"></i> Print
+                        </a>
+
                         @if ($canEdit)
                             <a href="{{ route('overtime.my-requests.edit', $overtimeRequest) }}"
                                 class="btn-action edit-btn">

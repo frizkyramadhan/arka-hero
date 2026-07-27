@@ -704,6 +704,7 @@ Route::group(['middleware' => ['auth']], function () {
         Route::put('/my-requests/{overtimeRequest}', [OvertimeRequestController::class, 'myRequestsUpdate'])->name('my-requests.update');
         Route::delete('/my-requests/{overtimeRequest}', [OvertimeRequestController::class, 'myRequestsDestroy'])->name('my-requests.destroy');
         Route::post('/my-requests/{overtimeRequest}/submit-for-approval', [OvertimeRequestController::class, 'myRequestsSubmitForApproval'])->name('my-requests.submit-for-approval');
+        Route::get('/my-requests/{overtimeRequest}/print', [OvertimeRequestController::class, 'print'])->name('my-requests.print');
         Route::get('/my-requests/{overtimeRequest}', [OvertimeRequestController::class, 'myRequestShow'])->name('my-requests.show');
         Route::get('/my-requests', [OvertimeRequestController::class, 'myRequests'])->name('my-requests');
 
@@ -722,6 +723,7 @@ Route::group(['middleware' => ['auth']], function () {
             Route::put('/{overtimeRequest}', [OvertimeRequestController::class, 'update'])->name('update');
             Route::delete('/{overtimeRequest}', [OvertimeRequestController::class, 'destroy'])->name('destroy');
             Route::post('/{overtimeRequest}/submit-for-approval', [OvertimeRequestController::class, 'submitForApproval'])->name('submit-for-approval');
+            Route::get('/{overtimeRequest}/print', [OvertimeRequestController::class, 'print'])->name('print');
             Route::get('/', [OvertimeRequestController::class, 'index'])->name('index');
             Route::get('/{overtimeRequest}', [OvertimeRequestController::class, 'show'])->name('show');
             Route::post('/{overtimeRequest}/finish', [OvertimeRequestController::class, 'markFinished'])->name('finish');

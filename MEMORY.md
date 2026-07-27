@@ -89,6 +89,8 @@
 
 **Zoom WIB/WITA paren + 1h (2026-07-27)**: Dual TZ also covers `14.30 WITA (13.30 WIB)`, `13.30 WIB (14.30 WITA)`, slash/dash pairs; processed **before** ranges. Heuristic: if both WIB and WITA appear and two nearby clocks differ by **60 minutes**, treat as one timezone dual (prefer WITA / later clock). Helpers: `zoom_extract_wib_wita_duals`, `zoom_pick_wita_from_pair`.
 
+**RCR My Request REQ (2026-07-27)**: My Room & Consumption mirrors My Official Travel: temporary `REQxxxxx` (`submitted_by_user`), no letter on employee form; HR confirms via admin edit (letter RCR + approvers → formal Reg. No). Column `submitted_by_user` on `room_consumption_requests`; filter status `pending_hr` on admin list.
+
 **IT WO live test (2026-07-20)**: GET by id works (e.g. 8183). POST create works when `requester_nik` exists in `it_wo.karyawan` and `project_code` exists in `it_wo.project`. Admin NIK `17806` not in IT WO master → API 400. Detail button **Request Zoom via IT WO** posts real JSON via `Http::asJson()`. Sample RCR `a24d3339-…` linked to WO `0008189/WO/ITY/VII/2026` (created with Eko NIK 10917 for smoke test).
 
 **Auto-provision karyawan (2026-07-22)**: ~91% HERO NIKs missing from `it_wo.karyawan`. Rest-server `resolveKaryawan()`: NIK → email (rehire: update nik/nama) → INSERT new with HERO position/department (`resolveJabatanId` creates `departemen`/`jabatan` if missing; fallback `ARKA HERO User`/`ARKA HERO`). Same for acknowledge (first RCR approver). HERO payload adds position/department + acknowledge name/email. **Names use `employees.fullname`** (fallback `users.name`). Acknowledge also resolves by email when HERO NIK missing. Rehire nama update only when NIK actually changes.

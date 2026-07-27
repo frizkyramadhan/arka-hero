@@ -68,6 +68,9 @@
                                                         <label>Status</label>
                                                         <select class="form-control select2bs4" id="filter_status">
                                                             <option value="">- All -</option>
+                                                            @unless ($isPersonal)
+                                                                <option value="pending_hr">Menunggu Konfirmasi HR</option>
+                                                            @endunless
                                                             @foreach (['draft', 'submitted', 'approved', 'rejected', 'cancelled', 'completed'] as $st)
                                                                 <option value="{{ $st }}">{{ ucfirst($st) }}
                                                                 </option>
