@@ -462,35 +462,7 @@
                                             </form>
                                         @endif
 
-                                        @if (config('app.debug') && $doc->hasZoomItWoDebugState())
-                                            <form method="POST" action="{{ $resetZoomItWoRoute }}"
-                                                class="mt-2 confirm-submit"
-                                                data-confirm-message="DEBUG: Hapus IT WO di rest-server dan reset field Zoom di RCR ini?"
-                                                data-confirm-yes="Ya, reset IT WO"
-                                                data-confirm-icon="error">
-                                                @csrf
-                                                <button type="submit"
-                                                    class="btn btn-sm btn-danger btn-block rcr-zoom-reset-btn">
-                                                    <i class="fas fa-trash-alt mr-1"></i>
-                                                    Debug: Reset IT WO
-                                                </button>
-                                            </form>
-                                        @endif
-                                    </div>
-                                @elseif (config('app.debug') && $canManageZoomItWo && $doc->hasZoomItWoDebugState())
-                                    <div class="mt-3 pt-3 border-top">
-                                        <form method="POST" action="{{ $resetZoomItWoRoute }}"
-                                            class="confirm-submit"
-                                            data-confirm-message="DEBUG: Hapus IT WO di rest-server dan reset field Zoom di RCR ini?"
-                                            data-confirm-yes="Ya, reset IT WO"
-                                            data-confirm-icon="error">
-                                            @csrf
-                                            <button type="submit"
-                                                class="btn btn-sm btn-danger btn-block rcr-zoom-reset-btn">
-                                                <i class="fas fa-trash-alt mr-1"></i>
-                                                Debug: Reset IT WO
-                                            </button>
-                                        </form>
+                                        {{-- Debug Reset IT WO: hidden --}}
                                     </div>
                                 @endif
                             </div>

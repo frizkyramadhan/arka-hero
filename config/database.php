@@ -63,6 +63,26 @@ return [
             ]) : [],
         ],
 
+        /*
+        | IT Work Order DB (read-only Zoom availability fallback when rest-server
+        | does not yet expose /zoom-meeting-availability).
+        */
+        'it_wo' => [
+            'driver' => 'mysql',
+            'host' => env('IT_WO_DB_HOST', env('DB_HOST', '127.0.0.1')),
+            'port' => env('IT_WO_DB_PORT', env('DB_PORT', '3306')),
+            'database' => env('IT_WO_DB_DATABASE', 'it_wo'),
+            'username' => env('IT_WO_DB_USERNAME', env('DB_USERNAME', 'root')),
+            'password' => env('IT_WO_DB_PASSWORD', env('DB_PASSWORD', '')),
+            'unix_socket' => env('DB_SOCKET', ''),
+            'charset' => 'utf8mb4',
+            'collation' => 'utf8mb4_unicode_ci',
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'strict' => false,
+            'engine' => null,
+        ],
+
         'pgsql' => [
             'driver' => 'pgsql',
             'url' => env('DATABASE_URL'),

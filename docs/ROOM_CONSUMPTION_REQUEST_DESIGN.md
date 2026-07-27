@@ -179,7 +179,7 @@ Auth: `X-API-Key` (alias) **or** legacy `arka-key` + optional `X-Source: arka-he
 
 **GET** when done: `zoom_topic`, `zoom_meeting_id`, `zoom_join_url`, `zoom_passcode` (parsed from IT WO activity/komentar), `status` (`open`/`processing`/`done`/`cancelled`)
 
-**GET availability** (`/api/v1/zoom-meeting-availability?date=YYYY-MM-DD`): same logic as IT WO `Zoom_m::get_availability` + `zoom_build_availability` (accounts **131 / 132 / 134** → Available / Booked / Unavailable All Day + schedule). HERO form shows this panel when **Need Zoom Meeting ID** is checked (`GET room-consumption-requests/zoom-availability`).
+**GET availability** (`/api/v1/zoom-meeting-availability?date=YYYY-MM-DD` or `/api/v1/zoom-meeting-requests/availability?date=YYYY-MM-DD`): same logic as IT WO `Zoom_m::get_availability` + `zoom_build_availability` (accounts **131 / 132 / 134** → Available / Booked / Unavailable All Day + schedule). HERO form shows this panel when **Need Zoom Meeting ID** is checked (`GET room-consumption-requests/zoom-availability`). If the rest-server endpoint returns **404** (not deployed yet), HERO falls back to read-only query on local MySQL `it_wo` via `ZoomAvailabilityService`.
 
 **PUT** sync HERO approval → IT WO L1 / cancel:
 
