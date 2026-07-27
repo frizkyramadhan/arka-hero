@@ -2,6 +2,7 @@
 
 /**
  * Full Zoom room catalog per account (Admin reference).
+ * Synced from it-wo/application/helpers/zoom_parser_helper.php (without CI BASEPATH guard).
  */
 function zoom_room_catalog()
 {
@@ -340,6 +341,168 @@ function zoom_mask_spans($text, $spans)
 }
 
 /**
+ * Minutes since midnight for H:i, or null.
+ */
+function zoom_clock_to_minutes($clock)
+{
+	if (!is_string($clock) || !preg_match('/^(\d{2}):(\d{2})$/', $clock, $m)) {
+		return null;
+	}
+	return ((int) $m[1]) * 60 + (int) $m[2];
+}
+
+/**
+ * Pick display time from a WIB/WITA pair. Prefer WITA. Returns H:i or null.
+ */
+function zoom_pick_wita_from_pair($h1, $m1, $tz1, $h2, $m2, $tz2)
+{
+	$tz1 = strtoupper(trim((string) $tz1));
+	$tz2 = strtoupper(trim((string) $tz2));
+	if ($tz1 === '' || $tz2 === '' || $tz1 === $tz2) {
+		return null;
+	}
+	if (!in_array($tz1, array('WIB', 'WITA'), true) || !in_array($tz2, array('WIB', 'WITA'), true)) {
+		return null;
+	}
+	$t1 = zoom_normalize_clock($h1, $m1);
+	$t2 = zoom_normalize_clock($h2, $m2);
+	if ($t1 === null || $t2 === null) {
+		return null;
+	}
+	if ($tz1 === 'WITA') {
+		return $t1;
+	}
+	if ($tz2 === 'WITA') {
+		return $t2;
+	}
+	return null;
+}
+
+/**
+ * Extract WIB/WITA dual timezone clocks as one session each (prefer WITA).
+ * Runs before range/standalone so "14.30 WITA (13.30 WIB)" is not split into two times
+ * and "13.30 WIB - 14.30 WITA" is not treated as a duration range.
+ *
+ * @param string $text
+ * @param string $date
+ * @param string $date_source
+ * @param array $sessions
+ * @param array $spans
+ */
+function zoom_extract_wib_wita_duals($text, $date, $date_source, &$sessions, &$spans)
+{
+	$text = (string) $text;
+
+	// Labeled pairs:
+	// 14.30 WITA (13.30 WIB), 13.30 WIB / 14.30 WITA, 08:00 WIB - 09:00 WITA, 14.30 WITA 13.30 WIB
+	$dual_pattern = '/(\d{1,2})[.:](\d{2})\s*(WIB|WITA)\s*(?:[\/,\-–—(])?\s*(\d{1,2})[.:](\d{2})\s*(WIB|WITA)\s*\)?/iu';
+	if (preg_match_all($dual_pattern, $text, $tz, PREG_OFFSET_CAPTURE)) {
+		foreach ($tz[0] as $idx => $full) {
+			$t = zoom_pick_wita_from_pair(
+				$tz[1][$idx][0],
+				$tz[2][$idx][0],
+				$tz[3][$idx][0],
+				$tz[4][$idx][0],
+				$tz[5][$idx][0],
+				$tz[6][$idx][0]
+			);
+			if ($t === null) {
+				continue;
+			}
+			$sessions[] = array(
+				'date' => $date,
+				'time' => $t,
+				'time_end' => null,
+				'is_all_day' => false,
+				'date_source' => $date_source,
+			);
+			$spans[] = array($full[1], $full[1] + strlen($full[0]));
+		}
+	}
+
+	$masked = zoom_mask_spans($text, $spans);
+
+	// Heuristic: both WIB and WITA mentioned, two nearby clocks differ by 1 hour → timezone dual
+	if (!preg_match('/\bWIB\b/i', $masked) || !preg_match('/\bWITA\b/i', $masked)) {
+		return;
+	}
+
+	if (!preg_match_all('/(\d{1,2})[.:](\d{2})(?:\s*(WIB|WITA))?/iu', $masked, $all, PREG_OFFSET_CAPTURE)) {
+		return;
+	}
+
+	$count = count($all[0]);
+	$used = array();
+	for ($i = 0; $i < $count; $i++) {
+		if (isset($used[$i])) {
+			continue;
+		}
+		$slice = substr($masked, $all[0][$i][1], strlen($all[0][$i][0]));
+		if (trim($slice) === '') {
+			continue;
+		}
+		$t1 = zoom_normalize_clock($all[1][$i][0], $all[2][$i][0]);
+		if ($t1 === null) {
+			continue;
+		}
+		$tz1 = isset($all[3][$i][0]) ? strtoupper($all[3][$i][0]) : '';
+		$min1 = zoom_clock_to_minutes($t1);
+
+		for ($j = $i + 1; $j < $count; $j++) {
+			if (isset($used[$j])) {
+				continue;
+			}
+			$slice2 = substr($masked, $all[0][$j][1], strlen($all[0][$j][0]));
+			if (trim($slice2) === '') {
+				continue;
+			}
+			// Only pair clocks that sit close together (same dual phrase)
+			$gap = $all[0][$j][1] - ($all[0][$i][1] + strlen($all[0][$i][0]));
+			if ($gap < 0 || $gap > 40) {
+				continue;
+			}
+			$t2 = zoom_normalize_clock($all[1][$j][0], $all[2][$j][0]);
+			if ($t2 === null) {
+				continue;
+			}
+			$tz2 = isset($all[3][$j][0]) ? strtoupper($all[3][$j][0]) : '';
+			$min2 = zoom_clock_to_minutes($t2);
+			if ($min1 === null || $min2 === null || abs($min1 - $min2) !== 60) {
+				continue;
+			}
+			// Confirmed timezone offset (WIB↔WITA is +1 hour)
+			if ($tz1 !== '' && $tz2 !== '' && $tz1 === $tz2) {
+				continue;
+			}
+
+			$picked = null;
+			if ($tz1 === 'WITA') {
+				$picked = $t1;
+			} elseif ($tz2 === 'WITA') {
+				$picked = $t2;
+			} else {
+				// Unlabeled or only one label: WITA is the later local clock
+				$picked = ($min1 > $min2) ? $t1 : $t2;
+			}
+
+			$sessions[] = array(
+				'date' => $date,
+				'time' => $picked,
+				'time_end' => null,
+				'is_all_day' => false,
+				'date_source' => $date_source,
+			);
+			$from = $all[0][$i][1];
+			$to = $all[0][$j][1] + strlen($all[0][$j][0]);
+			$spans[] = array($from, $to);
+			$used[$i] = true;
+			$used[$j] = true;
+			break;
+		}
+	}
+}
+
+/**
  * Extract sessions from a text chunk belonging to one meeting date.
  *
  * @return array[] each: date, time, time_end, is_all_day, date_source
@@ -360,10 +523,18 @@ function zoom_parse_sessions_from_chunk($chunk, $date, $date_source = 'issue')
 		));
 	}
 
-	// 1) Time ranges: 09:00-14:00, 08.30 -12.00, jam 9 - jam 14, s/d, sampai, hingga, to
+	// 1) WIB / WITA dual timezone = one meeting; prefer WITA (before ranges)
+	zoom_extract_wib_wita_duals($chunk, $date, $date_source, $sessions, $spans);
+	$masked = zoom_mask_spans($chunk, $spans);
+
+	// 2) Time ranges: 09:00-14:00, 08.30 -12.00, jam 9 - jam 14, s/d, sampai, hingga, to
 	$range_pattern = '/(?:pukul|jam|pkl\.?)?\s*(\d{1,2})(?:[.:](\d{2}))?\s*(?:[-–—]|s\/d|sd\.?|sampai|hingga|to)\s*(?:pukul|jam|pkl\.?)?\s*(\d{1,2})(?:[.:](\d{2}))?/iu';
-	if (preg_match_all($range_pattern, $chunk, $rm, PREG_OFFSET_CAPTURE)) {
+	if (preg_match_all($range_pattern, $masked, $rm, PREG_OFFSET_CAPTURE)) {
 		foreach ($rm[0] as $idx => $full) {
+			$slice = substr($masked, $full[1], strlen($full[0]));
+			if (trim($slice) === '') {
+				continue;
+			}
 			$start = zoom_normalize_clock($rm[1][$idx][0], $rm[2][$idx][0] !== '' ? $rm[2][$idx][0] : 0);
 			$end = zoom_normalize_clock($rm[3][$idx][0], $rm[4][$idx][0] !== '' ? $rm[4][$idx][0] : 0);
 			if ($start === null || $end === null) {
@@ -382,49 +553,10 @@ function zoom_parse_sessions_from_chunk($chunk, $date, $date_source = 'issue')
 
 	$masked = zoom_mask_spans($chunk, $spans);
 
-	// 2) Explicit multi-session lines: Sesi 1 : 09.00 / Sesi 2 & 3 : 14.00
+	// 3) Explicit multi-session lines: Sesi 1 : 09.00 / Sesi 2 & 3 : 14.00
 	if (preg_match_all('/Sesi\s*\d+(?:\s*&\s*\d+)*\s*:\s*(\d{1,2})[.:](\d{2})/iu', $masked, $sm, PREG_OFFSET_CAPTURE)) {
 		foreach ($sm[0] as $idx => $full) {
 			$t = zoom_normalize_clock($sm[1][$idx][0], $sm[2][$idx][0]);
-			if ($t === null) {
-				continue;
-			}
-			$sessions[] = array(
-				'date' => $date,
-				'time' => $t,
-				'time_end' => null,
-				'is_all_day' => false,
-				'date_source' => $date_source,
-			);
-			$spans[] = array($full[1], $full[1] + strlen($full[0]));
-		}
-	}
-
-	$masked = zoom_mask_spans($chunk, $spans);
-
-	// 3) WIB / WITA dual timezone = one meeting; prefer WITA
-	if (preg_match_all('/(\d{1,2})[.:](\d{2})\s*WIB\s*[\/,]\s*(\d{1,2})[.:](\d{2})\s*WITA/iu', $masked, $tz, PREG_OFFSET_CAPTURE)) {
-		foreach ($tz[0] as $idx => $full) {
-			$t = zoom_normalize_clock($tz[3][$idx][0], $tz[4][$idx][0]); // WITA
-			if ($t === null) {
-				$t = zoom_normalize_clock($tz[1][$idx][0], $tz[2][$idx][0]);
-			}
-			if ($t === null) {
-				continue;
-			}
-			$sessions[] = array(
-				'date' => $date,
-				'time' => $t,
-				'time_end' => null,
-				'is_all_day' => false,
-				'date_source' => $date_source,
-			);
-			$spans[] = array($full[1], $full[1] + strlen($full[0]));
-		}
-	}
-	if (preg_match_all('/(\d{1,2})[.:](\d{2})\s*WITA\s*[\/,]\s*(\d{1,2})[.:](\d{2})\s*WIB/iu', $masked, $tz2, PREG_OFFSET_CAPTURE)) {
-		foreach ($tz2[0] as $idx => $full) {
-			$t = zoom_normalize_clock($tz2[1][$idx][0], $tz2[2][$idx][0]); // WITA first
 			if ($t === null) {
 				continue;
 			}
