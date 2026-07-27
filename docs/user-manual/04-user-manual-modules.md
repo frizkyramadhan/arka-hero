@@ -107,6 +107,16 @@
     - [3. Menyetujui banyak dokumen sekaligus — Bulk Approve](#bab-17-3-3-menyetujui-banyak-dokumen-sekaligus-bulk-approve)
     - [4. Panel status — Approval Status](#bab-17-4-4-panel-status-approval-status)
     - [Kesalahan & bantuan (end user)](#bab-17-5-kesalahan-bantuan-end-user)
+- **[Room & Consumption Management](#bab-19-room-consumption-management)**
+    - [Glosarium](#bab-19-1-glosarium)
+    - [1. Ringkasan Menu](#bab-19-2-1-ringkasan-menu)
+    - [2. Untuk pengelola — Dashboard](#bab-19-3-2-untuk-pengelola-dashboard)
+    - [3. Untuk pengelola — Requests](#bab-19-4-3-untuk-pengelola-requests)
+    - [4. Untuk pengelola — Reports](#bab-19-5-4-untuk-pengelola-reports)
+    - [5. Untuk karyawan — My Room & Consumption](#bab-19-6-5-untuk-karyawan-my-room-consumption)
+    - [6. Master Data — Meeting Rooms](#bab-19-7-6-master-data-meeting-rooms)
+    - [7. Prasyarat & referensi singkat](#bab-19-8-7-prasyarat-referensi-singkat)
+    - [8. Kesalahan & bantuan](#bab-19-9-8-kesalahan-bantuan)
 
 ---
 
