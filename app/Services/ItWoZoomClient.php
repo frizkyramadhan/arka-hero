@@ -298,50 +298,108 @@ class ItWoZoomClient
             return ['success' => false, 'message' => 'Invalid date format. Use YYYY-MM-DD.'];
         }
 
-        if ($this->isTrialMode()) {
-            return [
-                'success' => true,
-                'trial' => true,
-                'data' => [
-                    'date' => $date,
-                    'accounts' => $this->trialAvailabilityAccounts(),
-                ],
+        if (! $this->isTrialMode()) {
+            $base = rtrim((string) config('it_wo.base_url'), '/');
+            $paths = [
+                '/api/v1/zoom-meeting-availability',
+                '/api/v1/zoom-meeting-requests/availability',
             ];
-        }
+            $lastMessage = null;
 
-        $base = rtrim((string) config('it_wo.base_url'), '/');
+            foreach ($paths as $path) {
+                try {
+                    $response = Http::withHeaders($this->headers())
+                        ->timeout(30)
+                        ->acceptJson()
+                        ->get($base.$path, ['date' => $date]);
 
-        try {
-            $response = Http::withHeaders($this->headers())
-                ->timeout(30)
-                ->get($base.'/api/v1/zoom-meeting-availability', ['date' => $date]);
+                    $body = $response->json() ?? [];
 
-            $body = $response->json() ?? [];
+                    if ($response->successful() && ($body['success'] ?? false)) {
+                        return [
+                            'success' => true,
+                            'source' => 'api',
+                            'data' => $body['data'] ?? [],
+                        ];
+                    }
 
-            if ($response->successful() && ($body['success'] ?? false)) {
-                return [
-                    'success' => true,
-                    'data' => $body['data'] ?? [],
-                ];
+                    if ($response->status() === 404) {
+                        $lastMessage = 'Zoom availability API not found (HTTP 404) at '.$base.$path;
+                        continue;
+                    }
+
+                    $lastMessage = $this->extractErrorMessage($body, $response->status());
+                } catch (\Throwable $e) {
+                    Log::warning('IT WO Zoom availability API failed', [
+                        'date' => $date,
+                        'path' => $path,
+                        'error' => $e->getMessage(),
+                    ]);
+                    $lastMessage = 'IT WO connection failed: '.$e->getMessage();
+                }
+            }
+
+            $local = $this->getZoomAvailabilityFromLocalDb($date);
+            if ($local['success'] ?? false) {
+                Log::info('IT WO Zoom availability served from local it_wo DB fallback', [
+                    'date' => $date,
+                    'api_message' => $lastMessage,
+                ]);
+
+                return $local;
             }
 
             return [
                 'success' => false,
-                'message' => $this->extractErrorMessage($body, $response->status()),
+                'message' => $lastMessage
+                    ?? 'Failed to load Zoom availability from IT WO API and local database.',
+            ];
+        }
+
+        $local = $this->getZoomAvailabilityFromLocalDb($date);
+        if ($local['success'] ?? false) {
+            return $local;
+        }
+
+        return [
+            'success' => true,
+            'trial' => true,
+            'source' => 'trial',
+            'data' => [
+                'date' => $date,
+                'accounts' => $this->trialAvailabilityAccounts(),
+            ],
+        ];
+    }
+
+    /**
+     * @return array{success: bool, data?: array<string, mixed>, message?: string, source?: string}
+     */
+    private function getZoomAvailabilityFromLocalDb(string $date): array
+    {
+        try {
+            $service = app(\App\Support\Zoom\ZoomAvailabilityService::class);
+            if (! $service->isAvailable()) {
+                return ['success' => false, 'message' => 'Local it_wo database is not reachable.'];
+            }
+
+            return [
+                'success' => true,
+                'source' => 'local_db',
+                'data' => $service->getAvailability($date),
             ];
         } catch (\Throwable $e) {
-            Log::error('IT WO Zoom availability exception', [
+            Log::warning('IT WO Zoom local DB availability failed', [
                 'date' => $date,
                 'error' => $e->getMessage(),
             ]);
 
             return [
                 'success' => false,
-                'message' => 'IT WO connection failed: '.$e->getMessage(),
+                'message' => 'Local it_wo availability failed: '.$e->getMessage(),
             ];
         }
     }
-
     /**
      * @return array{success: bool, data?: array<string, mixed>, message?: string, trial?: bool}
      */
