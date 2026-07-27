@@ -78,6 +78,20 @@
 
     <section class="content">
         <div class="container-fluid">
+            @if (!empty($isPersonalRegMode))
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle mr-2"></i>
+                    This request will be sent to HR. The official RCR Letter Number and Registration Number will be assigned
+                    by HR after confirmation.
+                </div>
+            @elseif ($doc && $doc->isPendingHr())
+                <div class="alert alert-warning">
+                    <i class="fas fa-user-clock mr-2"></i>
+                    Submitted by employee ({{ $doc->request_number }}). Please select the <strong>RCR Letter Number</strong>
+                    and approver, then save to confirm.
+                </div>
+            @endif
+
             <form action="{{ $formAction }}" method="POST" id="rcr-form">
                 @csrf
                 @if ($method === 'PUT')
@@ -87,9 +101,11 @@
                 <div class="row">
                     {{-- Left Column --}}
                     <div class="col-md-8">
-                        {{-- Letter Number: selectable on create & draft edit; locked after submit --}}
+                        {{-- Letter Number: admin / HR confirm; not on employee My Request (REQxxxxx) --}}
                         @php
-                            $canPickLetter = ! $doc || ($doc->status === \App\Models\RoomConsumptionRequest::STATUS_DRAFT);
+                            $canPickLetter =
+                                empty($isPersonalRegMode) &&
+                                (!$doc || $doc->status === \App\Models\RoomConsumptionRequest::STATUS_DRAFT);
                         @endphp
                         @if ($canPickLetter)
                             <div class="card card-info card-outline elevation-2">
@@ -103,20 +119,13 @@
                                     @include('components.smart-letter-number-selector', [
                                         'categoryCode' => 'RCR',
                                         'required' => false,
-                                        'selectedValue' => old(
-                                            'letter_number_id',
-                                            $doc->letter_number_id ?? null
-                                        ),
+                                        'selectedValue' => old('letter_number_id', $doc?->letter_number_id),
                                     ])
-                                    <small class="form-text text-muted mb-0">
-                                        Sama seperti LOT/FPTK: begitu letter number dipilih &amp; disimpan
-                                        (termasuk draft), status otomatis <strong>used</strong> di Letter Administration.
-                                    </small>
                                 </div>
                             </div>
                         @else
                             <input type="hidden" name="letter_number_id"
-                                value="{{ old('letter_number_id', $doc->letter_number_id) }}">
+                                value="{{ old('letter_number_id', $doc?->letter_number_id) }}">
                         @endif
 
                         {{-- Meeting Information --}}
@@ -137,12 +146,18 @@
                                                     <span class="input-group-text"><i class="fas fa-hashtag"></i></span>
                                                 </div>
                                                 <input type="text" id="request_number_preview"
-                                                    class="form-control {{ $doc && $doc->request_number ? 'alert-success' : 'alert-warning' }}"
+                                                    class="form-control {{ $doc && $doc->request_number && !$doc->usesTemporaryRegNumber() ? 'alert-success' : 'alert-warning' }}"
                                                     readonly
-                                                    value="{{ old('request_number', $doc->request_number ?? '') }}"
-                                                    placeholder="{{ $doc ? '—' : 'Select Letter Number to Generate Reg. No' }}">
+                                                    value="{{ old('request_number', $doc->request_number ?? ($previewRegNumber ?? '')) }}"
+                                                    placeholder="{{ !empty($isPersonalRegMode) ? $previewRegNumber ?? 'REQxxxxx' : ($doc ? '—' : 'Select Letter Number to Generate Reg. No') }}">
                                             </div>
-                                            @if (!$doc)
+                                            @if (!empty($isPersonalRegMode))
+                                                <small class="form-text text-muted">
+                                                    <i class="fas fa-info-circle"></i>
+                                                    Request number (assigned on submit; may change if submitted
+                                                    concurrently).
+                                                </small>
+                                            @elseif (!$doc)
                                                 <small class="form-text text-muted">
                                                     <i class="fas fa-info-circle"></i>
                                                     Reg. No will be auto-generated when you select a letter number above
@@ -356,8 +371,15 @@
                                         </label>
                                     </div>
                                     <small class="form-text text-muted">
-                                        Setelah request di-submit (bukan draft), sistem otomatis akan membuat <b>IT Work Order</b>.
-                                        Meeting ID akan muncul di halaman detail (atau hubungi IT HO Balikpapan).
+                                        @if (!empty($isPersonalRegMode))
+                                            Centang jika butuh Zoom. <b>IT Work Order</b> baru dibuat setelah HR
+                                            mengonfirmasi (letter + approver) dan request di-<b>Submit for Approval</b>
+                                            (status <b>Submitted</b>). Saat <b>Submit to HR</b>, WO belum dibuat.
+                                        @else
+                                            Setelah request di-submit untuk approval (bukan draft), sistem otomatis
+                                            membuat <b>IT Work Order</b>. Meeting ID muncul di halaman detail (atau
+                                            hubungi IT HO Balikpapan).
+                                        @endif
                                     </small>
                                 </div>
 
@@ -373,7 +395,8 @@
                                         <div class="card-body p-2">
                                             <div class="form-inline mb-2">
                                                 <label for="zoom_check_date" class="mr-2 mb-0">Date</label>
-                                                <input type="date" id="zoom_check_date" class="form-control form-control-sm mr-2"
+                                                <input type="date" id="zoom_check_date"
+                                                    class="form-control form-control-sm mr-2"
                                                     value="{{ old('meeting_date', optional($doc->meeting_date ?? null)->format('Y-m-d') ?: date('Y-m-d')) }}">
                                                 <button type="button" id="btn-check-zoom-availability"
                                                     class="btn btn-sm btn-primary">
@@ -383,9 +406,11 @@
                                             <div id="zoom-availability-loading" class="text-muted small d-none">
                                                 <i class="fas fa-spinner fa-spin"></i> Loading availability…
                                             </div>
-                                            <div id="zoom-availability-error" class="alert alert-warning py-1 px-2 mb-2 d-none small"></div>
+                                            <div id="zoom-availability-error"
+                                                class="alert alert-warning py-1 px-2 mb-2 d-none small"></div>
                                             <div class="table-responsive">
-                                                <table class="table table-bordered table-sm table-striped mb-0" id="zoom-availability-table">
+                                                <table class="table table-bordered table-sm table-striped mb-0"
+                                                    id="zoom-availability-table">
                                                     <thead>
                                                         <tr>
                                                             <th width="12%">Account</th>
@@ -415,41 +440,53 @@
                         </div>
 
                         {{-- Approvers --}}
-                        <div class="card card-info card-outline elevation-2">
-                            <div class="card-header py-2">
-                                <h3 class="card-title">
-                                    <i class="fas fa-users mr-2"></i>
-                                    <strong>Approver Selection</strong>
-                                </h3>
+                        @unless (!empty($isPersonalRegMode))
+                            <div class="card card-info card-outline elevation-2">
+                                <div class="card-header py-2">
+                                    <h3 class="card-title">
+                                        <i class="fas fa-users mr-2"></i>
+                                        <strong>Approver Selection</strong>
+                                    </h3>
+                                </div>
+                                <div class="card-body py-2">
+                                    @include('components.manual-approver-selector', [
+                                        'selectedApprovers' => old(
+                                            'manual_approvers',
+                                            $doc?->manual_approvers ?? []),
+                                        'required' => false,
+                                        'multiple' => true,
+                                        'documentType' => 'room_consumption_request',
+                                    ])
+                                </div>
                             </div>
-                            <div class="card-body py-2">
-                                @include('components.manual-approver-selector', [
-                                    'selectedApprovers' => old('manual_approvers', $doc->manual_approvers ?? []),
-                                    'required' => false,
-                                    'multiple' => true,
-                                    'documentType' => 'room_consumption_request',
-                                ])
-                            </div>
-                        </div>
+                        @endunless
 
                         {{-- Actions --}}
                         <div class="card elevation-3">
                             <div class="card-body">
-                                <div class="row mb-2">
-                                    <div class="col-md-6 mb-2 mb-md-0">
-                                        <button type="submit" name="submit_action" value="draft"
-                                            class="btn btn-warning btn-block">
-                                            <i class="fas fa-save mr-2"></i> Save as Draft
-                                        </button>
+                                @if (!empty($isPersonalRegMode))
+                                    <button type="submit" name="submit_action" value="draft"
+                                        class="btn btn-success btn-block">
+                                        <i class="fas {{ $doc ? 'fa-save' : 'fa-paper-plane' }} mr-2"></i>
+                                        {{ $doc ? 'Save Changes' : 'Submit to HR' }}
+                                    </button>
+                                @else
+                                    <div class="row mb-2">
+                                        <div class="col-md-6 mb-2 mb-md-0">
+                                            <button type="submit" name="submit_action" value="draft"
+                                                class="btn btn-warning btn-block">
+                                                <i class="fas fa-save mr-2"></i> Save as Draft
+                                            </button>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <button type="submit" name="submit_action" value="submit"
+                                                class="btn btn-success btn-block"
+                                                onclick="return confirm('Submit this request for approval?')">
+                                                <i class="fas fa-paper-plane mr-2"></i> Save &amp; Submit
+                                            </button>
+                                        </div>
                                     </div>
-                                    <div class="col-md-6">
-                                        <button type="submit" name="submit_action" value="submit"
-                                            class="btn btn-success btn-block"
-                                            onclick="return confirm('Submit this request for approval?')">
-                                            <i class="fas fa-paper-plane mr-2"></i> Save &amp; Submit
-                                        </button>
-                                    </div>
-                                </div>
+                                @endif
                                 <a href="{{ $cancelRoute }}" class="btn btn-secondary btn-block">
                                     <i class="fas fa-times-circle mr-2"></i> Cancel
                                 </a>
@@ -516,15 +553,22 @@
 
             const isEdit = @json((bool) $doc);
 
+            const isPersonalRegMode = @json(!empty($isPersonalRegMode));
+            const isPendingHrEdit = @json((bool) ($doc && $doc->isPendingHr() && empty($isPersonalRegMode)));
+
             function updatePreview() {
-                if (isEdit) {
+                if (isPersonalRegMode) {
+                    return;
+                }
+                // On normal edit (non pending_hr), keep existing Reg. No
+                if (isEdit && !isPendingHrEdit) {
                     return;
                 }
 
                 const $preview = $('#request_number_preview');
                 const $option = $('select[name="letter_number_id"] option:selected');
                 const letterData = getLetterDataFromOption($option);
-                const existingRegNo = @json(old('request_number', $doc->request_number ?? ''));
+                const existingRegNo = @json(old('request_number', $doc?->request_number ?? ''));
 
                 if (!$option.val()) {
                     $preview.val(existingRegNo || '').removeClass('alert-success').addClass('alert-warning');
@@ -547,9 +591,11 @@
                 const projectCode = (letterData.project_code && String(letterData.project_code).trim()) ?
                     String(letterData.project_code).trim() :
                     '000H';
-                const now = new Date();
-                const roman = romanMap[now.getMonth() + 1] || '';
-                const year = now.getFullYear();
+                // Use meeting date if available, otherwise current date
+                const meetingDateVal = $('#meeting_date').val();
+                const dateObj = meetingDateVal ? new Date(meetingDateVal + 'T00:00:00') : new Date();
+                const roman = romanMap[dateObj.getMonth() + 1] || '';
+                const year = dateObj.getFullYear();
                 const regNo = pad4(parsed) + '/HCS-' + projectCode + '/RCR/' + roman + '/' + year;
 
                 $preview.val(regNo).removeClass('alert-warning').addClass('alert-success');
@@ -602,13 +648,20 @@
             $(document).on('letter-number-options:updated', updatePreview);
 
             const initialProject = $('#project_id').val();
-            const initialRoom = @json(old('meeting_room_id', $doc->meeting_room_id ?? null));
+            const initialRoom = @json(old('meeting_room_id', $doc?->meeting_room_id));
             if (initialProject) {
                 loadRooms(initialProject, initialRoom);
             }
-            if (!isEdit) {
+            if (!isEdit || isPendingHrEdit) {
                 updatePreview();
             }
+
+            // Update Reg. No preview when meeting date changes (roman month)
+            $('#meeting_date').on('change', function() {
+                if (!isPersonalRegMode) {
+                    updatePreview();
+                }
+            });
 
             // Zoom Meeting ID Availability (same source as IT WO)
             const zoomAvailabilityUrl = @json(route('room-consumption-requests.zoom-availability'));
@@ -646,11 +699,11 @@
                         badge = 'warning';
                     }
 
-                    let roomHtml = roomNames.length
-                        ? '<ul class="mb-0 pl-3">' + roomNames.map(function(n) {
+                    let roomHtml = roomNames.length ?
+                        '<ul class="mb-0 pl-3">' + roomNames.map(function(n) {
                             return '<li>' + escapeHtml(n) + '</li>';
-                        }).join('') + '</ul>'
-                        : '<em class="text-muted">-</em>';
+                        }).join('') + '</ul>' :
+                        '<em class="text-muted">-</em>';
 
                     let scheduleHtml = '';
                     if (status === 'available') {

@@ -226,6 +226,11 @@
                             <i class="fas fa-arrow-left"></i> {{ $fromPersonal ? 'Back to my list' : 'Back to list' }}
                         </a>
 
+                        <a href="{{ $fromPersonal ? route('overtime.my-requests.print', $overtimeRequest) : route('overtime.requests.print', $overtimeRequest) }}"
+                            class="btn-action print-btn" target="_blank">
+                            <i class="fas fa-print"></i> Print
+                        </a>
+
                         @if ($canEdit)
                             <a href="{{ $fromPersonal ? route('overtime.my-requests.edit', $overtimeRequest) : route('overtime.requests.edit', $overtimeRequest) }}"
                                 class="btn-action edit-btn">

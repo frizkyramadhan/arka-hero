@@ -15,6 +15,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Database\QueryException;
 use Illuminate\Validation\Rule;
 
 class RoomConsumptionRequestController extends Controller
@@ -321,6 +322,10 @@ class RoomConsumptionRequestController extends Controller
     public function myRequestsEdit(RoomConsumptionRequest $roomConsumptionRequest)
     {
         $this->authorizeView($roomConsumptionRequest, true);
+        if (! $roomConsumptionRequest->isPendingHr()) {
+            return redirect()->route('room-consumption-requests.my-requests.show', $roomConsumptionRequest)
+                ->with('toast_error', 'Pengajuan ini sudah dikonfirmasi HR. Tidak dapat diedit.');
+        }
         if (! $roomConsumptionRequest->canBeEditedBy(Auth::user())) {
             abort(403);
         }
@@ -331,6 +336,10 @@ class RoomConsumptionRequestController extends Controller
     public function myRequestsUpdate(Request $request, RoomConsumptionRequest $roomConsumptionRequest)
     {
         $this->authorizeView($roomConsumptionRequest, true);
+        if (! $roomConsumptionRequest->isPendingHr()) {
+            return redirect()->route('room-consumption-requests.my-requests.show', $roomConsumptionRequest)
+                ->with('toast_error', 'Pengajuan ini sudah dikonfirmasi HR. Tidak dapat diedit.');
+        }
         if (! $roomConsumptionRequest->canBeEditedBy(Auth::user())) {
             abort(403);
         }
@@ -416,13 +425,19 @@ class RoomConsumptionRequestController extends Controller
 
         return view('room-consumption-requests.form', [
             'title' => $isPersonal ? 'My Room & Consumption Request' : 'Room & Consumption Request',
-            'subtitle' => $doc ? 'Edit Room & Consumption Request' : 'Create Room & Consumption Request',
+            'subtitle' => $doc
+                ? 'Edit Room & Consumption Request'
+                : ($isPersonal ? 'Create My Room & Consumption Request' : 'Create Room & Consumption Request'),
             'doc' => $doc,
             'projects' => $projects,
             'departments' => $departments,
             'rooms' => $rooms,
             'consumption' => $consumption,
             'isPersonal' => $isPersonal,
+            'isPersonalRegMode' => $isPersonal && (! $doc || $doc->isPendingHr()),
+            'previewRegNumber' => ($isPersonal && ! $doc)
+                ? 'REQ'.sprintf('%05d', $this->maxSubmittedByUserReqSequence() + 1)
+                : null,
             'formAction' => $this->formAction($doc, $isPersonal),
             'method' => $doc ? 'PUT' : 'POST',
             'cancelRoute' => $isPersonal
@@ -463,19 +478,57 @@ class RoomConsumptionRequestController extends Controller
             ? RoomConsumptionRequest::STATUS_SUBMITTED
             : RoomConsumptionRequest::STATUS_DRAFT;
 
-        if ($submit && empty($manualApprovers)) {
+        $personalRegFlow = $isPersonal && (! $doc || $doc->isPendingHr());
+        $hrConfirmPending = ! $isPersonal && $doc && $doc->isPendingHr();
+
+        if ($personalRegFlow && $submit) {
+            return back()->withInput()->with(
+                'toast_error',
+                'Pengajuan menunggu konfirmasi HR. Nomor surat RCR akan diassign oleh HR sebelum submit approval.'
+            );
+        }
+
+        if ($submit && empty($manualApprovers) && ! $personalRegFlow) {
             return back()->withInput()->with('toast_error', 'Please select at least one approver before submitting.');
         }
 
-        if ($submit && empty($data['letter_number_id'])) {
+        if ($submit && empty($data['letter_number_id']) && ! $personalRegFlow) {
             return back()->withInput()->with('toast_error', 'Please select a letter number (RCR) before submitting.');
+        }
+
+        if ($hrConfirmPending && empty($data['letter_number_id'])) {
+            return back()->withInput()->with('toast_error', 'Pilih nomor surat RCR untuk mengonfirmasi pengajuan karyawan.');
+        }
+
+        if ($hrConfirmPending && empty($manualApprovers)) {
+            return back()->withInput()->with('toast_error', 'Pilih minimal satu approver untuk pengajuan karyawan.');
         }
 
         $project = Project::findOrFail($data['project_id']);
         $letterNumberString = null;
         $requestNumber = null;
+        $clearSubmittedByUser = false;
 
-        if (! empty($data['letter_number_id'])) {
+        if ($hrConfirmPending && ! empty($data['letter_number_id'])) {
+            $letter = LetterNumber::findOrFail($data['letter_number_id']);
+            if ($letter->status !== 'reserved') {
+                return back()->withInput()->with('toast_error', 'Selected letter number is not available.');
+            }
+            $letterNumberString = $letter->letter_number;
+            $letterProjectCode = $letter->project?->project_code
+                ?? $letter->project_code
+                ?? $project->project_code
+                ?? '000H';
+            $requestNumber = RoomConsumptionRequest::formatRequestNumber(
+                $letterNumberString,
+                $letterProjectCode,
+                $data['meeting_date']
+            );
+            if (RoomConsumptionRequest::where('request_number', $requestNumber)->where('id', '!=', $doc->id)->exists()) {
+                return back()->withInput()->with('toast_error', 'Reg. No dari surat ini sudah digunakan: '.$requestNumber);
+            }
+            $clearSubmittedByUser = true;
+        } elseif (! $personalRegFlow && ! empty($data['letter_number_id'])) {
             $letter = LetterNumber::findOrFail($data['letter_number_id']);
             if ($doc && (int) $doc->letter_number_id === (int) $letter->id) {
                 $letterNumberString = $letter->letter_number;
@@ -490,7 +543,7 @@ class RoomConsumptionRequestController extends Controller
             $requestNumber = RoomConsumptionRequest::formatRequestNumber(
                 $letterNumberString,
                 $letterProjectCode,
-                now()
+                $data['meeting_date']
             );
         }
 
@@ -532,10 +585,13 @@ class RoomConsumptionRequestController extends Controller
             if ($letterNumberString) {
                 $payload['letter_number_id'] = $data['letter_number_id'];
                 $payload['letter_number'] = $letterNumberString;
-                // Keep existing Reg. No on edit; generate only when creating or still empty
-                if (! $doc || empty($doc->request_number)) {
+                if ($requestNumber && (! $doc || empty($doc->request_number) || $doc->usesTemporaryRegNumber() || $hrConfirmPending)) {
                     $payload['request_number'] = $requestNumber;
                 }
+            }
+
+            if ($clearSubmittedByUser) {
+                $payload['submitted_by_user'] = false;
             }
 
             if ($submit) {
@@ -544,7 +600,38 @@ class RoomConsumptionRequestController extends Controller
 
             $previousLetterId = $doc?->letter_number_id ? (int) $doc->letter_number_id : null;
 
-            if ($doc) {
+            if ($personalRegFlow && ! $doc) {
+                $lockHeld = $this->acquireRcrRegSequenceLock();
+                if (DB::connection()->getDriverName() === 'mysql' && ! $lockHeld) {
+                    throw new \RuntimeException('Sistem sedang sibuk. Silakan coba lagi sebentar.');
+                }
+                try {
+                    $model = null;
+                    for ($attempt = 0; $attempt < 25; $attempt++) {
+                        $regNumber = $this->allocateNextSubmittedByUserReqNumber();
+                        $payload['request_number'] = $regNumber;
+                        $payload['submitted_by_user'] = true;
+                        $payload['requested_by'] = Auth::id();
+                        try {
+                            $model = RoomConsumptionRequest::create($payload);
+                            break;
+                        } catch (QueryException $e) {
+                            $isDuplicate = (int) ($e->errorInfo[1] ?? 0) === 1062
+                                || str_contains($e->getMessage(), 'Duplicate entry');
+                            if (! $isDuplicate || $attempt === 24) {
+                                throw $e;
+                            }
+                        }
+                    }
+                    if (! $model) {
+                        throw new \RuntimeException('Tidak dapat menghasilkan nomor REQ unik.');
+                    }
+                } finally {
+                    if (! empty($lockHeld)) {
+                        $this->releaseRcrRegSequenceLock();
+                    }
+                }
+            } elseif ($doc) {
                 $doc->update($payload);
                 $model = $doc->fresh();
             } else {
@@ -585,9 +672,22 @@ class RoomConsumptionRequestController extends Controller
                 ? route('room-consumption-requests.my-requests.show', $model)
                 : route('room-consumption-requests.show', $model);
 
-            return redirect($redirect)->with('toast_success', $submit
-                ? 'Request submitted for approval.'
-                : 'Draft saved.');
+            if ($personalRegFlow && ! $submit) {
+                if (! $doc) {
+                    $redirect = route('room-consumption-requests.my-requests');
+                    $message = 'Pengajuan Room & Consumption berhasil dikirim. Menunggu konfirmasi HR untuk penetapan nomor surat RCR.';
+                } else {
+                    $message = 'Pengajuan berhasil diperbarui.';
+                }
+            } elseif ($hrConfirmPending && $letterNumberString) {
+                $message = 'Pengajuan karyawan dikonfirmasi. Reg. No resmi dan approver telah disimpan.';
+            } else {
+                $message = $submit
+                    ? 'Request submitted for approval.'
+                    : 'Draft saved.';
+            }
+
+            return redirect($redirect)->with('toast_success', $message);
         } catch (\Throwable $e) {
             DB::rollBack();
 
@@ -606,6 +706,10 @@ class RoomConsumptionRequestController extends Controller
             return back()->with('toast_error', 'Please select at least one approver.');
         }
         if (! $model->letter_number_id) {
+            if ($model->isPendingHr()) {
+                return back()->with('toast_error', 'Menunggu konfirmasi HR untuk nomor surat RCR sebelum submit approval.');
+            }
+
             return back()->with('toast_error', 'Please select a letter number (RCR) before submitting.');
         }
 
@@ -635,7 +739,7 @@ class RoomConsumptionRequestController extends Controller
                 $model->request_number = RoomConsumptionRequest::formatRequestNumber(
                     $model->letter_number,
                     $letterProjectCode,
-                    now()
+                    $model->meeting_date
                 );
             }
 
@@ -766,7 +870,13 @@ class RoomConsumptionRequestController extends Controller
             $query->where('project_id', $request->project_id);
         }
         if ($request->filled('status')) {
-            $query->where('status', $request->status);
+            if ($request->status === 'pending_hr') {
+                $query->where('submitted_by_user', true)
+                    ->whereNull('letter_number_id')
+                    ->where('status', RoomConsumptionRequest::STATUS_DRAFT);
+            } else {
+                $query->where('status', $request->status);
+            }
         }
         if ($request->filled('date_from')) {
             $query->whereDate('meeting_date', '>=', $request->date_from);
@@ -808,7 +918,7 @@ class RoomConsumptionRequestController extends Controller
 
                 return e(trim("{$s} - {$e}", ' -'));
             })
-            ->addColumn('status_badge', fn ($row) => $this->statusBadgeHtml($row->status))
+            ->addColumn('status_badge', fn ($row) => $this->statusBadgeHtml($row))
             ->addColumn('requester', fn ($row) => e($row->requestedBy->name ?? '—'))
             ->addColumn('actions', function ($row) use ($isPersonal) {
                 return $this->actionsHtml($row, $isPersonal);
@@ -834,15 +944,19 @@ class RoomConsumptionRequestController extends Controller
 
         $html = '<div class="btn-group">';
         $html .= '<a href="'.$show.'" class="btn btn-sm btn-info mr-1" title="View"><i class="fas fa-eye"></i></a>';
-        if ($row->canBeEditedBy(Auth::user())) {
+        if ($isPersonal) {
+            if ($row->isPendingHr() && (int) $row->requested_by === (int) Auth::id()) {
+                $html .= '<a href="'.$edit.'" class="btn btn-sm btn-warning mr-1" title="Edit"><i class="fas fa-edit"></i></a>';
+            }
+        } elseif ($row->canBeEditedBy(Auth::user())) {
             $html .= '<a href="'.$edit.'" class="btn btn-sm btn-warning mr-1" title="Edit"><i class="fas fa-edit"></i></a>';
         }
-        if ($row->canSubmitForApproval() && $row->canBeEditedBy(Auth::user())) {
+        if (! $isPersonal && $row->canSubmitForApproval() && $row->canBeEditedBy(Auth::user()) && ! $row->isPendingHr()) {
             $html .= '<form method="POST" action="'.$submit.'" class="d-inline mr-1" onsubmit="return confirm(\'Submit for approval?\');">'
                 .csrf_field()
                 .'<button type="submit" class="btn btn-sm btn-success" title="Submit"><i class="fas fa-paper-plane"></i></button></form>';
         }
-        if ($row->canBeDeletedBy(Auth::user())) {
+        if (! $isPersonal && $row->canBeDeletedBy(Auth::user())) {
             $html .= '<form method="POST" action="'.$destroy.'" class="d-inline" onsubmit="return confirm(\'Delete this request?\');">'
                 .csrf_field().method_field('DELETE')
                 .'<button type="submit" class="btn btn-sm btn-danger" title="Delete"><i class="fas fa-trash"></i></button></form>';
@@ -852,8 +966,13 @@ class RoomConsumptionRequestController extends Controller
         return $html;
     }
 
-    private function statusBadgeHtml(string $status): string
+    private function statusBadgeHtml(RoomConsumptionRequest $row): string
     {
+        if ($row->isPendingHr()) {
+            return '<span class="badge badge-warning">Menunggu Konfirmasi HR</span>';
+        }
+
+        $status = $row->status;
         $map = [
             'draft' => 'secondary',
             'submitted' => 'info',
@@ -1086,5 +1205,51 @@ class RoomConsumptionRequestController extends Controller
             'toast_success',
             'Debug: state IT WO direset'.$deleteNote.'. Silakan Request Zoom via IT WO ulang.'
         );
+    }
+
+    private function maxSubmittedByUserReqSequence(): int
+    {
+        $maxSeq = 0;
+        $numbers = RoomConsumptionRequest::where('submitted_by_user', true)
+            ->where('request_number', 'like', 'REQ%')
+            ->pluck('request_number');
+        foreach ($numbers as $num) {
+            if (preg_match('/^REQ(\d+)$/', (string) $num, $m)) {
+                $maxSeq = max($maxSeq, (int) $m[1]);
+            }
+        }
+
+        return $maxSeq;
+    }
+
+    private function allocateNextSubmittedByUserReqNumber(): string
+    {
+        $sequence = $this->maxSubmittedByUserReqSequence() + 1;
+        for ($attempt = 0; $attempt < 100; $attempt++, $sequence++) {
+            $regNumber = 'REQ'.sprintf('%05d', $sequence);
+            if (! RoomConsumptionRequest::where('request_number', $regNumber)->exists()) {
+                return $regNumber;
+            }
+        }
+
+        throw new \RuntimeException('Tidak dapat menghasilkan nomor REQ unik.');
+    }
+
+    private function acquireRcrRegSequenceLock(): bool
+    {
+        if (DB::connection()->getDriverName() !== 'mysql') {
+            return false;
+        }
+        $row = DB::selectOne('SELECT GET_LOCK(?, 30) AS acquired', ['rcr_submitted_by_user_reg_seq']);
+
+        return $row && (int) $row->acquired === 1;
+    }
+
+    private function releaseRcrRegSequenceLock(): void
+    {
+        if (DB::connection()->getDriverName() !== 'mysql') {
+            return;
+        }
+        DB::selectOne('SELECT RELEASE_LOCK(?) AS released', ['rcr_submitted_by_user_reg_seq']);
     }
 }

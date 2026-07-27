@@ -245,6 +245,14 @@
         color: white;
     }
 
+    .print-btn {
+        background-color: #28a745;
+    }
+
+    .print-btn:hover {
+        color: white;
+    }
+
     .delete-btn {
         background-color: #e74c3c;
     }
