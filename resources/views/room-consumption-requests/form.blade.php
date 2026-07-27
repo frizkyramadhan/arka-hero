@@ -87,8 +87,11 @@
                 <div class="row">
                     {{-- Left Column --}}
                     <div class="col-md-8">
-                        {{-- Letter Number (create only) --}}
-                        @if (!$doc)
+                        {{-- Letter Number: selectable on create & draft edit; locked after submit --}}
+                        @php
+                            $canPickLetter = ! $doc || ($doc->status === \App\Models\RoomConsumptionRequest::STATUS_DRAFT);
+                        @endphp
+                        @if ($canPickLetter)
                             <div class="card card-info card-outline elevation-2">
                                 <div class="card-header py-2">
                                     <h3 class="card-title">
@@ -100,8 +103,15 @@
                                     @include('components.smart-letter-number-selector', [
                                         'categoryCode' => 'RCR',
                                         'required' => false,
-                                        'selectedValue' => old('letter_number_id'),
+                                        'selectedValue' => old(
+                                            'letter_number_id',
+                                            $doc->letter_number_id ?? null
+                                        ),
                                     ])
+                                    <small class="form-text text-muted mb-0">
+                                        Sama seperti LOT/FPTK: begitu letter number dipilih &amp; disimpan
+                                        (termasuk draft), status otomatis <strong>used</strong> di Letter Administration.
+                                    </small>
                                 </div>
                             </div>
                         @else

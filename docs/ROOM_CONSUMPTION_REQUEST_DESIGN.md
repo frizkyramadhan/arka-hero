@@ -13,6 +13,7 @@
 | Approval | `manual_approvers` + `create_manual_approval_plan('room_consumption_request', $id)` |
 | Letter category | **RCR** — created manually in Letter Administration (not seeded) |
 | Reg. No | `{seq}/HCS-{projectCode}/RCR/{romanMonth}/{year}` e.g. `0001/HCS-000H/RCR/I/2026` |
+| Letter on save | Same as LOT/FPTK: reserved RCR letter is **auto-marked `used`** when attached (draft or submit). `related_document_type=room_consumption_request` |
 | Room location | `meeting_rooms.project_id` → `project_code` |
 | Zoom / IT WO | Phase 2 — CI3 API at `http://192.168.32.37/arka-rest-server`; cat **8** / subcat **35**; details in `wo.issue`; no ALTER `wo` |
 
