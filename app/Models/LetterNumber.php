@@ -71,11 +71,16 @@ class LetterNumber extends Model
         switch ($this->related_document_type) {
             case 'officialtravel':
                 return $this->officialTravel();
-                // case 'future_document_type':
-                //     return $this->futureDocument();
+            case 'room_consumption_request':
+                return $this->belongsTo(RoomConsumptionRequest::class, 'related_document_id');
             default:
                 return null;
         }
+    }
+
+    public function roomConsumptionRequest()
+    {
+        return $this->belongsTo(RoomConsumptionRequest::class, 'related_document_id');
     }
 
     /**

@@ -542,6 +542,8 @@ class RoomConsumptionRequestController extends Controller
                 $payload['submitted_at'] = now();
             }
 
+            $previousLetterId = $doc?->letter_number_id ? (int) $doc->letter_number_id : null;
+
             if ($doc) {
                 $doc->update($payload);
                 $model = $doc->fresh();
@@ -552,11 +554,13 @@ class RoomConsumptionRequestController extends Controller
 
             $this->syncConsumptionItems($model, $request->input('consumption', []));
 
-            if (! empty($data['letter_number_id']) && $submit) {
-                $letter = LetterNumber::find($data['letter_number_id']);
-                if ($letter && $letter->status === 'reserved') {
-                    $letter->markAsUsed('room_consumption_request', $model->id, Auth::id());
+            // Same as LOT/FPTK: mark letter used as soon as attached (draft or submit)
+            if (! empty($data['letter_number_id'])) {
+                $newLetterId = (int) $data['letter_number_id'];
+                if ($previousLetterId && $previousLetterId !== $newLetterId) {
+                    $this->releaseRcrLetterNumberIfOwned($previousLetterId, $model->id);
                 }
+                $this->markRcrLetterNumberUsed($model, $newLetterId);
             }
 
             if ($submit) {
@@ -641,10 +645,7 @@ class RoomConsumptionRequestController extends Controller
                 'request_number' => $model->request_number,
             ]);
 
-            $letter = LetterNumber::find($model->letter_number_id);
-            if ($letter && $letter->status === 'reserved') {
-                $letter->markAsUsed('room_consumption_request', $model->id, Auth::id());
-            }
+            $this->markRcrLetterNumberUsed($model, (int) $model->letter_number_id);
 
             $created = app(ApprovalPlanController::class)
                 ->create_manual_approval_plan('room_consumption_request', $model->id);
@@ -665,6 +666,60 @@ class RoomConsumptionRequestController extends Controller
             DB::rollBack();
 
             return back()->with('toast_error', 'Submit failed: '.$e->getMessage());
+        }
+    }
+
+    /**
+     * Mark letter number as used when attached to RCR (same as LOT/FPTK: draft or submit).
+     * Idempotent if already used by this same RCR; blocks if used by another document.
+     */
+    private function markRcrLetterNumberUsed(RoomConsumptionRequest $model, int $letterNumberId): void
+    {
+        $letter = LetterNumber::query()->lockForUpdate()->find($letterNumberId);
+        if (! $letter) {
+            throw new \RuntimeException('Letter number not found.');
+        }
+
+        if ($letter->status === 'cancelled') {
+            throw new \RuntimeException('Selected letter number is cancelled.');
+        }
+
+        if ($letter->status === 'used'
+            && $letter->related_document_id
+            && (string) $letter->related_document_id !== (string) $model->id) {
+            throw new \RuntimeException('Selected letter number is already used by another document.');
+        }
+
+        $letter->markAsUsed('room_consumption_request', $model->id, Auth::id());
+
+        // Keep RCR columns in sync with letter master
+        if ((int) $model->letter_number_id !== (int) $letter->id || $model->letter_number !== $letter->letter_number) {
+            $model->update([
+                'letter_number_id' => $letter->id,
+                'letter_number' => $letter->letter_number,
+            ]);
+        }
+    }
+
+    /**
+     * Return previous letter to reserved if it was owned by this RCR (letter change on draft).
+     */
+    private function releaseRcrLetterNumberIfOwned(int $letterNumberId, string $rcrId): void
+    {
+        $letter = LetterNumber::query()->lockForUpdate()->find($letterNumberId);
+        if (! $letter) {
+            return;
+        }
+
+        if ($letter->status === 'used'
+            && (string) $letter->related_document_id === (string) $rcrId) {
+            $letter->update([
+                'status' => 'reserved',
+                'related_document_type' => null,
+                'related_document_id' => null,
+                'used_at' => null,
+                'used_by' => null,
+            ]);
         }
     }
 
