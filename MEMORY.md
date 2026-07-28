@@ -89,7 +89,7 @@
 
 **Zoom WIB/WITA paren + 1h (2026-07-27)**: Dual TZ also covers `14.30 WITA (13.30 WIB)`, `13.30 WIB (14.30 WITA)`, slash/dash pairs; processed **before** ranges. Heuristic: if both WIB and WITA appear and two nearby clocks differ by **60 minutes**, treat as one timezone dual (prefer WITA / later clock). Helpers: `zoom_extract_wib_wita_duals`, `zoom_pick_wita_from_pair`.
 
-**RCR My Request REQ (2026-07-27)**: My Room & Consumption mirrors My Official Travel: temporary `REQxxxxx` (`submitted_by_user`), no letter on employee form; HR confirms via admin edit (letter RCR + approvers → formal Reg. No). Column `submitted_by_user` on `room_consumption_requests`; filter status `pending_hr` on admin list.
+**RCR My Request REQ (2026-07-27)**: My Room & Consumption mirrors My Official Travel: temporary `REQxxxxx` (`submitted_by_user`), no letter on employee form; HR confirms via admin edit (letter RCR + approvers → formal Reg. No preview live on form). Column `submitted_by_user` on `room_consumption_requests`; filter status `pending_hr` on admin list. User manual `docs/user-manual/19-room-consumption-management.md` §3.4 / §5.2–5.3 updated (2026-07-28).
 
 **IT WO live test (2026-07-20)**: GET by id works (e.g. 8183). POST create works when `requester_nik` exists in `it_wo.karyawan` and `project_code` exists in `it_wo.project`. Admin NIK `17806` not in IT WO master → API 400. Detail button **Request Zoom via IT WO** posts real JSON via `Http::asJson()`. Sample RCR `a24d3339-…` linked to WO `0008189/WO/ITY/VII/2026` (created with Eko NIK 10917 for smoke test).
 

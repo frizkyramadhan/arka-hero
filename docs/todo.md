@@ -54,6 +54,7 @@ Include relevant context in brackets to help with future AI-assisted coding:
 
 ## Recently Completed
 
+-   `[done] P2: Align RCR user manual with My Request REQxxxxx + HR confirm flow [docs/user-manual/19-room-consumption-management.md §3.4/§5, PDF regen] (completed: 2026-07-28)`
 -   `[done] P1: Fix approval_plans datetime — all steps showed final close time [acted_at column, close is_open without touching timestamps, decisionAt()] (completed: 2026-07-24)`
 -   `[done] P2: RCR form Zoom Meeting ID Availability [Need Zoom checkbox → panel accounts 131/132/134, GET zoom-meeting-availability via rest-server + ItWoZoomClient] (completed: 2026-07-24)`
 -   `[done] P2: RCR management dashboard [DashboardController@roomConsumptionManagement, calendar-events API, FullCalendar + bulan/tahun/ruangan filter, statistik zoom/konsumsi/approval] (completed: 2026-07-22)`
