@@ -20,6 +20,7 @@ class ManPowerPlanController extends Controller
         $this->middleware('permission:mpp.create')->only('create', 'store');
         $this->middleware('permission:mpp.edit')->only('edit', 'update', 'close');
         $this->middleware('permission:mpp.delete')->only('destroy');
+        $this->middleware('permission:mpp.hold')->only('hold', 'unhold');
     }
 
     /**
@@ -106,9 +107,15 @@ class ManPowerPlanController extends Controller
                 </div>';
             })
             ->addColumn('status', function ($mpp) {
-                $class = $mpp->status === 'active' ? 'badge-success' : 'badge-secondary';
+                $badges = [
+                    'active' => 'badge-success',
+                    'closed' => 'badge-secondary',
+                    'on_hold' => 'badge-dark',
+                ];
+                $class = $badges[$mpp->status] ?? 'badge-secondary';
+                $label = $mpp->status === 'on_hold' ? 'On Hold' : ucfirst($mpp->status);
 
-                return '<span class="badge '.$class.'">'.ucfirst($mpp->status).'</span>';
+                return '<span class="badge '.$class.'">'.$label.'</span>';
             })
             ->addColumn('action', function ($mpp) {
                 $viewUrl = route('recruitment.mpp.show', $mpp->id);
@@ -234,6 +241,9 @@ class ManPowerPlanController extends Controller
             'details.position.department',
             'details.sessions.candidate',
             'details.sessions.fptk',
+            'holds.heldBy',
+            'holds.releasedBy',
+            'activeHold',
         ])->findOrFail($id);
 
         if ($denied = UserProject::guardProjectInAssignmentScope((int) $mpp->project_id)) {
@@ -466,6 +476,10 @@ class ManPowerPlanController extends Controller
                 return redirect()->route('recruitment.mpp.show', $id)->with('toast_warning', 'MPP is already closed');
             }
 
+            if ($mpp->isOnHold()) {
+                return redirect()->route('recruitment.mpp.show', $id)->with('toast_error', 'MPP sedang On Hold. Unhold terlebih dahulu sebelum close.');
+            }
+
             $mpp->close();
 
             return redirect()->route('recruitment.mpp.show', $id)->with('toast_success', 'MPP closed successfully');
@@ -473,6 +487,107 @@ class ManPowerPlanController extends Controller
             Log::error('Error closing MPP: '.$e->getMessage());
 
             return redirect()->back()->with('toast_error', 'Failed to close MPP');
+        }
+    }
+
+    /**
+     * Put MPP on hold.
+     */
+    public function hold(Request $request, $id)
+    {
+        $mpp = ManPowerPlan::findOrFail($id);
+
+        if ($denied = UserProject::guardProjectInAssignmentScope((int) $mpp->project_id)) {
+            return $denied;
+        }
+
+        if (! $mpp->canBeHeld()) {
+            return redirect()->route('recruitment.mpp.show', $id)
+                ->with('toast_error', 'MPP tidak dapat di-hold. Status harus Active dan belum On Hold.');
+        }
+
+        $request->validate([
+            'hold_reason' => 'required|string|max:1000',
+        ]);
+
+        try {
+            DB::beginTransaction();
+
+            $mpp->holds()->create([
+                'held_by' => Auth::id(),
+                'held_at' => now(),
+                'hold_reason' => $request->hold_reason,
+            ]);
+
+            $mpp->update([
+                'status_before_hold' => $mpp->status,
+                'status' => ManPowerPlan::STATUS_ON_HOLD,
+            ]);
+
+            DB::commit();
+
+            return redirect()->route('recruitment.mpp.show', $id)
+                ->with('toast_success', 'MPP berhasil di-hold.');
+        } catch (Exception $e) {
+            DB::rollBack();
+            Log::error('Error holding MPP: '.$e->getMessage());
+
+            return redirect()->back()
+                ->with('toast_error', 'Gagal hold MPP. Silakan coba lagi.')
+                ->withInput();
+        }
+    }
+
+    /**
+     * Release MPP from hold.
+     */
+    public function unhold(Request $request, $id)
+    {
+        $mpp = ManPowerPlan::with('activeHold')->findOrFail($id);
+
+        if ($denied = UserProject::guardProjectInAssignmentScope((int) $mpp->project_id)) {
+            return $denied;
+        }
+
+        if (! $mpp->isOnHold() || ! $mpp->activeHold) {
+            return redirect()->route('recruitment.mpp.show', $id)
+                ->with('toast_error', 'MPP tidak sedang On Hold.');
+        }
+
+        $request->validate([
+            'release_reason' => 'nullable|string|max:1000',
+        ]);
+
+        $restoreStatus = $mpp->status_before_hold ?: ManPowerPlan::STATUS_ACTIVE;
+        if ($restoreStatus !== ManPowerPlan::STATUS_ACTIVE) {
+            $restoreStatus = ManPowerPlan::STATUS_ACTIVE;
+        }
+
+        try {
+            DB::beginTransaction();
+
+            $mpp->activeHold->update([
+                'released_by' => Auth::id(),
+                'released_at' => now(),
+                'release_reason' => $request->release_reason,
+            ]);
+
+            $mpp->update([
+                'status' => $restoreStatus,
+                'status_before_hold' => null,
+            ]);
+
+            DB::commit();
+
+            return redirect()->route('recruitment.mpp.show', $id)
+                ->with('toast_success', 'MPP berhasil dibuka kembali (Unhold).');
+        } catch (Exception $e) {
+            DB::rollBack();
+            Log::error('Error unholding MPP: '.$e->getMessage());
+
+            return redirect()->back()
+                ->with('toast_error', 'Gagal unhold MPP. Silakan coba lagi.')
+                ->withInput();
         }
     }
 }

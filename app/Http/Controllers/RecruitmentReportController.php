@@ -980,6 +980,7 @@ class RecruitmentReportController extends Controller
             'project',
             'createdBy',
             'approval_plans.approver',
+            'holds',
         ]);
 
         UserProject::scopeToAssignedProjects($query);
@@ -1003,7 +1004,7 @@ class RecruitmentReportController extends Controller
         $rows = [];
         foreach ($requests as $recruitmentRequest) {
             // Calculate days open
-            $daysOpen = now()->diffInDays($recruitmentRequest->created_at);
+            $daysOpen = $this->holdAdjustedDays($recruitmentRequest, $recruitmentRequest->created_at, now());
 
             // Get latest approval info
             $latestApproval = null;
@@ -1050,6 +1051,9 @@ class RecruitmentReportController extends Controller
                         $slaDaysRemaining = $currentDate->diffInDays($slaDeadline);
                     }
                 }
+            } elseif ($recruitmentRequest->status === 'on_hold') {
+                $slaStatus = 'On Hold';
+                $slaClass = 'badge-dark';
             } elseif ($recruitmentRequest->status === 'submitted') {
                 $slaStatus = 'Pending Approval';
                 $slaClass = 'badge-warning';
@@ -1071,7 +1075,7 @@ class RecruitmentReportController extends Controller
                 'project' => $recruitmentRequest->project ? $recruitmentRequest->project->project_name : '-',
                 'requested_by' => $recruitmentRequest->createdBy ? $recruitmentRequest->createdBy->name : '-',
                 'requested_at' => $recruitmentRequest->created_at->format('d/m/Y H:i'),
-                'status' => ucfirst($recruitmentRequest->status),
+                'status' => $recruitmentRequest->status === 'on_hold' ? 'On Hold' : ucfirst($recruitmentRequest->status),
                 'days_open' => $daysOpen,
                 'latest_approval' => $latestApprovalName,
                 'approved_at' => $approvedAt,
@@ -1151,6 +1155,7 @@ class RecruitmentReportController extends Controller
             'fptk.position',
             'fptk.project',
             'fptk.approval_plans.approver',
+            'fptk.holds',
             'hiring',
             'candidate',
         ]);
@@ -1208,6 +1213,7 @@ class RecruitmentReportController extends Controller
                     'Session Created At',
                     'Hiring Date',
                     'Time to Hire (Days)',
+                    'Hold Days',
                     'Approval Days',
                     'Recruitment Days',
                     'Employment Type',
@@ -1229,6 +1235,7 @@ class RecruitmentReportController extends Controller
                     $row['session_created_at'],
                     $row['hiring_date'],
                     $row['time_to_hire_days'],
+                    $row['hold_days'] ?? 0,
                     $row['approval_days'],
                     $row['recruitment_days'],
                     $row['employment_type'],
@@ -1251,6 +1258,7 @@ class RecruitmentReportController extends Controller
             'project',
             'createdBy',
             'approval_plans.approver',
+            'holds',
             'sessions' => function ($q) {
                 $q->whereIn('status', ['in_process', 'hired'])
                     ->whereNotNull('candidate_id');
@@ -1305,6 +1313,7 @@ class RecruitmentReportController extends Controller
                     'FPTK Created At',
                     'First Hiring Date',
                     'Time to Fill (Days)',
+                    'Hold Days',
                     'Approval Days',
                     'Recruitment Days',
                     'Hired Count',
@@ -1327,6 +1336,7 @@ class RecruitmentReportController extends Controller
                     $row['fptk_created_at'],
                     $row['first_hiring_date'],
                     $row['time_to_fill_days'],
+                    $row['hold_days'] ?? 0,
                     $row['approval_days'],
                     $row['recruitment_days'],
                     $row['hired_count'],
@@ -1352,17 +1362,18 @@ class RecruitmentReportController extends Controller
                 continue;
             }
 
-            // Time to Hire per Candidate: Session created to current status
+            // Time to Hire per Candidate: Session created to current status (exclude FPTK hold days)
             $timeToHireDays = 0;
             $hiringDate = null;
+            $holdDays = 0;
 
             if ($session->status === 'hired' && $session->hiring) {
-                // If hired, calculate from session created to hiring date
                 $hiringDate = $session->hiring->created_at;
-                $timeToHireDays = $hiringDate->diffInDays($session->created_at);
+                $timeToHireDays = $this->holdAdjustedDays($session->fptk, $session->created_at, $hiringDate);
+                $holdDays = $this->holdDaysBetween($session->fptk, $session->created_at, $hiringDate);
             } else {
-                // If in_process, calculate from session created to now
-                $timeToHireDays = now()->diffInDays($session->created_at);
+                $timeToHireDays = $this->holdAdjustedDays($session->fptk, $session->created_at, now());
+                $holdDays = $this->holdDaysBetween($session->fptk, $session->created_at, now());
             }
 
             // Approval days: FPTK created to approval completion
@@ -1373,19 +1384,20 @@ class RecruitmentReportController extends Controller
                 if ($approvedPlans->count() > 0) {
                     $latestApproval = $approvedPlans->sortByDesc(fn ($plan) => $plan->decisionAt())->first();
                     if ($latestApproval->decisionAt()) {
-                        $approvalDays = $latestApproval->decisionAt()->diffInDays($session->fptk->created_at);
+                        $approvalDays = $this->holdAdjustedDays(
+                            $session->fptk,
+                            $session->fptk->created_at,
+                            $latestApproval->decisionAt()
+                        );
                     }
                 }
             }
 
-            // Recruitment days: Approval completion to current status
+            // Recruitment days: Approval completion to current status (exclude hold)
             $recruitmentDays = 0;
             if ($latestApproval && $latestApproval->decisionAt()) {
-                if ($hiringDate) {
-                    $recruitmentDays = $hiringDate->diffInDays($latestApproval->decisionAt());
-                } else {
-                    $recruitmentDays = now()->diffInDays($latestApproval->decisionAt());
-                }
+                $recruitmentEnd = $hiringDate ?: now();
+                $recruitmentDays = $this->holdAdjustedDays($session->fptk, $latestApproval->decisionAt(), $recruitmentEnd);
             }
 
             $rows[] = [
@@ -1398,6 +1410,7 @@ class RecruitmentReportController extends Controller
                 'session_created_at' => $session->created_at->format('Y-m-d H:i:s'),
                 'hiring_date' => $hiringDate ? $hiringDate->format('Y-m-d') : ($session->status === 'in_process' ? 'In Progress' : '-'),
                 'time_to_hire_days' => $timeToHireDays,
+                'hold_days' => $holdDays,
                 'approval_days' => $approvalDays,
                 'recruitment_days' => $recruitmentDays,
                 'employment_type' => $session->fptk ? ucfirst($session->fptk->employment_type ?? 'regular') : 'Regular',
@@ -1434,11 +1447,12 @@ class RecruitmentReportController extends Controller
                 $firstHiringDate = $hiredSessions->min(function ($session) {
                     return $session->hiring->created_at;
                 });
-                $timeToFillDays = $firstHiringDate->diffInDays($fptk->created_at);
+                $timeToFillDays = $this->holdAdjustedDays($fptk, $fptk->created_at, $firstHiringDate);
             } else {
                 // If no hired sessions, calculate from FPTK created to now
-                $timeToFillDays = now()->diffInDays($fptk->created_at);
+                $timeToFillDays = $this->holdAdjustedDays($fptk, $fptk->created_at, now());
             }
+            $holdDays = $this->holdDaysBetween($fptk, $fptk->created_at, $firstHiringDate ?: now());
 
             // Approval days: FPTK created to approval completion
             $approvalDays = 0;
@@ -1448,7 +1462,7 @@ class RecruitmentReportController extends Controller
                 if ($approvedPlans->count() > 0) {
                     $latestApproval = $approvedPlans->sortByDesc(fn ($plan) => $plan->decisionAt())->first();
                     if ($latestApproval->decisionAt()) {
-                        $approvalDays = $latestApproval->decisionAt()->diffInDays($fptk->created_at);
+                        $approvalDays = $this->holdAdjustedDays($fptk, $fptk->created_at, $latestApproval->decisionAt());
                     }
                 }
             }
@@ -1456,11 +1470,8 @@ class RecruitmentReportController extends Controller
             // Recruitment days: Approval completion to current status
             $recruitmentDays = 0;
             if ($latestApproval && $latestApproval->decisionAt()) {
-                if ($firstHiringDate) {
-                    $recruitmentDays = $firstHiringDate->diffInDays($latestApproval->decisionAt());
-                } else {
-                    $recruitmentDays = now()->diffInDays($latestApproval->decisionAt());
-                }
+                $recruitmentEnd = $firstHiringDate ?: now();
+                $recruitmentDays = $this->holdAdjustedDays($fptk, $latestApproval->decisionAt(), $recruitmentEnd);
             }
 
             // Calculate fill rate
@@ -1478,6 +1489,7 @@ class RecruitmentReportController extends Controller
                 'fptk_created_at' => $fptk->created_at->format('Y-m-d H:i:s'),
                 'first_hiring_date' => $firstHiringDate ? $firstHiringDate->format('Y-m-d') : 'In Progress',
                 'time_to_fill_days' => $timeToFillDays,
+                'hold_days' => $holdDays,
                 'approval_days' => $approvalDays,
                 'recruitment_days' => $recruitmentDays,
                 'hired_count' => $hiredCount,
@@ -2185,6 +2197,8 @@ class RecruitmentReportController extends Controller
             'fptk.position',
             'fptk.project',
             'fptk.approval_plans.approver',
+            'fptk.holds',
+            'mppDetail.mpp.holds',
             'cvReview',
             'psikotes',
             'tesTeori',
@@ -2286,14 +2300,21 @@ class RecruitmentReportController extends Controller
         foreach ($sessions as $session) {
             $currentStage = $this->getCurrentStage($session);
             $lastActivity = $this->getLastActivity($session);
-            $daysSinceLastActivity = $lastActivity ? now()->diffInDays($lastActivity) : 0;
+            $parentDoc = $this->sessionParentHoldDocument($session);
+            $daysSinceLastActivity = $lastActivity
+                ? $this->holdAdjustedDays($parentDoc, $lastActivity, now())
+                : 0;
             $daysInCurrentStage = $this->getDaysInCurrentStage($session, $currentStage);
+            if ($parentDoc && method_exists($parentDoc, 'totalHoldDaysBetween') && $session->stage_started_at) {
+                $daysInCurrentStage = $this->holdAdjustedDays($parentDoc, $session->stage_started_at, now());
+            }
 
             if ($this->isCandidateCompletedOrFailed($session)) {
                 continue;
             }
 
             $isStale = $daysSinceLastActivity > 7;
+            $parentOnHold = $parentDoc && method_exists($parentDoc, 'isOnHold') && $parentDoc->isOnHold();
 
             $data[] = [
                 'session_id' => $session->id,
@@ -2307,7 +2328,7 @@ class RecruitmentReportController extends Controller
                 'last_activity_date' => $lastActivity ? $lastActivity->format('d/m/Y') : '-',
                 'days_since_last_activity' => $daysSinceLastActivity,
                 'days_in_current_stage' => $daysInCurrentStage,
-                'status' => $isStale ? 'Stale' : 'Active',
+                'status' => $parentOnHold ? 'On Hold' : ($isStale ? 'Stale' : 'Active'),
                 'notes' => $this->buildStaleCandidatesNotes($session, $currentStage),
             ];
         }
@@ -2328,6 +2349,7 @@ class RecruitmentReportController extends Controller
             'project',
             'createdBy',
             'approval_plans.approver',
+            'holds',
         ]);
 
         UserProject::scopeToAssignedProjects($query);
@@ -2418,7 +2440,7 @@ class RecruitmentReportController extends Controller
         // Build data
         $data = [];
         foreach ($requests as $recruitmentRequest) {
-            $daysOpen = now()->diffInDays($recruitmentRequest->created_at);
+            $daysOpen = $this->holdAdjustedDays($recruitmentRequest, $recruitmentRequest->created_at, now());
             $latestApproval = null;
             $approvedAt = null;
             $daysToApprove = null;
@@ -2464,6 +2486,9 @@ class RecruitmentReportController extends Controller
                         $slaDaysRemaining = -$slaDeadline->diffInDays($currentDate); // Negative value for overdue
                     }
                 }
+            } elseif ($recruitmentRequest->status === 'on_hold') {
+                $slaStatus = 'On Hold';
+                $slaClass = 'badge-dark';
             } elseif ($recruitmentRequest->status === 'submitted') {
                 $slaStatus = 'Pending Approval';
                 $slaClass = 'badge-warning';
@@ -2491,7 +2516,7 @@ class RecruitmentReportController extends Controller
                 'project' => $recruitmentRequest->project ? $recruitmentRequest->project->project_name : '-',
                 'requested_by' => $recruitmentRequest->createdBy ? $recruitmentRequest->createdBy->name : '-',
                 'requested_at' => $recruitmentRequest->created_at->format('d/m/Y H:i'),
-                'status' => ucfirst($recruitmentRequest->status),
+                'status' => $recruitmentRequest->status === 'on_hold' ? 'On Hold' : ucfirst($recruitmentRequest->status),
                 'days_open' => $daysOpen,
                 'latest_approval' => $latestApprovalName,
                 'approved_at' => $approvedAt,
@@ -2533,6 +2558,7 @@ class RecruitmentReportController extends Controller
             'fptk.position',
             'fptk.project',
             'fptk.approval_plans.approver',
+            'fptk.holds',
             'hiring',
             'candidate',
         ]);
@@ -2648,17 +2674,20 @@ class RecruitmentReportController extends Controller
                 continue;
             }
 
-            // Time to Hire per Candidate: Session created to current status
+            // Time to Hire per Candidate: Session created to current status (exclude FPTK hold days)
             $timeToHireDays = 0;
             $hiringDate = null;
+            $holdDays = 0;
 
             if ($session->status === 'hired' && $session->hiring) {
                 // If hired, calculate from session created to hiring date
                 $hiringDate = $session->hiring->created_at;
-                $timeToHireDays = $hiringDate->diffInDays($session->created_at);
+                $timeToHireDays = $this->holdAdjustedDays($session->fptk, $session->created_at, $hiringDate);
+                $holdDays = $this->holdDaysBetween($session->fptk, $session->created_at, $hiringDate);
             } else {
                 // If in_process, calculate from session created to now
-                $timeToHireDays = now()->diffInDays($session->created_at);
+                $timeToHireDays = $this->holdAdjustedDays($session->fptk, $session->created_at, now());
+                $holdDays = $this->holdDaysBetween($session->fptk, $session->created_at, now());
             }
 
             // Approval days: FPTK created to approval completion
@@ -2669,7 +2698,11 @@ class RecruitmentReportController extends Controller
                 if ($approvedPlans->count() > 0) {
                     $latestApproval = $approvedPlans->sortByDesc(fn ($plan) => $plan->decisionAt())->first();
                     if ($latestApproval->decisionAt()) {
-                        $approvalDays = $latestApproval->decisionAt()->diffInDays($session->fptk->created_at);
+                        $approvalDays = $this->holdAdjustedDays(
+                            $session->fptk,
+                            $session->fptk->created_at,
+                            $latestApproval->decisionAt()
+                        );
                     }
                 }
             }
@@ -2677,11 +2710,8 @@ class RecruitmentReportController extends Controller
             // Recruitment days: Approval completion to current status
             $recruitmentDays = 0;
             if ($latestApproval && $latestApproval->decisionAt()) {
-                if ($hiringDate) {
-                    $recruitmentDays = $hiringDate->diffInDays($latestApproval->decisionAt());
-                } else {
-                    $recruitmentDays = now()->diffInDays($latestApproval->decisionAt());
-                }
+                $recruitmentEnd = $hiringDate ?: now();
+                $recruitmentDays = $this->holdAdjustedDays($session->fptk, $latestApproval->decisionAt(), $recruitmentEnd);
             }
 
             $data[] = [
@@ -2696,6 +2726,7 @@ class RecruitmentReportController extends Controller
                 'session_created_at' => $session->created_at->format('Y-m-d H:i:s'),
                 'hiring_date' => $hiringDate ? $hiringDate->format('Y-m-d') : ($session->status === 'in_process' ? 'In Progress' : '-'),
                 'time_to_hire_days' => $timeToHireDays,
+                'hold_days' => $holdDays,
                 'approval_days' => $approvalDays,
                 'recruitment_days' => $recruitmentDays,
                 'employment_type' => $session->fptk ? ucfirst($session->fptk->employment_type ?? 'regular') : 'Regular',
@@ -2724,6 +2755,7 @@ class RecruitmentReportController extends Controller
             'project',
             'createdBy',
             'approval_plans.approver',
+            'holds',
             'sessions' => function ($q) {
                 $q->whereIn('status', ['in_process', 'hired'])
                     ->whereNotNull('candidate_id');
@@ -2843,11 +2875,12 @@ class RecruitmentReportController extends Controller
                 $firstHiringDate = $hiredSessions->min(function ($session) {
                     return $session->hiring->created_at;
                 });
-                $timeToFillDays = $firstHiringDate->diffInDays($fptk->created_at);
+                $timeToFillDays = $this->holdAdjustedDays($fptk, $fptk->created_at, $firstHiringDate);
             } else {
                 // If no hired sessions, calculate from FPTK created to now
-                $timeToFillDays = now()->diffInDays($fptk->created_at);
+                $timeToFillDays = $this->holdAdjustedDays($fptk, $fptk->created_at, now());
             }
+            $holdDays = $this->holdDaysBetween($fptk, $fptk->created_at, $firstHiringDate ?: now());
 
             // Approval days: FPTK created to approval completion
             $approvalDays = 0;
@@ -2857,7 +2890,7 @@ class RecruitmentReportController extends Controller
                 if ($approvedPlans->count() > 0) {
                     $latestApproval = $approvedPlans->sortByDesc(fn ($plan) => $plan->decisionAt())->first();
                     if ($latestApproval->decisionAt()) {
-                        $approvalDays = $latestApproval->decisionAt()->diffInDays($fptk->created_at);
+                        $approvalDays = $this->holdAdjustedDays($fptk, $fptk->created_at, $latestApproval->decisionAt());
                     }
                 }
             }
@@ -2865,11 +2898,8 @@ class RecruitmentReportController extends Controller
             // Recruitment days: Approval completion to current status
             $recruitmentDays = 0;
             if ($latestApproval && $latestApproval->decisionAt()) {
-                if ($firstHiringDate) {
-                    $recruitmentDays = $firstHiringDate->diffInDays($latestApproval->decisionAt());
-                } else {
-                    $recruitmentDays = now()->diffInDays($latestApproval->decisionAt());
-                }
+                $recruitmentEnd = $firstHiringDate ?: now();
+                $recruitmentDays = $this->holdAdjustedDays($fptk, $latestApproval->decisionAt(), $recruitmentEnd);
             }
 
             // Calculate fill rate
@@ -2888,6 +2918,7 @@ class RecruitmentReportController extends Controller
                 'fptk_created_at' => $fptk->created_at->format('Y-m-d H:i:s'),
                 'first_hiring_date' => $firstHiringDate ? $firstHiringDate->format('Y-m-d') : 'In Progress',
                 'time_to_fill_days' => $timeToFillDays,
+                'hold_days' => $holdDays,
                 'approval_days' => $approvalDays,
                 'recruitment_days' => $recruitmentDays,
                 'hired_count' => $hiredCount,
@@ -3791,6 +3822,8 @@ class RecruitmentReportController extends Controller
             'fptk.department',
             'fptk.position',
             'fptk.project',
+            'fptk.holds',
+            'mppDetail.mpp.holds',
             'cvReview',
             'psikotes',
             'tesTeori',
@@ -3833,8 +3866,15 @@ class RecruitmentReportController extends Controller
             }
             $currentStage = $this->getCurrentStage($session);
             $lastActivity = $this->getLastActivity($session);
-            $daysSinceLastActivity = $lastActivity ? now()->diffInDays($lastActivity) : 0;
+            $parentDoc = $this->sessionParentHoldDocument($session);
+            $daysSinceLastActivity = $lastActivity
+                ? $this->holdAdjustedDays($parentDoc, $lastActivity, now())
+                : 0;
             $daysInCurrentStage = $this->getDaysInCurrentStage($session, $currentStage);
+            if ($parentDoc && $session->stage_started_at) {
+                $daysInCurrentStage = $this->holdAdjustedDays($parentDoc, $session->stage_started_at, now());
+            }
+            $parentOnHold = $parentDoc && method_exists($parentDoc, 'isOnHold') && $parentDoc->isOnHold();
 
             $rows[] = [
                 'request_no' => $session->fptk ? $session->fptk->request_number : '-',
@@ -3846,7 +3886,7 @@ class RecruitmentReportController extends Controller
                 'last_activity_date' => $lastActivity ? $lastActivity->format('d/m/Y') : '-',
                 'days_since_last_activity' => $daysSinceLastActivity,
                 'days_in_current_stage' => $daysInCurrentStage,
-                'status' => $daysSinceLastActivity > 7 ? 'Stale' : 'Active',
+                'status' => $parentOnHold ? 'On Hold' : ($daysSinceLastActivity > 7 ? 'Stale' : 'Active'),
                 'notes' => $this->buildStaleCandidatesNotes($session, $currentStage),
             ];
         }
@@ -3899,5 +3939,43 @@ class RecruitmentReportController extends Controller
                 ];
             }
         }, 'recruitment_stale_candidates_'.date('YmdHis').'.xlsx');
+    }
+
+    /**
+     * Calendar days minus hold overlap for FPTK/MPP hold-aware documents.
+     */
+    private function holdAdjustedDays($document, $from, $to): int
+    {
+        if (! $document || ! $from || ! $to) {
+            return 0;
+        }
+
+        if (method_exists($document, 'adjustedDaysBetween')) {
+            return $document->adjustedDaysBetween($from, $to);
+        }
+
+        return (int) \Carbon\Carbon::parse($from)->diffInDays(\Carbon\Carbon::parse($to));
+    }
+
+    private function holdDaysBetween($document, $from, $to): int
+    {
+        if (! $document || ! method_exists($document, 'totalHoldDaysBetween')) {
+            return 0;
+        }
+
+        return $document->totalHoldDaysBetween($from, $to);
+    }
+
+    private function sessionParentHoldDocument(RecruitmentSession $session)
+    {
+        if ($session->fptk) {
+            return $session->fptk;
+        }
+
+        if ($session->mppDetail && $session->mppDetail->relationLoaded('mpp') === false) {
+            $session->load('mppDetail.mpp');
+        }
+
+        return $session->mppDetail->mpp ?? null;
     }
 }

@@ -91,6 +91,9 @@
                                                             <option value="closed"
                                                                 {{ request('status') == 'closed' ? 'selected' : '' }}>
                                                                 Closed</option>
+                                                            <option value="on_hold"
+                                                                {{ request('status') == 'on_hold' ? 'selected' : '' }}>
+                                                                On Hold</option>
                                                         </select>
                                                     </div>
                                                 </div>

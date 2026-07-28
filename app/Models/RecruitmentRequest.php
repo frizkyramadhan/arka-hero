@@ -40,6 +40,7 @@ class RecruitmentRequest extends Model
         'requires_theory_test',
         'created_by',
         'status',
+        'status_before_hold',
         'submitted_by_user',
         'positions_filled',
         'submit_at',
@@ -121,7 +122,9 @@ class RecruitmentRequest extends Model
     public const STATUS_REJECTED = 'rejected';
     public const STATUS_CANCELLED = 'cancelled';
     public const STATUS_CLOSED = 'closed';
-    public const STATUSES = ['draft', 'submitted', 'approved', 'rejected', 'cancelled', 'closed'];
+    public const STATUS_ON_HOLD = 'on_hold';
+    public const STATUSES = ['draft', 'submitted', 'approved', 'rejected', 'cancelled', 'closed', 'on_hold'];
+    public const HOLDABLE_STATUSES = ['submitted', 'approved'];
 
     /**
      * Get status options for forms
@@ -135,6 +138,7 @@ class RecruitmentRequest extends Model
             self::STATUS_REJECTED => 'Rejected',
             self::STATUS_CANCELLED => 'Cancelled',
             self::STATUS_CLOSED => 'Closed',
+            self::STATUS_ON_HOLD => 'On Hold',
         ];
     }
 
@@ -183,6 +187,16 @@ class RecruitmentRequest extends Model
 
 
 
+
+    public function holds()
+    {
+        return $this->hasMany(RecruitmentRequestHold::class, 'recruitment_request_id')->orderByDesc('held_at');
+    }
+
+    public function activeHold()
+    {
+        return $this->hasOne(RecruitmentRequestHold::class, 'recruitment_request_id')->whereNull('released_at');
+    }
 
     // Core relationship: FPTK has many sessions
     public function sessions()
@@ -275,8 +289,54 @@ class RecruitmentRequest extends Model
      */
     public function canReceiveApplications()
     {
-        // Allow applications as long as FPTK is approved, regardless of required_qty and positions_filled
-        return $this->status === 'approved';
+        // Allow applications as long as FPTK is approved (not on hold), regardless of required_qty and positions_filled
+        return $this->status === self::STATUS_APPROVED;
+    }
+
+    public function isOnHold(): bool
+    {
+        return $this->status === self::STATUS_ON_HOLD;
+    }
+
+    public function canBeHeld(): bool
+    {
+        return in_array($this->status, self::HOLDABLE_STATUSES, true) && ! $this->activeHold()->exists();
+    }
+
+    /**
+     * Total hold seconds overlapping [$from, $to]. Active holds use now() as end.
+     */
+    public function totalHoldSecondsBetween($from, $to): int
+    {
+        if (! $from || ! $to) {
+            return 0;
+        }
+
+        $holds = $this->relationLoaded('holds') ? $this->holds : $this->holds()->get();
+
+        return (int) $holds->sum(fn (RecruitmentRequestHold $hold) => $hold->overlapSeconds($from, $to));
+    }
+
+    public function totalHoldDaysBetween($from, $to): int
+    {
+        return (int) floor($this->totalHoldSecondsBetween($from, $to) / 86400);
+    }
+
+    /**
+     * Calendar days between dates minus overlapping hold days (never negative).
+     */
+    public function adjustedDaysBetween($from, $to): int
+    {
+        if (! $from || ! $to) {
+            return 0;
+        }
+
+        $from = \Carbon\Carbon::parse($from);
+        $to = \Carbon\Carbon::parse($to);
+        $calendarDays = (int) $from->diffInDays($to);
+        $holdDays = $this->totalHoldDaysBetween($from, $to);
+
+        return max(0, $calendarDays - $holdDays);
     }
 
     public function incrementPositionsFilled()

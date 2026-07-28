@@ -141,6 +141,7 @@
                                         <th class="align-middle">Session Created</th>
                                         <th class="align-middle">Hiring Date</th>
                                         <th class="align-middle">Time to Hire (Days)</th>
+                                        <th class="align-middle">Hold Days</th>
                                         <th class="align-middle">Approval Days</th>
                                         <th class="align-middle">Recruitment Days</th>
                                         <th class="align-middle">Employment Type</th>
@@ -155,6 +156,7 @@
                                         <th class="align-middle">FPTK Created</th>
                                         <th class="align-middle">First Hiring Date</th>
                                         <th class="align-middle">Time to Fill (Days)</th>
+                                        <th class="align-middle">Hold Days</th>
                                         <th class="align-middle">Approval Days</th>
                                         <th class="align-middle">Recruitment Days</th>
                                         <th class="align-middle">Hired Count</th>
@@ -317,6 +319,10 @@
                             }
                         },
                         {
+                            data: 'hold_days',
+                            defaultContent: '0'
+                        },
+                        {
                             data: 'approval_days'
                         },
                         {
@@ -371,6 +377,10 @@
                                     'badge-warning' : 'badge-danger';
                                 return '<span class="badge ' + badgeClass + '">' + data + ' days</span>';
                             }
+                        },
+                        {
+                            data: 'hold_days',
+                            defaultContent: '0'
                         },
                         {
                             data: 'approval_days'
@@ -456,6 +466,7 @@
                         '<th class="align-middle">Session Created</th>' +
                         '<th class="align-middle">Hiring Date</th>' +
                         '<th class="align-middle">Time to Hire (Days)</th>' +
+                        '<th class="align-middle">Hold Days</th>' +
                         '<th class="align-middle">Approval Days</th>' +
                         '<th class="align-middle">Recruitment Days</th>' +
                         '<th class="align-middle">Employment Type</th>' +
@@ -470,6 +481,7 @@
                         '<th class="align-middle">FPTK Created</th>' +
                         '<th class="align-middle">First Hiring Date</th>' +
                         '<th class="align-middle">Time to Fill (Days)</th>' +
+                        '<th class="align-middle">Hold Days</th>' +
                         '<th class="align-middle">Approval Days</th>' +
                         '<th class="align-middle">Recruitment Days</th>' +
                         '<th class="align-middle">Hired Count</th>' +

@@ -30,6 +30,7 @@ class RecruitmentRequestController extends Controller
         $this->middleware('permission:recruitment-requests.create')->only('create', 'store');
         $this->middleware('permission:recruitment-requests.edit')->only('edit', 'update', 'updateApprovers', 'acknowledge', 'approveByPM', 'approveByDirector', 'approve', 'reject', 'assignLetterNumber');
         $this->middleware('permission:recruitment-requests.delete')->only('destroy');
+        $this->middleware('permission:recruitment-requests.hold')->only('hold', 'unhold');
 
         // Personal/self-service permissions
         $this->middleware('permission:personal.recruitment.view-own')->only('myRequests', 'myRequestsData', 'myRequestsShow');
@@ -143,6 +144,7 @@ class RecruitmentRequestController extends Controller
                     'rejected' => '<span class="badge badge-danger">Rejected</span>',
                     'cancelled' => '<span class="badge badge-warning">Cancelled</span>',
                     'closed' => '<span class="badge badge-info">Closed</span>',
+                    'on_hold' => '<span class="badge badge-dark">On Hold</span>',
                 ];
 
                 return $badges[$fptk->status] ?? '<span class="badge badge-light">'.ucfirst($fptk->status).'</span>';
@@ -396,6 +398,9 @@ class RecruitmentRequestController extends Controller
             'sessions.hiring',
             'sessions.onboarding',
             'activeSessions',
+            'holds.heldBy',
+            'holds.releasedBy',
+            'activeHold',
         ])->findOrFail($id);
 
         if ($denied = UserProject::guardProjectInAssignmentScope((int) $fptk->project_id)) {
@@ -664,6 +669,11 @@ class RecruitmentRequestController extends Controller
 
         if ($denied = UserProject::guardProjectInAssignmentScope((int) $fptk->project_id)) {
             return $denied;
+        }
+
+        if ($fptk->isOnHold()) {
+            return redirect()->route('recruitment.requests.show', $id)
+                ->with('toast_error', 'FPTK sedang On Hold. Approver tidak dapat diubah hingga Unhold.');
         }
 
         if (! $fptk->canChangeApprovers()) {
@@ -950,6 +960,107 @@ class RecruitmentRequestController extends Controller
 
             return redirect()->back()
                 ->with('toast_error', 'Terjadi kesalahan saat assign nomor surat. Silakan coba lagi.');
+        }
+    }
+
+    /**
+     * Put FPTK on hold (HR only via recruitment-requests.hold).
+     */
+    public function hold(Request $request, $id)
+    {
+        $fptk = RecruitmentRequest::findOrFail($id);
+
+        if ($denied = UserProject::guardProjectInAssignmentScope((int) $fptk->project_id)) {
+            return $denied;
+        }
+
+        if (! $fptk->canBeHeld()) {
+            return redirect()->route('recruitment.requests.show', $id)
+                ->with('toast_error', 'FPTK tidak dapat di-hold. Status harus Submitted atau Approved dan belum On Hold.');
+        }
+
+        $request->validate([
+            'hold_reason' => 'required|string|max:1000',
+        ]);
+
+        try {
+            DB::beginTransaction();
+
+            $fptk->holds()->create([
+                'held_by' => Auth::id(),
+                'held_at' => now(),
+                'hold_reason' => $request->hold_reason,
+            ]);
+
+            $fptk->update([
+                'status_before_hold' => $fptk->status,
+                'status' => RecruitmentRequest::STATUS_ON_HOLD,
+            ]);
+
+            DB::commit();
+
+            return redirect()->route('recruitment.requests.show', $id)
+                ->with('toast_success', 'FPTK berhasil di-hold.');
+        } catch (Exception $e) {
+            DB::rollBack();
+            Log::error('Error holding FPTK: '.$e->getMessage());
+
+            return redirect()->back()
+                ->with('toast_error', 'Gagal hold FPTK. Silakan coba lagi.')
+                ->withInput();
+        }
+    }
+
+    /**
+     * Release FPTK from hold.
+     */
+    public function unhold(Request $request, $id)
+    {
+        $fptk = RecruitmentRequest::with('activeHold')->findOrFail($id);
+
+        if ($denied = UserProject::guardProjectInAssignmentScope((int) $fptk->project_id)) {
+            return $denied;
+        }
+
+        if (! $fptk->isOnHold() || ! $fptk->activeHold) {
+            return redirect()->route('recruitment.requests.show', $id)
+                ->with('toast_error', 'FPTK tidak sedang On Hold.');
+        }
+
+        $request->validate([
+            'release_reason' => 'nullable|string|max:1000',
+        ]);
+
+        $restoreStatus = $fptk->status_before_hold;
+        if (! in_array($restoreStatus, RecruitmentRequest::HOLDABLE_STATUSES, true)) {
+            $restoreStatus = RecruitmentRequest::STATUS_APPROVED;
+        }
+
+        try {
+            DB::beginTransaction();
+
+            $fptk->activeHold->update([
+                'released_by' => Auth::id(),
+                'released_at' => now(),
+                'release_reason' => $request->release_reason,
+            ]);
+
+            $fptk->update([
+                'status' => $restoreStatus,
+                'status_before_hold' => null,
+            ]);
+
+            DB::commit();
+
+            return redirect()->route('recruitment.requests.show', $id)
+                ->with('toast_success', 'FPTK berhasil dibuka kembali (Unhold).');
+        } catch (Exception $e) {
+            DB::rollBack();
+            Log::error('Error unholding FPTK: '.$e->getMessage());
+
+            return redirect()->back()
+                ->with('toast_error', 'Gagal unhold FPTK. Silakan coba lagi.')
+                ->withInput();
         }
     }
 

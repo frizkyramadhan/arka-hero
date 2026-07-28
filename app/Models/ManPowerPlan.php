@@ -16,6 +16,7 @@ class ManPowerPlan extends Model
         'title',
         'description',
         'status',
+        'status_before_hold',
         'created_by',
     ];
 
@@ -27,7 +28,9 @@ class ManPowerPlan extends Model
     // Status constants
     const STATUS_ACTIVE = 'active';
     const STATUS_CLOSED = 'closed';
-    const STATUSES = ['active', 'closed'];
+    const STATUS_ON_HOLD = 'on_hold';
+    const STATUSES = ['active', 'closed', 'on_hold'];
+    const HOLDABLE_STATUSES = ['active'];
 
     /**
      * Get status options for forms
@@ -37,6 +40,7 @@ class ManPowerPlan extends Model
         return [
             self::STATUS_ACTIVE => 'Active',
             self::STATUS_CLOSED => 'Closed',
+            self::STATUS_ON_HOLD => 'On Hold',
         ];
     }
 
@@ -56,6 +60,16 @@ class ManPowerPlan extends Model
     public function details()
     {
         return $this->hasMany(ManPowerPlanDetail::class, 'mpp_id');
+    }
+
+    public function holds()
+    {
+        return $this->hasMany(ManPowerPlanHold::class, 'man_power_plan_id')->orderByDesc('held_at');
+    }
+
+    public function activeHold()
+    {
+        return $this->hasOne(ManPowerPlanHold::class, 'man_power_plan_id')->whereNull('released_at');
     }
 
     public function sessions()
@@ -83,6 +97,11 @@ class ManPowerPlan extends Model
         return $query->where('status', self::STATUS_CLOSED);
     }
 
+    public function scopeOnHold($query)
+    {
+        return $query->where('status', self::STATUS_ON_HOLD);
+    }
+
     public function scopeByProject($query, $projectId)
     {
         return $query->where('project_id', $projectId);
@@ -99,6 +118,54 @@ class ManPowerPlan extends Model
     public function getIsClosedAttribute()
     {
         return $this->status === self::STATUS_CLOSED;
+    }
+
+    public function getIsOnHoldAttribute()
+    {
+        return $this->status === self::STATUS_ON_HOLD;
+    }
+
+    public function isOnHold(): bool
+    {
+        return $this->status === self::STATUS_ON_HOLD;
+    }
+
+    public function canBeHeld(): bool
+    {
+        return in_array($this->status, self::HOLDABLE_STATUSES, true) && ! $this->activeHold()->exists();
+    }
+
+    /**
+     * Total hold seconds overlapping [$from, $to].
+     */
+    public function totalHoldSecondsBetween($from, $to): int
+    {
+        if (! $from || ! $to) {
+            return 0;
+        }
+
+        $holds = $this->relationLoaded('holds') ? $this->holds : $this->holds()->get();
+
+        return (int) $holds->sum(fn (ManPowerPlanHold $hold) => $hold->overlapSeconds($from, $to));
+    }
+
+    public function totalHoldDaysBetween($from, $to): int
+    {
+        return (int) floor($this->totalHoldSecondsBetween($from, $to) / 86400);
+    }
+
+    public function adjustedDaysBetween($from, $to): int
+    {
+        if (! $from || ! $to) {
+            return 0;
+        }
+
+        $from = \Carbon\Carbon::parse($from);
+        $to = \Carbon\Carbon::parse($to);
+        $calendarDays = (int) $from->diffInDays($to);
+        $holdDays = $this->totalHoldDaysBetween($from, $to);
+
+        return max(0, $calendarDays - $holdDays);
     }
 
     /**

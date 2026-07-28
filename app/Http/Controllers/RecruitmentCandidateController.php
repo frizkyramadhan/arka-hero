@@ -479,8 +479,12 @@ class RecruitmentCandidateController extends Controller
 
         // Check if FPTK can receive applications
         if (! $fptk->canReceiveApplications()) {
+            $message = $fptk->isOnHold()
+                ? 'FPTK sedang On Hold. Tidak dapat menerima aplikasi hingga Unhold.'
+                : 'FPTK cannot receive applications at this time.';
+
             return redirect()->back()
-                ->with('toast_error', 'FPTK cannot receive applications at this time.');
+                ->with('toast_error', $message);
         }
 
         // Check if candidate already applied to this FPTK
