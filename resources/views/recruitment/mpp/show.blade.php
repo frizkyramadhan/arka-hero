@@ -3,6 +3,7 @@
 @section('title', $title)
 
 @section('styles')
+    @include('recruitment.partials.hold-history-styles')
     <style>
         .info-box-content {
             padding: 0.5rem;
@@ -120,6 +121,34 @@
         .btn {
             border-radius: 0.25rem;
         }
+
+        .btn-hold-recruitment {
+            background: linear-gradient(135deg, #7c3aed, #6d28d9);
+            border-color: #6d28d9;
+            color: #fff;
+        }
+
+        .btn-hold-recruitment:hover {
+            background: linear-gradient(135deg, #6d28d9, #5b21b6);
+            border-color: #5b21b6;
+            color: #fff;
+        }
+
+        .hold-modal-header {
+            background: linear-gradient(135deg, #7c3aed, #6d28d9);
+        }
+
+        .hold-btn-solid {
+            background: #6d28d9;
+            border-color: #5b21b6;
+            color: #fff;
+        }
+
+        .hold-btn-solid:hover {
+            background: #5b21b6;
+            border-color: #4c1d95;
+            color: #fff;
+        }
     </style>
 @endsection
 
@@ -161,6 +190,17 @@
                                         <i class="fas fa-lock"></i> Close MPP
                                     </button>
                                 @endif
+                                @can('mpp.hold')
+                                    @if ($mpp->status === 'active')
+                                        <button type="button" class="btn btn-sm btn-hold-recruitment" data-toggle="modal" data-target="#holdMppModal">
+                                            <i class="fas fa-pause"></i> Hold
+                                        </button>
+                                    @elseif ($mpp->status === 'on_hold')
+                                        <button type="button" class="btn btn-sm btn-info" data-toggle="modal" data-target="#unholdMppModal">
+                                            <i class="fas fa-play"></i> Unhold
+                                        </button>
+                                    @endif
+                                @endcan
                                 <a href="{{ route('recruitment.mpp.index') }}" class="btn btn-sm btn-secondary">
                                     <i class="fas fa-arrow-left"></i> Back
                                 </a>
@@ -178,9 +218,16 @@
                                 </div>
                                 <div class="col-md-3">
                                     <strong>Status:</strong><br>
-                                    <span
-                                        class="badge {{ $mpp->status === 'active' ? 'badge-success' : 'badge-secondary' }}">
-                                        {{ ucfirst($mpp->status) }}
+                                    @php
+                                        $mppStatusClass = match ($mpp->status) {
+                                            'active' => 'badge-success',
+                                            'on_hold' => 'badge-hold-status',
+                                            default => 'badge-secondary',
+                                        };
+                                        $mppStatusLabel = $mpp->status === 'on_hold' ? 'On Hold' : ucfirst($mpp->status);
+                                    @endphp
+                                    <span class="badge {{ $mppStatusClass }}">
+                                        {{ $mppStatusLabel }}
                                     </span>
                                 </div>
                                 <div class="col-md-3">
@@ -204,6 +251,19 @@
                             @endif
                         </div>
                     </div>
+
+                    @if ($mpp->holds->isNotEmpty())
+                        <div class="card card-outline hold-history-card-outline mt-3">
+                            <div class="card-header">
+                                <h3 class="card-title mb-0">
+                                    <i class="fas fa-history mr-1"></i> Hold History
+                                </h3>
+                            </div>
+                            <div class="card-body">
+                                @include('recruitment.partials.hold-history', ['holds' => $mpp->holds])
+                            </div>
+                        </div>
+                    @endif
                 </div>
             </div>
 
@@ -520,6 +580,58 @@
             </div>
         </div>
     </section>
+
+    @can('mpp.hold')
+        <div class="modal fade" id="holdMppModal" tabindex="-1" role="dialog" aria-hidden="true">
+            <div class="modal-dialog" role="document">
+                <form action="{{ route('recruitment.mpp.hold', $mpp->id) }}" method="POST">
+                    @csrf
+                    <div class="modal-content">
+                        <div class="modal-header text-white hold-modal-header">
+                            <h5 class="modal-title"><i class="fas fa-pause"></i> Hold MPP</h5>
+                            <button type="button" class="close text-white" data-dismiss="modal"><span>&times;</span></button>
+                        </div>
+                        <div class="modal-body">
+                            <p>Rekrutmen MPP akan dibekukan. Masa hold tidak dihitung di days to fulfill.</p>
+                            <div class="form-group">
+                                <label>Hold Reason <span class="text-danger">*</span></label>
+                                <textarea name="hold_reason" class="form-control" rows="3" required>{{ old('hold_reason') }}</textarea>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                            <button type="submit" class="btn hold-btn-solid">Confirm Hold</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="modal fade" id="unholdMppModal" tabindex="-1" role="dialog" aria-hidden="true">
+            <div class="modal-dialog" role="document">
+                <form action="{{ route('recruitment.mpp.unhold', $mpp->id) }}" method="POST">
+                    @csrf
+                    <div class="modal-content">
+                        <div class="modal-header bg-info text-white">
+                            <h5 class="modal-title"><i class="fas fa-play"></i> Unhold MPP</h5>
+                            <button type="button" class="close text-white" data-dismiss="modal"><span>&times;</span></button>
+                        </div>
+                        <div class="modal-body">
+                            <p>MPP akan dikembalikan ke Active.</p>
+                            <div class="form-group">
+                                <label>Release Reason (optional)</label>
+                                <textarea name="release_reason" class="form-control" rows="3">{{ old('release_reason') }}</textarea>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                            <button type="submit" class="btn btn-info">Confirm Unhold</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    @endcan
 
     <!-- Add Candidate Modal -->
     <div class="modal fade" id="addCandidateModal" tabindex="-1" role="dialog"

@@ -80,6 +80,8 @@
                                     </option>
                                     <option value="rejected" {{ $status == 'rejected' ? 'selected' : '' }}>Rejected
                                     </option>
+                                    <option value="on_hold" {{ $status == 'on_hold' ? 'selected' : '' }}>On Hold
+                                    </option>
                                 </select>
                             </div>
                         </div>

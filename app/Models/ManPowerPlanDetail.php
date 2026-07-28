@@ -120,15 +120,15 @@ class ManPowerPlanDetail extends Model
     }
 
     /**
-     * Get days to fulfill (from MPP creation to fulfillment)
+     * Get days to fulfill (from MPP creation to fulfillment), excluding hold periods.
      */
     public function getDaysToFulfillAttribute()
     {
-        if (!$this->fulfilled_at) {
+        if (! $this->fulfilled_at || ! $this->mpp) {
             return null;
         }
 
-        return $this->mpp->created_at->diffInDays($this->fulfilled_at);
+        return $this->mpp->adjustedDaysBetween($this->mpp->created_at, $this->fulfilled_at);
     }
 
     /**

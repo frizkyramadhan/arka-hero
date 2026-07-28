@@ -434,6 +434,17 @@ class ApprovalRequestController extends Controller
                 return redirect()->back()->with('toast_error', 'This request is no longer open for approval.');
             }
 
+            if ($approvalPlan->document_type === 'recruitment_request') {
+                $fptk = $approvalPlan->recruitmentRequest
+                    ?? \App\Models\RecruitmentRequest::find($approvalPlan->document_id);
+                if ($fptk && $fptk->isOnHold()) {
+                    return redirect()->back()->with(
+                        'toast_error',
+                        'FPTK sedang On Hold. Persetujuan dibekukan hingga Unhold.'
+                    );
+                }
+            }
+
             // Check sequential approval order
             if (! $this->canProcessApproval($approvalPlan)) {
                 return redirect()->back()->with('toast_error', 'Previous approvals must be completed first. Please wait for earlier approvers to process their approvals.');

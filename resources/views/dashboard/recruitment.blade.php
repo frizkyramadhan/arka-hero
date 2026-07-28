@@ -20,9 +20,9 @@
     <section class="content">
         <div class="container-fluid">
             <!-- Statistics Cards (Info Boxes) -->
-            <div class="row mb-4">
+            <div class="row mb-4 recruitment-dashboard-stats">
                 <!-- Active/Approved FPTK -->
-                <div class="col-lg-3 col-md-6 mb-3">
+                <div class="col-md-6 col recruitment-stat-item mb-3">
                     <div class="info-box bg-gradient-primary">
                         <span class="info-box-icon"><i class="fas fa-briefcase"></i></span>
                         <div class="info-box-content">
@@ -37,7 +37,7 @@
                 </div>
 
                 <!-- Candidate Pool (Available/In Process) -->
-                <div class="col-lg-3 col-md-6 mb-3">
+                <div class="col-md-6 col recruitment-stat-item mb-3">
                     <div class="info-box bg-gradient-success">
                         <span class="info-box-icon"><i class="fas fa-user-friends"></i></span>
                         <div class="info-box-content">
@@ -52,7 +52,7 @@
                 </div>
 
                 <!-- Total Sessions -->
-                <div class="col-lg-3 col-md-6 mb-3">
+                <div class="col-md-6 col recruitment-stat-item mb-3">
                     <div class="info-box bg-gradient-warning">
                         <span class="info-box-icon"><i class="fas fa-layer-group"></i></span>
                         <div class="info-box-content">
@@ -67,7 +67,7 @@
                 </div>
 
                 <!-- New Applications (This Month) -->
-                <div class="col-lg-3 col-md-6 mb-3">
+                <div class="col-md-6 col recruitment-stat-item mb-3">
                     <div class="info-box bg-gradient-info">
                         <span class="info-box-icon"><i class="fas fa-calendar-alt"></i></span>
                         <div class="info-box-content">
@@ -77,6 +77,25 @@
                                 <div class="progress-bar" style="width: 100%"></div>
                             </div>
                             <span class="progress-description">Applications in {{ date('M Y') }}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- On Hold FPTK / MPP -->
+                <div class="col-md-6 col recruitment-stat-item mb-3">
+                    <div class="info-box bg-gradient-secondary">
+                        <span class="info-box-icon"><i class="fas fa-pause-circle"></i></span>
+                        <div class="info-box-content">
+                            <span class="info-box-text">On Hold</span>
+                            <span class="info-box-number">
+                                {{ ($stats['on_hold_fptk'] ?? 0) + ($stats['on_hold_mpp'] ?? 0) }}
+                            </span>
+                            <div class="progress">
+                                <div class="progress-bar" style="width: 100%"></div>
+                            </div>
+                            <span class="progress-description">
+                                FPTK: {{ $stats['on_hold_fptk'] ?? 0 }} · MPP: {{ $stats['on_hold_mpp'] ?? 0 }}
+                            </span>
                         </div>
                     </div>
                 </div>
@@ -261,9 +280,14 @@
                                                             'cancelled' =>
                                                                 '<span class="badge badge-warning">Cancelled</span>',
                                                         ];
+                                                        $parentOnHold = ($session->fptk && $session->fptk->status === 'on_hold')
+                                                            || ($session->mppDetail && $session->mppDetail->mpp && $session->mppDetail->mpp->status === 'on_hold');
                                                     @endphp
                                                     {!! $statusBadges[$session->status] ??
                                                         '<span class="badge badge-secondary">' . ucfirst($session->status) . '</span>' !!}
+                                                    @if ($parentOnHold)
+                                                        <br><span class="badge badge-dark mt-1">On Hold</span>
+                                                    @endif
                                                 </td>
                                                 <td>{{ $session->applied_date ? $session->applied_date->format('d M Y') : 'N/A' }}
                                                 </td>
@@ -367,6 +391,67 @@
 
         .info-box {
             margin-bottom: 15px;
+        }
+
+        @media (min-width: 992px) {
+            .recruitment-dashboard-stats {
+                display: flex;
+                flex-wrap: nowrap;
+                margin-left: -6px;
+                margin-right: -6px;
+            }
+
+            .recruitment-dashboard-stats > .recruitment-stat-item {
+                flex: 1 1 0;
+                min-width: 0;
+                max-width: 20%;
+                padding-left: 6px;
+                padding-right: 6px;
+            }
+
+            .recruitment-dashboard-stats .info-box {
+                margin-bottom: 0;
+                min-height: 88px;
+            }
+
+            .recruitment-dashboard-stats .info-box-icon {
+                width: 48px;
+                height: auto;
+                align-self: stretch;
+                min-height: 0;
+                font-size: 1.25rem;
+            }
+
+            .recruitment-dashboard-stats .info-box-content {
+                padding: 8px 10px 8px 6px;
+                overflow: hidden;
+            }
+
+            .recruitment-dashboard-stats .info-box-text {
+                font-size: 11px;
+                line-height: 1.25;
+                white-space: normal;
+                overflow: visible;
+                text-overflow: unset;
+            }
+
+            .recruitment-dashboard-stats .info-box-number {
+                font-size: 1.35rem;
+                line-height: 1.2;
+                margin-top: 2px;
+            }
+
+            .recruitment-dashboard-stats .progress {
+                display: none;
+            }
+
+            .recruitment-dashboard-stats .progress-description {
+                display: block;
+                font-size: 10px;
+                line-height: 1.2;
+                margin-top: 4px;
+                opacity: 0.92;
+            }
         }
 
         .info-box-icon {

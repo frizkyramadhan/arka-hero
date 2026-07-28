@@ -1,5 +1,5 @@
 **Purpose**: AI's persistent knowledge base for project context and learnings - ARKA HERO HRMS
-**Last Updated**: 2026-07-24
+**Last Updated**: 2026-07-28
 
 ## Memory Maintenance Guidelines
 
@@ -26,6 +26,18 @@
 ---
 
 ## Project Memory Entries - ARKA HERO HRMS
+
+### [029] FPTK & MPP HOLD for Time-to-Hire pause (2026-07-28) ✅ COMPLETE
+
+**Challenge**: Management can slow recruitment; calendar Time to Hire inflated during intentional freeze. Need HR-only HOLD that freezes ops and excludes hold intervals from metrics.
+
+**Solution**: Status `on_hold` + history tables (`recruitment_request_holds`, `man_power_plan_holds`). FPTK holdable when `submitted`/`approved`; MPP when `active`. Permissions `recruitment-requests.hold` / `mpp.hold` created manually (no seeder). Freeze: apply/advance/approve/close blocked. Reports/dashboard subtract hold overlap via `adjustedDaysBetween()`.
+
+**Key Learning**: Persist hold intervals (not just flags) so overlapping SLA/TTH windows can subtract accurately across multiple hold/unhold cycles. Restore `status_before_hold` on Unhold.
+
+**Files**: `RecruitmentRequest`, `ManPowerPlan`, `RecruitmentReportController`, `DashboardController@recruitment`, hold migrations 2026_07_28_140000*
+
+---
 
 ### [001] Leave Entitlement System Dual-Group Architecture (2025-09-XX) ✅ COMPLETE
 

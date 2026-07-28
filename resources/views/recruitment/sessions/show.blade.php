@@ -376,7 +376,7 @@
                         <div class="card-body">
                             <div class="fptk-action-buttons">
                                 @can('recruitment-sessions.create')
-                                    @if (($isFptk && $fptk->status !== 'closed') || ($isMpp && $mpp->status === 'active' && !$mppDetail->fulfilled_at))
+                                    @if (($isFptk && !in_array($fptk->status, ['closed', 'on_hold'], true)) || ($isMpp && $mpp->status === 'active' && !$mppDetail->fulfilled_at))
                                         <button type="button" class="btn-action add-candidate-btn" data-toggle="modal"
                                             data-target="#addCandidateModal"
                                             @if ($isMpp) data-mpp-detail-id="{{ $mppDetail->id }}"
@@ -390,13 +390,18 @@
                                         </button>
                                     @endif
                                 @endcan
+                                @if (($isFptk && $fptk->status === 'on_hold') || ($isMpp && $mpp->status === 'on_hold'))
+                                    <div class="alert alert-secondary py-2 mb-2">
+                                        <i class="fas fa-pause-circle"></i> Parent document is <strong>On Hold</strong>. Recruitment actions are frozen.
+                                    </div>
+                                @endif
                                 <a href="{{ route('dashboard.recruitment') }}" class="btn-action dashboard-btn">
                                     <i class="fas fa-chart-bar"></i> View Dashboard
                                 </a>
                                 <a href="{{ route('recruitment.sessions.index') }}" class="btn-action back-btn">
                                     <i class="fas fa-arrow-left"></i> Back to Sessions
                                 </a>
-                                @if ($isFptk && $fptk->status !== 'closed')
+                                @if ($isFptk && !in_array($fptk->status, ['closed', 'on_hold'], true))
                                     <form method="POST"
                                         action="{{ route('recruitment.sessions.close-request', $fptk->id) }}"
                                         class="d-block confirm-submit"

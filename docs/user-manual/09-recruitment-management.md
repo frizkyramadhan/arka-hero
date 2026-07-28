@@ -4,6 +4,8 @@
 
 | **Versi** | **Tanggal** | **Revisi (ringkas)**                                                                                                                                                                                                                                                                                                             |
 | :-------- | :---------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1.4       | 2026-07-28  | **Hold FPTK** — panduan diperluas: syarat status, aksi yang dibekukan, kartu **Hold History**, filter **On Hold**, dampak dashboard/laporan; field **Requested By** / **Requested On** digabung ke kartu **FPTK Information**. |
+| 1.3       | 2026-07-28  | **HOLD / UNHOLD** FPTK & MPP — HR dengan permission `recruitment-requests.hold` / `mpp.hold` dapat menahan rekrutmen; masa hold tidak dihitung di Time to Hire / Aging / Stale; dashboard menampilkan kartu **On Hold**. |
 | 1.2       | 2026-06-23  | **Hiring & Onboarding** — registrasi ke Employee Management **opsional**; **Registration Type** (**New Employee** / **Existing Employee**); mode existing menautkan karyawan tanpa form Administration; tombol dinamis (**Register Employee**, **Update Hiring Session**, **View Employee**); badge **Employee not registered**. Aturan **Approval Rules Information** FPTK **Replacement**: HO/BO/APS tambah **HCL Director** (urutan 3); Site Project tambah **Operational General Manager** (urutan 2), **HCS Division Manager** (urutan 3). |
 | 1.1       | 2026-05-25  | **Update Approvers** pada detail FPTK **Submitted**: hanya langkah **Pending** yang dapat diganti; approver yang sudah **Approved**/**Rejected** terkunci.                                                                                                                                                                       |
 | 1.0       | 2026-05-25  | Panduan awal: dashboard HR, **Requests (FPTK)** & **Requests (MPP)**, **Candidates (CV)**, **Sessions** (alur tahap rekrutmen), **Reports**, **My Recruitment Request**, troubleshooting.                                                                                                                                        |
@@ -25,6 +27,7 @@ Panduan ini menjelaskan modul rekrutmen di ARKA HERO untuk **staf HR** yang meng
 | **Final Status**           | Status akhir sesi: **In Process**, **Hired**, **Rejected**, **Withdrawn**, **Cancelled**.                                                                                                                                            |
 | **My Recruitment Request** | Submenu **My Features** bagi karyawan untuk mengajukan dan memantau FPTK mandiri (nomor sementara **REQxxxxx** sampai HR menetapkan nomor resmi).                                                                                    |
 | **Close Request**          | Penutupan FPTK/MPP yang sudah terpenuhi atau tidak lagi dibuka rekrutmen; tersedia di halaman sesi FPTK/MPP yang disetujui.                                                                                                          |
+| **HOLD / UNHOLD**          | Penahanan sementara FPTK (**Submitted**/**Approved**) atau MPP (**Active**) oleh HR (permission khusus). Saat **On Hold**, approval & rekrutmen dibekukan; rentang waktu hold tidak dihitung di laporan Time to Hire / Aging / Stale. |
 
 ---
 
@@ -53,6 +56,7 @@ Panduan ini menjelaskan modul rekrutmen di ARKA HERO untuk **staf HR** yang meng
 3. Baca kartu ringkasan:
 
 - **Active/Approved FPTK** — jumlah permintaan FPTK yang masih aktif/disahkan (**All requests currently active**).
+- **On Hold** — jumlah FPTK dan MPP yang sedang ditahan sementara (**recruitment frozen**); klik angka atau buka **Requests (FPTK)** / **Requests (MPP)** dengan filter **On Hold** untuk daftar detail.
 - **Candidate Pool** — kandidat **Available** atau **In Process** (**Available or in process**).
 - **Total Sessions** — total sesi rekrutmen sepanjang waktu (**All time applications**).
 - **New Applications** — sesi baru pada bulan berjalan (**Applications in [bulan tahun]**).
@@ -82,7 +86,7 @@ Panduan ini menjelaskan modul rekrutmen di ARKA HERO untuk **staf HR** yang meng
 
 - **Request Number**, **Department**, **Position**, **Level**
 - **Date From** / **Date To**
-- **Status** — **Draft**, **Submitted**, **Approved**, **Rejected**, **Cancelled**, **Closed**
+- **Status** — **Draft**, **Submitted**, **Approved**, **On Hold**, **Rejected**, **Cancelled**, **Closed**
 
 4. Tabel menampilkan kolom **No**, **Request Number**, **Department**, **Position**, **Level**, **Employment Type**, **Status**, **Requested By**, **Action** (ikon **View**).
 5. Klik **Reset** di filter untuk mengosongkan kriteria.
@@ -167,9 +171,10 @@ Buka detail lewat ikon **View** pada daftar. Judul: **Detail Recruitment Request
 
 **Membaca halaman detail**
 
-- Kartu **FPTK Information** — department, project, position, level, quantity, required date, employment type, alasan, kebutuhan tes teori, job description, requirements.
-- **Approval Status** — daftar approver berurutan dengan badge status (**Pending**, **Approved**, **Rejected**, dll.) bila sudah diajukan. Pada FPTK **Submitted** yang masih punya langkah **Pending**, HR dapat membuka form **Approver Selection** di kartu yang sama (lihat [mengubah approver pending](#mengubah-approver-pending) di bawah).
-- **Requested By** — pembuat permintaan.
+- Kartu **FPTK Information** — department, project, position, level, quantity, required date, employment type, alasan permintaan, kebutuhan tes teori, **Requested By** (nama dan email pemohon), **Requested On** (tanggal/waktu pembuatan permintaan).
+- **Job Description & Requirements** — uraian pekerjaan dan persyaratan kandidat.
+- **Approval Status** — daftar approver berurutan dengan badge status (**Pending**, **Approved**, **Rejected**, dll.) bila sudah diajukan. Pada FPTK **Submitted** yang masih punya langkah **Pending**, HR dapat membuka form **Approver Selection** di kartu yang sama (lihat [mengubah approver pending](#mengubah-approver-pending) di bawah). Form **Update Approvers** **tidak** tersedia saat FPTK **On Hold**.
+- **Hold History** — muncul di kolom kanan (hanya di menu HR **Requests (FPTK)**, bukan di **My Recruitment Request**) jika pernah ada hold; menampilkan ringkasan periode hold, total hari kumulatif, dan timeline tiap rentang hold → unhold beserta alasan dan pelaku (lihat [§3.4](#fptk-hold-unhold)).
 - Tabel **Recruitment Sessions** — muncul setelah ada kandidat terdaftar; kolom tahap (**CV Review**, **Psikotes**, **Tes Teori**, **Interview HR**, **Interview User**, **Offering**, **MCU**, **Hiring & Onboarding**, **Final Status**).
 
 <p align="center" id="recruitment-fptk-detail-reading">
@@ -196,6 +201,8 @@ Buka detail lewat ikon **View** pada daftar. Judul: **Detail Recruitment Request
 | :---------------------------- | :----------------------------------------------------------------------------------------------------------------------------- |
 | **Draft**                     | **Edit**, **Delete**, **Submit for Approval** (HR; konfirmasi SweetAlert — setelah submit isi FPTK tidak bisa diedit)          |
 | **Submitted**                 | Approver memproses lewat **My Approvals**; HR dapat **Update Approvers** selama masih ada langkah **Pending** (lihat di bawah) |
+| **Submitted** / **Approved**  | HR dengan izin **`recruitment-requests.hold`** dapat **Hold** (lihat [§3.4](#fptk-hold-unhold))                              |
+| **On Hold**                   | **Unhold** (izin yang sama); approval, rekrutmen, dan **Close Request** dibekukan hingga unhold                                |
 | **Approved**                  | **Assign Letter Number** jika belum ada nomor surat resmi                                                                      |
 | Semua (kecuali ditolak/batal) | **Print FPTK**, **Back to List**                                                                                               |
 
@@ -237,6 +244,75 @@ Fitur ini hanya untuk **HR** dengan hak **`recruitment-requests.edit`**, pada de
 <br><em>Gambar 3.5 — Kartu Approval Status: approver terkunci (Approved) dan pending (ikon ×) dengan tombol Update Approvers</em>
 </p>
 
+### Langkah-langkah — **HOLD** / **UNHOLD** FPTK
+
+<a id="fptk-hold-unhold"></a>
+
+Fitur **Hold** menahan sementara satu FPTK tanpa membatalkan atau menutup dokumen. Selama **On Hold**, sistem membekukan persetujuan dan seluruh aktivitas rekrutmen terkait FPTK tersebut; **waktu yang berlalu selama hold tidak dihitung** sebagai hari proses di laporan **Time-to-Hire Analysis**, **Request Aging & SLA**, dan **Stale Candidates Report** (kolom **Hold Days** / status SLA **On Hold** bila relevan).
+
+**Siapa yang dapat menggunakan**
+
+| Aspek | Ketentuan |
+| :---- | :-------- |
+| **Permission** | **`recruitment-requests.hold`** — dibuat dan di-assign manual di Spatie (tidak ada seeder default); biasanya staf HR HO. |
+| **Menu** | Detail dari **Requests (FPTK)** (bukan halaman **My Recruitment Request** karyawan). |
+| **Scope proyek** | Mengikuti aturan assignment proyek user (sama seperti aksi HR lain pada FPTK). |
+
+**Status yang boleh di-hold**
+
+| Status FPTK saat ini | Boleh **Hold**? |
+| :------------------- | :-------------- |
+| **Submitted** (termasuk sebagian approver sudah approve) | Ya |
+| **Approved** | Ya |
+| **Draft**, **Rejected**, **Cancelled**, **Closed**, **On Hold** | Tidak |
+
+Setelah **Hold**, badge status berubah menjadi **On Hold** (ungu). Sistem menyimpan status sebelumnya (**Submitted** atau **Approved**) agar dapat dikembalikan saat **Unhold**.
+
+**Langkah — menahan FPTK (Hold)**
+
+1. Buka detail FPTK berstatus **Submitted** atau **Approved** (**View** dari daftar **Requests (FPTK)**).
+2. Di panel aksi (kolom kanan), klik tombol **Hold** (ungu).
+3. Pada modal **Hold FPTK**, isi **Hold Reason** (wajib, maks. 1000 karakter — contoh: instruksi Management menunda rekrutmen).
+4. Konfirmasi. Pesan sukses muncul; status menjadi **On Hold**.
+
+**Langkah — membuka kembali (Unhold)**
+
+1. Buka detail FPTK **On Hold**.
+2. Klik **Unhold** (biru).
+3. Pada modal **Unhold FPTK**, isi **Release Reason** / catatan (opsional).
+4. Konfirmasi. Status kembali ke **Submitted** atau **Approved** sesuai kondisi sebelum hold; proses approval dan rekrutmen dapat dilanjutkan.
+
+**Kartu Hold History (detail FPTK)**
+
+Jika FPTK pernah di-hold, kartu **Hold History** tampil di kolom kanan (HR). Isinya:
+
+- **Ringkasan** — jumlah periode hold, total hari kumulatif, indikator jika masih ada hold aktif.
+- **Timeline per periode** — tanggal/waktu mulai hold → selesai (atau **Masih berjalan**), durasi, **Alasan hold**, **Alasan unhold** (jika ada), nama user yang melakukan hold/unhold.
+
+Riwayat bersifat audit; periode hold yang sudah ditutup tetap tersimpan setelah **Unhold**.
+
+**Yang dibekukan saat FPTK On Hold**
+
+| Area | Perilaku |
+| :--- | :------- |
+| **My Approvals** | Approver **tidak dapat** approve/reject FPTK yang on hold. |
+| **Update Approvers** | Form **Update Approvers** diblokir; pesan: approver tidak dapat diubah hingga **Unhold**. |
+| **Apply to FPTK** / **Add Candidate** | Tidak dapat menambah kandidat baru ke FPTK ini. |
+| **Recruitment Sessions** | Tahap sesi tidak dapat dilanjutkan; halaman sesi menampilkan pesan freeze; **Transition Stage** dan penilaian tahap terkunci sesuai aturan sesi on hold. |
+| **Close Request** | Menutup FPTK dari halaman sesi **ditolak** hingga **Unhold**. |
+| **Edit isi FPTK** | Tetap mengikuti aturan umum (setelah **Submitted**, isi utama tidak diedit — hold **bukan** mode edit). |
+
+**Filter dan dashboard**
+
+- Di daftar **Requests (FPTK)**, filter **Status** → **On Hold** untuk melihat semua FPTK yang sedang ditahan.
+- Di **Recruitment Dashboard**, kartu **On Hold** menampilkan jumlah FPTK + MPP on hold; sesi terbaru dapat memuat badge indikasi parent on hold.
+
+**Catatan**
+
+- Hold **tidak** menggantikan **Rejected**, **Cancelled**, atau **Closed**; gunakan hold hanya untuk penundaan sementara yang disepakati HR/Management.
+- Penutupan otomatis FPTK jangka panjang (jika ada kebijakan/command terpisah di lingkungan Anda) **tidak** diubah oleh fitur hold — koordinasikan dengan administrator bila perlu.
+- Untuk **MPP** (**Active** → **On Hold**), permission **`mpp.hold`**, dan perilaku freeze serupa di level rencana proyek, lihat penjelasan singkat di [bagian 4](#recruitment-mpp-hold) (MPP tidak otomatis men-hold FPTK turunannya).
+
 ---
 
 ## 4. Untuk HR — **Requests (MPP)**
@@ -247,7 +323,7 @@ Fitur ini hanya untuk **HR** dengan hak **`recruitment-requests.edit`**, pada de
 
 1. Sidebar **HERO SECTION** → **Recruitment Management** → **Requests (MPP)**.
 2. Judul kartu: **Man Power Plan (MPP)**; tombol **Add** untuk MPP baru.
-3. **Filter**: **MPP Number**, **Project**, **Status** (**Active** / **Closed**), **Year**; **Reset** mengosongkan filter.
+3. **Filter**: **MPP Number**, **Project**, **Status** (**Active**, **On Hold**, **Closed**), **Year**; **Reset** mengosongkan filter.
 4. Tabel: **No**, **MPP Number**, **Project**, **Title**, **Plan**, **Existing**, **Diff**, **Completion**, **Status**, **Action**.
 
 <p align="center" id="recruitment-mpp-list">
@@ -314,6 +390,12 @@ Fitur ini hanya untuk **HR** dengan hak **`recruitment-requests.edit`**, pada de
 </p>
 
 **Catatan:** Rekrutmen dari MPP tidak memakai alur FPTK/letter number yang sama; sesi kandidat terhubung ke baris **MPP Detail** (posisi dalam rencana).
+
+<a id="recruitment-mpp-hold"></a>
+
+### Hold / Unhold MPP (ringkas)
+
+MPP **Active** dapat ditahan dengan permission **`mpp.hold`**: tombol **Hold** / **Unhold** di header **MPP Details**, alasan hold wajib, kartu **Hold History** sama seperti FPTK. Saat MPP **On Hold**, **Add Candidate**, penutupan MPP, dan progres sesi terkait dibekukan. Hold MPP **tidak** otomatis mengubah status FPTK terpisah. Detail langkah dan dampak laporan mengikuti pola [Hold FPTK (§3.4)](#fptk-hold-unhold).
 
 ---
 
@@ -456,7 +538,11 @@ Sesi rekrutmen menghubungkan **kandidat** dengan FPTK **Approved** atau baris **
 | **Add Candidate**    | Modal **Add Candidate to FPTK** / **MPP Detail**: cari kandidat di bank CV (**Search Candidate/CV**), pilih **Select**, konfirmasi penambahan sesi. |
 | **View Dashboard**   | Kembali ke **Recruitment Dashboard**.                                                                                                               |
 | **Back to Sessions** | Kembali ke daftar **Recruitment Sessions**.                                                                                                         |
-| **Close Request**    | _(FPTK saja, belum **Closed**)_ Menutup permintaan rekrutmen; konfirmasi di layar; sesi baru tidak dapat dibuat lagi.                               |
+| **Close Request**    | _(FPTK saja, belum **Closed**)_ Menutup permintaan rekrutmen; konfirmasi di layar; sesi baru tidak dapat dibuat lagi. **Tidak tersedia** jika FPTK/MPP induk **On Hold** — **Unhold** terlebih dahulu. |
+
+**FPTK/MPP On Hold**
+
+Jika permintaan induk sedang **On Hold**, header sesi menampilkan status **On Hold** / pesan freeze. **Add Candidate**, penilaian tahap, **Transition Stage**, dan **Close Request** dinonaktifkan atau ditolak hingga HR melakukan **Unhold** pada detail FPTK/MPP (lihat [§3.4](#fptk-hold-unhold)).
 
 **Aksi pada tabel Candidate Sessions**
 
@@ -746,11 +832,11 @@ Buka **HERO SECTION** → **Recruitment Management** → **Reports**. Judul: **R
 | Laporan                              | Isi singkat                                                |
 | :----------------------------------- | :--------------------------------------------------------- |
 | **Recruitment Funnel by Stage**      | Progres kandidat per tahap; filter tanggal; ekspor Excel.  |
-| **Request Aging & SLA**              | Lama proses FPTK, bottleneck persetujuan, kepatuhan SLA.   |
-| **Time-to-Hire Analysis**            | Hari dari pembuatan permintaan hingga onboarding kandidat. |
+| **Request Aging & SLA**              | Lama proses FPTK, bottleneck persetujuan, kepatuhan SLA; status **On Hold** dan hari terbuka disesuaikan (hari hold tidak dihitung).   |
+| **Time-to-Hire Analysis**            | Hari dari pembuatan permintaan hingga onboarding kandidat; **hold days** dikurangkan dari perhitungan. |
 | **Offer Acceptance Rate**            | Tingkat penerimaan offering per departemen/posisi.         |
 | **Interview & Assessment Analytics** | Hasil assessment kandidat yang lulus **CV Review**.        |
-| **Stale Candidates Report**          | Kandidat tanpa aktivitas/progres terbaru.                  |
+| **Stale Candidates Report**          | Kandidat tanpa aktivitas/progres terbaru; sesi dengan parent **On Hold** ditandai status **On Hold**, bukan **Stale**.                  |
 
 <p align="center" id="recruitment-reports-index">
     <img
@@ -844,7 +930,7 @@ Pada [daftar](#my-recruitment-requests-list), klik **View** pada baris yang ingi
 
 Selama permintaan masih **Draft** dan **belum direview atau ditindaklanjuti oleh HR** seperti penetapan nomor surat resmi, nomor di header biasanya tetap berformat **REQxxxxx** — itu adalah **nomor sementara** dari pengajuan mandiri. **Nomor FPTK resmi** (polanya mengikuti penomoran perusahaan, misalnya **xxxx/HCS-[kode proyek]/FPTK/bulan/tahun**) diberikan oleh **HR setelah konfirmasi**, sebagaimana dijelaskan di banner form pembuatan.
 
-Badge **Draft** pada judul menandakan Anda masih dapat menyunting data. Halaman detail menampilkan ringkasan **FPTK Information** (department, project, position, level, jumlah kebutuhan, tanggal dibutuhkan, jenis kontrak, alasan permintaan, kebutuhan tes teori, dll.), **Job Description & Requirements**, serta kartu **Requested By** (nama, email, cap waktu pembuatan).
+Badge **Draft** pada judul menandakan Anda masih dapat menyunting data. Halaman detail menampilkan ringkasan **FPTK Information** (termasuk **Requested By** dan **Requested On**), **Job Description & Requirements**, serta tabel **Recruitment Sessions** bila sudah ada kandidat.
 
 <p align="center" id="my-recruitment-detail-draft">
     <img
@@ -869,7 +955,7 @@ Di halaman detail **My Recruitment Requests**, tombol **Submit for Approval** um
 
 Setelah HR memproses pengajuan, nomor berubah dari **REQxxxxx** menjadi **nomor FPTK resmi** (misalnya **xxxx/HCS-[kode proyek]/FPTK/bulan/tahun**). Badge status bisa **Submitted**, **Acknowledged**, **Approved**, atau lainnya — cuplikan di bawah memakai **Approved**.
 
-Detail halaman memuat kartu **FPTK Information**, **Job Description & Requirements**, **Requested By**, serta blok tes teori jika ada. Di jalur personal, **Edit** biasanya hilang setelah bukan draft; **Back to List** dan **Print FPTK** tetap tersedia.
+Detail halaman memuat kartu **FPTK Information** (termasuk pemohon dan tanggal permintaan), **Job Description & Requirements**, serta blok tes teori jika ada. Di jalur personal, **Edit** biasanya hilang setelah bukan draft; **Back to List** dan **Print FPTK** tetap tersedia. Status **On Hold** berarti HR menahan sementara proses — sesi rekrutmen tidak berjalan hingga **Unhold** (Anda tidak melihat tombol hold di **My Recruitment Request**).
 
 <p align="center" id="my-recruitment-detail-approved-sessions">
     <img
@@ -911,6 +997,10 @@ Untuk pertanyaan tentang tahapan atau keputusan pada seorang kandidat, koordinas
 | **Apply to FPTK** gagal / FPTK tidak muncul                                    | FPTK belum **Approved**, slot penuh, atau kandidat **Blacklisted**       | Pastikan FPTK disetujui dan masih buka; cek **Global Status** kandidat.                                                                                                                                |
 | Menu **Recruitment Management** tidak tampil                                   | Hak akses HR rekrutmen belum diberikan                                   | Hubungi administrator untuk role/permission rekrutmen.                                                                                                                                                 |
 | Nomor masih **REQxxxxx**                                                       | HR belum assign **Letter Number**                                        | Tunggu konfirmasi HR atau tanyakan status di **Requests (FPTK)**.                                                                                                                                      |
+| Tombol **Hold** tidak tampil pada detail FPTK                         | Status bukan **Submitted**/**Approved**, atau akun tanpa **`recruitment-requests.hold`** | Pastikan status dan permission; hold tidak berlaku untuk **Draft**/**Closed**.                                                                                                                        |
+| **FPTK tidak dapat di-hold** / pesan status tidak valid               | FPTK sudah **On Hold** atau status tidak memenuhi syarat                                  | Hanya **Submitted** dan **Approved** yang dapat di-hold sekali dalam satu waktu (satu hold aktif).                                                                                                    |
+| **FPTK sedang On Hold** (approval, apply, sesi, close)              | Rekrutmen dibekukan sengaja                                                               | HR **Unhold** di detail FPTK jika penundaan selesai; approver menunggu hingga unhold.                                                                                                                 |
+| **Approver tidak dapat diubah** saat On Hold                          | **Update Approvers** diblokir selama hold                                                 | **Unhold** terlebih dahulu, lalu ubah approver pending jika masih **Submitted**.                                                                                                                      |
 
 ### Menghubungi administrator
 

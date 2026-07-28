@@ -25,6 +25,7 @@ use App\Models\LeaveType;
 use App\Models\LetterCategory;
 use App\Models\LetterNumber;
 use App\Models\License;
+use App\Models\ManPowerPlan;
 use App\Models\Officialtravel;
 use App\Models\OfficialtravelStop;
 use App\Models\Operableunit;
@@ -300,8 +301,10 @@ class DashboardController extends Controller
             'sessions_this_month' => RecruitmentSession::whereMonth('applied_date', now()->month)
                 ->whereYear('applied_date', now()->year)
                 ->count(),
-            // FPTK / Requests
-            'active_fptk' => RecruitmentRequest::active()->count(), // submitted or approved
+            // FPTK / Requests — active excludes on_hold
+            'active_fptk' => RecruitmentRequest::active()->count(),
+            'on_hold_fptk' => RecruitmentRequest::where('status', RecruitmentRequest::STATUS_ON_HOLD)->count(),
+            'on_hold_mpp' => ManPowerPlan::where('status', ManPowerPlan::STATUS_ON_HOLD)->count(),
             // Candidates
             'candidate_pool' => RecruitmentCandidate::whereIn('global_status', ['available', 'in_process'])->count(),
         ];

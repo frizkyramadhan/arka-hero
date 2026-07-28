@@ -109,7 +109,13 @@ class RecruitmentSessionController extends Controller
                 }
 
                 // Check if FPTK status allows adding candidates
-                // Allow both 'approved' and 'draft' status
+                if ($fptk->isOnHold()) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'FPTK sedang On Hold. Tidak dapat menambah kandidat hingga Unhold.',
+                    ], 400);
+                }
+
                 if (! in_array($fptk->status, ['approved', 'draft'])) {
                     return response()->json([
                         'success' => false,
@@ -122,7 +128,7 @@ class RecruitmentSessionController extends Controller
             }
             // Handle MPP Detail source
             else {
-                $mppDetail = \App\Models\ManPowerPlanDetail::find($request->mpp_detail_id);
+                $mppDetail = \App\Models\ManPowerPlanDetail::with('mpp')->find($request->mpp_detail_id);
 
                 if (! $mppDetail) {
                     return response()->json([
@@ -144,6 +150,13 @@ class RecruitmentSessionController extends Controller
                 }
 
                 // Check if MPP is active
+                if ($mppDetail->mpp && $mppDetail->mpp->isOnHold()) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'MPP sedang On Hold. Tidak dapat menambah kandidat hingga Unhold.',
+                    ], 400);
+                }
+
                 if (! $mppDetail->canReceiveApplications()) {
                     return response()->json([
                         'success' => false,
@@ -915,6 +928,10 @@ class RecruitmentSessionController extends Controller
             // Find the session with relationships
             $session = RecruitmentSession::with(['cvReview', 'psikotes', 'tesTeori', 'interviews', 'offering', 'mcu', 'hiring', 'mppDetail', 'fptk'])->findOrFail($sessionId);
 
+            if ($blocked = $this->rejectIfParentOnHold($session)) {
+                return $blocked;
+            }
+
             // Validate request
             $request->validate([
                 'decision' => 'required|in:recommended,not_recommended',
@@ -1023,6 +1040,10 @@ class RecruitmentSessionController extends Controller
 
             // Find the session with relationships
             $session = RecruitmentSession::with(['cvReview', 'psikotes', 'tesTeori', 'interviews', 'offering', 'mcu', 'hiring', 'mppDetail', 'fptk'])->findOrFail($sessionId);
+
+            if ($blocked = $this->rejectIfParentOnHold($session)) {
+                return $blocked;
+            }
 
             // Validate request
             $request->validate([
@@ -1168,6 +1189,10 @@ class RecruitmentSessionController extends Controller
             // Find the session with relationships
             $session = RecruitmentSession::with(['cvReview', 'psikotes', 'tesTeori', 'interviews', 'offering', 'mcu', 'hiring', 'mppDetail', 'fptk'])->findOrFail($sessionId);
 
+            if ($blocked = $this->rejectIfParentOnHold($session)) {
+                return $blocked;
+            }
+
             // Validate request
             $request->validate([
                 'score' => 'required|numeric|min:0|max:100',
@@ -1306,6 +1331,10 @@ class RecruitmentSessionController extends Controller
 
             // Find the session with relationships
             $session = RecruitmentSession::with(['cvReview', 'psikotes', 'tesTeori', 'interviews', 'offering', 'mcu', 'hiring', 'mppDetail', 'fptk'])->findOrFail($sessionId);
+
+            if ($blocked = $this->rejectIfParentOnHold($session)) {
+                return $blocked;
+            }
 
             // Validate request
             $request->validate([
@@ -1446,7 +1475,11 @@ class RecruitmentSessionController extends Controller
         try {
             DB::beginTransaction();
 
-            $session = RecruitmentSession::with(['candidate', 'offering'])->findOrFail($sessionId);
+            $session = RecruitmentSession::with(['candidate', 'offering', 'fptk', 'mppDetail.mpp'])->findOrFail($sessionId);
+
+            if ($blocked = $this->rejectIfParentOnHold($session)) {
+                return $blocked;
+            }
 
             // Validate request
             $request->validate([
@@ -1559,7 +1592,11 @@ class RecruitmentSessionController extends Controller
         try {
             DB::beginTransaction();
 
-            $session = RecruitmentSession::with(['candidate', 'mcu'])->findOrFail($sessionId);
+            $session = RecruitmentSession::with(['candidate', 'mcu', 'fptk', 'mppDetail.mpp'])->findOrFail($sessionId);
+
+            if ($blocked = $this->rejectIfParentOnHold($session)) {
+                return $blocked;
+            }
 
             // Ensure we are in MCU stage
             if ($session->current_stage !== 'mcu') {
@@ -1662,6 +1699,10 @@ class RecruitmentSessionController extends Controller
             DB::beginTransaction();
 
             $session = RecruitmentSession::with(['candidate', 'hiring', 'fptk', 'mppDetail.mpp'])->findOrFail($sessionId);
+
+            if ($blocked = $this->rejectIfParentOnHold($session)) {
+                return $blocked;
+            }
 
             if ($session->current_stage !== 'hire') {
                 return back()->with('toast_error', 'Session is not in Hire stage.');
@@ -1882,6 +1923,10 @@ class RecruitmentSessionController extends Controller
             DB::beginTransaction();
 
             $session = RecruitmentSession::with(['candidate', 'fptk', 'mppDetail.mpp'])->findOrFail($sessionId);
+
+            if ($blocked = $this->rejectIfParentOnHold($session)) {
+                return $blocked;
+            }
 
             $targetStage = $request->target_stage;
             $currentStage = $session->current_stage;
@@ -2107,6 +2152,13 @@ class RecruitmentSessionController extends Controller
                 $fptk = \App\Models\RecruitmentRequest::findOrFail($sessionOrFptkId);
             }
 
+            if ($fptk->isOnHold()) {
+                DB::rollBack();
+
+                return redirect()->route('recruitment.sessions.index')
+                    ->with('toast_error', 'FPTK sedang On Hold. Unhold terlebih dahulu sebelum close.');
+            }
+
             // Close FPTK
             $fptk->update(['status' => \App\Models\RecruitmentRequest::STATUS_CLOSED]);
 
@@ -2219,6 +2271,19 @@ class RecruitmentSessionController extends Controller
             'agreement_type.required' => 'Agreement Type is required',
             'reviewed_at.required' => 'Review Date is required',
         ];
+    }
+
+    private function rejectIfParentOnHold(RecruitmentSession $session)
+    {
+        if (! $session->isParentOnHold()) {
+            return null;
+        }
+
+        if (DB::transactionLevel() > 0) {
+            DB::rollBack();
+        }
+
+        return back()->with('toast_error', $session->parentHoldBlockMessage());
     }
 
     private function resolveAgreementType(RecruitmentSession $session, ?string $fallback = null): string

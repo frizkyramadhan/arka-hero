@@ -163,6 +163,13 @@ class RecruitmentSessionService
      */
     public function advanceToNextStage(RecruitmentSession $session, array $data = []): array
     {
+        if ($session->isParentOnHold()) {
+            return [
+                'success' => false,
+                'message' => $session->parentHoldBlockMessage(),
+            ];
+        }
+
         // Handle assessment data for current stage before advancing
         if (isset($data['assessment_data']) && !empty($data['assessment_data'])) {
             $assessmentResult = $this->processAssessmentData($session, $data['assessment_data']);

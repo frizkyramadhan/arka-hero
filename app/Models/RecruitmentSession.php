@@ -142,6 +142,41 @@ class RecruitmentSession extends Model
         return $this->belongsTo(ManPowerPlanDetail::class, 'mpp_detail_id');
     }
 
+    /**
+     * Whether parent FPTK or MPP is currently on hold.
+     */
+    public function isParentOnHold(): bool
+    {
+        if ($this->fptk_id) {
+            $fptk = $this->relationLoaded('fptk') ? $this->fptk : $this->fptk()->first();
+
+            return $fptk && $fptk->isOnHold();
+        }
+
+        if ($this->mpp_detail_id) {
+            $detail = $this->relationLoaded('mppDetail')
+                ? $this->mppDetail
+                : $this->mppDetail()->with('mpp')->first();
+
+            if ($detail && ! $detail->relationLoaded('mpp')) {
+                $detail->load('mpp');
+            }
+
+            return $detail && $detail->mpp && $detail->mpp->isOnHold();
+        }
+
+        return false;
+    }
+
+    public function parentHoldBlockMessage(): string
+    {
+        if ($this->fptk_id) {
+            return 'FPTK sedang On Hold. Proses rekrutmen dibekukan hingga Unhold.';
+        }
+
+        return 'MPP sedang On Hold. Proses rekrutmen dibekukan hingga Unhold.';
+    }
+
     public function candidate()
     {
         return $this->belongsTo(RecruitmentCandidate::class, 'candidate_id');
@@ -818,6 +853,10 @@ class RecruitmentSession extends Model
 
     public function advanceToNextStage()
     {
+        if ($this->isParentOnHold()) {
+            return false;
+        }
+
         if (!$this->canAdvanceToNextStage()) {
             return false;
         }
@@ -844,6 +883,10 @@ class RecruitmentSession extends Model
 
     public function startStage()
     {
+        if ($this->isParentOnHold()) {
+            return false;
+        }
+
         if ($this->stage_status !== 'pending') {
             return false;
         }
@@ -858,6 +901,10 @@ class RecruitmentSession extends Model
 
     public function completeStage($notes = null)
     {
+        if ($this->isParentOnHold()) {
+            return false;
+        }
+
         if ($this->stage_status !== 'in_progress') {
             return false;
         }

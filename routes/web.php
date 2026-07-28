@@ -559,6 +559,8 @@ Route::group(['middleware' => ['auth']], function () {
             Route::post('/{id}/approve', [RecruitmentRequestController::class, 'approve'])->name('approve');
             Route::post('/{id}/reject', [RecruitmentRequestController::class, 'reject'])->name('reject');
             Route::post('/{id}/assign-letter-number', [RecruitmentRequestController::class, 'assignLetterNumber'])->name('assign-letter-number');
+            Route::post('/{id}/hold', [RecruitmentRequestController::class, 'hold'])->name('hold');
+            Route::post('/{id}/unhold', [RecruitmentRequestController::class, 'unhold'])->name('unhold');
 
             // AJAX Routes
         });
@@ -574,6 +576,8 @@ Route::group(['middleware' => ['auth']], function () {
             Route::put('/{id}', [\App\Http\Controllers\ManPowerPlanController::class, 'update'])->name('update');
             Route::delete('/{id}', [\App\Http\Controllers\ManPowerPlanController::class, 'destroy'])->name('destroy');
             Route::post('/{id}/close', [\App\Http\Controllers\ManPowerPlanController::class, 'close'])->name('close');
+            Route::post('/{id}/hold', [\App\Http\Controllers\ManPowerPlanController::class, 'hold'])->name('hold');
+            Route::post('/{id}/unhold', [\App\Http\Controllers\ManPowerPlanController::class, 'unhold'])->name('unhold');
         });
 
         // Candidate Routes

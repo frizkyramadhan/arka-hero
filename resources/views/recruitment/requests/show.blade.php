@@ -33,6 +33,11 @@
                             'class' => 'badge badge-primary',
                             'icon' => 'fa-check-circle',
                         ],
+                        'on_hold' => [
+                            'label' => 'On Hold',
+                            'class' => 'badge badge-hold-status',
+                            'icon' => 'fa-pause-circle',
+                        ],
                     ];
                     $status = $fptk->status;
                     $pill = $statusMap[$status] ?? [
@@ -157,6 +162,27 @@
                                                 <br><small class="text-muted">Posisi non-teknis</small>
                                             @endif
                                         </div>
+                                    </div>
+                                </div>
+                                <div class="info-item">
+                                    <div class="info-icon" style="background-color: #2980b9;">
+                                        <i class="fas fa-user-edit"></i>
+                                    </div>
+                                    <div class="info-content">
+                                        <div class="info-label">Requested By</div>
+                                        <div class="info-value">
+                                            {{ $fptk->createdBy->name }}
+                                            <br><small class="text-muted">{{ $fptk->createdBy->email }}</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="info-item">
+                                    <div class="info-icon" style="background-color: #95a5a6;">
+                                        <i class="fas fa-calendar-alt"></i>
+                                    </div>
+                                    <div class="info-content">
+                                        <div class="info-label">Requested On</div>
+                                        <div class="info-value">{{ format_datetime_with_weekday($fptk->created_at) }}</div>
                                     </div>
                                 </div>
                             </div>
@@ -408,21 +434,16 @@
                     {{-- <x-approval-status-card :documentType="'recruitment_request'" :documentId="$fptk->id" :mode="$fptk->status === 'draft' ? 'preview' : 'status'" :projectId="$fptk->project_id"
                         :departmentId="$fptk->department_id" :requestReason="$fptk->request_reason" title="Approval Status" /> --}}
 
-                    <!-- Requested By -->
-                    <div class="fptk-card requester-card">
-                        <div class="card-head">
-                            <h2><i class="fas fa-user-edit"></i> Requested By</h2>
-                        </div>
-                        <div class="card-body">
-                            <div class="requester-info">
-                                <div class="requester-name">{{ $fptk->createdBy->name }}</div>
-                                <div class="requester-email">{{ $fptk->createdBy->email }}</div>
-                                <div class="requester-date">
-                                    <i class="fas fa-calendar"></i> {{ format_datetime_with_weekday($fptk->created_at) }}
-                                </div>
+                    @if (!Request::is('recruitment/my-requests*') && $fptk->holds->isNotEmpty())
+                        <div class="fptk-card hold-history-card mb-4">
+                            <div class="card-head">
+                                <h2><i class="fas fa-history"></i> Hold History</h2>
+                            </div>
+                            <div class="card-body py-3">
+                                @include('recruitment.partials.hold-history', ['holds' => $fptk->holds])
                             </div>
                         </div>
-                    </div>
+                    @endif
 
                     <!-- Action Buttons -->
                     <div class="fptk-action-buttons">
@@ -519,6 +540,22 @@
                                         @endcan
                                     @endif
                                 @endif
+                            @endif
+
+                            @if (!Request::is('recruitment/my-requests*'))
+                                @can('recruitment-requests.hold')
+                                    @if (in_array($fptk->status, ['submitted', 'approved'], true))
+                                        <button type="button" class="btn-action hold-btn"
+                                            data-toggle="modal" data-target="#holdModal">
+                                            <i class="fas fa-pause"></i> Hold
+                                        </button>
+                                    @elseif ($fptk->status == 'on_hold')
+                                        <button type="button" class="btn-action unhold-btn"
+                                            data-toggle="modal" data-target="#unholdModal">
+                                            <i class="fas fa-play"></i> Unhold
+                                        </button>
+                                    @endif
+                                @endcan
                             @endif
                         @endif
 
@@ -716,9 +753,66 @@
         </div>
     @endif
 
+    @can('recruitment-requests.hold')
+        @if (!Request::is('recruitment/my-requests*'))
+            <div class="modal fade" id="holdModal" tabindex="-1" role="dialog" aria-hidden="true">
+                <div class="modal-dialog" role="document">
+                    <form action="{{ route('recruitment.requests.hold', $fptk->id) }}" method="POST">
+                        @csrf
+                        <div class="modal-content">
+                            <div class="modal-header text-white hold-modal-header">
+                                <h5 class="modal-title"><i class="fas fa-pause"></i> Hold FPTK</h5>
+                                <button type="button" class="close text-white" data-dismiss="modal"><span>&times;</span></button>
+                            </div>
+                            <div class="modal-body">
+                                <p class="mb-2">Proses approval & rekrutmen akan dibekukan. Masa hold tidak dihitung di Time to Hire.</p>
+                                <div class="form-group">
+                                    <label for="hold_reason">Hold Reason <span class="text-danger">*</span></label>
+                                    <textarea name="hold_reason" id="hold_reason" class="form-control" rows="3" required
+                                        placeholder="Instruksi Management / alasan hold">{{ old('hold_reason') }}</textarea>
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                                <button type="submit" class="btn hold-btn-solid">Confirm Hold</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <div class="modal fade" id="unholdModal" tabindex="-1" role="dialog" aria-hidden="true">
+                <div class="modal-dialog" role="document">
+                    <form action="{{ route('recruitment.requests.unhold', $fptk->id) }}" method="POST">
+                        @csrf
+                        <div class="modal-content">
+                            <div class="modal-header bg-info text-white">
+                                <h5 class="modal-title"><i class="fas fa-play"></i> Unhold FPTK</h5>
+                                <button type="button" class="close text-white" data-dismiss="modal"><span>&times;</span></button>
+                            </div>
+                            <div class="modal-body">
+                                <p class="mb-2">FPTK akan dikembalikan ke status sebelumnya dan proses dapat dilanjutkan.</p>
+                                <div class="form-group">
+                                    <label for="release_reason">Release Reason (optional)</label>
+                                    <textarea name="release_reason" id="release_reason" class="form-control" rows="3"
+                                        placeholder="Catatan pembukaan kembali">{{ old('release_reason') }}</textarea>
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                                <button type="submit" class="btn btn-info">Confirm Unhold</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        @endif
+    @endcan
+
 @endsection
 
 @section('styles')
+    @include('recruitment.partials.hold-history-styles')
     <style>
         /* Custom Styles for FPTK Detail */
         .content-wrapper-custom {
@@ -1078,33 +1172,6 @@
             color: #721c24;
         }
 
-        /* Requester Card */
-        .requester-info {
-            text-align: center;
-        }
-
-        .requester-name {
-            font-size: 18px;
-            font-weight: 600;
-            color: #2c3e50;
-            margin-bottom: 8px;
-        }
-
-        .requester-email {
-            font-size: 14px;
-            color: #64748b;
-            margin-bottom: 12px;
-        }
-
-        .requester-date {
-            font-size: 13px;
-            color: #64748b;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 6px;
-        }
-
         /* Action Buttons */
         .fptk-action-buttons {
             display: grid;
@@ -1173,6 +1240,43 @@
         .print-btn:hover {
             background-color: #1e7e34;
             color: white;
+        }
+
+        /* Hold / Unhold — warna khusus, tidak sama dengan Back (abu) atau Submit (oranye) */
+        .btn-action.hold-btn {
+            background: linear-gradient(135deg, #7c3aed, #6d28d9);
+            color: #fff;
+        }
+
+        .btn-action.hold-btn:hover {
+            background: linear-gradient(135deg, #6d28d9, #5b21b6);
+            color: #fff;
+        }
+
+        .btn-action.unhold-btn {
+            background: linear-gradient(135deg, #0ea5e9, #0284c7);
+            color: #fff;
+        }
+
+        .btn-action.unhold-btn:hover {
+            background: linear-gradient(135deg, #0284c7, #0369a1);
+            color: #fff;
+        }
+
+        .hold-modal-header {
+            background: linear-gradient(135deg, #7c3aed, #6d28d9);
+        }
+
+        .hold-btn-solid {
+            background: #6d28d9;
+            border-color: #5b21b6;
+            color: #fff;
+        }
+
+        .hold-btn-solid:hover {
+            background: #5b21b6;
+            border-color: #4c1d95;
+            color: #fff;
         }
 
         .btn-action:hover {

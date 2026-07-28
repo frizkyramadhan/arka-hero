@@ -177,11 +177,12 @@ graph LR
 ### 3. Recruitment Management
 
 **Controllers**: `RecruitmentRequestController`, `RecruitmentCandidateController`, `RecruitmentSessionController`, `RecruitmentReportController`, `ManPowerPlanController`
-**Models**: `RecruitmentRequest` (FPTK), `RecruitmentCandidate`, `RecruitmentSession`, `RecruitmentCvReview`, `RecruitmentPsikotes`, `RecruitmentTesTeori`, `RecruitmentInterview`, `RecruitmentOffering`, `RecruitmentMcu`, `RecruitmentHiring`, `ManPowerPlan`, `ManPowerPlanDetail`
+**Models**: `RecruitmentRequest` (FPTK), `RecruitmentRequestHold`, `RecruitmentCandidate`, `RecruitmentSession`, `RecruitmentCvReview`, `RecruitmentPsikotes`, `RecruitmentTesTeori`, `RecruitmentInterview`, `RecruitmentOffering`, `RecruitmentMcu`, `RecruitmentHiring`, `ManPowerPlan`, `ManPowerPlanHold`, `ManPowerPlanDetail`
 
 **Features**:
 
 - FPTK (Formasi Permintaan Tenaga Kerja) - Workforce requisition system
+- FPTK/MPP **HOLD** (`on_hold`): HR freezes recruitment & approval; hold intervals excluded from Time to Hire / Fill / aging / stale clocks (`recruitment_request_holds`, `man_power_plan_holds`). Permissions `recruitment-requests.hold` / `mpp.hold` assigned manually.
 - 3-level approval workflow (Acknowledgment → PM Approval → Director Approval)
 - Candidate database with CV management and blacklist feature
 - Multi-stage recruitment process:
@@ -494,7 +495,8 @@ graph TD
 
 **Recruitment**:
 
-- `recruitment_requests` - FPTK (Workforce requisition)
+- `recruitment_requests` - FPTK (Workforce requisition); `status_before_hold` for HOLD restore
+- `recruitment_request_holds` - FPTK hold history (held_at / released_at)
 - `recruitment_candidates` - Candidate database
 - `recruitment_sessions` - Candidate-FPTK session tracking
 - `recruitment_cv_reviews` - CV review stage data
@@ -505,7 +507,8 @@ graph TD
 - `recruitment_mcu` - Medical check-up results
 - `recruitment_hiring` - Hiring decision and contract type
 - `recruitment_documents` - Supporting documents per stage
-- `man_power_plans` - Manpower planning
+- `man_power_plans` - Manpower planning; status includes `on_hold` + `status_before_hold`
+- `man_power_plan_holds` - MPP hold history
 - `man_power_plan_details` - MPP position details
 
 **Leave Management**:
