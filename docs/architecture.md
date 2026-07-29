@@ -826,6 +826,16 @@ Error response:
 - **MySQL**: Latest version via Laragon
 - **Node.js**: For asset compilation (npm/Vite)
 
+### Shared Docker Staging Server (`192.168.32.146`)
+
+- **Host**: `saphire-one` · SSH user `skyone` · Local alias `arka-docker` (SSH key; no password in repo)
+- **Stack root**: `/home/skyone/stack` · Compose drives nginx, MySQL 8, phpMyAdmin, PHP-FPM 7.4/8.1/8.2, optional Node (`stack-arka-fms`)
+- **Apps mount**: host `stack/apps` → container `/var/www`
+- **ARKA HERO**: `stack/apps/app82/arka-hero` · runtime `stack-php82-1` · workdir `/var/www/app82/arka-hero` · URL `http://192.168.32.146:8080`
+- **Sibling apps** (same stack): irr-support (`app81`, PHP 8.1, `:8081`), arka-fms (Node, `:3000`)
+- **Deploy trigger**: user says `deploy` → follow `.cursor/rules/deploy.mdc` (push → `git pull` on server → selective `php artisan`)
+- **Secrets**: live only in server compose / app `.env` — never document passwords, JWT, or DB URLs here (see `MEMORY.md` inventory for paths only)
+
 ### Application Structure
 
 ```
