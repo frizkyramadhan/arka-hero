@@ -23,7 +23,8 @@
     $fieldName = $fieldName ?? 'letter_number_id';
     $required = $required ?? false;
     $placeholder = $placeholder ?? 'Select Letter Number';
-    $selectedValue = old($fieldName) ?? ($selectedValue ?? null);
+    $selectedValue = old($fieldName, $selectedValue ?? null);
+    $includeId = $includeId ?? $selectedValue;
 
     $letterNumbersSelectUrl = route('letter-numbers.available-for-select', ['categoryCode' => $categoryCode]);
 
@@ -143,6 +144,9 @@
                 $.ajax({
                         url: @json($letterNumbersSelectUrl),
                         method: 'GET',
+                        data: {
+                            include_id: @json($includeId),
+                        },
                         headers: {
                             'Accept': 'application/json',
                             'X-Requested-With': 'XMLHttpRequest',

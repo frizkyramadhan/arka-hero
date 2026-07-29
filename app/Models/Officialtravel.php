@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Contracts\NotifiableDocument;
 use App\Support\UserProject;
 use App\Traits\HasLetterNumber;
 use Illuminate\Database\Eloquent\Builder;
@@ -11,7 +12,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use InvalidArgumentException;
 
-class Officialtravel extends Model
+class Officialtravel extends Model implements NotifiableDocument
 {
     use HasFactory;
     use HasLetterNumber;
@@ -750,5 +751,46 @@ class Officialtravel extends Model
                 $model->assignLetterNumber($letterNumber->id);
             }
         });
+    }
+
+    public function notificationDocumentType(): string
+    {
+        return 'officialtravel';
+    }
+
+    public function notificationDocumentLabel(): string
+    {
+        return config('document_notifications.labels.officialtravel', 'Official Travel');
+    }
+
+    public function notificationReference(): string
+    {
+        return $this->letter_number
+            ?: ($this->official_travel_number ?: ('OT-'.$this->getKey()));
+    }
+
+    public function notificationTitle(): string
+    {
+        return (string) ($this->purpose ?: $this->notificationReference());
+    }
+
+    public function notificationSummary(): array
+    {
+        return [
+            'Date' => optional($this->official_travel_date)->format('d M Y'),
+            'Purpose' => $this->purpose,
+            'Destination' => $this->itinerarySummaryForDisplay(),
+            'Status' => $this->status,
+        ];
+    }
+
+    public function notificationRequester(): ?User
+    {
+        return $this->creator ?? User::find($this->created_by);
+    }
+
+    public function notificationActionUrl(): string
+    {
+        return route('officialtravels.show', $this->getKey());
     }
 }

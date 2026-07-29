@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AccommodationController;
+use App\Http\Controllers\ActivityLogController;
 use App\Http\Controllers\AdditionaldataController;
 use App\Http\Controllers\AdministrationController;
 use App\Http\Controllers\ApprovalPlanController;
@@ -188,6 +189,10 @@ Route::group(['middleware' => ['auth']], function () {
 
     Route::get('permissions/data', [PermissionController::class, 'getPermissions'])->name('permissions.data');
     Route::resource('permissions', PermissionController::class);
+
+    Route::get('activity-logs/data', [ActivityLogController::class, 'data'])->name('activity-logs.data');
+    Route::get('activity-logs', [ActivityLogController::class, 'index'])->name('activity-logs.index');
+    Route::get('activity-logs/{id}', [ActivityLogController::class, 'show'])->name('activity-logs.show');
 
     // DEBUG ROUTES
     Route::prefix('debug')->name('debug.')->group(function () {
@@ -746,6 +751,7 @@ Route::group(['middleware' => ['auth']], function () {
             Route::get('/{leaveRequest}', [LeaveRequestController::class, 'show'])->name('show');
             Route::get('/{leaveRequest}/edit', [LeaveRequestController::class, 'edit'])->name('edit');
             Route::put('/{leaveRequest}', [LeaveRequestController::class, 'update'])->name('update');
+            Route::put('/{leaveRequest}/update-approvers', [LeaveRequestController::class, 'updateApprovers'])->name('update-approvers');
             Route::delete('/{leaveRequest}', [LeaveRequestController::class, 'destroy'])->name('destroy');
             Route::get('/{leaveRequest}/print', [LeaveRequestController::class, 'print'])->name('print');
             Route::get('/{leaveRequest}/download', [LeaveRequestController::class, 'download'])->name('download');

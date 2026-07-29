@@ -16,7 +16,7 @@ Panduan ini menjelaskan modul **Room & Consumption** di ARKA HERO: pemantauan da
 | **Reg. No**                          | Nomor register resmi, contoh **0001/HCS-000H/RCR/VII/2026** — dibentuk dari **Letter Number** kategori **RCR** + kode project + bulan Romawi + tahun.                                                      |
 | **REQxxxxx**                         | Nomor sementara pengajuan mandiri karyawan (contoh **REQ00001**), sama pola **My Official Travel**. Diganti **Reg. No** resmi saat HR mengonfirmasi (pilih Letter Number).                                 |
 | **Menunggu Konfirmasi HR**           | Badge/filter untuk RCR dari **My Room & Consumption** yang sudah **Submit to HR**, belum punya Letter Number resmi.                                                                                        |
-| **Letter Number**                    | Nomor surat cadangan di **Letter Administration** (kategori **RCR**). Begitu dipilih dan disimpan (termasuk **Draft**), status nomor otomatis **used** (sama seperti LOT/FPTK).                            |
+| **Letter Number**                    | Nomor surat cadangan di **Letter Administration** (kategori **RCR**). Status tetap **reserved** saat RCR **Draft**; menjadi **used** saat **Save & Submit** / **Submit for Approval**. |
 | **Meeting Room**                     | Ruangan meeting pada master data (**Meeting Rooms**), terikat ke satu **Project** (lokasi). Hanya status **Active** yang muncul di form RCR.                                                               |
 | **Active / Inactive / Maintenance**  | Status master ruangan: aktif untuk booking, nonaktif, atau dalam perawatan.                                                                                                                                |
 | **Need Zoom Meeting ID**             | Opsi Zoom di form. **IT Work Order** dibuat otomatis saat status **Submitted** (setelah letter + approver, lalu **Save & Submit** / **Submit for Approval**). **Submit to HR** (**REQ**) belum membuat WO. |
@@ -26,7 +26,7 @@ Panduan ini menjelaskan modul **Room & Consumption** di ARKA HERO: pemantauan da
 | **Submit for Approval**              | Mengajukan request berstatus **Draft** (sudah punya Letter Number + approver) ke alur approval.                                                                                                            |
 | **Request Zoom via IT WO**           | Tombol di halaman detail untuk (ulang) membuat IT Work Order Zoom bila diperlukan.                                                                                                                         |
 | **Refresh Zoom Status**              | Memperbarui data Zoom (Meeting ID, passcode, join URL) dari IT Work Order.                                                                                                                                 |
-| **Target (days)**                    | Pada laporan: selisih hari antara **Created At** dan tanggal meeting (informasi monitoring).                                                                                                               |
+| **Target (days)**                    | Pada laporan: selisih hari antara **Created At** dan **Start Date** meeting (informasi monitoring).                                                                            |
 
 ---
 
@@ -67,7 +67,7 @@ Panduan ini menjelaskan modul **Room & Consumption** di ARKA HERO: pemantauan da
 **Kartu utama:**
 
 - **Total Request** — jumlah seluruh request; keterangan **+N bulan ini** (pertumbuhan dibanding bulan sebelumnya bila ada).
-- **Meeting Bulan Ini** — meeting menurut **Meeting Date** pada bulan berjalan; keterangan hari ini / minggu ini.
+- **Meeting Bulan Ini** — meeting yang rentang **Start Date**–**End Date**-nya overlap bulan berjalan; keterangan hari ini / minggu ini.
 - **Meeting Room** — jumlah ruangan aktif dibanding total master.
 - **Perlu Tindakan** — gabungan langkah approval terbuka + request yang butuh Zoom tetapi belum siap.
 
@@ -106,12 +106,12 @@ Panduan ini menjelaskan modul **Room & Consumption** di ARKA HERO: pemantauan da
 3. Buka panel **Filter**, isi sesuai kebutuhan (tabel memuat ulang otomatis):
     - **Status** — **- All -**, **Draft**, **Menunggu Konfirmasi HR**, **Submitted**, **Approved**, **Rejected**, **Cancelled**, **Completed**.
     - **Project** — **- All -** atau satu project.
-    - **Meeting from** / **Meeting to** — rentang tanggal meeting.
+    - **Meeting from** / **Meeting to** — filter overlap dengan rentang **Start Date**–**End Date**.
     - **Reg. No / Title** — nomor register (**REQxxxxx** atau resmi) atau judul meeting.
     - **Requester** — nama pemohon (sebagian teks).
     - **Room** — nama ruangan.
 4. Klik **Reset** untuk mengosongkan filter.
-5. Kolom tabel: **No**, **Reg. No**, **Project**, **Room**, **Meeting Date**, **Time**, **Status**, **Requester**, **Actions** (**View**, **Edit**, **Submit**, **Delete** sesuai status dan hak).
+5. Kolom tabel: **No**, **Reg. No**, **Project**, **Room**, **Meeting Dates**, **Time**, **Status**, **Requester**, **Actions** (**View**, **Edit**, **Submit**, **Delete** sesuai status dan hak).
 
 **Catatan — Menunggu Konfirmasi HR:** Request dari karyawan (nomor **REQxxxxx**) tampil dengan badge **Menunggu Konfirmasi HR**. Filter status **Menunggu Konfirmasi HR** memudahkan HR menemukan pengajuan yang perlu diisi Letter Number dan approver — lihat [bagian 3.4](#rcr-hr-confirm).
 
@@ -142,12 +142,12 @@ Panduan ini menjelaskan modul **Room & Consumption** di ARKA HERO: pemantauan da
 - Gunakan **Refresh List** jika nomor baru saja dibuat di **Letter Administration**.
 - **Create New** membuka pembuatan nomor surat (tab baru) bila diperlukan.
 - Preview **Reg. No** terisi otomatis setelah nomor dipilih.
-- **Catatan:** Seperti LOT/FPTK, begitu nomor dipilih dan request disimpan (termasuk **Draft**), letter number berstatus **used** di Letter Administration. Jika diganti saat masih draft, nomor lama dapat kembali **reserved** dan nomor baru menjadi **used**.
+- **Catatan:** Saat **Save as Draft**, letter number tetap **reserved**. Status **used** di Letter Administration baru di-set saat **Save & Submit** / **Submit for Approval**. Jika diganti saat masih draft, nomor baru yang dipilih tetap **reserved** sampai submit.
 
 **2. Meeting Information**
 
 - **Reg. No** — hanya tampilan (otomatis).
-- **Meeting Date** — wajib.
+- **Start Date** / **End Date** — wajib; **End Date** ≥ **Start Date** (satu hari atau multi-hari).
 - **Location (Project)** — wajib; menentukan daftar ruangan.
 - **Room** — wajib; pilih setelah project (placeholder **— Select project first —** jika project belum dipilih).
 - **Division / Department** — opsional.
@@ -264,7 +264,7 @@ Pengajuan dari **My Room & Consumption** memakai nomor sementara **REQxxxxx** da
 3. Klik **Edit** pada baris terkait.
 4. Banner kuning mengingatkan: request dikirim karyawan (**REQxxxxx**); pilih **RCR Letter Number** dan approver.
 5. Di kartu **Letter Number**, pilih nomor cadangan kategori **RCR**.
-6. Field **Reg. No** (read-only) beralih dari **REQxxxxx** ke format resmi, contoh **0001/HCS-000H/RCR/VII/2026** (angka dari letter number, kode project, bulan Romawi dari **Meeting Date**, tahun).
+6. Field **Reg. No** (read-only) beralih dari **REQxxxxx** ke format resmi, contoh **0001/HCS-000H/RCR/VII/2026** (angka dari letter number, kode project, bulan Romawi dari **Start Date**, tahun).
 7. Lengkapi / periksa **Meeting Information**, **Consumption**, **Options** bila perlu.
 8. Isi **Approver Selection** (minimal satu approver).
 9. Simpan:
@@ -306,7 +306,7 @@ Kolom tabel laporan: **No**, **Reg. No**, **Project**, **Room**, **Title**, **Da
     <br><em>Gambar 4.1 — Report Room & Consumption Requests</em>
 </p>
 
-**Catatan:** **Target** menampilkan selisih hari (mis. **3 hari**) antara tanggal dibuat dan tanggal meeting — berguna untuk memantau lead time pengajuan.
+**Catatan:** **Target** menampilkan selisih hari (mis. **3 hari**) antara tanggal dibuat dan **Start Date** meeting — berguna untuk memantau lead time pengajuan.
 
 ---
 
@@ -349,7 +349,7 @@ Alur **My Room & Consumption** mengikuti **My Official Travel**:
 1. Dari daftar **My Room & Consumption**, klik **Add** (atau **Edit** pada request yang masih menunggu konfirmasi HR).
 2. Baca banner biru: nomor surat RCR dan **Reg. No** resmi akan diisi HR setelah konfirmasi.
 3. **Reg. No** menampilkan preview **REQxxxxx** (read-only; nomor final di-assign saat submit jika ada concurrent).
-4. Isi **Meeting Information**: **Meeting Date**, **Location (Project)**, **Room**, **Division / Department** (opsional), **Meeting Title**, **Start Time** / **End Time**, **Attendees**, **Facilities**.
+4. Isi **Meeting Information**: **Start Date**, **End Date**, **Location (Project)**, **Room**, **Division / Department** (opsional), **Meeting Title**, **Start Time** / **End Time**, **Attendees**, **Facilities**.
 5. (Opsional) Centang jenis **Consumption** dan isi deskripsi.
 6. (Opsional) Centang **Need Zoom Meeting ID** dan cek ketersediaan di panel **Zoom Meeting ID Availability**. Isi **Notes** bila perlu.
 7. Tombol aksi:

@@ -76,7 +76,7 @@
                         @endif
                     @elseif($approvalPlan->document_type === 'room_consumption_request')
                         @php $document = App\Models\RoomConsumptionRequest::find($approvalPlan->document_id); @endphp
-                        {{ format_date_with_weekday($document->meeting_date ?? now()) }}
+                        {{ $document ? $document->formattedMeetingDateRange() : format_date_with_weekday(now()) }}
                     @elseif($approvalPlan->document_type === 'flight_request_issuance')
                         @php $document = App\Models\FlightRequestIssuance::find($approvalPlan->document_id); @endphp
                         @if ($document && $document->issued_date)
@@ -375,7 +375,7 @@
                                             <div class="info-value">
                                                 {{ $document->meeting_title }}<br>
                                                 <small>
-                                                    {{ $document->meeting_date ? format_date_with_weekday($document->meeting_date) : '—' }}
+                                                    {{ $document->formattedMeetingDateRange() }}
                                                     ·
                                                     {{ $document->start_time ? \Carbon\Carbon::parse($document->start_time)->format('H:i') : '—' }}
                                                     –

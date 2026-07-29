@@ -387,19 +387,53 @@
                         ])
                     @endif
 
+                    @php
+                        $canChangeApprovers = ! request()->routeIs('leave.my-requests*')
+                            && $leaveRequest->canChangeApprovers()
+                            && auth()->user()->can('leave-requests.edit');
+                    @endphp
+
                     <!-- Manual Approvers Card -->
-                    @if (!empty($leaveRequest->manual_approvers))
+                    @if (! empty($leaveRequest->manual_approvers) || $canChangeApprovers)
                         <div class="leave-request-card mb-4">
                             <div class="card-head">
-                                <h2><i class="fas fa-users"></i> Selected Approvers</h2>
+                                <h2><i class="fas fa-users"></i> Approval Status</h2>
                             </div>
                             <div class="card-body py-2">
-                                @include('components.manual-approver-selector', [
-                                    'selectedApprovers' => $leaveRequest->manual_approvers ?? [],
-                                    'mode' => 'view',
-                                    'documentType' => 'leave_request',
-                                    'documentId' => $leaveRequest->id,
-                                ])
+                                @if ($canChangeApprovers)
+                                    <form action="{{ route('leave.requests.update-approvers', $leaveRequest) }}"
+                                        method="POST">
+                                        @csrf
+                                        @method('PUT')
+                                        @include('components.manual-approver-selector', [
+                                            'selectedApprovers' => old('manual_approvers', $leaveRequest->manual_approvers ?? []),
+                                            'required' => true,
+                                            'multiple' => true,
+                                            'helpText' => 'Pilih minimal 1 approver dengan role approver',
+                                            'documentType' => 'leave_request',
+                                            'documentId' => $leaveRequest->id,
+                                            'lockedApproverIds' => $leaveRequest->getLockedApproverIds(),
+                                        ])
+                                        <div class="mt-3">
+                                            <small class="text-muted d-block mb-2">
+                                                <i class="fas fa-info-circle"></i>
+                                                Approver yang sudah <strong>Approved</strong> / <strong>Rejected</strong>
+                                                tidak dapat diubah. Hanya langkah yang masih
+                                                <strong>Pending</strong> yang dapat diganti atau dihapus.
+                                            </small>
+                                            <button type="submit" class="btn btn-primary btn-block">
+                                                <i class="fas fa-save"></i> Update Approvers
+                                            </button>
+                                        </div>
+                                    </form>
+                                @else
+                                    @include('components.manual-approver-selector', [
+                                        'selectedApprovers' => $leaveRequest->manual_approvers ?? [],
+                                        'mode' => 'view',
+                                        'documentType' => 'leave_request',
+                                        'documentId' => $leaveRequest->id,
+                                    ])
+                                @endif
                             </div>
                         </div>
                     @endif

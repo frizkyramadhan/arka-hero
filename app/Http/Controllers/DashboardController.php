@@ -1316,8 +1316,8 @@ class DashboardController extends Controller
         ];
 
         $thisMonthMeetings = (clone $base)
-            ->whereMonth('meeting_date', now()->month)
-            ->whereYear('meeting_date', now()->year)
+            ->whereDate('start_date', '<=', now()->endOfMonth()->toDateString())
+            ->whereDate('end_date', '>=', now()->startOfMonth()->toDateString())
             ->whereIn('status', $activeMeetingStatuses)
             ->count();
 
@@ -1338,12 +1338,15 @@ class DashboardController extends Controller
             ->whereIn('zoom_sync_status', ['completed', 'done', 'synced'])
             ->count();
 
-        $meetingsToday = (clone $base)->whereDate('meeting_date', now()->toDateString())
+        $meetingsToday = (clone $base)
+            ->whereDate('start_date', '<=', now()->toDateString())
+            ->whereDate('end_date', '>=', now()->toDateString())
             ->whereIn('status', [RoomConsumptionRequest::STATUS_SUBMITTED, RoomConsumptionRequest::STATUS_APPROVED])
             ->count();
 
         $meetingsThisWeek = (clone $base)
-            ->whereBetween('meeting_date', [now()->startOfWeek()->toDateString(), now()->endOfWeek()->toDateString()])
+            ->whereDate('start_date', '<=', now()->endOfWeek()->toDateString())
+            ->whereDate('end_date', '>=', now()->startOfWeek()->toDateString())
             ->whereIn('status', [RoomConsumptionRequest::STATUS_SUBMITTED, RoomConsumptionRequest::STATUS_APPROVED])
             ->count();
 
@@ -1400,9 +1403,9 @@ class DashboardController extends Controller
 
         $upcomingMeetings = RoomConsumptionRequest::query()
             ->with(['project', 'meetingRoom', 'requestedBy'])
-            ->whereDate('meeting_date', '>=', now()->toDateString())
+            ->whereDate('end_date', '>=', now()->toDateString())
             ->whereIn('status', [RoomConsumptionRequest::STATUS_SUBMITTED, RoomConsumptionRequest::STATUS_APPROVED])
-            ->orderBy('meeting_date')
+            ->orderBy('start_date')
             ->orderBy('start_time')
             ->limit(12);
         UserProject::scopeToAssignedProjects($upcomingMeetings, 'project_id');
@@ -1460,11 +1463,12 @@ class DashboardController extends Controller
                 RoomConsumptionRequest::STATUS_APPROVED,
                 RoomConsumptionRequest::STATUS_COMPLETED,
             ])
-            ->whereNotNull('meeting_date');
+            ->whereNotNull('start_date')
+            ->whereNotNull('end_date');
 
         if ($start && $end) {
-            $query->whereDate('meeting_date', '>=', substr($start, 0, 10))
-                ->whereDate('meeting_date', '<', substr($end, 0, 10));
+            $query->whereDate('start_date', '<', substr($end, 0, 10))
+                ->whereDate('end_date', '>=', substr($start, 0, 10));
         }
 
         if ($roomId = $request->query('room_id')) {
@@ -1479,8 +1483,9 @@ class DashboardController extends Controller
             RoomConsumptionRequest::STATUS_COMPLETED => '#007bff',
         ];
 
-        $events = $query->orderBy('meeting_date')->orderBy('start_time')->get()->map(function (RoomConsumptionRequest $req) use ($statusColors) {
-            $date = $req->meeting_date->format('Y-m-d');
+        $events = $query->orderBy('start_date')->orderBy('start_time')->get()->map(function (RoomConsumptionRequest $req) use ($statusColors) {
+            $startDate = $req->start_date->format('Y-m-d');
+            $endDate = $req->end_date->format('Y-m-d');
             $startTime = $req->start_time
                 ? \Carbon\Carbon::parse($req->start_time)->format('H:i:s')
                 : '08:00:00';
@@ -1494,8 +1499,8 @@ class DashboardController extends Controller
             return [
                 'id' => $req->id,
                 'title' => ($req->meeting_title ?: 'Meeting').' · '.($req->meetingRoom?->room_name ?? '—'),
-                'start' => $date.'T'.$startTime,
-                'end' => $date.'T'.$endTime,
+                'start' => $startDate.'T'.$startTime,
+                'end' => $endDate.'T'.$endTime,
                 'url' => route('room-consumption-requests.show', $req),
                 'backgroundColor' => $color,
                 'borderColor' => $color,
@@ -2288,7 +2293,7 @@ class DashboardController extends Controller
                     RoomConsumptionRequest::STATUS_COMPLETED,
                 ])->count(),
                 'upcoming' => (clone $rcrBase)
-                    ->whereDate('meeting_date', '>=', now()->toDateString())
+                    ->whereDate('end_date', '>=', now()->toDateString())
                     ->whereIn('status', [
                         RoomConsumptionRequest::STATUS_SUBMITTED,
                         RoomConsumptionRequest::STATUS_APPROVED,

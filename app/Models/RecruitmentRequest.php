@@ -4,12 +4,13 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Log;
+use App\Contracts\NotifiableDocument;
 use App\Traits\Uuids;
 use App\Traits\HasLetterNumber;
 
 
 
-class RecruitmentRequest extends Model
+class RecruitmentRequest extends Model implements NotifiableDocument
 {
     use Uuids, HasLetterNumber;
 
@@ -607,5 +608,49 @@ class RecruitmentRequest extends Model
                 }
             }
         });
+    }
+
+    public function notificationDocumentType(): string
+    {
+        return 'recruitment_request';
+    }
+
+    public function notificationDocumentLabel(): string
+    {
+        return config('document_notifications.labels.recruitment_request', 'Recruitment Request (FPTK)');
+    }
+
+    public function notificationReference(): string
+    {
+        return $this->getFPTKLetterNumber();
+    }
+
+    public function notificationTitle(): string
+    {
+        $position = $this->position->name ?? null;
+
+        return $position
+            ? "FPTK - {$position}"
+            : ('FPTK '.$this->notificationReference());
+    }
+
+    public function notificationSummary(): array
+    {
+        return [
+            'Position' => $this->position->name ?? '—',
+            'Request Number' => $this->request_number,
+            'Letter Number' => $this->letter_number,
+            'Status' => $this->status,
+        ];
+    }
+
+    public function notificationRequester(): ?User
+    {
+        return $this->createdBy ?? User::find($this->created_by);
+    }
+
+    public function notificationActionUrl(): string
+    {
+        return route('recruitment.requests.show', $this->getKey());
     }
 }

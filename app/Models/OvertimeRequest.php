@@ -2,12 +2,13 @@
 
 namespace App\Models;
 
+use App\Contracts\NotifiableDocument;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-class OvertimeRequest extends Model
+class OvertimeRequest extends Model implements NotifiableDocument
 {
     use HasUuids;
 
@@ -152,5 +153,49 @@ class OvertimeRequest extends Model
     {
         return $this->hasMany(ApprovalPlan::class, 'document_id')
             ->where('document_type', 'overtime_request');
+    }
+
+    public function notificationDocumentType(): string
+    {
+        return 'overtime_request';
+    }
+
+    public function notificationDocumentLabel(): string
+    {
+        return config('document_notifications.labels.overtime_request', 'Overtime Request');
+    }
+
+    public function notificationReference(): string
+    {
+        return $this->register_number ?: ('OT-'.$this->getKey());
+    }
+
+    public function notificationTitle(): string
+    {
+        $project = $this->project->project_code ?? ($this->project->name ?? null);
+
+        return $project
+            ? "Overtime {$project} - {$this->notificationReference()}"
+            : ('Overtime '.$this->notificationReference());
+    }
+
+    public function notificationSummary(): array
+    {
+        return [
+            'Register Number' => $this->register_number,
+            'Project' => $this->project->project_code ?? ($this->project->name ?? '—'),
+            'Overtime Date' => optional($this->overtime_date)->format('d M Y'),
+            'Status' => $this->status,
+        ];
+    }
+
+    public function notificationRequester(): ?User
+    {
+        return $this->requestedBy ?? User::find($this->requested_by);
+    }
+
+    public function notificationActionUrl(): string
+    {
+        return route('overtime.requests.show', $this->getKey());
     }
 }

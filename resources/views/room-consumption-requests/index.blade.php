@@ -148,7 +148,7 @@
                                                 <th class="align-middle text-nowrap">Reg. No</th>
                                                 <th class="align-middle">Project</th>
                                                 <th class="align-middle">Room</th>
-                                                <th class="align-middle">Meeting Date</th>
+                                                <th class="align-middle">Meeting Dates</th>
                                                 <th class="align-middle">Time</th>
                                                 <th class="align-middle text-center">Status</th>
                                                 @unless ($isPersonal)
@@ -203,7 +203,7 @@
                 },
                 {
                     data: 'meeting_date_fmt',
-                    className: 'text-nowrap'
+                    className: 'align-middle'
                 },
                 {
                     data: 'time_range',

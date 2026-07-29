@@ -80,7 +80,7 @@ This document describes the CURRENT WORKING STATE of the application architectur
 - **JavaScript**: jQuery, DataTables
 - **Charts**: Chart.js (for dashboard visualizations)
 - **Icons**: Font Awesome
-- **Notifications**: SweetAlert2 (via RealRashid package)
+- **Notifications**: SweetAlert2 (via RealRashid package); document approval emails via Laravel `Notification` (`DocumentApprovalNotification`); audit via Spatie Activity Log (`activity_log`) with SYSTEMS → Activity Logs UI
 - **Date Pickers**: Bootstrap DateTimePicker
 - **Select2**: Enhanced select dropdowns
 
@@ -99,6 +99,7 @@ This document describes the CURRENT WORKING STATE of the application architectur
     "laravel/framework": "^10.0",
     "laravel/sanctum": "^3.2",
     "spatie/laravel-permission": "^6.16",
+    "spatie/laravel-activitylog": "^4.12",
     "maatwebsite/excel": "^3.1",
     "yajra/laravel-datatables-oracle": "^10.0",
     "realrashid/sweet-alert": "^6.0",
@@ -532,6 +533,13 @@ graph TD
 - `approval_stages` - Approval stage templates per project
 - `approval_stage_details` - Detailed stage configuration
 - `approval_plans` - Approval plan instances for documents
+
+**Document notifications & audit**:
+
+- `activity_log` - Spatie activity log (`document_approval`, `document_email`); morph IDs are strings (UUID-safe)
+- `config/document_notifications.php` - feature flag + document type registry
+- `DocumentNotificationService` - send approval emails; hooked from approval create/decide paths
+- `NotifiableDocument` - contract implemented by Official Travel, FPTK, Leave, Flight, Issuance, Overtime, RCR
 
 **Employee Registration**:
 

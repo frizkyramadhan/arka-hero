@@ -1,5 +1,5 @@
 **Purpose**: AI's persistent knowledge base for project context and learnings - ARKA HERO HRMS
-**Last Updated**: 2026-07-28
+**Last Updated**: 2026-07-29
 
 ## Memory Maintenance Guidelines
 
@@ -26,6 +26,30 @@
 ---
 
 ## Project Memory Entries - ARKA HERO HRMS
+
+### [031] Leave update wiped approval_plans without recreate (2026-07-29) ✅ COMPLETE
+
+**Challenge**: Editing leave `b58a14ce-…` to add approver saved `manual_approvers` but approvals vanished from inbox.
+
+**Solution**: Leave now mirrors FPTK: `canChangeApprovers` / `getLockedApproverIds`, show-page `updateApprovers` (pending steps only), edit forms lock decided approvers, `syncPendingLeaveApprovers` keeps approved/rejected rows. Restored plans for that request.
+
+**Key Learning**: Never full-recreate approval_plans on edit when any step is decided—only replace `status=0` rows (FPTK/LOT pattern).
+
+**Files**: `LeaveRequest`, `LeaveRequestController::updateApprovers`, `leave.requests.update-approvers`, show/edit blades
+
+---
+
+### [030] Document email notifications + Spatie activity audit (2026-07-29) ✅ COMPLETE
+
+**Challenge**: No email on document approval across 7 types; need reusable mail + audit trail with UI.
+
+**Solution**: `NotifiableDocument` contract on all approval docs; `DocumentNotificationService` hooked from `create_manual_approval_plan` + `ApprovalRequestController`/`ApprovalPlanController` decisions; Spatie `activity_log` (`document_approval` / `document_email`); SYSTEMS → Activity Logs UI (`activity-logs.show`). `subject_id`/`causer_id` altered to string for UUID documents.
+
+**Key Learning**: Centralize notify/audit in approval hub only—never per-module Mail::. UUID morphs need string IDs on `activity_log`. Email/audit failures must never break approve/reject.
+
+**Files**: `DocumentNotificationService`, `DocumentAuditLogger`, `DocumentApprovalNotification`, `ActivityLogController`, `config/document_notifications.php`
+
+---
 
 ### [029] FPTK & MPP HOLD for Time-to-Hire pause (2026-07-28) ✅ COMPLETE
 
@@ -102,6 +126,10 @@
 **Zoom WIB/WITA paren + 1h (2026-07-27)**: Dual TZ also covers `14.30 WITA (13.30 WIB)`, `13.30 WIB (14.30 WITA)`, slash/dash pairs; processed **before** ranges. Heuristic: if both WIB and WITA appear and two nearby clocks differ by **60 minutes**, treat as one timezone dual (prefer WITA / later clock). Helpers: `zoom_extract_wib_wita_duals`, `zoom_pick_wita_from_pair`.
 
 **RCR My Request REQ (2026-07-27)**: My Room & Consumption mirrors My Official Travel: temporary `REQxxxxx` (`submitted_by_user`), no letter on employee form; HR confirms via admin edit (letter RCR + approvers → formal Reg. No preview live on form). Column `submitted_by_user` on `room_consumption_requests`; filter status `pending_hr` on admin list. User manual `docs/user-manual/19-room-consumption-management.md` §3.4 / §5.2–5.3 updated (2026-07-28).
+
+**RCR start_date / end_date (2026-07-29)**: Replaced single `meeting_date` with `start_date` + `end_date` (migration backfills both from old date). Conflict check uses datetime range overlap. Reg. No roman month from `start_date`. IT WO payload keeps `meeting_date` (= start) and adds `end_date`.
+
+**RCR letter draft reserved (2026-07-29)**: Draft RCR keeps letter number **reserved** (not `used`); `used` only on submit. Edit form selector passes `include_id` so current letter populates. Saving draft releases letter if previously marked used by this RCR.
 
 **IT WO live test (2026-07-20)**: GET by id works (e.g. 8183). POST create works when `requester_nik` exists in `it_wo.karyawan` and `project_code` exists in `it_wo.project`. Admin NIK `17806` not in IT WO master → API 400. Detail button **Request Zoom via IT WO** posts real JSON via `Http::asJson()`. Sample RCR `a24d3339-…` linked to WO `0008189/WO/ITY/VII/2026` (created with Eko NIK 10917 for smoke test).
 

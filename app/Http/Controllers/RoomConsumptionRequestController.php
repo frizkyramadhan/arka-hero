@@ -511,7 +511,8 @@ class RoomConsumptionRequestController extends Controller
 
         if ($hrConfirmPending && ! empty($data['letter_number_id'])) {
             $letter = LetterNumber::findOrFail($data['letter_number_id']);
-            if ($letter->status !== 'reserved') {
+            $ownedByThis = $doc && (string) $letter->related_document_id === (string) $doc->id;
+            if ($letter->status !== 'reserved' && ! $ownedByThis) {
                 return back()->withInput()->with('toast_error', 'Selected letter number is not available.');
             }
             $letterNumberString = $letter->letter_number;
@@ -522,7 +523,7 @@ class RoomConsumptionRequestController extends Controller
             $requestNumber = RoomConsumptionRequest::formatRequestNumber(
                 $letterNumberString,
                 $letterProjectCode,
-                $data['meeting_date']
+                $data['start_date']
             );
             if (RoomConsumptionRequest::where('request_number', $requestNumber)->where('id', '!=', $doc->id)->exists()) {
                 return back()->withInput()->with('toast_error', 'Reg. No dari surat ini sudah digunakan: '.$requestNumber);
@@ -532,10 +533,12 @@ class RoomConsumptionRequestController extends Controller
             $letter = LetterNumber::findOrFail($data['letter_number_id']);
             if ($doc && (int) $doc->letter_number_id === (int) $letter->id) {
                 $letterNumberString = $letter->letter_number;
-            } elseif ($letter->status !== 'reserved') {
-                return back()->withInput()->with('toast_error', 'Selected letter number is not available.');
-            } else {
+            } elseif ($letter->status === 'reserved') {
                 $letterNumberString = $letter->letter_number;
+            } elseif ($doc && (string) $letter->related_document_id === (string) $doc->id) {
+                $letterNumberString = $letter->letter_number;
+            } else {
+                return back()->withInput()->with('toast_error', 'Selected letter number is not available.');
             }
             $letterProjectCode = $letter->project?->project_code
                 ?? $letter->project_code
@@ -543,13 +546,14 @@ class RoomConsumptionRequestController extends Controller
             $requestNumber = RoomConsumptionRequest::formatRequestNumber(
                 $letterNumberString,
                 $letterProjectCode,
-                $data['meeting_date']
+                $data['start_date']
             );
         }
 
-        if ($submit) {
+        if ($submit && $this->shouldCheckRcrRoomConflict($doc, $data)) {
             $conflict = $room->findConflictForDateTime(
-                $data['meeting_date'],
+                $data['start_date'],
+                $data['end_date'],
                 $data['start_time'],
                 $data['end_time'],
                 $doc?->id
@@ -570,7 +574,8 @@ class RoomConsumptionRequestController extends Controller
                 'project_id' => $project->id,
                 'department_id' => $data['department_id'] ?? null,
                 'meeting_title' => $data['meeting_title'],
-                'meeting_date' => $data['meeting_date'],
+                'start_date' => $data['start_date'],
+                'end_date' => $data['end_date'],
                 'start_time' => $data['start_time'],
                 'end_time' => $data['end_time'],
                 'attendees_count' => $data['attendees_count'],
@@ -641,13 +646,24 @@ class RoomConsumptionRequestController extends Controller
 
             $this->syncConsumptionItems($model, $request->input('consumption', []));
 
-            // Same as LOT/FPTK: mark letter used as soon as attached (draft or submit)
-            if (! empty($data['letter_number_id'])) {
-                $newLetterId = (int) $data['letter_number_id'];
-                if ($previousLetterId && $previousLetterId !== $newLetterId) {
-                    $this->releaseRcrLetterNumberIfOwned($previousLetterId, $model->id);
+            // Letter number: keep reserved while draft; mark used only on submit
+            $newLetterId = ! empty($data['letter_number_id']) ? (int) $data['letter_number_id'] : null;
+            if ($previousLetterId && $previousLetterId !== $newLetterId) {
+                $this->releaseRcrLetterNumberIfOwned($previousLetterId, $model->id);
+            }
+
+            if ($newLetterId) {
+                if ($submit) {
+                    $this->markRcrLetterNumberUsed($model, $newLetterId);
+                } else {
+                    // Draft may have been marked used by older behavior — restore reserved
+                    $this->releaseRcrLetterNumberIfOwned($newLetterId, $model->id);
                 }
-                $this->markRcrLetterNumberUsed($model, $newLetterId);
+            } elseif ($previousLetterId) {
+                $model->update([
+                    'letter_number_id' => null,
+                    'letter_number' => null,
+                ]);
             }
 
             if ($submit) {
@@ -713,21 +729,7 @@ class RoomConsumptionRequestController extends Controller
             return back()->with('toast_error', 'Please select a letter number (RCR) before submitting.');
         }
 
-        $room = $model->meetingRoom;
-        $conflict = $room->findConflictForDateTime(
-            $model->meeting_date->format('Y-m-d'),
-            Carbon::parse($model->start_time)->format('H:i:s'),
-            Carbon::parse($model->end_time)->format('H:i:s'),
-            $model->id
-        );
-        if ($conflict) {
-            return back()->with([
-                'toast_error' => $room->conflictMessage($conflict),
-                'toast_error_left' => true,
-                'alert_title' => 'Ruangan Terpakai',
-            ]);
-        }
-
+        // Submit from detail/list does not change location/room/start date — skip conflict re-check
         DB::beginTransaction();
         try {
             if (! $model->request_number && $model->letter_number) {
@@ -739,7 +741,7 @@ class RoomConsumptionRequestController extends Controller
                 $model->request_number = RoomConsumptionRequest::formatRequestNumber(
                     $model->letter_number,
                     $letterProjectCode,
-                    $model->meeting_date
+                    $model->start_date
                 );
             }
 
@@ -774,7 +776,23 @@ class RoomConsumptionRequestController extends Controller
     }
 
     /**
-     * Mark letter number as used when attached to RCR (same as LOT/FPTK: draft or submit).
+     * Room conflict check on submit: always for create; on edit only if location, room, or start date changed.
+     */
+    private function shouldCheckRcrRoomConflict(?RoomConsumptionRequest $doc, array $data): bool
+    {
+        if (! $doc) {
+            return true;
+        }
+
+        $oldStart = $doc->start_date?->format('Y-m-d');
+
+        return (int) $doc->project_id !== (int) $data['project_id']
+            || (string) $doc->meeting_room_id !== (string) $data['meeting_room_id']
+            || $oldStart !== (string) $data['start_date'];
+    }
+
+    /**
+     * Mark letter number as used when RCR is submitted for approval.
      * Idempotent if already used by this same RCR; blocks if used by another document.
      */
     private function markRcrLetterNumberUsed(RoomConsumptionRequest $model, int $letterNumberId): void
@@ -794,7 +812,12 @@ class RoomConsumptionRequestController extends Controller
             throw new \RuntimeException('Selected letter number is already used by another document.');
         }
 
-        $letter->markAsUsed('room_consumption_request', $model->id, Auth::id());
+        if ($letter->status === 'reserved'
+            || ((string) $letter->related_document_id === (string) $model->id)) {
+            $letter->markAsUsed('room_consumption_request', $model->id, Auth::id());
+        } elseif ($letter->status !== 'used') {
+            throw new \RuntimeException('Selected letter number is not available.');
+        }
 
         // Keep RCR columns in sync with letter master
         if ((int) $model->letter_number_id !== (int) $letter->id || $model->letter_number !== $letter->letter_number) {
@@ -844,14 +867,15 @@ class RoomConsumptionRequestController extends Controller
 
     private function validated(Request $request): array
     {
-        return $request->validate([
+        $data = $request->validate([
             'project_id' => ['required', 'exists:projects,id'],
             'meeting_room_id' => ['required', 'exists:meeting_rooms,id'],
             'department_id' => ['nullable', 'exists:departments,id'],
             'meeting_title' => ['required', 'string', 'max:255'],
-            'meeting_date' => ['required', 'date'],
+            'start_date' => ['required', 'date'],
+            'end_date' => ['required', 'date', 'after_or_equal:start_date'],
             'start_time' => ['required', 'date_format:H:i'],
-            'end_time' => ['required', 'date_format:H:i', 'after:start_time'],
+            'end_time' => ['required', 'date_format:H:i'],
             'attendees_count' => ['required', 'integer', 'min:1'],
             'facilities' => ['nullable', 'string'],
             'need_zoom' => ['nullable', 'boolean'],
@@ -862,6 +886,14 @@ class RoomConsumptionRequestController extends Controller
             'manual_approvers.*' => ['integer', 'exists:users,id'],
             'consumption' => ['nullable', 'array'],
         ]);
+
+        if ($data['start_date'] === $data['end_date'] && $data['end_time'] <= $data['start_time']) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'end_time' => ['End time must be after start time on the same day.'],
+            ]);
+        }
+
+        return $data;
     }
 
     private function applyFilters($query, Request $request): void
@@ -879,10 +911,10 @@ class RoomConsumptionRequestController extends Controller
             }
         }
         if ($request->filled('date_from')) {
-            $query->whereDate('meeting_date', '>=', $request->date_from);
+            $query->whereDate('end_date', '>=', $request->date_from);
         }
         if ($request->filled('date_to')) {
-            $query->whereDate('meeting_date', '<=', $request->date_to);
+            $query->whereDate('start_date', '<=', $request->date_to);
         }
         if ($request->filled('q')) {
             $q = $request->q;
@@ -909,9 +941,7 @@ class RoomConsumptionRequestController extends Controller
             ->addColumn('request_number', fn ($row) => e($row->request_number ?: '—'))
             ->addColumn('project_label', fn ($row) => e(($row->project->project_code ?? '').' - '.($row->project->project_name ?? '')))
             ->addColumn('room_name', fn ($row) => e($row->meetingRoom->room_name ?? '—'))
-            ->addColumn('meeting_date_fmt', fn ($row) => $row->meeting_date
-                ? format_date_with_weekday($row->meeting_date)
-                : '—')
+            ->addColumn('meeting_date_fmt', fn ($row) => $row->formattedMeetingDateRangeHtml())
             ->addColumn('time_range', function ($row) {
                 $s = $row->start_time ? Carbon::parse($row->start_time)->format('H:i') : '';
                 $e = $row->end_time ? Carbon::parse($row->end_time)->format('H:i') : '';
@@ -923,7 +953,7 @@ class RoomConsumptionRequestController extends Controller
             ->addColumn('actions', function ($row) use ($isPersonal) {
                 return $this->actionsHtml($row, $isPersonal);
             })
-            ->rawColumns(['status_badge', 'actions'])
+            ->rawColumns(['meeting_date_fmt', 'status_badge', 'actions'])
             ->make(true);
     }
 
