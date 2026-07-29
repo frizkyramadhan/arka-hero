@@ -65,14 +65,18 @@
                 </div>
                 <div class="col-md-2">
                   <label>Causer</label>
-                  <select name="causer_id" class="form-control form-control-sm">
-                    <option value="">All</option>
-                    @foreach($users as $user)
-                      <option value="{{ $user->id }}">{{ $user->name }}</option>
-                    @endforeach
-                  </select>
+                  <input type="text" name="causer" class="form-control form-control-sm"
+                         placeholder="Name or email">
                 </div>
               </div>
+              @if(isset($tableReady) && ! $tableReady)
+                <div class="alert alert-warning mt-3 mb-0">
+                  <strong>activity_log</strong> is not ready on this environment.
+                  Run <code>composer install</code> and
+                  <code>php artisan migrate</code> (Spatie activitylog migrations),
+                  then <code>php artisan db:seed --class=ActivityLogPermissionSeeder</code>.
+                </div>
+              @endif
               <div class="row mt-2">
                 <div class="col-md-6">
                   <label>Keyword</label>

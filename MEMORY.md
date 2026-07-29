@@ -1,6 +1,36 @@
 **Purpose**: AI's persistent knowledge base for project context and learnings - ARKA HERO HRMS
 **Last Updated**: 2026-07-29
 
+## Docker Server Inventory (192.168.32.146) — no secrets
+
+**Host**: `saphire-one` · SSH user `skyone` · Local SSH alias **`arka-docker`** (key `~/.ssh/id_ed25519_arka_deploy`)  
+**Stack**: `/home/skyone/stack` · Compose: `docker-compose.yml` · Network: `stack_appnet`  
+**Bind**: `~/stack/apps` → `/var/www` in nginx + all PHP-FPM containers  
+
+| Container | Role | Published ports |
+|-----------|------|-----------------|
+| `stack-nginx-1` | nginx 1.27 | `80`, `8080`, `8081` |
+| `stack-php74-1` | PHP 7.4-FPM | (internal 9000) |
+| `stack-php81-1` | PHP 8.1-FPM | (internal 9000) |
+| `stack-php82-1` | PHP 8.2-FPM | (internal 9000) |
+| `stack-mysql-1` | MySQL 8.0 | `127.0.0.1:3306` only |
+| `stack-phpmyadmin-1` | phpMyAdmin via `/pma/` | (via nginx) |
+| `stack-arka-fms` | Node ARKA FMS | `3000` |
+
+**Apps**
+
+| App | Host path | Container workdir | URL | DB dir name |
+|-----|-----------|-------------------|-----|-------------|
+| **arka-hero** | `apps/app82/arka-hero` | `/var/www/app82/arka-hero` on `stack-php82-1` | `:8080` (+ `/arka-hero/` on `:80`) | `arka_hero` |
+| irr-support | `apps/app81/irr-support` | `/var/www/app81/irr-support` on `stack-php81-1` | `:8081` | `irr5` |
+| arka-fms | `apps/app81/arka-fms` | Node image `stack-arka-fms` | `:3000` | `arka_fms` |
+| stubs | `apps/app{74,81,82}/public` | path prefixes `/app74/` `/app81/` `/app82/` | `:80` | `appdb` |
+
+**Deploy HERO**: user says `deploy` → commit/push if needed → `ssh arka-docker 'cd .../arka-hero && git pull --ff-only'` → `docker exec -w /var/www/app82/arka-hero stack-php82-1 php artisan …`  
+**Rule**: `.cursor/rules/deploy.mdc` · Never copy compose/DB/JWT passwords into this file.
+
+---
+
 ## Memory Maintenance Guidelines
 
 ### Structure Standards
@@ -26,6 +56,18 @@
 ---
 
 ## Project Memory Entries - ARKA HERO HRMS
+
+### [032] Docker deploy access + stack inventory (2026-07-29) ✅ COMPLETE
+
+**Challenge**: Manual deploy (push → SSH password → git pull → docker exec artisan); multi-app stack needs documented layout for future deploys without storing credentials.
+
+**Solution**: Passwordless SSH alias `arka-docker`; Cursor rule `.cursor/rules/deploy.mdc`; inventory section above (paths/ports/containers only). Password used once for key install — not stored in repo.
+
+**Key Learning**: Host `~/stack/apps` mounts to `/var/www`; HERO artisan workdir is `/var/www/app82/arka-hero` in `stack-php82-1`. Never paste server secrets into MEMORY/rules.
+
+**Files**: `.cursor/rules/deploy.mdc`, `MEMORY.md` inventory, `docs/architecture.md` Deployment
+
+---
 
 ### [031] Leave update wiped approval_plans without recreate (2026-07-29) ✅ COMPLETE
 
@@ -327,15 +369,15 @@
 
 ---
 
-### TD-003: Missing Production Infrastructure ❌ BLOCKED
+### TD-003: Missing Production Infrastructure ⚠️ PARTIAL
 
-**Issue**: Application runs only on local Laragon development environment. No production deployment plan, no CI/CD pipeline, no monitoring/alerting, no automated backups.
+**Issue**: Staging Docker at `192.168.32.146` is documented + deployable via Cursor (`deploy` / `.cursor/rules/deploy.mdc`). Still no formal production CI/CD, monitoring/alerting, or automated backup runbook beyond `stack/backup/`.
 
-**Impact**: Cannot deploy to production safely. No disaster recovery plan. Manual deployment errors likely.
+**Impact**: Staging deploys are safer; true production hardening and disaster recovery remain open.
 
-**Recommendation**: Set up production server with proper configuration. Implement automated daily database backups. Configure monitoring/alerting. Setup CI/CD pipeline with GitHub Actions. Effort: 2 weeks.
+**Recommendation**: Formalize backups/monitoring; consider GitHub Actions later. Do not store server secrets in repo.
 
-**Status**: Critical blocker for production launch
+**Status**: Staging deploy OK; production CI/CD still open
 
 ---
 

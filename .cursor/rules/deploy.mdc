@@ -1,0 +1,80 @@
+---
+description: Deploy ARKA HERO (and sibling apps) to Docker server via SSH when user says deploy
+alwaysApply: true
+---
+
+# Deploy Runbook (Docker server)
+
+When the user says **deploy** (or deploy + specific artisan/seed instructions), follow this runbook. Do **not** deploy without an explicit user request.
+
+## Security (non-negotiable)
+
+- Never store, commit, or write SSH passwords, DB passwords, JWT secrets, or `.env` values into repo docs, `MEMORY.md`, rules, chat artifacts, or scripts.
+- Access only via SSH host alias **`arka-docker`** (key-based). Do not embed passwords in commands.
+- Do not restart/rebuild unrelated containers or touch other apps unless the user names that app.
+- Forbidden unless explicitly requested: `migrate:fresh`, `db:wipe`, `migrate:reset`, mass `docker compose down`, force-push.
+
+## Server facts (no secrets)
+
+| Item | Value |
+|------|--------|
+| SSH alias | `arka-docker` → `skyone@192.168.32.146` |
+| Hostname | `saphire-one` |
+| Stack root | `/home/skyone/stack` |
+| Compose | `/home/skyone/stack/docker-compose.yml` |
+| Apps bind | host `~/stack/apps` → containers `/var/www` |
+| Network | `stack_appnet` |
+
+### ARKA HERO (default when user says deploy in this repo)
+
+| Item | Value |
+|------|--------|
+| Host path | `/home/skyone/stack/apps/app82/arka-hero` |
+| Container | `stack-php82-1` (PHP 8.2-FPM) |
+| Workdir in container | `/var/www/app82/arka-hero` |
+| Public URL | `http://192.168.32.146:8080` (also `/arka-hero/` on port 80) |
+| DB schema name | `arka_hero` (credentials only on server `.env` / compose — never copy here) |
+| Git remote on server | `https://github.com/frizkyramadhan/arka-hero.git` branch `main` |
+
+### Sibling apps (only if user asks)
+
+| App | Host path | Runtime | Notes |
+|-----|-----------|---------|--------|
+| irr-support | `~/stack/apps/app81/irr-support` | `stack-php81-1`, workdir `/var/www/app81/irr-support` | Port **8081** |
+| arka-fms | `~/stack/apps/app81/arka-fms` | Node container `stack-arka-fms` | Port **3000**; may need image rebuild after pull |
+| app74 / app81 / app82 public stubs | `~/stack/apps/app{74,81,82}/public` | php74/81/82 via nginx path prefixes | Placeholder `index.php` |
+
+New apps: place under `~/stack/apps/app{NN}/<name>`, add nginx conf if needed, document in `MEMORY.md` — do not invent paths.
+
+## Deploy workflow (ARKA HERO)
+
+1. **Local git**: `git status`, `git diff`, `git log -5`. If working tree dirty and user said deploy → stage relevant files, commit (follow repo commit style), then `git push origin HEAD`. Skip commit if clean; still push if ahead of remote.
+2. **Server pull** (non-interactive):
+
+```bash
+ssh -o BatchMode=yes arka-docker 'cd /home/skyone/stack/apps/app82/arka-hero && git pull --ff-only'
+```
+
+3. **Artisan** (only when needed), via:
+
+```bash
+ssh -o BatchMode=yes arka-docker 'docker exec -w /var/www/app82/arka-hero stack-php82-1 php artisan <CMD>'
+```
+
+### When to run which artisan
+
+- New/changed migrations in the deploy → `migrate --force`
+- User names a seeder / permission seeder in commit → `db:seed --class=ThatSeeder` only (never full seed)
+- Config/route/view cache concerns → `optimize:clear`
+- Composer lock changed → ask user before `composer install` inside container (or document if they confirm a standard path)
+- Unsure about a seeder on shared DB → ask before running
+
+4. **Report** to user: push result, pull SHA, artisan output, any errors. Remind not to paste secrets.
+
+## Adding a new app later
+
+1. Confirm PHP/Node version → choose `app74` / `app81` / `app82` (or new runtime service).
+2. Clone into `~/stack/apps/<bucket>/<app-name>`.
+3. Nginx: either path on `:80` in `nginx/conf.d/site.conf` or dedicated port conf (pattern: `arka-hero-port.conf` / `irr-support.conf`).
+4. Reload nginx: `docker exec stack-nginx-1 nginx -s reload` (only if conf changed).
+5. Update `MEMORY.md` inventory + this rule’s sibling table (paths only, no secrets).
