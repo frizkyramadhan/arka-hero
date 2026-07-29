@@ -333,7 +333,17 @@
                                     'multiple' => true,
                                     'helpText' => 'Pilih minimal 1 approver dengan role approver',
                                     'documentType' => 'leave_request',
+                                    'documentId' => $leaveRequest->id,
+                                    'lockedApproverIds' => $leaveRequest->getLockedApproverIds(),
                                 ])
+                                @if (! empty($leaveRequest->getLockedApproverIds()))
+                                    <small class="text-muted d-block mt-2">
+                                        <i class="fas fa-info-circle"></i>
+                                        Approver yang sudah <strong>Approved</strong> /
+                                        <strong>Rejected</strong> tidak dapat diubah. Hanya langkah
+                                        <strong>Pending</strong> yang dapat diganti.
+                                    </small>
+                                @endif
                             </div>
                         </div>
 

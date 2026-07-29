@@ -274,7 +274,7 @@
                                             <i class="fas fa-video text-purple ml-1" title="Butuh Zoom"></i>
                                         @endif
                                         <div class="small text-muted">
-                                            {{ $req->meeting_date ? format_date_with_weekday($req->meeting_date) : '—' }}
+                                            {{ $req->formattedMeetingDateRange() }}
                                             · {{ $req->start_time ? \Carbon\Carbon::parse($req->start_time)->format('H:i') : '—' }}
                                             · {{ $req->meetingRoom->room_name ?? '—' }}
                                         </div>

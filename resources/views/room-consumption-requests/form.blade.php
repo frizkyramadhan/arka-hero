@@ -119,7 +119,8 @@
                                     @include('components.smart-letter-number-selector', [
                                         'categoryCode' => 'RCR',
                                         'required' => false,
-                                        'selectedValue' => old('letter_number_id', $doc?->letter_number_id),
+                                        'selectedValue' => $doc?->letter_number_id,
+                                        'includeId' => $doc?->letter_number_id,
                                     ])
                                 </div>
                             </div>
@@ -167,16 +168,16 @@
                                     </div>
                                     <div class="col-md-6">
                                         <div class="form-group">
-                                            <label for="meeting_date">Meeting Date <span
+                                            <label for="meeting_title">Meeting Title <span
                                                     class="text-danger">*</span></label>
                                             <div class="input-group">
                                                 <div class="input-group-prepend">
-                                                    <span class="input-group-text"><i
-                                                            class="fas fa-calendar-alt"></i></span>
+                                                    <span class="input-group-text"><i class="fas fa-heading"></i></span>
                                                 </div>
-                                                <input type="date" name="meeting_date" id="meeting_date"
+                                                <input type="text" name="meeting_title" id="meeting_title"
                                                     class="form-control" required
-                                                    value="{{ old('meeting_date', optional($doc->meeting_date ?? null)->format('Y-m-d')) }}">
+                                                    value="{{ old('meeting_title', $doc->meeting_title ?? '') }}"
+                                                    placeholder="Meeting title">
                                             </div>
                                         </div>
                                     </div>
@@ -236,16 +237,47 @@
                                     </div>
                                     <div class="col-md-6">
                                         <div class="form-group">
-                                            <label for="meeting_title">Meeting Title <span
+                                            <label for="attendees_count">Attendees <span
                                                     class="text-danger">*</span></label>
                                             <div class="input-group">
                                                 <div class="input-group-prepend">
-                                                    <span class="input-group-text"><i class="fas fa-heading"></i></span>
+                                                    <span class="input-group-text"><i class="fas fa-users"></i></span>
                                                 </div>
-                                                <input type="text" name="meeting_title" id="meeting_title"
+                                                <input type="number" name="attendees_count" id="attendees_count"
+                                                    class="form-control" min="1" required
+                                                    value="{{ old('attendees_count', $doc->attendees_count ?? 1) }}">
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label for="start_date">Start Date <span
+                                                    class="text-danger">*</span></label>
+                                            <div class="input-group">
+                                                <div class="input-group-prepend">
+                                                    <span class="input-group-text"><i
+                                                            class="fas fa-calendar-alt"></i></span>
+                                                </div>
+                                                <input type="date" name="start_date" id="start_date"
                                                     class="form-control" required
-                                                    value="{{ old('meeting_title', $doc->meeting_title ?? '') }}"
-                                                    placeholder="Meeting title">
+                                                    value="{{ old('start_date', optional($doc->start_date ?? null)->format('Y-m-d')) }}">
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label for="end_date">End Date <span class="text-danger">*</span></label>
+                                            <div class="input-group">
+                                                <div class="input-group-prepend">
+                                                    <span class="input-group-text"><i
+                                                            class="fas fa-calendar-check"></i></span>
+                                                </div>
+                                                <input type="date" name="end_date" id="end_date"
+                                                    class="form-control" required
+                                                    value="{{ old('end_date', optional($doc->end_date ?? null)->format('Y-m-d')) }}">
                                             </div>
                                         </div>
                                     </div>
@@ -282,24 +314,17 @@
 
                                 <div class="row">
                                     <div class="col-md-6">
-                                        <div class="form-group mb-md-0">
-                                            <label for="attendees_count">Attendees <span
-                                                    class="text-danger">*</span></label>
-                                            <div class="input-group">
-                                                <div class="input-group-prepend">
-                                                    <span class="input-group-text"><i class="fas fa-users"></i></span>
-                                                </div>
-                                                <input type="number" name="attendees_count" id="attendees_count"
-                                                    class="form-control" min="1" required
-                                                    value="{{ old('attendees_count', $doc->attendees_count ?? 1) }}">
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
                                         <div class="form-group mb-0">
                                             <label for="facilities">Facilities</label>
                                             <textarea name="facilities" id="facilities" class="form-control" rows="3"
                                                 placeholder="Projector, whiteboard, etc.">{{ old('facilities', $doc->facilities ?? '') }}</textarea>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-group mb-0">
+                                            <label for="notes">Notes</label>
+                                            <textarea name="notes" id="notes" class="form-control" rows="3"
+                                                placeholder="Additional notes">{{ old('notes', $doc->notes ?? '') }}</textarea>
                                         </div>
                                     </div>
                                 </div>
@@ -397,7 +422,7 @@
                                                 <label for="zoom_check_date" class="mr-2 mb-0">Date</label>
                                                 <input type="date" id="zoom_check_date"
                                                     class="form-control form-control-sm mr-2"
-                                                    value="{{ old('meeting_date', optional($doc->meeting_date ?? null)->format('Y-m-d') ?: date('Y-m-d')) }}">
+                                                    value="{{ old('start_date', optional($doc->start_date ?? null)->format('Y-m-d') ?: date('Y-m-d')) }}">
                                                 <button type="button" id="btn-check-zoom-availability"
                                                     class="btn btn-sm btn-primary">
                                                     <i class="fas fa-search"></i> Check
@@ -430,11 +455,6 @@
                                             </div>
                                         </div>
                                     </div>
-                                </div>
-
-                                <div class="form-group mb-0">
-                                    <label for="notes">Notes</label>
-                                    <textarea name="notes" id="notes" class="form-control" rows="4" placeholder="Additional notes">{{ old('notes', $doc->notes ?? '') }}</textarea>
                                 </div>
                             </div>
                         </div>
@@ -591,8 +611,8 @@
                 const projectCode = (letterData.project_code && String(letterData.project_code).trim()) ?
                     String(letterData.project_code).trim() :
                     '000H';
-                // Use meeting date if available, otherwise current date
-                const meetingDateVal = $('#meeting_date').val();
+                // Use start date if available, otherwise current date
+                const meetingDateVal = $('#start_date').val();
                 const dateObj = meetingDateVal ? new Date(meetingDateVal + 'T00:00:00') : new Date();
                 const roman = romanMap[dateObj.getMonth() + 1] || '';
                 const year = dateObj.getFullYear();
@@ -656,8 +676,13 @@
                 updatePreview();
             }
 
-            // Update Reg. No preview when meeting date changes (roman month)
-            $('#meeting_date').on('change', function() {
+            // Update Reg. No preview when start date changes (roman month)
+            $('#start_date').on('change', function() {
+                const startVal = $(this).val();
+                const endVal = $('#end_date').val();
+                if (startVal && (!endVal || endVal < startVal)) {
+                    $('#end_date').val(startVal);
+                }
                 if (!isPersonalRegMode) {
                     updatePreview();
                 }
@@ -671,7 +696,7 @@
             }
 
             function syncZoomCheckDateFromMeetingDate() {
-                const meetingDate = $('#meeting_date').val();
+                const meetingDate = $('#start_date').val();
                 if (meetingDate) {
                     $('#zoom_check_date').val(meetingDate);
                 }
@@ -784,7 +809,7 @@
                 e.preventDefault();
                 loadZoomAvailability();
             });
-            $('#meeting_date').on('change', function() {
+            $('#start_date').on('change', function() {
                 if ($('#need_zoom').is(':checked')) {
                     syncZoomCheckDateFromMeetingDate();
                     loadZoomAvailability();

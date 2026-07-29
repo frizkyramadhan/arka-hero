@@ -76,7 +76,7 @@ class RoomConsumptionReportController extends Controller
                 'project_label' => e(($row->project->project_code ?? '').' - '.($row->project->project_name ?? '')),
                 'room_name' => e($row->meetingRoom->room_name ?? '—'),
                 'meeting_title' => e($row->meeting_title ?? '—'),
-                'meeting_date_fmt' => $row->meeting_date?->format('d/m/Y') ?? '—',
+                'meeting_date_fmt' => $row->formattedMeetingDateRangeHtml(),
                 'created_at_fmt' => $row->created_at?->format('d/m/Y') ?? '—',
                 'target_days' => e($this->formatTargetDays($this->targetDays($row))),
                 'time_range' => e(trim("{$s} - {$e}", ' -')),
@@ -116,7 +116,8 @@ class RoomConsumptionReportController extends Controller
                 'Project' => ($row->project->project_code ?? '').' - '.($row->project->project_name ?? ''),
                 'Room' => $row->meetingRoom->room_name ?? '—',
                 'Meeting Title' => $row->meeting_title ?? '—',
-                'Meeting Date' => $row->meeting_date?->format('Y-m-d') ?? '—',
+                'Start Date' => $row->start_date?->format('Y-m-d') ?? '—',
+                'End Date' => $row->end_date?->format('Y-m-d') ?? '—',
                 'Created At' => $row->created_at?->format('Y-m-d') ?? '—',
                 'Target (days)' => $targetDays === null ? '—' : $targetDays,
                 'Time' => trim("{$s} - {$e}", ' -'),
@@ -143,7 +144,7 @@ class RoomConsumptionReportController extends Controller
             public function headings(): array
             {
                 return [
-                    'No', 'Reg. No', 'Project', 'Room', 'Meeting Title', 'Meeting Date',
+                    'No', 'Reg. No', 'Project', 'Room', 'Meeting Title', 'Start Date', 'End Date',
                     'Created At', 'Target (days)', 'Time', 'Status', 'Requester', 'Need Zoom',
                 ];
             }
@@ -183,10 +184,10 @@ class RoomConsumptionReportController extends Controller
             $query->where('project_id', $request->project_id);
         }
         if ($request->filled('date_from')) {
-            $query->whereDate('meeting_date', '>=', $request->date_from);
+            $query->whereDate('end_date', '>=', $request->date_from);
         }
         if ($request->filled('date_to')) {
-            $query->whereDate('meeting_date', '<=', $request->date_to);
+            $query->whereDate('start_date', '<=', $request->date_to);
         }
         if ($request->filled('request_number')) {
             $query->where('request_number', 'like', '%'.$request->request_number.'%');
@@ -220,16 +221,16 @@ class RoomConsumptionReportController extends Controller
     }
 
     /**
-     * Days between request creation and meeting date (meeting_date − created_at, date only).
+     * Days between request creation and meeting start (start_date − created_at, date only).
      */
     private function targetDays(RoomConsumptionRequest $row): ?int
     {
-        if (! $row->created_at || ! $row->meeting_date) {
+        if (! $row->created_at || ! $row->start_date) {
             return null;
         }
 
         return (int) $row->created_at->copy()->startOfDay()->diffInDays(
-            $row->meeting_date->copy()->startOfDay(),
+            $row->start_date->copy()->startOfDay(),
             false
         );
     }

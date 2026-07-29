@@ -328,7 +328,7 @@
             <table class="form">
                 <tr>
                     <td class="meeting-label">Tanggal Meeting</td>
-                    <td class="col-value">{{ $doc->meeting_date?->format('d F Y') }}</td>
+                    <td class="col-value">{{ $doc->formattedMeetingDateRange() }}</td>
                 </tr>
                 <tr>
                     <td class="meeting-label">Judul Meeting</td>

@@ -552,8 +552,15 @@ class LetterNumberController extends Controller
 
             $category = LetterCategory::where('category_code', $categoryCode)->firstOrFail();
 
+            $includeId = request()->filled('include_id') ? (int) request('include_id') : null;
+
             $numbers = LetterNumber::where('letter_category_id', $category->id)
-                ->where('status', 'reserved')
+                ->where(function ($q) use ($includeId) {
+                    $q->where('status', 'reserved');
+                    if ($includeId) {
+                        $q->orWhere('id', $includeId);
+                    }
+                })
                 ->whereIn('project_id', $userProjectIds)
                 ->with(['subject', 'project'])
                 ->orderBy('letter_date', 'desc')

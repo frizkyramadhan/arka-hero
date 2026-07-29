@@ -126,7 +126,7 @@
                                     <th>Project</th>
                                     <th>Room</th>
                                     <th>Title</th>
-                                    <th>Date</th>
+                                    <th>Meeting Dates</th>
                                     <th>Created At</th>
                                     <th class="text-center">Target</th>
                                     <th>Time</th>

@@ -2,12 +2,13 @@
 
 namespace App\Models;
 
+use App\Contracts\NotifiableDocument;
 use App\Traits\Uuids;
 use App\Traits\HasLetterNumber;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class FlightRequestIssuance extends Model
+class FlightRequestIssuance extends Model implements NotifiableDocument
 {
     use HasFactory, Uuids, HasLetterNumber;
 
@@ -74,5 +75,46 @@ class FlightRequestIssuance extends Model
     protected function getDocumentType(): string
     {
         return 'flight_request_issuance';
+    }
+
+    public function notificationDocumentType(): string
+    {
+        return 'flight_request_issuance';
+    }
+
+    public function notificationDocumentLabel(): string
+    {
+        return config('document_notifications.labels.flight_request_issuance', 'Flight Ticket Issuance');
+    }
+
+    public function notificationReference(): string
+    {
+        return $this->letter_number
+            ?: ($this->issued_number ?: ('ISS-'.$this->getKey()));
+    }
+
+    public function notificationTitle(): string
+    {
+        return 'Flight Ticket Issuance '.$this->notificationReference();
+    }
+
+    public function notificationSummary(): array
+    {
+        return [
+            'Issued Number' => $this->issued_number,
+            'Issued Date' => optional($this->issued_date)->format('d M Y'),
+            'Tickets' => (string) $this->total_tickets,
+            'Status' => $this->status,
+        ];
+    }
+
+    public function notificationRequester(): ?User
+    {
+        return $this->issuedBy ?? User::find($this->issued_by);
+    }
+
+    public function notificationActionUrl(): string
+    {
+        return route('flight-issuances.show', $this->getKey());
     }
 }

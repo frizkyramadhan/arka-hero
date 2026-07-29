@@ -820,7 +820,7 @@
                 @endcanany
 
                 {{-- ADMINISTRATOR --}}
-                @canany(['users.show', 'roles.show', 'permissions.show'])
+                @canany(['users.show', 'roles.show', 'permissions.show', 'activity-logs.show'])
                     <li class="nav-header">SYSTEMS</li>
                     <li class="nav-item">
                         <a href="{{ url('users') }}" class="nav-link {{ Request::is('users*') ? 'active' : '' }}">
@@ -841,6 +841,15 @@
                             <p>Permissions</p>
                         </a>
                     </li>
+                    @can('activity-logs.show')
+                        <li class="nav-item">
+                            <a href="{{ route('activity-logs.index') }}"
+                                class="nav-link {{ Request::is('activity-logs*') ? 'active' : '' }}">
+                                <i class="nav-icon fas fa-history"></i>
+                                <p>Activity Logs</p>
+                            </a>
+                        </li>
+                    @endcan
                     {{-- Approval Stages - Commented as requested --}}
                     {{-- <li class="nav-item">
                             <a href="{{ route('approval.stages.index') }}"

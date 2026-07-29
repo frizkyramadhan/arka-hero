@@ -1141,7 +1141,7 @@
                                                             {{ $rcr->meetingRoom->room_name ?? '—' }}
                                                             <span class="mx-1">·</span>
                                                             <i class="far fa-calendar mr-1"></i>
-                                                            {{ $rcr->meeting_date ? $rcr->meeting_date->format('d M Y') : '—' }}
+                                                            {{ $rcr->formattedMeetingDateRange(false) }}
                                                             @if ($rcr->start_time)
                                                                 ·
                                                                 {{ \Carbon\Carbon::parse($rcr->start_time)->format('H:i') }}

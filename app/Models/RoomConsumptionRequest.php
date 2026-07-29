@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Contracts\NotifiableDocument;
 use App\Traits\HasLetterNumber;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
@@ -9,7 +10,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-class RoomConsumptionRequest extends Model
+class RoomConsumptionRequest extends Model implements NotifiableDocument
 {
     use HasLetterNumber;
     use HasUuids;
@@ -42,7 +43,8 @@ class RoomConsumptionRequest extends Model
         'department_id',
         'requested_by',
         'meeting_title',
-        'meeting_date',
+        'start_date',
+        'end_date',
         'start_time',
         'end_time',
         'attendees_count',
@@ -68,7 +70,8 @@ class RoomConsumptionRequest extends Model
     ];
 
     protected $casts = [
-        'meeting_date' => 'date',
+        'start_date' => 'date',
+        'end_date' => 'date',
         'submitted_at' => 'datetime',
         'approved_at' => 'datetime',
         'rejected_at' => 'datetime',
@@ -86,9 +89,9 @@ class RoomConsumptionRequest extends Model
     }
 
     /**
-     * Format Reg. No: 0001/HCS-000H/RCR/I/2026
+     * Format Reg. No: 0001/HCS-000H/RCR/I/2026 (roman month/year from start_date).
      */
-    public static function formatRequestNumber(string $letterNumberString, string $projectCode, $meetingDate): string
+    public static function formatRequestNumber(string $letterNumberString, string $projectCode, $startDate): string
     {
         $numericPart = $letterNumberString;
         if (str_starts_with(strtoupper($letterNumberString), 'RCR')) {
@@ -96,9 +99,9 @@ class RoomConsumptionRequest extends Model
         }
         $numericPart = str_pad((int) $numericPart, 4, '0', STR_PAD_LEFT);
 
-        $date = $meetingDate instanceof Carbon
-            ? $meetingDate
-            : Carbon::parse($meetingDate);
+        $date = $startDate instanceof Carbon
+            ? $startDate
+            : Carbon::parse($startDate);
 
         $romanMonth = self::monthToRoman((int) $date->format('n'));
 
@@ -109,6 +112,59 @@ class RoomConsumptionRequest extends Model
             $romanMonth,
             $date->format('Y')
         );
+    }
+
+    /**
+     * Display start–end date range (single day collapses to one date).
+     */
+    public function formattedMeetingDateRange(bool $withWeekday = true): string
+    {
+        if (! $this->start_date) {
+            return '—';
+        }
+
+        $start = $withWeekday
+            ? format_date_with_weekday($this->start_date)
+            : $this->start_date->format('d/m/Y');
+
+        if (! $this->end_date || $this->start_date->equalTo($this->end_date)) {
+            return $start;
+        }
+
+        $end = $withWeekday
+            ? format_date_with_weekday($this->end_date)
+            : $this->end_date->format('d/m/Y');
+
+        return $start.' – '.$end;
+    }
+
+    /**
+     * Compact HTML for tables: one line if same day, otherwise start / end on two lines.
+     */
+    public function formattedMeetingDateRangeHtml(): string
+    {
+        if (! $this->start_date) {
+            return '—';
+        }
+
+        $formatDay = static function ($date): string {
+            return $date->copy()
+                ->locale(app()->getLocale())
+                ->translatedFormat('l, d M Y');
+        };
+
+        $start = e($formatDay($this->start_date));
+
+        if (! $this->end_date || $this->start_date->equalTo($this->end_date)) {
+            return '<span class="text-nowrap">'.$start.'</span>';
+        }
+
+        $end = e($formatDay($this->end_date));
+
+        return '<span class="d-inline-block text-left" style="line-height:1.35">'
+            .$start
+            .'<br><span class="text-muted">– '.$end.'</span>'
+            .'</span>';
     }
 
     public static function monthToRoman(int $month): string
@@ -257,5 +313,48 @@ class RoomConsumptionRequest extends Model
             || ! empty($this->zoom_join_url)
             || ! empty($this->zoom_passcode)
             || in_array($this->zoom_sync_status, ['open', 'processing', 'completed', 'done', 'synced', 'failed', 'error'], true);
+    }
+
+    public function notificationDocumentType(): string
+    {
+        return 'room_consumption_request';
+    }
+
+    public function notificationDocumentLabel(): string
+    {
+        return config('document_notifications.labels.room_consumption_request', 'Room & Consumption Request');
+    }
+
+    public function notificationReference(): string
+    {
+        return $this->letter_number
+            ?: ($this->request_number ?: ('RCR-'.$this->getKey()));
+    }
+
+    public function notificationTitle(): string
+    {
+        return (string) ($this->meeting_title ?: $this->notificationReference());
+    }
+
+    public function notificationSummary(): array
+    {
+        return [
+            'Meeting' => $this->meeting_title,
+            'Room' => $this->meetingRoom->name ?? '—',
+            'Start' => optional($this->start_date)->format('d M Y').' '.$this->start_time,
+            'End' => optional($this->end_date)->format('d M Y').' '.$this->end_time,
+            'Attendees' => (string) $this->attendees_count,
+            'Status' => $this->status,
+        ];
+    }
+
+    public function notificationRequester(): ?User
+    {
+        return $this->requestedBy ?? User::find($this->requested_by);
+    }
+
+    public function notificationActionUrl(): string
+    {
+        return route('room-consumption-requests.show', $this->getKey());
     }
 }

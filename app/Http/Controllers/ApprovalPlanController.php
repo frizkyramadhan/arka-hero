@@ -12,6 +12,7 @@ use App\Models\OvertimeRequest;
 use App\Models\Project;
 use App\Models\RecruitmentRequest;
 use App\Models\RoomConsumptionRequest;
+use App\Services\DocumentNotificationService;
 use App\Services\ItWoZoomClient;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -180,6 +181,10 @@ class ApprovalPlanController extends Controller
                 Log::error('Errors during approval plan creation: '.implode('; ', $errors));
             }
 
+            if ($created_count > 0) {
+                app(DocumentNotificationService::class)->onDocumentSubmitted($document_type, $document_id, $created_count);
+            }
+
             return $created_count; // Return number of approvers actually created
         }
 
@@ -262,11 +267,11 @@ class ApprovalPlanController extends Controller
         $rejected_count = 0;
         $approved_count = 0;
 
-        foreach ($approval_plans as $approval_plan) {
-            if ($approval_plan->status == 2) { // Rejected
+        foreach ($approval_plans as $planRow) {
+            if ($planRow->status == 2) { // Rejected
                 $rejected_count++;
             }
-            if ($approval_plan->status == 1) { // Approved
+            if ($planRow->status == 1) { // Approved
                 $approved_count++;
             }
         }
@@ -326,6 +331,15 @@ class ApprovalPlanController extends Controller
                 'document_id' => $document->id,
                 'approved_at' => $approval_plan->decisionAt(),
                 'approver_id' => $approval_plan->approver_id,
+            ]);
+        }
+
+        try {
+            app(DocumentNotificationService::class)->afterApprovalDecision($approval_plan->fresh());
+        } catch (\Throwable $e) {
+            Log::warning('Failed to send document approval notification', [
+                'approval_plan_id' => $approval_plan->id,
+                'error' => $e->getMessage(),
             ]);
         }
 
@@ -493,6 +507,15 @@ class ApprovalPlanController extends Controller
             }
 
             $successCount++;
+
+            try {
+                app(DocumentNotificationService::class)->afterApprovalDecision($approval_plan->fresh());
+            } catch (\Throwable $e) {
+                Log::warning('Failed to send document approval notification (bulk)', [
+                    'approval_plan_id' => $approval_plan->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
         }
 
         // Return response
@@ -1333,6 +1356,10 @@ class ApprovalPlanController extends Controller
         }
 
         Log::info("Created {$createdCount} manual approval plans for document_type: {$document_type}, document_id: {$document_id}");
+
+        if ($createdCount > 0) {
+            app(DocumentNotificationService::class)->onDocumentSubmitted($document_type, $document_id, $createdCount);
+        }
 
         return $createdCount;
     }

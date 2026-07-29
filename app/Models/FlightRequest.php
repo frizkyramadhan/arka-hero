@@ -2,12 +2,13 @@
 
 namespace App\Models;
 
+use App\Contracts\NotifiableDocument;
 use App\Traits\Uuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 
-class FlightRequest extends Model
+class FlightRequest extends Model implements NotifiableDocument
 {
     use HasFactory, Uuids;
 
@@ -359,5 +360,45 @@ class FlightRequest extends Model
         }
 
         return $flightRequest;
+    }
+
+    public function notificationDocumentType(): string
+    {
+        return 'flight_request';
+    }
+
+    public function notificationDocumentLabel(): string
+    {
+        return config('document_notifications.labels.flight_request', 'Flight Request');
+    }
+
+    public function notificationReference(): string
+    {
+        return $this->form_number ?: ('FRF-'.$this->getKey());
+    }
+
+    public function notificationTitle(): string
+    {
+        return (string) ($this->purpose_of_travel ?: $this->notificationReference());
+    }
+
+    public function notificationSummary(): array
+    {
+        return [
+            'Employee' => $this->employee_name ?: '—',
+            'Purpose' => $this->purpose_of_travel,
+            'Travel Days' => (string) $this->total_travel_days,
+            'Status' => $this->status,
+        ];
+    }
+
+    public function notificationRequester(): ?User
+    {
+        return $this->requestedBy ?? User::find($this->requested_by);
+    }
+
+    public function notificationActionUrl(): string
+    {
+        return route('flight-requests.show', $this->getKey());
     }
 }

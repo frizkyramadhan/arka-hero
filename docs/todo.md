@@ -1,5 +1,5 @@
 **Purpose**: Track current work and immediate priorities for ARKA HERO HRMS
-**Last Updated**: 2026-07-28
+**Last Updated**: 2026-07-29
 
 ## Task Management Guidelines
 
@@ -54,7 +54,11 @@ Include relevant context in brackets to help with future AI-assisted coding:
 
 ## Recently Completed
 
+-   `[done] P0: Leave approver change = FPTK pattern (pending-only) [LeaveRequest canChangeApprovers/getLockedApproverIds, updateApprovers + show form, syncPendingLeaveApprovers on edit] (completed: 2026-07-29)`
+-   `[done] P0: Fix leave update — recreate approval_plans when manual_approvers change [LeaveRequestController::update; was delete-only; restored b58a14ce] (completed: 2026-07-29)`
+-   `[done] P1: Document email notification foundation + Spatie activity audit UI [NotifiableDocument, DocumentNotificationService, hooks on ApprovalPlan/ApprovalRequest controllers, Activity Logs under SYSTEMS, activity-logs.show] (completed: 2026-07-29)`
 -   `[done] P1: FPTK & MPP HOLD/UNHOLD [status on_hold, recruitment_request_holds / man_power_plan_holds, freeze approval+recruitment, TTH/TTF/aging/stale clock subtract hold days, dashboard On Hold card; permissions recruitment-requests.hold & mpp.hold created manually] (completed: 2026-07-28)`
+-   `[done] P1: RCR meeting_date → start_date + end_date [migration, conflict range, form/list/show/dashboard/report, IT WO end_date] (completed: 2026-07-29)`
 -   `[done] P2: Align RCR user manual with My Request REQxxxxx + HR confirm flow [docs/user-manual/19-room-consumption-management.md §3.4/§5, PDF regen] (completed: 2026-07-28)`
 -   `[done] P1: Fix approval_plans datetime — all steps showed final close time [acted_at column, close is_open without touching timestamps, decisionAt()] (completed: 2026-07-24)`
 -   `[done] P2: RCR form Zoom Meeting ID Availability [Need Zoom checkbox → panel accounts 131/132/134, GET zoom-meeting-availability via rest-server + ItWoZoomClient] (completed: 2026-07-24)`

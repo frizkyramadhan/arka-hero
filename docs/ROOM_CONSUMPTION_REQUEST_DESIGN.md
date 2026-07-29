@@ -13,7 +13,7 @@
 | Approval | `manual_approvers` + `create_manual_approval_plan('room_consumption_request', $id)` |
 | Letter category | **RCR** — created manually in Letter Administration (not seeded) |
 | Reg. No | `{seq}/HCS-{projectCode}/RCR/{romanMonth}/{year}` e.g. `0001/HCS-000H/RCR/I/2026` |
-| Letter on save | Same as LOT/FPTK: reserved RCR letter is **auto-marked `used`** when attached (draft or submit). `related_document_type=room_consumption_request` |
+| Letter on save | Draft keeps letter **reserved**; mark **used** only on submit (`related_document_type=room_consumption_request`). Edit selector includes current letter via `include_id`. |
 | Room location | `meeting_rooms.project_id` → `project_code` |
 | Zoom / IT WO | Phase 2 — CI3 API at `http://192.168.32.37/arka-rest-server`; cat **8** / subcat **35**; details in `wo.issue`; no ALTER `wo` |
 
@@ -28,7 +28,7 @@
 
 - Letter: `letter_number_id`, `letter_number`, `request_number` (formatted Reg. No)
 - Room/org: `meeting_room_id`, `project_id`, `department_id`, `requested_by`
-- Meeting: `meeting_title`, `meeting_date`, `start_time`, `end_time`, `attendees_count`, `facilities`
+- Meeting: `meeting_title`, `start_date`, `end_date`, `start_time`, `end_time`, `attendees_count`, `facilities`
 - `need_zoom`, `manual_approvers` (JSON), `status`, timestamps, `rejection_reason`, `notes`
 - Zoom stubs: `it_wo_id`, `it_wo_number`, `zoom_meeting_id`, `zoom_topic`, `zoom_join_url`, `zoom_passcode`, `zoom_sync_status`
 
@@ -49,7 +49,7 @@ Mirror FPTK (`RecruitmentRequestController`):
 
 - Numeric part: strip `RCR` prefix from letter number, pad 4 digits
 - Project code from request/room project
-- Roman month + year from `meeting_date`
+- Roman month + year from `start_date`
 
 Helper: `RoomConsumptionRequest::formatRequestNumber()`
 
@@ -161,6 +161,7 @@ Auth: `X-API-Key` (alias) **or** legacy `arka-key` + optional `X-Source: arka-he
   "requester_department_name": "...",
   "meeting_title": "...",
   "meeting_date": "2026-07-20",
+  "end_date": "2026-07-21",
   "start_time": "09:00",
   "end_time": "11:00",
   "attendees_count": 12,

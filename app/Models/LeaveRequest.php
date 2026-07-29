@@ -2,11 +2,12 @@
 
 namespace App\Models;
 
+use App\Contracts\NotifiableDocument;
 use App\Traits\Uuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class LeaveRequest extends Model
+class LeaveRequest extends Model implements NotifiableDocument
 {
     use HasFactory, Uuids;
 
@@ -247,6 +248,39 @@ class LeaveRequest extends Model
     }
 
     /**
+     * Approver IDs that already have a final decision (approved/rejected/etc.) and cannot be changed.
+     *
+     * @return array<int, int>
+     */
+    public function getLockedApproverIds(): array
+    {
+        return $this->approvalPlans()
+            ->where('status', '!=', 0)
+            ->pluck('approver_id')
+            ->map(fn ($id) => (int) $id)
+            ->unique()
+            ->values()
+            ->all();
+    }
+
+    public function hasPendingApprovers(): bool
+    {
+        if ($this->status !== 'pending') {
+            return false;
+        }
+
+        return $this->approvalPlans()->where('status', 0)->exists();
+    }
+
+    /**
+     * Pending approvers may be changed while leave is pending and at least one step is still pending.
+     */
+    public function canChangeApprovers(): bool
+    {
+        return $this->hasPendingApprovers();
+    }
+
+    /**
      * Close this leave request
      * Can be used by HR to mark leave request as closed/completed
      */
@@ -447,5 +481,49 @@ class LeaveRequest extends Model
         }
 
         return User::whereIn('id', $this->manual_approvers)->get();
+    }
+
+    public function notificationDocumentType(): string
+    {
+        return 'leave_request';
+    }
+
+    public function notificationDocumentLabel(): string
+    {
+        return config('document_notifications.labels.leave_request', 'Leave Request');
+    }
+
+    public function notificationReference(): string
+    {
+        return $this->register_number ?: ('LV-'.$this->getKey());
+    }
+
+    public function notificationTitle(): string
+    {
+        $type = $this->leaveType->name ?? 'Leave';
+
+        return "{$type} - {$this->notificationReference()}";
+    }
+
+    public function notificationSummary(): array
+    {
+        return [
+            'Employee' => $this->employee->fullname ?? '—',
+            'Leave Type' => $this->leaveType->name ?? '—',
+            'Start Date' => optional($this->start_date)->format('d M Y'),
+            'End Date' => optional($this->end_date)->format('d M Y'),
+            'Total Days' => (string) $this->total_days,
+            'Status' => $this->status,
+        ];
+    }
+
+    public function notificationRequester(): ?User
+    {
+        return $this->requestedBy ?? User::find($this->requested_by);
+    }
+
+    public function notificationActionUrl(): string
+    {
+        return route('leave.requests.show', $this->getKey());
     }
 }

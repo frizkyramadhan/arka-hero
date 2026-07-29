@@ -116,7 +116,7 @@
                 </h1>
                 <div class="travel-date">
                     <i class="far fa-calendar-alt"></i>
-                    {{ $doc->meeting_date ? format_date_with_weekday($doc->meeting_date) : 'N/A' }}
+                    {{ $doc->formattedMeetingDateRange() }}
                     <span class="mx-2">·</span>
                     <i class="far fa-clock"></i>
                     {{ $startTime }} – {{ $endTime }}
@@ -194,9 +194,9 @@
                                         <i class="fas fa-calendar-day"></i>
                                     </div>
                                     <div class="info-content">
-                                        <div class="info-label">Meeting Date</div>
+                                        <div class="info-label">Meeting Dates</div>
                                         <div class="info-value">
-                                            {{ $doc->meeting_date ? format_date_with_weekday($doc->meeting_date) : '—' }}
+                                            {{ $doc->formattedMeetingDateRange() }}
                                         </div>
                                     </div>
                                 </div>

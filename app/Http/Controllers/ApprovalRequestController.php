@@ -13,6 +13,7 @@ use App\Models\OvertimeRequest;
 use App\Models\RecruitmentRequest;
 use App\Models\RoomConsumptionRequest;
 use App\Models\User;
+use App\Services\DocumentNotificationService;
 use App\Services\ItWoZoomClient;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -205,7 +206,7 @@ class ApprovalRequestController extends Controller
                         }
 
                         $regNo = e($rcr->request_number ?: ($rcr->meeting_title ?: '—'));
-                        $dateStr = $rcr->meeting_date ? e($rcr->meeting_date->format('d/m/Y')) : '—';
+                        $dateStr = e($rcr->formattedMeetingDateRange(false));
                         $room = e($rcr->meetingRoom->room_name ?? '—');
                         $project = e($rcr->project->project_code ?? '—');
 
@@ -464,6 +465,15 @@ class ApprovalRequestController extends Controller
 
             // Process document status based on approval decision
             $this->processDocumentStatus($approvalPlan);
+
+            try {
+                app(DocumentNotificationService::class)->afterApprovalDecision($approvalPlan->fresh());
+            } catch (\Throwable $e) {
+                Log::warning('Failed to send document approval notification', [
+                    'approval_plan_id' => $approvalPlan->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
 
             $statusText = match ($request->status) {
                 1 => 'approved',
@@ -1067,6 +1077,15 @@ class ApprovalRequestController extends Controller
 
                         // Process document status
                         $this->processDocumentStatus($approvalPlan);
+
+                        try {
+                            app(DocumentNotificationService::class)->afterApprovalDecision($approvalPlan->fresh());
+                        } catch (\Throwable $e) {
+                            Log::warning('Failed to send document approval notification (bulk)', [
+                                'approval_plan_id' => $approvalPlan->id,
+                                'error' => $e->getMessage(),
+                            ]);
+                        }
 
                         $successCount++;
 

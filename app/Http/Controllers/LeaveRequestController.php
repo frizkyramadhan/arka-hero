@@ -40,7 +40,7 @@ class LeaveRequestController extends Controller
         $this->middleware('permission:leave-requests.create')->only('create', 'store');
 
         // Edit any leave request
-        $this->middleware('permission:leave-requests.edit')->only('edit', 'update', 'deleteDocument', 'upload', 'close');
+        $this->middleware('permission:leave-requests.edit')->only('edit', 'update', 'updateApprovers', 'deleteDocument', 'upload', 'close');
 
         // Delete leave request (destroy) and close completed requests
         // Note: destroy() uses dual permission inside the method; showCancellationForm/storeCancellation use leave-requests.cancel (see below)
@@ -999,10 +999,11 @@ class LeaveRequestController extends Controller
                 $manualApprovers = [];
             }
             // Ensure array values are preserved in order (array_values to reset keys)
-            $manualApprovers = array_values(array_filter($manualApprovers));
+            $manualApprovers = array_values(array_map('intval', array_filter($manualApprovers)));
 
             // Check if manual_approvers changed - following pattern from RecruitmentRequestController
-            $approversChanged = json_encode($leaveRequest->manual_approvers ?? []) !== json_encode($manualApprovers);
+            $currentApprovers = array_values(array_map('intval', $leaveRequest->manual_approvers ?? []));
+            $approversChanged = json_encode($currentApprovers) !== json_encode($manualApprovers);
 
             // Set reason to null if leave type is not unpaid
             $reason = $request->reason;
@@ -1042,13 +1043,17 @@ class LeaveRequestController extends Controller
             });
             FlightRequest::createFromFrData($request, $leaveRequest);
 
-            // If approvers changed and there are existing approval plans, delete them
-            // (They will be recreated when document is submitted)
+            // Approver changes: only pending steps may be replaced (same as FPTK updateApprovers).
+            // Locked (approved/rejected) steps must remain in place and order.
             if ($approversChanged) {
-                ApprovalPlan::where('document_id', $leaveRequest->id)
-                    ->where('document_type', 'leave_request')
-                    ->delete();
-                Log::info("Deleted existing approval plans for leave_request {$leaveRequest->id} due to approver changes");
+                $sync = $this->syncPendingLeaveApprovers($leaveRequest, $manualApprovers);
+                if (! $sync['ok']) {
+                    DB::rollback();
+
+                    return back()
+                        ->with(['toast_error' => $sync['error']])
+                        ->withInput();
+                }
             }
 
             // Update auto conversion date based on leave type and document status
@@ -1070,6 +1075,77 @@ class LeaveRequestController extends Controller
             DB::rollback();
 
             return back()->with(['toast_error' => 'Failed to update leave request: ' . $e->getMessage()])->withInput();
+        }
+    }
+
+    /**
+     * Update manual approvers while leave is pending; only pending steps may change (same as FPTK).
+     */
+    public function updateApprovers(Request $request, LeaveRequest $leaveRequest)
+    {
+        if ($r = $this->guardLeaveRequestProjectForHrUser($leaveRequest)) {
+            return $r;
+        }
+
+        if (! $leaveRequest->canChangeApprovers()) {
+            return redirect()->route('leave.requests.show', $leaveRequest)
+                ->with('toast_error', 'Approver tidak dapat diubah karena tidak ada langkah persetujuan yang masih Pending atau leave request tidak dalam status Pending.');
+        }
+
+        $request->validate([
+            'manual_approvers' => 'required|array|min:1',
+            'manual_approvers.*' => 'exists:users,id',
+        ], [
+            'manual_approvers.required' => 'Please select at least one approver.',
+            'manual_approvers.array' => 'Approvers must be an array.',
+            'manual_approvers.min' => 'Please select at least one approver.',
+            'manual_approvers.*.exists' => 'One or more selected approvers are invalid.',
+        ]);
+
+        $submittedApprovers = $request->manual_approvers ?? [];
+        if (! is_array($submittedApprovers)) {
+            $submittedApprovers = [];
+        }
+        $submittedApprovers = array_values(array_map('intval', array_filter($submittedApprovers)));
+
+        $currentApprovers = array_values(array_map('intval', $leaveRequest->manual_approvers ?? []));
+        $approversChanged = json_encode($currentApprovers) !== json_encode($submittedApprovers);
+
+        if (! $approversChanged) {
+            return redirect()->route('leave.requests.show', $leaveRequest)
+                ->with('toast_info', 'No changes to approver selection.');
+        }
+
+        try {
+            DB::beginTransaction();
+
+            $sync = $this->syncPendingLeaveApprovers($leaveRequest, $submittedApprovers);
+            if (! $sync['ok']) {
+                DB::rollBack();
+
+                return redirect()->back()
+                    ->with('toast_error', $sync['error']);
+            }
+
+            $leaveRequest->update(['manual_approvers' => $submittedApprovers]);
+
+            DB::commit();
+
+            $message = $sync['created'] > 0
+                ? 'Approver pending berhasil diperbarui. '.$sync['created'].' langkah pending menunggu keputusan.'
+                : 'Approver selection updated.';
+
+            return redirect()->route('leave.requests.show', $leaveRequest)
+                ->with('toast_success', $message);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Error updating leave request approvers: '.$e->getMessage(), [
+                'leave_request_id' => $leaveRequest->id,
+                'exception' => $e,
+            ]);
+
+            return redirect()->back()
+                ->with('toast_error', 'Terjadi kesalahan saat mengubah approver. Silakan coba lagi.');
         }
     }
 
@@ -2428,6 +2504,81 @@ class LeaveRequestController extends Controller
                 ]);
             }
         }
+    }
+
+    /**
+     * Sync approval plans for leave: keep locked (non-pending) steps, replace/create pending only.
+     * Same behaviour as FPTK / Official Travel updateApprovers.
+     *
+     * @param  array<int, int|string>  $submittedApprovers
+     * @return array{ok: bool, created: int, error: ?string}
+     */
+    private function syncPendingLeaveApprovers(LeaveRequest $leaveRequest, array $submittedApprovers): array
+    {
+        $submittedApprovers = array_values(array_map('intval', array_filter($submittedApprovers)));
+
+        if (empty($submittedApprovers)) {
+            return ['ok' => false, 'created' => 0, 'error' => 'Please select at least one approver.'];
+        }
+
+        if (count($submittedApprovers) !== count(array_unique($submittedApprovers))) {
+            return ['ok' => false, 'created' => 0, 'error' => 'Approver tidak boleh duplikat.'];
+        }
+
+        $existingPlans = ApprovalPlan::where('document_id', $leaveRequest->id)
+            ->where('document_type', 'leave_request')
+            ->orderBy('approval_order')
+            ->get()
+            ->keyBy('approval_order');
+
+        $lockedPlans = $existingPlans->filter(fn (ApprovalPlan $plan) => (int) $plan->status !== 0);
+
+        foreach ($lockedPlans as $order => $plan) {
+            $index = (int) $order - 1;
+            if (! isset($submittedApprovers[$index]) || (int) $submittedApprovers[$index] !== (int) $plan->approver_id) {
+                return [
+                    'ok' => false,
+                    'created' => 0,
+                    'error' => 'Approver yang sudah disetujui atau ditolak tidak dapat diubah atau dihapus.',
+                ];
+            }
+        }
+
+        $ordersPresent = [];
+        $createdPending = 0;
+
+        foreach ($submittedApprovers as $index => $approverId) {
+            $order = $index + 1;
+            $ordersPresent[] = $order;
+            $plan = $existingPlans->get($order);
+
+            if ($plan && (int) $plan->status !== 0) {
+                continue;
+            }
+
+            if ($plan) {
+                $plan->delete();
+            }
+
+            ApprovalPlan::create([
+                'document_id' => $leaveRequest->id,
+                'document_type' => 'leave_request',
+                'approver_id' => $approverId,
+                'status' => 0,
+                'is_open' => true,
+                'is_read' => false,
+                'approval_order' => $order,
+            ]);
+            $createdPending++;
+        }
+
+        ApprovalPlan::where('document_id', $leaveRequest->id)
+            ->where('document_type', 'leave_request')
+            ->where('status', 0)
+            ->whereNotIn('approval_order', $ordersPresent)
+            ->delete();
+
+        return ['ok' => true, 'created' => $createdPending, 'error' => null];
     }
 
     /**
