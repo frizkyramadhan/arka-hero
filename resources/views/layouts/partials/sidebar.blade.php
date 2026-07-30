@@ -850,6 +850,15 @@
                             </a>
                         </li>
                     @endcan
+                    @role('administrator')
+                        <li class="nav-item">
+                            <a href="{{ route('debug.email-notifications.index') }}"
+                                class="nav-link {{ Request::is('debug/email-notifications*') ? 'active' : '' }}">
+                                <i class="nav-icon fas fa-envelope-open-text"></i>
+                                <p>Debug Email Notify</p>
+                            </a>
+                        </li>
+                    @endrole
                     {{-- Approval Stages - Commented as requested --}}
                     {{-- <li class="nav-item">
                             <a href="{{ route('approval.stages.index') }}"

@@ -15,6 +15,7 @@ use App\Http\Controllers\BusinessPartnerController;
 use App\Http\Controllers\CourseController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DebugController;
+use App\Http\Controllers\DebugEmailNotificationController;
 use App\Http\Controllers\DepartmentController;
 use App\Http\Controllers\EducationController;
 use App\Http\Controllers\EmailController;
@@ -197,6 +198,10 @@ Route::group(['middleware' => ['auth']], function () {
     // DEBUG ROUTES
     Route::prefix('debug')->name('debug.')->group(function () {
         Route::get('/', [DebugController::class, 'index'])->name('index');
+        Route::get('/email-notifications', [DebugEmailNotificationController::class, 'index'])->name('email-notifications.index');
+        Route::post('/email-notifications/preview', [DebugEmailNotificationController::class, 'preview'])->name('email-notifications.preview');
+        Route::post('/email-notifications/send', [DebugEmailNotificationController::class, 'send'])->name('email-notifications.send');
+        Route::post('/email-notifications/litmus', [DebugEmailNotificationController::class, 'litmus'])->name('email-notifications.litmus');
         Route::post('/truncate/employees', [DebugController::class, 'truncateEmployees'])->name('truncate.employees');
         Route::post('/truncate/administrations', [DebugController::class, 'truncateAdministrations'])->name('truncate.administrations');
         Route::post('/truncate/employeebanks', [DebugController::class, 'truncateEmployeebanks'])->name('truncate.employeebanks');

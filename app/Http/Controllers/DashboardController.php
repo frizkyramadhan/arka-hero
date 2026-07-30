@@ -1413,6 +1413,8 @@ class DashboardController extends Controller
 
         $recentRequests = RoomConsumptionRequest::query()
             ->with(['project', 'meetingRoom', 'requestedBy'])
+            ->where('status', RoomConsumptionRequest::STATUS_SUBMITTED)
+            ->orderByDesc('submitted_at')
             ->orderByDesc('created_at')
             ->limit(12);
         UserProject::scopeToAssignedProjects($recentRequests, 'project_id');
@@ -1486,6 +1488,12 @@ class DashboardController extends Controller
         $events = $query->orderBy('start_date')->orderBy('start_time')->get()->map(function (RoomConsumptionRequest $req) use ($statusColors) {
             $startDate = $req->start_date->format('Y-m-d');
             $endDate = $req->end_date->format('Y-m-d');
+            $isMultiDay = ! $req->start_date->equalTo($req->end_date);
+            $compactDateRange = $isMultiDay
+                ? $req->start_date->locale(app()->getLocale())->translatedFormat('d M')
+                    .'–'.$req->end_date->locale(app()->getLocale())->translatedFormat('d M')
+                : $req->start_date->locale(app()->getLocale())->translatedFormat('d M');
+            $fullDateRange = $req->formattedMeetingDateRange();
             $startTime = $req->start_time
                 ? \Carbon\Carbon::parse($req->start_time)->format('H:i:s')
                 : '08:00:00';
@@ -1498,7 +1506,8 @@ class DashboardController extends Controller
 
             return [
                 'id' => $req->id,
-                'title' => ($req->meeting_title ?: 'Meeting').' · '.($req->meetingRoom?->room_name ?? '—'),
+                'title' => ($isMultiDay ? $compactDateRange.' · ' : '')
+                    .($req->meeting_title ?: 'Meeting').' · '.($req->meetingRoom?->room_name ?? '—'),
                 'start' => $startDate.'T'.$startTime,
                 'end' => $endDate.'T'.$endTime,
                 'url' => route('room-consumption-requests.show', $req),
@@ -1511,6 +1520,8 @@ class DashboardController extends Controller
                     'requester' => $requester,
                     'requestNumber' => $req->request_number,
                     'needZoom' => (bool) $req->need_zoom,
+                    'dateRange' => $fullDateRange,
+                    'isMultiDay' => $isMultiDay,
                 ],
             ];
         });

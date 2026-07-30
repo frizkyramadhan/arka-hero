@@ -382,14 +382,195 @@ class FlightRequest extends Model implements NotifiableDocument
         return (string) ($this->purpose_of_travel ?: $this->notificationReference());
     }
 
+    /**
+     * Eager-load relations used by approval-request show and email content.
+     */
+    public function loadNotificationRelations(): self
+    {
+        return $this->loadMissing([
+            'employee',
+            'administration.position.department',
+            'administration.project',
+            'details',
+            'requestedBy',
+            'leaveRequest.employee',
+            'leaveRequest.administration',
+            'officialTravel.traveler.employee',
+            'officialTravel.stops',
+            'officialTravel.details.follower.employee',
+            'officialTravel.details.follower.position.department',
+            'officialTravel.details.follower.project',
+            'followers.employee',
+            'followers.administration.position.department',
+            'followers.administration.project',
+        ]);
+    }
+
+    /**
+     * Resolved employee/admin display values aligned with approval-requests/show.
+     *
+     * @return array{
+     *     name: string,
+     *     nik: string,
+     *     position: string,
+     *     department: string,
+     *     project_number: string,
+     *     phone_number: string|null,
+     *     poh: string,
+     *     doh: string,
+     *     request_type_label: string
+     * }
+     */
+    public function notificationEmployeeContext(): array
+    {
+        $this->loadNotificationRelations();
+
+        $employee = $this->employee;
+        $administration = $this->administration
+            ?? ($employee ? $employee->activeAdministration : null);
+
+        $name = $this->employee_name
+            ?? ($employee?->fullname ?: 'N/A');
+        $nik = $this->nik
+            ?? ($administration?->nik ?: 'N/A');
+        $position = $this->position
+            ?? ($administration?->position?->position_name ?: 'N/A');
+        $department = $this->department
+            ?? ($administration?->position?->department?->department_name ?: 'N/A');
+        $project = $this->project
+            ?? ($administration?->project?->project_name ?: 'N/A');
+        $projectCode = $administration?->project?->project_code;
+        $projectNumber = $projectCode ? $projectCode.' - '.$project : $project;
+        $phoneNumber = $this->phone_number
+            ?? ($administration?->phone_number ?: null);
+        $poh = $administration?->poh ?: 'N/A';
+        $doh = $administration?->doh
+            ? \Carbon\Carbon::parse($administration->doh)->format('d F Y')
+            : 'N/A';
+
+        return [
+            'name' => $name,
+            'nik' => $nik,
+            'position' => $position,
+            'department' => $department,
+            'project_number' => $projectNumber,
+            'phone_number' => $phoneNumber,
+            'poh' => $poh,
+            'doh' => $doh,
+            'request_type_label' => $this->notificationRequestTypeLabel(),
+        ];
+    }
+
+    public function notificationRequestTypeLabel(): string
+    {
+        $this->loadNotificationRelations();
+
+        if ($this->request_type === self::TYPE_LEAVE_BASED && $this->leaveRequest) {
+            $leave = $this->leaveRequest;
+            $leaveEmployee = $leave->employee;
+            $leaveAdmin = $leave->administration
+                ?? ($leaveEmployee ? $leaveEmployee->activeAdministration : null);
+
+            return sprintf(
+                'Leave Request (Cuti) - %s - %s (%s to %s)',
+                $leaveEmployee?->fullname ?? 'N/A',
+                $leaveAdmin?->nik ?? 'N/A',
+                optional($leave->start_date)->format('d M Y') ?? 'N/A',
+                optional($leave->end_date)->format('d M Y') ?? 'N/A'
+            );
+        }
+
+        if ($this->request_type === self::TYPE_TRAVEL_BASED && $this->officialTravel) {
+            $travel = $this->officialTravel;
+            $traveler = $travel->traveler;
+            $travelEmployee = $traveler?->employee;
+
+            return sprintf(
+                'Official Travel (LOT) - %s - %s (%s)',
+                $travel->official_travel_number ?? 'N/A',
+                $travelEmployee?->fullname ?? 'N/A',
+                $travel->destination ?: ($travel->itinerarySummaryForDisplay() ?: 'N/A')
+            );
+        }
+
+        return 'Standalone';
+    }
+
+    /**
+     * Summary aligned with approval-requests/show Flight Request cards.
+     *
+     * @return array<string, string|null>
+     */
     public function notificationSummary(): array
     {
-        return [
-            'Employee' => $this->employee_name ?: '—',
-            'Purpose' => $this->purpose_of_travel,
-            'Travel Days' => (string) $this->total_travel_days,
-            'Status' => $this->status,
+        $ctx = $this->notificationEmployeeContext();
+        $segments = $this->details
+            ->sortBy(['segment_order', 'flight_date'])
+            ->values()
+            ->map(function ($detail, $index) {
+                $date = optional($detail->flight_date)->format('d M Y') ?: '—';
+                $time = $detail->flight_time
+                    ? \Carbon\Carbon::parse($detail->flight_time)->format('H:i')
+                    : null;
+                $route = trim(($detail->departure_city ?? '—').' → '.($detail->arrival_city ?? '—'));
+                $airline = $detail->airline ? ' / '.$detail->airline : '';
+
+                return sprintf(
+                    'Flight %d: %s%s · %s%s',
+                    $index + 1,
+                    $route,
+                    $airline,
+                    $date,
+                    $time ? ' '.$time : ''
+                );
+            })
+            ->implode('; ');
+
+        $summary = [
+            'Form Number' => $this->notificationReference(),
+            'Requested At' => $this->requested_at
+                ? format_date_with_weekday($this->requested_at)
+                : format_date_with_weekday($this->created_at),
+            'Name' => $ctx['name'],
+            'Request Type' => $ctx['request_type_label'],
+            'ID Number / NIK' => $ctx['nik'],
+            'Position' => $ctx['position'],
+            'Dept/Division' => $ctx['department'],
+            'POH' => $ctx['poh'],
+            'DOH' => $ctx['doh'],
+            'Project Number' => $ctx['project_number'],
         ];
+
+        if (! empty($ctx['phone_number'])) {
+            $summary['Phone Number'] = $ctx['phone_number'];
+        }
+
+        $summary['Purpose of Travel'] = $this->purpose_of_travel ?: '—';
+        $summary['Total Travel Days'] = (string) ($this->total_travel_days ?? '—');
+        $summary['Flight Details'] = $segments !== '' ? $segments : 'No flight details available';
+
+        if ($this->request_type === self::TYPE_TRAVEL_BASED
+            && $this->officialTravel
+            && $this->officialTravel->details->isNotEmpty()) {
+            $summary['Followers'] = $this->officialTravel->details
+                ->map(function ($detail) {
+                    $name = $detail->follower?->employee?->fullname ?? 'Unknown Employee';
+                    $nik = $detail->follower?->nik ?? '';
+
+                    return trim($nik !== '' ? "{$name} ({$nik})" : $name);
+                })
+                ->implode('; ');
+        } elseif ($this->request_type === self::TYPE_STANDALONE && $this->followers->isNotEmpty()) {
+            $summary['Followers'] = $this->followers
+                ->map(fn (FlightRequestFollower $follower) => $follower->displayName())
+                ->implode('; ');
+        }
+
+        if (filled($this->notes)) {
+            $summary['Notes'] = $this->notes;
+        }
+
+        return $summary;
     }
 
     public function notificationRequester(): ?User

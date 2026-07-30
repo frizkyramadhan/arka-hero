@@ -327,8 +327,8 @@ class RoomConsumptionRequest extends Model implements NotifiableDocument
 
     public function notificationReference(): string
     {
-        return $this->letter_number
-            ?: ($this->request_number ?: ('RCR-'.$this->getKey()));
+        return $this->request_number
+            ?: ($this->letter_number ?: ('RCR-'.$this->getKey()));
     }
 
     public function notificationTitle(): string
@@ -336,16 +336,89 @@ class RoomConsumptionRequest extends Model implements NotifiableDocument
         return (string) ($this->meeting_title ?: $this->notificationReference());
     }
 
+    /**
+     * Eager-load relations used by approval-request show and email content.
+     */
+    public function loadNotificationRelations(): self
+    {
+        return $this->loadMissing([
+            'project',
+            'meetingRoom',
+            'department',
+            'requestedBy',
+            'items',
+        ]);
+    }
+
+    /**
+     * Facility labels from comma-separated facilities column.
+     *
+     * @return \Illuminate\Support\Collection<int, string>
+     */
+    public function notificationFacilities()
+    {
+        return collect(preg_split('/\s*,\s*/', (string) ($this->facilities ?? ''), -1, PREG_SPLIT_NO_EMPTY))
+            ->filter()
+            ->values();
+    }
+
+    /**
+     * Summary aligned with approval-requests/show RCR card.
+     *
+     * @return array<string, string|null>
+     */
     public function notificationSummary(): array
     {
-        return [
-            'Meeting' => $this->meeting_title,
-            'Room' => $this->meetingRoom->name ?? '—',
-            'Start' => optional($this->start_date)->format('d M Y').' '.$this->start_time,
-            'End' => optional($this->end_date)->format('d M Y').' '.$this->end_time,
-            'Attendees' => (string) $this->attendees_count,
-            'Status' => $this->status,
+        $this->loadNotificationRelations();
+
+        $startTime = $this->start_time
+            ? \Carbon\Carbon::parse($this->start_time)->format('H:i')
+            : '—';
+        $endTime = $this->end_time
+            ? \Carbon\Carbon::parse($this->end_time)->format('H:i')
+            : '—';
+
+        $location = trim(
+            ($this->project?->project_code ?? '—')
+            .($this->project?->project_name ? ' — '.$this->project->project_name : '')
+        );
+
+        $selectedConsumption = $this->items
+            ->where('is_selected', true)
+            ->map(function ($item) {
+                $label = self::CONSUMPTION_TYPES[$item->consumption_type] ?? $item->consumption_type;
+
+                return filled($item->description) ? $label.' ('.$item->description.')' : $label;
+            })
+            ->implode('; ');
+
+        $summary = [
+            'Reg. No' => $this->notificationReference(),
+            'Room' => $this->meetingRoom?->room_name ?: '—',
+            'Location' => $location !== '' ? $location : '—',
+            'Department' => $this->department?->department_name ?: '—',
+            'Meeting' => $this->meeting_title ?: '—',
+            'Meeting Date' => $this->formattedMeetingDateRange(),
+            'Meeting Time' => $startTime.' – '.$endTime,
+            'Attendees' => (string) ($this->attendees_count ?? '—'),
+            'Need Zoom' => $this->need_zoom ? 'Yes' : 'No',
+            'Requester' => $this->requestedBy?->name ?: '—',
         ];
+
+        $facilities = $this->notificationFacilities();
+        if ($facilities->isNotEmpty()) {
+            $summary['Facilities'] = $facilities->implode(', ');
+        }
+
+        $summary['Consumption'] = $selectedConsumption !== ''
+            ? $selectedConsumption
+            : 'None selected';
+
+        if (filled($this->notes)) {
+            $summary['Notes'] = $this->notes;
+        }
+
+        return $summary;
     }
 
     public function notificationRequester(): ?User

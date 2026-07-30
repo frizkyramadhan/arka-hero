@@ -658,19 +658,32 @@
                     // Removed minDate: moment() to allow past dates in edit form
                 };
 
-                // Get current dates if they exist
+                // Get current dates if they exist (strict parse to avoid Invalid date)
                 const startDate = $('#start_date').val();
                 const endDate = $('#end_date').val();
+                const startMoment = startDate ? moment(startDate, 'YYYY-MM-DD', true) : null;
+                const endMoment = endDate ? moment(endDate, 'YYYY-MM-DD', true) : null;
+                const hasValidRange = startMoment && endMoment && startMoment.isValid() && endMoment.isValid();
 
-                if (startDate && endDate) {
-                    baseConfig.startDate = moment(startDate);
-                    baseConfig.endDate = moment(endDate);
+                if (hasValidRange) {
+                    baseConfig.startDate = startMoment;
+                    baseConfig.endDate = endMoment;
                 }
 
-                // Add minDate and maxDate based on entitlement period
+                // Add minDate and maxDate based on entitlement period (expand to keep existing dates selectable)
                 if (currentEntitlementPeriod.start && currentEntitlementPeriod.end) {
-                    baseConfig.minDate = currentEntitlementPeriod.start;
-                    baseConfig.maxDate = currentEntitlementPeriod.end;
+                    let minDate = currentEntitlementPeriod.start.clone();
+                    let maxDate = currentEntitlementPeriod.end.clone();
+                    if (hasValidRange) {
+                        if (startMoment.isBefore(minDate, 'day')) {
+                            minDate = startMoment.clone();
+                        }
+                        if (endMoment.isAfter(maxDate, 'day')) {
+                            maxDate = endMoment.clone();
+                        }
+                    }
+                    baseConfig.minDate = minDate;
+                    baseConfig.maxDate = maxDate;
                 }
 
                 baseConfig.isInvalidDate = buildInvalidDateChecker(isNonRosterProject);
@@ -693,6 +706,12 @@
                         $(this).val('');
                         $('#start_date, #end_date, #total_days_input, #total_days_hidden').val('');
                     });
+
+                if (hasValidRange) {
+                    $('#leave_date').val(
+                        `${startMoment.format('DD/MM/YYYY')} - ${endMoment.format('DD/MM/YYYY')}`
+                    );
+                }
 
                 configureBackToWorkDatePicker();
             }
@@ -930,14 +949,17 @@
                 if (periodStart && periodEnd) {
                     const startMoment = moment(periodStart);
                     const endMoment = moment(periodEnd);
-                    const periodDisplay = startMoment.format('DD MMM YYYY') + ' - ' + endMoment.format(
-                        'DD MMM YYYY');
 
-                    $('#leave_period').val(periodDisplay);
-                    currentEntitlementPeriod.start = startMoment;
-                    currentEntitlementPeriod.end = endMoment;
-                    configureLeaveDatePicker();
-                    return;
+                    if (startMoment.isValid() && endMoment.isValid()) {
+                        const periodDisplay = startMoment.format('DD MMM YYYY') + ' - ' + endMoment.format(
+                            'DD MMM YYYY');
+
+                        $('#leave_period').val(periodDisplay);
+                        currentEntitlementPeriod.start = startMoment;
+                        currentEntitlementPeriod.end = endMoment;
+                        configureLeaveDatePicker();
+                        return;
+                    }
                 }
 
                 // Fallback to API call (for backward compatibility or if data not in dropdown)

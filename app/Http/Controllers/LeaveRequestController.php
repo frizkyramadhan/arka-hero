@@ -1110,8 +1110,9 @@ class LeaveRequestController extends Controller
 
         $currentApprovers = array_values(array_map('intval', $leaveRequest->manual_approvers ?? []));
         $approversChanged = json_encode($currentApprovers) !== json_encode($submittedApprovers);
+        $plansMissing = $leaveRequest->approvalPlans()->doesntExist();
 
-        if (! $approversChanged) {
+        if (! $approversChanged && ! $plansMissing) {
             return redirect()->route('leave.requests.show', $leaveRequest)
                 ->with('toast_info', 'No changes to approver selection.');
         }
@@ -1131,9 +1132,11 @@ class LeaveRequestController extends Controller
 
             DB::commit();
 
-            $message = $sync['created'] > 0
-                ? 'Approver pending berhasil diperbarui. '.$sync['created'].' langkah pending menunggu keputusan.'
-                : 'Approver selection updated.';
+            $message = $plansMissing && $sync['created'] > 0
+                ? 'Approval plans berhasil dibuat ulang. '.$sync['created'].' langkah pending menunggu keputusan.'
+                : ($sync['created'] > 0
+                    ? 'Approver pending berhasil diperbarui. '.$sync['created'].' langkah pending menunggu keputusan.'
+                    : 'Approver selection updated.');
 
             return redirect()->route('leave.requests.show', $leaveRequest)
                 ->with('toast_success', $message);
