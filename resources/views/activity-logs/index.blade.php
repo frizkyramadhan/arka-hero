@@ -26,6 +26,68 @@
             <h3 class="card-title"><strong>{{ $subtitle }}</strong></h3>
           </div>
           <div class="card-body">
+            @if (!empty($emailMetrics))
+              <div class="row mb-3">
+                <div class="col-md-3">
+                  <div class="small-box bg-info mb-0">
+                    <div class="inner p-3">
+                      <h4 class="mb-0">{{ $emailMetrics['email_queued'] ?? 0 }}</h4>
+                      <p class="mb-0">Queued ({{ $emailMetrics['days'] ?? 7 }}d)</p>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-md-3">
+                  <div class="small-box bg-success mb-0">
+                    <div class="inner p-3">
+                      <h4 class="mb-0">{{ $emailMetrics['email_sent'] ?? 0 }}</h4>
+                      <p class="mb-0">Sent</p>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-md-3">
+                  <div class="small-box bg-danger mb-0">
+                    <div class="inner p-3">
+                      <h4 class="mb-0">{{ $emailMetrics['email_failed'] ?? 0 }}</h4>
+                      <p class="mb-0">Failed</p>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-md-3">
+                  <div class="small-box bg-secondary mb-0">
+                    <div class="inner p-3">
+                      <h4 class="mb-0">{{ $emailMetrics['email_skipped'] ?? 0 }}</h4>
+                      <p class="mb-0">Skipped</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              @if (!empty($emailMetrics['by_type']))
+                <div class="table-responsive mb-3">
+                  <table class="table table-sm table-bordered mb-0">
+                    <thead>
+                      <tr>
+                        <th>Document type (7d)</th>
+                        <th>Queued</th>
+                        <th>Sent</th>
+                        <th>Failed</th>
+                        <th>Skipped</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      @foreach ($emailMetrics['by_type'] as $type => $counts)
+                        <tr>
+                          <td>{{ $documentTypes[$type] ?? $type }}</td>
+                          <td>{{ $counts['email_queued'] ?? 0 }}</td>
+                          <td>{{ $counts['email_sent'] ?? 0 }}</td>
+                          <td>{{ $counts['email_failed'] ?? 0 }}</td>
+                          <td>{{ $counts['email_skipped'] ?? 0 }}</td>
+                        </tr>
+                      @endforeach
+                    </tbody>
+                  </table>
+                </div>
+              @endif
+            @endif
             <form id="activity-log-filters" class="mb-3">
               <div class="row">
                 <div class="col-md-2">

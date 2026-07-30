@@ -52,6 +52,21 @@ class User extends Authenticatable
     }
 
     /**
+     * Use users.name as the display name in the email To header.
+     */
+    public function routeNotificationForMail($notification): array|string
+    {
+        $email = trim((string) $this->email);
+        $name = trim((string) $this->name);
+
+        if ($email === '') {
+            return '';
+        }
+
+        return $name !== '' ? [$email => $name] : $email;
+    }
+
+    /**
      * Get the projects that belong to the user.
      */
     public function projects()

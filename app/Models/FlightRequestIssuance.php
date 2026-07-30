@@ -89,23 +89,76 @@ class FlightRequestIssuance extends Model implements NotifiableDocument
 
     public function notificationReference(): string
     {
-        return $this->letter_number
-            ?: ($this->issued_number ?: ('ISS-'.$this->getKey()));
+        return $this->issued_number
+            ?: ($this->letter_number ?: ('ISS-'.$this->getKey()));
     }
 
     public function notificationTitle(): string
     {
-        return 'Flight Ticket Issuance '.$this->notificationReference();
+        $this->loadNotificationRelations();
+
+        return $this->businessPartner?->bp_name
+            ?: ('Flight Ticket Issuance '.$this->notificationReference());
     }
 
+    /**
+     * Eager-load relations used by approval-request show and email content.
+     */
+    public function loadNotificationRelations(): self
+    {
+        return $this->loadMissing([
+            'businessPartner',
+            'issuedBy',
+            'issuanceDetails.employee',
+        ]);
+    }
+
+    /**
+     * Summary aligned with approval-requests/show LG Information + Ticket Details.
+     *
+     * @return array<string, string|null>
+     */
     public function notificationSummary(): array
     {
-        return [
-            'Issued Number' => $this->issued_number,
-            'Issued Date' => optional($this->issued_date)->format('d M Y'),
-            'Tickets' => (string) $this->total_tickets,
-            'Status' => $this->status,
+        $this->loadNotificationRelations();
+
+        $details = $this->issuanceDetails;
+        $totalPrice = $details->sum(fn ($detail) => (float) ($detail->ticket_price ?? 0));
+
+        $tickets = $details
+            ->map(function ($detail) {
+                $passenger = $detail->resolved_passenger_name ?: '-';
+                $booking = $detail->booking_code ?: '-';
+                $price = $detail->ticket_price
+                    ? 'Rp '.number_format((float) $detail->ticket_price, 0, ',', '.')
+                    : '-';
+
+                return sprintf(
+                    '#%s %s / %s / %s',
+                    $detail->ticket_order ?? '-',
+                    $passenger,
+                    $booking,
+                    $price
+                );
+            })
+            ->implode('; ');
+
+        $summary = [
+            'Issued Number' => $this->issued_number ?: '—',
+            'Issued Date' => optional($this->issued_date)->format('d F Y') ?: '—',
+            'Letter Number' => $this->letter_number ?: '—',
+            'Business Partner' => $this->businessPartner?->bp_name ?: '—',
+            'Issued By' => $this->issuedBy?->name ?: '—',
+            'Total Tickets' => (string) $details->count(),
+            'Total Price' => 'Rp '.number_format($totalPrice, 0, ',', '.'),
+            'Ticket Details' => $tickets !== '' ? $tickets : 'No ticket details',
         ];
+
+        if (filled($this->notes)) {
+            $summary['Notes'] = $this->notes;
+        }
+
+        return $summary;
     }
 
     public function notificationRequester(): ?User

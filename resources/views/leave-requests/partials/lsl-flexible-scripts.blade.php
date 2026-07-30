@@ -101,7 +101,7 @@
 
                 clearLSLValidation();
 
-                if (typeof window.entitlementData !== 'undefined' && window.entitlementData.remaining_days !== undefined) {
+                if (window.entitlementData && window.entitlementData.remaining_days !== undefined) {
                     const entitlementRemaining = window.entitlementData.remaining_days;
                     if (totalDays > entitlementRemaining) {
                         showLSLValidation(

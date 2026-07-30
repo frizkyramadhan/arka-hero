@@ -537,10 +537,12 @@ graph TD
 **Document notifications & audit**:
 
 - `activity_log` - Spatie activity log (`document_approval`, `document_email`); morph IDs are strings (UUID-safe)
-- `config/document_notifications.php` - feature flag + document type registry
-- `DocumentNotificationService` - send approval emails; hooked from approval create/decide paths
-- `NotifiableDocument` - contract implemented by Official Travel, FPTK, Leave, Flight, Issuance, Overtime, RCR
-
+- `config/document_notifications.php` - registry + `enabled` / `base_url` / `reminder_*` / optional `cc` per document type from `.env`
+- `DocumentNotificationService` - queues approval emails (`ShouldQueue` + `jobs` table); recipient `users.name`; approver/reminder CTA → `/approval/requests`; approved/rejected CTA → document show URL; idempotent via `document_notification_sends`; audits `email_queued` then `email_sent`/`email_failed` via listeners
+- `documents:remind-pending-approvals` - daily 08:00 reminder for open pending plans older than `reminder_days` (default 3)
+- `DocumentApprovalNotification::mailViewData()` - single data source for production mail and no-send browser preview; HTML + plain-text multipart; logo from `DOCUMENT_NOTIFICATIONS_BASE_URL` + `logo_path`
+- `debug.email-notifications.litmus` - administrator render-only pass/fail matrix (no SMTP)
+- Activity Logs email metrics strip (last 7 days: queued/sent/failed/skipped)
 **Employee Registration**:
 
 - `employee_registration_tokens` - Invitation tokens

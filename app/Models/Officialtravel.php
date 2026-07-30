@@ -765,8 +765,8 @@ class Officialtravel extends Model implements NotifiableDocument
 
     public function notificationReference(): string
     {
-        return $this->letter_number
-            ?: ($this->official_travel_number ?: ('OT-'.$this->getKey()));
+        return $this->official_travel_number
+            ?: ($this->letter_number ?: ('OT-'.$this->getKey()));
     }
 
     public function notificationTitle(): string
@@ -774,14 +774,65 @@ class Officialtravel extends Model implements NotifiableDocument
         return (string) ($this->purpose ?: $this->notificationReference());
     }
 
+    /**
+     * Eager-load relations used by approval-request show and email content.
+     */
+    public function loadNotificationRelations(): self
+    {
+        return $this->loadMissing([
+            'traveler.employee',
+            'traveler.position.department',
+            'traveler.project',
+            'transportation',
+            'accommodation',
+            'stops',
+            'details.follower.employee',
+            'details.follower.position',
+            'details.follower.project',
+        ]);
+    }
+
+    /**
+     * Summary aligned with approval-requests/show Official Travel cards.
+     *
+     * @return array<string, string|null>
+     */
     public function notificationSummary(): array
     {
-        return [
-            'Date' => optional($this->official_travel_date)->format('d M Y'),
-            'Purpose' => $this->purpose,
-            'Destination' => $this->itinerarySummaryForDisplay(),
-            'Status' => $this->status,
+        $this->loadNotificationRelations();
+
+        $traveler = $this->traveler;
+        $summary = [
+            'Travel Date' => format_date_with_weekday($this->official_travel_date),
+            'Traveler' => $traveler
+                ? trim(($traveler->nik ?? '').' - '.($traveler->employee?->fullname ?? 'Unknown Employee'))
+                : '—',
+            'Position' => $traveler?->position?->position_name ?? 'No Position',
+            'Business Unit' => $traveler
+                ? trim(($traveler->project->project_code ?? 'No Code').' : '.($traveler->project->project_name ?? 'No Project'))
+                : '—',
+            'Division / Department' => $traveler?->position?->department?->department_name ?? 'No Department',
+            'Destination' => $this->itinerarySummaryForDisplay() ?: '—',
+            'Purpose' => $this->purpose ?: '—',
+            'Departure Date' => format_date_with_weekday($this->departure_from),
+            'Transportation' => $this->transportation->transportation_name ?? 'No Transportation',
+            'Accommodation' => $this->accommodation->accommodation_name ?? 'No Accommodation',
+            'Duration' => filled($this->duration) ? (string) $this->duration : '—',
         ];
+
+        if ($this->details && $this->details->isNotEmpty()) {
+            $summary['Followers'] = $this->details
+                ->map(function ($detail) {
+                    $name = $detail->follower?->employee?->fullname ?? 'Unknown Employee';
+                    $nik = $detail->follower?->nik ?? '';
+                    $position = $detail->follower?->position?->position_name ?? '';
+
+                    return trim($nik !== '' ? "{$name} ({$nik})".($position !== '' ? " — {$position}" : '') : $name);
+                })
+                ->implode('; ');
+        }
+
+        return $summary;
     }
 
     public function notificationRequester(): ?User

@@ -622,26 +622,96 @@ class RecruitmentRequest extends Model implements NotifiableDocument
 
     public function notificationReference(): string
     {
-        return $this->getFPTKLetterNumber();
+        return $this->request_number
+            ?: ($this->getFPTKLetterNumber() ?: ('FPTK-'.$this->getKey()));
     }
 
     public function notificationTitle(): string
     {
-        $position = $this->position->name ?? null;
+        $this->loadNotificationRelations();
+
+        $position = $this->position?->position_name;
 
         return $position
-            ? "FPTK - {$position}"
+            ? trim($position)
             : ('FPTK '.$this->notificationReference());
     }
 
+    /**
+     * Eager-load relations used by approval-request show and email content.
+     */
+    public function loadNotificationRelations(): self
+    {
+        return $this->loadMissing([
+            'department',
+            'project',
+            'position',
+            'level',
+            'createdBy',
+        ]);
+    }
+
+    /**
+     * Summary aligned with approval-requests/show FPTK cards.
+     *
+     * @return array<string, string|null>
+     */
     public function notificationSummary(): array
     {
-        return [
-            'Position' => $this->position->name ?? '—',
-            'Request Number' => $this->request_number,
-            'Letter Number' => $this->letter_number,
-            'Status' => $this->status,
+        $this->loadNotificationRelations();
+
+        $qty = (int) ($this->required_qty ?? 0);
+        $age = '—';
+        if ($this->required_age_min && $this->required_age_max) {
+            $age = $this->required_age_min.' - '.$this->required_age_max.' years';
+        } elseif ($this->required_age_min) {
+            $age = 'Min '.$this->required_age_min.' years';
+        } elseif ($this->required_age_max) {
+            $age = 'Max '.$this->required_age_max.' years';
+        }
+
+        $summary = [
+            'Request Number' => $this->request_number ?: '—',
+            'Letter Number' => $this->letter_number ?: '—',
+            'Department' => $this->department?->department_name ?: '—',
+            'Project' => $this->project
+                ? trim(($this->project->project_code ?? '').' - '.($this->project->project_name ?? ''))
+                : '—',
+            'Position' => $this->position?->position_name ?: '—',
+            'Level' => $this->level?->name ?: '—',
+            'Required Quantity' => $qty.' '.($qty > 1 ? 'persons' : 'person'),
+            'Required Date' => $this->required_date
+                ? format_date_with_weekday($this->required_date)
+                : '—',
+            'Employment Type' => $this->employment_type
+                ? ucfirst(str_replace('_', ' ', $this->employment_type))
+                : '—',
+            'Request Reason' => formatRequestReason($this->request_reason, $this->other_reason ?? null),
+            'Theory Test' => $this->requires_theory_test ? 'Required' : 'Not Required',
+            'Gender' => $this->required_gender ? ucfirst($this->required_gender) : '—',
+            'Marital Status' => $this->required_marital_status ? ucfirst($this->required_marital_status) : '—',
+            'Age Range' => $age,
+            'Education' => $this->required_education ?: '—',
+            'Job Description' => $this->job_description ?: '—',
         ];
+
+        if (filled($this->required_skills)) {
+            $summary['Required Skills'] = $this->required_skills;
+        }
+        if (filled($this->required_experience)) {
+            $summary['Required Experience'] = $this->required_experience;
+        }
+        if (filled($this->required_physical)) {
+            $summary['Physical Requirements'] = $this->required_physical;
+        }
+        if (filled($this->required_mental)) {
+            $summary['Mental Requirements'] = $this->required_mental;
+        }
+        if (filled($this->other_requirements)) {
+            $summary['Other Requirements'] = $this->other_requirements;
+        }
+
+        return $summary;
     }
 
     public function notificationRequester(): ?User

@@ -29,6 +29,9 @@ class Kernel extends ConsoleKernel
 
         // Tandai otomatis letter number yang reserved menjadi used setelah 3 hari, dijalankan setiap hari pukul 00:20
         $schedule->command('letter-numbers:auto-mark-used')->dailyAt('00:20');
+
+        // Reminder email untuk approval pending > N hari (default 3), pukul 08:00 Asia/Makassar
+        $schedule->command('documents:remind-pending-approvals')->dailyAt('08:00');
     }
 
     /**

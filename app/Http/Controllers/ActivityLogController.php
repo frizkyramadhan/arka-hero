@@ -29,12 +29,14 @@ class ActivityLogController extends Controller
             'step_rejected',
             'document_approved',
             'document_rejected',
+            'email_queued',
             'email_sent',
             'email_failed',
             'email_skipped',
         ]);
         $documentTypes = config('document_notifications.labels', []);
         $tableReady = $this->activityLogTableReady();
+        $emailMetrics = $this->emailDeliveryMetrics($tableReady);
 
         return view('activity-logs.index', compact(
             'title',
@@ -42,7 +44,8 @@ class ActivityLogController extends Controller
             'logNames',
             'events',
             'documentTypes',
-            'tableReady'
+            'tableReady',
+            'emailMetrics'
         ));
     }
 
@@ -174,6 +177,61 @@ class ActivityLogController extends Controller
         $labels = config('document_notifications.labels', []);
 
         return view('activity-logs.show', compact('activity', 'title', 'subtitle', 'labels'));
+    }
+
+    protected function emailDeliveryMetrics(bool $tableReady): array
+    {
+        $defaults = [
+            'days' => 7,
+            'email_queued' => 0,
+            'email_sent' => 0,
+            'email_failed' => 0,
+            'email_skipped' => 0,
+            'by_type' => [],
+        ];
+
+        if (! $tableReady) {
+            return $defaults;
+        }
+
+        try {
+            $since = now()->subDays(7)->startOfDay();
+            $rows = Activity::query()
+                ->where('log_name', 'document_email')
+                ->whereIn('event', ['email_queued', 'email_sent', 'email_failed', 'email_skipped'])
+                ->where('created_at', '>=', $since)
+                ->get(['event', 'properties']);
+
+            foreach ($rows as $row) {
+                $event = (string) $row->event;
+                if (isset($defaults[$event])) {
+                    $defaults[$event]++;
+                }
+
+                $props = $row->properties;
+                $type = is_array($props)
+                    ? ($props['document_type'] ?? null)
+                    : ($props->document_type ?? null);
+                if (! is_string($type) || $type === '') {
+                    continue;
+                }
+                if (! isset($defaults['by_type'][$type])) {
+                    $defaults['by_type'][$type] = [
+                        'email_queued' => 0,
+                        'email_sent' => 0,
+                        'email_failed' => 0,
+                        'email_skipped' => 0,
+                    ];
+                }
+                if (isset($defaults['by_type'][$type][$event])) {
+                    $defaults['by_type'][$type][$event]++;
+                }
+            }
+        } catch (\Throwable $e) {
+            Log::warning('emailDeliveryMetrics failed', ['error' => $e->getMessage()]);
+        }
+
+        return $defaults;
     }
 
     protected function activityLogTableReady(): bool

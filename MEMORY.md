@@ -5,26 +5,26 @@
 
 **Host**: `saphire-one` · SSH user `skyone` · Local SSH alias **`arka-docker`** (key `~/.ssh/id_ed25519_arka_deploy`)  
 **Stack**: `/home/skyone/stack` · Compose: `docker-compose.yml` · Network: `stack_appnet`  
-**Bind**: `~/stack/apps` → `/var/www` in nginx + all PHP-FPM containers  
+**Bind**: `~/stack/apps` → `/var/www` in nginx + all PHP-FPM containers
 
-| Container | Role | Published ports |
-|-----------|------|-----------------|
-| `stack-nginx-1` | nginx 1.27 | `80`, `8080`, `8081` |
-| `stack-php74-1` | PHP 7.4-FPM | (internal 9000) |
-| `stack-php81-1` | PHP 8.1-FPM | (internal 9000) |
-| `stack-php82-1` | PHP 8.2-FPM | (internal 9000) |
-| `stack-mysql-1` | MySQL 8.0 | `127.0.0.1:3306` only |
-| `stack-phpmyadmin-1` | phpMyAdmin via `/pma/` | (via nginx) |
-| `stack-arka-fms` | Node ARKA FMS | `3000` |
+| Container            | Role                   | Published ports       |
+| -------------------- | ---------------------- | --------------------- |
+| `stack-nginx-1`      | nginx 1.27             | `80`, `8080`, `8081`  |
+| `stack-php74-1`      | PHP 7.4-FPM            | (internal 9000)       |
+| `stack-php81-1`      | PHP 8.1-FPM            | (internal 9000)       |
+| `stack-php82-1`      | PHP 8.2-FPM            | (internal 9000)       |
+| `stack-mysql-1`      | MySQL 8.0              | `127.0.0.1:3306` only |
+| `stack-phpmyadmin-1` | phpMyAdmin via `/pma/` | (via nginx)           |
+| `stack-arka-fms`     | Node ARKA FMS          | `3000`                |
 
 **Apps**
 
-| App | Host path | Container workdir | URL | DB dir name |
-|-----|-----------|-------------------|-----|-------------|
-| **arka-hero** | `apps/app82/arka-hero` | `/var/www/app82/arka-hero` on `stack-php82-1` | `:8080` (+ `/arka-hero/` on `:80`) | `arka_hero` |
-| irr-support | `apps/app81/irr-support` | `/var/www/app81/irr-support` on `stack-php81-1` | `:8081` | `irr5` |
-| arka-fms | `apps/app81/arka-fms` | Node image `stack-arka-fms` | `:3000` | `arka_fms` |
-| stubs | `apps/app{74,81,82}/public` | path prefixes `/app74/` `/app81/` `/app82/` | `:80` | `appdb` |
+| App           | Host path                   | Container workdir                               | URL                                | DB dir name |
+| ------------- | --------------------------- | ----------------------------------------------- | ---------------------------------- | ----------- |
+| **arka-hero** | `apps/app82/arka-hero`      | `/var/www/app82/arka-hero` on `stack-php82-1`   | `:8080` (+ `/arka-hero/` on `:80`) | `arka_hero` |
+| irr-support   | `apps/app81/irr-support`    | `/var/www/app81/irr-support` on `stack-php81-1` | `:8081`                            | `irr5`      |
+| arka-fms      | `apps/app81/arka-fms`       | Node image `stack-arka-fms`                     | `:3000`                            | `arka_fms`  |
+| stubs         | `apps/app{74,81,82}/public` | path prefixes `/app74/` `/app81/` `/app82/`     | `:80`                              | `appdb`     |
 
 **Deploy HERO**: user says `deploy` → commit/push if needed → `ssh arka-docker 'cd .../arka-hero && git pull --ff-only'` → `docker exec -w /var/www/app82/arka-hero stack-php82-1 php artisan …`  
 **Rule**: `.cursor/rules/deploy.mdc` · Never copy compose/DB/JWT passwords into this file.
@@ -35,23 +35,23 @@
 
 ### Structure Standards
 
--   Entry Format: ### [ID] [Title (YYYY-MM-DD)] ✅ STATUS
--   Required Fields: Date, Challenge/Decision, Solution, Key Learning
--   Length Limit: 3-6 lines per entry (excluding sub-bullets)
--   Status Indicators: ✅ COMPLETE, ⚠️ PARTIAL, ❌ BLOCKED
+- Entry Format: ### [ID] [Title (YYYY-MM-DD)] ✅ STATUS
+- Required Fields: Date, Challenge/Decision, Solution, Key Learning
+- Length Limit: 3-6 lines per entry (excluding sub-bullets)
+- Status Indicators: ✅ COMPLETE, ⚠️ PARTIAL, ❌ BLOCKED
 
 ### Content Guidelines
 
--   Focus: Architecture decisions, critical bugs, security fixes, major technical challenges
--   Exclude: Routine features, minor bug fixes, documentation updates
--   Learning: Each entry must include actionable learning or decision rationale
--   Redundancy: Remove duplicate information, consolidate similar issues
+- Focus: Architecture decisions, critical bugs, security fixes, major technical challenges
+- Exclude: Routine features, minor bug fixes, documentation updates
+- Learning: Each entry must include actionable learning or decision rationale
+- Redundancy: Remove duplicate information, consolidate similar issues
 
 ### File Management
 
--   Archive Trigger: When file exceeds 500 lines or 6 months old
--   Archive Format: `memory-YYYY-MM.md` (e.g., `memory-2025-01.md`)
--   New File: Start fresh with current date and carry forward only active decisions
+- Archive Trigger: When file exceeds 500 lines or 6 months old
+- Archive Format: `memory-YYYY-MM.md` (e.g., `memory-2025-01.md`)
+- New File: Start fresh with current date and carry forward only active decisions
 
 ---
 
@@ -67,6 +67,41 @@
 
 **Files**: `.cursor/rules/deploy.mdc`, `MEMORY.md` inventory, `docs/architecture.md` Deployment
 
+---
+
+### [033] Leave detail blocked updateApprovers when plans empty (2026-07-29) ✅ COMPLETE
+
+**Challenge**: `26LV-00324` pending with Herry/Rachman shown, but no Update Approvers form. Approver badges absent → `approval_plans` empty; `canChangeApprovers` required pending plans.
+
+**Solution**: `hasPendingApprovers` also true when status pending and zero plans; `updateApprovers` syncs even if `manual_approvers` unchanged when plans missing.
+
+**Key Learning**: View-mode without Pending/Approved badges = no plan rows. Gate must allow recreating plans, not only editing existing pending steps.
+
+**Files**: `LeaveRequest::hasPendingApprovers`, `LeaveRequestController::updateApprovers`
+
+---
+
+### [032] Edit leave: entitlementData null + Invalid date (2026-07-29) ✅ COMPLETE
+
+**Challenge**: Edit leave JS crashed on `window.entitlementData.remaining_days` when value was `null`; Leave Date showed "Invalid date".
+
+**Solution**: Null-safe check in `lsl-flexible-scripts`; edit picker now uses `.remove()` (not invalid `daterangepicker('destroy')`), strict `YYYY-MM-DD` parse, restore display after recreate, expand min/max to include existing dates.
+
+**Key Learning**: `typeof null === 'object'`; daterangepicker has no `'destroy'` API—use `.data('daterangepicker').remove()`.
+
+**Files**: `lsl-flexible-scripts.blade.php`, `leave-requests/edit.blade.php`, `my-edit.blade.php`
+
+---
+
+### [032] Outlook/Thunderbird-safe email + browser preview (2026-07-30) ✅ COMPLETE
+
+**Challenge**: Approval email layout and CTA needed reliable rendering in Outlook desktop and Thunderbird, plus a way to inspect real document emails without delivery.
+
+**Solution**: Email Blade now uses presentation tables, inline styles, Outlook 96-DPI settings, and a VML CTA fallback. Administrator Debug Email Notify can render the exact template in a new browser tab through `debug.email-notifications.preview`; preview never invokes the mail transport. Recipient display names for the greeting, mail `To` header, debug send, and preview come strictly from `users.name` (email fallback only when no matching user exists). Approver/reminder CTAs open `/approval/requests`; approved/rejected CTAs open the document show URL (both rebased via `DOCUMENT_NOTIFICATIONS_BASE_URL`). Production mails implement `ShouldQueue` with `QUEUE_CONNECTION=database` (no Redis); host crontab runs `schedule:run` + short `queue:work --stop-when-empty` inside `stack-php82-1`. Audit: `email_queued` on enqueue, `email_sent`/`email_failed` via Notification listeners. Idempotency table `document_notification_sends`. Daily overdue reminder (`documents:remind-pending-approvals`, default 3 days). Optional CC from config on approved/rejected. HTML+text multipart. Brand logo is `public/images/logo_2.jpg`: SMTP embeds it as `cid:arka-logo` (avoids broken remote LAN image loads and reduces Thunderbird junk signals); browser preview still uses the absolute `DOCUMENT_NOTIFICATIONS_BASE_URL` URL. Hidden preheader removed; `List-Unsubscribe` + `Auto-Submitted` headers added. Debug litmus + Activity Log 7-day delivery metrics. Production send toggle: `DOCUMENT_NOTIFICATIONS_ENABLED`.
+
+**Key Learning**: Keep browser preview and delivered email on one `mailViewData()` source so debug output cannot drift from production markup. Env boolean must use `filter_var(..., FILTER_VALIDATE_BOOLEAN)` so `false` actually disables. Document-type email partials should mirror approval-request fields, not a generic Date/Purpose stub. Shared `ui_tokens.php` keeps compact/cozy density consistent; do not rely on Blade `@include` to set style variables for the parent. On Docker php-FPM without Redis, database queues + minute crontab workers are enough; log `email_queued` separately from `email_sent`.
+
+**Files**: `DocumentApprovalNotification`, `DocumentNotificationService`, `DocumentNotificationSend`, `RemindPendingApprovalsCommand`, `LogDocumentNotificationSent`/`Failed`, `DebugEmailNotificationController`, `ActivityLogController`, `config/document_notifications.php`, `emails/documents/approval.blade.php`, `emails/documents/approval-text.blade.php`, `public/images/email-logo.png`, migrations `jobs` + `document_notification_sends`, `docs/docker-reference.md`
 ---
 
 ### [031] Leave update wiped approval_plans without recreate (2026-07-29) ✅ COMPLETE
@@ -101,7 +136,7 @@
 
 **Key Learning**: Persist hold intervals (not just flags) so overlapping SLA/TTH windows can subtract accurately across multiple hold/unhold cycles. Restore `status_before_hold` on Unhold.
 
-**Files**: `RecruitmentRequest`, `ManPowerPlan`, `RecruitmentReportController`, `DashboardController@recruitment`, hold migrations 2026_07_28_140000*
+**Files**: `RecruitmentRequest`, `ManPowerPlan`, `RecruitmentReportController`, `DashboardController@recruitment`, hold migrations 2026_07_28_140000\*
 
 ---
 
@@ -170,6 +205,8 @@
 **RCR My Request REQ (2026-07-27)**: My Room & Consumption mirrors My Official Travel: temporary `REQxxxxx` (`submitted_by_user`), no letter on employee form; HR confirms via admin edit (letter RCR + approvers → formal Reg. No preview live on form). Column `submitted_by_user` on `room_consumption_requests`; filter status `pending_hr` on admin list. User manual `docs/user-manual/19-room-consumption-management.md` §3.4 / §5.2–5.3 updated (2026-07-28).
 
 **RCR start_date / end_date (2026-07-29)**: Replaced single `meeting_date` with `start_date` + `end_date` (migration backfills both from old date). Conflict check uses datetime range overlap. Reg. No roman month from `start_date`. IT WO payload keeps `meeting_date` (= start) and adds `end_date`.
+
+**RCR calendar range visibility (2026-07-30)**: Multi-day dashboard events include a compact date-range prefix in the event title, a full Indonesian period in the hover tooltip, and a striped/thicker event bar (`rcr-multi-day-event`) spanning `start_date` through `end_date`.
 
 **RCR letter draft reserved (2026-07-29)**: Draft RCR keeps letter number **reserved** (not `used`); `used` only on submit. Edit form selector passes `include_id` so current letter populates. Saving draft releases letter if previously marked used by this RCR.
 
@@ -437,35 +474,35 @@
 
 ### Controller Patterns
 
--   `index()` - List with DataTables
--   `create()` - Show form
--   `store(Request $request)` - Save with validation
--   `show($id)` - Display single record
--   `edit($id)` - Show edit form
--   `update(Request $request, $id)` - Update with validation
--   `destroy($id)` - Soft delete or status change
--   `apiIndex()`, `apiStore()`, etc. - API versions with Sanctum auth
--   Return with `toast_success()` or `toast_error()`
+- `index()` - List with DataTables
+- `create()` - Show form
+- `store(Request $request)` - Save with validation
+- `show($id)` - Display single record
+- `edit($id)` - Show edit form
+- `update(Request $request, $id)` - Update with validation
+- `destroy($id)` - Soft delete or status change
+- `apiIndex()`, `apiStore()`, etc. - API versions with Sanctum auth
+- Return with `toast_success()` or `toast_error()`
 
 ### Approval Workflow Pattern
 
--   `submitForApproval()` - Create approval plan
--   `approve()` / `reject()` - Process approval decision
--   `approval_plans` table tracks progress
--   Post-approval actions: assign letter number, change status
+- `submitForApproval()` - Create approval plan
+- `approve()` / `reject()` - Process approval decision
+- `approval_plans` table tracks progress
+- Post-approval actions: assign letter number, change status
 
 ### Export/Import Pattern
 
--   Export classes in `app/Exports/`
--   Import classes in `app/Imports/`
--   Queue large exports (>1000 rows)
--   Add proper error handling for date parsing
+- Export classes in `app/Exports/`
+- Import classes in `app/Imports/`
+- Queue large exports (>1000 rows)
+- Add proper error handling for date parsing
 
 ### Validation Pattern
 
--   Form Request classes for complex validation
--   Controller-level for simple cases
--   UI-level disabled states for workflow validation
+- Form Request classes for complex validation
+- Controller-level for simple cases
+- UI-level disabled states for workflow validation
 
 ---
 

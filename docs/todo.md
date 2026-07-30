@@ -54,6 +54,20 @@ Include relevant context in brackets to help with future AI-assisted coding:
 
 ## Recently Completed
 
+-   `[done] P1: Email notification Docker-ready improvements [database queue+ShouldQueue, CTA per event, 3-day reminder, config CC, idempotency, logo+plaintext, litmus, delivery metrics] (completed: 2026-07-30)`
+-   `[done] P1: Email recipient full name + safe inbox CTA [users.name in Dear/To/Debug; every CTA only opens /approval/requests] (completed: 2026-07-30)`
+-   `[done] P1: Production email CTA base URL [DOCUMENT_NOTIFICATIONS_BASE_URL; CTA and audit links target http://192.168.32.146:8080] (completed: 2026-07-30)`
+-   `[done] P2: Clarify multi-day RCR ranges in dashboard calendar [range-prefixed event title, full-period tooltip, striped spanning bar] (completed: 2026-07-30)`
+-   `[done] P2: Compact cozy redesign for all approval email notifications [shared _ui tokens, tighter padding, warm palette across 7 document partials] (completed: 2026-07-30)`
+-   `[done] P1: Refactor RCR approval email content to match approval-request show [Room & Consumption Information + facilities/notes/consumption partial; room_name] (completed: 2026-07-30)`
+-   `[done] P1: Refactor FPTK approval email content to match approval-request show [FPTK Information + Job Description & Requirements partial; position_name] (completed: 2026-07-30)`
+-   `[done] P1: Refactor Leave Request approval email content to match approval-request show [Leave Request Information + Employee Information partial; fullname + sisa cuti] (completed: 2026-07-30)`
+-   `[done] P1: Refactor Overtime Request approval email content to match approval-request show [Overtime Information + Employee Details partial; employee fullname] (completed: 2026-07-30)`
+-   `[done] P1: Refactor Flight Ticket Issuance approval email content to match approval-request show [LG Information + Ticket Details partial; issued_number reference; passenger fullname] (completed: 2026-07-30)`
+-   `[done] P1: Refactor Flight Request approval email content to match approval-request show [FR partial: employee info + LOT/standalone followers + flight segments + notes] (completed: 2026-07-30)`
+-   `[done] P1: Refactor Official Travel approval email content to match approval-request show [OT partial: travel details + traveler fullname + conditional followers; reference=official_travel_number] (completed: 2026-07-30)`
+-   `[done] P1: Outlook/Thunderbird-safe approval email + browser no-send preview + DOCUMENT_NOTIFICATIONS_ENABLED .env toggle [table/inline layout, Outlook VML CTA, shared mailViewData, debug preview route] (completed: 2026-07-30)`
+-   `[done] P1: Fix edit leave JS — entitlementData null crash + Invalid date picker [lsl-flexible-scripts null-safe; edit destroy→remove + restore display] (completed: 2026-07-29)`
 -   `[done] P0: Leave approver change = FPTK pattern (pending-only) [LeaveRequest canChangeApprovers/getLockedApproverIds, updateApprovers + show form, syncPendingLeaveApprovers on edit] (completed: 2026-07-29)`
 -   `[done] P0: Fix leave update — recreate approval_plans when manual_approvers change [LeaveRequestController::update; was delete-only; restored b58a14ce] (completed: 2026-07-29)`
 -   `[done] P1: Document email notification foundation + Spatie activity audit UI [NotifiableDocument, DocumentNotificationService, hooks on ApprovalPlan/ApprovalRequest controllers, Activity Logs under SYSTEMS, activity-logs.show] (completed: 2026-07-29)`

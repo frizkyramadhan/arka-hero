@@ -269,11 +269,18 @@ class LeaveRequest extends Model implements NotifiableDocument
             return false;
         }
 
-        return $this->approvalPlans()->where('status', 0)->exists();
+        if ($this->approvalPlans()->where('status', 0)->exists()) {
+            return true;
+        }
+
+        // Pending leave with no approval_plans rows (e.g. wiped on edit): allow recreate from detail.
+        return $this->approvalPlans()->doesntExist();
     }
 
     /**
-     * Pending approvers may be changed while leave is pending and at least one step is still pending.
+     * Pending approvers may be changed while leave is pending and either:
+     * - at least one step is still Pending, or
+     * - approval plans are missing entirely (so HR can recreate them).
      */
     public function canChangeApprovers(): bool
     {
@@ -500,21 +507,97 @@ class LeaveRequest extends Model implements NotifiableDocument
 
     public function notificationTitle(): string
     {
-        $type = $this->leaveType->name ?? 'Leave';
+        $this->loadNotificationRelations();
 
-        return "{$type} - {$this->notificationReference()}";
+        $type = $this->leaveType->name ?? 'Leave';
+        if ($this->leaveType?->code) {
+            $type .= ' ('.$this->leaveType->code.')';
+        }
+
+        return $type;
     }
 
+    /**
+     * Eager-load relations used by approval-request show and email content.
+     */
+    public function loadNotificationRelations(): self
+    {
+        return $this->loadMissing([
+            'employee.administrations.position.department',
+            'employee.administrations.project',
+            'administration.position.department',
+            'administration.project',
+            'leaveType',
+            'requestedBy',
+        ]);
+    }
+
+    /**
+     * Active administration used on approval-requests/show employee card.
+     */
+    public function notificationActiveAdministration(): ?Administration
+    {
+        $this->loadNotificationRelations();
+
+        if ($this->administration) {
+            return $this->administration;
+        }
+
+        return $this->employee?->administrations
+            ?->where('is_active', 1)
+            ->first()
+            ?? $this->employee?->activeAdministration;
+    }
+
+    /**
+     * Summary aligned with approval-requests/show Leave Request cards.
+     *
+     * @return array<string, string|null>
+     */
     public function notificationSummary(): array
     {
-        return [
-            'Employee' => $this->employee->fullname ?? '—',
-            'Leave Type' => $this->leaveType->name ?? '—',
-            'Start Date' => optional($this->start_date)->format('d M Y'),
-            'End Date' => optional($this->end_date)->format('d M Y'),
-            'Total Days' => (string) $this->total_days,
-            'Status' => $this->status,
+        $this->loadNotificationRelations();
+
+        $admin = $this->notificationActiveAdministration();
+        $entitlement = $this->matchingEntitlement();
+        $totalDays = (float) ($this->total_days ?? 0);
+        $remaining = $entitlement?->remaining_days;
+
+        $leaveType = $this->leaveType?->name ?? '—';
+        if ($this->leaveType?->code) {
+            $leaveType .= ' ('.$this->leaveType->code.')';
+        }
+
+        $summary = [
+            'Register Number' => $this->notificationReference(),
+            'Employee' => $this->employee?->fullname ?? '—',
+            'Leave Type' => $leaveType,
+            'Start Date' => $this->start_date ? format_date_with_weekday($this->start_date) : '—',
+            'End Date' => $this->end_date ? format_date_with_weekday($this->end_date) : '—',
+            'Total Days' => $totalDays.' '.($totalDays > 1 ? 'days' : 'day'),
+            'Sisa Cuti' => $remaining === null
+                ? 'N/A'
+                : $remaining.' '.(((float) $remaining) > 1 ? 'days' : 'day'),
+            'Back to Work Date' => $this->back_to_work_date
+                ? format_date_with_weekday($this->back_to_work_date)
+                : 'N/A',
+            'Requested At' => $this->created_at
+                ? format_datetime_with_weekday($this->created_at)
+                : 'N/A',
+            'Leave Period' => $this->leave_period ?: '—',
+            'NIK - Name' => trim(($admin?->nik ?? 'N/A').' - '.($this->employee?->fullname ?? 'Unknown Employee')),
+            'Position' => $admin?->position?->position_name ?? 'No Position',
+            'Business Unit' => trim(
+                ($admin?->project?->project_code ?? 'No Code').' : '.($admin?->project?->project_name ?? 'No Project')
+            ),
+            'Division / Department' => $admin?->position?->department?->department_name ?? 'No Department',
         ];
+
+        if (filled($this->reason)) {
+            $summary['Reason'] = $this->reason;
+        }
+
+        return $summary;
     }
 
     public function notificationRequester(): ?User

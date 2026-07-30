@@ -7,6 +7,21 @@
     <style>
         #rcr-calendar { min-height: 580px; }
         #rcr-calendar .fc-event { cursor: pointer; font-size: 0.78rem; border-radius: 3px; }
+        #rcr-calendar .rcr-multi-day-event {
+            border-width: 2px;
+            font-weight: 600;
+            background-image: linear-gradient(
+                135deg,
+                rgba(255, 255, 255, 0.13) 25%,
+                transparent 25%,
+                transparent 50%,
+                rgba(255, 255, 255, 0.13) 50%,
+                rgba(255, 255, 255, 0.13) 75%,
+                transparent 75%,
+                transparent
+            );
+            background-size: 10px 10px;
+        }
         #rcr-calendar .fc-toolbar-title { font-size: 1.05rem; font-weight: 600; }
         .rcr-stat-legend span { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 4px; vertical-align: middle; }
         .rcr-stat-legend { font-size: 0.75rem; }
@@ -347,6 +362,7 @@
                 editable: false,
                 dayMaxEvents: 3,
                 moreLinkClick: 'popover',
+                displayEventEnd: true,
                 events: {
                     url: eventsUrl,
                     extraParams: function() {
@@ -369,10 +385,14 @@
                         window.location.href = info.event.url;
                     }
                 },
+                eventClassNames: function(info) {
+                    return info.event.extendedProps.isMultiDay ? ['rcr-multi-day-event'] : [];
+                },
                 eventDidMount: function(info) {
                     var p = info.event.extendedProps;
                     var lines = [
                         p.requestNumber ? 'No: ' + p.requestNumber : null,
+                        p.dateRange ? 'Periode: ' + p.dateRange : null,
                         p.room ? 'Ruangan: ' + p.room : null,
                         p.project ? 'Project: ' + p.project : null,
                         p.requester ? 'Requester: ' + p.requester : null,

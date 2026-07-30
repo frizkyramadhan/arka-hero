@@ -172,21 +172,78 @@ class OvertimeRequest extends Model implements NotifiableDocument
 
     public function notificationTitle(): string
     {
-        $project = $this->project->project_code ?? ($this->project->name ?? null);
+        $this->loadNotificationRelations();
 
-        return $project
-            ? "Overtime {$project} - {$this->notificationReference()}"
+        $project = $this->project
+            ? trim(($this->project->project_code ? $this->project->project_code.' — ' : '').($this->project->project_name ?? ''))
+            : null;
+
+        return $project !== null && $project !== ''
+            ? $project
             : ('Overtime '.$this->notificationReference());
     }
 
+    /**
+     * Eager-load relations used by approval-request show and email content.
+     */
+    public function loadNotificationRelations(): self
+    {
+        return $this->loadMissing([
+            'project',
+            'requestedBy',
+            'details.administration.employee',
+            'details.administration.position',
+        ]);
+    }
+
+    /**
+     * Summary aligned with approval-requests/show Overtime Information + Employee Details.
+     *
+     * @return array<string, string|null>
+     */
     public function notificationSummary(): array
     {
-        return [
-            'Register Number' => $this->register_number,
-            'Project' => $this->project->project_code ?? ($this->project->name ?? '—'),
-            'Overtime Date' => optional($this->overtime_date)->format('d M Y'),
-            'Status' => $this->status,
+        $this->loadNotificationRelations();
+
+        $project = $this->project
+            ? trim(($this->project->project_code ? $this->project->project_code.' — ' : '').($this->project->project_name ?? ''))
+            : '—';
+
+        $employees = $this->details
+            ->map(function ($line, $index) {
+                $name = $line->administration?->employee?->fullname ?? '—';
+                $nik = $line->administration?->nik ?? '—';
+                $timeIn = $line->time_in ? \Carbon\Carbon::parse($line->time_in)->format('H:i') : '—';
+                $timeOut = $line->time_out ? \Carbon\Carbon::parse($line->time_out)->format('H:i') : '—';
+                $desc = $line->work_description ?: '—';
+
+                return sprintf(
+                    '%d. %s (%s) %s–%s · %s',
+                    $index + 1,
+                    $name,
+                    $nik,
+                    $timeIn,
+                    $timeOut,
+                    $desc
+                );
+            })
+            ->implode('; ');
+
+        $summary = [
+            'Register Number' => $this->notificationReference(),
+            'Project' => $project !== '' ? $project : '—',
+            'Overtime Date' => $this->overtime_date
+                ? format_date_with_weekday($this->overtime_date)
+                : '—',
+            'Created By' => $this->requestedBy?->name ?: '—',
+            'Created At' => $this->created_at
+                ? format_datetime_with_weekday($this->created_at)
+                : '—',
+            'Remarks' => $this->remarks ?: '—',
+            'Employees' => $employees !== '' ? $employees : 'No employee details',
         ];
+
+        return $summary;
     }
 
     public function notificationRequester(): ?User

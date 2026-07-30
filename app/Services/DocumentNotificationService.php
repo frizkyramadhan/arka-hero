@@ -4,9 +4,11 @@ namespace App\Services;
 
 use App\Contracts\NotifiableDocument;
 use App\Models\ApprovalPlan;
+use App\Models\DocumentNotificationSend;
 use App\Models\User;
 use App\Notifications\DocumentApprovalNotification;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
 
@@ -92,14 +94,11 @@ class DocumentNotificationService
                 return;
             }
 
-            $recipients = $this->currentPendingApprovers($documentType, $documentId);
-            $this->sendToUsers(
-                $recipients,
+            $this->sendToApproverPlans(
+                $this->currentPendingApprovalPlans($documentType, $documentId),
                 $document,
                 DocumentApprovalNotification::EVENT_APPROVAL_REQUESTED,
-                null,
-                null,
-                true
+                null
             );
         } catch (\Throwable $e) {
             Log::error('DocumentNotificationService::notifyApproversOnSubmit failed', [
@@ -158,14 +157,11 @@ class DocumentNotificationService
                 return;
             }
 
-            $nextApprovers = $this->currentPendingApprovers($plan->document_type, $plan->document_id);
-            $this->sendToUsers(
-                $nextApprovers,
+            $this->sendToApproverPlans(
+                $this->currentPendingApprovalPlans($plan->document_type, $plan->document_id),
                 $document,
                 DocumentApprovalNotification::EVENT_APPROVAL_NEEDED,
-                null,
-                $plan->remarks,
-                true
+                $plan->remarks
             );
         } catch (\Throwable $e) {
             Log::error('DocumentNotificationService::notifyAfterStep failed', [
@@ -176,26 +172,119 @@ class DocumentNotificationService
     }
 
     /**
-     * @return \Illuminate\Support\Collection<int, User>
+     * Send overdue reminders for pending open approval plans.
+     *
+     * @return array{reminded: int, skipped: int}
      */
-    protected function currentPendingApprovers(string $documentType, string|int $documentId)
+    public function remindPendingApprovals(): array
     {
+        $reminded = 0;
+        $skipped = 0;
+
+        if (! config('document_notifications.enabled', true)
+            || ! config('document_notifications.reminder_enabled', true)) {
+            return compact('reminded', 'skipped');
+        }
+
+        $days = max(1, (int) config('document_notifications.reminder_days', 3));
+        $cutoff = now()->subDays($days);
+
         $plans = ApprovalPlan::query()
+            ->where('is_open', true)
+            ->where('status', 0)
+            ->where('created_at', '<=', $cutoff)
+            ->orderBy('id')
+            ->get()
+            ->filter(fn (ApprovalPlan $plan) => $plan->canBeProcessed())
+            ->values();
+
+        foreach ($plans as $plan) {
+            $document = $this->resolveDocument($plan->document_type, $plan->document_id);
+            if (! $document instanceof NotifiableDocument) {
+                $skipped++;
+
+                continue;
+            }
+
+            $user = User::find($plan->approver_id);
+            if (! $user) {
+                $skipped++;
+
+                continue;
+            }
+
+            $email = trim((string) $user->email);
+            if ($email === '') {
+                $skipped++;
+
+                continue;
+            }
+
+            if (! $this->claimSendSlot(
+                $document,
+                DocumentApprovalNotification::EVENT_APPROVAL_REMINDER,
+                $user->id,
+                $plan,
+                now()->toDateString()
+            )) {
+                $skipped++;
+
+                continue;
+            }
+
+            $notification = new DocumentApprovalNotification(
+                $document,
+                DocumentApprovalNotification::EVENT_APPROVAL_REMINDER,
+                $plan,
+                null,
+                null,
+                true // already claimed slot above
+            );
+            $actionUrl = $notification->resolveActionUrl();
+            $notification->actionUrl = $actionUrl;
+
+            try {
+                Notification::send($user, $notification);
+                $this->auditLogger->logEmail(
+                    $document,
+                    'email_queued',
+                    "Email queued for {$email} (".DocumentApprovalNotification::EVENT_APPROVAL_REMINDER.')',
+                    [
+                        'notification_event' => DocumentApprovalNotification::EVENT_APPROVAL_REMINDER,
+                        'recipient_user_id' => $user->id,
+                        'recipient_email' => $email,
+                        'action_url' => $actionUrl,
+                        'approval_plan_id' => $plan->id,
+                        'dedupe_day' => now()->toDateString(),
+                    ]
+                );
+                $reminded++;
+            } catch (\Throwable $e) {
+                $skipped++;
+                Log::error('Reminder notification failed', [
+                    'approval_plan_id' => $plan->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
+
+        return compact('reminded', 'skipped');
+    }
+
+    /**
+     * @return \Illuminate\Support\Collection<int, ApprovalPlan>
+     */
+    protected function currentPendingApprovalPlans(string $documentType, string|int $documentId)
+    {
+        return ApprovalPlan::query()
             ->where('document_type', $documentType)
             ->where('document_id', $documentId)
             ->where('is_open', true)
             ->where('status', 0)
             ->orderBy('approval_order')
-            ->get();
-
-        $userIds = $plans
+            ->get()
             ->filter(fn (ApprovalPlan $plan) => $plan->canBeProcessed())
-            ->pluck('approver_id')
-            ->unique()
-            ->filter()
             ->values();
-
-        return User::whereIn('id', $userIds)->get();
     }
 
     protected function isDocumentFullyApproved(Model $document, string $documentType): bool
@@ -206,7 +295,7 @@ class DocumentNotificationService
     }
 
     protected function notifyRequester(
-        NotifiableDocument $document,
+        Model&NotifiableDocument $document,
         string $event,
         ?string $remarks = null
     ): void {
@@ -239,19 +328,49 @@ class DocumentNotificationService
             return;
         }
 
-        $this->sendToUsers(collect([$requester]), $document, $event, null, $remarks, false);
+        $this->sendToUsers(collect([$requester]), $document, $event, null, $remarks);
+    }
+
+    /**
+     * Send each approver a notification tied to their approval_plans row.
+     *
+     * @param  \Illuminate\Support\Collection<int, ApprovalPlan>  $plans
+     */
+    protected function sendToApproverPlans(
+        $plans,
+        Model&NotifiableDocument $document,
+        string $event,
+        ?string $remarks = null
+    ): void {
+        $seenUsers = [];
+
+        foreach ($plans as $plan) {
+            $userId = (int) $plan->approver_id;
+            if ($userId <= 0 || isset($seenUsers[$userId])) {
+                continue;
+            }
+
+            $seenUsers[$userId] = true;
+            $user = User::find($userId);
+            if (! $user) {
+                continue;
+            }
+
+            $this->sendToUsers(collect([$user]), $document, $event, $plan, $remarks);
+        }
     }
 
     /**
      * @param  \Illuminate\Support\Collection<int, User>  $users
      */
-    protected function sendToUsers(
+    public function sendToUsers(
         $users,
-        NotifiableDocument $document,
+        Model&NotifiableDocument $document,
         string $event,
         ?ApprovalPlan $plan = null,
         ?string $remarks = null,
-        bool $useApprovalInboxUrl = false
+        bool $bypassIdempotency = false,
+        ?string $dedupeDay = null
     ): void {
         $seen = [];
 
@@ -281,28 +400,51 @@ class DocumentNotificationService
                 continue;
             }
 
-            $actionUrl = $useApprovalInboxUrl
-                ? route('approval.requests.index')
-                : $document->notificationActionUrl();
+            if (! $bypassIdempotency && ! $this->claimSendSlot($document, $event, $user->id, $plan, $dedupeDay)) {
+                $this->auditLogger->logEmail(
+                    $document,
+                    'email_skipped',
+                    "Skipped duplicate email for {$email} ({$event})",
+                    [
+                        'notification_event' => $event,
+                        'recipient_user_id' => $user->id,
+                        'recipient_email' => $email,
+                        'reason' => 'duplicate',
+                        'approval_plan_id' => $plan?->id,
+                        'dedupe_day' => $dedupeDay ?? '',
+                    ]
+                );
+
+                continue;
+            }
+
+            $notification = new DocumentApprovalNotification(
+                $document,
+                $event,
+                $plan,
+                $remarks,
+                null,
+                $bypassIdempotency
+            );
+            $actionUrl = $notification->resolveActionUrl();
+            $notification->actionUrl = $actionUrl;
 
             $subjectHint = "[{$event}] {$document->notificationDocumentLabel()} {$document->notificationReference()}";
 
             try {
-                Notification::send(
-                    $user,
-                    new DocumentApprovalNotification($document, $event, $plan, $remarks, $actionUrl)
-                );
+                Notification::send($user, $notification);
 
                 $this->auditLogger->logEmail(
                     $document,
-                    'email_sent',
-                    "Email sent to {$email} ({$event})",
+                    'email_queued',
+                    "Email queued for {$email} ({$event})",
                     [
                         'notification_event' => $event,
                         'recipient_user_id' => $user->id,
                         'recipient_email' => $email,
                         'subject' => $subjectHint,
                         'action_url' => $actionUrl,
+                        'approval_plan_id' => $plan?->id,
                     ]
                 );
             } catch (\Throwable $e) {
@@ -316,6 +458,7 @@ class DocumentNotificationService
                         'recipient_email' => $email,
                         'subject' => $subjectHint,
                         'error' => $e->getMessage(),
+                        'approval_plan_id' => $plan?->id,
                     ]
                 );
 
@@ -326,6 +469,30 @@ class DocumentNotificationService
                     'error' => $e->getMessage(),
                 ]);
             }
+        }
+    }
+
+    protected function claimSendSlot(
+        Model&NotifiableDocument $document,
+        string $event,
+        int $userId,
+        ?ApprovalPlan $plan,
+        ?string $dedupeDay
+    ): bool {
+        try {
+            DocumentNotificationSend::query()->create([
+                'document_type' => $document->notificationDocumentType(),
+                'document_id' => (string) $document->getKey(),
+                'event' => $event,
+                'recipient_user_id' => $userId,
+                'approval_plan_id' => (int) ($plan?->id ?? 0),
+                'dedupe_day' => $dedupeDay ?? '',
+            ]);
+
+            return true;
+        } catch (QueryException $e) {
+            // Unique constraint violation = already sent/queued
+            return false;
         }
     }
 
