@@ -204,14 +204,23 @@ class LetterNumberController extends Controller
         }
 
         // Get estimated next numbers for all categories
-        $estimatedNextNumbers = LetterNumber::getEstimatedNextNumbersForAllCategories();
+        // Since numbering is per project, we'll show for first project as default preview
+        // User can see actual preview when they select a project
+        $defaultProjectId = $projects->first() ? $projects->first()->id : null;
+        $estimatedNextNumbers = $defaultProjectId
+            ? LetterNumber::getEstimatedNextNumbersForAllCategories(null, [$defaultProjectId])
+            : [];
 
-        // Get last numbers for each category for context
+        // Get last numbers for each category for context (for default project)
         $lastNumbersByCategory = [];
         $letterCountsByCategory = [];
         foreach ($categories as $category) {
-            $lastNumbersByCategory[$category->id] = LetterNumber::getLastNumbersForCategory($category->id, 3);
-            $letterCountsByCategory[$category->id] = LetterNumber::getLetterCountForCategory($category->id);
+            $lastNumbersByCategory[$category->id] = $defaultProjectId
+                ? LetterNumber::getLastNumbersForCategory($category->id, 3, null, $defaultProjectId, null)
+                : collect();
+            $letterCountsByCategory[$category->id] = $defaultProjectId
+                ? LetterNumber::getLetterCountForCategory($category->id, null, $defaultProjectId, null)
+                : 0;
         }
 
         return view('letter-numbers.create', compact(
@@ -698,6 +707,27 @@ class LetterNumberController extends Controller
                     $values = $failure->values();
                     $attribute = $failure->attribute();
                     $value = is_array($values) && array_key_exists($attribute, $values) ? $values[$attribute] : null;
+
+                    // For project-related errors, use project_code as attribute and show value
+                    $displayValue = $value;
+                    $displayAttribute = ucwords(str_replace('_', ' ', $attribute));
+
+                    if (in_array($attribute, ['project_code', 'project_id', 'project'])) {
+                        // Always use project_code as attribute name
+                        $displayAttribute = 'project_code';
+                        $projectCode = is_array($values) && array_key_exists('project_code', $values) ? $values['project_code'] : null;
+                        $projectId = is_array($values) && array_key_exists('project_id', $values) ? $values['project_id'] : null;
+
+                        // Show value, or empty if both are empty
+                        if ($projectCode) {
+                            $displayValue = $projectCode;
+                        } elseif ($projectId) {
+                            $displayValue = $projectId;
+                        } else {
+                            $displayValue = ''; // Empty if not provided
+                        }
+                    }
+
                     $formattedFailures->push([
                         'sheet' => 'Letter Import',
                         'row' => $failure->row(),
@@ -718,6 +748,27 @@ class LetterNumberController extends Controller
                 $values = $failure->values();
                 $attribute = $failure->attribute();
                 $value = is_array($values) && array_key_exists($attribute, $values) ? $values[$attribute] : null;
+
+                // For project-related errors, use project_code as attribute and show value
+                $displayValue = $value;
+                $displayAttribute = ucwords(str_replace('_', ' ', $attribute));
+
+                if (in_array($attribute, ['project_code', 'project_id', 'project'])) {
+                    // Always use project_code as attribute name
+                    $displayAttribute = 'project_code';
+                    $projectCode = is_array($values) && array_key_exists('project_code', $values) ? $values['project_code'] : null;
+                    $projectId = is_array($values) && array_key_exists('project_id', $values) ? $values['project_id'] : null;
+
+                    // Show value, or empty if both are empty
+                    if ($projectCode) {
+                        $displayValue = $projectCode;
+                    } elseif ($projectId) {
+                        $displayValue = $projectId;
+                    } else {
+                        $displayValue = ''; // Empty if not provided
+                    }
+                }
+
                 $failures->push([
                     'sheet' => 'Letter Import',
                     'row' => $failure->row(),
