@@ -250,6 +250,46 @@
                         </div>
                     @endif
 
+                    @if ($letterNumber->category->category_code === 'SPM' && ($letterNumber->start_date || $letterNumber->end_date || $letterNumber->department_id || $letterNumber->educational_institution))
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title">Internship Data (SPM)</h3>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <table class="table table-borderless">
+                                            <tr>
+                                                <td width="40%"><strong>Internship Period (Start)</strong></td>
+                                                <td>:
+                                                    {{ $letterNumber->start_date ? $letterNumber->start_date->format('d/m/Y') : '-' }}
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td><strong>Internship Period (End)</strong></td>
+                                                <td>:
+                                                    {{ $letterNumber->end_date ? $letterNumber->end_date->format('d/m/Y') : '-' }}
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <table class="table table-borderless">
+                                            <tr>
+                                                <td width="40%"><strong>Placement Department</strong></td>
+                                                <td>: {{ $letterNumber->department->department_name ?? '-' }}</td>
+                                            </tr>
+                                            <tr>
+                                                <td><strong>Educational Institution</strong></td>
+                                                <td>: {{ $letterNumber->educational_institution ?? '-' }}</td>
+                                            </tr>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    @endif
+
                     <!-- Integration Info -->
                     @if ($letterNumber->related_document_type && $letterNumber->related_document_id)
                         <div class="card">

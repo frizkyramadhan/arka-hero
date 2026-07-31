@@ -27,6 +27,8 @@ trait ManagesLetterNumberForm
             'pkwt_type',
             'par_type',
             'ticket_classification',
+            'department_id',
+            'educational_institution',
         ];
     }
 
@@ -37,7 +39,7 @@ trait ManagesLetterNumberForm
     {
         $data = $request->only($this->letterNumberFormAttributeNames());
 
-        foreach (['administration_id', 'subject_id'] as $key) {
+        foreach (['administration_id', 'subject_id', 'department_id'] as $key) {
             if (array_key_exists($key, $data) && $data[$key] === '') {
                 $data[$key] = null;
             }

@@ -3,6 +3,7 @@
 namespace App\Exports;
 
 use App\Models\LetterNumber;
+use Illuminate\Database\Eloquent\Builder;
 use Maatwebsite\Excel\Concerns\Exportable;
 use Maatwebsite\Excel\Concerns\FromQuery;
 use Maatwebsite\Excel\Concerns\WithHeadings;
@@ -12,16 +13,27 @@ class LetterAdministrationExport implements FromQuery, WithHeadings, WithMapping
 {
     use Exportable;
 
+    protected Builder $query;
+
+    public function __construct(?Builder $query = null)
+    {
+        $this->query = $query ?? LetterNumber::query()
+            ->with([
+                'category',
+                'subject',
+                'administration.employee',
+                'administration.project',
+                'department',
+                'reservedBy',
+                'usedBy',
+            ])
+            ->orderBy('created_at', 'desc')
+            ->orderBy('sequence_number', 'desc');
+    }
+
     public function query()
     {
-        return LetterNumber::query()->with([
-            'category',
-            'subject',
-            'administration.employee',
-            'administration.project',
-            'reservedBy',
-            'usedBy',
-        ])->orderBy('id', 'desc');
+        return $this->query;
     }
 
     public function headings(): array
@@ -49,6 +61,8 @@ class LetterAdministrationExport implements FromQuery, WithHeadings, WithMapping
             'pkwt_type',
             'par_type',
             'ticket_classification',
+            'department_name',
+            'educational_institution',
             'reserved_by',
             'used_by',
             'used_at',
@@ -69,7 +83,7 @@ class LetterAdministrationExport implements FromQuery, WithHeadings, WithMapping
             $letterNumber->letter_number,
             $letterNumber->sequence_number,
             $letterNumber->category?->category_code,
-            $letterNumber->category_name,
+            $letterNumber->category?->category_name,
             $letterNumber->letter_date ? date('d F Y', strtotime($letterNumber->letter_date)) : '',
             $letterNumber->status,
             $letterNumber->destination,
@@ -85,6 +99,8 @@ class LetterAdministrationExport implements FromQuery, WithHeadings, WithMapping
             $letterNumber->pkwt_type,
             $letterNumber->par_type,
             $letterNumber->ticket_classification,
+            $letterNumber->department?->department_name,
+            $letterNumber->educational_institution,
             $letterNumber->reservedBy?->name,
             $letterNumber->usedBy?->name,
             $letterNumber->used_at,
