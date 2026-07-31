@@ -1,5 +1,5 @@
 **Purpose**: Track current work and immediate priorities for ARKA HERO HRMS
-**Last Updated**: 2026-07-29
+**Last Updated**: 2026-07-31
 
 ## Task Management Guidelines
 
@@ -54,6 +54,8 @@ Include relevant context in brackets to help with future AI-assisted coding:
 
 ## Recently Completed
 
+-   `[done] P1: SPM letter number fields — periode magang, departemen ditempatkan, lembaga pendidikan [LetterNumberController case SPM, #spm-template create/edit/show, department_id + educational_institution migration, export/import] (completed: 2026-07-31)`
+-   `[done] P2: Clarify Activity Log email statistics [live Pending Queue vs 7-day Queued Events/Delivered/Failed/Skipped] (completed: 2026-07-31)`
 -   `[done] P1: Email notification Docker-ready improvements [database queue+ShouldQueue, CTA per event, 3-day reminder, config CC, idempotency, logo+plaintext, litmus, delivery metrics] (completed: 2026-07-30)`
 -   `[done] P1: Email recipient full name + safe inbox CTA [users.name in Dear/To/Debug; every CTA only opens /approval/requests] (completed: 2026-07-30)`
 -   `[done] P1: Production email CTA base URL [DOCUMENT_NOTIFICATIONS_BASE_URL; CTA and audit links target http://192.168.32.146:8080] (completed: 2026-07-30)`

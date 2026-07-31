@@ -6,6 +6,7 @@ use App\Exports\LetterAdministrationExport;
 use App\Http\Controllers\Concerns\ManagesLetterNumberForm;
 use App\Imports\LetterAdministrationImport;
 use App\Models\Administration;
+use App\Models\Department;
 use App\Models\LetterCategory;
 use App\Models\LetterNumber;
 use App\Models\LetterSubject;
@@ -71,21 +72,14 @@ class LetterNumberController extends Controller
         return view('letter-numbers.index', compact('title', 'subtitle', 'categories', 'projects'));
     }
 
-    public function getLetterNumbers(Request $request)
+    /**
+     * Shared filtered query for DataTable and Excel export.
+     */
+    protected function filteredLetterNumbersQuery(Request $request)
     {
-        // Get user's accessible project IDs (user_project / project pivot)
         $userProjectIds = auth()->user()->projects()->where('project_status', 1)->pluck('projects.id')->map(fn ($id) => (int) $id)->all();
 
-        $letterNumbers = LetterNumber::with([
-            'category',
-            'subject',
-            'administration.employee',
-            'administration.project',
-            'project',
-            'user',
-            'reservedBy',
-            'usedBy',
-        ])
+        return LetterNumber::query()
             ->whereIn('project_id', $userProjectIds)
             ->when(
                 $request->filled('project_id') && in_array((int) $request->project_id, $userProjectIds, true),
@@ -93,31 +87,44 @@ class LetterNumberController extends Controller
                     return $query->where('project_id', (int) $request->project_id);
                 }
             )
-            ->when($request->letter_number, function ($query, $letterNumber) {
-                return $query->where('letter_number', 'like', '%'.$letterNumber.'%');
+            ->when($request->filled('letter_number'), function ($query) use ($request) {
+                return $query->where('letter_number', 'like', '%'.$request->letter_number.'%');
             })
-            ->when($request->letter_category_id, function ($query, $category) {
-                return $query->where('letter_category_id', $category);
+            ->when($request->filled('letter_category_id'), function ($query) use ($request) {
+                return $query->where('letter_category_id', $request->letter_category_id);
             })
-            ->when($request->status, function ($query, $status) {
-                return $query->where('status', $status);
+            ->when($request->filled('status'), function ($query) use ($request) {
+                return $query->where('status', $request->status);
             })
-            ->when($request->date_from, function ($query, $date) {
-                return $query->where('letter_date', '>=', $date);
+            ->when($request->filled('date_from'), function ($query) use ($request) {
+                return $query->where('letter_date', '>=', $request->date_from);
             })
-            ->when($request->date_to, function ($query, $date) {
-                return $query->where('letter_date', '<=', $date);
+            ->when($request->filled('date_to'), function ($query) use ($request) {
+                return $query->where('letter_date', '<=', $request->date_to);
             })
-            ->when($request->destination, function ($query, $destination) {
-                return $query->where('destination', 'like', '%'.$destination.'%');
+            ->when($request->filled('destination'), function ($query) use ($request) {
+                return $query->where('destination', 'like', '%'.$request->destination.'%');
             })
-            ->when($request->remarks, function ($query, $remarks) {
-                return $query->where('remarks', 'like', '%'.$remarks.'%');
-            })
-            ->when($request->project_id, function ($query, $projectId) {
-                return $query->where('project_id', $projectId);
-            })
-            ->orderBy('id', 'desc');
+            ->when($request->filled('remarks'), function ($query) use ($request) {
+                return $query->where('remarks', 'like', '%'.$request->remarks.'%');
+            });
+    }
+
+    public function getLetterNumbers(Request $request)
+    {
+        $letterNumbers = $this->filteredLetterNumbersQuery($request)
+            ->with([
+                'category',
+                'subject',
+                'administration.employee',
+                'administration.project',
+                'project',
+                'user',
+                'reservedBy',
+                'usedBy',
+            ])
+            ->orderBy('created_at', 'desc')
+            ->orderBy('sequence_number', 'desc');
 
         return datatables()->of($letterNumbers)
             ->addIndexColumn()
@@ -182,6 +189,7 @@ class LetterNumberController extends Controller
             ->orderBy('nik')
             ->get();
         $projects = auth()->user()->projects()->where('project_status', 1)->orderBy('project_code', 'asc')->get();
+        $departments = Department::where('department_status', '1')->orderBy('department_name', 'asc')->get();
 
         $selectedCategory = null;
         $subjects = collect();
@@ -221,6 +229,7 @@ class LetterNumberController extends Controller
             'subjects',
             'administrations',
             'projects',
+            'departments',
             'selectedCategory',
             'estimatedNextNumbers',
             'lastNumbersByCategory',
@@ -271,6 +280,13 @@ class LetterNumberController extends Controller
                 case 'FR':
                     $rules['ticket_classification'] = 'required|in:Pesawat,Kereta Api,Bus';
                     break;
+
+                case 'SPM':
+                    $rules['start_date'] = 'nullable|date';
+                    $rules['end_date'] = 'nullable|date|after_or_equal:start_date';
+                    $rules['department_id'] = 'nullable|exists:departments,id';
+                    $rules['educational_institution'] = 'nullable|string|max:255';
+                    break;
             }
         }
 
@@ -303,6 +319,7 @@ class LetterNumberController extends Controller
             'administration.employee',
             'administration.project',
             'project',
+            'department',
             'reservedBy',
             'usedBy',
         ])
@@ -335,6 +352,7 @@ class LetterNumberController extends Controller
             ->orderBy('nik')
             ->get();
         $projects = auth()->user()->projects()->where('project_status', 1)->orderBy('project_code', 'asc')->get();
+        $departments = Department::where('department_status', '1')->orderBy('department_name', 'asc')->get();
         $subjects = LetterSubject::where('letter_category_id', $letterNumber->letter_category_id)
             ->where('is_active', 1)
             ->get();
@@ -345,7 +363,8 @@ class LetterNumberController extends Controller
             'categories',
             'subjects',
             'administrations',
-            'projects'
+            'projects',
+            'departments'
         ));
     }
 
@@ -401,6 +420,13 @@ class LetterNumberController extends Controller
 
                 case 'FR':
                     $rules['ticket_classification'] = 'required|in:Pesawat,Kereta Api,Bus';
+                    break;
+
+                case 'SPM':
+                    $rules['start_date'] = 'nullable|date';
+                    $rules['end_date'] = 'nullable|date|after_or_equal:start_date';
+                    $rules['department_id'] = 'nullable|exists:departments,id';
+                    $rules['educational_institution'] = 'nullable|string|max:255';
                     break;
             }
         }
@@ -637,9 +663,26 @@ class LetterNumberController extends Controller
         }
     }
 
-    public function export()
+    public function export(Request $request)
     {
-        return Excel::download(new LetterAdministrationExport, 'letter-numbers-'.date('Y-m-d').'.xlsx');
+        $query = $this->filteredLetterNumbersQuery($request)
+            ->with([
+                'category',
+                'subject',
+                'administration.employee',
+                'administration.project',
+                'project',
+                'department',
+                'reservedBy',
+                'usedBy',
+            ])
+            ->orderBy('created_at', 'desc')
+            ->orderBy('sequence_number', 'desc');
+
+        return Excel::download(
+            new LetterAdministrationExport($query),
+            'letter-numbers-'.date('Y-m-d').'.xlsx'
+        );
     }
 
     public function import(Request $request)

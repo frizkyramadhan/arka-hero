@@ -1,5 +1,5 @@
 **Purpose**: AI's persistent knowledge base for project context and learnings - ARKA HERO HRMS
-**Last Updated**: 2026-07-29
+**Last Updated**: 2026-07-31
 
 ## Docker Server Inventory (192.168.32.146) — no secrets
 
@@ -57,6 +57,18 @@
 
 ## Project Memory Entries - ARKA HERO HRMS
 
+### [034] SPM letter number category-specific fields (2026-07-31) ✅ COMPLETE
+
+**Challenge**: Create/edit letter number for category SPM (Surat Perjanjian Magang) needed internship period, placement department, and educational institution — no SPM dynamic fields existed.
+
+**Solution**: Follow PKWT/PAR pattern — `#spm-template` + `case 'SPM'` validation; reuse `start_date`/`end_date` for periode; new `department_id` FK + `educational_institution`; whitelist in `ManagesLetterNumberForm`; show/export/import updated.
+
+**Key Learning**: Category-specific letter fields are driven by `category_code` string switches + JS templates into `#dynamic-fields`; new columns must be listed in `letterNumberFormAttributeNames()` or payload drops them.
+
+**Files**: migration `add_spm_fields_to_letter_numbers_table`, `LetterNumberController`, create/edit/show blades, `LetterAdministrationExport`/`Import`
+
+---
+
 ### [032] Docker deploy access + stack inventory (2026-07-29) ✅ COMPLETE
 
 **Challenge**: Manual deploy (push → SSH password → git pull → docker exec artisan); multi-app stack needs documented layout for future deploys without storing credentials.
@@ -97,11 +109,11 @@
 
 **Challenge**: Approval email layout and CTA needed reliable rendering in Outlook desktop and Thunderbird, plus a way to inspect real document emails without delivery.
 
-**Solution**: Email Blade now uses presentation tables, inline styles, Outlook 96-DPI settings, and a VML CTA fallback. Administrator Debug Email Notify can render the exact template in a new browser tab through `debug.email-notifications.preview`; preview never invokes the mail transport. Recipient display names for the greeting, mail `To` header, debug send, and preview come strictly from `users.name` (email fallback only when no matching user exists). Approver/reminder CTAs open `/approval/requests`; approved/rejected CTAs open the document show URL (both rebased via `DOCUMENT_NOTIFICATIONS_BASE_URL`). Production mails implement `ShouldQueue` with `QUEUE_CONNECTION=database` (no Redis); host crontab runs `schedule:run` + short `queue:work --stop-when-empty` inside `stack-php82-1`. Audit: `email_queued` on enqueue, `email_sent`/`email_failed` via Notification listeners. Idempotency table `document_notification_sends`. Daily overdue reminder (`documents:remind-pending-approvals`, default 3 days). Optional CC from config on approved/rejected. HTML+text multipart. Brand logo is `public/images/logo_2.jpg`: SMTP embeds it as `cid:arka-logo` (avoids broken remote LAN image loads and reduces Thunderbird junk signals); browser preview still uses the absolute `DOCUMENT_NOTIFICATIONS_BASE_URL` URL. Hidden preheader removed; `List-Unsubscribe` + `Auto-Submitted` headers added. Debug litmus + Activity Log 7-day delivery metrics. Production send toggle: `DOCUMENT_NOTIFICATIONS_ENABLED`.
+**Solution**: Email Blade now uses presentation tables, inline styles, Outlook 96-DPI settings, and a VML CTA fallback. Administrator Debug Email Notify can render the exact template in a new browser tab through `debug.email-notifications.preview`; preview never invokes the mail transport. Recipient display names for the greeting, mail `To` header, debug send, and preview come strictly from `users.name` (email fallback only when no matching user exists). Approver/reminder CTAs open `/approval/requests`; approved/rejected CTAs open the document show URL (both rebased via `DOCUMENT_NOTIFICATIONS_BASE_URL`). Production mails implement `ShouldQueue` with `QUEUE_CONNECTION=database` (no Redis); host crontab runs `schedule:run` + short `queue:work --stop-when-empty` inside `stack-php82-1`. Audit: `email_queued` on enqueue, `email_sent`/`email_failed` via Notification listeners. Idempotency table `document_notification_sends`. Daily overdue reminder (`documents:remind-pending-approvals`, default 3 days). Optional CC from config on approved/rejected. HTML+text multipart. Brand logo is `public/images/logo_2.jpg`: SMTP embeds it as `cid:arka-logo` (avoids broken remote LAN image loads and reduces Thunderbird junk signals); browser preview still uses the absolute `DOCUMENT_NOTIFICATIONS_BASE_URL` URL. Hidden preheader removed; `List-Unsubscribe` + `Auto-Submitted` headers added. Debug litmus + Activity Log delivery metrics. Activity statistics distinguish live `Pending Queue` (current `jobs` rows) from 7-day audit events (`Queued Events`, `Delivered`, `Failed`, `Skipped`). Production send toggle: `DOCUMENT_NOTIFICATIONS_ENABLED`.
 
 **Key Learning**: Keep browser preview and delivered email on one `mailViewData()` source so debug output cannot drift from production markup. Env boolean must use `filter_var(..., FILTER_VALIDATE_BOOLEAN)` so `false` actually disables. Document-type email partials should mirror approval-request fields, not a generic Date/Purpose stub. Shared `ui_tokens.php` keeps compact/cozy density consistent; do not rely on Blade `@include` to set style variables for the parent. On Docker php-FPM without Redis, database queues + minute crontab workers are enough; log `email_queued` separately from `email_sent`.
 
-**Files**: `DocumentApprovalNotification`, `DocumentNotificationService`, `DocumentNotificationSend`, `RemindPendingApprovalsCommand`, `LogDocumentNotificationSent`/`Failed`, `DebugEmailNotificationController`, `ActivityLogController`, `config/document_notifications.php`, `emails/documents/approval.blade.php`, `emails/documents/approval-text.blade.php`, `public/images/email-logo.png`, migrations `jobs` + `document_notification_sends`, `docs/docker-reference.md`
+**Files**: `DocumentApprovalNotification`, `DocumentNotificationService`, `DocumentNotificationSend`, `RemindPendingApprovalsCommand`, `LogDocumentNotificationSent`/`Failed`, `DebugEmailNotificationController`, `ActivityLogController`, `config/document_notifications.php`, `emails/documents/approval.blade.php`, `emails/documents/approval-text.blade.php`, `public/images/logo_2.jpg`, migrations `jobs` + `document_notification_sends`, `docs/docker-reference.md`
 ---
 
 ### [031] Leave update wiped approval_plans without recreate (2026-07-29) ✅ COMPLETE

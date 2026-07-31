@@ -25,7 +25,8 @@
                         <div class="card-header">
                             <h3 class="card-title">Letter Numbers List</h3>
                             <div class="card-tools">
-                                <a href="{{ route('letter-numbers.export') }}" class="btn btn-primary">
+                                <a href="{{ route('letter-numbers.export') }}" id="btn-export-letter-numbers"
+                                    class="btn btn-primary">
                                     <i class="fas fa-download"></i> Export
                                 </a>
                                 <button type="button" class="btn btn-success" data-toggle="modal"
@@ -529,6 +530,22 @@
             // Initialize Select2
             $('.select2bs4').select2({
                 theme: 'bootstrap4'
+            });
+
+            // Export uses the same active filters as the DataTable
+            $('#btn-export-letter-numbers').on('click', function(e) {
+                e.preventDefault();
+                var params = $.param({
+                    letter_number: $('#filter-letter-number').val() || '',
+                    letter_category_id: $('#filter-category').val() || '',
+                    project_id: $('#filter-project').val() || '',
+                    status: $('#filter-status').val() || '',
+                    date_from: $('#filter-date-from').val() || '',
+                    date_to: $('#filter-date-to').val() || '',
+                    destination: $('#filter-destination').val() || '',
+                    remarks: $('#filter-remarks').val() || ''
+                });
+                window.location.href = "{{ route('letter-numbers.export') }}?" + params;
             });
 
             // Set filters from URL parameters before initializing DataTable

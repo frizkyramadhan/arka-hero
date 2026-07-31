@@ -3,6 +3,7 @@
 namespace App\Imports;
 
 use App\Models\Administration;
+use App\Models\Department;
 use App\Models\LetterCategory;
 use App\Models\LetterNumber;
 use App\Models\Project;
@@ -165,6 +166,11 @@ class LetterAdministrationImport implements ToModel, WithHeadingRow, WithValidat
                     ->first();
             }
 
+            $department = null;
+            if (! empty($row['department_name'])) {
+                $department = Department::where('department_name', $row['department_name'])->first();
+            }
+
             $letterData = [
                 'letter_category_id' => $category?->id,
                 'subject_id' => $subject?->id,
@@ -182,6 +188,8 @@ class LetterAdministrationImport implements ToModel, WithHeadingRow, WithValidat
                 'pkwt_type' => $row['pkwt_type'],
                 'par_type' => $row['par_type'],
                 'ticket_classification' => $row['ticket_classification'],
+                'department_id' => $department?->id,
+                'educational_institution' => $row['educational_institution'] ?? null,
                 'user_id' => auth()->id(),
             ];
 
@@ -465,6 +473,10 @@ class LetterAdministrationImport implements ToModel, WithHeadingRow, WithValidat
                 'nullable',
                 Rule::in(['Pesawat', 'Kereta Api', 'Bus']),
             ],
+
+            // SPM-specific fields
+            'department_name' => 'nullable|string|exists:departments,department_name',
+            'educational_institution' => 'nullable|string|max:255',
         ];
     }
 
@@ -511,6 +523,10 @@ class LetterAdministrationImport implements ToModel, WithHeadingRow, WithValidat
 
             // Travel request validation
             'ticket_classification.in' => 'The selected Ticket Classification is invalid. Valid options: Pesawat, Kereta Api, Bus.',
+
+            // SPM validation
+            'department_name.exists' => 'The selected Department Name is invalid.',
+            'educational_institution.max' => 'The Educational Institution may not be greater than 255 characters.',
         ];
     }
 }

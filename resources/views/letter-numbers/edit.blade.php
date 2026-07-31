@@ -346,6 +346,56 @@
         </div>
     </div>
 </script>
+
+    <script type="text/template" id="spm-template">
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">Internship Data (SPM)</h3>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label>Internship Period (Start)</label>
+                        <input type="date" class="form-control" name="start_date"
+                               value="{{ old('start_date', $letterNumber->start_date ? $letterNumber->start_date->format('Y-m-d') : '') }}">
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label>Internship Period (End)</label>
+                        <input type="date" class="form-control" name="end_date"
+                               value="{{ old('end_date', $letterNumber->end_date ? $letterNumber->end_date->format('Y-m-d') : '') }}">
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label>Placement Department</label>
+                        <select class="form-control select2bs4" name="department_id" id="department_id">
+                            <option value="">- Select Department -</option>
+                            @foreach($departments as $department)
+                                <option value="{{ $department->id }}"
+                                    {{ old('department_id', $letterNumber->department_id) == $department->id ? 'selected' : '' }}>
+                                    {{ $department->department_name }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label>Educational Institution</label>
+                        <input type="text" class="form-control" name="educational_institution"
+                               value="{{ old('educational_institution', $letterNumber->educational_institution) }}"
+                               placeholder="Example: Universitas Indonesia">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</script>
 @endsection
 
 @section('styles')
@@ -415,6 +465,11 @@
                 dynamicFieldsContainer.append($('#par-template').html());
             } else if (categoryCode === 'FR') {
                 dynamicFieldsContainer.append($('#fr-template').html());
+            } else if (categoryCode === 'SPM') {
+                dynamicFieldsContainer.append($('#spm-template').html());
+                $('#department_id').select2({
+                    theme: 'bootstrap4'
+                });
             } else if (['A', 'B'].includes(categoryCode)) {
                 dynamicFieldsContainer.append($('#classification-template').html());
             }

@@ -310,6 +310,12 @@ graph TD
 - Integration with Official Travel and Recruitment (FPTK) documents
 - Category-based numbering with configurable formats
 - Subject template management per category
+- Category-specific form fields (dynamic UI via `category_code`):
+    - PKWT: `pkwt_type`, `duration`, `start_date`, `end_date`
+    - PAR: `par_type`
+    - FR: `ticket_classification`
+    - A/B: `classification`
+    - **SPM** (Surat Perjanjian Magang): `start_date`/`end_date` (periode magang), `department_id` (departemen ditempatkan), `educational_institution` (lembaga pendidikan asal/lulusan)
 - Letter number lifecycle:
     - Available → Reserved → Used
     - Cancellation support
@@ -524,9 +530,9 @@ graph TD
 
 **Letter Administration**:
 
-- `letter_categories` - Letter categories (e.g., ST - Official Travel)
+- `letter_categories` - Letter categories (e.g., ST - Official Travel, SPM - Surat Perjanjian Magang)
 - `letter_subjects` - Letter subject templates
-- `letter_numbers` - Letter number records with lifecycle status
+- `letter_numbers` - Letter number records with lifecycle status; SPM columns: `department_id` → `departments`, `educational_institution`; periode magang reuses `start_date`/`end_date`
 
 **Approval System**:
 
@@ -542,7 +548,7 @@ graph TD
 - `documents:remind-pending-approvals` - daily 08:00 reminder for open pending plans older than `reminder_days` (default 3)
 - `DocumentApprovalNotification::mailViewData()` - single data source for production mail and no-send browser preview; HTML + plain-text multipart; logo from `DOCUMENT_NOTIFICATIONS_BASE_URL` + `logo_path`
 - `debug.email-notifications.litmus` - administrator render-only pass/fail matrix (no SMTP)
-- Activity Logs email metrics strip (last 7 days: queued/sent/failed/skipped)
+- Activity Logs email metrics: live pending `jobs` backlog plus 7-day `email_queued` / `email_sent` / `email_failed` / `email_skipped` totals and per-document-type breakdown
 **Employee Registration**:
 
 - `employee_registration_tokens` - Invitation tokens

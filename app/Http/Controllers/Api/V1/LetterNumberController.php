@@ -257,6 +257,13 @@ class LetterNumberController extends Controller
                 case 'FR':
                     $rules['ticket_classification'] = 'required|in:Pesawat,Kereta Api,Bus';
                     break;
+
+                case 'SPM':
+                    $rules['start_date'] = 'nullable|date';
+                    $rules['end_date'] = 'nullable|date|after_or_equal:start_date';
+                    $rules['department_id'] = 'nullable|exists:departments,id';
+                    $rules['educational_institution'] = 'nullable|string|max:255';
+                    break;
             }
         }
 
@@ -384,6 +391,13 @@ class LetterNumberController extends Controller
                     break;
                 case 'SKPK':
                     // SKPK no longer requires administration_id (NIK)
+                    break;
+
+                case 'SPM':
+                    $rules['start_date'] = 'nullable|date';
+                    $rules['end_date'] = 'nullable|date|after_or_equal:start_date';
+                    $rules['department_id'] = 'nullable|exists:departments,id';
+                    $rules['educational_institution'] = 'nullable|string|max:255';
                     break;
             }
         }
