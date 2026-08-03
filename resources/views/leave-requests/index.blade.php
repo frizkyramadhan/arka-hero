@@ -182,8 +182,13 @@
                 width: '100%'
             });
 
+            // Derive from current browser path (works for :8080 and /arka-hero) — never APP_URL/forceRootUrl.
+            var leavePageBase = window.location.pathname.replace(/\/?$/, '');
+            var leaveFilterOptionsUrl = leavePageBase + '/index-filter-options';
+            var leaveRequestsDataUrl = leavePageBase + '/data';
+
             // Filters: use web routes (session cookie). /api/* requires API key and fails from the browser.
-            $.getJSON('{{ route('leave.requests.index.filter-options') }}', function(res) {
+            $.getJSON(leaveFilterOptionsUrl, function(res) {
                 var $emp = $('#employee_id').empty().append('<option value="">- All -</option>');
                 $.each(res.employees || [], function(_, employee) {
                     $('<option>', {
@@ -212,7 +217,12 @@
                 processing: true,
                 serverSide: true,
                 ajax: {
-                    url: "{{ route('leave.requests.data') }}",
+                    // POST: columns[n][...] in query string often blocked by WAF/ModSecurity → HTTP 403
+                    url: leaveRequestsDataUrl,
+                    type: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                    },
                     data: function(d) {
                         d.status = $('#status').val();
                         d.employee_id = $('#employee_id').val();
@@ -220,6 +230,9 @@
                         d.project_id = $('#project_id').val();
                         d.start_date = $('#start_date').val();
                         d.end_date = $('#end_date').val();
+                    },
+                    error: function(xhr) {
+                        console.error('leave.requests.data failed', xhr.status, xhr.responseText);
                     }
                 },
                 columns: [{

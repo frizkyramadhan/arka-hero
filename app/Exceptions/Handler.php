@@ -46,12 +46,12 @@ class Handler extends ExceptionHandler
     public function register(): void
     {
         $this->renderable(function (\Spatie\Permission\Exceptions\UnauthorizedException $e, $request) {
-            if ($request->expectsJson()) {
-                // For API requests, return JSON response
+            // DataTables / jQuery XHR: ajax() + */* makes expectsJson() true — always return real HTTP 403 JSON
+            if ($request->expectsJson() || $request->ajax()) {
                 return response()->json([
                     'responseMessage' => 'You do not have the required authorization.',
-                    'responseStatus'  => 403,
-                ]);
+                    'responseStatus' => 403,
+                ], 403);
             }
 
             // For web requests, redirect with flash message for SweetAlert2

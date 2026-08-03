@@ -1,5 +1,17 @@
 **Purpose**: AI's persistent knowledge base for project context and learnings - ARKA HERO HRMS
-**Last Updated**: 2026-07-31
+**Last Updated**: 2026-08-03
+
+### [042] Leave Requests DataTables 403 (2026-08-03) ✅ FIXED
+
+**Challenge**: Some users saw DataTables Ajax error on Leave Requests; console showed **403** on server-side JSON (`leave/requests/data`) while the HTML page still loaded.
+
+**Cause**: `AppServiceProvider` calls `URL::forceRootUrl(APP_URL)`. Absolute `route()` URLs in DataTables AJAX can point at the other entry (`:8080` vs `:80/arka-hero/`). Different origin → session cookie not sent → Spatie `PermissionMiddleware` throws `UnauthorizedException::notLoggedIn()` (**403**). Also, long GET query strings with `columns[n][...]` are often blocked by WAF/ModSecurity (HTTP 403).
+
+**Fix**: Leave DataTables AJAX uses (1) URL derived from `window.location.pathname` + `/data`, (2) **POST** + CSRF so `columns[n][...]` is not in the query string. Routes: `match(['get','post'], …/data)`. Handler returns real HTTP 403 JSON for AJAX unauthorized.
+
+**Files**: `leave-requests/index.blade.php`, `my-requests.blade.php`, `routes/web.php`, `app/Exceptions/Handler.php`
+
+---
 
 ## Docker Server Inventory (192.168.32.146) — no secrets
 

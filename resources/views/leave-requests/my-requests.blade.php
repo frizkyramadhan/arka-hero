@@ -165,7 +165,12 @@
                 width: '100%'
             });
 
-            $.getJSON('{{ route('leave.my-requests.filter-options') }}', function(res) {
+            // Derive from current browser path (works for :8080 and /arka-hero).
+            var myLeavePageBase = window.location.pathname.replace(/\/?$/, '');
+            var myLeaveFilterOptionsUrl = myLeavePageBase + '/filter-options';
+            var myLeaveRequestsDataUrl = myLeavePageBase + '/data';
+
+            $.getJSON(myLeaveFilterOptionsUrl, function(res) {
                 var $lt = $('#leave_type_id').empty().append('<option value="">- All -</option>');
                 $.each(res.leave_types || [], function(_, leaveType) {
                     $('<option>', {
@@ -185,12 +190,19 @@
                 processing: true,
                 serverSide: true,
                 ajax: {
-                    url: "{{ route('leave.my-requests.data') }}",
+                    url: myLeaveRequestsDataUrl,
+                    type: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                    },
                     data: function(d) {
                         d.status = $('#status').val();
                         d.leave_type_id = $('#leave_type_id').val();
                         d.start_date = $('#start_date').val();
                         d.end_date = $('#end_date').val();
+                    },
+                    error: function(xhr) {
+                        console.error('leave.my-requests.data failed', xhr.status, xhr.responseText);
                     }
                 },
                 columns: [{
