@@ -1,5 +1,5 @@
 **Purpose**: Future features and improvements prioritized by value for ARKA HERO HRMS
-**Last Updated**: 2026-07-20
+**Last Updated**: 2026-08-04
 
 # Feature Backlog - ARKA HERO HRMS
 
@@ -11,18 +11,33 @@
 -   **Documentation**: `docs/ROOM_CONSUMPTION_REQUEST_DESIGN.md`
 -   **Notes**: Supersedes GA Module 5 approval/consumption model (manual approval + form fixed types, not dual custom status / supplies stock).
 
+### Vehicle Administration (GAMMA) ✅ Phase 1 (no maintenance)
+
+-   **Description**: Light Vehicle master + STNK/PKB/KIR document monitoring (spreadsheet-style list) + fuel records. Kode from ArkFleet `GET /api/equipments` (`plant_group_id=3`). Navigation under GAMMA Section.
+-   **Out of scope (backlog)**: vehicle maintenance scheduling, push-sync to ArkFleet, expiry reminder jobs, REST API `/api/v1/vehicles*`.
+-   **Permissions**: `php artisan db:seed --class=VehiclePermissionSeeder`
+-   **Config**: `ARK_FLEET_BASE_URL` (default `http://192.168.32.15/ark-fleet`), optional `ARK_FLEET_API_KEY`
+
+### Driver Fuel Workflow ✅ Photo + AI → Verify → Claim
+
+-   **Description**: My Features Fuel Log (photo-first OpenRouter vision parse + manual fallback) → GAMMA pending verify/reject → `fuel_claims` bundle → `GET/PUT /api/v1/fuel-claims*` for external realization app. Light PWA (`manifest.webmanifest` + `sw.js`).
+-   **Permissions**: `php artisan db:seed --class=FuelWorkflowPermissionSeeder`
+-   **Config**: `OPENROUTER_API_KEY`, optional `OPENROUTER_MODEL` (default `google/gemini-2.0-flash-001`)
+-   **Postman**: import `docs/postman/fuel-claims-api.json` (MCP sync blocked until Postman API key valid)
+-   **Out of scope**: offline AI queue, Sanctum native app, multi-stage ApprovalPlan, external finance UI
+
 ## Next Sprint (High Priority)
 
 ### General Affair (GA) Modules Development 🆕
 
--   **Description**: Complete development of remaining GA modules - Office Supplies, Vehicle Administration, Property Management System (PMS), Ticket Reservations (Meeting Room / RCR moved to dedicated design)
+-   **Description**: Complete development of remaining GA modules - Office Supplies, Property Management System (PMS), Ticket Reservations; Vehicle Phase 2 (maintenance + reminders)
 -   **User Value**: Comprehensive GA management, automated workflows for supply requests, vehicle tracking, room bookings, integrated system for all GA operations
--   **Effort**: Large (12 weeks / 3 months)
+-   **Effort**: Large (remaining modules)
 -   **Dependencies**: Core ARKA HERO modules (Employees, Projects, Departments, Approval System)
 -   **Documentation**: `docs/GA_MODULES_ANALYSIS.md`, `docs/ROOM_CONSUMPTION_REQUEST_DESIGN.md` (RCR)
 -   **Modules Included**:
     -   Office Supplies Module (8 tables, supply request workflow, stock opname)
-    -   Vehicle Administration Module (5 tables, fuel tracking, maintenance, ArkFleet integration)
+    -   ~~Vehicle Administration Module (Phase 1)~~ → implemented under GAMMA (fuel + docs; maintenance still backlog)
     -   Property Management System (4 tables, room reservations, check-in/out workflow)
     -   Ticket Reservations Module (2 tables, travel ticket booking system)
     -   ~~Meeting Room Reservations~~ → implemented as **Room & Consumption Request (RCR)** (see above)

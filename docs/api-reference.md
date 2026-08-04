@@ -696,6 +696,13 @@ Untuk integrasi **eksternal** server-to-server, gunakan endpoint di **§1–§10
 - **`register_number`:** disertakan pada objek ringkas cuti & lembur (`LeaveRequestSummaryResource`, `OvertimeRequestSummaryResource`); pada flight JSON leave list juga field `register_number` + prefix di `text`.
 - **Gate NIK workforce:** `by-nik` — aktif saja, atau tidak aktif jika `termination_date` terisi dan **awal rentang ≤ terminasi**; profil tanpa `year` — NIK harus aktif. Administrasi di respons: **`WorkforceAdministrationResource`** dengan terminasi.
 
+**2026-08-03 — Vehicle document validity API**
+
+- **`GET /api/v1/vehicles`** — daftar kendaraan + ringkasan validity STNK/PKB/KIR (`expiry_date` `Y-m-d`, `days_remaining`, `status`); query `per_page`, `status`, `search`.
+- **`GET /api/v1/vehicles/{id}`** — detail + array `documents` (semua tipe).
+- **`GET /api/v1/vehicle-documents/expiring?days=30`** — dokumen expired atau jatuh tempo dalam N hari; query `document_type`, `include_archived`, `per_page`.
+- Auth sama grup `api`: **`X-API-Key`** atau **`Authorization: Bearer`**. Envelope: `{ success, data, meta }`.
+
 ---
 
 ## 14. Ringkasan endpoint
@@ -781,6 +788,14 @@ Daftar ringkas mengikuti **`routes/api.php`** (semua path berawalan **`/api`**).
 | `GET`  | `/leave/types/{leaveType}`            |
 | `GET`  | `/leave/types/{leaveType}/statistics` |
 | `GET`  | `/leave/employees/{employee}/balance` |
+
+### Vehicles (validity)
+
+| Metode | Path                                      |
+| ------ | ----------------------------------------- |
+| `GET`  | `/v1/vehicles`                            |
+| `GET`  | `/v1/vehicles/{vehicle}`                  |
+| `GET`  | `/v1/vehicle-documents/expiring?days=30`  |
 
 ### Di luar tabel (`web` + session)
 

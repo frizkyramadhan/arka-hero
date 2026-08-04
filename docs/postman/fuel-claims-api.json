@@ -1,0 +1,83 @@
+{
+  "info": {
+    "name": "ARKA HERO - Fuel Claims API",
+    "description": "Import into workspace or merge into ARKA HERO - API. External fund realization endpoints.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "BASE_URL", "value": "http://localhost/arka-hero" },
+    { "key": "FUEL_CLAIM_ID", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Fuel Claims",
+      "item": [
+        {
+          "name": "Get Ready Fuel Claims",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "{{BASE_URL}}/api/v1/fuel-claims?status=ready",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "v1", "fuel-claims"],
+              "query": [{ "key": "status", "value": "ready" }]
+            }
+          }
+        },
+        {
+          "name": "Get Fuel Claim Detail",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "{{BASE_URL}}/api/v1/fuel-claims/{{FUEL_CLAIM_ID}}",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "v1", "fuel-claims", "{{FUEL_CLAIM_ID}}"]
+            }
+          }
+        },
+        {
+          "name": "Mark Fuel Claim Sent",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"external_ref\": \"\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/v1/fuel-claims/{{FUEL_CLAIM_ID}}/sent",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "v1", "fuel-claims", "{{FUEL_CLAIM_ID}}", "sent"]
+            }
+          }
+        },
+        {
+          "name": "Mark Fuel Claim Realized",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"external_ref\": \"\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/v1/fuel-claims/{{FUEL_CLAIM_ID}}/realized",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "v1", "fuel-claims", "{{FUEL_CLAIM_ID}}", "realized"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -27,36 +27,53 @@
           </div>
           <div class="card-body">
             @if (!empty($emailMetrics))
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                <strong>Email delivery statistics</strong>
+                <small class="text-muted">Event totals cover the last {{ $emailMetrics['days'] ?? 7 }} days</small>
+              </div>
               <div class="row mb-3">
-                <div class="col-md-3">
-                  <div class="small-box bg-info mb-0">
+                <div class="col-lg col-md-4 col-sm-6 mb-2">
+                  <div class="small-box bg-warning mb-0 h-100">
+                    <div class="inner p-3">
+                      <h4 class="mb-0">{{ $emailMetrics['queue_pending'] ?? 0 }}</h4>
+                      <p class="mb-0">Pending Queue</p>
+                      <small>Waiting for worker now</small>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-lg col-md-4 col-sm-6 mb-2">
+                  <div class="small-box bg-info mb-0 h-100">
                     <div class="inner p-3">
                       <h4 class="mb-0">{{ $emailMetrics['email_queued'] ?? 0 }}</h4>
-                      <p class="mb-0">Queued ({{ $emailMetrics['days'] ?? 7 }}d)</p>
+                      <p class="mb-0">Queued Events</p>
+                      <small>Accepted into queue ({{ $emailMetrics['days'] ?? 7 }}d)</small>
                     </div>
                   </div>
                 </div>
-                <div class="col-md-3">
-                  <div class="small-box bg-success mb-0">
+                <div class="col-lg col-md-4 col-sm-6 mb-2">
+                  <div class="small-box bg-success mb-0 h-100">
                     <div class="inner p-3">
                       <h4 class="mb-0">{{ $emailMetrics['email_sent'] ?? 0 }}</h4>
-                      <p class="mb-0">Sent</p>
+                      <p class="mb-0">Delivered</p>
+                      <small>SMTP send succeeded ({{ $emailMetrics['days'] ?? 7 }}d)</small>
                     </div>
                   </div>
                 </div>
-                <div class="col-md-3">
-                  <div class="small-box bg-danger mb-0">
+                <div class="col-lg col-md-4 col-sm-6 mb-2">
+                  <div class="small-box bg-danger mb-0 h-100">
                     <div class="inner p-3">
                       <h4 class="mb-0">{{ $emailMetrics['email_failed'] ?? 0 }}</h4>
                       <p class="mb-0">Failed</p>
+                      <small>Delivery failures ({{ $emailMetrics['days'] ?? 7 }}d)</small>
                     </div>
                   </div>
                 </div>
-                <div class="col-md-3">
-                  <div class="small-box bg-secondary mb-0">
+                <div class="col-lg col-md-4 col-sm-6 mb-2">
+                  <div class="small-box bg-secondary mb-0 h-100">
                     <div class="inner p-3">
                       <h4 class="mb-0">{{ $emailMetrics['email_skipped'] ?? 0 }}</h4>
                       <p class="mb-0">Skipped</p>
+                      <small>Disabled, duplicate, or invalid ({{ $emailMetrics['days'] ?? 7 }}d)</small>
                     </div>
                   </div>
                 </div>
@@ -67,8 +84,8 @@
                     <thead>
                       <tr>
                         <th>Document type (7d)</th>
-                        <th>Queued</th>
-                        <th>Sent</th>
+                        <th>Queued Events</th>
+                        <th>Delivered</th>
                         <th>Failed</th>
                         <th>Skipped</th>
                       </tr>

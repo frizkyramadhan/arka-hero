@@ -1,13 +1,23 @@
 **Purpose**: AI's persistent knowledge base for project context and learnings - ARKA HERO HRMS
-**Last Updated**: 2026-08-03
+**Last Updated**: 2026-08-04
+
+### [043] Driver Fuel: Photo + OpenRouter → Verify → Claim (2026-08-04) ✅ COMPLETE
+
+**Flow**: My Features Fuel Log → scan SPBU nota (`OpenRouterReceiptParser`) or manual → `submitted` → GAMMA Pending Verification → `verified` → bundle `fuel_claims` (`draft`→`ready`) → external app `GET/PUT /api/v1/fuel-claims*`.
+
+**Config**: `OPENROUTER_API_KEY` (+ optional `OPENROUTER_MODEL`). Empty key disables AI; manual still works. Seed: `php artisan db:seed --class=FuelWorkflowPermissionSeeder`.
+
+**PWA**: `public/manifest.webmanifest` + `public/sw.js` (online-first). Postman: `docs/postman/fuel-claims-api.json` (live MCP sync needs valid Postman API key).
+
+**Files**: `FuelRecordController`, `FuelClaimController`, `Api\V1\FuelClaimApiController`, `config/openrouter.php`
 
 ### [042] Leave Requests DataTables 403 (2026-08-03) ✅ FIXED
 
 **Challenge**: Some users saw DataTables Ajax error on Leave Requests; console showed **403** on server-side JSON (`leave/requests/data`) while the HTML page still loaded.
 
-**Cause**: `AppServiceProvider` calls `URL::forceRootUrl(APP_URL)`. Absolute `route()` URLs in DataTables AJAX can point at the other entry (`:8080` vs `:80/arka-hero/`). Different origin → session cookie not sent → Spatie `PermissionMiddleware` throws `UnauthorizedException::notLoggedIn()` (**403**). Also, long GET query strings with `columns[n][...]` are often blocked by WAF/ModSecurity (HTTP 403).
+**Cause**: `AppServiceProvider` calls `URL::forceRootUrl(APP_URL)`. Absolute `route()` URLs in DataTables AJAX can point at the other entry (`:8080` vs `:80/arka-hero/`). Different origin → session cookie not sent → Spatie `PermissionMiddleware` throws `UnauthorizedException::notLoggedIn()` (**403**).
 
-**Fix**: Leave DataTables AJAX uses (1) URL derived from `window.location.pathname` + `/data`, (2) **POST** + CSRF so `columns[n][...]` is not in the query string. Routes: `match(['get','post'], …/data)`. Handler returns real HTTP 403 JSON for AJAX unauthorized.
+**Fix**: Leave DataTables AJAX uses (1) URL derived from `window.location.pathname` + `/data`, (2) **POST** + CSRF so `columns[n][...]` is not in the query string (WAF/ModSecurity often returns HTTP 403 on those GET params). Routes: `match(['get','post'], …/data)`. Handler returns real HTTP 403 JSON for AJAX unauthorized.
 
 **Files**: `leave-requests/index.blade.php`, `my-requests.blade.php`, `routes/web.php`, `app/Exceptions/Handler.php`
 
@@ -68,6 +78,24 @@
 ---
 
 ## Project Memory Entries - ARKA HERO HRMS
+
+### [035] Vehicle Administration (GAMMA) without maintenance (2026-08-03) ✅ COMPLETE
+
+**Challenge**: Need Light Vehicle monitoring (NoPol, Kode, PIC, STNK/PKB/KIR expiry, lokasi, keterangan) under GAMMA, with Kode from ArkFleet.
+
+**Solution**: Local CRUD `vehicles` + `vehicle_documents` + `fuel_records`; Kode via `ArkFleetClient` `GET /api/equipments` filtered `plant_group_id=3` (`unit_no`→kode, `nomor_polisi`→plate). Nav under GAMMA. No maintenance module.
+
+**Key Learning**: ArkFleet sample uses plant_group **"Light Vehicles"** (plural); map `unit_no` not a separate "kode" field. Seeder: `VehiclePermissionSeeder` (manual). Config: `config/ark_fleet.php`.
+
+**Documents (2026-08-03)**: Single table `vehicle_documents` includes file columns (`file_path`, `file_name`, `file_size`, `file_uploaded_at`). No `vehicle_document_revisions` table. Edit modal updates metadata + optional file replace (deletes previous private-disk file). Download: `vehicles/{vehicle}/documents/{document}/download`. Status badges: active=success, expired=danger, pending_renewal=warning, archived=secondary. Actions: Edit + dropdown (Download/Delete).
+
+**API validity (2026-08-03)**: External read API under `/api/v1/` with standard `X-API-Key` / Bearer (`ValidateApiKey`). Controller: `Api\V1\VehicleApiController`. Endpoints: `GET /api/v1/vehicles` (paginated + STNK/PKB/KIR summary), `GET /api/v1/vehicles/{id}`, `GET /api/v1/vehicle-documents/expiring?days=30`. Envelope: `{ success, data, meta }`.
+
+**List filters / Excel (2026-08-03)**: Index filters = Search (plate/code/PIC/remarks), Status, Location, Validity (expired / expiring / valid / missing) + days. Export/import via Maatwebsite (`VehicleExport` / `VehicleImport`); upsert by `kode` then `license_plate`; syncs STNK/PKB/KIR expiry. Permissions: export/template=`vehicles.show`, import=`vehicles.create|edit`.
+
+**Files**: `VehicleController`, `VehicleDocumentController`, `FuelRecordController`, `ArkFleetClient`, migrations `2026_08_03_090*`, sidebar GAMMA Kendaraan
+
+---
 
 ### [034] SPM letter number category-specific fields (2026-07-31) ✅ COMPLETE
 

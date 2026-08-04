@@ -432,6 +432,24 @@ graph TD
 
 - Web: `/meeting-rooms/*`, `/room-consumption-requests/*`, `/room-consumption-requests/my-requests*`
 
+### 8c. Vehicle Administration & Driver Fuel (GAMMA)
+
+**Controllers**: `VehicleController`, `VehicleDocumentController`, `FuelRecordController`, `FuelClaimController`, `Api\V1\VehicleApiController`, `Api\V1\FuelClaimApiController`  
+**Models**: `Vehicle`, `VehicleDocument`, `FuelRecord`, `FuelClaim`  
+**Services**: `ArkFleetClient`, `OpenRouterReceiptParser` (`config/openrouter.php`)
+
+**Features**:
+
+- Light Vehicle master (Kode from ArkFleet `plant_group_id=3`) + STNK/PKB/KIR documents
+- Driver My Features Fuel Log: photo-first OpenRouter vision parse → confirm → `submitted`; manual fallback
+- Office verify/reject queue; bundle verified receipts into `fuel_claims` (`draft|ready|sent|realized|cancelled`)
+- Light PWA (`manifest.webmanifest` + `sw.js`) for installable Fuel Log
+
+**Key Routes**:
+
+- Web: `/vehicles/*`, `/fuel-records/*`, `/fuel-records/my-requests*`, `/fuel-records/pending*`, `/fuel-claims/*`
+- API: `GET /api/v1/vehicles*`, `GET/PUT /api/v1/fuel-claims*` (list ready, detail, mark sent/realized)
+
 ### 9. Employee Bonds & Violations
 
 **Controllers**: `EmployeeBondController`, `BondViolationController`
@@ -664,6 +682,16 @@ erDiagram
 - `POST /api/v1/official-travels/{id}/arrival` - Arrival stamp
 - `POST /api/v1/official-travels/{id}/departure` - Departure stamp
 - `PATCH /api/v1/official-travels/{id}/close` - Close travel
+
+**Vehicles & Fuel Claims**:
+
+- `GET /api/v1/vehicles` - Paginated vehicles + document validity summary
+- `GET /api/v1/vehicles/{id}` - Vehicle detail
+- `GET /api/v1/vehicle-documents/expiring` - Expiring STNK/PKB/KIR
+- `GET /api/v1/fuel-claims` - Ready (or filtered) fuel claim bundles for realization
+- `GET /api/v1/fuel-claims/{id}` - Claim detail with receipt line items
+- `PUT /api/v1/fuel-claims/{id}/sent` - External app marks claim sent
+- `PUT /api/v1/fuel-claims/{id}/realized` - External app marks claim realized
 
 **Recruitment**:
 

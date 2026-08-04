@@ -117,6 +117,14 @@
 
 @stack('late-scripts')
 
+<script>
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function() {
+            navigator.serviceWorker.register(@json(asset('sw.js'))).catch(function() {});
+        });
+    }
+</script>
+
 </body>
 
 </html>
