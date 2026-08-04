@@ -70,6 +70,10 @@ use App\Http\Controllers\TaxidentificationController;
 use App\Http\Controllers\TerminationController;
 use App\Http\Controllers\TransportationController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\VehicleController;
+use App\Http\Controllers\VehicleDocumentController;
+use App\Http\Controllers\FuelClaimController;
+use App\Http\Controllers\FuelRecordController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -156,6 +160,9 @@ Route::group(['middleware' => ['auth']], function () {
         Route::get('/room-consumption/calendar-events', [DashboardController::class, 'roomConsumptionCalendarEvents'])
             ->name('room-consumption.calendar-events')
             ->middleware('permission:room-consumption-requests.show');
+        Route::get('/vehicles', [DashboardController::class, 'vehicles'])
+            ->name('vehicles')
+            ->middleware('permission:vehicles.show');
         Route::get('/personal', [DashboardController::class, 'personal'])->name('personal');
     });
 
@@ -265,6 +272,69 @@ Route::group(['middleware' => ['auth']], function () {
     Route::get('meeting-rooms/data', [MeetingRoomController::class, 'data'])->name('meeting-rooms.data');
     Route::get('meeting-rooms/by-project', [MeetingRoomController::class, 'byProject'])->name('meeting-rooms.by-project');
     Route::resource('meeting-rooms', MeetingRoomController::class)->except(['show', 'create', 'edit']);
+
+    // GAMMA SECTION - Vehicles (Light Vehicle monitoring + fuel)
+    Route::prefix('vehicles')->name('vehicles.')->group(function () {
+        Route::get('data', [VehicleController::class, 'data'])->name('data');
+        Route::get('export', [VehicleController::class, 'export'])->name('export');
+        Route::get('template', [VehicleController::class, 'template'])->name('template');
+        Route::post('import', [VehicleController::class, 'import'])->name('import');
+        Route::get('arkfleet/equipments', [VehicleController::class, 'arkfleetEquipments'])->name('arkfleet.equipments');
+
+        Route::post('{vehicle}/documents', [VehicleDocumentController::class, 'store'])->name('documents.store');
+        Route::put('{vehicle}/documents/{document}', [VehicleDocumentController::class, 'update'])->name('documents.update');
+        Route::delete('{vehicle}/documents/{document}', [VehicleDocumentController::class, 'destroy'])->name('documents.destroy');
+        Route::get('{vehicle}/documents/{document}/download', [VehicleDocumentController::class, 'download'])
+            ->name('documents.download');
+
+        Route::get('/', [VehicleController::class, 'index'])->name('index');
+        Route::get('create', [VehicleController::class, 'create'])->name('create');
+        Route::post('/', [VehicleController::class, 'store'])->name('store');
+        Route::get('{vehicle}', [VehicleController::class, 'show'])->name('show');
+        Route::get('{vehicle}/edit', [VehicleController::class, 'edit'])->name('edit');
+        Route::put('{vehicle}', [VehicleController::class, 'update'])->name('update');
+        Route::delete('{vehicle}', [VehicleController::class, 'destroy'])->name('destroy');
+    });
+
+    Route::prefix('fuel-records')->name('fuel-records.')->group(function () {
+        // Driver My Features (before {fuelRecord} bindings)
+        Route::get('my-requests', [FuelRecordController::class, 'myRequests'])->name('my-requests');
+        Route::get('my-requests/create', [FuelRecordController::class, 'myRequestsCreate'])->name('my-requests.create');
+        Route::post('my-requests/parse-receipt', [FuelRecordController::class, 'myRequestsParseReceipt'])->name('my-requests.parse-receipt');
+        Route::get('my-requests/receipt-temp', [FuelRecordController::class, 'myReceiptTemp'])->name('my-requests.receipt-temp');
+        Route::post('my-requests', [FuelRecordController::class, 'myRequestsStore'])->name('my-requests.store');
+        Route::get('my-requests/{fuelRecord}', [FuelRecordController::class, 'myRequestsShow'])->name('my-requests.show');
+        Route::get('my-requests/{fuelRecord}/edit', [FuelRecordController::class, 'myRequestsEdit'])->name('my-requests.edit');
+        Route::put('my-requests/{fuelRecord}', [FuelRecordController::class, 'myRequestsUpdate'])->name('my-requests.update');
+
+        // Office verification queue
+        Route::get('pending', [FuelRecordController::class, 'pendingVerification'])->name('pending');
+        Route::get('pending/data', [FuelRecordController::class, 'pendingVerificationData'])->name('pending.data');
+        Route::post('{fuelRecord}/verify', [FuelRecordController::class, 'verify'])->name('verify');
+        Route::post('{fuelRecord}/reject', [FuelRecordController::class, 'reject'])->name('reject');
+
+        Route::get('{fuelRecord}/receipt', [FuelRecordController::class, 'myReceipt'])->name('receipt');
+
+        Route::get('data', [FuelRecordController::class, 'data'])->name('data');
+        Route::get('/', [FuelRecordController::class, 'index'])->name('index');
+        Route::get('create', [FuelRecordController::class, 'create'])->name('create');
+        Route::post('/', [FuelRecordController::class, 'store'])->name('store');
+        Route::get('{fuelRecord}', [FuelRecordController::class, 'show'])->name('show');
+        Route::get('{fuelRecord}/edit', [FuelRecordController::class, 'edit'])->name('edit');
+        Route::put('{fuelRecord}', [FuelRecordController::class, 'update'])->name('update');
+        Route::delete('{fuelRecord}', [FuelRecordController::class, 'destroy'])->name('destroy');
+    });
+
+    Route::prefix('fuel-claims')->name('fuel-claims.')->group(function () {
+        Route::get('data', [FuelClaimController::class, 'data'])->name('data');
+        Route::get('/', [FuelClaimController::class, 'index'])->name('index');
+        Route::get('create', [FuelClaimController::class, 'create'])->name('create');
+        Route::post('/', [FuelClaimController::class, 'store'])->name('store');
+        Route::get('{fuelClaim}', [FuelClaimController::class, 'show'])->name('show');
+        Route::post('{fuelClaim}/ready', [FuelClaimController::class, 'markReady'])->name('ready');
+        Route::post('{fuelClaim}/cancel', [FuelClaimController::class, 'cancel'])->name('cancel');
+        Route::delete('{fuelClaim}', [FuelClaimController::class, 'destroy'])->name('destroy');
+    });
 
     // Room & Consumption Requests
     Route::prefix('room-consumption-requests')->name('room-consumption-requests.')->group(function () {

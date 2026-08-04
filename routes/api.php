@@ -12,6 +12,8 @@ use App\Http\Controllers\Api\V1\LetterSubjectController;
 use App\Http\Controllers\Api\V1\OfficialtravelApiController;
 use App\Http\Controllers\Api\V1\PositionController;
 use App\Http\Controllers\Api\V1\ProjectController;
+use App\Http\Controllers\Api\V1\FuelClaimApiController;
+use App\Http\Controllers\Api\V1\VehicleApiController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -143,6 +145,30 @@ Route::get('letter-numbers/available/{categoryCode}', [LetterNumberController::c
 Route::prefix('v1/integrations/it-wo')->group(function () {
     Route::post('zoom-callback', ItWoZoomCallbackController::class)
         ->name('api.v1.integrations.it-wo.zoom-callback');
+});
+
+/*
+|--------------------------------------------------------------------------
+| Vehicles — document validity (GAMMA)
+|--------------------------------------------------------------------------
+*/
+Route::prefix('v1')->group(function () {
+    Route::get('vehicles', [VehicleApiController::class, 'index'])
+        ->name('api.v1.vehicles.index');
+    Route::get('vehicles/{vehicle}', [VehicleApiController::class, 'show'])
+        ->name('api.v1.vehicles.show');
+    Route::get('vehicle-documents/expiring', [VehicleApiController::class, 'expiringDocuments'])
+        ->name('api.v1.vehicle-documents.expiring');
+
+    // Fuel claims — external fund realization app
+    Route::get('fuel-claims', [FuelClaimApiController::class, 'index'])
+        ->name('api.v1.fuel-claims.index');
+    Route::get('fuel-claims/{fuelClaim}', [FuelClaimApiController::class, 'show'])
+        ->name('api.v1.fuel-claims.show');
+    Route::put('fuel-claims/{fuelClaim}/sent', [FuelClaimApiController::class, 'markSent'])
+        ->name('api.v1.fuel-claims.sent');
+    Route::put('fuel-claims/{fuelClaim}/realized', [FuelClaimApiController::class, 'markRealized'])
+        ->name('api.v1.fuel-claims.realized');
 });
 
 /*

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 use Spatie\Activitylog\Models\Activity;
@@ -183,6 +184,7 @@ class ActivityLogController extends Controller
     {
         $defaults = [
             'days' => 7,
+            'queue_pending' => 0,
             'email_queued' => 0,
             'email_sent' => 0,
             'email_failed' => 0,
@@ -195,6 +197,12 @@ class ActivityLogController extends Controller
         }
 
         try {
+            if (Schema::hasTable('jobs')) {
+                $defaults['queue_pending'] = DB::table('jobs')
+                    ->where('payload', 'like', '%DocumentApprovalNotification%')
+                    ->count();
+            }
+
             $since = now()->subDays(7)->startOfDay();
             $rows = Activity::query()
                 ->where('log_name', 'document_email')
@@ -208,10 +216,7 @@ class ActivityLogController extends Controller
                     $defaults[$event]++;
                 }
 
-                $props = $row->properties;
-                $type = is_array($props)
-                    ? ($props['document_type'] ?? null)
-                    : ($props->document_type ?? null);
+                $type = data_get($row->properties, 'document_type');
                 if (! is_string($type) || $type === '') {
                     continue;
                 }

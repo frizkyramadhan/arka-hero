@@ -38,6 +38,9 @@ use App\Models\RoomConsumptionRequest;
 use App\Models\MeetingRoom;
 use App\Models\Taxidentification;
 use App\Models\User;
+use App\Models\Vehicle;
+use App\Models\VehicleDocument;
+use App\Models\FuelRecord;
 use App\Support\UserProject;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -2391,5 +2394,71 @@ class DashboardController extends Controller
             'missingSections' => $missingSections,
             'completenessPercentage' => $completenessPercentage,
         ]);
+    }
+
+    /**
+     * GAMMA — Vehicle / Light Vehicle document monitoring dashboard.
+     */
+    public function vehicles()
+    {
+        $title = 'Vehicles Dashboard';
+        $subtitle = 'Light Vehicle document validity monitoring';
+
+        $totalVehicles = Vehicle::count();
+        $activeVehicles = Vehicle::where('status', 'active')->count();
+
+        $coreTypes = ['stnk', 'pkb', 'kir'];
+        $today = now()->startOfDay();
+        $in30 = now()->addDays(30)->endOfDay();
+
+        $expiredDocs = VehicleDocument::query()
+            ->whereIn('document_type', $coreTypes)
+            ->whereIn('status', ['active', 'expired', 'pending_renewal'])
+            ->whereNotNull('expiry_date')
+            ->whereDate('expiry_date', '<', $today)
+            ->count();
+
+        $expiringSoonDocs = VehicleDocument::query()
+            ->whereIn('document_type', $coreTypes)
+            ->whereIn('status', ['active', 'expired', 'pending_renewal'])
+            ->whereNotNull('expiry_date')
+            ->whereDate('expiry_date', '>=', $today)
+            ->whereDate('expiry_date', '<=', $in30)
+            ->count();
+
+        $fuelThisMonth = FuelRecord::query()
+            ->whereMonth('fuel_date', now()->month)
+            ->whereYear('fuel_date', now()->year)
+            ->sum('total_cost');
+
+        $vehicles = Vehicle::query()
+            ->with(['documents' => function ($q) use ($coreTypes) {
+                $q->whereIn('document_type', $coreTypes)
+                    ->whereIn('status', ['active', 'expired', 'pending_renewal']);
+            }])
+            ->orderBy('kode')
+            ->get();
+
+        $criticalVehicles = $vehicles->filter(function (Vehicle $v) {
+            foreach (['stnk', 'pkb', 'kir'] as $type) {
+                $days = $v->daysRemainingFor($type);
+                if ($days !== null && $days <= 30) {
+                    return true;
+                }
+            }
+
+            return false;
+        })->values();
+
+        return view('dashboard.vehicles', compact(
+            'title',
+            'subtitle',
+            'totalVehicles',
+            'activeVehicles',
+            'expiredDocs',
+            'expiringSoonDocs',
+            'fuelThisMonth',
+            'criticalVehicles'
+        ));
     }
 }

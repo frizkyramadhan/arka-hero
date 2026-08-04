@@ -1,5 +1,5 @@
 **Purpose**: Track current work and immediate priorities for ARKA HERO HRMS
-**Last Updated**: 2026-08-03
+**Last Updated**: 2026-08-04
 
 ## Task Management Guidelines
 
@@ -54,7 +54,12 @@ Include relevant context in brackets to help with future AI-assisted coding:
 
 ## Recently Completed
 
--   `[done] P0: Leave Requests DataTables Ajax 403 — same-origin path + POST/CSRF for /data (avoid APP_URL mismatch and WAF on columns[n] GET) [leave-requests/index, my-requests, Handler, web.php] (completed: 2026-08-03)`
+-   `[done] P1: Driver Fuel Log — photo+OpenRouter AI → office verify → fuel_claims bundle + API v1 realization [FuelRecordController my-requests/pending, FuelClaimController, OpenRouterReceiptParser, FuelWorkflowPermissionSeeder, PWA manifest/sw] (completed: 2026-08-04)`
+-   `[done] P0: Leave Requests DataTables Ajax 403 — same-origin AJAX paths via request()->getBasePath() (avoid APP_URL :8080 vs /arka-hero cookie drop) [leave-requests/index, my-requests] (completed: 2026-08-03)`
+-   `[done] P2: Vehicle list filters + Excel export/import — validity filter; VehicleExport/Import upsert by kode [index, VehicleController] (completed: 2026-08-03)`
+-   `[done] P2: Vehicle document validity API — GET /api/v1/vehicles, /vehicles/{id}, /vehicle-documents/expiring [VehicleApiController, api.php; X-API-Key] (completed: 2026-08-03)`
+-   `[done] P2: Vehicle documents single-table schema — file_* on create_vehicle_documents; dropped revisions migration/model; rollback batch 78+79 then remigrate [VehicleDocumentController, show.blade] (completed: 2026-08-03)`
+-   `[done] P1: Vehicle Administration (GAMMA) — master Light Vehicle + STNK/PKB/KIR monitoring + fuel; Kode from ArkFleet plant_group_id=3; no maintenance [VehicleController, ArkFleetClient, VehiclePermissionSeeder, sidebar GAMMA Kendaraan] (completed: 2026-08-03)`
 -   `[done] P1: SPM letter number fields — periode magang, departemen ditempatkan, lembaga pendidikan [LetterNumberController case SPM, #spm-template create/edit/show, department_id + educational_institution migration, export/import] (completed: 2026-07-31)`
 -   `[done] P2: Clarify Activity Log email statistics [live Pending Queue vs 7-day Queued Events/Delivered/Failed/Skipped] (completed: 2026-07-31)`
 -   `[done] P1: Email notification Docker-ready improvements [database queue+ShouldQueue, CTA per event, 3-day reminder, config CC, idempotency, logo+plaintext, litmus, delivery metrics] (completed: 2026-07-30)`
