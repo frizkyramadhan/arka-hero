@@ -4,12 +4,14 @@ namespace App\Http\Controllers;
 
 use App\Models\FuelRecord;
 use App\Models\Vehicle;
+use App\Services\FuelReceiptDuplicateChecker;
 use App\Services\OpenRouterReceiptParser;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 class FuelRecordController extends Controller
 {
@@ -94,6 +96,7 @@ class FuelRecordController extends Controller
         try {
             DB::beginTransaction();
             $data['total_cost'] = round((float) $data['quantity'] * (float) $data['price_per_liter'], 2);
+            $this->assertReceiptNotDuplicate($data);
             $data['created_by'] = Auth::id();
             $data['status'] = FuelRecord::STATUS_VERIFIED;
             $data['verified_by'] = Auth::id();
@@ -107,6 +110,9 @@ class FuelRecordController extends Controller
 
             return redirect()->route('fuel-records.index')
                 ->with('toast_success', 'Fuel record added successfully.');
+        } catch (ValidationException $e) {
+            DB::rollBack();
+            throw $e;
         } catch (\Throwable $e) {
             DB::rollBack();
 
@@ -144,6 +150,7 @@ class FuelRecordController extends Controller
         try {
             DB::beginTransaction();
             $data['total_cost'] = round((float) $data['quantity'] * (float) $data['price_per_liter'], 2);
+            $this->assertReceiptNotDuplicate($data, $fuelRecord->id);
             if ($request->hasFile('receipt_image')) {
                 $this->deleteReceipt($fuelRecord->receipt_image);
                 $data['receipt_image'] = $this->storeReceipt($request->file('receipt_image'));
@@ -154,6 +161,9 @@ class FuelRecordController extends Controller
 
             return redirect()->route('fuel-records.index')
                 ->with('toast_success', 'Fuel record updated successfully.');
+        } catch (ValidationException $e) {
+            DB::rollBack();
+            throw $e;
         } catch (\Throwable $e) {
             DB::rollBack();
 
@@ -269,6 +279,7 @@ class FuelRecordController extends Controller
             DB::beginTransaction();
 
             $data['total_cost'] = $this->resolveTotal($data);
+            $this->assertReceiptNotDuplicate($data);
             $data['created_by'] = Auth::id();
             $data['driver_id'] = Auth::user()?->employee_id;
             $data['status'] = FuelRecord::STATUS_SUBMITTED;
@@ -293,6 +304,9 @@ class FuelRecordController extends Controller
 
             return redirect()->route('fuel-records.my-requests')
                 ->with('toast_success', 'Fuel log submitted for verification.');
+        } catch (ValidationException $e) {
+            DB::rollBack();
+            throw $e;
         } catch (\Throwable $e) {
             DB::rollBack();
 
@@ -343,6 +357,7 @@ class FuelRecordController extends Controller
         try {
             DB::beginTransaction();
             $data['total_cost'] = $this->resolveTotal($data);
+            $this->assertReceiptNotDuplicate($data, $fuelRecord->id);
             $data['status'] = FuelRecord::STATUS_SUBMITTED;
             $data['verification_notes'] = null;
             $data['rejected_at'] = null;
@@ -360,6 +375,9 @@ class FuelRecordController extends Controller
 
             return redirect()->route('fuel-records.my-requests')
                 ->with('toast_success', 'Fuel log updated and resubmitted.');
+        } catch (ValidationException $e) {
+            DB::rollBack();
+            throw $e;
         } catch (\Throwable $e) {
             DB::rollBack();
 
@@ -544,6 +562,29 @@ class FuelRecordController extends Controller
         }
 
         return round((float) $data['quantity'] * (float) $data['price_per_liter'], 2);
+    }
+
+    /**
+     * Block duplicate SPBU nota: vehicle + date + receipt_number (+ total when present).
+     *
+     * @param  array<string, mixed>  $data
+     */
+    protected function assertReceiptNotDuplicate(array $data, ?string $ignoreRecordId = null): void
+    {
+        $checker = app(FuelReceiptDuplicateChecker::class);
+        $duplicate = $checker->findDuplicate(
+            (string) $data['vehicle_id'],
+            $data['fuel_date'],
+            isset($data['receipt_number']) ? (string) $data['receipt_number'] : null,
+            $data['total_cost'] ?? null,
+            $ignoreRecordId,
+        );
+
+        if ($duplicate) {
+            throw ValidationException::withMessages([
+                'receipt_number' => $checker->messageFor($duplicate),
+            ]);
+        }
     }
 
     protected function bumpOdometer(string $vehicleId, int $odometer): void

@@ -1,5 +1,5 @@
 **Purpose**: Track current work and immediate priorities for ARKA HERO HRMS
-**Last Updated**: 2026-08-04
+**Last Updated**: 2026-08-10
 
 ## Task Management Guidelines
 
@@ -54,6 +54,17 @@ Include relevant context in brackets to help with future AI-assisted coding:
 
 ## Recently Completed
 
+-   `[done] P2: Disciplinary export — clarify Imported (doc later) Yes/No, add remaining_days after end_date, export honors list filters [EmployeeDisciplinaryExport, index Export JS, filteredQuery dates] (completed: 2026-08-10)`
+-   `[done] P2: Disciplinary list — hide DataTables search; add PP Criteria Select2 filter (criterion_id) on admin + my-records [index/my-index, EmployeeDisciplinaryController::filteredQuery/myRecordsData] (completed: 2026-08-10)`
+-   `[done] P1: Disciplinary Export/Import + deferred document upload for imported rows [EmployeeDisciplinaryExport/Import, imported_at, upload-document; reuse show/create/edit] (completed: 2026-08-10)`
+-   `[done] P1: Disciplinary auto-escalation — strict SP floor (same/lower blocked on create; UI pre-selects next; clearer messages) [DisciplinaryService::allowedTypes/allowedTypesForEdit, _form-scripts] (completed: 2026-08-10)`
+-   `[done] P1: My Disciplinary Record — personal view-only list/detail + My Dashboard widget [personal.disciplinary.view-own, employee-disciplinaries/my-records*, DashboardController::personal] (completed: 2026-08-10)`
+-   `[done] P1: Seed kriteria PP Pasal 22 — Counseling 6.a–p, SP1 7.a–r, SP Pertama & Terakhir 10.a–k [DisciplinaryCriteriaSeeder; sanction_type +counseling] (completed: 2026-08-07)`
+-   `[done] P1: Pembinaan & SP — Coaching/Counseling + SP1–SP3 with PP criteria M2M, validity/floor/expire, post-SP3 termination [EmployeeDisciplinaryController, DisciplinaryCriterionController, DisciplinaryService, disciplinary:expire, DisciplinaryPermissionSeeder] (completed: 2026-08-07)`
+-   `[done] P1: Fuel Claim print — A4 portrait 3×3 receipt photo sheet (chunk 9/page, private images as data-URI) [FuelClaimController::print(), fuel-claims/print.blade.php] (completed: 2026-08-10)`
+-   `[done] P1: Draft Fuel Claim receipt management — add/edit/remove receipts (edit via modal) with transactional total recalculation [FuelClaimController::addReceipts(), updateReceipt(), removeReceipt(), fuel-claims/show.blade.php] (completed: 2026-08-05)`
+-   `[done] P1: Fuel Bot Activity Log UI — /fuel-bot-logs list+detail (status pipeline, parsed JSON, inbox photo, fuel record link); sidebar grouped SYSTEMS → Fuel Bot [FuelBotLogController, fuel-bot-logs views, fuel-bot-logs.show permission] (completed: 2026-08-05)`
+-   `[done] P1: Telegram Fuel Bot — whitelist CRUD + webhook Level-2 AI confirm → ingest fuel_records [FuelBotSubscriber*, TelegramFuelBotHandler, FuelBotIngestService, FuelBotApiController, telegram:fuel-bot-webhook] (completed: 2026-08-05)`
 -   `[done] P1: Driver Fuel Log — photo+OpenRouter AI → office verify → fuel_claims bundle + API v1 realization [FuelRecordController my-requests/pending, FuelClaimController, OpenRouterReceiptParser, FuelWorkflowPermissionSeeder, PWA manifest/sw] (completed: 2026-08-04)`
 -   `[done] P0: Leave Requests DataTables Ajax 403 — same-origin AJAX paths via request()->getBasePath() (avoid APP_URL :8080 vs /arka-hero cookie drop) [leave-requests/index, my-requests] (completed: 2026-08-03)`
 -   `[done] P2: Vehicle list filters + Excel export/import — validity filter; VehicleExport/Import upsert by kode [index, VehicleController] (completed: 2026-08-03)`

@@ -32,7 +32,7 @@
                         <tr><th>Price / L</th><td>{{ number_format((float)$fuelRecord->price_per_liter, 0, ',', '.') }}</td></tr>
                         <tr><th>Total</th><td>{{ number_format((float)$fuelRecord->total_cost, 0, ',', '.') }}</td></tr>
                         <tr><th>Station</th><td>{{ $fuelRecord->fuel_station ?: '—' }}</td></tr>
-                        <tr><th>Receipt no.</th><td>{{ $fuelRecord->receipt_number ?: '—' }}</td></tr>
+                        <tr><th>No. Trans / Receipt No.</th><td>{{ $fuelRecord->receipt_number ?: '—' }}</td></tr>
                         @if ($fuelRecord->verification_notes)
                             <tr><th>Verification notes</th><td>{{ $fuelRecord->verification_notes }}</td></tr>
                         @endif

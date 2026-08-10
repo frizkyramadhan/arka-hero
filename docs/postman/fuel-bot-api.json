@@ -1,0 +1,86 @@
+{
+  "info": {
+    "name": "ARKA HERO - Fuel Bot API",
+    "description": "Import into workspace or merge into ARKA HERO - API. Telegram fuel bot whitelist + ingest + webhook.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "BASE_URL", "value": "http://localhost/arka-hero" },
+    { "key": "TOKEN", "value": "", "description": "Same as API_KEY / X-API-Key" },
+    { "key": "TELEGRAM_USER_ID", "value": "123456789" },
+    { "key": "CLIENT_UUID", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Fuel Bot",
+      "item": [
+        {
+          "name": "Check Whitelist",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "X-API-Key", "value": "{{TOKEN}}", "type": "text" }
+            ],
+            "url": {
+              "raw": "{{BASE_URL}}/api/v1/fuel-bot/whitelist/{{TELEGRAM_USER_ID}}",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "v1", "fuel-bot", "whitelist", "{{TELEGRAM_USER_ID}}"]
+            }
+          }
+        },
+        {
+          "name": "Create Fuel Record From Bot",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "X-API-Key", "value": "{{TOKEN}}", "type": "text" }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "client_uuid", "value": "{{CLIENT_UUID}}", "type": "text" },
+                { "key": "telegram_user_id", "value": "{{TELEGRAM_USER_ID}}", "type": "text" },
+                { "key": "vehicle_code", "value": "VA083", "type": "text" },
+                { "key": "fuel_date", "value": "2026-08-05", "type": "text" },
+                { "key": "odometer", "value": "41570", "type": "text" },
+                { "key": "fuel_type", "value": "Pertamax", "type": "text" },
+                { "key": "quantity", "value": "36.04", "type": "text" },
+                { "key": "price_per_liter", "value": "16650", "type": "text" },
+                { "key": "total_cost", "value": "600066", "type": "text" },
+                { "key": "fuel_station", "value": "", "type": "text" },
+                { "key": "receipt_image", "type": "file", "src": [] }
+              ]
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/v1/fuel-bot/fuel-records",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "v1", "fuel-bot", "fuel-records"]
+            }
+          }
+        },
+        {
+          "name": "Telegram Fuel Bot Webhook",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-Telegram-Bot-Api-Secret-Token", "value": "", "type": "text", "description": "TELEGRAM_FUEL_BOT_WEBHOOK_SECRET" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"update_id\": 1,\n  \"message\": {\n    \"message_id\": 1,\n    \"from\": { \"id\": 123456789, \"is_bot\": false, \"first_name\": \"Driver\" },\n    \"chat\": { \"id\": 123456789, \"type\": \"private\" },\n    \"date\": 1720000000,\n    \"text\": \"/start\"\n  }\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/v1/telegram/fuel-bot/webhook",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "v1", "telegram", "fuel-bot", "webhook"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

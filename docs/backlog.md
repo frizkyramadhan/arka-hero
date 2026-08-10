@@ -1,9 +1,17 @@
 **Purpose**: Future features and improvements prioritized by value for ARKA HERO HRMS
-**Last Updated**: 2026-08-04
+**Last Updated**: 2026-08-07
 
 # Feature Backlog - ARKA HERO HRMS
 
 ## Recently Started / In Progress
+
+### Pembinaan & Surat Peringatan (SP) ✅ Phase 1
+
+-   **Description**: Coaching/Counseling + SP1–SP3 with PP criteria master (multi-select), validity/floor/expire, post-SP3 auto-termination of active administration.
+-   **Permissions**: `php artisan db:seed --class=DisciplinaryPermissionSeeder`
+-   **PP criteria**: `php artisan db:seed --class=DisciplinaryCriteriaSeeder` (Counseling / SP1 / SP Pertama & Terakhir from Pasal 22)
+-   **Out of scope (phase 1)**: letter number / PDF generate, multi-level approval workflow, full COE termination checklist
+-   **Follow-ups**: optional SP2 criteria seed; letter/PDF; richer termination checklist integration
 
 ### Room & Consumption Request (RCR) ✅ Phase 1
 
@@ -25,6 +33,14 @@
 -   **Config**: `OPENROUTER_API_KEY`, optional `OPENROUTER_MODEL` (default `google/gemini-2.0-flash-001`)
 -   **Postman**: import `docs/postman/fuel-claims-api.json` (MCP sync blocked until Postman API key valid)
 -   **Out of scope**: offline AI queue, Sanctum native app, multi-stage ApprovalPlan, external finance UI
+
+### Telegram Fuel Bot ✅ Off-network Level-2
+
+-   **Description**: Drivers outside Arka network send SPBU photos via Telegram → AI extract → YA/TIDAK → auto-ingest as `submitted` fuel records. Whitelist + activity log under SYSTEMS → Fuel Bot (`fuel-bot-subscribers`, `fuel-bot-logs`).
+-   **Permissions**: `php artisan db:seed --class=FuelBotPermissionSeeder` (adds `fuel-bot-logs.show`)
+-   **Config**: `TELEGRAM_FUEL_BOT_TOKEN`, `TELEGRAM_FUEL_BOT_WEBHOOK_SECRET`, `OPENROUTER_*`
+-   **Webhook**: `php artisan telegram:fuel-bot-webhook set https://your-public-host/api/v1/telegram/fuel-bot/webhook`
+-   **API**: `GET /api/v1/fuel-bot/whitelist/{telegramUserId}`, `POST /api/v1/fuel-bot/fuel-records` — Postman: `docs/postman/fuel-bot-api.json`
 
 ## Next Sprint (High Priority)
 

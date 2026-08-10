@@ -53,7 +53,7 @@ class OpenRouterReceiptParser
         $model = (string) config('openrouter.model');
 
         $prompt = <<<'PROMPT'
-You extract data from an Indonesian SPBU / Pertamina fuel receipt photo.
+You extract data from an Indonesian SPBU / Pertamina / Shell / BP fuel receipt photo.
 Also read handwritten notes (vehicle code like VA083, KM/odometer).
 Return ONLY valid JSON (no markdown) with keys:
 vehicle_code (string|null),
@@ -65,10 +65,22 @@ quantity (number|null, liters),
 price_per_liter (number|null),
 total_cost (number|null),
 fuel_station (string|null, SPBU id and/or address),
-receipt_number (string|null, No. Trans),
+receipt_number (string|null),
 confidence (number 0-1),
 notes (string|null).
-Strip "Rp", dots used as thousand separators. Use plain numbers.
+
+CRITICAL — receipt_number:
+Map the transaction/receipt identifier into receipt_number. Indonesian labels vary; look for ANY of:
+- No. Trans / No Trans / No.Transaksi / Nomor Transaksi
+- No. Struk / No Struk / Nomor Struk
+- No. Nota / No Nota / Nomor Nota
+- Receipt No. / Receipt Number / Invoice No. / Ref No. / Reference
+- Shift/Shift No. only if it is clearly the transaction id (prefer No. Trans when both exist)
+- QR / barcode printed numeric code next to those labels if the label text is hard to read
+Copy the value exactly as printed (digits and letters), without the label text itself.
+If multiple candidates exist, prefer No. Trans / Nomor Transaksi.
+
+Strip "Rp", dots used as thousand separators on money fields. Use plain numbers.
 PROMPT;
 
         try {
@@ -153,10 +165,94 @@ PROMPT;
             'price_per_liter' => $price,
             'total_cost' => $total,
             'fuel_station' => isset($raw['fuel_station']) ? trim((string) $raw['fuel_station']) : null,
-            'receipt_number' => isset($raw['receipt_number']) ? trim((string) $raw['receipt_number']) : null,
+            'receipt_number' => $this->extractReceiptNumber($raw),
             'confidence' => $this->toFloat($raw['confidence'] ?? null),
             'notes' => isset($raw['notes']) ? trim((string) $raw['notes']) : null,
         ];
+    }
+
+    /**
+     * Accept common alternate keys / labels the model may emit for No. Trans.
+     *
+     * @param  array<string, mixed>  $raw
+     */
+    protected function extractReceiptNumber(array $raw): ?string
+    {
+        $keys = [
+            'receipt_number',
+            'receipt_no',
+            'receiptNo',
+            'no_trans',
+            'no_transaksi',
+            'nomor_transaksi',
+            'nomor_trans',
+            'transaction_number',
+            'transaction_no',
+            'trans_number',
+            'trans_no',
+            'no_struk',
+            'nomor_struk',
+            'no_nota',
+            'nomor_nota',
+            'invoice_number',
+            'invoice_no',
+            'ref_no',
+            'reference_number',
+        ];
+
+        foreach ($keys as $key) {
+            if (! array_key_exists($key, $raw) || $raw[$key] === null || $raw[$key] === '') {
+                continue;
+            }
+            $value = $this->cleanReceiptNumberValue($raw[$key]);
+            if ($value !== null) {
+                return $value;
+            }
+        }
+
+        // Flat scan: keys containing trans/struk/nota/receipt/invoice
+        foreach ($raw as $key => $value) {
+            if (! is_string($key) || is_array($value) || is_object($value)) {
+                continue;
+            }
+            $k = Str::lower($key);
+            if (! preg_match('/(trans|struk|nota|receipt|invoice|ref)/', $k)) {
+                continue;
+            }
+            if (preg_match('/(date|tanggal|time|jam|total|harga|liter|qty|quantity)/', $k)) {
+                continue;
+            }
+            $cleaned = $this->cleanReceiptNumberValue($value);
+            if ($cleaned !== null) {
+                return $cleaned;
+            }
+        }
+
+        return null;
+    }
+
+    protected function cleanReceiptNumberValue(mixed $value): ?string
+    {
+        $s = trim((string) $value);
+        if ($s === '' || Str::lower($s) === 'null') {
+            return null;
+        }
+
+        // Drop leading label if model included it in the value
+        $s = preg_replace(
+            '/^(no\.?\s*(trans(aksi)?|struk|nota|receipt|invoice|ref(erence)?)\.?\s*[:#\-]?\s*)/iu',
+            '',
+            $s
+        ) ?? $s;
+        $s = preg_replace(
+            '/^(nomor\s*(transaksi|struk|nota)\s*[:#\-]?\s*)/iu',
+            '',
+            $s
+        ) ?? $s;
+
+        $s = trim($s, " \t\n\r\0\x0B:#-");
+
+        return $s !== '' ? $s : null;
     }
 
     protected function resolveVehicleId(?string $code): ?string

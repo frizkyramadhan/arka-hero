@@ -1,9 +1,33 @@
 **Purpose**: AI's persistent knowledge base for project context and learnings - ARKA HERO HRMS
-**Last Updated**: 2026-08-04
+**Last Updated**: 2026-08-10
+
+### [045] Pembinaan & Surat Peringatan (SP) (2026-08-07) ✅ COMPLETE
+
+**Flow**: HCS creates Coaching/Counseling (3 mo, independent) or SP1–SP3 (6 mo) on `employee_disciplinaries`. Active SP sets floor — **new violation auto-escalates** (same/lower SP blocked; no return to pembinaan; jump-up allowed). UI pre-selects `suggest_next`. Expired by `disciplinary:expire` (+ lazy) clears floor. Active SP3 + next violation → terminate active `administrations` (create blocked).
+
+**Escalation matrix (create while still valid)**: no SP → all types; SP1 → SP2|SP3; SP2 → SP3; SP3 → termination only. Coaching/Counseling do not set SP floor and are not sequential with each other.
+
+**Permissions**: `php artisan db:seed --class=DisciplinaryPermissionSeeder` — HR write; PM/DM view-only show; `user` role gets `personal.disciplinary.view-own`.
+
+**PP criteria seed**: `php artisan db:seed --class=DisciplinaryCriteriaSeeder` — Pasal 22 ayat (5) Counseling 6.a–p (16), ayat (6) SP1 7.a–r (18), ayat (8) SP Pertama & Terakhir 10.a–k (11). `sanction_type` includes `counseling`.
+
+**UI**: Employee Management → **Disciplinary** (combined Coaching/Counseling + SP CRUD, English UI). Master Data → **PP Criteria**. Employee pick by Name + NIK KTP. Personal → **My Disciplinary Record** (list+detail only) + My Dashboard widget. Index/my-records use custom filters only (`searching: false`, `dom: 'rtip'`) including **PP Criteria** (`criterion_id`); Export passes the same filter query string (status/type/criterion/employee/dates) into `filteredQuery` — no filters = all rows. Index has **Export / Import** (Excel); export column `Imported (doc later)` (Yes/No) reflects `imported_at` (Excel-imported rows may upload supporting document later; normal create requires document at create time). Export also includes `remaining_days` after `end_date` (blank when not active, same idea as list `-`).
+
+**Files**: `DisciplinaryService`, `EmployeeDisciplinaryController`, `DisciplinaryCriterionController`, `EmployeeDisciplinaryExport`/`EmployeeDisciplinaryImport`, migrations `2026_08_07_0818*`, `2026_08_10_145500_add_imported_at_to_employee_disciplinaries_table`, `DisciplinaryCriteriaSeeder`.
+
+### [044] Telegram Fuel Bot (off-network) (2026-08-05) ✅ COMPLETE
+
+**Flow**: Whitelist in HERO (`fuel_bot_subscribers`) → driver sends SPBU photo to Telegram bot → OpenRouter AI extract → YA/TIDAK confirm → `FuelBotIngestService` creates `fuel_records` (`submitted`) → same office verify/claim path.
+
+**Config**: `TELEGRAM_FUEL_BOT_TOKEN`, `TELEGRAM_FUEL_BOT_WEBHOOK_SECRET`, plus existing `OPENROUTER_*`. Webhook: `POST /api/v1/telegram/fuel-bot/webhook` (skips `X-API-Key`; uses Telegram secret). Set: `php artisan telegram:fuel-bot-webhook set {publicHttpsUrl}`. Seed: `FuelBotPermissionSeeder`.
+
+**Files**: `TelegramFuelBotHandler`, `FuelBotIngestService`, `FuelBotSubscriberController`, `Api\V1\FuelBotApiController`, migration `2026_08_05_090000_create_fuel_bot_tables`.
+
+**Activity log UI**: `/fuel-bot-logs` (permission `fuel-bot-logs.show`) lists `fuel_bot_submissions` with status filter/date/search, stats cards, and a detail page showing parsed JSON + raw inbox photo (`fuel_bot_inbox/...` on the `private` disk) + link to the created fuel record. Sidebar SYSTEMS now groups **Fuel Bot → Whitelist / Activity Log**. Status labels/colors live on `FuelBotSubmission::statusLabels()`/`statusColors()` so table, badge, and filter stay in sync.
 
 ### [043] Driver Fuel: Photo + OpenRouter → Verify → Claim (2026-08-04) ✅ COMPLETE
 
-**Flow**: My Features Fuel Log → scan SPBU nota (`OpenRouterReceiptParser`) or manual → `submitted` → GAMMA Pending Verification → `verified` → bundle `fuel_claims` (`draft`→`ready`) → external app `GET/PUT /api/v1/fuel-claims*`.
+**Flow**: My Features Fuel Log → scan SPBU nota (`OpenRouterReceiptParser`) or manual → `submitted` → GAMMA Pending Verification → `verified` → bundle `fuel_claims` (`draft`→`ready`) → external app `GET/PUT /api/v1/fuel-claims*`. While a claim is `draft`, users with `fuel-claims.edit` can add verified/unclaimed receipts, edit receipt fields (modal), or remove receipts; totals are recalculated transactionally and removed receipts return to `verified`. Claim print (`fuel-claims.print`) renders A4 portrait sheets with receipt photos in a balanced 3×3 grid (9/page).
 
 **Config**: `OPENROUTER_API_KEY` (+ optional `OPENROUTER_MODEL`). Empty key disables AI; manual still works. Seed: `php artisan db:seed --class=FuelWorkflowPermissionSeeder`.
 
@@ -153,8 +177,7 @@
 
 **Key Learning**: Keep browser preview and delivered email on one `mailViewData()` source so debug output cannot drift from production markup. Env boolean must use `filter_var(..., FILTER_VALIDATE_BOOLEAN)` so `false` actually disables. Document-type email partials should mirror approval-request fields, not a generic Date/Purpose stub. Shared `ui_tokens.php` keeps compact/cozy density consistent; do not rely on Blade `@include` to set style variables for the parent. On Docker php-FPM without Redis, database queues + minute crontab workers are enough; log `email_queued` separately from `email_sent`.
 
-**Files**: `DocumentApprovalNotification`, `DocumentNotificationService`, `DocumentNotificationSend`, `RemindPendingApprovalsCommand`, `LogDocumentNotificationSent`/`Failed`, `DebugEmailNotificationController`, `ActivityLogController`, `config/document_notifications.php`, `emails/documents/approval.blade.php`, `emails/documents/approval-text.blade.php`, `public/images/logo_2.jpg`, migrations `jobs` + `document_notification_sends`, `docs/docker-reference.md`
----
+## **Files**: `DocumentApprovalNotification`, `DocumentNotificationService`, `DocumentNotificationSend`, `RemindPendingApprovalsCommand`, `LogDocumentNotificationSent`/`Failed`, `DebugEmailNotificationController`, `ActivityLogController`, `config/document_notifications.php`, `emails/documents/approval.blade.php`, `emails/documents/approval-text.blade.php`, `public/images/logo_2.jpg`, migrations `jobs` + `document_notification_sends`, `docs/docker-reference.md`
 
 ### [031] Leave update wiped approval_plans without recreate (2026-07-29) ✅ COMPLETE
 

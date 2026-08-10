@@ -12,8 +12,10 @@ use App\Http\Controllers\Api\V1\LetterSubjectController;
 use App\Http\Controllers\Api\V1\OfficialtravelApiController;
 use App\Http\Controllers\Api\V1\PositionController;
 use App\Http\Controllers\Api\V1\ProjectController;
+use App\Http\Controllers\Api\V1\FuelBotApiController;
 use App\Http\Controllers\Api\V1\FuelClaimApiController;
 use App\Http\Controllers\Api\V1\VehicleApiController;
+use App\Http\Controllers\TelegramWebhookController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -169,6 +171,14 @@ Route::prefix('v1')->group(function () {
         ->name('api.v1.fuel-claims.sent');
     Route::put('fuel-claims/{fuelClaim}/realized', [FuelClaimApiController::class, 'markRealized'])
         ->name('api.v1.fuel-claims.realized');
+
+    // Fuel Telegram bot — whitelist + ingest API (X-API-Key); webhook uses secret_token
+    Route::get('fuel-bot/whitelist/{telegramUserId}', [FuelBotApiController::class, 'whitelistShow'])
+        ->name('api.v1.fuel-bot.whitelist.show');
+    Route::post('fuel-bot/fuel-records', [FuelBotApiController::class, 'storeFuelRecord'])
+        ->name('api.v1.fuel-bot.fuel-records.store');
+    Route::post('telegram/fuel-bot/webhook', TelegramWebhookController::class)
+        ->name('api.v1.telegram.fuel-bot.webhook');
 });
 
 /*

@@ -428,7 +428,7 @@
                                         <i class="fas fa-receipt"></i>
                                     </div>
                                     <div class="info-content">
-                                        <div class="info-label">Receipt No.</div>
+                                        <div class="info-label">No. Trans / Receipt No.</div>
                                         <div class="info-value">{{ $fuelRecord->receipt_number ?: '—' }}</div>
                                     </div>
                                 </div>
@@ -583,16 +583,23 @@
                             @if ($fuelRecord->status === 'submitted')
                                 <form method="POST" action="{{ route('fuel-records.verify', $fuelRecord) }}"
                                     class="confirm-submit"
-                                    data-confirm-message="Verify this fuel receipt?"
+                                    data-confirm-title="Verify fuel record?"
+                                    data-confirm-message="Mark this fuel receipt as verified?"
                                     data-confirm-yes="Yes, verify"
+                                    data-confirm-no="Cancel"
                                     data-confirm-icon="question">
                                     @csrf
                                     <button type="submit" class="btn-action fuel-verify-btn w-100">
                                         <i class="fas fa-check"></i> Verify
                                     </button>
                                 </form>
-                                <button type="button" class="btn-action fuel-delete-btn w-100" data-toggle="modal"
-                                    data-target="#rejectFuelModal">
+                                <form id="reject-fuel-form" method="POST"
+                                    action="{{ route('fuel-records.reject', $fuelRecord) }}" class="d-none">
+                                    @csrf
+                                    <input type="hidden" name="verification_notes" id="reject-verification-notes">
+                                </form>
+                                <button type="button" id="btn-reject-fuel"
+                                    class="btn-action fuel-delete-btn w-100">
                                     <i class="fas fa-times"></i> Reject
                                 </button>
                             @endif
@@ -602,8 +609,10 @@
                             @if ($fuelRecord->status !== 'claimed')
                                 <form method="POST" action="{{ route('fuel-records.destroy', $fuelRecord) }}"
                                     class="confirm-submit"
+                                    data-confirm-title="Delete fuel record?"
                                     data-confirm-message="Are you sure you want to delete this fuel record?"
                                     data-confirm-yes="Yes, delete"
+                                    data-confirm-no="Cancel"
                                     data-confirm-icon="warning">
                                     @csrf
                                     @method('DELETE')
@@ -618,34 +627,99 @@
             </div>
         </div>
     </div>
+@endsection
 
-    @can('fuel-records.verify')
-        @if ($fuelRecord->status === 'submitted')
-            <div class="modal fade" id="rejectFuelModal" tabindex="-1" role="dialog" aria-hidden="true">
-                <div class="modal-dialog" role="document">
-                    <form action="{{ route('fuel-records.reject', $fuelRecord) }}" method="POST">
-                        @csrf
-                        <div class="modal-content">
-                            <div class="modal-header">
-                                <h5 class="modal-title">Reject fuel record</h5>
-                                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                                    <span aria-hidden="true">&times;</span>
-                                </button>
-                            </div>
-                            <div class="modal-body">
-                                <div class="form-group">
-                                    <label>Reason <span class="text-danger">*</span></label>
-                                    <textarea name="verification_notes" class="form-control" rows="3" required></textarea>
-                                </div>
-                            </div>
-                            <div class="modal-footer">
-                                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-                                <button type="submit" class="btn btn-danger">Reject</button>
-                            </div>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        @endif
-    @endcan
+@section('scripts')
+    <script>
+        $(function() {
+            $(document).on('submit', 'form.confirm-submit', function(e) {
+                const form = this;
+                if (form.dataset.submitting === 'true') {
+                    return;
+                }
+                e.preventDefault();
+
+                const message = form.getAttribute('data-confirm-message') || 'Continue with this action?';
+                const title = form.getAttribute('data-confirm-title') || 'Confirm';
+                const confirmText = form.getAttribute('data-confirm-yes') || 'Yes';
+                const cancelText = form.getAttribute('data-confirm-no') || 'Cancel';
+                const icon = form.getAttribute('data-confirm-icon') || 'warning';
+
+                const proceed = () => {
+                    form.dataset.submitting = 'true';
+                    if (typeof toast_info === 'function') {
+                        toast_info('Processing...');
+                    }
+                    form.submit();
+                };
+
+                if (typeof Swal !== 'undefined' && Swal.fire) {
+                    Swal.fire({
+                        title: title,
+                        text: message,
+                        icon: icon,
+                        showCancelButton: true,
+                        confirmButtonColor: '#3085d6',
+                        cancelButtonColor: '#6c757d',
+                        confirmButtonText: confirmText,
+                        cancelButtonText: cancelText,
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            proceed();
+                        }
+                    });
+                } else if (confirm(message)) {
+                    proceed();
+                }
+            });
+
+            $('#btn-reject-fuel').on('click', function() {
+                const form = document.getElementById('reject-fuel-form');
+                if (!form || form.dataset.submitting === 'true') {
+                    return;
+                }
+
+                const submitReject = (notes) => {
+                    $('#reject-verification-notes').val(notes);
+                    form.dataset.submitting = 'true';
+                    if (typeof toast_info === 'function') {
+                        toast_info('Processing...');
+                    }
+                    form.submit();
+                };
+
+                if (typeof Swal !== 'undefined' && Swal.fire) {
+                    Swal.fire({
+                        title: 'Reject fuel record?',
+                        text: 'Please provide a reason for rejection.',
+                        icon: 'warning',
+                        input: 'textarea',
+                        inputPlaceholder: 'Rejection reason...',
+                        inputAttributes: {
+                            'aria-label': 'Rejection reason'
+                        },
+                        showCancelButton: true,
+                        confirmButtonColor: '#e74c3c',
+                        cancelButtonColor: '#6c757d',
+                        confirmButtonText: 'Yes, reject',
+                        cancelButtonText: 'Cancel',
+                        inputValidator: (value) => {
+                            if (!value || !String(value).trim()) {
+                                return 'Reason is required';
+                            }
+                        }
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            submitReject(String(result.value).trim());
+                        }
+                    });
+                } else {
+                    const notes = prompt('Rejection reason:');
+                    if (notes && notes.trim()) {
+                        submitReject(notes.trim());
+                    }
+                }
+            });
+        });
+    </script>
 @endsection
