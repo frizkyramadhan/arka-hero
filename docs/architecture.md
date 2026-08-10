@@ -96,16 +96,16 @@ This document describes the CURRENT WORKING STATE of the application architectur
 
 ```json
 {
-    "laravel/framework": "^10.0",
-    "laravel/sanctum": "^3.2",
-    "spatie/laravel-permission": "^6.16",
-    "spatie/laravel-activitylog": "^4.12",
-    "maatwebsite/excel": "^3.1",
-    "yajra/laravel-datatables-oracle": "^10.0",
-    "realrashid/sweet-alert": "^6.0",
-    "phpmailer/phpmailer": "^6.7",
-    "itsgoingd/clockwork": "^5.1",
-    "cviebrock/eloquent-sluggable": "^10.0"
+  "laravel/framework": "^10.0",
+  "laravel/sanctum": "^3.2",
+  "spatie/laravel-permission": "^6.16",
+  "spatie/laravel-activitylog": "^4.12",
+  "maatwebsite/excel": "^3.1",
+  "yajra/laravel-datatables-oracle": "^10.0",
+  "realrashid/sweet-alert": "^6.0",
+  "phpmailer/phpmailer": "^6.7",
+  "itsgoingd/clockwork": "^5.1",
+  "cviebrock/eloquent-sluggable": "^10.0"
 }
 ```
 
@@ -187,22 +187,22 @@ graph LR
 - 3-level approval workflow (Acknowledgment → PM Approval → Director Approval)
 - Candidate database with CV management and blacklist feature
 - Multi-stage recruitment process:
-    1. CV Review
-    2. Psychometric Test (Psikotes)
-    3. Theory Test (optional, based on position requirements)
-    4. Interview (User/Functional → HR → Director)
-    5. Offering & Negotiation
-    6. Medical Check-up (MCU)
-    7. Hiring (Contract type selection)
+  1. CV Review
+  2. Psychometric Test (Psikotes)
+  3. Theory Test (optional, based on position requirements)
+  4. Interview (User/Functional → HR → Director)
+  5. Offering & Negotiation
+  6. Medical Check-up (MCU)
+  7. Hiring (Contract type selection)
 - Man Power Plan (MPP) integration
 - Session-based tracking per candidate per FPTK
 - Recruitment reports:
-    - Funnel analysis (conversion rates per stage)
-    - Time-to-hire metrics
-    - Offer acceptance rate
-    - Interview assessment analytics
-    - Stale candidates tracking
-    - Aging report
+  - Funnel analysis (conversion rates per stage)
+  - Time-to-hire metrics
+  - Offer acceptance rate
+  - Interview assessment analytics
+  - Stale candidates tracking
+  - Aging report
 - Self-service portal for hiring managers to create FPTK
 
 **Key Routes**:
@@ -250,25 +250,25 @@ graph TD
 **Features**:
 
 - Comprehensive leave entitlement system with two calculation methods:
-    - **DOH-based** (Date of Hiring): Annual leave, Long Service Leave (LSL), Paid/Unpaid leave
-    - **Roster-based**: Periodic leave for shift workers (Group 2 projects)
+  - **DOH-based** (Date of Hiring): Annual leave, Long Service Leave (LSL), Paid/Unpaid leave
+  - **Roster-based**: Periodic leave for shift workers (Group 2 projects)
 - Project group classification:
-    - **Group 1**: Standard projects (000H, 001H, APS, 021C, 025C) - DOH-based entitlements
-    - **Group 2**: Operational projects (017C, 022C) - Roster-based periodic + DOH-based
+  - **Group 1**: Standard projects (000H, 001H, APS, 021C, 025C) - DOH-based entitlements
+  - **Group 2**: Operational projects (017C, 022C) - Roster-based periodic + DOH-based
 - Leave request workflow with approval routing
 - Leave cancellation system with approval flow
 - Auto-conversion of unpaid to annual leave (configurable)
 - Bulk periodic leave request creation
 - Roster management with cycle-based patterns (6/2, 8/2, 9/2, 10/2)
 - LSL special rules:
-    - Staff: 60 months DOH eligibility
-    - Non-staff: 72 months DOH eligibility
-    - Group 2: Requires 10 days periodic leave taken before LSL
+  - Staff: 60 months DOH eligibility
+  - Non-staff: 72 months DOH eligibility
+  - Group 2: Requires 10 days periodic leave taken before LSL
 - Leave reports:
-    - Monitoring report (all leave requests)
-    - Cancellation report
-    - Entitlement detailed report
-    - Auto-conversion tracking
+  - Monitoring report (all leave requests)
+  - Cancellation report
+  - Entitlement detailed report
+  - Auto-conversion tracking
 - Self-service portal for employees
 
 **Key Routes**:
@@ -311,14 +311,14 @@ graph TD
 - Category-based numbering with configurable formats
 - Subject template management per category
 - Category-specific form fields (dynamic UI via `category_code`):
-    - PKWT: `pkwt_type`, `duration`, `start_date`, `end_date`
-    - PAR: `par_type`
-    - FR: `ticket_classification`
-    - A/B: `classification`
-    - **SPM** (Surat Perjanjian Magang): `start_date`/`end_date` (periode magang), `department_id` (departemen ditempatkan), `educational_institution` (lembaga pendidikan asal/lulusan)
+  - PKWT: `pkwt_type`, `duration`, `start_date`, `end_date`
+  - PAR: `par_type`
+  - FR: `ticket_classification`
+  - A/B: `classification`
+  - **SPM** (Surat Perjanjian Magang): `start_date`/`end_date` (periode magang), `department_id` (departemen ditempatkan), `educational_institution` (lembaga pendidikan asal/lulusan)
 - Letter number lifecycle:
-    - Available → Reserved → Used
-    - Cancellation support
+  - Available → Reserved → Used
+  - Cancellation support
 - Project-specific letter numbering
 - Auto-assignment via API integration
 - Manual assignment for non-integrated documents
@@ -342,13 +342,13 @@ graph TD
 **Features**:
 
 - Multi-dashboard architecture:
-    - **Main Dashboard**: Overview of all modules
-    - **Employee Dashboard**: Employee statistics by department, project, recent hires
-    - **Official Travel Dashboard**: Pending approvals, arrivals, departures
-    - **Recruitment Dashboard**: Pipeline overview, pending tasks
-    - **Letter Administration Dashboard**: Letters by category, recent letters, statistics
-    - **Leave Management Dashboard**: Open requests, pending cancellations, employees without entitlements, expiring entitlements
-    - **Personal Dashboard**: User-specific quick access
+  - **Main Dashboard**: Overview of all modules
+  - **Employee Dashboard**: Employee statistics by department, project, recent hires
+  - **Official Travel Dashboard**: Pending approvals, arrivals, departures
+  - **Recruitment Dashboard**: Pipeline overview, pending tasks
+  - **Letter Administration Dashboard**: Letters by category, recent letters, statistics
+  - **Leave Management Dashboard**: Open requests, pending cancellations, employees without entitlements, expiring entitlements
+  - **Personal Dashboard**: User-specific quick access
 - Project and department summary views
 - Employee classification views (staff, employment type)
 - Birthday tracking
@@ -372,11 +372,11 @@ graph TD
 
 - Role-Based Access Control (RBAC) using Spatie Laravel Permission
 - Predefined roles:
-    - Administrator (full system access)
-    - HR Supervisor
-    - HR Manager
-    - Division Manager
-    - User (employee self-service)
+  - Administrator (full system access)
+  - HR Supervisor
+  - HR Manager
+  - Division Manager
+  - User (employee self-service)
 - Permission-based feature access
 - User-project and user-department associations
 - Sanctum token authentication for API
@@ -434,21 +434,23 @@ graph TD
 
 ### 8c. Vehicle Administration & Driver Fuel (GAMMA)
 
-**Controllers**: `VehicleController`, `VehicleDocumentController`, `FuelRecordController`, `FuelClaimController`, `Api\V1\VehicleApiController`, `Api\V1\FuelClaimApiController`  
-**Models**: `Vehicle`, `VehicleDocument`, `FuelRecord`, `FuelClaim`  
-**Services**: `ArkFleetClient`, `OpenRouterReceiptParser` (`config/openrouter.php`)
+**Controllers**: `VehicleController`, `VehicleDocumentController`, `FuelRecordController`, `FuelClaimController`, `FuelBotSubscriberController`, `TelegramWebhookController`, `Api\V1\VehicleApiController`, `Api\V1\FuelClaimApiController`, `Api\V1\FuelBotApiController`  
+**Models**: `Vehicle`, `VehicleDocument`, `FuelRecord`, `FuelClaim`, `FuelBotSubscriber`, `FuelBotSubmission`  
+**Services**: `ArkFleetClient`, `OpenRouterReceiptParser` (`config/openrouter.php`), `Telegram\TelegramClient`, `Telegram\TelegramFuelBotHandler`, `FuelBotIngestService`
 
 **Features**:
 
 - Light Vehicle master (Kode from ArkFleet `plant_group_id=3`) + STNK/PKB/KIR documents
 - Driver My Features Fuel Log: photo-first OpenRouter vision parse → confirm → `submitted`; manual fallback
-- Office verify/reject queue; bundle verified receipts into `fuel_claims` (`draft|ready|sent|realized|cancelled`)
+- Office verify/reject queue; bundle verified receipts into `fuel_claims` (`draft|ready|sent|realized|cancelled`). Draft claims support adding verified/unclaimed receipts, editing receipt fields via modal, and removing current receipts; all operations recalculate totals atomically. Print view (`/fuel-claims/{id}/print`) lays receipt photos in A4 portrait 3×3 grids (9 per page, base64-embedded private images).
 - Light PWA (`manifest.webmanifest` + `sw.js`) for installable Fuel Log
+- Telegram Fuel Bot (off-network): whitelist employees → photo → AI → YA/TIDAK → ingest as `submitted` fuel record
+- Fuel Bot activity log (`fuel_bot_submissions`) UI under SYSTEMS → Fuel Bot: pipeline status, parsed JSON, inbox photo, link to created fuel record
 
 **Key Routes**:
 
-- Web: `/vehicles/*`, `/fuel-records/*`, `/fuel-records/my-requests*`, `/fuel-records/pending*`, `/fuel-claims/*`
-- API: `GET /api/v1/vehicles*`, `GET/PUT /api/v1/fuel-claims*` (list ready, detail, mark sent/realized)
+- Web: `/vehicles/*`, `/fuel-records/*`, `/fuel-records/my-requests*`, `/fuel-records/pending*`, `/fuel-claims/*`, `/fuel-bot-subscribers/*`, `/fuel-bot-logs/*`
+- API: `GET /api/v1/vehicles*`, `GET/PUT /api/v1/fuel-claims*`, `GET /api/v1/fuel-bot/whitelist/{id}`, `POST /api/v1/fuel-bot/fuel-records`, `POST /api/v1/telegram/fuel-bot/webhook`
 
 ### 9. Employee Bonds & Violations
 
@@ -469,6 +471,49 @@ graph TD
 - Web: `/bond-violations/*` - Violation tracking
 - API: `/api/v1/bond-violations/*` - API access
 
+### 10. Pembinaan (Coaching/Counseling) & Surat Peringatan (SP)
+
+**Controllers**: `EmployeeDisciplinaryController`, `DisciplinaryCriterionController`  
+**Service**: `App\Services\DisciplinaryService`  
+**Models**: `EmployeeDisciplinary`, `DisciplinaryCriterion`  
+**Tables**: `employee_disciplinaries`, `disciplinary_criteria`, pivot `employee_disciplinary_criterion`
+
+**Features**:
+
+- Pembinaan types: Coaching & Counseling (independent, 3-month validity; can coexist)
+- SP ladder: SP1 → SP2 → SP3 (SP Pertama & Terakhir), 6-month validity
+- Active SP floor: another violation during validity **must escalate** (same/lower SP blocked; no return to pembinaan); create UI pre-selects next level; jump-up allowed with PP criteria
+- Multi-select PP criteria per SP record (many-to-many)
+- Auto-expire via `disciplinary:expire` (daily 00:08) + lazy expire on access
+- Repeat violation while SP3 active → confirm terminate active `administrations` row
+- Permissions: `employee-disciplinaries.*`, `disciplinary-criteria.*`, `personal.disciplinary.view-own` (`DisciplinaryPermissionSeeder`)
+- Identity UI: employee **Name + NIK KTP** (`identity_card`), company NIK secondary
+- Personal (view-only): My Features → **My Disciplinary Record**; also shown on My Dashboard
+- Excel **Export / Import** (Maatwebsite): filtered export (same query params as list); columns include `remaining_days` (after `end_date`; blank if not active) and `Imported (doc later)` Yes/No (`imported_at`); import creates via `DisciplinaryService` without document; sets `imported_at` so supporting document can be uploaded later (`upload-document`); normal create still requires document
+- List filters (admin + my-records): status, type, **PP Criteria** (`criterion_id` via `whereHas('criteria')`), employee (admin only), date from and/or to — DataTables built-in search disabled (`searching: false`, `dom: 'rtip'`)
+
+**Key Routes**:
+
+- Web: `/employee-disciplinaries?scope=pembinaan|sp` — list/CRUD
+- Web: `/employee-disciplinaries/export` — Excel export (respects list filters)
+- Web: `/employee-disciplinaries/template` — empty import template
+- Web: `POST /employee-disciplinaries/import` — Excel import
+- Web: `POST /employee-disciplinaries/{id}/upload-document` — deferred doc for imported rows
+- Web: `/employee-disciplinaries/my-records` — personal list/detail (own records only)
+- Web: `/employee-disciplinaries/employees/{employee}/terminate` — post-SP3 termination
+- Web: `/disciplinary-criteria/*` — master kriteria PP
+
+```mermaid
+flowchart TD
+  issue[HCS issues record] --> band{Active SP floor?}
+  band -->|None| free[Coaching Counseling or SP1-SP3]
+  band -->|SP1 or SP2| spOnly[Only SP at or above floor]
+  band -->|SP3| term[Confirm auto-termination]
+  free --> save[Save + end_date]
+  spOnly --> save
+  cron[disciplinary:expire] --> expired[active to expired]
+```
+
 ## Database Schema Overview
 
 ### Core Tables (140 migrations)
@@ -484,6 +529,9 @@ graph TD
 **Employee Management**:
 
 - `employees` - Employee master data
+- `employee_disciplinaries` - Coaching/Counseling/SP records with validity & status
+- `disciplinary_criteria` - Master kriteria PP per tipe SP
+- `employee_disciplinary_criterion` - Pivot multi-kriteria per disciplinary record
 - `licenses` - Employee licenses
 - `insurances` - Employee insurance records
 - `families` - Employee family members
@@ -567,7 +615,7 @@ graph TD
 - `DocumentApprovalNotification::mailViewData()` - single data source for production mail and no-send browser preview; HTML + plain-text multipart; logo from `DOCUMENT_NOTIFICATIONS_BASE_URL` + `logo_path`
 - `debug.email-notifications.litmus` - administrator render-only pass/fail matrix (no SMTP)
 - Activity Logs email metrics: live pending `jobs` backlog plus 7-day `email_queued` / `email_sent` / `email_failed` / `email_skipped` totals and per-document-type breakdown
-**Employee Registration**:
+  **Employee Registration**:
 
 - `employee_registration_tokens` - Invitation tokens
 - `employee_registrations` - Self-service registration data
@@ -634,9 +682,9 @@ erDiagram
 - **Method**: Laravel Sanctum token-based authentication
 - **Header**: `Authorization: Bearer {token}`
 - **Endpoints**:
-    - `POST /api/v1/auth/login` - Login and get token
-    - `POST /api/v1/auth/logout` - Revoke token
-    - `GET /api/v1/auth/user` - Get authenticated user
+  - `POST /api/v1/auth/login` - Login and get token
+  - `POST /api/v1/auth/logout` - Revoke token
+  - `GET /api/v1/auth/user` - Get authenticated user
 
 ### API Endpoints by Module
 
@@ -692,6 +740,9 @@ erDiagram
 - `GET /api/v1/fuel-claims/{id}` - Claim detail with receipt line items
 - `PUT /api/v1/fuel-claims/{id}/sent` - External app marks claim sent
 - `PUT /api/v1/fuel-claims/{id}/realized` - External app marks claim realized
+- `GET /api/v1/fuel-bot/whitelist/{telegramUserId}` - Check Telegram whitelist
+- `POST /api/v1/fuel-bot/fuel-records` - Multipart ingest from bot (idempotent `client_uuid`)
+- `POST /api/v1/telegram/fuel-bot/webhook` - Telegram updates (secret_token; no X-API-Key)
 
 **Recruitment**:
 
@@ -778,11 +829,11 @@ Standard JSON response structure:
 
 ```json
 {
-    "success": true,
-    "message": "Operation successful",
-    "data": {
-        /* response data */
-    }
+  "success": true,
+  "message": "Operation successful",
+  "data": {
+    /* response data */
+  }
 }
 ```
 
@@ -790,11 +841,11 @@ Error response:
 
 ```json
 {
-    "success": false,
-    "message": "Error message",
-    "errors": {
-        /* validation errors */
-    }
+  "success": false,
+  "message": "Error message",
+  "errors": {
+    /* validation errors */
+  }
 }
 ```
 
@@ -948,11 +999,11 @@ arka-hero/
 - **Driver**: Local filesystem
 - **Storage Path**: `storage/app`
 - **Subdirectories**:
-    - `storage/app/cv/` - Candidate CVs
-    - `storage/app/documents/` - Employee documents
-    - `storage/app/registration-documents/` - Registration documents
-    - `storage/app/bonds/` - Bond documents
-    - `storage/app/leaves/` - Leave supporting documents
+  - `storage/app/cv/` - Candidate CVs
+  - `storage/app/documents/` - Employee documents
+  - `storage/app/registration-documents/` - Registration documents
+  - `storage/app/bonds/` - Bond documents
+  - `storage/app/leaves/` - Leave supporting documents
 
 ### Logging
 

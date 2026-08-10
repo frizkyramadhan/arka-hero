@@ -79,9 +79,10 @@
     </div>
     <div class="col-md-4">
         <div class="form-group">
-            <label>Receipt No.</label>
+            <label>No. Trans / Receipt No.</label>
             <input type="text" name="receipt_number" class="form-control"
-                value="{{ old('receipt_number', $record->receipt_number ?? '') }}">
+                value="{{ old('receipt_number', $record->receipt_number ?? '') }}"
+                placeholder="No. Trans / No. Struk / Receipt No.">
         </div>
     </div>
     <div class="col-md-4">

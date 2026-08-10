@@ -17,7 +17,9 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DebugController;
 use App\Http\Controllers\DebugEmailNotificationController;
 use App\Http\Controllers\DepartmentController;
+use App\Http\Controllers\DisciplinaryCriterionController;
 use App\Http\Controllers\EducationController;
+use App\Http\Controllers\EmployeeDisciplinaryController;
 use App\Http\Controllers\EmailController;
 use App\Http\Controllers\EmployeebankController;
 use App\Http\Controllers\EmployeeBondController;
@@ -72,6 +74,8 @@ use App\Http\Controllers\TransportationController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\VehicleController;
 use App\Http\Controllers\VehicleDocumentController;
+use App\Http\Controllers\FuelBotLogController;
+use App\Http\Controllers\FuelBotSubscriberController;
 use App\Http\Controllers\FuelClaimController;
 use App\Http\Controllers\FuelRecordController;
 use Illuminate\Support\Facades\Route;
@@ -331,9 +335,28 @@ Route::group(['middleware' => ['auth']], function () {
         Route::get('create', [FuelClaimController::class, 'create'])->name('create');
         Route::post('/', [FuelClaimController::class, 'store'])->name('store');
         Route::get('{fuelClaim}', [FuelClaimController::class, 'show'])->name('show');
+        Route::get('{fuelClaim}/print', [FuelClaimController::class, 'print'])->name('print');
+        Route::post('{fuelClaim}/receipts', [FuelClaimController::class, 'addReceipts'])->name('receipts.store');
+        Route::put('{fuelClaim}/receipts/{fuelRecord}', [FuelClaimController::class, 'updateReceipt'])->name('receipts.update');
+        Route::delete('{fuelClaim}/receipts/{fuelRecord}', [FuelClaimController::class, 'removeReceipt'])->name('receipts.destroy');
         Route::post('{fuelClaim}/ready', [FuelClaimController::class, 'markReady'])->name('ready');
         Route::post('{fuelClaim}/cancel', [FuelClaimController::class, 'cancel'])->name('cancel');
         Route::delete('{fuelClaim}', [FuelClaimController::class, 'destroy'])->name('destroy');
+    });
+
+    Route::prefix('fuel-bot-subscribers')->name('fuel-bot-subscribers.')->group(function () {
+        Route::get('data', [FuelBotSubscriberController::class, 'data'])->name('data');
+        Route::get('/', [FuelBotSubscriberController::class, 'index'])->name('index');
+        Route::post('/', [FuelBotSubscriberController::class, 'store'])->name('store');
+        Route::put('{fuelBotSubscriber}', [FuelBotSubscriberController::class, 'update'])->name('update');
+        Route::delete('{fuelBotSubscriber}', [FuelBotSubscriberController::class, 'destroy'])->name('destroy');
+    });
+
+    Route::prefix('fuel-bot-logs')->name('fuel-bot-logs.')->group(function () {
+        Route::get('data', [FuelBotLogController::class, 'data'])->name('data');
+        Route::get('/', [FuelBotLogController::class, 'index'])->name('index');
+        Route::get('{fuelBotLog}', [FuelBotLogController::class, 'show'])->name('show');
+        Route::get('{fuelBotLog}/receipt', [FuelBotLogController::class, 'receipt'])->name('receipt');
     });
 
     // Room & Consumption Requests
@@ -507,6 +530,27 @@ Route::group(['middleware' => ['auth']], function () {
     Route::get('bond-violations/data', [BondViolationController::class, 'getViolations'])->name('bond-violations.data');
     Route::resource('bond-violations', BondViolationController::class);
     Route::post('bond-violations/calculate-penalty', [BondViolationController::class, 'calculatePenalty'])->name('bond-violations.calculate-penalty');
+
+    // Pembinaan & Surat Peringatan (SP)
+    Route::get('employee-disciplinaries/my-records', [EmployeeDisciplinaryController::class, 'myRecords'])->name('employee-disciplinaries.my-records');
+    Route::get('employee-disciplinaries/my-records/data', [EmployeeDisciplinaryController::class, 'myRecordsData'])->name('employee-disciplinaries.my-records.data');
+    Route::get('employee-disciplinaries/my-records/{employeeDisciplinary}', [EmployeeDisciplinaryController::class, 'myRecordsShow'])->name('employee-disciplinaries.my-records.show');
+    Route::get('employee-disciplinaries/data', [EmployeeDisciplinaryController::class, 'getData'])->name('employee-disciplinaries.data');
+    Route::get('employee-disciplinaries/export', [EmployeeDisciplinaryController::class, 'export'])->name('employee-disciplinaries.export');
+    Route::get('employee-disciplinaries/template', [EmployeeDisciplinaryController::class, 'template'])->name('employee-disciplinaries.template');
+    Route::post('employee-disciplinaries/import', [EmployeeDisciplinaryController::class, 'import'])->name('employee-disciplinaries.import');
+    Route::get('employee-disciplinaries/employees/{employee}/status', [EmployeeDisciplinaryController::class, 'employeeStatus'])->name('employee-disciplinaries.employee-status');
+    Route::get('employee-disciplinaries/employees/{employee}/terminate', [EmployeeDisciplinaryController::class, 'terminateForm'])->name('employee-disciplinaries.terminate-form');
+    Route::post('employee-disciplinaries/employees/{employee}/terminate', [EmployeeDisciplinaryController::class, 'terminateAfterSp3'])->name('employee-disciplinaries.terminate');
+    Route::get('employee-disciplinaries/{employeeDisciplinary}/download', [EmployeeDisciplinaryController::class, 'download'])->name('employee-disciplinaries.download');
+    Route::post('employee-disciplinaries/{employeeDisciplinary}/upload-document', [EmployeeDisciplinaryController::class, 'uploadDocument'])->name('employee-disciplinaries.upload-document');
+    Route::resource('employee-disciplinaries', EmployeeDisciplinaryController::class);
+
+    // Master Kriteria PP
+    Route::get('disciplinary-criteria/data', [DisciplinaryCriterionController::class, 'getData'])->name('disciplinary-criteria.data');
+    Route::get('disciplinary-criteria/options', [DisciplinaryCriterionController::class, 'options'])->name('disciplinary-criteria.options');
+    Route::post('disciplinary-criteria/{disciplinary_criterion}/status', [DisciplinaryCriterionController::class, 'changeStatus'])->name('disciplinary-criteria.status');
+    Route::resource('disciplinary-criteria', DisciplinaryCriterionController::class)->except(['create', 'edit', 'show']);
 
     Route::get('personals', [EmployeeController::class, 'personal'])->name('employees.personal');
 

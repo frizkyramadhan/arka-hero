@@ -144,6 +144,14 @@
                                 </a>
                             </li>
                         @endcanany
+                        @can('personal.disciplinary.view-own')
+                            <li class="nav-item">
+                                <a class="nav-link" href="#" data-tab="disciplinary" role="tab">
+                                    <i class="fas fa-exclamation-triangle mr-1"></i> <span
+                                        style="font-size: 93%;">Disciplinary</span>
+                                </a>
+                            </li>
+                        @endcan
                         @canany(['personal.recruitment.view-own', 'personal.recruitment.create-own'])
                             <li class="nav-item">
                                 <a class="nav-link" href="#" data-tab="recruitment" role="tab">
@@ -425,6 +433,48 @@
                                 </div>
                                 <a href="{{ route('room-consumption-requests.my-requests') }}"
                                     class="btn btn-sm btn-warning btn-block mt-3">
+                                    View Details <i class="fas fa-arrow-right ml-1"></i>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                @endcan
+
+                @can('personal.disciplinary.view-own')
+                    <div
+                        class="col-lg-4 col-md-6 mb-3 dashboard-tab-content dashboard-tab-overview dashboard-tab-disciplinary">
+                        <div class="card card-outline card-danger shadow-sm h-100">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h6 class="text-muted text-uppercase mb-1"
+                                            style="font-size: 0.75rem; letter-spacing: 0.5px;">
+                                            Disciplinary
+                                        </h6>
+                                        <h2 class="mb-0 font-weight-bold">{{ $disciplinaryStats['total'] }}</h2>
+                                        <small class="text-muted">
+                                            <i class="fas fa-check-circle text-success mr-1"></i>
+                                            {{ $disciplinaryStats['active'] }} Active
+                                            <span class="mx-1">·</span>
+                                            <i class="fas fa-exclamation-triangle text-danger mr-1"></i>
+                                            {{ $disciplinaryStats['active_sp'] }} Active SP
+                                        </small>
+                                    </div>
+                                    <div class="icon-circle bg-danger">
+                                        <i class="fas fa-exclamation-triangle"></i>
+                                    </div>
+                                </div>
+                                <div class="mt-3">
+                                    <div class="progress" style="height: 6px;">
+                                        <div class="progress-bar bg-danger" role="progressbar"
+                                            style="width: {{ $disciplinaryStats['total'] > 0 ? ($disciplinaryStats['active'] / $disciplinaryStats['total']) * 100 : 0 }}%"
+                                            aria-valuenow="{{ $disciplinaryStats['active'] }}" aria-valuemin="0"
+                                            aria-valuemax="{{ $disciplinaryStats['total'] }}">
+                                        </div>
+                                    </div>
+                                </div>
+                                <a href="{{ route('employee-disciplinaries.my-records') }}"
+                                    class="btn btn-sm btn-danger btn-block mt-3">
                                     View Details <i class="fas fa-arrow-right ml-1"></i>
                                 </a>
                             </div>
@@ -1167,6 +1217,82 @@
                                                         @endphp
                                                         <span
                                                             class="badge badge-lg {{ $rcrBadge }}">{{ strtoupper($rcrStatus) }}</span>
+                                                    </div>
+                                                </div>
+                                            </a>
+                                        @endforeach
+                                    </div>
+                                @endif
+                            </div>
+                        </div>
+                    </div>
+                @endcan
+
+                @can('personal.disciplinary.view-own')
+                    <div
+                        class="col-12 col-lg-6 mb-3 mb-lg-0 dashboard-tab-content dashboard-tab-overview dashboard-tab-disciplinary">
+                        <div class="card card-outline card-danger shadow-sm h-100">
+                            <div class="card-header border-bottom">
+                                <h3 class="card-title mb-0">
+                                    <i class="fas fa-exclamation-triangle mr-2"></i>
+                                    Recent Disciplinary Records
+                                </h3>
+                                <div class="card-tools">
+                                    <a href="{{ route('employee-disciplinaries.my-records') }}"
+                                        class="btn btn-sm btn-danger">
+                                        <i class="fas fa-list mr-1"></i> View All
+                                    </a>
+                                </div>
+                            </div>
+                            <div class="card-body p-0">
+                                @if ($recentDisciplinaryRecords->isEmpty())
+                                    <div class="text-center py-5">
+                                        <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                                        <p class="text-muted mb-0">No disciplinary records</p>
+                                    </div>
+                                @else
+                                    <div class="list-group list-group-flush">
+                                        @foreach ($recentDisciplinaryRecords as $disc)
+                                            <a href="{{ route('employee-disciplinaries.my-records.show', $disc) }}"
+                                                class="list-group-item list-group-item-action">
+                                                <div class="d-flex justify-content-between align-items-start">
+                                                    <div class="flex-grow-1">
+                                                        <h6 class="mb-1 font-weight-bold">
+                                                            {{ $disc->type_label }}
+                                                        </h6>
+                                                        <p class="mb-1 text-muted small">
+                                                            <i class="far fa-calendar mr-1"></i>
+                                                            {{ $disc->effective_date ? $disc->effective_date->format('d M Y') : '—' }}
+                                                            &mdash;
+                                                            {{ $disc->end_date ? $disc->end_date->format('d M Y') : '—' }}
+                                                            @if ($disc->status === 'active')
+                                                                <span class="ml-1">({{ $disc->remaining_days }} days
+                                                                    left)</span>
+                                                            @endif
+                                                        </p>
+                                                        <small class="text-muted">
+                                                            @if ($disc->criteria->isNotEmpty())
+                                                                {{ $disc->criteria->pluck('code')->take(3)->implode(', ') }}
+                                                                @if ($disc->criteria->count() > 3)
+                                                                    +{{ $disc->criteria->count() - 3 }}
+                                                                @endif
+                                                            @else
+                                                                No PP criteria
+                                                            @endif
+                                                        </small>
+                                                    </div>
+                                                    <div class="ml-3">
+                                                        @php
+                                                            $discBadge = match ($disc->status) {
+                                                                'active' => 'badge-success',
+                                                                'expired' => 'badge-secondary',
+                                                                'superseded' => 'badge-warning',
+                                                                'terminated' => 'badge-danger',
+                                                                default => 'badge-secondary',
+                                                            };
+                                                        @endphp
+                                                        <span
+                                                            class="badge badge-lg {{ $discBadge }}">{{ strtoupper($disc->status) }}</span>
                                                     </div>
                                                 </div>
                                             </a>

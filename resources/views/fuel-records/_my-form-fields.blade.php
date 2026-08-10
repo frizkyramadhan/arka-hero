@@ -63,9 +63,10 @@
         value="{{ old('fuel_station', $record->fuel_station ?? '') }}" placeholder="SPBU …">
 </div>
 <div class="form-group">
-    <label>Receipt no.</label>
+    <label>No. Trans / Receipt No.</label>
     <input type="text" name="receipt_number" id="receipt_number{{ $idSuffix }}" class="form-control"
-        value="{{ old('receipt_number', $record->receipt_number ?? '') }}">
+        value="{{ old('receipt_number', $record->receipt_number ?? '') }}"
+        placeholder="No. Trans / No. Struk / Receipt No.">
 </div>
 <div class="form-group">
     <label>Notes</label>

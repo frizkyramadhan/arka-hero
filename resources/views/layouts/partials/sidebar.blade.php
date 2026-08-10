@@ -51,9 +51,9 @@
 
                 {{-- My Features Dropdown --}}
                 <li
-                    class="nav-item {{ Request::is('leave/my-*') || Request::is('officialtravels/my-*') || Request::is('recruitment/my-*') || Request::is('profile/my-profile*') || Request::is('flight/my-*') || Request::is('overtime/my-requests*') || Request::is('room-consumption-requests/my-requests*') ? 'menu-open' : '' }}">
+                    class="nav-item {{ Request::is('leave/my-*') || Request::is('officialtravels/my-*') || Request::is('recruitment/my-*') || Request::is('profile/my-profile*') || Request::is('flight/my-*') || Request::is('overtime/my-requests*') || Request::is('room-consumption-requests/my-requests*') || Request::is('employee-disciplinaries/my-records*') ? 'menu-open' : '' }}">
                     <a href="#"
-                        class="nav-link {{ Request::is('leave/my-*') || Request::is('officialtravels/my-*') || Request::is('recruitment/my-*') || Request::is('profile/my-profile*') || Request::is('flight/my-*') || Request::is('overtime/my-requests*') || Request::is('room-consumption-requests/my-requests*') ? 'active' : '' }}">
+                        class="nav-link {{ Request::is('leave/my-*') || Request::is('officialtravels/my-*') || Request::is('recruitment/my-*') || Request::is('profile/my-profile*') || Request::is('flight/my-*') || Request::is('overtime/my-requests*') || Request::is('room-consumption-requests/my-requests*') || Request::is('employee-disciplinaries/my-records*') ? 'active' : '' }}">
                         <i class="nav-icon fas fa-folder-open"></i>
                         <p>
                             My Features
@@ -141,6 +141,17 @@
                         </li>
                         @endcanany
 
+                        {{-- My Disciplinary Record --}}
+                        @can('personal.disciplinary.view-own')
+                        <li class="nav-item">
+                            <a href="{{ route('employee-disciplinaries.my-records') }}"
+                                class="nav-link {{ Request::is('employee-disciplinaries/my-records*') ? 'active' : '' }}">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>My Disciplinary Record</p>
+                            </a>
+                        </li>
+                        @endcan
+
 
                     </ul>
                 </li>
@@ -186,7 +197,8 @@
                 </li>
                 @endcanany
 
-                @canany(['employees.show', 'recruitment-requests.show', 'recruitment-candidates.show',
+                @canany(['employees.show', 'employee-disciplinaries.show',
+                'recruitment-requests.show', 'recruitment-candidates.show',
                 'recruitment-sessions.show', 'official-travels.show', 'leave-requests.show',
                 'periodic-leave-requests.show', 'leave-entitlements.show', 'leave-reports.show', 'roster.show',
                 'overtime-requests.show'])
@@ -195,11 +207,11 @@
                 @endcanany
 
                 {{-- Employee Management --}}
-                @can('employees.show')
+                @canany(['employees.show', 'employee-disciplinaries.show'])
                 <li
-                    class="nav-item {{ Request::is('employees*') || Request::is('terminations*') || Request::is('employee-bonds*') || Request::is('bond-violations*') || Request::is('dashboard/employees') ? 'menu-open' : '' }}">
+                    class="nav-item {{ Request::is('employees*') || Request::is('terminations*') || Request::is('employee-bonds*') || Request::is('bond-violations*') || Request::is('employee-disciplinaries*') || Request::is('dashboard/employees') ? 'menu-open' : '' }}">
                     <a href="#"
-                        class="nav-link {{ Request::is('employees*') || Request::is('terminations*') || Request::is('employee-bonds*') || Request::is('bond-violations*') || Request::is('dashboard/employees') ? 'active' : '' }}">
+                        class="nav-link {{ Request::is('employees*') || Request::is('terminations*') || Request::is('employee-bonds*') || Request::is('bond-violations*') || Request::is('employee-disciplinaries*') || Request::is('dashboard/employees') ? 'active' : '' }}">
                         <i class="nav-icon fas fa-users"></i>
                         <p>
                             Employee Management
@@ -207,6 +219,7 @@
                         <i class="fas fa-angle-left right"></i>
                     </a>
                     <ul class="nav nav-treeview">
+                        @can('employees.show')
                         <li class="nav-item">
                             <a href="{{ route('dashboard.employees') }}"
                                 class="nav-link {{ Request::is('dashboard/employees') ? 'active' : '' }}">
@@ -235,9 +248,19 @@
                                 <p>Bond Violations</p>
                             </a>
                         </li>
+                        @endcan
+                        @can('employee-disciplinaries.show')
+                        <li class="nav-item">
+                            <a href="{{ route('employee-disciplinaries.index') }}"
+                                class="nav-link {{ Request::is('employee-disciplinaries*') ? 'active' : '' }}">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>Disciplinary</p>
+                            </a>
+                        </li>
+                        @endcan
                     </ul>
                 </li>
-                @endcan
+                @endcanany
 
                 {{-- Recruitment Management --}}
                 @canany(['recruitment-requests.show', 'recruitment-candidates.show', 'recruitment-sessions.show'])
@@ -642,9 +665,8 @@
                 $isVehicleDashboard = Request::is('dashboard/vehicles');
                 $isVehicleList = Request::is('vehicles*') && !Request::is('fuel-*');
                 $isFuelRecords = Request::is('fuel-records*') && !Request::is('fuel-records/my-requests*') && !Request::is('fuel-records/pending*');
-                $isFuelPending = Request::is('fuel-records/pending*');
                 $isFuelClaims = Request::is('fuel-claims*');
-                $isVehicleMenuOpen = $isVehicleDashboard || $isVehicleList || $isFuelRecords || $isFuelPending || $isFuelClaims;
+                $isVehicleMenuOpen = $isVehicleDashboard || $isVehicleList || $isFuelRecords || $isFuelClaims;
                 @endphp
                 <li class="nav-item {{ $isVehicleMenuOpen ? 'menu-open' : '' }}">
                     <a href="#" class="nav-link {{ $isVehicleMenuOpen ? 'active' : '' }}">
@@ -677,15 +699,6 @@
                                 class="nav-link {{ $isFuelRecords ? 'active' : '' }}">
                                 <i class="far fa-circle nav-icon"></i>
                                 <p>Fuel Records</p>
-                            </a>
-                        </li>
-                        @endcan
-                        @can('fuel-records.verify')
-                        <li class="nav-item">
-                            <a href="{{ route('fuel-records.pending') }}"
-                                class="nav-link {{ $isFuelPending ? 'active' : '' }}">
-                                <i class="far fa-circle nav-icon"></i>
-                                <p>Pending Verification</p>
                             </a>
                         </li>
                         @endcan
@@ -739,12 +752,12 @@
                 @endcan
 
                 {{-- MASTER DATA --}}
-                @canany(['master-data.show', 'business-partners.show', 'national-holidays.show', 'meeting-rooms.show'])
+                @canany(['master-data.show', 'business-partners.show', 'national-holidays.show', 'meeting-rooms.show', 'disciplinary-criteria.show'])
                 {{-- Master Data Dropdown --}}
                 <li
-                    class="nav-item {{ Request::is('banks*') || Request::is('religions*') || Request::is('positions*') || Request::is('departments*') || Request::is('projects*') || Request::is('grades*') || Request::is('levels*') || Request::is('transportations*') || Request::is('accommodations*') || Request::is('meeting-rooms*') || Request::is('letter-categories*') || Request::is('leave/types*') || Request::is('leave/national-holidays*') || Request::is('business-partners*') ? 'menu-open' : '' }}">
+                    class="nav-item {{ Request::is('banks*') || Request::is('religions*') || Request::is('positions*') || Request::is('departments*') || Request::is('projects*') || Request::is('grades*') || Request::is('levels*') || Request::is('transportations*') || Request::is('accommodations*') || Request::is('meeting-rooms*') || Request::is('letter-categories*') || Request::is('leave/types*') || Request::is('leave/national-holidays*') || Request::is('business-partners*') || Request::is('disciplinary-criteria*') ? 'menu-open' : '' }}">
                     <a href="#"
-                        class="nav-link {{ Request::is('banks*') || Request::is('religions*') || Request::is('positions*') || Request::is('departments*') || Request::is('projects*') || Request::is('grades*') || Request::is('levels*') || Request::is('transportations*') || Request::is('accommodations*') || Request::is('meeting-rooms*') || Request::is('letter-categories*') || Request::is('leave/types*') || Request::is('leave/national-holidays*') || Request::is('business-partners*') ? 'active' : '' }}">
+                        class="nav-link {{ Request::is('banks*') || Request::is('religions*') || Request::is('positions*') || Request::is('departments*') || Request::is('projects*') || Request::is('grades*') || Request::is('levels*') || Request::is('transportations*') || Request::is('accommodations*') || Request::is('meeting-rooms*') || Request::is('letter-categories*') || Request::is('leave/types*') || Request::is('leave/national-holidays*') || Request::is('business-partners*') || Request::is('disciplinary-criteria*') ? 'active' : '' }}">
                         <i class="nav-icon fas fa-database"></i>
                         <p>
                             Master Data
@@ -806,6 +819,15 @@
                                 <p>Banks</p>
                             </a>
                         </li>
+                        @can('disciplinary-criteria.show')
+                        <li class="nav-item">
+                            <a href="{{ route('disciplinary-criteria.index') }}"
+                                class="nav-link {{ Request::is('disciplinary-criteria*') ? 'active' : '' }}">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>PP Criteria</p>
+                            </a>
+                        </li>
+                        @endcan
 
                         {{-- Official Travel Data Group --}}
                         <li class="nav-header"
@@ -896,7 +918,8 @@
                 @endcanany
 
                 {{-- ADMINISTRATOR --}}
-                @canany(['users.show', 'roles.show', 'permissions.show', 'activity-logs.show'])
+                @canany(['users.show', 'roles.show', 'permissions.show', 'activity-logs.show',
+                'fuel-bot-subscribers.show', 'fuel-bot-logs.show'])
                 <li class="nav-header">SYSTEMS</li>
                 <li class="nav-item">
                     <a href="{{ url('users') }}" class="nav-link {{ Request::is('users*') ? 'active' : '' }}">
@@ -926,6 +949,39 @@
                     </a>
                 </li>
                 @endcan
+                @canany(['fuel-bot-subscribers.show', 'fuel-bot-logs.show'])
+                <li
+                    class="nav-item {{ Request::is('fuel-bot-subscribers*') || Request::is('fuel-bot-logs*') ? 'menu-open' : '' }}">
+                    <a href="#"
+                        class="nav-link {{ Request::is('fuel-bot-subscribers*') || Request::is('fuel-bot-logs*') ? 'active' : '' }}">
+                        <i class="nav-icon fab fa-telegram-plane"></i>
+                        <p>
+                            Telegram Fuel Bot
+                            <i class="fas fa-angle-left right"></i>
+                        </p>
+                    </a>
+                    <ul class="nav nav-treeview">
+                        @can('fuel-bot-subscribers.show')
+                        <li class="nav-item">
+                            <a href="{{ route('fuel-bot-subscribers.index') }}"
+                                class="nav-link {{ Request::is('fuel-bot-subscribers*') ? 'active' : '' }}">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>Whitelist</p>
+                            </a>
+                        </li>
+                        @endcan
+                        @can('fuel-bot-logs.show')
+                        <li class="nav-item">
+                            <a href="{{ route('fuel-bot-logs.index') }}"
+                                class="nav-link {{ Request::is('fuel-bot-logs*') ? 'active' : '' }}">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>Activity Log</p>
+                            </a>
+                        </li>
+                        @endcan
+                    </ul>
+                </li>
+                @endcanany
                 @role('administrator')
                 <li class="nav-item">
                     <a href="{{ route('debug.email-notifications.index') }}"

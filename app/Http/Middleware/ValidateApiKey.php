@@ -15,6 +15,11 @@ class ValidateApiKey
      */
     public function handle(Request $request, Closure $next): Response
     {
+        // Telegram cannot send X-API-Key; webhook uses its own secret_token check.
+        if ($request->is('api/v1/telegram/*')) {
+            return $next($request);
+        }
+
         if (! config('services.api.require_key', true)) {
             return $next($request);
         }

@@ -703,6 +703,13 @@ Untuk integrasi **eksternal** server-to-server, gunakan endpoint di **§1–§10
 - **`GET /api/v1/vehicle-documents/expiring?days=30`** — dokumen expired atau jatuh tempo dalam N hari; query `document_type`, `include_archived`, `per_page`.
 - Auth sama grup `api`: **`X-API-Key`** atau **`Authorization: Bearer`**. Envelope: `{ success, data, meta }`.
 
+**2026-08-05 — Telegram Fuel Bot API**
+
+- **`GET /api/v1/fuel-bot/whitelist/{telegramUserId}`** — `{ success, allowed, data? }` (butuh `X-API-Key`).
+- **`POST /api/v1/fuel-bot/fuel-records`** — multipart (receipt + fields + `client_uuid`); whitelist gate; idempotent.
+- **`POST /api/v1/telegram/fuel-bot/webhook`** — update Telegram; **tanpa** API key; validasi `X-Telegram-Bot-Api-Secret-Token` / query `secret` vs `TELEGRAM_FUEL_BOT_WEBHOOK_SECRET`.
+- Env: `TELEGRAM_FUEL_BOT_TOKEN`, `TELEGRAM_FUEL_BOT_WEBHOOK_SECRET`, `OPENROUTER_*`. Artisan: `telegram:fuel-bot-webhook`.
+
 ---
 
 ## 14. Ringkasan endpoint

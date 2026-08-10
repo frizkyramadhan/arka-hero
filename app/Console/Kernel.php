@@ -21,6 +21,9 @@ class Kernel extends ConsoleKernel
         // Update otomatis status employee bonds menjadi selesai jika end date sama dengan hari ini, dijalankan setiap hari pukul 00:05
         $schedule->command('employee-bonds:update-expired')->dailyAt('00:05');
 
+        // Expire pembinaan/SP yang melewati masa berlaku, dijalankan setiap hari pukul 00:08
+        $schedule->command('disciplinary:expire')->dailyAt('00:08');
+
         // Konversi otomatis cuti tahunan berbayar menjadi unpaid jika dokumen pendukung tidak diupload setelah 12 hari, dijalankan setiap hari pukul 00:10
         $schedule->command('leave:auto-convert')->dailyAt('00:10');
 

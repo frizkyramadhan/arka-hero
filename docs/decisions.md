@@ -1,5 +1,5 @@
 **Purpose**: Record technical decisions and rationale for future reference
-**Last Updated**: 2026-01-09
+**Last Updated**: 2026-08-10
 
 # Technical Decision Records - ARKA HERO HRMS
 
@@ -29,6 +29,66 @@ Decision: [Title] - [YYYY-MM-DD]
 ---
 
 ## Recent Decisions
+
+### Decision: Disciplinary import deferred documents - 2026-08-10
+
+**Context**: HCS needs bulk Excel import of historical/pembinaan/SP records, but scanned supporting letters are often attached later.
+
+**Options Considered**:
+
+1. **Weaken create validation globally** — simpler, but breaks audit expectation that new issues always have a letter
+2. **`imported_at` flag + deferred upload only for imported rows** — create stays document-required; import skips file; UI upload later
+
+**Decision**: Option 2. Import goes through `DisciplinaryService` (floor/criteria/validity). Reuse `employee-disciplinaries.show|create|edit` (no new permissions). Pattern matches Vehicles export/import UX.
+
+**Implementation**: Migration `imported_at`; `EmployeeDisciplinaryExport`/`EmployeeDisciplinaryImport`; routes `export`/`template`/`import`/`upload-document`.
+
+**Review Date**: 2026-11-10
+
+---
+
+### Decision: Personal My Disciplinary Record view-only - 2026-08-10
+
+**Context**: Employees need to see their own coaching/counseling/SP history without HR write actions.
+
+**Decision**: Add `personal.disciplinary.view-own` with routes under `/employee-disciplinaries/my-records*` (list + detail + download own docs only). Surface stats/recent on My Dashboard. No create/edit/delete for personal users.
+
+**Implementation**: `EmployeeDisciplinaryController::myRecords*`, `dashboard.personal` widgets, sidebar My Features.
+
+**Review Date**: 2026-11-10
+
+---
+
+### Decision: Pembinaan & SP single table + independent Coaching/Counseling - 2026-08-07
+
+**Context**: HCS needs Coaching, Counseling, and SP1–SP3 with validity windows, floor rules, multi PP criteria, and auto-termination after SP3. Coaching and Counseling must not require order.
+
+**Options Considered**:
+
+1. **Separate tables** for pembinaan vs SP — clearer domains, harder shared floor/history UX
+2. **Single `employee_disciplinaries` + criteria master/pivot** — one floor engine, scope-filtered menus
+
+**Decision**: Option 2. Coaching/Counseling are equal band (no mutual floor); SP floor is `sp1|sp2|sp3` only. **While an SP is still valid, another violation must escalate** (`allowedTypes` uses rank **strictly greater** than floor — same level blocked; jump-up allowed with matching PP criteria). Criteria via `disciplinary_criteria` + M2M pivot (1..n). Expire by scheduler + lazy check clears floor. Post-SP3 repeat → terminate active administration (no full COE checklist in phase 1). Create UI pre-selects `suggest_next`; edit may keep current type but cannot downgrade below the active SP.
+
+**Rationale**: Matches Employee Bonds CRUD pattern; keeps escalation rules in `DisciplinaryService`; HCS can seed PP criteria later without schema change.
+
+**Implementation**: Controllers under Employee Management sidebar; permissions `employee-disciplinaries.*` / `disciplinary-criteria.*`; command `disciplinary:expire`. Clarified 2026-08-10: auto-escalate on repeat during validity (not re-issue equal SP).
+
+**Review Date**: 2026-11-07
+
+### Decision: Telegram Fuel Bot in same HERO repo (Level-2 AI) - 2026-08-05
+
+**Context**: Drivers often fuel outside Arka network; PWA alone cannot reach HERO. Need cheap off-network capture that still feeds verify → claim.
+
+**Options Considered**: Google Forms / WA / Telegram / mini-app / VPN-only.
+
+**Decision**: Telegram bot in **arka-hero** (not a separate service). Automation level 2: AI extract → YA/TIDAK → auto ingest. Whitelist from GAMMA HERO UI.
+
+**Rationale**: Same auth/DB/OpenRouter stack; no second deploy; Telegram works on public internet; Level-2 reduces bad OCR pushes.
+
+**Implementation**: `fuel_bot_*` tables, webhook `/api/v1/telegram/fuel-bot/webhook` (secret, no API key), ingest → `fuel_records.submitted`.
+
+**Review Date**: 2026-11-05
 
 ### Decision: Remove Unused leave_calculations Table - 2026-01-15
 

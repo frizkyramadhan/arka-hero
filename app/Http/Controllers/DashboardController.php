@@ -10,6 +10,7 @@ use App\Models\Course;
 use App\Models\Department;
 use App\Models\Education;
 use App\Models\Employee;
+use App\Models\EmployeeDisciplinary;
 use App\Models\Employeebank;
 use App\Models\EmployeeBond;
 use App\Models\Emrgcall;
@@ -2408,6 +2409,35 @@ class DashboardController extends Controller
                 ->get();
         }
 
+        // Disciplinary records (own employee only)
+        $disciplinaryStats = [
+            'total' => 0,
+            'active' => 0,
+            'active_sp' => 0,
+        ];
+        $recentDisciplinaryRecords = collect();
+
+        if ($user->can('personal.disciplinary.view-own') && $user->employee_id) {
+            $discBase = EmployeeDisciplinary::query()
+                ->where('employee_id', $user->employee_id);
+
+            $disciplinaryStats = [
+                'total' => (clone $discBase)->count(),
+                'active' => (clone $discBase)->where('status', EmployeeDisciplinary::STATUS_ACTIVE)->count(),
+                'active_sp' => (clone $discBase)
+                    ->where('status', EmployeeDisciplinary::STATUS_ACTIVE)
+                    ->whereIn('type', EmployeeDisciplinary::SP_TYPES)
+                    ->count(),
+            ];
+
+            $recentDisciplinaryRecords = (clone $discBase)
+                ->with(['criteria'])
+                ->orderByDesc('effective_date')
+                ->orderByDesc('id')
+                ->limit(5)
+                ->get();
+        }
+
         // Leave Entitlements Summary
         // Calculate taken_days from approved leave requests (considering cancellations)
         $leaveEntitlements = LeaveEntitlement::with(['leaveType'])
@@ -2475,6 +2505,8 @@ class DashboardController extends Controller
             'recentOvertimeRequests' => $recentOvertimeRequests,
             'roomConsumptionStats' => $roomConsumptionStats,
             'recentRoomConsumptionRequests' => $recentRoomConsumptionRequests,
+            'disciplinaryStats' => $disciplinaryStats,
+            'recentDisciplinaryRecords' => $recentDisciplinaryRecords,
             'leaveEntitlements' => $leaveEntitlements,
             'profileCompleteness' => $profileCompleteness,
             'missingSections' => $missingSections,

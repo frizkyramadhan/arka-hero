@@ -127,4 +127,14 @@ class Employee extends Model
     {
         return $this->hasMany(LeaveRequest::class);
     }
+
+    public function disciplinaries()
+    {
+        return $this->hasMany(EmployeeDisciplinary::class);
+    }
+
+    public function activeDisciplinaries()
+    {
+        return $this->hasMany(EmployeeDisciplinary::class)->where('status', 'active');
+    }
 }
