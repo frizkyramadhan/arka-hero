@@ -1,5 +1,5 @@
 **Purpose**: Future features and improvements prioritized by value for ARKA HERO HRMS
-**Last Updated**: 2026-08-07
+**Last Updated**: 2026-08-11
 
 # Feature Backlog - ARKA HERO HRMS
 
@@ -25,6 +25,13 @@
 -   **Out of scope (backlog)**: vehicle maintenance scheduling, push-sync to ArkFleet, expiry reminder jobs, REST API `/api/v1/vehicles*`.
 -   **Permissions**: `php artisan db:seed --class=VehiclePermissionSeeder`
 -   **Config**: `ARK_FLEET_BASE_URL` (default `http://192.168.32.15/ark-fleet`), optional `ARK_FLEET_API_KEY`
+
+### Form of Assignment (FOA) ✅ Phase 1
+
+-   **Description**: Requestor creates FOA (date, driver, vehicle, origin + destinations project/manual, passengers) → issue → print; driver updates jam/KM, adds stops (including return), closes at origin and bumps vehicle odometer. Destinations mirror Official Travel (`destination` + `is_manual`).
+-   **Documentation**: `docs/VEHICLE_ASSIGNMENT_FOA_DESIGN.md`
+-   **Permissions**: `php artisan db:seed --class=VehicleAssignmentPermissionSeeder`
+-   **Out of scope (Phase 1)**: letter category FOA, ApprovalPlan, GPS, REST API, ArkFleet sync
 
 ### Driver Fuel Workflow ✅ Photo + AI → Verify → Claim
 

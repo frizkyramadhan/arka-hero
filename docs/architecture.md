@@ -434,13 +434,15 @@ graph TD
 
 ### 8c. Vehicle Administration & Driver Fuel (GAMMA)
 
-**Controllers**: `VehicleController`, `VehicleDocumentController`, `FuelRecordController`, `FuelClaimController`, `FuelBotSubscriberController`, `TelegramWebhookController`, `Api\V1\VehicleApiController`, `Api\V1\FuelClaimApiController`, `Api\V1\FuelBotApiController`  
-**Models**: `Vehicle`, `VehicleDocument`, `FuelRecord`, `FuelClaim`, `FuelBotSubscriber`, `FuelBotSubmission`  
-**Services**: `ArkFleetClient`, `OpenRouterReceiptParser` (`config/openrouter.php`), `Telegram\TelegramClient`, `Telegram\TelegramFuelBotHandler`, `FuelBotIngestService`
+**Controllers**: `VehicleController`, `VehicleDocumentController`, `FuelRecordController`, `FuelClaimController`, `FuelBotSubscriberController`, `TelegramWebhookController`, `VehicleAssignmentController`, `Api\V1\VehicleApiController`, `Api\V1\FuelClaimApiController`, `Api\V1\FuelBotApiController`  
+**Models**: `Vehicle`, `VehicleDocument`, `FuelRecord`, `FuelClaim`, `FuelBotSubscriber`, `FuelBotSubmission`, `VehicleAssignment`, `VehicleAssignmentStop`, `VehicleAssignmentPassenger`  
+**Services**: `ArkFleetClient`, `OpenRouterReceiptParser` (`config/openrouter.php`), `Telegram\TelegramClient`, `Telegram\TelegramFuelBotHandler`, `FuelBotIngestService`  
+**Design (FOA)**: `docs/VEHICLE_ASSIGNMENT_FOA_DESIGN.md`
 
 **Features**:
 
 - Light Vehicle master (Kode from ArkFleet `plant_group_id=3`) + STNK/PKB/KIR documents
+- Form of Assignment (FOA): requestor create/issue/print → driver My Features trip log (jam/KM, dynamic stops project/manual like LOT) → close at origin + bump vehicle odometer; FOA No = letter number (`FOA0001`, reserved until Issue)
 - Driver My Features Fuel Log: photo-first OpenRouter vision parse → confirm → `submitted`; manual fallback
 - Office verify/reject queue; bundle verified receipts into `fuel_claims` (`draft|ready|sent|realized|cancelled`). Draft claims support adding verified/unclaimed receipts, editing receipt fields via modal, and removing current receipts; all operations recalculate totals atomically. Print view (`/fuel-claims/{id}/print`) lays receipt photos in A4 portrait 3×3 grids (9 per page, base64-embedded private images).
 - Light PWA (`manifest.webmanifest` + `sw.js`) for installable Fuel Log
@@ -449,7 +451,7 @@ graph TD
 
 **Key Routes**:
 
-- Web: `/vehicles/*`, `/fuel-records/*`, `/fuel-records/my-requests*`, `/fuel-records/pending*`, `/fuel-claims/*`, `/fuel-bot-subscribers/*`, `/fuel-bot-logs/*`
+- Web: `/vehicles/*`, `/vehicle-assignments/*`, `/vehicle-assignments/my-trips*`, `/fuel-records/*`, `/fuel-records/my-requests*`, `/fuel-records/pending*`, `/fuel-claims/*`, `/fuel-bot-subscribers/*`, `/fuel-bot-logs/*`
 - API: `GET /api/v1/vehicles*`, `GET/PUT /api/v1/fuel-claims*`, `GET /api/v1/fuel-bot/whitelist/{id}`, `POST /api/v1/fuel-bot/fuel-records`, `POST /api/v1/telegram/fuel-bot/webhook`
 
 ### 9. Employee Bonds & Violations

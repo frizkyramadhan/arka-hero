@@ -103,6 +103,18 @@
 
 ## Project Memory Entries - ARKA HERO HRMS
 
+### [036] Form of Assignment (FOA) requestor → driver (2026-08-11) ✅ COMPLETE
+
+**Challenge**: Digitalize Form of Assignment (ARKA/HCS/IV/04.02) using existing `vehicles` master: requestor prepares trip assignment, prints for driver; driver logs jam/KM, adds destinations (project or external), returns and closes at origin.
+
+**Solution**: Tables `vehicle_assignments` / `vehicle_assignment_stops` / `vehicle_assignment_passengers`. Status `draft→issued→in_progress→closed`. Destinations mirror LOT (`destination` + `is_manual`). Driver portal under My Features (`my-trips`). On close, bump `vehicles.odometer` if return arrive KM is greater. FOA No = letter number (`FOA0001`); draft keeps letter reserved, Issue marks used. **Assignment Information** card shared via `partials/assignment-info-card` on admin show + driver my-show. Issued/in-progress **Edit Destinations** (locked jam/KM legs) shared via `partials/issued-destinations-adjust-form` on admin show + driver my-show right column (`PATCH …/destinations`). **Close at Origin** shared via `partials/close-at-origin-form` (admin `POST …/close` + `vehicle-assignments.edit`; driver `close-own`). **My Trips list** UI matches personal DataTables pages (breadcrumb, accordion Filter, `table-striped` + `dom: 'rtip'`), same pattern as overtime/leave my-requests. **Nav**: "My Form of Assignment" gated only with `@can('personal.vehicle-assignments.view-own')` (not `update-trip` alone); list/show middleware already `view-own`; update-trip/close-own stay on action routes. Admin FOA uses `vehicle-assignments.show`.
+
+**Key Learning**: Reuse Official Travel stop UI pattern (Select2 project vs manual checkbox) rather than inventing a third destination model. Keep `vehicles.pic` / `assigned_to` untouched — FOA is trip log, not long-term assignment. Mirror RCR letter flow (`smart-letter-number-selector` + reserved until Issue).
+
+**Files**: `VehicleAssignmentController`, models `VehicleAssignment*`, `VehicleAssignmentPermissionSeeder`, `FoaLetterCategorySeeder`, `docs/VEHICLE_ASSIGNMENT_FOA_DESIGN.md`, sidebar GAMMA + My Features
+
+---
+
 ### [035] Vehicle Administration (GAMMA) without maintenance (2026-08-03) ✅ COMPLETE
 
 **Challenge**: Need Light Vehicle monitoring (NoPol, Kode, PIC, STNK/PKB/KIR expiry, lokasi, keterangan) under GAMMA, with Kode from ArkFleet.

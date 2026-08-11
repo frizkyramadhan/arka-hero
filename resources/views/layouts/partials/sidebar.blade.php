@@ -51,9 +51,9 @@
 
                 {{-- My Features Dropdown --}}
                 <li
-                    class="nav-item {{ Request::is('leave/my-*') || Request::is('officialtravels/my-*') || Request::is('recruitment/my-*') || Request::is('profile/my-profile*') || Request::is('flight/my-*') || Request::is('overtime/my-requests*') || Request::is('room-consumption-requests/my-requests*') || Request::is('employee-disciplinaries/my-records*') ? 'menu-open' : '' }}">
+                    class="nav-item {{ Request::is('leave/my-*') || Request::is('officialtravels/my-*') || Request::is('recruitment/my-*') || Request::is('profile/my-profile*') || Request::is('flight/my-*') || Request::is('overtime/my-requests*') || Request::is('room-consumption-requests/my-requests*') || Request::is('employee-disciplinaries/my-records*') || Request::is('vehicle-assignments/my-trips*') ? 'menu-open' : '' }}">
                     <a href="#"
-                        class="nav-link {{ Request::is('leave/my-*') || Request::is('officialtravels/my-*') || Request::is('recruitment/my-*') || Request::is('profile/my-profile*') || Request::is('flight/my-*') || Request::is('overtime/my-requests*') || Request::is('room-consumption-requests/my-requests*') || Request::is('employee-disciplinaries/my-records*') ? 'active' : '' }}">
+                        class="nav-link {{ Request::is('leave/my-*') || Request::is('officialtravels/my-*') || Request::is('recruitment/my-*') || Request::is('profile/my-profile*') || Request::is('flight/my-*') || Request::is('overtime/my-requests*') || Request::is('room-consumption-requests/my-requests*') || Request::is('employee-disciplinaries/my-records*') || Request::is('vehicle-assignments/my-trips*') ? 'active' : '' }}">
                         <i class="nav-icon fas fa-folder-open"></i>
                         <p>
                             My Features
@@ -148,6 +148,17 @@
                                 class="nav-link {{ Request::is('employee-disciplinaries/my-records*') ? 'active' : '' }}">
                                 <i class="far fa-circle nav-icon"></i>
                                 <p>My Disciplinary Record</p>
+                            </a>
+                        </li>
+                        @endcan
+
+                        {{-- My Form of Assignment (driver) --}}
+                        @can('personal.vehicle-assignments.view-own')
+                        <li class="nav-item">
+                            <a href="{{ route('vehicle-assignments.my-trips') }}"
+                                class="nav-link {{ Request::is('vehicle-assignments/my-trips*') ? 'active' : '' }}">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>My Form of Assignment</p>
                             </a>
                         </li>
                         @endcan
@@ -567,7 +578,7 @@
                 @endcanany
 
                 {{-- GAMMA SECTION - Flight + Room & Consumption + Vehicles --}}
-                @canany(['flight-requests.show', 'flight-issuances.view', 'flight-issuances.create', 'room-consumption-requests.show', 'vehicles.show', 'fuel-records.verify', 'fuel-claims.show', 'fuel-records.show'])
+                @canany(['flight-requests.show', 'flight-issuances.view', 'flight-issuances.create', 'room-consumption-requests.show', 'vehicles.show', 'vehicle-assignments.show', 'fuel-records.verify', 'fuel-claims.show', 'fuel-records.show'])
                 <li class="nav-header">GAMMA SECTION</li>
                 @canany(['flight-requests.show', 'flight-issuances.view', 'flight-issuances.create'])
                 <li
@@ -660,13 +671,14 @@
                 </li>
                 @endcan
 
-                @canany(['vehicles.show', 'fuel-records.verify', 'fuel-claims.show'])
+                @canany(['vehicles.show', 'vehicle-assignments.show', 'fuel-records.verify', 'fuel-claims.show'])
                 @php
                 $isVehicleDashboard = Request::is('dashboard/vehicles');
-                $isVehicleList = Request::is('vehicles*') && !Request::is('fuel-*');
+                $isVehicleList = Request::is('vehicles*') && !Request::is('fuel-*') && !Request::is('vehicle-assignments*');
+                $isFoaList = Request::is('vehicle-assignments*') && !Request::is('vehicle-assignments/my-trips*');
                 $isFuelRecords = Request::is('fuel-records*') && !Request::is('fuel-records/my-requests*') && !Request::is('fuel-records/pending*');
                 $isFuelClaims = Request::is('fuel-claims*');
-                $isVehicleMenuOpen = $isVehicleDashboard || $isVehicleList || $isFuelRecords || $isFuelClaims;
+                $isVehicleMenuOpen = $isVehicleDashboard || $isVehicleList || $isFoaList || $isFuelRecords || $isFuelClaims;
                 @endphp
                 <li class="nav-item {{ $isVehicleMenuOpen ? 'menu-open' : '' }}">
                     <a href="#" class="nav-link {{ $isVehicleMenuOpen ? 'active' : '' }}">
@@ -690,6 +702,15 @@
                                 class="nav-link {{ $isVehicleList ? 'active' : '' }}">
                                 <i class="far fa-circle nav-icon"></i>
                                 <p>Vehicle List</p>
+                            </a>
+                        </li>
+                        @endcan
+                        @can('vehicle-assignments.show')
+                        <li class="nav-item">
+                            <a href="{{ route('vehicle-assignments.index') }}"
+                                class="nav-link {{ $isFoaList ? 'active' : '' }}">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>Form of Assignment</p>
                             </a>
                         </li>
                         @endcan

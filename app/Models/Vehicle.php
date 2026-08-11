@@ -56,6 +56,11 @@ class Vehicle extends Model
         return $this->hasMany(FuelRecord::class);
     }
 
+    public function assignments(): HasMany
+    {
+        return $this->hasMany(VehicleAssignment::class);
+    }
+
     public function activeDocument(string $type): ?VehicleDocument
     {
         return $this->documents

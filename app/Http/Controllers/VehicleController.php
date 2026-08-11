@@ -163,6 +163,7 @@ class VehicleController extends Controller
         $vehicle->load([
             'documents' => fn ($q) => $q->orderBy('document_type')->orderByDesc('expiry_date'),
             'fuelRecords' => fn ($q) => $q->orderByDesc('fuel_date')->limit(20),
+            'assignments' => fn ($q) => $q->orderByDesc('assignment_date')->orderByDesc('form_number')->limit(20),
         ]);
 
         return view('vehicles.show', compact('title', 'subtitle', 'vehicle'));
