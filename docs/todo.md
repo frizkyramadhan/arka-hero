@@ -1,5 +1,5 @@
 **Purpose**: Track current work and immediate priorities for ARKA HERO HRMS
-**Last Updated**: 2026-08-10
+**Last Updated**: 2026-08-11
 
 ## Task Management Guidelines
 
@@ -54,6 +54,11 @@ Include relevant context in brackets to help with future AI-assisted coding:
 
 ## Recently Completed
 
+-   `[done] P2: Align my-trips list styling with personal DataTables pages [my-trips.blade.php; pattern from overtime/leave my-requests] (completed: 2026-08-11)`
+-   `[done] P2: Align my-trips detail Assignment Information card with FOA admin show [partials/assignment-info-card] (completed: 2026-08-11)`
+-   `[done] P1: FOA Close at Origin on admin detail + shared partial with my-trips [close-at-origin-form, vehicle-assignments.close] (completed: 2026-08-11)`
+-   `[done] P1: FOA letter number (category FOA) + Status/Trip Log UI polish [smart-letter-number-selector, FoaLetterCategorySeeder, formatFormNumber] (completed: 2026-08-11)`
+-   `[done] P1: Form of Assignment (FOA) — requestor issue/print → driver trip log (project/manual stops) → close at origin + odometer [VehicleAssignmentController, VEHICLE_ASSIGNMENT_FOA_DESIGN.md, VehicleAssignmentPermissionSeeder] (completed: 2026-08-11)`
 -   `[done] P2: Disciplinary export — clarify Imported (doc later) Yes/No, add remaining_days after end_date, export honors list filters [EmployeeDisciplinaryExport, index Export JS, filteredQuery dates] (completed: 2026-08-10)`
 -   `[done] P2: Disciplinary list — hide DataTables search; add PP Criteria Select2 filter (criterion_id) on admin + my-records [index/my-index, EmployeeDisciplinaryController::filteredQuery/myRecordsData] (completed: 2026-08-10)`
 -   `[done] P1: Disciplinary Export/Import + deferred document upload for imported rows [EmployeeDisciplinaryExport/Import, imported_at, upload-document; reuse show/create/edit] (completed: 2026-08-10)`

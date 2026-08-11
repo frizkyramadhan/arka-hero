@@ -1,5 +1,5 @@
 **Purpose**: Record technical decisions and rationale for future reference
-**Last Updated**: 2026-08-10
+**Last Updated**: 2026-08-11
 
 # Technical Decision Records - ARKA HERO HRMS
 
@@ -29,6 +29,23 @@ Decision: [Title] - [YYYY-MM-DD]
 ---
 
 ## Recent Decisions
+
+### Decision: Form of Assignment (FOA) requestor → driver trip log - 2026-08-11
+
+**Context**: HCS needs digital Form of Assignment (ARKA/HCS/IV/04.02) using existing Light Vehicle master: requestor prepares the form, driver fills jam/KM and may add destinations including return, then closes at origin.
+
+**Options Considered**:
+
+1. **Letter number + ApprovalPlan (like RCR)** — consistent with other GAMMA docs, but paper FOA uses a simple sequential number and operational stamps, not HR multi-level approval
+2. **Requestor issue → driver trip log → close at origin** with dynamic stops (`destination` + `is_manual` like Official Travel) — matches operational handoff of printed FOA to the driver
+
+**Decision**: Option 2 for workflow (no ApprovalPlan). Numbering uses Letter Number category **FOA**; FOA No = `FOA0001` (same as letter number). Reserved on draft, `markAsUsed` on Issue. Destinations reuse LOT project-vs-manual pattern. Closing bumps `vehicles.odometer` when return arrive KM is higher.
+
+**Implementation**: `vehicle_assignments` (+ `letter_number_id`/`letter_number`) + stops + passengers; `VehicleAssignmentController`; `FoaLetterCategorySeeder`; `docs/VEHICLE_ASSIGNMENT_FOA_DESIGN.md`; `VehicleAssignmentPermissionSeeder`.
+
+**Review Date**: 2026-11-11
+
+---
 
 ### Decision: Disciplinary import deferred documents - 2026-08-10
 

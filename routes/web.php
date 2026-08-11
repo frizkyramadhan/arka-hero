@@ -72,6 +72,7 @@ use App\Http\Controllers\TaxidentificationController;
 use App\Http\Controllers\TerminationController;
 use App\Http\Controllers\TransportationController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\VehicleAssignmentController;
 use App\Http\Controllers\VehicleController;
 use App\Http\Controllers\VehicleDocumentController;
 use App\Http\Controllers\FuelBotLogController;
@@ -276,6 +277,37 @@ Route::group(['middleware' => ['auth']], function () {
     Route::get('meeting-rooms/data', [MeetingRoomController::class, 'data'])->name('meeting-rooms.data');
     Route::get('meeting-rooms/by-project', [MeetingRoomController::class, 'byProject'])->name('meeting-rooms.by-project');
     Route::resource('meeting-rooms', MeetingRoomController::class)->except(['show', 'create', 'edit']);
+
+    // GAMMA SECTION - Form of Assignment (FOA)
+    Route::prefix('vehicle-assignments')->name('vehicle-assignments.')->group(function () {
+        Route::get('data', [VehicleAssignmentController::class, 'data'])->name('data');
+        Route::get('my-trips', [VehicleAssignmentController::class, 'myTrips'])->name('my-trips');
+        Route::get('my-trips/data', [VehicleAssignmentController::class, 'myTripsData'])->name('my-trips.data');
+        Route::get('my-trips/{vehicleAssignment}', [VehicleAssignmentController::class, 'myTripsShow'])->name('my-trips.show');
+        Route::post('my-trips/{vehicleAssignment}/start', [VehicleAssignmentController::class, 'myTripsStart'])->name('my-trips.start');
+        Route::put('my-trips/{vehicleAssignment}/stops', [VehicleAssignmentController::class, 'myTripsUpdateStops'])->name('my-trips.update-stops');
+        Route::post('my-trips/{vehicleAssignment}/stops', [VehicleAssignmentController::class, 'myTripsAddStop'])->name('my-trips.add-stop');
+        Route::patch('my-trips/{vehicleAssignment}/destinations', [VehicleAssignmentController::class, 'myTripsAdjustDestinations'])
+            ->name('my-trips.adjustDestinations');
+        Route::post('my-trips/{vehicleAssignment}/close', [VehicleAssignmentController::class, 'myTripsClose'])->name('my-trips.close');
+
+        Route::get('/', [VehicleAssignmentController::class, 'index'])->name('index');
+        Route::get('create', [VehicleAssignmentController::class, 'create'])->name('create');
+        Route::post('/', [VehicleAssignmentController::class, 'store'])->name('store');
+
+        Route::post('{vehicleAssignment}/issue', [VehicleAssignmentController::class, 'issue'])->name('issue');
+        Route::post('{vehicleAssignment}/cancel', [VehicleAssignmentController::class, 'cancel'])->name('cancel');
+        Route::post('{vehicleAssignment}/close', [VehicleAssignmentController::class, 'close'])->name('close');
+        Route::patch('{vehicleAssignment}/destinations', [VehicleAssignmentController::class, 'adjustDestinations'])
+            ->name('adjustDestinations');
+        Route::put('{vehicleAssignment}/stops', [VehicleAssignmentController::class, 'updateStops'])
+            ->name('updateStops');
+        Route::get('{vehicleAssignment}/print', [VehicleAssignmentController::class, 'print'])->name('print');
+        Route::get('{vehicleAssignment}/edit', [VehicleAssignmentController::class, 'edit'])->name('edit');
+        Route::put('{vehicleAssignment}', [VehicleAssignmentController::class, 'update'])->name('update');
+        Route::delete('{vehicleAssignment}', [VehicleAssignmentController::class, 'destroy'])->name('destroy');
+        Route::get('{vehicleAssignment}', [VehicleAssignmentController::class, 'show'])->name('show');
+    });
 
     // GAMMA SECTION - Vehicles (Light Vehicle monitoring + fuel)
     Route::prefix('vehicles')->name('vehicles.')->group(function () {

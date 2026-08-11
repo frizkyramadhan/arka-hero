@@ -73,6 +73,7 @@ class DatabaseSeeder extends Seeder
         // Letter numbering system seeders
         $this->call(LetterCategorySeeder::class);
         $this->call(LetterSubjectSeeder::class);
+        $this->call(FoaLetterCategorySeeder::class);
 
         $this->call(OfficialTravelSeeder::class);
 

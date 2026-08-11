@@ -321,6 +321,51 @@
                         </div>
                     </div>
 
+                    @can('vehicle-assignments.show')
+                    <div class="travel-card">
+                        <div class="card-head d-flex align-items-center justify-content-between">
+                            <h2 class="mb-0"><i class="fas fa-clipboard-list"></i> Form of Assignment (latest 20)</h2>
+                            <a href="{{ route('vehicle-assignments.index') }}" class="btn btn-outline-primary btn-sm">
+                                View all
+                            </a>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-bordered table-hover mb-0">
+                                    <thead class="thead-light">
+                                        <tr>
+                                            <th>No.</th>
+                                            <th>Date</th>
+                                            <th>Driver</th>
+                                            <th>Status</th>
+                                            <th></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @forelse ($vehicle->assignments as $foa)
+                                            <tr>
+                                                <td>{{ $foa->form_number }}</td>
+                                                <td>{{ optional($foa->assignment_date)->format('Y-m-d') }}</td>
+                                                <td>{{ $foa->driver_name }}</td>
+                                                <td>
+                                                    <span class="badge badge-{{ $foa->statusBadgeClass() }}">{{ $foa->statusLabel() }}</span>
+                                                </td>
+                                                <td>
+                                                    <a href="{{ route('vehicle-assignments.show', $foa) }}" class="btn btn-xs btn-info"><i class="fas fa-eye"></i></a>
+                                                </td>
+                                            </tr>
+                                        @empty
+                                            <tr>
+                                                <td colspan="5" class="text-center text-muted py-4">No FOA yet</td>
+                                            </tr>
+                                        @endforelse
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    @endcan
+
                     <div class="travel-card">
                         <div class="card-head d-flex align-items-center justify-content-between">
                             <h2 class="mb-0"><i class="fas fa-gas-pump"></i> Fuel History (latest 20)</h2>
