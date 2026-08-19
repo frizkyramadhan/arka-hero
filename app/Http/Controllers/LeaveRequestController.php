@@ -493,18 +493,26 @@ class LeaveRequestController extends Controller
 
         // Validate total_days is present
         if (! $totalDays || $totalDays <= 0) {
-            return back()->with([
-                'total_days' => 'Total days is required and must be greater than 0.',
-            ])->withInput();
+            return $this->rejectWithTotalDaysError('Total days is required and must be greater than 0.');
         }
 
         // Validate total days against remaining days
-        $entitlement = $this->findLeaveEntitlementForRequest($request, (int) $request->employee_id, (int) $request->leave_type_id);
+        $entitlement = $this->findLeaveEntitlementForRequest(
+            $request,
+            (string) $request->employee_id,
+            (int) $request->leave_type_id
+        );
 
-        if ($entitlement && $totalDays > $entitlement->remaining_days) {
-            return back()->with([
-                'total_days' => "Total days ({$totalDays}) exceeds remaining leave balance ({$entitlement->remaining_days} days).",
-            ])->withInput();
+        if (! $entitlement) {
+            return $this->rejectWithTotalDaysError(
+                'No active leave entitlement found for this employee and leave type.'
+            );
+        }
+
+        if ($totalDays > $entitlement->remaining_days) {
+            return $this->rejectWithTotalDaysError(
+                "Total days ({$totalDays}) exceeds remaining leave balance ({$entitlement->remaining_days} days)."
+            );
         }
 
         // Handle file upload for supporting document
@@ -661,7 +669,7 @@ class LeaveRequestController extends Controller
 
             return redirect()->route('leave.requests.index')
                 ->with('toast_success', $successMessage);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             DB::rollback();
 
             // Clean up temp file if exists
@@ -673,7 +681,9 @@ class LeaveRequestController extends Controller
                 }
             }
 
-            return back()->with(['toast_error' => 'Failed to create leave request: ' . $e->getMessage()]);
+            return back()
+                ->with(['toast_error' => 'Failed to create leave request: ' . $e->getMessage()])
+                ->withInput();
         }
     }
 
@@ -963,17 +973,26 @@ class LeaveRequestController extends Controller
 
         // Validate total_days is present (after LSL calculation if applicable)
         if (! $totalDays || $totalDays <= 0) {
-            return back()->with([
-                'total_days' => 'Total days is required and must be greater than 0.',
-            ])->withInput();
+            return $this->rejectWithTotalDaysError('Total days is required and must be greater than 0.');
         }
 
-        $leaveEntitlement = $this->findLeaveEntitlementForRequest($request, (int) $employeeId, (int) $leaveTypeId, $leaveRequest);
+        $leaveEntitlement = $this->findLeaveEntitlementForRequest(
+            $request,
+            (string) $employeeId,
+            (int) $leaveTypeId,
+            $leaveRequest
+        );
 
-        if ($leaveEntitlement && $totalDays > $leaveEntitlement->remaining_days) {
-            return back()->with([
-                'total_days' => "Total days ({$totalDays}) exceeds remaining leave balance ({$leaveEntitlement->remaining_days} days).",
-            ])->withInput();
+        if (! $leaveEntitlement) {
+            return $this->rejectWithTotalDaysError(
+                'No active leave entitlement found for this employee and leave type.'
+            );
+        }
+
+        if ($totalDays > $leaveEntitlement->remaining_days) {
+            return $this->rejectWithTotalDaysError(
+                "Total days ({$totalDays}) exceeds remaining leave balance ({$leaveEntitlement->remaining_days} days)."
+            );
         }
 
         DB::beginTransaction();
@@ -1071,7 +1090,7 @@ class LeaveRequestController extends Controller
 
             return redirect()->route('leave.requests.show', $leaveRequest)
                 ->with('toast_success', 'Leave request updated successfully.');
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             DB::rollback();
 
             return back()->with(['toast_error' => 'Failed to update leave request: ' . $e->getMessage()])->withInput();
@@ -2468,7 +2487,7 @@ class LeaveRequestController extends Controller
      * Date-fenced types (annual, LSL) prefer an entitlement that contains the dates.
      * Paid/unpaid keep the existing snapshot on edit, otherwise the period that contains today.
      */
-    private function findLeaveEntitlementForRequest(Request $request, int $employeeId, int $leaveTypeId, ?LeaveRequest $existing = null): ?LeaveEntitlement
+    private function findLeaveEntitlementForRequest(Request $request, string $employeeId, int $leaveTypeId, ?LeaveRequest $existing = null): ?LeaveEntitlement
     {
         $leaveType = LeaveType::find($leaveTypeId);
         $dateFenced = $leaveType?->usesLeavePeriodAsDateFence() ?? true;
@@ -2476,7 +2495,7 @@ class LeaveRequestController extends Controller
         if (
             ! $dateFenced
             && $existing
-            && (int) $existing->employee_id === $employeeId
+            && (string) $existing->employee_id === $employeeId
             && (int) $existing->leave_type_id === $leaveTypeId
             && filled($existing->leave_period)
         ) {
@@ -2512,7 +2531,7 @@ class LeaveRequestController extends Controller
             ->first();
     }
 
-    private function findEntitlementByPeriodLabel(int $employeeId, int $leaveTypeId, string $label): ?LeaveEntitlement
+    private function findEntitlementByPeriodLabel(string $employeeId, int $leaveTypeId, string $label): ?LeaveEntitlement
     {
         $normalized = trim($label);
 
@@ -2528,14 +2547,14 @@ class LeaveRequestController extends Controller
      */
     private function snapshotLeavePeriod(?LeaveType $leaveType, ?LeaveEntitlement $entitlement, Request $request, ?LeaveRequest $existing = null): ?string
     {
-        $employeeId = (int) $request->employee_id;
+        $employeeId = (string) $request->employee_id;
         $leaveTypeId = (int) $request->leave_type_id;
 
         if (
             $existing
             && $leaveType
             && ! $leaveType->usesLeavePeriodAsDateFence()
-            && (int) $existing->employee_id === $employeeId
+            && (string) $existing->employee_id === $employeeId
             && (int) $existing->leave_type_id === $leaveTypeId
             && filled($existing->leave_period)
         ) {
@@ -2547,6 +2566,14 @@ class LeaveRequestController extends Controller
         }
 
         return $request->leave_period;
+    }
+
+    private function rejectWithTotalDaysError(string $message)
+    {
+        return back()
+            ->withErrors(['total_days' => $message])
+            ->with('toast_error', $message)
+            ->withInput();
     }
 
     /**

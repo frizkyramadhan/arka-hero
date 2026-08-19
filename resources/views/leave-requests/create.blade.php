@@ -62,6 +62,18 @@
                             </div>
 
                             <div class="card-body">
+                                @if ($errors->any())
+                                    <div class="alert alert-danger alert-dismissible fade show">
+                                        <ul class="mb-0 pl-3">
+                                            @foreach ($errors->all() as $error)
+                                                <li>{{ $error }}</li>
+                                            @endforeach
+                                        </ul>
+                                        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                                            <span aria-hidden="true">&times;</span>
+                                        </button>
+                                    </div>
+                                @endif
                                 <!-- Project & Employee Selection -->
                                 <div class="row">
                                     <div class="col-md-6">
@@ -261,6 +273,9 @@
                                             </div>
                                             <input type="hidden" name="total_days" id="total_days_hidden"
                                                 value="{{ old('total_days') }}" required>
+                                            @error('total_days')
+                                                <div class="invalid-feedback d-block">{{ $message }}</div>
+                                            @enderror
                                             <small class="form-text text-muted">
                                                 Calculated automatically from date range. <br>
                                                 <span class="text-warning">You can also manually adjust the number of
