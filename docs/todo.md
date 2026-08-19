@@ -1,5 +1,5 @@
 **Purpose**: Track current work and immediate priorities for ARKA HERO HRMS
-**Last Updated**: 2026-08-11
+**Last Updated**: 2026-08-19
 
 ## Task Management Guidelines
 
@@ -54,6 +54,7 @@ Include relevant context in brackets to help with future AI-assisted coding:
 
 ## Recently Completed
 
+-   `[done] P2: FPTK list — add Project column and Project filter [recruitment/requests/index, RecruitmentRequestController::index/getRecruitmentRequests] (completed: 2026-08-19)`
 -   `[done] P2: Align my-trips list styling with personal DataTables pages [my-trips.blade.php; pattern from overtime/leave my-requests] (completed: 2026-08-11)`
 -   `[done] P2: Align my-trips detail Assignment Information card with FOA admin show [partials/assignment-info-card] (completed: 2026-08-11)`
 -   `[done] P1: FOA Close at Origin on admin detail + shared partial with my-trips [close-at-origin-form, vehicle-assignments.close] (completed: 2026-08-11)`

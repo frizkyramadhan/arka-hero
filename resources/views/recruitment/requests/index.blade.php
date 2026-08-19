@@ -83,6 +83,22 @@
                                                 </div>
                                                 <div class="col-3">
                                                     <div class="form-group">
+                                                        <label class="form-control-label">Project</label>
+                                                        <select name="project_id" class="form-control select2bs4"
+                                                            id="project_id" style="width: 100%;">
+                                                            <option value="">- All -</option>
+                                                            @foreach ($projects as $project)
+                                                                <option value="{{ $project->id }}"
+                                                                    {{ request('project_id') == $project->id ? 'selected' : '' }}>
+                                                                    {{ $project->project_code }} -
+                                                                    {{ $project->project_name }}
+                                                                </option>
+                                                            @endforeach
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                                <div class="col-3">
+                                                    <div class="form-group">
                                                         <label class="form-control-label">Position</label>
                                                         <select name="position_id" class="form-control select2bs4"
                                                             id="position_id" style="width: 100%;">
@@ -174,6 +190,7 @@
                                                 <th class="align-middle text-center">No</th>
                                                 <th class="align-middle">Request Number</th>
                                                 <th class="align-middle">Department</th>
+                                                <th class="align-middle">Project</th>
                                                 <th class="align-middle">Position</th>
                                                 <th class="align-middle">Level</th>
                                                 <th class="align-middle">Employment Type</th>
@@ -300,6 +317,7 @@
                     data: function(d) {
                         d.request_number = $('#request_number').val();
                         d.department_id = $('#department_id').val();
+                        d.project_id = $('#project_id').val();
                         d.position_id = $('#position_id').val();
                         d.level_id = $('#level_id').val();
                         d.status = $('#status').val();
@@ -320,6 +338,10 @@
                 }, {
                     data: "department",
                     name: "department",
+                    orderable: false,
+                }, {
+                    data: "project",
+                    name: "project",
                     orderable: false,
                 }, {
                     data: "position",
@@ -354,20 +376,20 @@
             });
 
             // Filter functionality
-            $('#request_number, #department_id, #position_id, #level_id, #status, #date_from, #date_to')
+            $('#request_number, #department_id, #project_id, #position_id, #level_id, #status, #date_from, #date_to')
                 .keyup(function() {
                     table.draw();
                 });
-            $('#department_id, #position_id, #level_id, #status, #date_from, #date_to')
+            $('#department_id, #project_id, #position_id, #level_id, #status, #date_from, #date_to')
                 .change(function() {
                     table.draw();
                 });
 
             // Reset functionality
             $('#btn-reset').click(function() {
-                $('#request_number, #department_id, #position_id, #level_id, #status, #date_from, #date_to')
+                $('#request_number, #department_id, #project_id, #position_id, #level_id, #status, #date_from, #date_to')
                     .val('');
-                $('#department_id, #position_id, #level_id, #status').change();
+                $('#department_id, #project_id, #position_id, #level_id, #status').change();
                 table.draw();
             });
 
