@@ -159,6 +159,16 @@ class LeaveRequest extends Model implements NotifiableDocument
             }
         }
 
+        $leaveType = $this->leaveType;
+        if ($leaveType && ! $leaveType->usesLeavePeriodAsDateFence()) {
+            $today = now()->toDateString();
+
+            return $baseQuery()
+                ->where('period_start', '<=', $today)
+                ->where('period_end', '>=', $today)
+                ->first();
+        }
+
         if ($this->start_date && $this->end_date) {
             return $baseQuery()
                 ->where('period_start', '<=', $this->start_date)

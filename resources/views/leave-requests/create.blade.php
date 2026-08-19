@@ -154,6 +154,7 @@
                                                 <option value="">Select Leave Type</option>
                                                 @foreach ($leaveTypes as $leaveType)
                                                     <option value="{{ $leaveType->id }}"
+                                                        data-category="{{ $leaveType->category }}"
                                                         {{ old('leave_type_id') == $leaveType->id ? 'selected' : '' }}>
                                                         {{ $leaveType->name }}
                                                     </option>
@@ -162,9 +163,10 @@
                                             @error('leave_type_id')
                                                 <div class="invalid-feedback">{{ $message }}</div>
                                             @enderror
+                                            @include('leave-requests.partials.leave-balance-link')
                                         </div>
                                     </div>
-                                    <div class="col-md-6">
+                                    <div class="col-md-6" id="leave_period_group">
                                         <div class="form-group">
                                             <label for="leave_period">
                                                 <i class="fas fa-calendar-week mr-1"></i>
@@ -363,26 +365,10 @@
                             'requestReason' => null,
                         ]) --}}
 
-                        <!-- Leave Balance Card -->
-                        <div class="card card-success card-outline elevation-3 mt-3">
-                            <div class="card-header">
-                                <h3 class="card-title">
-                                    <i class="fas fa-wallet mr-2"></i>
-                                    <strong>Leave Balance</strong>
-                                </h3>
-                            </div>
-                            <div class="card-body">
-                                <div id="leave_balance_info">
-                                    <div class="text-center py-3">
-                                        <i class="fas fa-info-circle text-info"></i>
-                                        <div class="mt-2">Select an employee to view leave balance</div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
                     </div>
                 </div>
             </form>
+            @include('leave-requests.partials.leave-balance-modal')
         </div>
     </section>
 @endsection
@@ -494,6 +480,8 @@
                 start: null,
                 end: null
             };
+
+            @include('leave-requests.partials.leave-period-date-fence-scripts')
 
             // Initialize all components on page load
             initializeForm();
@@ -639,14 +627,7 @@
                     opens: 'left'
                 };
 
-                // Add minDate and maxDate based on entitlement period
-                if (currentEntitlementPeriod.start && currentEntitlementPeriod.end) {
-                    baseConfig.minDate = currentEntitlementPeriod.start;
-                    baseConfig.maxDate = currentEntitlementPeriod.end;
-                } else {
-                    // Default: allow dates from today onwards
-                    baseConfig.minDate = moment();
-                }
+                applyLeavePeriodDateFence(baseConfig);
 
                 baseConfig.isInvalidDate = buildInvalidDateChecker(isNonRosterProject);
                 baseConfig.isCustomDate = nationalHolidayCustomClass;
@@ -744,6 +725,7 @@
                     resetEmployeeField();
                     resetLeaveTypeField();
                     resetLeaveBalanceDisplay();
+                    hideLeaveBalanceLink();
                     // Reset entitlement period
                     currentEntitlementPeriod.start = null;
                     currentEntitlementPeriod.end = null;
@@ -775,6 +757,7 @@
                 if (!employeeId) {
                     resetLeaveTypeField();
                     resetLeaveBalanceDisplay();
+                    hideLeaveBalanceLink();
                     $('#leave_period').val('');
                     // Reset entitlement period and reconfigure date picker
                     currentEntitlementPeriod.start = null;
@@ -809,6 +792,7 @@
 
                 if (!leaveTypeId) {
                     hideConditionalFields();
+                    toggleLeavePeriodField('');
                     $('#leave_period').val('');
                     clearValidation();
                     // Reset entitlement period and reconfigure date picker
@@ -817,6 +801,9 @@
                     configureLeaveDatePicker();
                     return;
                 }
+
+                toggleLeavePeriodField();
+                configureLeaveDatePicker();
 
                 // Load leave type info (for conditional fields)
                 loadLeaveTypeInfo(leaveTypeId);
@@ -889,6 +876,10 @@
 
             function loadEmployeeLeaveBalance(employeeId) {
                 const url = routes.employeeLeaveBalance.replace(':id', employeeId);
+                showLeaveBalanceLink();
+                $('#leave_balance_info').html(
+                    '<div class="text-center py-3 text-muted"><i class="fas fa-spinner fa-spin"></i><div class="mt-2">Loading...</div></div>'
+                );
 
                 $.get(url)
                     .done(function(data) {
@@ -943,6 +934,7 @@
                                     `<option value="${item.leave_type_id}"
                                         data-entitlement-id="${item.entitlement_id}"
                                         data-remaining="${item.remaining_days}"
+                                        data-category="${item.leave_type.category || ''}"
                                         data-period-start="${item.period_start}"
                                         data-period-end="${item.period_end}"
                                         data-period-display="${item.period_display}">
@@ -1071,6 +1063,7 @@
 
             function handleConditionalFields(category) {
                 hideConditionalFields();
+                toggleLeavePeriodField(category);
 
                 const cat = category ? category.toLowerCase() : '';
 
@@ -1233,6 +1226,7 @@
                     .prop('disabled', true)
                     .empty()
                     .append('<option value="">Select Leave Type</option>');
+                toggleLeavePeriodField('');
             }
 
             function resetLeaveBalanceDisplay() {

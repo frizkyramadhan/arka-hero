@@ -2,6 +2,7 @@
 
 | **Versi** | **Tanggal** | **Revisi (ringkas)**                                                                                                                                                                                                                        |
 | :-------- | :---------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 1.3       | 2026-08-19  | **Leave Period** sebagai pagar tanggal hanya untuk **Cuti Tahunan** dan **Cuti Panjang**. **Cuti Dibayar** / **Izin Tanpa Upah**: field disembunyikan di form, tanggal tidak dibatasi periode, kuota periode berjalan tetap dipotong (snapshot). |
 | 1.2       | 2026-06-29  | **LSL Usage Mode** pada formulir cuti panjang: **Take Leave Only**, **Cash Out Only**, **Combined**; tanpa checkbox cash out; nilai form tetap saat ganti mode saat edit; cetak & detail untuk pencairan saja.                              |
 | 1.1       | 2026-05-20  | **Export/Import entitlement** baru: **satu baris per karyawan**, header **dua baris**, hanya **periode terakhir** (tahunan & cuti panjang), format tanggal **`d M Y`**, **carry over** LSL & annual **Manager/Director** saat **Generate**. |
 | 1.0       | —           | Panduan awal: dashboard HR, **Leave Entitlements** (generate, export/import, per karyawan), **Requests**, **Reports**, **My Leave Request**, troubleshooting.                                                                               |
@@ -14,7 +15,7 @@ Panduan ini untuk **staff HR** yang mengoperasikan modul cuti/izin di ARKA HERO 
 | **Leave Entitlement**             | Hak/saldo cuti per karyawan per periode dan jenis cuti; menjadi acuan saat mengajukan **Leave Request**. Ketentuan **Leave Entitlement** sangat mengacu pada **DOH** di **Employee Management**                                                                                                                                                                                                                                                                      |
 | **Deposit Days**                  | Kolom saldo deposit pada blok **Periode Cuti Panjang** di berkas **Export**/**Import**; hanya relevan untuk entitlement kategori **LSL**.                                                                                                                                                                                                                                                                                                                            |
 | **Carry Over**                    | Sisa hari periode sebelumnya yang ditambahkan ke hak periode baru. Untuk **LSL** mengikuti flag **carry over** di **Leave Types**; untuk **Cuti Tahunan** hanya level **Manager** dan **Director**. Dihitung otomatis saat **Generate Entitlements**, **bukan** saat **Add**/**Edit** manual.                                                                                                                                                                        |
-| **Leave Period**                  | Rentang periode saldo yang terisi otomatis dari **entitlements** saat memilih karyawan dan jenis cuti.                                                                                                                                                                                                                                                                                                                                                               |
+| **Leave Period**                  | Rentang periode saldo (entitlement) yang memagari tanggal **Cuti Tahunan** dan **Cuti Panjang**. Untuk **Cuti Dibayar** dan **Izin Tanpa Upah** field ini disembunyikan di formulir; tanggal request tidak dibatasi periode itu, tetapi kuota periode berjalan tetap dipotong dan **Leave Period** tetap tampil di detail/cetak/approval. |
 | **Leave Request**                 | Pengajuan izin/cuti sesuai **Leave Type** yang berlaku seperti Annual Leave (Cuti Tahunan), Special Leave (Menikah, Sakit, dsb), Unpaid Leave (Izin tidak dibayar), LSL (Cuti Panjang); memiliki **Register No.**, status alur persetujuan, dan dapat dihubungkan dengan **Flight Request**. Pengajuan **Cuti Periodik** di site (misal cuti jam/jadwal shift rutin atau pengaturan rosters) tidak diajukan dari menu ini melainkan dikelola terpisah di fitur lain. |
 | **Approver Selection**            | Pemilihan satu atau lebih **approver** untuk menyetujui pengajuan sebelum **Save & Submit**.                                                                                                                                                                                                                                                                                                                                                                         |
 | **Flight Request**                | Bagian opsional pada formulir (centang **Check if you need flight ticket reservation**) untuk kebutuhan tiket; terhubung alur modul penerbangan jika dipakai.                                                                                                                                                                                                                                                                                                        |
@@ -322,7 +323,7 @@ Tabel di layar menampilkan **Sheet**, **Row**, **Column** (sering berisi referen
     /><br/><em>Gambar 3.6 — Pilih <strong>Project</strong> lalu <strong>Employee</strong> dari daftar (misalnya lewat kotak dropdown yang bisa ditelusur); kolom lain seperti <strong>Leave Type</strong>, <strong>Leave Date</strong>, dan <strong>Total Days</strong> ada di blok awal formulir seperti ini (langkah 2).</em>
 </p>
 
-3. Tentukan **Leave Type**; **Leave Period** biasanya terisi otomatis dari **entitlements** karyawan yang dipilih. Jika **Leave Period** tidak muncul, cek **Leave Entitlement** karyawan tersebut dan pastikan periode cutinya ada; jika belum ada, siapkan entitlement lewat halaman **Entitlements** dalam panduan ini.
+3. Tentukan **Leave Type**. Untuk **Cuti Tahunan** dan **Cuti Panjang**, **Leave Period** terisi otomatis dari **entitlements** dan membatasi rentang **Leave Date**. Untuk **Cuti Dibayar** dan **Izin Tanpa Upah**, field **Leave Period** disembunyikan; tanggal tidak dibatasi periode tersebut (asal sisa hari periode berjalan masih cukup). Jika tipe tidak muncul di dropdown, cek **Leave Entitlement** karyawan tersebut dan pastikan periode cutinya ada; jika belum ada, siapkan entitlement lewat halaman **Entitlements** dalam panduan ini.
 
 <p align="center" id="leave-request-create-step-3">
     <img
@@ -342,7 +343,7 @@ Tabel di layar menampilkan **Sheet**, **Row**, **Column** (sering berisi referen
     /><br/><em>Gambar 3.8 — Contoh formulir ketika dipilih <strong>Cuti Tahunan</strong> (<strong>1.01</strong>): <strong>Leave Period</strong> mengikuti entitlement; isi <strong>Leave Date</strong>, <strong>Back to Work Date</strong>, dan <strong>Total Days</strong> (langkah 4).</em>
 </p>
 
-5. Untuk pilihan **Izin Dibayar** (kode **2.xx**), muncul bidang upload **Supporting Document** (biasanya mendukung format PDF/DOC/JPG dll. hingga ukuran tertentu). Dokumen bisa diisi setelah HR menerima arsip fisik atau surel dari karyawan sesuai kebijakan.
+5. Untuk pilihan **Izin Dibayar** (kode **2.xx**), muncul bidang upload **Supporting Document** (biasanya mendukung format PDF/DOC/JPG dll. hingga ukuran tertentu). Field **Leave Period** tidak ditampilkan di formulir; **Leave Date** boleh di luar periode saldo (termasuk tanggal mundur, misalnya sakit). Dokumen bisa diisi setelah HR menerima arsip fisik atau surel dari karyawan sesuai kebijakan.
 
 <p align="center" id="leave-request-create-izin-dibayar">
     <img
@@ -352,7 +353,7 @@ Tabel di layar menampilkan **Sheet**, **Row**, **Column** (sering berisi referen
     /><br/><em>Gambar 3.9 — Contoh formulir ketika dipilih salah satu izin bergaji (<strong>Mengawinkan anak</strong> <strong>2.04</strong>); bidang <strong>Supporting Document</strong> dipakai untuk lampiran pendukung (langkah 5).</em>
 </p>
 
-6. Untuk pilihan **Izin Tanpa Upah** (kode **3.01**), muncul bidang wajib **Reason**: isi narasi yang jelas agar reviewer memahami latar izin Anda.
+6. Untuk pilihan **Izin Tanpa Upah** (kode **3.01**), muncul bidang wajib **Reason**: isi narasi yang jelas agar reviewer memahami latar izin Anda. Sama seperti izin dibayar, field **Leave Period** disembunyikan di formulir dan **Leave Date** tidak dibatasi periode saldo.
 
 <p align="center" id="leave-request-create-izin-tanpa-upah">
     <img
@@ -402,14 +403,14 @@ Tabel di layar menampilkan **Sheet**, **Row**, **Column** (sering berisi referen
     /><br/><em>Gambar 3.13 — Kartu <strong>Approver Selection</strong> dan daftar approver (langkah 10).</em>
 </p>
 
-11. Pada **Leave Balance**, gunakan ringkasan tabel **Leave Type** dan **Balance** sebagai pengecek cepat terhadap sisa hak tiap jenis cuti serta konsistensi dengan isian formulir Anda sebelum kirim.
+11. Setelah karyawan dipilih, tautan **View leave balance** muncul di bawah **Leave Type**. Klik tautan itu untuk membuka modal ringkasan **Leave Type** dan **Balance** sebagai pengecek cepat sisa hak tiap jenis cuti sebelum kirim.
 
 <p align="center" id="leave-request-create-leave-balance">
     <img
         src="images/leave_request_leave_balance_table.png"
         alt="Tabel Leave Balance dua kolom Leave Type dengan kode dan Balance sisa hari per jenis seperti Cuti Tahunan 1.01 izin dibayar 2.xx Izin Tanpa Upah 3.01 Cuti Panjang Staff 4.01"
         style="max-width: 40%; width: 40%; height: auto;"
-    /><br/><em>Gambar 3.14 — Ringkasan <strong>Leave Balance</strong> di formulir pengajuan: kolom saldo per jenis (langkah 11).</em>
+    /><br/><em>Gambar 3.14 — Ringkasan <strong>Leave Balance</strong> (modal) berisi kolom saldo per jenis (langkah 11).</em>
 </p>
 
 <a id="leave-request-create-step-12"></a>
@@ -603,7 +604,7 @@ Fitur **My Leave Request** dipakai untuk pengajuan cuti atau izin yang biasanya 
 </p>
 
 5. **Isi formulir pengajuan** mengikuti urutan [**Bagian 3 — Langkah-langkah — Create Leave Request**](#leave-request-create-section). Untuk jalur personal Anda **tidak** melakukan [bagian 3 (HR), langkah **2**](#leave-request-create-step-2) (memilih **Project** dan **Employee**) — data sudah mengacu akun Anda. Jika data Employee dan Project menampilkan **N/A - N/A**, silahkan menghubungi HR untuk menghubungkan data karyawan dengan user Anda. Lanjutkan seturut seperti di bagian HR:
-    - **Leave Type** dan **Leave Period** (setara [bagian 3 (HR), langkah **3**](#leave-request-create-step-3)) — periode hak biasanya mengikuti entitlement; bila **Leave Period** kosong, hubungi HR soal saldo cuti / **Leave Entitlement**.
+    - **Leave Type** dan **Leave Period** (setara [bagian 3 (HR), langkah **3**](#leave-request-create-step-3)) — **Cuti Tahunan** / **Cuti Panjang** menampilkan **Leave Period** dan membatasi tanggal. **Cuti Dibayar** / **Izin Tanpa Upah** menyembunyikan field itu di form; tanggal tidak dibatasi periode. Bila tipe tidak bisa dipilih, hubungi HR soal saldo cuti / **Leave Entitlement**.
     - **Pola per jenis cuti** ([bagian 3 (HR), langkah **4**](#leave-request-create-cutitahunan), [langkah **5**](#leave-request-create-izin-dibayar), [langkah **6**](#leave-request-create-izin-tanpa-upah), [langkah **7**](#leave-request-create-cutipanjang)) — **Cuti Tahunan (1.01)** tanpa dokumen tambahan wajib; **Izin Dibayar (2.xx)** dapat memunculkan **Supporting Document**; **Izin Tanpa Upah (3.01)** wajib isi **Reason**; **Cuti Panjang (4.01)** memunculkan kartu **LSL** dengan **LSL Usage Mode** (**Take Leave Only**, **Cash Out Only**, **Combined**), **Leave Days**, **Cash Out**, dan **Total Days**.
     - **Leave Date**, **Back to Work Date**, **Total Days** ([bagian 3 (HR), langkah **8**](#leave-request-create-leave-date)) — aturan kalender **roster** / **non-roster** dan **hari libur nasional** sama seperti di panduan HR.
     - **Flight Request** ([bagian 3 (HR), langkah **9**](#leave-request-create-step-9)) dan **Approver Selection** ([bagian 3 (HR), langkah **10**](#leave-request-create-step-10)) — centang tiket bila perlu; tambahkan approver sampai aturan di layar terpenuhi.

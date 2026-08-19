@@ -98,7 +98,7 @@ Pada kartu **Leave Request Information**, baris **Total Days** menampilkan dua k
 | ------------------------- | -------------------------- |
 | Jumlah hari yang diajukan | Saldo cuti tersisa pegawai |
 
-**Sisa Cuti** dihitung dari entitlement yang **Leave Period**-nya sama dengan pengajuan (bukan hanya dari tanggal mulai/selesai cuti). Approver dapat membandingkan jumlah hari diajukan dengan sisa saldo sebelum menyetujui.
+**Sisa Cuti** dihitung dari entitlement yang **Leave Period**-nya sama dengan pengajuan (bukan hanya dari tanggal mulai/selesai cuti). Untuk **Cuti Dibayar** dan **Izin Tanpa Upah**, tanggal cuti boleh di luar **Leave Period**; **Leave Period** di detail adalah kuota yang akan dipotong. Approver dapat membandingkan jumlah hari diajukan dengan sisa saldo sebelum menyetujui.
 
 **Catatan:** Jika dokumen memakai **urutan persetujuan bertingkat**, sistem dapat menolak keputusan Anda sampai approver pada tingkat sebelumnya selesai — pesan di layar menjelaskan bahwa persetujuan sebelumnya harus diselesaikan terlebih dahulu.
 

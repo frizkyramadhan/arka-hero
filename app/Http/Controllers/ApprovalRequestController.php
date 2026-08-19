@@ -6,7 +6,6 @@ use App\Models\ApprovalPlan;
 use App\Models\ApprovalStage;
 use App\Models\FlightRequest;
 use App\Models\FlightRequestIssuance;
-use App\Models\LeaveEntitlement;
 use App\Models\LeaveRequest;
 use App\Models\Officialtravel;
 use App\Models\OvertimeRequest;
@@ -1192,12 +1191,7 @@ class ApprovalRequestController extends Controller
                 'total_days' => $leaveRequest->total_days,
             ]);
 
-            // Find the matching entitlement for this employee and leave type
-            $entitlement = LeaveEntitlement::where('employee_id', $leaveRequest->employee_id)
-                ->where('leave_type_id', $leaveRequest->leave_type_id)
-                ->where('period_start', '<=', $leaveRequest->start_date)
-                ->where('period_end', '>=', $leaveRequest->end_date)
-                ->first();
+            $entitlement = $leaveRequest->matchingEntitlement();
 
             if ($entitlement) {
                 // Update taken days

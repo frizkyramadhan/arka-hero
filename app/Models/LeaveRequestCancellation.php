@@ -107,12 +107,7 @@ class LeaveRequestCancellation extends Model
     {
         $leaveRequest = $this->leaveRequest;
 
-        // Find the matching entitlement
-        $entitlement = LeaveEntitlement::where('employee_id', $leaveRequest->employee_id)
-            ->where('leave_type_id', $leaveRequest->leave_type_id)
-            ->where('period_start', '<=', $leaveRequest->start_date)
-            ->where('period_end', '>=', $leaveRequest->end_date)
-            ->first();
+        $entitlement = $leaveRequest->matchingEntitlement();
 
         if ($entitlement) {
             // Reduce taken days by the cancelled amount

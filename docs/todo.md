@@ -54,6 +54,9 @@ Include relevant context in brackets to help with future AI-assisted coding:
 
 ## Recently Completed
 
+-   `[done] P2: Move leave-request Leave Balance from sidebar card into a modal linked under Leave Type [create/edit/my-create/my-edit] (completed: 2026-08-19)`
+-   `[done] P1: Leave Period date-fences only annual/LSL; paid/unpaid unconstrained dates + create-time snapshot [LeaveType::usesLeavePeriodAsDateFence, LeaveRequest::matchingEntitlement, leave-requests create/edit] (completed: 2026-08-19)`
+
 -   `[done] P2: FPTK list — add Project column and Project filter [recruitment/requests/index, RecruitmentRequestController::index/getRecruitmentRequests] (completed: 2026-08-19)`
 -   `[done] P2: Align my-trips list styling with personal DataTables pages [my-trips.blade.php; pattern from overtime/leave my-requests] (completed: 2026-08-11)`
 -   `[done] P2: Align my-trips detail Assignment Information card with FOA admin show [partials/assignment-info-card] (completed: 2026-08-11)`

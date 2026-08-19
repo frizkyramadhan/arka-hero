@@ -47,9 +47,25 @@ class LeaveEntitlement extends Model
 
     public function leaveRequests()
     {
+        $periodStart = $this->period_start;
+        $periodEnd = $this->period_end;
+        $periodLabel = ($periodStart && $periodEnd) ? $this->periodLabel() : null;
+
         return $this->hasMany(LeaveRequest::class, 'employee_id', 'employee_id')
             ->where('leave_type_id', $this->leave_type_id)
-            ->whereBetween('start_date', [$this->period_start, $this->period_end]);
+            ->where(function ($query) use ($periodStart, $periodEnd, $periodLabel) {
+                if ($periodLabel) {
+                    $query->where('leave_period', $periodLabel)
+                        ->orWhere(function ($legacy) use ($periodStart, $periodEnd) {
+                            $legacy->where(function ($emptyPeriod) {
+                                $emptyPeriod->whereNull('leave_period')
+                                    ->orWhere('leave_period', '');
+                            })->whereBetween('start_date', [$periodStart, $periodEnd]);
+                        });
+                } else {
+                    $query->whereBetween('start_date', [$periodStart, $periodEnd]);
+                }
+            });
     }
 
     // Business Logic Methods

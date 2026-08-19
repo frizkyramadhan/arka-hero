@@ -1,5 +1,5 @@
 **Purpose**: Record technical decisions and rationale for future reference
-**Last Updated**: 2026-08-11
+**Last Updated**: 2026-08-19
 
 # Technical Decision Records - ARKA HERO HRMS
 
@@ -29,6 +29,20 @@ Decision: [Title] - [YYYY-MM-DD]
 ---
 
 ## Recent Decisions
+
+### Decision: Leave Period date fence only for annual/LSL - 2026-08-19
+
+**Context**: Leave Request date pickers and entitlement matching treated Leave Period as a date fence for every leave type, which blocked paid/unpaid leave whose dates fall outside the current entitlement year.
+
+**Decision**: Cuti Tahunan and Cuti Panjang keep Leave Period as a date fence. Cuti Dibayar and Izin Tanpa Upah use it only as an accounting window; dates are unbounded by the period; remaining days of the current period still apply. Snapshot the period at create; approval/cancel charge that snapshot. Hide the field on create/edit; keep it on detail/print/email/approval.
+
+**Rationale**: Retrospective paid leave (especially sick leave) must not be clipped by the entitlement calendar. Quota still needs a stable window so approval after year-end does not debit the wrong year.
+
+**Implementation**: `LeaveType::usesLeavePeriodAsDateFence()`, `LeaveRequest::matchingEntitlement()`, `LeaveRequestController` snapshot helpers, date pickers on create/edit (HR and My Request). See `docs/adr/0001-leave-period-date-fence.md` and `CONTEXT.md`.
+
+**Review Date**: 2026-11-19
+
+---
 
 ### Decision: Form of Assignment (FOA) requestor → driver trip log - 2026-08-11
 

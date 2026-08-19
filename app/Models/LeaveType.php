@@ -58,6 +58,15 @@ class LeaveType extends Model
         return $this->category === 'unpaid';
     }
 
+    /**
+     * Annual and long-service leave use Leave Period as a date fence.
+     * Paid and unpaid use it only as an accounting window.
+     */
+    public function usesLeavePeriodAsDateFence(): bool
+    {
+        return in_array($this->category, ['annual', 'lsl'], true);
+    }
+
     public function requiresApproval()
     {
         return in_array($this->category, ['paid', 'unpaid']);

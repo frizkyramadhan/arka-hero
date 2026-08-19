@@ -1,5 +1,5 @@
 Purpose: Technical reference for understanding system design and development patterns
-Last Updated: 2026-01-09
+Last Updated: 2026-08-19
 
 ## Architecture Documentation Guidelines
 
@@ -256,6 +256,7 @@ graph TD
   - **Group 1**: Standard projects (000H, 001H, APS, 021C, 025C) - DOH-based entitlements
   - **Group 2**: Operational projects (017C, 022C) - Roster-based periodic + DOH-based
 - Leave request workflow with approval routing
+- Leave Period is a **date fence** only for Cuti Tahunan and Cuti Panjang; for Cuti Dibayar and Izin Tanpa Upah it is an **accounting window** (dates unconstrained, quota snapshot charged on approval)
 - Leave cancellation system with approval flow
 - Auto-conversion of unpaid to annual leave (configurable)
 - Bulk periodic leave request creation
