@@ -1,6 +1,16 @@
 **Purpose**: AI's persistent knowledge base for project context and learnings - ARKA HERO HRMS
 **Last Updated**: 2026-08-19
 
+### [047] Paid leave store/update silent fail (2026-08-19) ✅ FIXED
+
+**Symptom**: Submit *Karyawan sendiri kawin* (`paid` `2.01`) returned to the create form with no validation message; request was not saved.
+
+**Cause**: `findLeaveEntitlementForRequest()` was typed `int $employeeId`. `employee_id` is a UUID, so `(int)` became `0` and/or a later string pass threw `TypeError` (not caught by `catch (\Exception)` — user hits Back to a blank form). Failures also used `with(['total_days' => ...])` instead of `withErrors()`, and the forms had no `$errors` banner / `@error('total_days')`.
+
+**Fix**: Keep UUID as `string`; reject missing entitlement; `rejectWithTotalDaysError()` uses `withErrors` + toast; show errors on HR/My Request create+edit; catch `\Throwable` with input flashed.
+
+**Files**: `LeaveRequestController` (`findLeaveEntitlementForRequest`, `rejectWithTotalDaysError`, store/update), `leave-requests/{create,edit,my-create,my-edit}.blade.php`.
+
 ### [046] Leave Period date fence vs accounting window (2026-08-19) ✅ COMPLETE
 
 **Rule**: Leave Period fences **Leave Date** only for Cuti Tahunan (`annual`) and Cuti Panjang (`lsl`). Cuti Dibayar (`paid`) and Izin Tanpa Upah (`unpaid`) are not date-fenced; remaining days of the **current** period still gate the dropdown and balance check. Server snapshots `leave_requests.leave_period` at create; approval/cancel charge that snapshot (`matchingEntitlement()`), not date containment. Field hidden on create/edit; still shown on detail/print/email/approval. Edit keeps snapshot unless employee or type changes.
