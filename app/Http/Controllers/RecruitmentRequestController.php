@@ -48,6 +48,7 @@ class RecruitmentRequestController extends Controller
     {
         // Data for filters
         $departments = Department::get();
+        $projects = UserProject::projectsForSelect();
         $positions = Position::get();
         $levels = Level::get();
         $years = range(date('Y'), date('Y') - 5);
@@ -55,7 +56,7 @@ class RecruitmentRequestController extends Controller
         $title = 'Recruitment Requests (FPTK)';
         $subtitle = 'List of Recruitment Requests';
 
-        return view('recruitment.requests.index', compact('departments', 'positions', 'levels', 'years', 'title', 'subtitle'));
+        return view('recruitment.requests.index', compact('departments', 'projects', 'positions', 'levels', 'years', 'title', 'subtitle'));
     }
 
     /**
@@ -78,6 +79,10 @@ class RecruitmentRequestController extends Controller
         }
         if ($request->filled('department_id')) {
             $query->where('department_id', $request->department_id);
+        }
+
+        if ($request->filled('project_id')) {
+            $query->where('project_id', $request->project_id);
         }
 
         if ($request->filled('position_id')) {
@@ -118,6 +123,9 @@ class RecruitmentRequestController extends Controller
             })
             ->addColumn('department', function ($fptk) {
                 return $fptk->department ? $fptk->department->department_name : '-';
+            })
+            ->addColumn('project', function ($fptk) {
+                return $fptk->project->project_code ?? '-';
             })
             ->addColumn('position', function ($fptk) {
                 return $fptk->position ? $fptk->position->position_name : '-';

@@ -84,17 +84,17 @@ Panduan ini menjelaskan modul rekrutmen di ARKA HERO untuk **staf HR** yang meng
 2. Judul kartu: **Recruitment Request (FPTK)**. Tombol **Export** (jika tersedia) mengunduh data; tombol **Add** (kuning, ikon **+**) membuka form baru.
 3. Buka panel **Filter** untuk menyaring:
 
-- **Request Number**, **Department**, **Position**, **Level**
+- **Request Number**, **Department**, **Project**, **Position**, **Level**
 - **Date From** / **Date To**
 - **Status** — **Draft**, **Submitted**, **Approved**, **On Hold**, **Rejected**, **Cancelled**, **Closed**
 
-4. Tabel menampilkan kolom **No**, **Request Number**, **Department**, **Position**, **Level**, **Employment Type**, **Status**, **Requested By**, **Action** (ikon **View**).
+4. Tabel menampilkan kolom **No**, **Request Number**, **Department**, **Project**, **Position**, **Level**, **Employment Type**, **Status**, **Requested By**, **Action** (ikon **View**).
 5. Klik **Reset** di filter untuk mengosongkan kriteria.
 
 <p align="center" id="recruitment-fptk-list">
     <img
         src="images/recruitment-requests-fptk-list.png"
-        alt="Recruitment Request FPTK breadcrumb Home FPTK tombol Add panel Filter Request Number Department Position Level Date From Date To Status Reset tabel No Request Number Department Position Level Employment Type Status badge Submitted Approved Closed Requested By Action ikon View pagination Showing entries"
+        alt="Recruitment Request FPTK breadcrumb Home FPTK tombol Add panel Filter Request Number Department Project Position Level Date From Date To Status Reset tabel No Request Number Department Project Position Level Employment Type Status badge Submitted Approved Closed Requested By Action ikon View pagination Showing entries"
         style="max-width: 90%; width: 90%; height: auto;"
     />
 <br><em>Gambar 3.1 — Daftar Requests (FPTK)</em>
