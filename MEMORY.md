@@ -1,5 +1,11 @@
 **Purpose**: AI's persistent knowledge base for project context and learnings - ARKA HERO HRMS
-**Last Updated**: 2026-08-10
+**Last Updated**: 2026-08-19
+
+### [046] Leave Period date fence vs accounting window (2026-08-19) ✅ COMPLETE
+
+**Rule**: Leave Period fences **Leave Date** only for Cuti Tahunan (`annual`) and Cuti Panjang (`lsl`). Cuti Dibayar (`paid`) and Izin Tanpa Upah (`unpaid`) are not date-fenced; remaining days of the **current** period still gate the dropdown and balance check. Server snapshots `leave_requests.leave_period` at create; approval/cancel charge that snapshot (`matchingEntitlement()`), not date containment. Field hidden on create/edit; still shown on detail/print/email/approval. Edit keeps snapshot unless employee or type changes.
+
+**Files**: `LeaveType::usesLeavePeriodAsDateFence()`, `LeaveRequest::matchingEntitlement()`, `LeaveRequestController` (`findLeaveEntitlementForRequest`, `snapshotLeavePeriod`), `ApprovalRequestController`, `LeaveRequestCancellation`, leave-request create/edit (HR + My Request) + `partials/leave-period-date-fence-scripts`. Docs: `CONTEXT.md`, `docs/adr/0001-leave-period-date-fence.md`.
 
 ### [045] Pembinaan & Surat Peringatan (SP) (2026-08-07) ✅ COMPLETE
 

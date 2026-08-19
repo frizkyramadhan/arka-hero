@@ -573,7 +573,7 @@ class LeaveRequestController extends Controller
                 'reason' => $reason,
                 'total_days' => $totalDays,
                 'status' => 'pending',
-                'leave_period' => $request->leave_period,
+                'leave_period' => $this->snapshotLeavePeriod($leaveType, $entitlement, $request),
                 'requested_at' => now(),
                 'requested_by' => Auth::id(),
                 'is_batch_request' => $isBatchRequest,
@@ -968,7 +968,7 @@ class LeaveRequestController extends Controller
             ])->withInput();
         }
 
-        $leaveEntitlement = $this->findLeaveEntitlementForRequest($request, (int) $employeeId, (int) $leaveTypeId);
+        $leaveEntitlement = $this->findLeaveEntitlementForRequest($request, (int) $employeeId, (int) $leaveTypeId, $leaveRequest);
 
         if ($leaveEntitlement && $totalDays > $leaveEntitlement->remaining_days) {
             return back()->with([
@@ -1020,7 +1020,7 @@ class LeaveRequestController extends Controller
                 'back_to_work_date' => $request->back_to_work_date,
                 'reason' => $reason,
                 'total_days' => $totalDays,
-                'leave_period' => $request->leave_period,
+                'leave_period' => $this->snapshotLeavePeriod($leaveType, $leaveEntitlement, $request, $leaveRequest),
                 'supporting_document' => $supportingDocumentPath,
                 'manual_approvers' => $manualApprovers,
             ];
@@ -1446,6 +1446,7 @@ class LeaveRequestController extends Controller
                     'leave_type' => [
                         'name' => $entitlement->leaveType->name,
                         'code' => $entitlement->leaveType->code,
+                        'category' => $entitlement->leaveType->category,
                     ],
                     'period_start' => $entitlement->period_start->format('Y-m-d'),
                     'period_end' => $entitlement->period_end->format('Y-m-d'),
@@ -1691,12 +1692,7 @@ class LeaveRequestController extends Controller
                 'total_days' => $leaveRequest->total_days,
             ]);
 
-            // Find the matching entitlement for this employee and leave type
-            $entitlement = LeaveEntitlement::where('employee_id', $leaveRequest->employee_id)
-                ->where('leave_type_id', $leaveRequest->leave_type_id)
-                ->where('period_start', '<=', $leaveRequest->start_date)
-                ->where('period_end', '>=', $leaveRequest->end_date)
-                ->first();
+            $entitlement = $leaveRequest->matchingEntitlement();
 
             if ($entitlement) {
                 // Update taken days
@@ -2467,20 +2463,43 @@ class LeaveRequestController extends Controller
         return null;
     }
 
-    private function findLeaveEntitlementForRequest(Request $request, int $employeeId, int $leaveTypeId): ?LeaveEntitlement
+    /**
+     * Resolve the entitlement used as the accounting window for this request.
+     * Date-fenced types (annual, LSL) prefer an entitlement that contains the dates.
+     * Paid/unpaid keep the existing snapshot on edit, otherwise the period that contains today.
+     */
+    private function findLeaveEntitlementForRequest(Request $request, int $employeeId, int $leaveTypeId, ?LeaveRequest $existing = null): ?LeaveEntitlement
     {
-        $start = $request->start_date;
-        $end = $request->end_date;
+        $leaveType = LeaveType::find($leaveTypeId);
+        $dateFenced = $leaveType?->usesLeavePeriodAsDateFence() ?? true;
 
-        if ($start && $end) {
-            $entitlement = LeaveEntitlement::where('employee_id', $employeeId)
-                ->where('leave_type_id', $leaveTypeId)
-                ->where('period_start', '<=', $start)
-                ->where('period_end', '>=', $end)
-                ->first();
+        if (
+            ! $dateFenced
+            && $existing
+            && (int) $existing->employee_id === $employeeId
+            && (int) $existing->leave_type_id === $leaveTypeId
+            && filled($existing->leave_period)
+        ) {
+            $bySnapshot = $this->findEntitlementByPeriodLabel($employeeId, $leaveTypeId, $existing->leave_period);
+            if ($bySnapshot) {
+                return $bySnapshot;
+            }
+        }
 
-            if ($entitlement) {
-                return $entitlement;
+        if ($dateFenced) {
+            $start = $request->start_date;
+            $end = $request->end_date;
+
+            if ($start && $end) {
+                $entitlement = LeaveEntitlement::where('employee_id', $employeeId)
+                    ->where('leave_type_id', $leaveTypeId)
+                    ->where('period_start', '<=', $start)
+                    ->where('period_end', '>=', $end)
+                    ->first();
+
+                if ($entitlement) {
+                    return $entitlement;
+                }
             }
         }
 
@@ -2491,6 +2510,43 @@ class LeaveRequestController extends Controller
             ->where('period_start', '<=', $today)
             ->where('period_end', '>=', $today)
             ->first();
+    }
+
+    private function findEntitlementByPeriodLabel(int $employeeId, int $leaveTypeId, string $label): ?LeaveEntitlement
+    {
+        $normalized = trim($label);
+
+        return LeaveEntitlement::where('employee_id', $employeeId)
+            ->where('leave_type_id', $leaveTypeId)
+            ->get()
+            ->first(fn (LeaveEntitlement $entitlement) => $entitlement->periodLabel() === $normalized);
+    }
+
+    /**
+     * Persist the Leave Period snapshot. Paid/unpaid keep the create-time snapshot on edit
+     * unless employee or leave type changed.
+     */
+    private function snapshotLeavePeriod(?LeaveType $leaveType, ?LeaveEntitlement $entitlement, Request $request, ?LeaveRequest $existing = null): ?string
+    {
+        $employeeId = (int) $request->employee_id;
+        $leaveTypeId = (int) $request->leave_type_id;
+
+        if (
+            $existing
+            && $leaveType
+            && ! $leaveType->usesLeavePeriodAsDateFence()
+            && (int) $existing->employee_id === $employeeId
+            && (int) $existing->leave_type_id === $leaveTypeId
+            && filled($existing->leave_period)
+        ) {
+            return $existing->leave_period;
+        }
+
+        if ($entitlement) {
+            return $entitlement->periodLabel();
+        }
+
+        return $request->leave_period;
     }
 
     /**

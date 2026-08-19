@@ -100,6 +100,7 @@
                                                 <option value="">Select Leave Type</option>
                                                 @foreach ($leaveTypes as $leaveType)
                                                     <option value="{{ $leaveType->id }}"
+                                                        data-category="{{ $leaveType->category }}"
                                                         {{ old('leave_type_id', $leaveRequest->leave_type_id) == $leaveType->id ? 'selected' : '' }}>
                                                         {{ $leaveType->name }}
                                                     </option>
@@ -108,9 +109,10 @@
                                             @error('leave_type_id')
                                                 <div class="invalid-feedback">{{ $message }}</div>
                                             @enderror
+                                            @include('leave-requests.partials.leave-balance-link')
                                         </div>
                                     </div>
-                                    <div class="col-md-6">
+                                    <div class="col-md-6" id="leave_period_group">
                                         <div class="form-group">
                                             <label for="leave_period">
                                                 <i class="fas fa-calendar-week mr-1"></i>
@@ -319,28 +321,10 @@
                             </div>
                         </div>
 
-                        {{-- Leave Balance Card (commented out) --}}
-                        {{--
-                        <div class="card card-success card-outline elevation-3 mt-3">
-                            <div class="card-header py-2">
-                                <h5 class="card-title mb-0">
-                                    <i class="fas fa-wallet mr-1"></i>
-                                    <strong>Leave Balance</strong>
-                                </h5>
-                            </div>
-                            <div class="card-body p-0" style="max-height: 300px; overflow-y: auto;">
-                                <div id="leave_balance_info" class="p-2">
-                                    <div class="text-center py-2">
-                                        <i class="fas fa-spinner fa-spin text-info"></i>
-                                        <small class="d-block mt-1">Loading...</small>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        --}}
                     </div>
                 </div>
             </form>
+            @include('leave-requests.partials.leave-balance-modal')
         </div>
     </section>
 @endsection
@@ -501,6 +485,8 @@
                 start: null,
                 end: null
             };
+
+            @include('leave-requests.partials.leave-period-date-fence-scripts')
 
             // Initialize all components on page load
             initializeForm();
@@ -670,21 +656,7 @@
                     baseConfig.endDate = endMoment;
                 }
 
-                // Add minDate and maxDate based on entitlement period (expand to keep existing dates selectable)
-                if (currentEntitlementPeriod.start && currentEntitlementPeriod.end) {
-                    let minDate = currentEntitlementPeriod.start.clone();
-                    let maxDate = currentEntitlementPeriod.end.clone();
-                    if (hasValidRange) {
-                        if (startMoment.isBefore(minDate, 'day')) {
-                            minDate = startMoment.clone();
-                        }
-                        if (endMoment.isAfter(maxDate, 'day')) {
-                            maxDate = endMoment.clone();
-                        }
-                    }
-                    baseConfig.minDate = minDate;
-                    baseConfig.maxDate = maxDate;
-                }
+                applyLeavePeriodDateFenceForEdit(baseConfig, startMoment, endMoment, hasValidRange);
 
                 baseConfig.isInvalidDate = buildInvalidDateChecker(isNonRosterProject);
                 baseConfig.isCustomDate = nationalHolidayCustomClass;
@@ -804,11 +776,15 @@
 
                 if (!leaveTypeId) {
                     hideConditionalFields();
+                    toggleLeavePeriodField('');
                     $('#leave_period').val('');
                     clearValidation();
                     toggleLSLFlexibleSection(false);
                     return;
                 }
+
+                toggleLeavePeriodField();
+                configureLeaveDatePicker();
 
                 // Load leave type info (for conditional fields)
                 loadLeaveTypeInfo(leaveTypeId);
@@ -847,6 +823,10 @@
 
             function loadEmployeeLeaveBalance(employeeId) {
                 const url = routes.employeeLeaveBalance.replace(':id', employeeId);
+                showLeaveBalanceLink();
+                $('#leave_balance_info').html(
+                    '<div class="text-center py-3 text-muted"><i class="fas fa-spinner fa-spin"></i><div class="mt-2">Loading...</div></div>'
+                );
 
                 $.get(url)
                     .done(function(data) {
@@ -894,6 +874,7 @@
                                     `<option value="${item.leave_type_id}"
                                         data-entitlement-id="${item.entitlement_id}"
                                         data-remaining="${item.remaining_days}"
+                                        data-category="${item.leave_type.category || ''}"
                                         data-period-start="${item.period_start}"
                                         data-period-end="${item.period_end}"
                                         data-period-display="${item.period_display}">
@@ -1035,6 +1016,7 @@
 
             function handleConditionalFields(category) {
                 hideConditionalFields();
+                toggleLeavePeriodField(category);
 
                 const cat = category ? category.toLowerCase() : '';
 
