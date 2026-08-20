@@ -42,7 +42,7 @@
 
     <section class="content">
         <div class="container-fluid">
-            <form method="POST" action="{{ route('leave.requests.update', $leaveRequest) }}" enctype="multipart/form-data"
+            <form method="POST" class="js-leave-request-form" novalidate action="{{ route('leave.requests.update', $leaveRequest) }}" enctype="multipart/form-data"
                 autocomplete="off">
                 @csrf
                 @method('PUT')
@@ -904,6 +904,7 @@
                 }
 
                 toggleLeavePeriodField();
+                applyPeriodFromSelectedLeaveType();
                 configureLeaveDatePicker();
 
                 // Load leave type info (for conditional fields)
@@ -1412,6 +1413,8 @@
             // ============================================================================
             // UTILITY FUNCTIONS
             // ============================================================================
+
+            @include('leave-requests.partials.leave-form-validation-scripts')
 
             function showAlert(message, type = 'info') {
                 console.error(message);

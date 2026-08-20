@@ -451,12 +451,7 @@ class LeaveRequestController extends Controller
         $validationRules['manual_approvers'] = 'required|array|min:1';
         $validationRules['manual_approvers.*'] = 'exists:users,id';
 
-        $request->validate($validationRules, [
-            'manual_approvers.required' => 'Please select at least one approver.',
-            'manual_approvers.array' => 'Approvers must be an array.',
-            'manual_approvers.min' => 'Please select at least one approver.',
-            'manual_approvers.*.exists' => 'One or more selected approvers are invalid.',
-        ]);
+        $request->validate($validationRules, $this->leaveRequestValidationMessages());
 
         $this->validateLeaveDatesAgainstNationalHolidays($request->back_to_work_date);
 
@@ -467,7 +462,12 @@ class LeaveRequestController extends Controller
         $administrationPreview = Administration::where('employee_id', $request->employee_id)
             ->where('is_active', 1)
             ->first();
-        if ($administrationPreview && ($r = UserProject::guardProjectInAssignmentScope((int) $administrationPreview->project_id))) {
+        if (! $administrationPreview) {
+            return $this->rejectWithEmployeeError(
+                'Employee has no active administration record. Leave cannot be submitted until HR activates the assignment.'
+            );
+        }
+        if ($r = UserProject::guardProjectInAssignmentScope((int) $administrationPreview->project_id)) {
             return $r;
         }
         if ($request->filled('project_id') && ($r = UserProject::guardProjectInAssignmentScope((int) $request->project_id))) {
@@ -487,7 +487,7 @@ class LeaveRequestController extends Controller
             $totalDays = $lslTotals['total_days'];
 
             if ($errors = $this->validateLSLFlexibleBusinessRules($lslTotals['usage_mode'], $takenDays, $cashoutDays, $totalDays)) {
-                return back()->with($errors)->withInput();
+                return $this->rejectForm($errors);
             }
         }
 
@@ -539,7 +539,9 @@ class LeaveRequestController extends Controller
             if (! $administration) {
                 DB::rollback();
 
-                return back()->withErrors(['employee_id' => 'Employee has no active administration record.'])->withInput();
+                return $this->rejectWithEmployeeError(
+                    'Employee has no active administration record. Leave cannot be submitted until HR activates the assignment.'
+                );
             }
 
             // Determine flow type based on project
@@ -625,19 +627,25 @@ class LeaveRequestController extends Controller
                     ]);
                     DB::rollback();
 
-                    return back()->with(['toast_error' => 'Failed to save manual approvers. Please try again.'])->withInput();
+                    return $this->rejectForm(
+                        ['manual_approvers' => 'Failed to save manual approvers. Please try again.']
+                    );
                 }
 
                 $response = app(ApprovalPlanController::class)->create_manual_approval_plan('leave_request', $leaveRequest->id);
                 if (! $response || $response === 0) {
                     DB::rollback();
 
-                    return back()->with(['toast_error' => 'Failed to create approval plans. Please ensure at least one approver is selected.'])->withInput();
+                    return $this->rejectForm(
+                        ['manual_approvers' => 'Failed to create approval plans. Please ensure at least one approver is selected.']
+                    );
                 }
             } else {
                 DB::rollback();
 
-                return back()->with(['toast_error' => 'Please select at least one approver before submitting.'])->withInput();
+                return $this->rejectForm(
+                    ['manual_approvers' => 'Please select at least one approver before submitting.']
+                );
             }
 
             // Create roster adjustment if needed (for roster flow)
@@ -681,9 +689,9 @@ class LeaveRequestController extends Controller
                 }
             }
 
-            return back()
-                ->with(['toast_error' => 'Failed to create leave request: ' . $e->getMessage()])
-                ->withInput();
+            return $this->rejectForm(
+                ['form' => 'Failed to create leave request: ' . $e->getMessage()]
+            );
         }
     }
 
@@ -933,11 +941,7 @@ class LeaveRequestController extends Controller
         $validationRules['manual_approvers'] = 'nullable|array|min:1';
         $validationRules['manual_approvers.*'] = 'exists:users,id';
 
-        $request->validate($validationRules, [
-            'manual_approvers.array' => 'Approvers must be an array.',
-            'manual_approvers.min' => 'Please select at least one approver.',
-            'manual_approvers.*.exists' => 'One or more selected approvers are invalid.',
-        ]);
+        $request->validate($validationRules, $this->leaveRequestValidationMessages());
 
         $this->validateLeaveDatesAgainstNationalHolidays($request->back_to_work_date);
 
@@ -967,7 +971,7 @@ class LeaveRequestController extends Controller
             $totalDays = $lslTotals['total_days'];
 
             if ($errors = $this->validateLSLFlexibleBusinessRules($lslTotals['usage_mode'], $takenDays, $cashoutDays, $totalDays)) {
-                return back()->with($errors)->withInput();
+                return $this->rejectForm($errors);
             }
         }
 
@@ -1069,9 +1073,7 @@ class LeaveRequestController extends Controller
                 if (! $sync['ok']) {
                     DB::rollback();
 
-                    return back()
-                        ->with(['toast_error' => $sync['error']])
-                        ->withInput();
+                    return $this->rejectForm(['manual_approvers' => $sync['error']]);
                 }
             }
 
@@ -1093,7 +1095,9 @@ class LeaveRequestController extends Controller
         } catch (\Throwable $e) {
             DB::rollback();
 
-            return back()->with(['toast_error' => 'Failed to update leave request: ' . $e->getMessage()])->withInput();
+            return $this->rejectForm(
+                ['form' => 'Failed to update leave request: ' . $e->getMessage()]
+            );
         }
     }
 
@@ -2568,12 +2572,49 @@ class LeaveRequestController extends Controller
         return $request->leave_period;
     }
 
+    private function leaveRequestValidationMessages(): array
+    {
+        return [
+            'employee_id.required' => 'Please select an employee.',
+            'employee_id.exists' => 'The selected employee is invalid.',
+            'leave_type_id.required' => 'Please select a leave type.',
+            'leave_type_id.exists' => 'The selected leave type is invalid.',
+            'start_date.required' => 'Please select a leave start date.',
+            'end_date.required' => 'Please select a leave end date.',
+            'end_date.after_or_equal' => 'End date must be on or after the start date.',
+            'back_to_work_date.after' => 'Back to work date must be after the leave end date.',
+            'total_days.required' => 'Total days is required and must be greater than 0.',
+            'total_days.min' => 'Total days is required and must be greater than 0.',
+            'reason.required' => 'Reason is required for unpaid leave.',
+            'supporting_document.mimes' => 'Supporting document must be pdf, doc, docx, jpg, jpeg, png, rar, or zip.',
+            'supporting_document.max' => 'Supporting document may not be greater than 2 MB.',
+            'manual_approvers.required' => 'Please select at least one approver.',
+            'manual_approvers.array' => 'Approvers must be an array.',
+            'manual_approvers.min' => 'Please select at least one approver.',
+            'manual_approvers.*.exists' => 'One or more selected approvers are invalid.',
+            'lsl_usage_mode.required' => 'Please select a long service leave usage mode.',
+            'lsl_cashout_days.required' => 'Cash out days must be greater than 0 for cash-out-only requests.',
+        ];
+    }
+
+    private function rejectForm(array $errors, ?string $toast = null)
+    {
+        $toast = $toast ?? (string) collect($errors)->flatten()->first();
+
+        return back()
+            ->withErrors($errors)
+            ->with('toast_error', $toast)
+            ->withInput();
+    }
+
     private function rejectWithTotalDaysError(string $message)
     {
-        return back()
-            ->withErrors(['total_days' => $message])
-            ->with('toast_error', $message)
-            ->withInput();
+        return $this->rejectForm(['total_days' => $message], $message);
+    }
+
+    private function rejectWithEmployeeError(string $message)
+    {
+        return $this->rejectForm(['employee_id' => $message], $message);
     }
 
     /**

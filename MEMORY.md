@@ -1,6 +1,16 @@
 **Purpose**: AI's persistent knowledge base for project context and learnings - ARKA HERO HRMS
 **Last Updated**: 2026-08-19
 
+### [048] Leave submit glitch (backdated annual + inactive administration) (2026-08-19) ✅ FIXED
+
+**Symptom**: Submit Cuti Tahunan for Hari Cahyadi dated yesterday looked like a UI glitch — form bounced with no message, dates flickered empty.
+
+**Cause**: Store rejected inactive `administrations` via hidden `employee_id` (My Request has no visible field). Reload recreated the annual date picker with `minDate = today`, wiping the backdated range.
+
+**Fix**: Fail-fast + toast/`withErrors` for missing active administration; My Request shows a blocking banner and disabled submit. Date fence no longer defaults `minDate` to today; period is applied from the leave-type option before picker init; create/my-create restore the selected range after recreate. Store/update now always `withErrors` + toast (LSL, approvers, exceptions); forms use `novalidate` plus a visible client error banner instead of silent HTML5 / `alert()`.
+
+**Files**: `LeaveRequestController` (`rejectForm`, `leaveRequestValidationMessages`), `leave-period-date-fence-scripts`, `leave-form-validation-scripts`, leave-request create/edit/my-create/my-edit.
+
 ### [047] Paid leave store/update silent fail (2026-08-19) ✅ FIXED
 
 **Symptom**: Submit *Karyawan sendiri kawin* (`paid` `2.01`) returned to the create form with no validation message; request was not saved.
