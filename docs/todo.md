@@ -54,6 +54,7 @@ Include relevant context in brackets to help with future AI-assisted coding:
 
 ## Recently Completed
 
+-   `[done] P0: Leave submit glitch — surface inactive administration; preserve backdated annual dates on picker recreate [leave-period-date-fence-scripts, my-create, LeaveRequestController] (completed: 2026-08-19)`
 -   `[done] P0: Paid leave store/update silent fail — UUID employee_id + withErrors on create/edit [LeaveRequestController::findLeaveEntitlementForRequest, rejectWithTotalDaysError] (completed: 2026-08-19)`
 -   `[done] P2: Move leave-request Leave Balance from sidebar card into a modal linked under Leave Type [create/edit/my-create/my-edit] (completed: 2026-08-19)`
 -   `[done] P1: Leave Period date-fences only annual/LSL; paid/unpaid unconstrained dates + create-time snapshot [LeaveType::usesLeavePeriodAsDateFence, LeaveRequest::matchingEntitlement, leave-requests create/edit] (completed: 2026-08-19)`

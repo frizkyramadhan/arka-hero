@@ -47,7 +47,7 @@
 
     <section class="content">
         <div class="container-fluid">
-            <form method="POST"
+            <form method="POST" class="js-leave-request-form" novalidate
                 action="{{ isset($isPersonalRequest) && $isPersonalRequest ? route('leave.my-requests.store') : route('leave.requests.store') }}"
                 enctype="multipart/form-data" autocomplete="off">
                 @csrf
@@ -146,7 +146,7 @@
                                                 </select>
                                             @endif
                                             @error('employee_id')
-                                                <div class="invalid-feedback">{{ $message }}</div>
+                                                <div class="invalid-feedback d-block">{{ $message }}</div>
                                             @enderror
                                         </div>
                                     </div>
@@ -647,6 +647,8 @@
                 baseConfig.isInvalidDate = buildInvalidDateChecker(isNonRosterProject);
                 baseConfig.isCustomDate = nationalHolidayCustomClass;
 
+                const preservedRange = readPreservedLeaveRange();
+
                 // Destroy existing daterangepicker and recreate with new config
                 $('#leave_date').data('daterangepicker') && $('#leave_date').data('daterangepicker').remove();
 
@@ -664,6 +666,8 @@
                         $(this).val('');
                         $('#start_date, #end_date, #total_days_input, #total_days_hidden').val('');
                     });
+
+                restoreLeaveDateDisplay(preservedRange);
 
                 configureBackToWorkDatePicker();
             }
@@ -818,6 +822,7 @@
                 }
 
                 toggleLeavePeriodField();
+                applyPeriodFromSelectedLeaveType();
                 configureLeaveDatePicker();
 
                 // Load leave type info (for conditional fields)
@@ -1354,6 +1359,8 @@
             // ============================================================================
             // UTILITY FUNCTIONS
             // ============================================================================
+
+            @include('leave-requests.partials.leave-form-validation-scripts')
 
             function showAlert(message, type = 'info') {
                 console.error(message);

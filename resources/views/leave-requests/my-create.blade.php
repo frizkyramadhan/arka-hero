@@ -40,7 +40,7 @@
 
     <section class="content">
         <div class="container-fluid">
-            <form id="myLeaveRequestForm" method="POST" action="{{ route('leave.my-requests.store') }}"
+            <form id="myLeaveRequestForm" class="js-leave-request-form" novalidate method="POST" action="{{ route('leave.my-requests.store') }}"
                 enctype="multipart/form-data" autocomplete="off">
                 @csrf
                 {{-- Hidden fields for employee and project --}}
@@ -70,6 +70,13 @@
                                         </button>
                                     </div>
                                 @endif
+                                @if (! $defaultAdministration)
+                                    <div class="alert alert-danger">
+                                        <i class="fas fa-exclamation-triangle mr-1"></i>
+                                        Assignment karyawan tidak aktif. Hubungi HR HO Balikpapan untuk mengaktifkan
+                                        administration sebelum mengajukan cuti.
+                                    </div>
+                                @endif
                                 {{-- Employee Info Display --}}
                                 <div class="row">
                                     <div class="col-md-6">
@@ -81,6 +88,9 @@
                                             <input type="text" id="employee_display" class="form-control bg-light"
                                                 value="{{ (optional($defaultAdministration)->nik ?? 'N/A') . ' - ' . (auth()->user()->employee->fullname ?? 'N/A') }}"
                                                 readonly>
+                                            @error('employee_id')
+                                                <div class="invalid-feedback d-block">{{ $message }}</div>
+                                            @enderror
                                         </div>
                                     </div>
                                     <div class="col-md-6">
@@ -328,7 +338,8 @@
                         <!-- Action Buttons Card -->
                         <div class="card card-outline elevation-2 mt-3">
                             <div class="card-body p-3">
-                                <button type="submit" class="btn btn-success btn-block mb-2">
+                                <button type="submit" class="btn btn-success btn-block mb-2"
+                                    @if (! $defaultAdministration) disabled @endif>
                                     <i class="fas fa-paper-plane mr-2"></i>Save & Submit
                                 </button>
                                 <a href="{{ route('leave.my-requests') }}" class="btn btn-secondary btn-block">
@@ -682,6 +693,8 @@
                 baseConfig.isInvalidDate = buildInvalidDateChecker(isNonRosterProject);
                 baseConfig.isCustomDate = nationalHolidayCustomClass;
 
+                const preservedRange = readPreservedLeaveRange();
+
                 // Destroy existing daterangepicker and recreate with new config
                 $('#leave_date').data('daterangepicker') && $('#leave_date').data('daterangepicker').remove();
 
@@ -699,6 +712,8 @@
                         $(this).val('');
                         $('#start_date, #end_date, #total_days_input, #total_days_hidden').val('');
                     });
+
+                restoreLeaveDateDisplay(preservedRange);
 
                 configureBackToWorkDatePicker();
             }
@@ -821,6 +836,7 @@
                 }
 
                 toggleLeavePeriodField();
+                applyPeriodFromSelectedLeaveType();
                 configureLeaveDatePicker();
 
                 // Load leave type info (for conditional fields)
@@ -1366,38 +1382,7 @@
                 });
             }
 
-            // ============================================================================
-            // FORM SUBMISSION HANDLER
-            // ============================================================================
-
-            // Ensure total_days is always set before form submission (scoped — avoid catching sidebar logout form)
-            $('#myLeaveRequestForm').on('submit', function(e) {
-                // Get total_days from hidden field
-                let totalDays = $('#total_days_hidden').val();
-
-                // If LSL section is visible, calculate from LSL fields
-                if ($('#lsl_flexible_section').is(':visible')) {
-                    const takenDays = parseInt($('#lsl_taken_days').val()) || 0;
-                    const cashoutDays = parseInt($('#lsl_cashout_days').val()) || 0;
-                    totalDays = takenDays + cashoutDays;
-                } else {
-                    // For non-LSL, use value from input or hidden field
-                    totalDays = parseInt($('#total_days_input').val()) || parseInt($('#total_days_hidden')
-                        .val()) || 0;
-                }
-
-                // Ensure total_days is set
-                if (!totalDays || totalDays <= 0) {
-                    e.preventDefault();
-                    alert(
-                        'Total days must be greater than 0. Please select a date range or enter total days.'
-                    );
-                    return false;
-                }
-
-                // Update hidden field with calculated value
-                $('#total_days_hidden').val(totalDays);
-            });
+            @include('leave-requests.partials.leave-form-validation-scripts')
 
             // ============================================================================
             // UTILITY FUNCTIONS
