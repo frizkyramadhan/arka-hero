@@ -121,11 +121,18 @@
                                                 class="badge badge-info">{{ $cancellation->leaveRequest->leaveType->name }}</span>
                                         </td>
                                         <td>
-                                            {{ $cancellation->leaveRequest->start_date->format('d M Y') }}
-                                            <br><small class="text-muted">to
-                                                {{ $cancellation->leaveRequest->end_date->format('d M Y') }}</small>
-                                            <br><small class="text-muted">Total:
-                                                {{ $cancellation->leaveRequest->total_days }} days</small>
+                                            @if ($cancellation->leaveRequest->isLSLCashoutOnly())
+                                                <span class="text-muted" title="Cash out only, no leave taken">—</span>
+                                                <br><small class="text-muted">Cash out only</small>
+                                                <br><small class="text-muted">Total:
+                                                    {{ $cancellation->leaveRequest->displayTotalDaysLabel() }}</small>
+                                            @else
+                                                {{ $cancellation->leaveRequest->displayStartDate('d M Y') }}
+                                                <br><small class="text-muted">to
+                                                    {{ $cancellation->leaveRequest->displayEndDate('d M Y') }}</small>
+                                                <br><small class="text-muted">Total:
+                                                    {{ $cancellation->leaveRequest->displayTotalDaysLabel() }}</small>
+                                            @endif
                                         </td>
                                         <td class="text-center">
                                             <strong>{{ $cancellation->days_to_cancel }}</strong>

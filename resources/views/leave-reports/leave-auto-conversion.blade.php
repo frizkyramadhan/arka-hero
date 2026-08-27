@@ -106,8 +106,13 @@
                                             <span class="badge badge-info">{{ $conversion['leave_type_name'] }}</span>
                                         </td>
                                         <td>
-                                            {{ $conversion['start_date'] }}
-                                            <br><small class="text-muted">to {{ $conversion['end_date'] }}</small>
+                                            @if (! empty($conversion['is_cashout_only']))
+                                                <span class="text-muted">—</span>
+                                                <br><small class="text-muted">Cash out only</small>
+                                            @else
+                                                {{ $conversion['start_date'] }}
+                                                <br><small class="text-muted">to {{ $conversion['end_date'] }}</small>
+                                            @endif
                                         </td>
                                         <td class="text-center">
                                             <strong>{{ $conversion['total_days'] }}</strong>

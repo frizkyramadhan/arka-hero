@@ -126,9 +126,11 @@ class LeaveEntitlement extends Model
 
             return [
                 'id' => $request->id,
-                'start_date' => $request->start_date->format('d M Y'),
-                'end_date' => $request->end_date->format('d M Y'),
+                'start_date' => $request->displayStartDate('d M Y'),
+                'end_date' => $request->displayEndDate('d M Y'),
                 'total_days' => $request->total_days,
+                'total_days_label' => $request->displayTotalDaysLabel(),
+                'is_cashout_only' => $request->isLSLCashoutOnly(),
                 'cancelled_days' => $cancelledDays,
                 'effective_days' => $effectiveDays,
                 'status' => $request->status,

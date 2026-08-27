@@ -152,12 +152,17 @@
                                                 class="text-muted">{{ ucfirst($request->leaveType->category) }}</small>
                                         </td>
                                         <td>
-                                            {{ $request->start_date->format('d M Y') }}
-                                            <br><small class="text-muted">to
-                                                {{ $request->end_date->format('d M Y') }}</small>
+                                            @if ($request->isLSLCashoutOnly())
+                                                <span class="text-muted" title="Cash out only, no leave taken">—</span>
+                                                <br><small class="text-muted">Cash out only</small>
+                                            @else
+                                                {{ $request->displayStartDate('d M Y') }}
+                                                <br><small class="text-muted">to
+                                                    {{ $request->displayEndDate('d M Y') }}</small>
+                                            @endif
                                         </td>
                                         <td class="text-center">
-                                            <strong>{{ $request->total_days }}</strong>
+                                            <strong>{{ $request->displayTotalDaysLabel() }}</strong>
                                             @if ($request->getEffectiveDays() != $request->total_days)
                                                 <br><small class="text-warning">Effective:
                                                     {{ $request->getEffectiveDays() }}</small>

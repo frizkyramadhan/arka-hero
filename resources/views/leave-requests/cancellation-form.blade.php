@@ -93,16 +93,13 @@
                                                                 <div class="info-item mb-1">
                                                                     <span class="info-label">Period:</span>
                                                                     <span
-                                                                        class="info-value">{{ $leaveRequest->start_date->format('d/m/Y') }}
-                                                                        -
-                                                                        {{ $leaveRequest->end_date->format('d/m/Y') }}</span>
+                                                                        class="info-value">{{ $leaveRequest->displayLeavePeriod('d/m/Y') }}</span>
                                                                 </div>
                                                             </div>
                                                             <div class="col-md-6">
                                                                 <div class="info-item mb-1">
                                                                     <span class="info-label">Total Days:</span>
-                                                                    <span class="info-value">{{ $leaveRequest->total_days }}
-                                                                        day{{ $leaveRequest->total_days > 1 ? 's' : '' }}</span>
+                                                                    <span class="info-value">{{ $leaveRequest->displayTotalDaysLabel() }}</span>
                                                                 </div>
                                                                 @if ($totalCancelledDays > 0)
                                                                     <div class="info-item mb-1">
