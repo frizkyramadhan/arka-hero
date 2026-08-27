@@ -984,8 +984,8 @@ class DashboardController extends Controller
             return [
                 'employee_name' => $request->employee->fullname ?? 'N/A',
                 'leave_type' => $request->leaveType->name ?? 'N/A',
-                'leave_period' => $request->start_date->format('d M Y').' - '.$request->end_date->format('d M Y'),
-                'total_days' => $request->total_days.' days',
+                'leave_period' => $request->displayLeavePeriod('d M Y'),
+                'total_days' => $request->displayTotalDaysLabel(),
                 'action' => '<a href="'.route('leave.requests.show', $request->id).'" class="btn btn-xs btn-info mr-1">
                             <i class="fas fa-eye"></i>
                         </a>
@@ -1043,8 +1043,8 @@ class DashboardController extends Controller
             return [
                 'employee_name' => $request->employee->fullname ?? 'N/A',
                 'leave_type' => $request->leaveType->name ?? 'N/A',
-                'leave_period' => $request->start_date->format('d M Y').' - '.$request->end_date->format('d M Y'),
-                'total_days' => $request->total_days.' days',
+                'leave_period' => $request->displayLeavePeriod('d M Y'),
+                'total_days' => $request->displayTotalDaysLabel(),
                 'days_remaining' => $daysRemaining,
                 'status_badge' => $statusBadge[$request->status] ?? '<span class="badge badge-secondary">Unknown</span>',
                 'action' => '<a href="'.route('leave.requests.show', $request->id).'" class="btn btn-xs btn-info">

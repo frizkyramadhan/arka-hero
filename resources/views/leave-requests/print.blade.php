@@ -345,7 +345,7 @@
                     <span class="colon">:</span>
                     <span class="value">
                         @if ($leaveRequest->isLSLCashoutOnly())
-                            —
+                            {{ $leaveRequest->cashoutOnlyDateLabel() }}
                         @else
                             {{ $leaveRequest->start_date ? $formatDateId($leaveRequest->start_date) : '—' }}
                         @endif
@@ -356,7 +356,7 @@
                     <span class="colon">:</span>
                     <span class="value">
                         @if ($leaveRequest->isLSLCashoutOnly())
-                            —
+                            {{ $leaveRequest->cashoutOnlyDateLabel() }}
                         @else
                             {{ $leaveRequest->end_date ? $formatDateId($leaveRequest->end_date) : '—' }}
                         @endif

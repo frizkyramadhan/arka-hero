@@ -478,6 +478,87 @@ class LeaveRequest extends Model implements NotifiableDocument
             && (int) ($this->lsl_cashout_days ?? 0) > 0;
     }
 
+    public function cashoutOnlyDateLabel(): string
+    {
+        return '— (Cash out only, no leave taken)';
+    }
+
+    public function displayStartDate(string $format = 'd/m/Y'): string
+    {
+        if ($this->isLSLCashoutOnly()) {
+            return $this->cashoutOnlyDateLabel();
+        }
+
+        return $this->start_date ? $this->start_date->format($format) : 'N/A';
+    }
+
+    public function displayEndDate(string $format = 'd/m/Y'): string
+    {
+        if ($this->isLSLCashoutOnly()) {
+            return $this->cashoutOnlyDateLabel();
+        }
+
+        return $this->end_date ? $this->end_date->format($format) : 'N/A';
+    }
+
+    public function displayLeavePeriod(string $format = 'd M Y', string $separator = ' - '): string
+    {
+        if ($this->isLSLCashoutOnly()) {
+            return $this->cashoutOnlyDateLabel();
+        }
+
+        return $this->displayStartDate($format).$separator.$this->displayEndDate($format);
+    }
+
+    public function displayTotalDaysLabel(): string
+    {
+        $days = (int) ($this->total_days ?? 0);
+        $unit = $days === 1 ? 'day' : 'days';
+
+        if ($this->isLSLCashoutOnly()) {
+            return $days.' '.$unit.' (cash out)';
+        }
+
+        if ($this->isLSLFlexible() && (int) ($this->lsl_cashout_days ?? 0) > 0) {
+            $leave = (int) ($this->lsl_taken_days ?? 0);
+            $cash = (int) $this->lsl_cashout_days;
+
+            return $days.' '.$unit.' ('.$leave.' leave + '.$cash.' cash out)';
+        }
+
+        return $days.' '.$unit;
+    }
+
+    public function listStartDateHtml(): string
+    {
+        if ($this->isLSLCashoutOnly()) {
+            return '<span class="text-muted" title="Cash out only, no leave taken">—</span>';
+        }
+
+        return e($this->displayStartDate());
+    }
+
+    public function listEndDateHtml(): string
+    {
+        if ($this->isLSLCashoutOnly()) {
+            return '<span class="text-muted" title="Cash out only, no leave taken">—</span>';
+        }
+
+        return e($this->displayEndDate());
+    }
+
+    public function listTotalDaysHtml(): string
+    {
+        if ($this->isLSLCashoutOnly()) {
+            $days = (int) ($this->total_days ?? 0);
+            $unit = $days === 1 ? 'day' : 'days';
+
+            return e($days.' '.$unit).' <span class="badge badge-warning">Cash out</span>';
+        }
+
+        return e($this->displayTotalDaysLabel());
+    }
+
     /**
      * Get total LSL days (leave + cashout)
      */
@@ -570,7 +651,6 @@ class LeaveRequest extends Model implements NotifiableDocument
 
         $admin = $this->notificationActiveAdministration();
         $entitlement = $this->matchingEntitlement();
-        $totalDays = (float) ($this->total_days ?? 0);
         $remaining = $entitlement?->remaining_days;
 
         $leaveType = $this->leaveType?->name ?? '—';
@@ -582,9 +662,13 @@ class LeaveRequest extends Model implements NotifiableDocument
             'Register Number' => $this->notificationReference(),
             'Employee' => $this->employee?->fullname ?? '—',
             'Leave Type' => $leaveType,
-            'Start Date' => $this->start_date ? format_date_with_weekday($this->start_date) : '—',
-            'End Date' => $this->end_date ? format_date_with_weekday($this->end_date) : '—',
-            'Total Days' => $totalDays.' '.($totalDays > 1 ? 'days' : 'day'),
+            'Start Date' => $this->isLSLCashoutOnly()
+                ? $this->cashoutOnlyDateLabel()
+                : ($this->start_date ? format_date_with_weekday($this->start_date) : '—'),
+            'End Date' => $this->isLSLCashoutOnly()
+                ? $this->cashoutOnlyDateLabel()
+                : ($this->end_date ? format_date_with_weekday($this->end_date) : '—'),
+            'Total Days' => $this->displayTotalDaysLabel(),
             'Sisa Cuti' => $remaining === null
                 ? 'N/A'
                 : $remaining.' '.(((float) $remaining) > 1 ? 'days' : 'day'),

@@ -258,12 +258,21 @@
                                                         <td class="text-center text-muted">{{ $index + 1 }}</td>
                                                         <td>
                                                             <div class="calc-date-range">
-                                                                <strong>{{ $request['start_date'] }}</strong>
-                                                                <span class="text-muted">s/d {{ $request['end_date'] }}</span>
+                                                                @if (! empty($request['is_cashout_only']))
+                                                                    <strong>{{ $request['start_date'] }}</strong>
+                                                                @else
+                                                                    <strong>{{ $request['start_date'] }}</strong>
+                                                                    <span class="text-muted">s/d {{ $request['end_date'] }}</span>
+                                                                @endif
                                                             </div>
                                                         </td>
                                                         <td class="text-center">
-                                                            <span class="badge badge-light border">{{ $request['total_days'] }} hari</span>
+                                                            <span class="badge badge-light border">
+                                                                {{ $request['total_days'] }} hari
+                                                                @if (! empty($request['is_cashout_only']))
+                                                                    (cash out)
+                                                                @endif
+                                                            </span>
                                                         </td>
                                                         <td class="text-center">
                                                             @if (($request['cancelled_days'] ?? 0) > 0)

@@ -305,9 +305,9 @@ class LeaveRequestController extends Controller
                 'employee' => $request->employee->fullname ?? 'N/A',
                 'project' => e($request->administration?->project?->project_code ?? '—'),
                 'leave_type' => '<span class="badge badge-info">' . $leaveTypeName . '</span>' . $documentIcon . $moneyIcon,
-                'start_date' => $request->start_date->format('d/m/Y'),
-                'end_date' => $request->end_date->format('d/m/Y'),
-                'total_days' => $request->total_days . ' days',
+                'start_date' => $request->listStartDateHtml(),
+                'end_date' => $request->listEndDateHtml(),
+                'total_days' => $request->listTotalDaysHtml(),
                 'status' => $statusBadge,
                 'requested_at' => $request->requested_at ? $request->requested_at->format('d/m/Y H:i') : 'N/A',
                 'action' => $actions,
@@ -2162,13 +2162,13 @@ class LeaveRequestController extends Controller
                 return '<span class="badge badge-info">' . ($row->leaveType->name ?? 'N/A') . '</span>';
             })
             ->addColumn('start_date', function ($row) {
-                return $row->start_date ? \Carbon\Carbon::parse($row->start_date)->format('d/m/Y') : 'N/A';
+                return $row->listStartDateHtml();
             })
             ->addColumn('end_date', function ($row) {
-                return $row->end_date ? \Carbon\Carbon::parse($row->end_date)->format('d/m/Y') : 'N/A';
+                return $row->listEndDateHtml();
             })
             ->addColumn('total_days', function ($row) {
-                return $row->total_days . ' days';
+                return $row->listTotalDaysHtml();
             })
             ->addColumn('status_badge', function ($row) {
                 $badges = [
@@ -2205,7 +2205,7 @@ class LeaveRequestController extends Controller
 
                 return $btn;
             })
-            ->rawColumns(['leave_type', 'status_badge', 'action'])
+            ->rawColumns(['leave_type', 'start_date', 'end_date', 'total_days', 'status_badge', 'action'])
             ->make(true);
     }
 

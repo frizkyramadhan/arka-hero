@@ -1,5 +1,21 @@
 **Purpose**: AI's persistent knowledge base for project context and learnings - ARKA HERO HRMS
-**Last Updated**: 2026-08-19
+**Last Updated**: 2026-08-27
+
+### [050] LSL cash-out-only dates on lists and reports (2026-08-27)
+
+Cash-out-only still stores placeholder `start_date`/`end_date` (often today, column is NOT NULL). Do not show those as leave taken.
+
+**Display**: `LeaveRequest` helpers — `isLSLCashoutOnly()`, `cashoutOnlyDateLabel()`, `displayStartDate()` / `displayEndDate()` / `displayLeavePeriod()`, `displayTotalDaysLabel()`, plus `list*Html()` for DataTables. Lists, monitoring/cancellation/auto-conversion reports (web + Excel + API), entitlement calculation history, dashboard widgets, approval show, and notifications all use these.
+
+**Files**: `LeaveRequest.php`, `LeaveRequestController::data/myRequestsData`, `LeaveReportController`, `Api/V1/LeaveReportController`, `leave-reports/*`, `LeaveEntitlement::getLeaveCalculationDetails`
+
+### [049] LSL cash-out-only blocked by leave date validation (2026-08-27) ✅ FIXED
+
+**Cause**: Client submit script read `$('#lsl_usage_mode')` but mode is a radio `name="lsl_usage_mode"`, so cash-out-only never skipped the date check.
+
+**Fix**: Detect checked radio (`getLSLUsageMode()`); cash-out-only skips leave dates and only requires cash-out days.
+
+**Files**: `leave-requests/partials/leave-form-validation-scripts.blade.php`
 
 ### [048] Leave submit glitch (backdated annual + inactive administration) (2026-08-19) ✅ FIXED
 

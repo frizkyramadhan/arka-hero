@@ -838,7 +838,12 @@
                                         </div>
                                         <div class="info-content">
                                             <div class="info-label">Start Date</div>
-                                            <div class="info-value">{{ format_date_with_weekday($document->start_date) }}
+                                            <div class="info-value">
+                                                @if ($document->isLSLCashoutOnly())
+                                                    <span class="text-muted">{{ $document->cashoutOnlyDateLabel() }}</span>
+                                                @else
+                                                    {{ format_date_with_weekday($document->start_date) }}
+                                                @endif
                                             </div>
                                         </div>
                                     </div>
@@ -848,7 +853,12 @@
                                         </div>
                                         <div class="info-content">
                                             <div class="info-label">End Date</div>
-                                            <div class="info-value">{{ format_date_with_weekday($document->end_date) }}
+                                            <div class="info-value">
+                                                @if ($document->isLSLCashoutOnly())
+                                                    <span class="text-muted">{{ $document->cashoutOnlyDateLabel() }}</span>
+                                                @else
+                                                    {{ format_date_with_weekday($document->end_date) }}
+                                                @endif
                                             </div>
                                         </div>
                                     </div>
@@ -861,8 +871,7 @@
                                                 <div class="info-label">Total Days</div>
                                                 <div class="info-label">Sisa Cuti</div>
                                                 <div class="info-value leave-days-total">
-                                                    {{ $document->total_days }}
-                                                    {{ $document->total_days > 1 ? 'days' : 'day' }}
+                                                    {{ $document->displayTotalDaysLabel() }}
                                                 </div>
                                                 <div class="info-value leave-days-remaining-value">
                                                     @if ($leaveEntitlement)
@@ -1040,8 +1049,7 @@
                                                 Leave Request (Cuti) -
                                                 {{ $leaveEmployee ? $leaveEmployee->fullname : 'N/A' }} -
                                                 {{ $leaveAdmin ? $leaveAdmin->nik : 'N/A' }}
-                                                ({{ $leave->start_date->format('d M Y') }} to
-                                                {{ $leave->end_date->format('d M Y') }})
+                                                ({{ $leave->displayLeavePeriod('d M Y', ' to ') }})
                                             @elseif ($document->request_type === 'travel_based' && $document->officialTravel)
                                                 @php
                                                     $travel = $document->officialTravel;

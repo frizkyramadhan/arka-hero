@@ -90,7 +90,7 @@
                                         <div class="info-label">Start Date</div>
                                         <div class="info-value">
                                             @if ($leaveRequest->isLSLCashoutOnly())
-                                                <span class="text-muted">— (Cash out only, no leave taken)</span>
+                                                <span class="text-muted">{{ $leaveRequest->cashoutOnlyDateLabel() }}</span>
                                             @else
                                                 {{ format_date_with_weekday($leaveRequest->start_date) }}
                                             @endif
@@ -105,7 +105,7 @@
                                         <div class="info-label">End Date</div>
                                         <div class="info-value">
                                             @if ($leaveRequest->isLSLCashoutOnly())
-                                                <span class="text-muted">— (Cash out only, no leave taken)</span>
+                                                <span class="text-muted">{{ $leaveRequest->cashoutOnlyDateLabel() }}</span>
                                             @else
                                                 {{ format_date_with_weekday($leaveRequest->end_date) }}
                                             @endif
@@ -118,8 +118,7 @@
                                     </div>
                                     <div class="info-content">
                                         <div class="info-label">Total Days</div>
-                                        <div class="info-value">{{ $leaveRequest->total_days }}
-                                            {{ $leaveRequest->total_days > 1 ? 'days' : 'day' }}</div>
+                                        <div class="info-value">{{ $leaveRequest->displayTotalDaysLabel() }}</div>
                                         @if ($leaveRequest->getTotalCancelledDays() > 0)
                                             <div class="info-subtext text-warning">
                                                 <i class="fas fa-times-circle"></i>
