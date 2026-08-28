@@ -751,7 +751,7 @@
                                 if (
                                     $session->fptk_id &&
                                     $session->fptk &&
-                                    in_array($session->fptk->employment_type, ['magang', 'harian'])
+                                    $session->fptk->usesSimplifiedRecruitmentFlow()
                                 ) {
                                     $isSimplifiedProcess = true;
                                     $validStages = ['mcu', 'hire'];

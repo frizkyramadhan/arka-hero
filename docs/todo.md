@@ -1,5 +1,5 @@
 **Purpose**: Track current work and immediate priorities for ARKA HERO HRMS
-**Last Updated**: 2026-08-27
+**Last Updated**: 2026-08-28
 
 ## Task Management Guidelines
 
@@ -54,6 +54,7 @@ Include relevant context in brackets to help with future AI-assisted coding:
 
 ## Recently Completed
 
+-   `[done] P1: FPTK magang/harian sessions — MCU and Hiring only on FPTK detail table; createSession/applyToFptk start at MCU [RecruitmentRequest::usesSimplifiedRecruitmentFlow, requests/show, RecruitmentSessionService] (completed: 2026-08-28)`
 -   `[done] P1: LSL cash-out-only — hide placeholder leave dates on lists + reports; shared LeaveRequest display helpers [LeaveRequest::displayStartDate/listStartDateHtml, LeaveReportController, leave-reports] (completed: 2026-08-27)`
 -   `[done] P0: Leave submit glitch — surface inactive administration; preserve backdated annual dates on picker recreate [leave-period-date-fence-scripts, my-create, LeaveRequestController] (completed: 2026-08-19)`
 -   `[done] P0: Paid leave store/update silent fail — UUID employee_id + withErrors on create/edit [LeaveRequestController::findLeaveEntitlementForRequest, rejectWithTotalDaysError] (completed: 2026-08-19)`

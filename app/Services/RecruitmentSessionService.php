@@ -65,6 +65,8 @@ class RecruitmentSessionService
                 return null;
             }
 
+            $isSimplified = $fptk->usesSimplifiedRecruitmentFlow();
+
             // Create session
             $session = RecruitmentSession::create([
                 'session_number' => RecruitmentSession::generateSessionNumber(),
@@ -72,10 +74,10 @@ class RecruitmentSessionService
                 'candidate_id' => $candidateId,
                 'applied_date' => now()->toDateString(),
                 'source' => $data['source'] ?? 'website',
-                'current_stage' => 'cv_review',
+                'current_stage' => $isSimplified ? 'mcu' : 'cv_review',
                 'stage_status' => 'pending',
                 'stage_started_at' => now(),
-                'overall_progress' => 14.3, // CV Review = 14.3% (will be adjusted based on theory test requirement)
+                'overall_progress' => $isSimplified ? 0 : 14.3,
                 'status' => 'in_process',
                 'responsible_person_id' => $data['responsible_person_id'] ?? null,
             ]);
@@ -1414,10 +1416,7 @@ class RecruitmentSessionService
     private function getValidStagesForSession($session): array
     {
         // For magang and harian: only MCU and Hire stages
-        if (
-            $session->fptk_id && $session->fptk &&
-            in_array($session->fptk->employment_type, ['magang', 'harian'])
-        ) {
+        if ($session->fptk_id && $session->fptk && $session->fptk->usesSimplifiedRecruitmentFlow()) {
             return ['mcu', 'hire'];
         }
 

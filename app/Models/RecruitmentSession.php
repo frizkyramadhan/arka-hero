@@ -789,7 +789,7 @@ class RecruitmentSession extends Model
             return false;
         }
 
-        return in_array($this->fptk->employment_type, ['magang', 'harian']);
+        return $this->fptk->usesSimplifiedRecruitmentFlow();
     }
 
     public function getCurrentStageDurationAttribute()

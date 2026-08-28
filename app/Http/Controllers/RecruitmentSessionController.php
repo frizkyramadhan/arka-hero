@@ -124,7 +124,7 @@ class RecruitmentSessionController extends Controller
                 }
 
                 // Determine initial stage based on employment type
-                $initialStage = ($fptk && in_array($fptk->employment_type, ['magang', 'harian'])) ? 'mcu' : 'cv_review';
+                $initialStage = ($fptk && $fptk->usesSimplifiedRecruitmentFlow()) ? 'mcu' : 'cv_review';
             }
             // Handle MPP Detail source
             else {
@@ -1998,10 +1998,7 @@ class RecruitmentSessionController extends Controller
     private function getValidStagesForSession($session)
     {
         // For magang and harian (simplified process)
-        if (
-            $session->fptk_id && $session->fptk &&
-            in_array($session->fptk->employment_type, ['magang', 'harian'])
-        ) {
+        if ($session->fptk_id && $session->fptk && $session->fptk->usesSimplifiedRecruitmentFlow()) {
             return ['mcu', 'hire'];
         }
 

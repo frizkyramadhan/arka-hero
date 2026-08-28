@@ -211,6 +211,9 @@ class RecruitmentCandidate extends Model
             return false;
         }
 
+        $fptk = RecruitmentRequest::find($fptkId);
+        $isSimplified = $fptk && $fptk->usesSimplifiedRecruitmentFlow();
+
         // Create session
         $session = RecruitmentSession::create([
             'session_number' => RecruitmentSession::generateSessionNumber(),
@@ -218,10 +221,10 @@ class RecruitmentCandidate extends Model
             'candidate_id' => $this->id,
             'applied_date' => now()->toDateString(),
             'source' => $source,
-            'current_stage' => 'cv_review',
+            'current_stage' => $isSimplified ? 'mcu' : 'cv_review',
             'stage_status' => 'pending',
             'stage_started_at' => now(),
-            'overall_progress' => 10, // CV Review = 10%
+            'overall_progress' => $isSimplified ? 0 : 10,
             'status' => 'in_process',
         ]);
 

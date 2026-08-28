@@ -294,6 +294,14 @@ class RecruitmentRequest extends Model implements NotifiableDocument
         return $this->status === self::STATUS_APPROVED;
     }
 
+    /**
+     * Magang and harian FPTK skip CV review through offering; sessions start at MCU then Hiring.
+     */
+    public function usesSimplifiedRecruitmentFlow(): bool
+    {
+        return in_array($this->employment_type, ['magang', 'harian'], true);
+    }
+
     public function isOnHold(): bool
     {
         return $this->status === self::STATUS_ON_HOLD;

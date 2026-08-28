@@ -830,7 +830,7 @@ Detail halaman memuat kartu **FPTK Information**, **Job Description & Requiremen
 <br><em>Gambar 8.4 — Detail permintaan FPTK (Approved)</em>
 </p>
 
-**Recruitment Sessions** menampilkan badge jumlah session dan satu baris per kandidat. Kolom: **CV Review**, **Psikotes**, **Tes Teori**, **Interview HR**, **Interview User**, **Offering**, **MCU**, **Hire**, **Onboarding**, **Final Status**, **Action** (**View**). Simbol sel menandakan selesai, sedang berjalan, atau belum dimulai. Pada halaman detail utuh, kotak **Theory Test Requirement** di atas tabel dapat menjelaskan jika tes teori dilewati — cocokkan dengan kolom **Tes Teori** tiap baris.
+**Recruitment Sessions** menampilkan badge jumlah session dan satu baris per kandidat. Kolom tahap mengikuti employment type: PKWTT/PKWT memakai **CV Review** … **Hiring & Onboarding**; **Internship**/**Daily Worker** hanya **MCU** dan **Hiring & Onboarding**. Simbol sel menandakan selesai, sedang berjalan, atau belum dimulai. Pada halaman detail utuh, kotak **Theory Test Requirement** menjelaskan tes teori atau alur magang/harian yang disederhanakan.
 
 <p align="center" id="my-recruitment-sessions-table">
     <img

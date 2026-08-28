@@ -1,5 +1,5 @@
 Purpose: Technical reference for understanding system design and development patterns
-Last Updated: 2026-08-19
+Last Updated: 2026-08-28
 
 ## Architecture Documentation Guidelines
 
@@ -186,7 +186,7 @@ graph LR
 - FPTK/MPP **HOLD** (`on_hold`): HR freezes recruitment & approval; hold intervals excluded from Time to Hire / Fill / aging / stale clocks (`recruitment_request_holds`, `man_power_plan_holds`). Permissions `recruitment-requests.hold` / `mpp.hold` assigned manually.
 - 3-level approval workflow (Acknowledgment → PM Approval → Director Approval)
 - Candidate database with CV management and blacklist feature
-- Multi-stage recruitment process:
+- Multi-stage recruitment process (PKWTT/PKWT and MPP):
   1. CV Review
   2. Psychometric Test (Psikotes)
   3. Theory Test (optional, based on position requirements)
@@ -194,6 +194,7 @@ graph LR
   5. Offering & Negotiation
   6. Medical Check-up (MCU)
   7. Hiring (Contract type selection)
+- FPTK **magang** (Internship) and **harian** (Daily Worker): session stages are **MCU → Hiring** only. New sessions start at MCU (`RecruitmentRequest::usesSimplifiedRecruitmentFlow()`).
 - Man Power Plan (MPP) integration
 - Session-based tracking per candidate per FPTK
 - Recruitment reports:
@@ -224,7 +225,9 @@ graph TD
     E --> F[Approved FPTK - Get Letter Number]
     F --> G[Apply Candidates to FPTK]
     G --> H[Create Recruitment Session]
-    H --> I[CV Review]
+    H --> H1{Employment type magang/harian?}
+    H1 -->|Yes| R[MCU]
+    H1 -->|No| I[CV Review]
     I --> J[Psikotes]
     J --> K{Theory Test Required?}
     K -->|Yes| L[Tes Teori]
@@ -234,7 +237,7 @@ graph TD
     N --> O[Interview Director]
     O --> P[Offering]
     P --> Q{Offer Accepted?}
-    Q -->|Yes| R[MCU]
+    Q -->|Yes| R
     Q -->|No| S[Close Session - Declined]
     R --> T{MCU Result?}
     T -->|Pass| U[Hiring - Create Employee]

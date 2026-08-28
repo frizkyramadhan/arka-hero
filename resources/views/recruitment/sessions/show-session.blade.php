@@ -79,7 +79,7 @@
                 // Check if this is magang or harian employment type (only for FPTK)
                 $isSimplifiedProcess = false;
                 if ($session->fptk_id && $session->fptk) {
-                    $isSimplifiedProcess = in_array($session->fptk->employment_type, ['magang', 'harian']);
+                    $isSimplifiedProcess = $session->fptk->usesSimplifiedRecruitmentFlow();
                 }
             @endphp
             <div class="row">
@@ -3149,7 +3149,7 @@
             // Get valid stages order
             @php
                 $validStagesForJS = [];
-                if ($session->fptk_id && $session->fptk && in_array($session->fptk->employment_type, ['magang', 'harian'])) {
+                if ($session->fptk_id && $session->fptk && $session->fptk->usesSimplifiedRecruitmentFlow()) {
                     $validStagesForJS = ['mcu', 'hire'];
                 } else {
                     $validStagesForJS = ['cv_review', 'psikotes', 'tes_teori', 'interview', 'offering', 'mcu', 'hire'];

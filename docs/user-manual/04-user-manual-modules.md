@@ -1498,7 +1498,7 @@ Buka detail lewat ikon **View** pada daftar. Judul: **Detail Recruitment Request
 - Kartu **FPTK Information** — department, project, position, level, quantity, required date, employment type, alasan, kebutuhan tes teori, job description, requirements.
 - **Approval Status** — daftar approver berurutan dengan badge status (**Pending**, **Approved**, **Rejected**, dll.) bila sudah diajukan. Pada FPTK **Submitted** yang masih punya langkah **Pending**, HR dapat membuka form **Approver Selection** di kartu yang sama (lihat [mengubah approver pending](#mengubah-approver-pending) di bawah).
 - **Requested By** — pembuat permintaan.
-- Tabel **Recruitment Sessions** — muncul setelah ada kandidat terdaftar; kolom tahap (**CV Review**, **Psikotes**, **Tes Teori**, **Interview HR**, **Interview User**, **Offering**, **MCU**, **Hiring & Onboarding**, **Final Status**).
+- Tabel **Recruitment Sessions** — muncul setelah ada kandidat terdaftar; kolom tahap mengikuti jenis FPTK (**CV Review** … **Hiring & Onboarding** untuk PKWTT/PKWT; **MCU** dan **Hiring & Onboarding** saja untuk **Internship**/**Daily Worker**).
 
 <p align="center" id="recruitment-fptk-detail-reading">
     <img
@@ -1781,7 +1781,7 @@ Sesi rekrutmen menghubungkan **kandidat** dengan FPTK **Approved** atau baris **
     - **FPTK Information** / **MPP Detail** — metadata permintaan (department, posisi, quantity, employment type, theory test requirement, dll.).
     - **Recruitment Progress** — ringkasan visual kandidat **Hired**, **In Process**, **Rejected**; catatan tahap yang di-skip (misalnya posisi tanpa **Tes Teori**).
     - **Summary** _(panel kanan)_ — **Total**, **Hired**, **In Process**, **Fill Rate** (%).
-    - **Candidate Sessions** — tabel progres per kandidat per tahap (**CV Review**, **Psikotes**, **Interview HR**, **Interview User**, **Offering**, **MCU**, **Hiring & Onboarding**, **Final Status**).
+    - **Candidate Sessions** — tabel progres per kandidat per tahap (**CV Review**, **Psikotes**, **Interview HR**, **Interview User**, **Offering**, **MCU**, **Hiring & Onboarding**, **Final Status**). FPTK **Internship**/**Daily Worker** hanya menampilkan **MCU** dan **Hiring & Onboarding**.
 
 **Quick Actions (panel kanan)**
 
@@ -2181,7 +2181,7 @@ Detail halaman memuat kartu **FPTK Information**, **Job Description & Requiremen
 <br><em>Gambar 8.4 — Detail permintaan FPTK (Approved)</em>
 </p>
 
-**Recruitment Sessions** menampilkan badge jumlah session dan satu baris per kandidat. Kolom: **CV Review**, **Psikotes**, **Tes Teori**, **Interview HR**, **Interview User**, **Offering**, **MCU**, **Hire**, **Onboarding**, **Final Status**, **Action** (**View**). Simbol sel menandakan selesai, sedang berjalan, atau belum dimulai. Pada halaman detail utuh, kotak **Theory Test Requirement** di atas tabel dapat menjelaskan jika tes teori dilewati — cocokkan dengan kolom **Tes Teori** tiap baris.
+**Recruitment Sessions** menampilkan badge jumlah session dan satu baris per kandidat. Kolom tahap mengikuti employment type: PKWTT/PKWT memakai **CV Review** … **Hiring & Onboarding**; **Internship**/**Daily Worker** hanya **MCU** dan **Hiring & Onboarding**. Simbol sel menandakan selesai, sedang berjalan, atau belum dimulai. Pada halaman detail utuh, kotak **Theory Test Requirement** menjelaskan tes teori atau alur magang/harian yang disederhanakan.
 
 <p align="center" id="my-recruitment-sessions-table">
     <img
@@ -6120,7 +6120,7 @@ Detail halaman memuat kartu **FPTK Information**, **Job Description & Requiremen
 <br><em>Gambar 8.4 — Detail permintaan FPTK (Approved)</em>
 </p>
 
-**Recruitment Sessions** menampilkan badge jumlah session dan satu baris per kandidat. Kolom: **CV Review**, **Psikotes**, **Tes Teori**, **Interview HR**, **Interview User**, **Offering**, **MCU**, **Hire**, **Onboarding**, **Final Status**, **Action** (**View**). Simbol sel menandakan selesai, sedang berjalan, atau belum dimulai. Pada halaman detail utuh, kotak **Theory Test Requirement** di atas tabel dapat menjelaskan jika tes teori dilewati — cocokkan dengan kolom **Tes Teori** tiap baris.
+**Recruitment Sessions** menampilkan badge jumlah session dan satu baris per kandidat. Kolom tahap mengikuti employment type: PKWTT/PKWT memakai **CV Review** … **Hiring & Onboarding**; **Internship**/**Daily Worker** hanya **MCU** dan **Hiring & Onboarding**. Simbol sel menandakan selesai, sedang berjalan, atau belum dimulai. Pada halaman detail utuh, kotak **Theory Test Requirement** menjelaskan tes teori atau alur magang/harian yang disederhanakan.
 
 <p align="center" id="my-recruitment-sessions-table">
     <img
