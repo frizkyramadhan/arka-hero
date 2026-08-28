@@ -470,7 +470,7 @@
                 <div class="card-head">
                     <h2><i class="fas fa-list"></i> Candidate Sessions</h2>
                     @if ($isFptk)
-                        @if (in_array($fptk->employment_type, ['magang', 'harian']))
+                        @if ($fptk->usesSimplifiedRecruitmentFlow())
                             <small class="text-muted">
                                 <i class="fas fa-info-circle"></i>
                                 Untuk {{ ucfirst($fptk->employment_type) }}: Hanya tahapan MCU dan Hiring & Onboarding
@@ -511,7 +511,7 @@
                                         $skipStages = false;
                                         $showTheoryTest = false;
                                         if ($isFptk) {
-                                            $skipStages = in_array($fptk->employment_type, ['magang', 'harian']);
+                                            $skipStages = $fptk->usesSimplifiedRecruitmentFlow();
                                             $showTheoryTest = $fptk->requires_theory_test;
                                         } elseif ($isMpp) {
                                             // For MPP: check requires_theory_test from MPP detail
@@ -573,7 +573,7 @@
                                                         'hire',
                                                     ];
                                                 }
-                                            } elseif (in_array($fptk->employment_type, ['magang', 'harian'])) {
+                                            } elseif ($fptk->usesSimplifiedRecruitmentFlow()) {
                                                 // For magang and harian: only MCU and Hiring stages
                                                 $stages = ['mcu', 'hire'];
                                             } elseif ($fptk->requires_theory_test) {

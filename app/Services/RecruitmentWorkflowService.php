@@ -197,7 +197,7 @@ class RecruitmentWorkflowService
             return false;
         }
 
-        $prerequisites = $this->getStagePrerequisites($stage);
+        $prerequisites = $this->getStagePrerequisites($stage, $session);
 
         foreach ($prerequisites as $prerequisite) {
             if (!$this->isPrerequisiteMet($session, $prerequisite)) {
@@ -269,10 +269,21 @@ class RecruitmentWorkflowService
      * Get stage prerequisites
      *
      * @param string $stage
+     * @param RecruitmentSession|null $session
      * @return array
      */
-    protected function getStagePrerequisites(string $stage): array
+    protected function getStagePrerequisites(string $stage, ?RecruitmentSession $session = null): array
     {
+        if ($session && $session->shouldSkipStagesForEmploymentType()) {
+            $prerequisites = [
+                'mcu' => [],
+                'hire' => ['mcu'],
+                'onboarding' => ['hire'],
+            ];
+
+            return $prerequisites[$stage] ?? [];
+        }
+
         $prerequisites = [
             'cv_review' => [],
             'psikotes' => ['cv_review'],

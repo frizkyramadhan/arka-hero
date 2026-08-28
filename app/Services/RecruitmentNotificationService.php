@@ -26,7 +26,7 @@ class RecruitmentNotificationService
             $this->notifyCandidate($session, 'session_created', [
                 'session_number' => $session->session_number,
                 'fptk_title' => $session->fptk->position->name ?? 'N/A',
-                'next_stage' => 'CV Review',
+                'next_stage' => $session->shouldSkipStagesForEmploymentType() ? 'MCU' : 'CV Review',
             ]);
 
             // Notify HR staff

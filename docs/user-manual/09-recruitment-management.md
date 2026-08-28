@@ -4,6 +4,7 @@
 
 | **Versi** | **Tanggal** | **Revisi (ringkas)**                                                                                                                                                                                                                                                                                                             |
 | :-------- | :---------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1.5       | 2026-08-28  | **FPTK Internship/Daily Worker** — tabel **Recruitment Sessions** di detail FPTK hanya **MCU** dan **Hiring & Onboarding**; session baru dimulai di MCU. |
 | 1.4       | 2026-07-28  | **Hold FPTK** — panduan diperluas: syarat status, aksi yang dibekukan, kartu **Hold History**, filter **On Hold**, dampak dashboard/laporan; field **Requested By** / **Requested On** digabung ke kartu **FPTK Information**. |
 | 1.3       | 2026-07-28  | **HOLD / UNHOLD** FPTK & MPP — HR dengan permission `recruitment-requests.hold` / `mpp.hold` dapat menahan rekrutmen; masa hold tidak dihitung di Time to Hire / Aging / Stale; dashboard menampilkan kartu **On Hold**. |
 | 1.2       | 2026-06-23  | **Hiring & Onboarding** — registrasi ke Employee Management **opsional**; **Registration Type** (**New Employee** / **Existing Employee**); mode existing menautkan karyawan tanpa form Administration; tombol dinamis (**Register Employee**, **Update Hiring Session**, **View Employee**); badge **Employee not registered**. Aturan **Approval Rules Information** FPTK **Replacement**: HO/BO/APS tambah **HCL Director** (urutan 3); Site Project tambah **Operational General Manager** (urutan 2), **HCS Division Manager** (urutan 3). |
@@ -20,7 +21,7 @@ Panduan ini menjelaskan modul rekrutmen di ARKA HERO untuk **staf HR** yang meng
 | **Letter Number**          | Nomor surat dari modul **Letter Administration**; dipilih saat HR membuat FPTK agar **FPTK Number** ter-generate otomatis.                                                                                                           |
 | **Approver Selection**     | Pemilihan satu atau lebih **approver** sebelum **Save & Submit** atau **Submit for Approval**; alur persetujuan mengikuti **My Approvals**.                                                                                          |
 | **Update Approvers**       | Tombol pada kartu **Approval Status** (detail FPTK **Submitted**) untuk mengganti approver yang masih **Pending**; approver yang sudah memutuskan tidak dapat diubah.                                                                |
-| **Recruitment Session**    | Satu proses rekrutmen yang menghubungkan **kandidat** dengan FPTK/MPP yang **Approved**/**Active**; berjalan per tahap (**CV Review**, **Psikotes**, **Interview HR-User-Trainer**, **Offering**, **MCU**, **Hiring & Onboarding**). |
+| **Recruitment Session**    | Satu proses rekrutmen yang menghubungkan **kandidat** dengan FPTK/MPP yang **Approved**/**Active**; berjalan per tahap (**CV Review**, **Psikotes**, **Interview HR-User-Trainer**, **Offering**, **MCU**, **Hiring & Onboarding**). FPTK **Internship**/**Daily Worker** hanya **MCU** dan **Hiring & Onboarding**. |
 | **Transition Stage**       | Tombol HR pada **Recruitment Timeline** untuk memindahkan sesi kandidat ke tahap rekrutmen lain secara manual (dengan alasan audit); memerlukan izin khusus.                                                                         |
 | **Candidate (CV)**         | Data pelamar beserta curriculum vitae di **bank CV** (pool kandidat); dapat dipilih dan dimasukkan ke FPTK **Approved** atau baris MPP **Active** lewat **Recruitment Session**.                                                     |
 | **Global Status**          | Status kandidat di pool: **Available**, **In Process**, **Hired**, **Blacklisted**.                                                                                                                                                  |
@@ -175,7 +176,7 @@ Buka detail lewat ikon **View** pada daftar. Judul: **Detail Recruitment Request
 - **Job Description & Requirements** — uraian pekerjaan dan persyaratan kandidat.
 - **Approval Status** — daftar approver berurutan dengan badge status (**Pending**, **Approved**, **Rejected**, dll.) bila sudah diajukan. Pada FPTK **Submitted** yang masih punya langkah **Pending**, HR dapat membuka form **Approver Selection** di kartu yang sama (lihat [mengubah approver pending](#mengubah-approver-pending) di bawah). Form **Update Approvers** **tidak** tersedia saat FPTK **On Hold**.
 - **Hold History** — muncul di kolom kanan (hanya di menu HR **Requests (FPTK)**, bukan di **My Recruitment Request**) jika pernah ada hold; menampilkan ringkasan periode hold, total hari kumulatif, dan timeline tiap rentang hold → unhold beserta alasan dan pelaku (lihat [§3.4](#fptk-hold-unhold)).
-- Tabel **Recruitment Sessions** — muncul setelah ada kandidat terdaftar; kolom tahap (**CV Review**, **Psikotes**, **Tes Teori**, **Interview HR**, **Interview User**, **Offering**, **MCU**, **Hiring & Onboarding**, **Final Status**).
+- Tabel **Recruitment Sessions** — muncul setelah ada kandidat terdaftar; kolom tahap mengikuti jenis FPTK (**CV Review** … **Hiring & Onboarding** untuk PKWTT/PKWT; **MCU** dan **Hiring & Onboarding** saja untuk **Internship**/**Daily Worker**).
 
 <p align="center" id="recruitment-fptk-detail-reading">
     <img
@@ -529,7 +530,7 @@ Sesi rekrutmen menghubungkan **kandidat** dengan FPTK **Approved** atau baris **
     - **FPTK Information** / **MPP Detail** — metadata permintaan (department, posisi, quantity, employment type, theory test requirement, dll.).
     - **Recruitment Progress** — ringkasan visual kandidat **Hired**, **In Process**, **Rejected**; catatan tahap yang di-skip (misalnya posisi tanpa **Tes Teori**).
     - **Summary** _(panel kanan)_ — **Total**, **Hired**, **In Process**, **Fill Rate** (%).
-    - **Candidate Sessions** — tabel progres per kandidat per tahap (**CV Review**, **Psikotes**, **Interview HR**, **Interview User**, **Offering**, **MCU**, **Hiring & Onboarding**, **Final Status**).
+    - **Candidate Sessions** — tabel progres per kandidat per tahap (**CV Review**, **Psikotes**, **Interview HR**, **Interview User**, **Offering**, **MCU**, **Hiring & Onboarding**, **Final Status**). FPTK **Internship**/**Daily Worker** hanya menampilkan **MCU** dan **Hiring & Onboarding**.
 
 **Quick Actions (panel kanan)**
 
@@ -966,7 +967,7 @@ Detail halaman memuat kartu **FPTK Information** (termasuk pemohon dan tanggal p
 <br><em>Gambar 8.4 — Detail permintaan FPTK (Approved)</em>
 </p>
 
-**Recruitment Sessions** menampilkan badge jumlah session dan satu baris per kandidat. Kolom: **CV Review**, **Psikotes**, **Tes Teori**, **Interview HR**, **Interview User**, **Offering**, **MCU**, **Hire**, **Onboarding**, **Final Status**, **Action** (**View**). Simbol sel menandakan selesai, sedang berjalan, atau belum dimulai. Pada halaman detail utuh, kotak **Theory Test Requirement** di atas tabel dapat menjelaskan jika tes teori dilewati — cocokkan dengan kolom **Tes Teori** tiap baris.
+**Recruitment Sessions** menampilkan badge jumlah session dan satu baris per kandidat. Kolom tahap mengikuti employment type: PKWTT/PKWT memakai **CV Review** … **Hiring & Onboarding**; **Internship**/**Daily Worker** hanya **MCU** dan **Hiring & Onboarding**. Simbol sel menandakan selesai, sedang berjalan, atau belum dimulai. Pada halaman detail utuh, kotak **Theory Test Requirement** menjelaskan tes teori atau alur magang/harian yang disederhanakan.
 
 <p align="center" id="my-recruitment-sessions-table">
     <img

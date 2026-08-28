@@ -1,5 +1,13 @@
 **Purpose**: AI's persistent knowledge base for project context and learnings - ARKA HERO HRMS
-**Last Updated**: 2026-08-27
+**Last Updated**: 2026-08-28
+
+### [051] FPTK magang/harian recruitment sessions are MCU → Hiring only (2026-08-28)
+
+FPTK `employment_type` magang (Internship) and harian (Daily Worker) skip CV Review through Offering. Session timeline, FPTK detail session table, transition targets, and reports already treated that as a two-stage flow, but FPTK **detail** still listed every stage, and `RecruitmentSessionService::createSession` / `RecruitmentCandidate::applyToFptk` always started at `cv_review`.
+
+**Fix**: `RecruitmentRequest::usesSimplifiedRecruitmentFlow()`; create paths start at `mcu`; FPTK show table columns are MCU + Hiring & Onboarding only.
+
+**Files**: `RecruitmentRequest.php`, `RecruitmentSessionService.php`, `RecruitmentCandidate.php`, `recruitment/requests/show.blade.php`, session show/timeline views.
 
 ### [050] LSL cash-out-only dates on lists and reports (2026-08-27)
 

@@ -337,7 +337,22 @@
                                             <div class="section-title">Theory Test Requirement</div>
                                         </div>
                                         <div class="section-content">
-                                            @if ($fptk->requires_theory_test)
+                                            @if ($fptk->usesSimplifiedRecruitmentFlow())
+                                                <div class="theory-test-not-required">
+                                                    <div class="alert alert-info mb-0">
+                                                        <i class="fas fa-info-circle"></i>
+                                                        <strong>Alur magang/harian: hanya MCU dan Hiring & Onboarding</strong>
+                                                    </div>
+                                                    <div class="theory-test-details mt-3">
+                                                        <p class="mb-2"><strong>Alasan:</strong></p>
+                                                        <ul class="mb-0">
+                                                            <li>Employment type Internship atau Daily Worker memakai proses rekrutmen yang disederhanakan</li>
+                                                            <li>CV Review, Psikotes, Tes Teori, Interview, dan Offering tidak dijalankan</li>
+                                                            <li>Session kandidat dimulai dari MCU, lalu Hiring & Onboarding</li>
+                                                        </ul>
+                                                    </div>
+                                                </div>
+                                            @elseif ($fptk->requires_theory_test)
                                                 <div class="theory-test-required">
                                                     <div class="alert alert-warning mb-0">
                                                         <i class="fas fa-exclamation-triangle"></i>
@@ -578,6 +593,10 @@
                 <!-- Recruitment Sessions (full width table, unified with session view) -->
                 <div class="col-lg-12 sessions-section">
                     @if ($sessions->isNotEmpty())
+                        @php
+                            $skipStages = $fptk->usesSimplifiedRecruitmentFlow();
+                            $showTheoryTest = !$skipStages && $fptk->requires_theory_test;
+                        @endphp
                         <div class="row">
                             <div class="col-12">
                                 <div class="fptk-card sessions-table-card">
@@ -585,6 +604,15 @@
                                         <h2 class="mb-0"><i class="fas fa-user-graduate"></i> Recruitment Sessions</h2>
                                         <span class="sessions-count">{{ $sessions->count() }}</span>
                                     </div>
+                                    @if ($skipStages)
+                                        <div class="px-3 pt-2">
+                                            <small class="text-muted">
+                                                <i class="fas fa-info-circle"></i>
+                                                Untuk {{ $fptk->employment_type === 'magang' ? 'Internship' : 'Daily Worker' }}:
+                                                hanya tahapan MCU dan Hiring & Onboarding
+                                            </small>
+                                        </div>
+                                    @endif
                                     <div class="card-body">
                                         <div class="table-responsive">
                                             <table class="table table-bordered table-striped">
@@ -592,15 +620,21 @@
                                                     <tr>
                                                         <th class="text-center align-middle" style="width: 50px;">No</th>
                                                         <th class="align-middle">Candidate Name</th>
-                                                        <th class="text-center align-middle">CV Review</th>
-                                                        <th class="text-center align-middle">Psikotes</th>
-                                                        <th class="text-center align-middle">Tes Teori</th>
-                                                        <th class="text-center align-middle">Interview HR</th>
-                                                        <th class="text-center align-middle">Interview User</th>
-                                                        <th class="text-center align-middle">Offering</th>
+                                                        @if (!$skipStages)
+                                                            <th class="text-center align-middle">CV Review</th>
+                                                            <th class="text-center align-middle">Psikotes</th>
+                                                            @if ($showTheoryTest)
+                                                                <th class="text-center align-middle">Tes Teori</th>
+                                                            @endif
+                                                            <th class="text-center align-middle">Interview HR</th>
+                                                            @if ($showTheoryTest)
+                                                                <th class="text-center align-middle">Interview Trainer</th>
+                                                            @endif
+                                                            <th class="text-center align-middle">Interview User</th>
+                                                            <th class="text-center align-middle">Offering</th>
+                                                        @endif
                                                         <th class="text-center align-middle">MCU</th>
-                                                        <th class="text-center align-middle">Hire</th>
-                                                        <th class="text-center align-middle">Onboarding</th>
+                                                        <th class="text-center align-middle">Hiring & Onboarding</th>
                                                         <th class="text-center align-middle">Final Status</th>
                                                         <th class="text-center align-middle" style="width: 120px;">Action
                                                         </th>
@@ -617,17 +651,31 @@
                                                                     {{ $session->session_number }}</small>
                                                             </td>
                                                             @php
-                                                                $stages = [
-                                                                    'cv_review',
-                                                                    'psikotes',
-                                                                    'tes_teori',
-                                                                    'interview_hr',
-                                                                    'interview_user',
-                                                                    'offering',
-                                                                    'mcu',
-                                                                    'hire',
-                                                                    'onboarding',
-                                                                ];
+                                                                if ($skipStages) {
+                                                                    $stages = ['mcu', 'hire'];
+                                                                } elseif ($showTheoryTest) {
+                                                                    $stages = [
+                                                                        'cv_review',
+                                                                        'psikotes',
+                                                                        'tes_teori',
+                                                                        'interview_hr',
+                                                                        'interview_trainer',
+                                                                        'interview_user',
+                                                                        'offering',
+                                                                        'mcu',
+                                                                        'hire',
+                                                                    ];
+                                                                } else {
+                                                                    $stages = [
+                                                                        'cv_review',
+                                                                        'psikotes',
+                                                                        'interview_hr',
+                                                                        'interview_user',
+                                                                        'offering',
+                                                                        'mcu',
+                                                                        'hire',
+                                                                    ];
+                                                                }
                                                                 $currentStage = $session->current_stage;
                                                                 $stageStatus = $session->stage_status;
                                                             @endphp
