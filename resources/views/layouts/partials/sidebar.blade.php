@@ -51,9 +51,9 @@
 
                 {{-- My Features Dropdown --}}
                 <li
-                    class="nav-item {{ Request::is('leave/my-*') || Request::is('officialtravels/my-*') || Request::is('recruitment/my-*') || Request::is('profile/my-profile*') || Request::is('flight/my-*') || Request::is('overtime/my-requests*') || Request::is('room-consumption-requests/my-requests*') || Request::is('employee-disciplinaries/my-records*') || Request::is('vehicle-assignments/my-trips*') ? 'menu-open' : '' }}">
+                    class="nav-item {{ Request::is('leave/my-*') || Request::is('officialtravels/my-*') || Request::is('recruitment/my-*') || Request::is('profile/my-profile*') || Request::is('flight/my-*') || Request::is('overtime/my-requests*') || Request::is('room-consumption-requests/my-requests*') || Request::is('supplies/orders/my-orders*') || Request::is('employee-disciplinaries/my-records*') || Request::is('vehicle-assignments/my-trips*') ? 'menu-open' : '' }}">
                     <a href="#"
-                        class="nav-link {{ Request::is('leave/my-*') || Request::is('officialtravels/my-*') || Request::is('recruitment/my-*') || Request::is('profile/my-profile*') || Request::is('flight/my-*') || Request::is('overtime/my-requests*') || Request::is('room-consumption-requests/my-requests*') || Request::is('employee-disciplinaries/my-records*') || Request::is('vehicle-assignments/my-trips*') ? 'active' : '' }}">
+                        class="nav-link {{ Request::is('leave/my-*') || Request::is('officialtravels/my-*') || Request::is('recruitment/my-*') || Request::is('profile/my-profile*') || Request::is('flight/my-*') || Request::is('overtime/my-requests*') || Request::is('room-consumption-requests/my-requests*') || Request::is('supplies/orders/my-orders*') || Request::is('employee-disciplinaries/my-records*') || Request::is('vehicle-assignments/my-trips*') ? 'active' : '' }}">
                         <i class="nav-icon fas fa-folder-open"></i>
                         <p>
                             My Features
@@ -126,6 +126,17 @@
                                 class="nav-link {{ Request::is('room-consumption-requests/my-requests*') ? 'active' : '' }}">
                                 <i class="far fa-circle nav-icon"></i>
                                 <p>My Room & Consumption</p>
+                            </a>
+                        </li>
+                        @endcanany
+
+                        {{-- My Office Supply Orders --}}
+                        @canany(['personal.supplies.orders.view-own', 'personal.supplies.orders.create-own'])
+                        <li class="nav-item">
+                            <a href="{{ route('supplies.orders.my-orders') }}"
+                                class="nav-link {{ Request::is('supplies/orders/my-orders*') ? 'active' : '' }}">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>My Office Supply Orders</p>
                             </a>
                         </li>
                         @endcanany
@@ -577,8 +588,8 @@
                 </li>
                 @endcanany
 
-                {{-- GAMMA SECTION - Flight + Room & Consumption + Vehicles --}}
-                @canany(['flight-requests.show', 'flight-issuances.view', 'flight-issuances.create', 'room-consumption-requests.show', 'vehicles.show', 'vehicle-assignments.show', 'fuel-records.verify', 'fuel-claims.show', 'fuel-records.show'])
+                {{-- GAMMA SECTION - Flight + Room & Consumption + Vehicles + Supplies --}}
+                @canany(['flight-requests.show', 'flight-issuances.view', 'flight-issuances.create', 'room-consumption-requests.show', 'vehicles.show', 'vehicle-assignments.show', 'fuel-records.verify', 'fuel-claims.show', 'fuel-records.show', 'supplies.catalog.show', 'supplies.stock-in.show', 'supplies.stock-out.show', 'supplies.orders.show'])
                 <li class="nav-header">GAMMA SECTION</li>
                 @canany(['flight-requests.show', 'flight-issuances.view', 'flight-issuances.create'])
                 <li
@@ -670,6 +681,84 @@
                     </ul>
                 </li>
                 @endcan
+
+                @canany(['supplies.catalog.show', 'supplies.stock-in.show', 'supplies.stock-out.show', 'supplies.orders.show', 'supplies.dashboard.show', 'supplies.reports.show'])
+                @php
+                $isSuppliesMy = Request::is('supplies/orders/my-orders*');
+                $isSuppliesCatalog = Request::is('supplies/catalog*');
+                $isSuppliesStockIn = Request::is('supplies/stock-ins*');
+                $isSuppliesStockOut = Request::is('supplies/stock-outs*');
+                $isSuppliesOrders = Request::is('supplies/orders*') && !$isSuppliesMy;
+                $isSuppliesReports = Request::is('supplies/reports*');
+                $isSuppliesDashboard = Request::is('dashboard/supplies-management');
+                $isSuppliesMenuOpen = $isSuppliesCatalog || $isSuppliesStockIn || $isSuppliesStockOut || $isSuppliesOrders || $isSuppliesReports || $isSuppliesDashboard;
+                @endphp
+                <li class="nav-item {{ $isSuppliesMenuOpen ? 'menu-open' : '' }}">
+                    <a href="#" class="nav-link {{ $isSuppliesMenuOpen ? 'active' : '' }}">
+                        <i class="nav-icon fas fa-boxes"></i>
+                        <p>
+                            Supplies
+                            <i class="fas fa-angle-left right"></i>
+                        </p>
+                    </a>
+                    <ul class="nav nav-treeview">
+                        @can('supplies.dashboard.show')
+                        <li class="nav-item">
+                            <a href="{{ route('dashboard.supplies-management') }}"
+                                class="nav-link {{ $isSuppliesDashboard ? 'active' : '' }}">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>Dashboard</p>
+                            </a>
+                        </li>
+                        @endcan
+                        @can('supplies.catalog.show')
+                        <li class="nav-item">
+                            <a href="{{ route('supplies.catalog.index') }}"
+                                class="nav-link {{ $isSuppliesCatalog ? 'active' : '' }}">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>Catalog</p>
+                            </a>
+                        </li>
+                        @endcan
+                        @can('supplies.stock-in.show')
+                        <li class="nav-item">
+                            <a href="{{ route('supplies.stock-ins.index') }}"
+                                class="nav-link {{ $isSuppliesStockIn ? 'active' : '' }}">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>Stock In</p>
+                            </a>
+                        </li>
+                        @endcan
+                        @can('supplies.stock-out.show')
+                        <li class="nav-item">
+                            <a href="{{ route('supplies.stock-outs.index') }}"
+                                class="nav-link {{ $isSuppliesStockOut ? 'active' : '' }}">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>Stock Out</p>
+                            </a>
+                        </li>
+                        @endcan
+                        @can('supplies.orders.show')
+                        <li class="nav-item">
+                            <a href="{{ route('supplies.orders.index') }}"
+                                class="nav-link {{ $isSuppliesOrders ? 'active' : '' }}">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>Orders</p>
+                            </a>
+                        </li>
+                        @endcan
+                        @can('supplies.reports.show')
+                        <li class="nav-item">
+                            <a href="{{ route('supplies.reports.index') }}"
+                                class="nav-link {{ $isSuppliesReports ? 'active' : '' }}">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>Reports</p>
+                            </a>
+                        </li>
+                        @endcan
+                    </ul>
+                </li>
+                @endcanany
 
                 @canany(['vehicles.show', 'vehicle-assignments.show', 'fuel-records.verify', 'fuel-claims.show'])
                 @php
@@ -773,12 +862,12 @@
                 @endcan
 
                 {{-- MASTER DATA --}}
-                @canany(['master-data.show', 'business-partners.show', 'national-holidays.show', 'meeting-rooms.show', 'disciplinary-criteria.show'])
+                @canany(['master-data.show', 'business-partners.show', 'national-holidays.show', 'meeting-rooms.show', 'disciplinary-criteria.show', 'supplies.item-categories.show'])
                 {{-- Master Data Dropdown --}}
                 <li
-                    class="nav-item {{ Request::is('banks*') || Request::is('religions*') || Request::is('positions*') || Request::is('departments*') || Request::is('projects*') || Request::is('grades*') || Request::is('levels*') || Request::is('transportations*') || Request::is('accommodations*') || Request::is('meeting-rooms*') || Request::is('letter-categories*') || Request::is('leave/types*') || Request::is('leave/national-holidays*') || Request::is('business-partners*') || Request::is('disciplinary-criteria*') ? 'menu-open' : '' }}">
+                    class="nav-item {{ Request::is('banks*') || Request::is('religions*') || Request::is('positions*') || Request::is('departments*') || Request::is('projects*') || Request::is('grades*') || Request::is('levels*') || Request::is('transportations*') || Request::is('accommodations*') || Request::is('meeting-rooms*') || Request::is('letter-categories*') || Request::is('leave/types*') || Request::is('leave/national-holidays*') || Request::is('business-partners*') || Request::is('disciplinary-criteria*') || Request::is('supplies/item-categories*') ? 'menu-open' : '' }}">
                     <a href="#"
-                        class="nav-link {{ Request::is('banks*') || Request::is('religions*') || Request::is('positions*') || Request::is('departments*') || Request::is('projects*') || Request::is('grades*') || Request::is('levels*') || Request::is('transportations*') || Request::is('accommodations*') || Request::is('meeting-rooms*') || Request::is('letter-categories*') || Request::is('leave/types*') || Request::is('leave/national-holidays*') || Request::is('business-partners*') || Request::is('disciplinary-criteria*') ? 'active' : '' }}">
+                        class="nav-link {{ Request::is('banks*') || Request::is('religions*') || Request::is('positions*') || Request::is('departments*') || Request::is('projects*') || Request::is('grades*') || Request::is('levels*') || Request::is('transportations*') || Request::is('accommodations*') || Request::is('meeting-rooms*') || Request::is('letter-categories*') || Request::is('leave/types*') || Request::is('leave/national-holidays*') || Request::is('business-partners*') || Request::is('disciplinary-criteria*') || Request::is('supplies/item-categories*') ? 'active' : '' }}">
                         <i class="nav-icon fas fa-database"></i>
                         <p>
                             Master Data
@@ -881,6 +970,21 @@
                                 class="nav-link {{ Request::is('meeting-rooms*') ? 'active' : '' }}">
                                 <i class="far fa-circle nav-icon"></i>
                                 <p>Meeting Rooms</p>
+                            </a>
+                        </li>
+                        @endcan
+
+                        {{-- Supplies Data --}}
+                        @can('supplies.item-categories.show')
+                        <li class="nav-header"
+                            style="font-size: 0.75rem; color: #6c757d; padding: 0.5rem 1rem 0.25rem;">
+                            Supplies Data
+                        </li>
+                        <li class="nav-item">
+                            <a href="{{ route('supplies.item-categories.index') }}"
+                                class="nav-link {{ Request::is('supplies/item-categories*') ? 'active' : '' }}">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>Item Categories</p>
                             </a>
                         </li>
                         @endcan

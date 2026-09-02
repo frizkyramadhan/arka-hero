@@ -938,9 +938,9 @@ class RoomConsumptionRequestController extends Controller
     {
         return datatables()->of($query)
             ->addIndexColumn()
-            ->addColumn('request_number', fn ($row) => e($row->request_number ?: '—'))
-            ->addColumn('project_label', fn ($row) => e(($row->project->project_code ?? '').' - '.($row->project->project_name ?? '')))
-            ->addColumn('room_name', fn ($row) => e($row->meetingRoom->room_name ?? '—'))
+            ->addColumn('request_number', fn ($row) => display_text($row->request_number ?: null))
+            ->addColumn('project_label', fn ($row) => display_text(trim(($row->project->project_code ?? '').' - '.($row->project->project_name ?? ''), ' -')))
+            ->addColumn('room_name', fn ($row) => display_text($row->meetingRoom->room_name ?? null))
             ->addColumn('meeting_date_fmt', fn ($row) => $row->formattedMeetingDateRangeHtml())
             ->addColumn('time_range', function ($row) {
                 $s = $row->start_time ? Carbon::parse($row->start_time)->format('H:i') : '';
@@ -949,7 +949,7 @@ class RoomConsumptionRequestController extends Controller
                 return e(trim("{$s} - {$e}", ' -'));
             })
             ->addColumn('status_badge', fn ($row) => $this->statusBadgeHtml($row))
-            ->addColumn('requester', fn ($row) => e($row->requestedBy->name ?? '—'))
+            ->addColumn('requester', fn ($row) => display_text($row->requestedBy->name ?? null))
             ->addColumn('actions', function ($row) use ($isPersonal) {
                 return $this->actionsHtml($row, $isPersonal);
             })

@@ -1,5 +1,5 @@
 **Purpose**: Future features and improvements prioritized by value for ARKA HERO HRMS
-**Last Updated**: 2026-08-11
+**Last Updated**: 2026-08-31
 
 # Feature Backlog - ARKA HERO HRMS
 
@@ -18,6 +18,13 @@
 -   **Description**: Meeting room master + Room & Consumption Request with letter category RCR, manual approval, fixed consumption types, My Features portal. Zoom/IT WO Phase 2 implemented (CI3 API + HERO client).
 -   **Documentation**: `docs/ROOM_CONSUMPTION_REQUEST_DESIGN.md`
 -   **Notes**: Supersedes GA Module 5 approval/consumption model (manual approval + form fixed types, not dual custom status / supplies stock).
+
+### Supplies ✅ Phase 1
+
+-   **Description**: One catalog (Office Supply / Consumable), Stock In / Stock Out per Project, Supply Order for restock with manual approval. Approve does not move stock.
+-   **Documentation**: `docs/SUPPLIES_DESIGN.md`
+-   **Permissions**: `php artisan db:seed --class=SupplyPermissionSeeder`
+-   **Out of scope (Phase 1)**: Letter Number, REST API, stock opname, inter-project transfer, unit conversion, workbook import.
 
 ### Vehicle Administration (GAMMA) ✅ Phase 1 (no maintenance)
 
@@ -57,9 +64,10 @@
 -   **User Value**: Comprehensive GA management, automated workflows for supply requests, vehicle tracking, room bookings, integrated system for all GA operations
 -   **Effort**: Large (remaining modules)
 -   **Dependencies**: Core ARKA HERO modules (Employees, Projects, Departments, Approval System)
--   **Documentation**: `docs/GA_MODULES_ANALYSIS.md`, `docs/ROOM_CONSUMPTION_REQUEST_DESIGN.md` (RCR)
+-   **Documentation**: `docs/GA_MODULES_ANALYSIS.md`, `docs/ROOM_CONSUMPTION_REQUEST_DESIGN.md` (RCR), `docs/SUPPLIES_DESIGN.md` (Supplies Phase 1)
 -   **Modules Included**:
-    -   Office Supplies Module (8 tables, supply request workflow, stock opname)
+    -   ~~**Supplies** (Catalog + Stock In + Stock Out + Supply Order)~~ — Phase 1 implemented. See `docs/SUPPLIES_DESIGN.md`. Remaining: workbook import, opname, transfer, REST API.
+    -   ~~Office Supplies Module (8 tables, supply request workflow, stock opname)~~
     -   ~~Vehicle Administration Module (Phase 1)~~ → implemented under GAMMA (fuel + docs; maintenance still backlog)
     -   Property Management System (4 tables, room reservations, check-in/out workflow)
     -   Ticket Reservations Module (2 tables, travel ticket booking system)

@@ -53,6 +53,25 @@ function format_datetime_with_weekday(null|string|\DateTimeInterface $value): st
 }
 
 /**
+ * Normalize user-facing text: decode stored HTML entities once so "&" is not shown as "&amp;".
+ * Use in Blade with {{ display_text($value) }}; use plain in DataTables text columns (no e()).
+ */
+function display_text(mixed $value, ?string $default = '—'): string
+{
+    if ($value === null) {
+        return $default ?? '';
+    }
+
+    $text = trim((string) $value);
+
+    if ($text === '') {
+        return $default ?? '';
+    }
+
+    return html_entity_decode($text, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+}
+
+/**
  * Format request reason for display
  */
 function formatRequestReason($requestReason, $otherReason = null)

@@ -80,14 +80,14 @@ class VehicleAssignmentController extends Controller
         return datatables()->of($query)
             ->addIndexColumn()
             ->addColumn('date_fmt', fn (VehicleAssignment $row) => optional($row->assignment_date)->format('d M Y'))
-            ->addColumn('vehicle_label', fn (VehicleAssignment $row) => e($row->vehicle_kode.' — '.$row->license_plate))
+            ->addColumn('vehicle_label', fn (VehicleAssignment $row) => display_text($row->vehicle_kode.' — '.$row->license_plate))
             ->addColumn('destinations', function (VehicleAssignment $row) {
                 $row->loadMissing('stops');
 
-                return e($row->destinationSummary());
+                return display_text($row->destinationSummary());
             })
             ->addColumn('status_badge', function (VehicleAssignment $row) {
-                return '<span class="badge badge-'.$row->statusBadgeClass().'">'.e($row->statusLabel()).'</span>';
+                return '<span class="badge badge-'.$row->statusBadgeClass().'">'.e(display_text($row->statusLabel(), '')).'</span>';
             })
             ->addColumn('action', function (VehicleAssignment $row) {
                 return view('vehicle-assignments.partials.action', ['model' => $row])->render();
@@ -528,9 +528,9 @@ class VehicleAssignmentController extends Controller
         return datatables()->of($query)
             ->addIndexColumn()
             ->addColumn('date_fmt', fn (VehicleAssignment $row) => optional($row->assignment_date)->format('d M Y'))
-            ->addColumn('vehicle_label', fn (VehicleAssignment $row) => e($row->vehicle_kode.' — '.$row->license_plate))
+            ->addColumn('vehicle_label', fn (VehicleAssignment $row) => display_text($row->vehicle_kode.' — '.$row->license_plate))
             ->addColumn('status_badge', function (VehicleAssignment $row) {
-                return '<span class="badge badge-'.$row->statusBadgeClass().'">'.e($row->statusLabel()).'</span>';
+                return '<span class="badge badge-'.$row->statusBadgeClass().'">'.e(display_text($row->statusLabel(), '')).'</span>';
             })
             ->addColumn('action', function (VehicleAssignment $row) {
                 $url = route('vehicle-assignments.my-trips.show', $row);

@@ -72,16 +72,16 @@ class RoomConsumptionReportController extends Controller
             $e = $row->end_time ? Carbon::parse($row->end_time)->format('H:i') : '';
             $data[] = [
                 'DT_RowIndex' => $start + $i + 1,
-                'request_number' => e($row->request_number ?? '—'),
-                'project_label' => e(($row->project->project_code ?? '').' - '.($row->project->project_name ?? '')),
-                'room_name' => e($row->meetingRoom->room_name ?? '—'),
-                'meeting_title' => e($row->meeting_title ?? '—'),
+                'request_number' => display_text($row->request_number ?? null),
+                'project_label' => display_text(trim(($row->project->project_code ?? '').' - '.($row->project->project_name ?? ''), ' -')),
+                'room_name' => display_text($row->meetingRoom->room_name ?? null),
+                'meeting_title' => display_text($row->meeting_title ?? null),
                 'meeting_date_fmt' => $row->formattedMeetingDateRangeHtml(),
                 'created_at_fmt' => $row->created_at?->format('d/m/Y') ?? '—',
-                'target_days' => e($this->formatTargetDays($this->targetDays($row))),
-                'time_range' => e(trim("{$s} - {$e}", ' -')),
+                'target_days' => display_text($this->formatTargetDays($this->targetDays($row)), ''),
+                'time_range' => display_text(trim("{$s} - {$e}", ' -'), ''),
                 'status_badge' => $this->statusBadgeHtml($row->status),
-                'requester' => e($row->requestedBy->name ?? '—'),
+                'requester' => display_text($row->requestedBy->name ?? null),
                 'actions' => '<a href="'.route('room-consumption-requests.show', $row).'" class="btn btn-sm btn-info" title="View"><i class="fas fa-eye"></i></a>',
             ];
         }

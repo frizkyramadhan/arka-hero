@@ -301,9 +301,9 @@ class LeaveRequestController extends Controller
 
             return [
                 'DT_RowIndex' => $start + $index + 1,
-                'register_number' => e($request->register_number ?? '—'),
-                'employee' => $request->employee->fullname ?? 'N/A',
-                'project' => e($request->administration?->project?->project_code ?? '—'),
+                'register_number' => display_text($request->register_number ?? null),
+                'employee' => display_text($request->employee->fullname ?? null, 'N/A'),
+                'project' => display_text($request->administration?->project?->project_code ?? null),
                 'leave_type' => '<span class="badge badge-info">' . $leaveTypeName . '</span>' . $documentIcon . $moneyIcon,
                 'start_date' => $request->listStartDateHtml(),
                 'end_date' => $request->listEndDateHtml(),
@@ -2153,10 +2153,10 @@ class LeaveRequestController extends Controller
         return datatables()->of($query)
             ->addIndexColumn()
             ->addColumn('register_number', function ($row) {
-                return e($row->register_number ?? '—');
+                return display_text($row->register_number ?? null);
             })
             ->addColumn('project', function ($row) {
-                return e($row->administration?->project?->project_code ?? '—');
+                return display_text($row->administration?->project?->project_code ?? null);
             })
             ->addColumn('leave_type', function ($row) {
                 return '<span class="badge badge-info">' . ($row->leaveType->name ?? 'N/A') . '</span>';

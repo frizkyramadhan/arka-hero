@@ -52,6 +52,7 @@
                                     <option value="flight_request_issuance">Letter of Guarantee (LG)</option>
             <option value="overtime_request">Overtime Request</option>
             <option value="room_consumption_request">Room & Consumption Request</option>
+            <option value="supply_order">Supply Order</option>
         </select>
                             </div>
                         </div>

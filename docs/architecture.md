@@ -1,5 +1,5 @@
 Purpose: Technical reference for understanding system design and development patterns
-Last Updated: 2026-08-28
+**Last Updated**: 2026-08-31
 
 ## Architecture Documentation Guidelines
 
@@ -457,6 +457,30 @@ graph TD
 
 - Web: `/vehicles/*`, `/vehicle-assignments/*`, `/vehicle-assignments/my-trips*`, `/fuel-records/*`, `/fuel-records/my-requests*`, `/fuel-records/pending*`, `/fuel-claims/*`, `/fuel-bot-subscribers/*`, `/fuel-bot-logs/*`
 - API: `GET /api/v1/vehicles*`, `GET/PUT /api/v1/fuel-claims*`, `GET /api/v1/fuel-bot/whitelist/{id}`, `POST /api/v1/fuel-bot/fuel-records`, `POST /api/v1/telegram/fuel-bot/webhook`
+
+### 8d. Supplies (GAMMA)
+
+**Controllers**: `SupplyItemCategoryController`, `SupplyItemController`, `SupplyStockInController`, `SupplyStockOutController`, `SupplyOrderController`  
+**Models**: `SupplyItemCategory`, `SupplyItem`, `SupplyStockIn`, `SupplyStockInItem`, `SupplyStockOut`, `SupplyStockOutItem`, `SupplyOrder`, `SupplyOrderItem`  
+**Service**: `App\Services\SupplyStock`  
+**Design**: `docs/SUPPLIES_DESIGN.md`  
+**Permissions**: `php artisan db:seed --class=SupplyPermissionSeeder`
+
+**Features**:
+
+- **Item Category** master (name + code prefix); default Office Supply / GAA and Consumable / GAC
+- Global catalog linked to category; codes `{prefix}{seq}`; stock unit text; integer quantities
+- Perpetual ending balance per item per Project (Stock In lines − Stock Out lines); negative stock rejected
+- Stock In / Stock Out are **multi-line documents** with per-project numbers `SI-` / `SO-`
+- Stock Out lines: Location + PIC (free text)
+- Supply Order: header Date + Department; line remarks; number `ORD-{projectCode}-{seq}`
+- Approve order does not move stock; receive via Stock In (optional order link), then Close
+- Manual approvers (`create_manual_approval_plan('supply_order', $id)`); approval help in Indonesian
+- GAMMA → Item Categories, Catalog, Stock In, Stock Out, Orders; My Features → My Supply Orders
+
+**Key Routes**:
+
+- Web: `/supplies/item-categories*`, `/supplies/catalog*`, `/supplies/stock-ins*`, `/supplies/stock-outs*`, `/supplies/orders*`, `/supplies/orders/my-orders*`
 
 ### 9. Employee Bonds & Violations
 

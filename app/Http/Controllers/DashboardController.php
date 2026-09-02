@@ -37,6 +37,10 @@ use App\Models\RecruitmentRequest;
 use App\Models\RecruitmentSession;
 use App\Models\RoomConsumptionRequest;
 use App\Models\MeetingRoom;
+use App\Models\SupplyOrder;
+use App\Models\SupplyStockIn;
+use App\Models\SupplyStockOut;
+use App\Models\SupplyStockOutItem;
 use App\Models\Taxidentification;
 use App\Models\User;
 use App\Models\Vehicle;
@@ -571,7 +575,7 @@ class DashboardController extends Controller
                 return $row->traveler->employee->fullname ?? 'N/A';
             })
             ->addColumn('destination', function ($row) {
-                return e($row->pendingArrivalDestinationLabel());
+                return display_text($row->pendingArrivalDestinationLabel());
             })
             ->filterColumn('destination', function ($q, $keyword) {
                 $keyword = trim((string) $keyword);
@@ -625,7 +629,7 @@ class DashboardController extends Controller
                 return $row->traveler->employee->fullname ?? 'N/A';
             })
             ->addColumn('destination', function ($row) {
-                return e($row->pendingDepartureDestinationLabel());
+                return display_text($row->pendingDepartureDestinationLabel());
             })
             ->filterColumn('destination', function ($q, $keyword) {
                 $keyword = trim((string) $keyword);
@@ -2491,6 +2495,156 @@ class DashboardController extends Controller
             'expiringSoonDocs',
             'fuelThisMonth',
             'criticalVehicles'
+        ));
+    }
+
+    /**
+     * Supplies management dashboard (GA): orders, stock movement, fulfillment.
+     */
+    public function suppliesManagement()
+    {
+        $title = 'Supplies Dashboard';
+        $subtitle = 'Catalog, stock, and supply orders overview';
+
+        $orderBase = SupplyOrder::query();
+        UserProject::scopeToAssignedProjects($orderBase, 'project_id');
+
+        $totalOrders = (clone $orderBase)->count();
+        $countDraft = (clone $orderBase)->where('status', SupplyOrder::STATUS_DRAFT)->count();
+        $countSubmitted = (clone $orderBase)->where('status', SupplyOrder::STATUS_SUBMITTED)->count();
+        $countApproved = (clone $orderBase)->where('status', SupplyOrder::STATUS_APPROVED)->count();
+        $countRejected = (clone $orderBase)->where('status', SupplyOrder::STATUS_REJECTED)->count();
+        $countCancelled = (clone $orderBase)->where('status', SupplyOrder::STATUS_CANCELLED)->count();
+        $countClosed = (clone $orderBase)->where('status', SupplyOrder::STATUS_CLOSED)->count();
+
+        $thisMonthOrders = (clone $orderBase)->whereMonth('created_at', now()->month)
+            ->whereYear('created_at', now()->year)
+            ->count();
+        $lastMonthOrders = (clone $orderBase)->whereMonth('created_at', now()->subMonth()->month)
+            ->whereYear('created_at', now()->subMonth()->year)
+            ->count();
+        $ordersMonthGrowthPct = $lastMonthOrders > 0
+            ? round((($thisMonthOrders - $lastMonthOrders) / $lastMonthOrders) * 100, 1)
+            : ($thisMonthOrders > 0 ? 100.0 : 0.0);
+
+        $approvedAwaitingReceipt = (clone $orderBase)
+            ->where('status', SupplyOrder::STATUS_APPROVED)
+            ->with('items')
+            ->get()
+            ->filter(fn (SupplyOrder $order) => $order->items->contains(
+                fn ($line) => $line->quantityOutstanding() > 0
+            ))
+            ->count();
+
+        $pendingApprovalSteps = ApprovalPlan::query()
+            ->where('document_type', 'supply_order')
+            ->where('is_open', true)
+            ->where('status', 0)
+            ->whereIn('document_id', function ($sub) {
+                $sub->select('id')->from('supply_orders');
+                UserProject::scopeToAssignedProjects($sub, 'project_id');
+            })
+            ->count();
+
+        $stockInBase = SupplyStockIn::query();
+        UserProject::scopeToAssignedProjects($stockInBase, 'project_id');
+        $stockOutBase = SupplyStockOut::query();
+        UserProject::scopeToAssignedProjects($stockOutBase, 'project_id');
+
+        $stockInThisMonth = (clone $stockInBase)
+            ->whereMonth('stock_date', now()->month)
+            ->whereYear('stock_date', now()->year)
+            ->count();
+        $stockOutThisMonth = (clone $stockOutBase)
+            ->whereMonth('stock_date', now()->month)
+            ->whereYear('stock_date', now()->year)
+            ->count();
+
+        $byProject = DB::table('supply_orders')
+            ->join('projects', 'supply_orders.project_id', '=', 'projects.id')
+            ->select(
+                'projects.id',
+                'projects.project_code',
+                'projects.project_name',
+                DB::raw('COUNT(*) as order_count')
+            )
+            ->when(UserProject::assignmentScope() !== null, function ($q) {
+                $scope = UserProject::assignmentScope();
+                if ($scope === []) {
+                    $q->whereRaw('0 = 1');
+                } else {
+                    $q->whereIn('supply_orders.project_id', $scope);
+                }
+            })
+            ->groupBy('projects.id', 'projects.project_code', 'projects.project_name')
+            ->orderByDesc('order_count')
+            ->limit(10)
+            ->get();
+
+        $topConsumed = SupplyStockOutItem::query()
+            ->select(
+                'supply_items.code',
+                'supply_items.name',
+                DB::raw('SUM(supply_stock_out_items.quantity) as total_out')
+            )
+            ->join('supply_stock_outs', 'supply_stock_outs.id', '=', 'supply_stock_out_items.supply_stock_out_id')
+            ->join('supply_items', 'supply_items.id', '=', 'supply_stock_out_items.supply_item_id')
+            ->where('supply_stock_outs.stock_date', '>=', now()->subDays(30)->toDateString())
+            ->when(UserProject::assignmentScope() !== null, function ($q) {
+                $scope = UserProject::assignmentScope();
+                if ($scope === []) {
+                    $q->whereRaw('0 = 1');
+                } else {
+                    $q->whereIn('supply_stock_outs.project_id', $scope);
+                }
+            })
+            ->groupBy('supply_items.id', 'supply_items.code', 'supply_items.name')
+            ->orderByDesc('total_out')
+            ->limit(10)
+            ->get();
+
+        $recentOrders = (clone $orderBase)
+            ->with(['project', 'requestedBy', 'department'])
+            ->orderByDesc('created_at')
+            ->limit(10)
+            ->get();
+
+        $recentStockIns = (clone $stockInBase)
+            ->with(['project', 'order'])
+            ->orderByDesc('stock_date')
+            ->orderByDesc('created_at')
+            ->limit(8)
+            ->get();
+
+        $recentStockOuts = (clone $stockOutBase)
+            ->with(['project'])
+            ->orderByDesc('stock_date')
+            ->orderByDesc('created_at')
+            ->limit(8)
+            ->get();
+
+        return view('dashboard.supplies-management', compact(
+            'title',
+            'subtitle',
+            'totalOrders',
+            'countDraft',
+            'countSubmitted',
+            'countApproved',
+            'countRejected',
+            'countCancelled',
+            'countClosed',
+            'thisMonthOrders',
+            'lastMonthOrders',
+            'ordersMonthGrowthPct',
+            'approvedAwaitingReceipt',
+            'pendingApprovalSteps',
+            'stockInThisMonth',
+            'stockOutThisMonth',
+            'byProject',
+            'topConsumed',
+            'recentOrders',
+            'recentStockIns',
+            'recentStockOuts'
         ));
     }
 }

@@ -12,6 +12,7 @@ use App\Models\OvertimeRequest;
 use App\Models\Project;
 use App\Models\RecruitmentRequest;
 use App\Models\RoomConsumptionRequest;
+use App\Models\SupplyOrder;
 use App\Services\DocumentNotificationService;
 use App\Services\ItWoZoomClient;
 use Carbon\Carbon;
@@ -253,6 +254,8 @@ class ApprovalPlanController extends Controller
             $document = OvertimeRequest::findOrFail($approval_plan->document_id);
         } elseif ($document_type == 'room_consumption_request') {
             $document = RoomConsumptionRequest::findOrFail($approval_plan->document_id);
+        } elseif ($document_type == 'supply_order') {
+            $document = SupplyOrder::findOrFail($approval_plan->document_id);
         } else {
             return false; // Invalid document type
         }
@@ -299,6 +302,13 @@ class ApprovalPlanController extends Controller
                     'status' => OvertimeRequest::STATUS_REJECTED,
                     'rejected_at' => now(),
                     'approved_at' => null,
+                ]);
+            } elseif ($document_type === 'supply_order') {
+                $document->update([
+                    'status' => SupplyOrder::STATUS_REJECTED,
+                    'rejected_at' => now(),
+                    'approved_at' => null,
+                    'rejection_reason' => $approval_plan->remarks,
                 ]);
             } else {
                 $document->update([
@@ -424,7 +434,7 @@ class ApprovalPlanController extends Controller
         $request->validate([
             'ids' => 'required|array',
             'ids.*' => 'required|integer',
-            'document_type' => 'required|string|in:officialtravel,recruitment_request,leave_request,flight_request,flight_request_issuance,overtime_request,room_consumption_request',
+            'document_type' => 'required|string|in:officialtravel,recruitment_request,leave_request,flight_request,flight_request_issuance,overtime_request,room_consumption_request,supply_order',
             'remarks' => 'nullable|string',
         ]);
 
@@ -472,6 +482,8 @@ class ApprovalPlanController extends Controller
                 $document = OvertimeRequest::findOrFail($approval_plan->document_id);
             } elseif ($document_type == 'room_consumption_request') {
                 $document = RoomConsumptionRequest::findOrFail($approval_plan->document_id);
+            } elseif ($document_type == 'supply_order') {
+                $document = SupplyOrder::findOrFail($approval_plan->document_id);
             } else {
                 $failCount++;
 
@@ -534,6 +546,8 @@ class ApprovalPlanController extends Controller
                 $documentTypeLabel = 'Flight Request';
             } elseif ($document_type === 'flight_request_issuance') {
                 $documentTypeLabel = 'Flight Request Issuance';
+            } elseif ($document_type === 'supply_order') {
+                $documentTypeLabel = 'Supply Order';
             }
 
             return response()->json([
@@ -1298,6 +1312,8 @@ class ApprovalPlanController extends Controller
             $document = OvertimeRequest::findOrFail($document_id);
         } elseif ($document_type == 'room_consumption_request') {
             $document = RoomConsumptionRequest::findOrFail($document_id);
+        } elseif ($document_type == 'supply_order') {
+            $document = SupplyOrder::findOrFail($document_id);
         } else {
             return false; // Invalid document type
         }

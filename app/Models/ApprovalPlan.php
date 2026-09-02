@@ -106,6 +106,11 @@ class ApprovalPlan extends Model
         return $this->belongsTo(RoomConsumptionRequest::class, 'document_id', 'id');
     }
 
+    public function supplyOrder()
+    {
+        return $this->belongsTo(SupplyOrder::class, 'document_id', 'id');
+    }
+
     /**
      * Check if this approval can be processed (hybrid sequential validation)
      *

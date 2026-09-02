@@ -323,6 +323,18 @@
                                         Catatan:</strong> Jika approver yang diperlukan tidak tersedia dalam Approver
                                     Selection, harap menghubungi <strong>HR HO Balikpapan</strong></li>
                             </ul>
+                        @elseif($documentType === 'supply_order')
+                            <h6 class="text-primary mb-2">
+                                <i class="fas fa-boxes mr-1"></i> Supply Order
+                            </h6>
+                            <ul class="mb-0 pl-3">
+                                <li>Pilih satu atau lebih approver dengan role <strong>approver</strong></li>
+                                <li>Approval dilakukan secara <strong>sequential</strong> sesuai urutan yang dipilih</li>
+                                <li>Menyetujui Supply Order ini <strong>tidak</strong> mengubah stock. Barang dicatat sebagai Stock In saat diterima</li>
+                                <li class="mt-2"><strong><i class="fas fa-exclamation-triangle text-warning"></i>
+                                        Catatan:</strong> Jika approver yang diperlukan tidak tersedia dalam Approver
+                                    Selection, harap menghubungi <strong>HR HO Balikpapan</strong></li>
+                            </ul>
                         @elseif($documentType === 'flight_request')
                             <h6 class="text-primary mb-2">
                                 <i class="fas fa-plane mr-1"></i> Flight Request (FRF)

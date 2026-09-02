@@ -74,8 +74,8 @@ class OfficialTravelReportController extends Controller
         foreach ($rows as $i => $row) {
             $traveler = $row->traveler;
             $emp = $traveler && $traveler->employee ? $traveler->employee : null;
-            $nik = e($traveler->nik ?? '—');
-            $name = e($emp->fullname ?? '—');
+            $nik = e(display_text($traveler->nik ?? '—', ''));
+            $name = e(display_text($emp->fullname ?? '—', ''));
             $travelerCell = $traveler
                 ? '<div class="text-nowrap small">'.$nik.'</div><div class="text-muted small">'.$name.'</div>'
                 : '<span class="text-muted">—</span>';
@@ -84,17 +84,17 @@ class OfficialTravelReportController extends Controller
 
             $data[] = [
                 'DT_RowIndex' => $start + $i + 1,
-                'official_travel_number' => e($row->official_travel_number ?? '—'),
+                'official_travel_number' => display_text($row->official_travel_number ?? null),
                 'official_travel_date_fmt' => $row->official_travel_date?->format('d/m/Y') ?? '—',
                 'traveler_html' => $travelerCell,
-                'project_name' => e($row->project->project_name ?? '—'),
+                'project_name' => display_text($row->project->project_name ?? null),
                 'destination' => view('officialtravels.partials.datatable-destination-cell', ['travel' => $row])->render(),
                 'purpose_html' => $purposeHtml,
-                'duration' => e($row->duration ?? '—'),
-                'transportation' => e($row->transportation->transportation_name ?? '—'),
-                'accommodation' => e($row->accommodation->accommodation_name ?? '—'),
+                'duration' => display_text($row->duration ?? null),
+                'transportation' => display_text($row->transportation->transportation_name ?? null),
+                'accommodation' => display_text($row->accommodation->accommodation_name ?? null),
                 'status_badge' => $this->statusBadgeHtml($row),
-                'letter_number' => e($row->letter_number ?? '—'),
+                'letter_number' => display_text($row->letter_number ?? null),
                 'created_at_fmt' => $row->created_at?->format('d/m/Y H:i') ?? '—',
                 'actions' => '<a href="'.route('officialtravels.show', $row).'" class="btn btn-sm btn-info" title="View"><i class="fas fa-eye"></i></a>',
             ];
