@@ -90,7 +90,7 @@ class NationalHolidayController extends Controller
             })
 
             ->editColumn('name', function (NationalHoliday $row) {
-                return $row->name ? e($row->name) : '—';
+                return $row->name ? display_text($row->name) : '—';
             });
 
         if ($canEdit || $canDelete) {

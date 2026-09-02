@@ -1,5 +1,15 @@
 **Purpose**: AI's persistent knowledge base for project context and learnings - ARKA HERO HRMS
-**Last Updated**: 2026-08-28
+**Last Updated**: 2026-08-31
+
+### [052] Supplies Phase 1 + refactor (2026-08-31)
+
+One **Supplies** module with **Item Category** master (prefix GAA/GAC by default), global catalog, multi-line **Stock In** (`SI-`) / **Stock Out** (`SO-`) documents, and **Supply Order** (`ORD-`) with Date + Department on header and remarks on lines. UI matches other GAMMA modules (accordion filter, card forms). Approval help for Supply Order is Indonesian.
+
+**Routes**: `/supplies/item-categories`, `/supplies/catalog`, `/supplies/stock-ins`, `/supplies/stock-outs`, `/supplies/orders`, `/supplies/orders/my-orders`.
+
+**Migration**: `2026_08_31_140000_create_supplies_tables.php` (rollback + rewrite). Run `migrate` + `SupplyPermissionSeeder`.
+
+**ADRs**: `0002`, `0006` (updated), `0009` (ORD not SO), `0011` (multi-line SI/SO).
 
 ### [051] FPTK magang/harian recruitment sessions are MCU → Hiring only (2026-08-28)
 

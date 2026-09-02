@@ -73,7 +73,7 @@ class OvertimeRequestController extends Controller
 
         return datatables()->of($query)
             ->addIndexColumn()
-            ->addColumn('register_number', fn($row) => e($row->register_number ?? '—'))
+            ->addColumn('register_number', fn ($row) => display_text($row->register_number ?? null))
             ->addColumn('project_name', fn($row) => $row->project->project_name ?? '—')
             ->addColumn('overtime_date_fmt', fn($row) => $row->overtime_date?->format('d/m/Y') ?? '—')
             ->addColumn('status_badge', fn($row) => $this->statusBadgeHtml($row->status))
@@ -383,7 +383,7 @@ class OvertimeRequestController extends Controller
 
         return datatables()->of($query)
             ->addIndexColumn()
-            ->addColumn('register_number', fn($row) => e($row->register_number ?? '—'))
+            ->addColumn('register_number', fn ($row) => display_text($row->register_number ?? null))
             ->addColumn('project_name', fn($row) => $row->project->project_name ?? '—')
             ->addColumn('overtime_date_fmt', fn($row) => $row->overtime_date?->format('d/m/Y') ?? '—')
             ->addColumn('status_badge', fn($row) => $this->statusBadgeHtml($row->status))

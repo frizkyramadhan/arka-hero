@@ -423,6 +423,12 @@ class DebugEmailNotificationController extends Controller
                 'requestedBy',
                 'items',
             ],
+            'supply_order' => [
+                'project',
+                'department',
+                'requestedBy',
+                'items.item',
+            ],
             default => [],
         };
     }

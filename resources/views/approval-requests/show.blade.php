@@ -24,6 +24,8 @@
                         @else
                             ROOM &amp; CONSUMPTION REQUEST
                         @endif
+                    @elseif($approvalPlan->document_type === 'supply_order')
+                        SUPPLY ORDER
                     @elseif($approvalPlan->document_type === 'flight_request_issuance')
                         Letter of Guarantee
                     @else
@@ -52,6 +54,9 @@
                     @elseif($approvalPlan->document_type === 'room_consumption_request')
                         @php $document = App\Models\RoomConsumptionRequest::find($approvalPlan->document_id); @endphp
                         {{ $document->request_number ?? ($document->meeting_title ?? 'RCR') }}
+                    @elseif($approvalPlan->document_type === 'supply_order')
+                        @php $document = App\Models\SupplyOrder::find($approvalPlan->document_id); @endphp
+                        {{ $document->order_number ?? 'Supply Order' }}
                     @elseif($approvalPlan->document_type === 'flight_request_issuance')
                         @php $document = App\Models\FlightRequestIssuance::find($approvalPlan->document_id); @endphp
                         {{ $document ? $document->issued_number : 'N/A' }}
@@ -77,6 +82,21 @@
                     @elseif($approvalPlan->document_type === 'room_consumption_request')
                         @php $document = App\Models\RoomConsumptionRequest::find($approvalPlan->document_id); @endphp
                         {{ $document ? $document->formattedMeetingDateRange() : format_date_with_weekday(now()) }}
+                    @elseif($approvalPlan->document_type === 'supply_order')
+                        @php $document = App\Models\SupplyOrder::with('project')->find($approvalPlan->document_id); @endphp
+                        @if ($document && $document->order_date)
+                            {{ format_date_with_weekday($document->order_date) }}
+                        @else
+                            {{ format_date_with_weekday($document->created_at ?? now()) }}
+                        @endif
+                        @if ($document && $document->project)
+                            <span class="mx-2">·</span>
+                            <i class="fas fa-project-diagram"></i>
+                            {{ $document->project->project_code ?? '—' }}
+                            @if ($document->project->project_name)
+                                — {{ display_text($document->project->project_name) }}
+                            @endif
+                        @endif
                     @elseif($approvalPlan->document_type === 'flight_request_issuance')
                         @php $document = App\Models\FlightRequestIssuance::find($approvalPlan->document_id); @endphp
                         @if ($document && $document->issued_date)
@@ -490,6 +510,21 @@
                         </div>
                         @else
                             <div class="alert alert-warning">Room &amp; Consumption Request document not found.</div>
+                        @endif
+                    @elseif($approvalPlan->document_type === 'supply_order')
+                        @php
+                            $order = App\Models\SupplyOrder::with([
+                                'project', 'department', 'requestedBy', 'items.item', 'stockIns',
+                            ])->find($approvalPlan->document_id);
+                        @endphp
+                        @if ($order)
+                            @include('supplies.orders._detail-content', [
+                                'order' => $order,
+                                'cardClass' => 'document-card',
+                                'showStockInHistory' => auth()->user()?->can('supplies.stock-in.show'),
+                            ])
+                        @else
+                            <div class="alert alert-warning">Supply Order document not found.</div>
                         @endif
                     @elseif($approvalPlan->document_type === 'recruitment_request')
                         @php $document = App\Models\RecruitmentRequest::with(['department', 'project', 'position', 'level', 'createdBy'])->find($approvalPlan->document_id); @endphp
@@ -1418,6 +1453,9 @@
                                             @elseif($approvalPlan->document_type === 'room_consumption_request')
                                                 @php $document = App\Models\RoomConsumptionRequest::with('requestedBy')->find($approvalPlan->document_id); @endphp
                                                 {{ $document && $document->requestedBy ? $document->requestedBy->name : 'N/A' }}
+                                            @elseif($approvalPlan->document_type === 'supply_order')
+                                                @php $document = App\Models\SupplyOrder::with('requestedBy')->find($approvalPlan->document_id); @endphp
+                                                {{ $document && $document->requestedBy ? $document->requestedBy->name : 'N/A' }}
                                             @endif
                                         </div>
                                         <div class="submitter-meta">
@@ -1440,6 +1478,9 @@
                                                     {{ $document && $document->requested_at ? format_datetime_with_weekday($document->requested_at) : ($document && $document->created_at ? format_datetime_with_weekday($document->created_at) : 'N/A') }}
                                                 @elseif($approvalPlan->document_type === 'room_consumption_request')
                                                     @php $document = App\Models\RoomConsumptionRequest::find($approvalPlan->document_id); @endphp
+                                                    {{ $document && $document->submitted_at ? format_datetime_with_weekday($document->submitted_at) : ($document && $document->created_at ? format_datetime_with_weekday($document->created_at) : 'N/A') }}
+                                                @elseif($approvalPlan->document_type === 'supply_order')
+                                                    @php $document = App\Models\SupplyOrder::find($approvalPlan->document_id); @endphp
                                                     {{ $document && $document->submitted_at ? format_datetime_with_weekday($document->submitted_at) : ($document && $document->created_at ? format_datetime_with_weekday($document->created_at) : 'N/A') }}
                                                 @endif
                                             </span>

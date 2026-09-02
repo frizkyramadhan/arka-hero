@@ -1877,7 +1877,7 @@ class OfficialtravelController extends Controller
                 return $badges[$row->status] ?? '<span class="badge badge-secondary">Unknown</span>';
             })
             ->addColumn('created_by', function ($row) {
-                return $row->creator ? '<small>'.e($row->creator->name).'</small>' : '-';
+                return $row->creator ? '<small>'.e(display_text($row->creator->name, '')).'</small>' : '-';
             })
             ->addColumn('action', function ($row) {
                 $btn = '<a href="'.route('officialtravels.my-travels.show', $row->id).'" class="btn btn-sm btn-info mr-1" title="View">

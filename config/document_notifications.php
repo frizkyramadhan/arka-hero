@@ -7,6 +7,7 @@ use App\Models\Officialtravel;
 use App\Models\OvertimeRequest;
 use App\Models\RecruitmentRequest;
 use App\Models\RoomConsumptionRequest;
+use App\Models\SupplyOrder;
 
 return [
 
@@ -56,6 +57,7 @@ return [
         'flight_request_issuance' => FlightRequestIssuance::class,
         'overtime_request' => OvertimeRequest::class,
         'room_consumption_request' => RoomConsumptionRequest::class,
+        'supply_order' => SupplyOrder::class,
     ],
 
     'labels' => [
@@ -66,6 +68,7 @@ return [
         'flight_request_issuance' => 'Flight Ticket Issuance',
         'overtime_request' => 'Overtime Request',
         'room_consumption_request' => 'Room & Consumption Request',
+        'supply_order' => 'Supply Order',
     ],
 
     'from' => [

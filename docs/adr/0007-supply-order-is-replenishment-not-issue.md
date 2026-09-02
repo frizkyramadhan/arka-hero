@@ -5,7 +5,7 @@
 
 ## Context
 
-“Request” was first modelled as an employee ask to take items from the cupboard, then Stock Out. The operator corrected this: the in-app document is a **Supply Order** for goods **not available** in HCS stock. Asking to take what is already on the shelf is off-system; GA only writes the Keluar card.
+“Request” was first modelled as an employee ask to take items from the cupboard, then Stock Out. The operator corrected this: the in-app document is a **Supply Order** to buy or restock catalog items. Asking to take what is already on the shelf is off-system; GA only writes the Keluar card.
 
 ## Decision
 

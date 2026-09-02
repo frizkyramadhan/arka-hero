@@ -126,7 +126,7 @@ class ActivityLogController extends Controller
                     };
                 })
                 ->addColumn('event_label', function (Activity $activity) {
-                    return e($activity->event ?: '—');
+                    return display_text($activity->event ?: null);
                 })
                 ->addColumn('document_type_label', function (Activity $activity) {
                     $type = data_get($activity->properties, 'document_type');
@@ -138,7 +138,7 @@ class ActivityLogController extends Controller
                     return e(data_get($activity->properties, 'reference') ?: '—');
                 })
                 ->addColumn('causer_name', function (Activity $activity) {
-                    return e($activity->causer->name ?? 'System');
+                    return display_text($activity->causer->name ?? 'System');
                 })
                 ->addColumn('description_short', function (Activity $activity) {
                     return e(\Illuminate\Support\Str::limit($activity->description, 80));

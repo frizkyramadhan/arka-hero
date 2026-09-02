@@ -76,7 +76,7 @@ class EmployeeDisciplinaryController extends Controller
                     .'<br><small class="text-muted">ID Card: '.e($ktp).'</small>'
                     .'<br><small class="text-muted">NIK: '.e($nik).'</small>';
             })
-            ->addColumn('type_label', fn (EmployeeDisciplinary $row) => e($row->type_label))
+            ->addColumn('type_label', fn (EmployeeDisciplinary $row) => display_text($row->type_label))
             ->addColumn('criteria_list', function (EmployeeDisciplinary $row) {
                 if ($row->criteria->isEmpty()) {
                     return '<span class="text-muted">-</span>';
@@ -248,7 +248,7 @@ class EmployeeDisciplinaryController extends Controller
 
         return DataTables::of($query)
             ->addIndexColumn()
-            ->addColumn('type_label', fn (EmployeeDisciplinary $row) => e($row->type_label))
+            ->addColumn('type_label', fn (EmployeeDisciplinary $row) => display_text($row->type_label))
             ->addColumn('criteria_list', function (EmployeeDisciplinary $row) {
                 if ($row->criteria->isEmpty()) {
                     return '<span class="text-muted">-</span>';

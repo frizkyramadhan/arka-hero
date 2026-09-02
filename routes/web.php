@@ -60,6 +60,12 @@ use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\MeetingRoomController;
 use App\Http\Controllers\RoomConsumptionRequestController;
 use App\Http\Controllers\RoomConsumptionReportController;
+use App\Http\Controllers\SupplyItemCategoryController;
+use App\Http\Controllers\SupplyItemController;
+use App\Http\Controllers\SupplyOrderController;
+use App\Http\Controllers\SupplyReportController;
+use App\Http\Controllers\SupplyStockInController;
+use App\Http\Controllers\SupplyStockOutController;
 use App\Http\Controllers\RecruitmentCandidateController;
 use App\Http\Controllers\RecruitmentReportController;
 use App\Http\Controllers\RecruitmentRequestController;
@@ -165,6 +171,9 @@ Route::group(['middleware' => ['auth']], function () {
         Route::get('/room-consumption/calendar-events', [DashboardController::class, 'roomConsumptionCalendarEvents'])
             ->name('room-consumption.calendar-events')
             ->middleware('permission:room-consumption-requests.show');
+        Route::get('/supplies-management', [DashboardController::class, 'suppliesManagement'])
+            ->name('supplies-management')
+            ->middleware('permission:supplies.dashboard.show');
         Route::get('/vehicles', [DashboardController::class, 'vehicles'])
             ->name('vehicles')
             ->middleware('permission:vehicles.show');
@@ -429,6 +438,85 @@ Route::group(['middleware' => ['auth']], function () {
         Route::get('{roomConsumptionRequest}/print', [RoomConsumptionRequestController::class, 'print'])->name('print');
         Route::get('{roomConsumptionRequest}', [RoomConsumptionRequestController::class, 'show'])->name('show');
         Route::get('/', [RoomConsumptionRequestController::class, 'index'])->name('index');
+    });
+
+    // GAMMA — Supplies (item categories / catalog / stock in / stock out / orders)
+    Route::prefix('supplies')->name('supplies.')->group(function () {
+        Route::get('/', fn () => redirect()->route('supplies.catalog.index'))->name('index');
+
+        Route::get('item-categories/data', [SupplyItemCategoryController::class, 'data'])->name('item-categories.data');
+        Route::get('item-categories', [SupplyItemCategoryController::class, 'index'])->name('item-categories.index');
+        Route::post('item-categories', [SupplyItemCategoryController::class, 'store'])->name('item-categories.store');
+        Route::put('item-categories/{supplyItemCategory}', [SupplyItemCategoryController::class, 'update'])->name('item-categories.update');
+        Route::delete('item-categories/{supplyItemCategory}', [SupplyItemCategoryController::class, 'destroy'])->name('item-categories.destroy');
+
+        Route::get('catalog/data', [SupplyItemController::class, 'data'])->name('catalog.data');
+        Route::get('catalog/search', [SupplyItemController::class, 'search'])->name('catalog.search');
+        Route::get('catalog/export', [SupplyItemController::class, 'export'])->name('catalog.export');
+        Route::get('catalog/template', [SupplyItemController::class, 'template'])->name('catalog.template');
+        Route::post('catalog/import', [SupplyItemController::class, 'import'])->name('catalog.import');
+        Route::get('catalog', [SupplyItemController::class, 'index'])->name('catalog.index');
+        Route::post('catalog', [SupplyItemController::class, 'store'])->name('catalog.store');
+        Route::put('catalog/{supplyItem}', [SupplyItemController::class, 'update'])->name('catalog.update');
+        Route::delete('catalog/{supplyItem}', [SupplyItemController::class, 'destroy'])->name('catalog.destroy');
+
+        Route::get('stock-ins/data', [SupplyStockInController::class, 'data'])->name('stock-ins.data');
+        Route::get('stock-ins/create', [SupplyStockInController::class, 'create'])->name('stock-ins.create');
+        Route::get('stock-ins', [SupplyStockInController::class, 'index'])->name('stock-ins.index');
+        Route::post('stock-ins', [SupplyStockInController::class, 'store'])->name('stock-ins.store');
+        Route::get('stock-ins/{supplyStockIn}/print', [SupplyStockInController::class, 'print'])->name('stock-ins.print');
+        Route::get('stock-ins/{supplyStockIn}', [SupplyStockInController::class, 'show'])->name('stock-ins.show');
+        Route::delete('stock-ins/{supplyStockIn}', [SupplyStockInController::class, 'destroy'])->name('stock-ins.destroy');
+
+        Route::get('stock-outs/data', [SupplyStockOutController::class, 'data'])->name('stock-outs.data');
+        Route::get('stock-outs/create', [SupplyStockOutController::class, 'create'])->name('stock-outs.create');
+        Route::get('stock-outs', [SupplyStockOutController::class, 'index'])->name('stock-outs.index');
+        Route::post('stock-outs', [SupplyStockOutController::class, 'store'])->name('stock-outs.store');
+        Route::get('stock-outs/{supplyStockOut}/print', [SupplyStockOutController::class, 'print'])->name('stock-outs.print');
+        Route::get('stock-outs/{supplyStockOut}', [SupplyStockOutController::class, 'show'])->name('stock-outs.show');
+        Route::delete('stock-outs/{supplyStockOut}', [SupplyStockOutController::class, 'destroy'])->name('stock-outs.destroy');
+
+        Route::prefix('reports')->name('reports.')->group(function () {
+            Route::get('/', [SupplyReportController::class, 'index'])->name('index');
+            Route::get('/stock-card', [SupplyReportController::class, 'stockCard'])->name('stock-card');
+            Route::get('/stock-card/data', [SupplyReportController::class, 'stockCardData'])->name('stock-card.data');
+            Route::get('/stock-card/export', [SupplyReportController::class, 'exportStockCard'])->name('stock-card.export');
+            Route::get('/stock-movement', [SupplyReportController::class, 'stockMovement'])->name('stock-movement');
+            Route::get('/stock-movement/data', [SupplyReportController::class, 'stockMovementData'])->name('stock-movement.data');
+            Route::get('/stock-movement/export', [SupplyReportController::class, 'exportStockMovement'])->name('stock-movement.export');
+            Route::get('/order-monitoring', [SupplyReportController::class, 'orderMonitoring'])->name('order-monitoring');
+            Route::get('/order-monitoring/data', [SupplyReportController::class, 'orderMonitoringData'])->name('order-monitoring.data');
+            Route::get('/order-monitoring/export', [SupplyReportController::class, 'exportOrderMonitoring'])->name('order-monitoring.export');
+            Route::get('/order-fulfillment', [SupplyReportController::class, 'orderFulfillment'])->name('order-fulfillment');
+            Route::get('/order-fulfillment/data', [SupplyReportController::class, 'orderFulfillmentData'])->name('order-fulfillment.data');
+            Route::get('/order-fulfillment/export', [SupplyReportController::class, 'exportOrderFulfillment'])->name('order-fulfillment.export');
+        });
+
+        Route::prefix('orders')->name('orders.')->group(function () {
+            Route::get('my-orders/data', [SupplyOrderController::class, 'myOrdersData'])->name('my-orders.data');
+            Route::get('my-orders/create', [SupplyOrderController::class, 'myOrdersCreate'])->name('my-orders.create');
+            Route::post('my-orders', [SupplyOrderController::class, 'myOrdersStore'])->name('my-orders.store');
+            Route::get('my-orders/{supplyOrder}/edit', [SupplyOrderController::class, 'myOrdersEdit'])->name('my-orders.edit');
+            Route::put('my-orders/{supplyOrder}', [SupplyOrderController::class, 'myOrdersUpdate'])->name('my-orders.update');
+            Route::post('my-orders/{supplyOrder}/submit', [SupplyOrderController::class, 'myOrdersSubmitForApproval'])->name('my-orders.submit');
+            Route::post('my-orders/{supplyOrder}/cancel', [SupplyOrderController::class, 'myOrdersCancel'])->name('my-orders.cancel');
+            Route::get('my-orders/{supplyOrder}/print', [SupplyOrderController::class, 'myOrderPrint'])->name('my-orders.print');
+            Route::get('my-orders/{supplyOrder}', [SupplyOrderController::class, 'myOrderShow'])->name('my-orders.show');
+            Route::get('my-orders', [SupplyOrderController::class, 'myOrders'])->name('my-orders');
+
+            Route::get('data', [SupplyOrderController::class, 'data'])->name('data');
+            Route::get('create', [SupplyOrderController::class, 'create'])->name('create');
+            Route::post('/', [SupplyOrderController::class, 'store'])->name('store');
+            Route::get('{supplyOrder}/edit', [SupplyOrderController::class, 'edit'])->name('edit');
+            Route::put('{supplyOrder}', [SupplyOrderController::class, 'update'])->name('update');
+            Route::delete('{supplyOrder}', [SupplyOrderController::class, 'destroy'])->name('destroy');
+            Route::post('{supplyOrder}/submit', [SupplyOrderController::class, 'submitForApproval'])->name('submit');
+            Route::post('{supplyOrder}/cancel', [SupplyOrderController::class, 'cancel'])->name('cancel');
+            Route::post('{supplyOrder}/close', [SupplyOrderController::class, 'close'])->name('close');
+            Route::get('{supplyOrder}/print', [SupplyOrderController::class, 'print'])->name('print');
+            Route::get('{supplyOrder}', [SupplyOrderController::class, 'show'])->name('show');
+            Route::get('/', [SupplyOrderController::class, 'index'])->name('index');
+        });
     });
 
     Route::get('grades/data', [GradeController::class, 'getGrades'])->name('grades.data');

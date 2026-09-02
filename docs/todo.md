@@ -1,5 +1,5 @@
 **Purpose**: Track current work and immediate priorities for ARKA HERO HRMS
-**Last Updated**: 2026-08-28
+**Last Updated**: 2026-08-31
 
 ## Task Management Guidelines
 
@@ -53,6 +53,10 @@ Include relevant context in brackets to help with future AI-assisted coding:
 -   None currently
 
 ## Recently Completed
+
+-   `[done] P1: Supplies refactor — Item Category master, multi-line SI/SO docs, ORD-/SI-/SO- numbering, order date/dept/remarks, UI aligned with Meeting Rooms/Overtime [SupplyItemCategoryController, migration rewrite, ADRs 0006/0009/0011] (completed: 2026-08-31)`
+
+-   `[done] P1: Supplies Phase 1 — Catalog, Stock In, Stock Out, Supply Order + My Supply Orders; GAMMA nav; manual approval [Supply*Controller, SupplyPermissionSeeder, docs/SUPPLIES_DESIGN.md] (completed: 2026-08-31)`
 
 -   `[done] P1: FPTK magang/harian sessions — MCU and Hiring only on FPTK detail table; createSession/applyToFptk start at MCU [RecruitmentRequest::usesSimplifiedRecruitmentFlow, requests/show, RecruitmentSessionService] (completed: 2026-08-28)`
 -   `[done] P1: LSL cash-out-only — hide placeholder leave dates on lists + reports; shared LeaveRequest display helpers [LeaveRequest::displayStartDate/listStartDateHtml, LeaveReportController, leave-reports] (completed: 2026-08-27)`

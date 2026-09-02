@@ -74,11 +74,11 @@ class OvertimeReportController extends Controller
         foreach ($rows as $i => $row) {
             $data[] = [
                 'DT_RowIndex' => $start + $i + 1,
-                'register_number' => e($row->register_number ?? '—'),
-                'project_name' => e($row->project->project_name ?? '—'),
+                'register_number' => display_text($row->register_number ?? null),
+                'project_name' => display_text($row->project->project_name ?? null),
                 'overtime_date_fmt' => $row->overtime_date?->format('d/m/Y') ?? '—',
                 'status_badge' => $this->statusBadgeHtml($row->status),
-                'requester' => e($row->requestedBy->name ?? '—'),
+                'requester' => display_text($row->requestedBy->name ?? null),
                 'employees_html' => $this->employeesListHtml($row),
                 'remarks_html' => $this->remarksCellHtml($row->remarks),
                 'requested_at_fmt' => $row->requested_at?->format('d/m/Y H:i') ?? '—',

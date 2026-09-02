@@ -11,6 +11,7 @@ use App\Models\Officialtravel;
 use App\Models\OvertimeRequest;
 use App\Models\RecruitmentRequest;
 use App\Models\RoomConsumptionRequest;
+use App\Models\SupplyOrder;
 use App\Models\User;
 use App\Services\DocumentNotificationService;
 use App\Services\ItWoZoomClient;
@@ -60,6 +61,9 @@ class ApprovalRequestController extends Controller
                 'roomConsumptionRequest.meetingRoom',
                 'roomConsumptionRequest.department',
                 'roomConsumptionRequest.requestedBy',
+                'supplyOrder.project',
+                'supplyOrder.requestedBy',
+                'supplyOrder.items.item',
             ])
                 ->where('approver_id', Auth::id());
 
@@ -140,6 +144,11 @@ class ApprovalRequestController extends Controller
                             ->orWhere('meeting_title', 'LIKE', "%$search%")
                             ->orWhere('letter_number', 'LIKE', "%$search%");
                     });
+
+                    $query->orWhereHas('supplyOrder', function ($q) use ($search) {
+                        $q->where('order_number', 'LIKE', "%$search%")
+                            ->orWhere('notes', 'LIKE', "%$search%");
+                    });
                 });
             }
 
@@ -153,6 +162,9 @@ class ApprovalRequestController extends Controller
                     }
                     if ($approvalPlan->document_type === 'room_consumption_request') {
                         return 'Room & Consumption Request';
+                    }
+                    if ($approvalPlan->document_type === 'supply_order') {
+                        return 'Supply Order';
                     }
 
                     return ucfirst(str_replace('_', ' ', $approvalPlan->document_type));
@@ -213,6 +225,20 @@ class ApprovalRequestController extends Controller
                             .'<div><strong>'.$regNo.'</strong></div>'
                             .'<div class="text-muted">'.$dateStr.' · '.$project.'</div>'
                             .'<div>'.$room.'</div>'
+                            .'</div>';
+                    } elseif ($approvalPlan->document_type === 'supply_order') {
+                        $order = $approvalPlan->supplyOrder;
+                        if (! $order) {
+                            return '-';
+                        }
+
+                        $number = e($order->order_number ?: '—');
+                        $project = e($order->project->project_code ?? '—');
+                        $count = $order->items->count();
+
+                        return '<div class="text-left">'
+                            .'<div><strong>'.$number.'</strong></div>'
+                            .'<div class="text-muted">'.$project.' · '.$count.' item'.($count === 1 ? '' : 's').'</div>'
                             .'</div>';
                     }
 
@@ -283,6 +309,17 @@ class ApprovalRequestController extends Controller
                         $extra = $dept !== '' ? '<div class="small text-muted mt-1">'.$dept.'</div>' : '';
 
                         return '<div class="text-left">'.$title.$extra.'</div>';
+                    } elseif ($approvalPlan->document_type === 'supply_order') {
+                        $order = $approvalPlan->supplyOrder;
+                        if (! $order) {
+                            return '-';
+                        }
+                        $notes = $order->notes;
+                        if ($notes === null || $notes === '') {
+                            return '<span class="text-muted">—</span>';
+                        }
+
+                        return '<div class="text-left">'.nl2br(e($notes)).'</div>';
                     }
 
                     return '-';
@@ -309,6 +346,9 @@ class ApprovalRequestController extends Controller
                     } elseif ($approvalPlan->document_type === 'room_consumption_request') {
                         return $approvalPlan->roomConsumptionRequest && $approvalPlan->roomConsumptionRequest->requestedBy ?
                             $approvalPlan->roomConsumptionRequest->requestedBy->name : '-';
+                    } elseif ($approvalPlan->document_type === 'supply_order') {
+                        return $approvalPlan->supplyOrder && $approvalPlan->supplyOrder->requestedBy ?
+                            $approvalPlan->supplyOrder->requestedBy->name : '-';
                     }
 
                     return '-';
@@ -337,6 +377,10 @@ class ApprovalRequestController extends Controller
                         $rcr = $approvalPlan->roomConsumptionRequest;
 
                         return $rcr && $rcr->submitted_at ? $rcr->submitted_at->format('d/m/Y H:i') : '-';
+                    } elseif ($approvalPlan->document_type === 'supply_order') {
+                        $order = $approvalPlan->supplyOrder;
+
+                        return $order && $order->submitted_at ? $order->submitted_at->format('d/m/Y H:i') : '-';
                     }
 
                     return '-';
@@ -596,6 +640,10 @@ class ApprovalRequestController extends Controller
             $document = RoomConsumptionRequest::find($approvalPlan->document_id);
 
             return $document ? $document->project_id : null;
+        } elseif ($approvalPlan->document_type === 'supply_order') {
+            $document = SupplyOrder::find($approvalPlan->document_id);
+
+            return $document ? $document->project_id : null;
         }
 
         return null;
@@ -628,6 +676,8 @@ class ApprovalRequestController extends Controller
             $document = RoomConsumptionRequest::find($approvalPlan->document_id);
 
             return $document ? $document->department_id : null;
+        } elseif ($approvalPlan->document_type === 'supply_order') {
+            return null;
         }
 
         return null;
@@ -815,6 +865,8 @@ class ApprovalRequestController extends Controller
             $document = OvertimeRequest::find($approvalPlan->document_id);
         } elseif ($documentType === 'room_consumption_request') {
             $document = RoomConsumptionRequest::find($approvalPlan->document_id);
+        } elseif ($documentType === 'supply_order') {
+            $document = SupplyOrder::find($approvalPlan->document_id);
         } else {
             return; // Invalid document type
         }
@@ -852,6 +904,13 @@ class ApprovalRequestController extends Controller
                     'approved_at' => null,
                 ]);
                 $this->syncItWoOnRcrReject($document);
+            } elseif ($documentType === 'supply_order') {
+                $document->update([
+                    'status' => SupplyOrder::STATUS_REJECTED,
+                    'rejected_at' => now(),
+                    'approved_at' => null,
+                    'rejection_reason' => $approvalPlan->remarks,
+                ]);
             } else {
                 $document->update([
                     'status' => 'rejected',
@@ -883,6 +942,13 @@ class ApprovalRequestController extends Controller
                     'rejected_at' => now(),
                 ]);
                 $this->syncItWoOnRcrReject($document);
+            } elseif ($documentType === 'supply_order') {
+                $document->update([
+                    'status' => SupplyOrder::STATUS_REJECTED,
+                    'rejected_at' => now(),
+                    'approved_at' => null,
+                    'rejection_reason' => $approvalPlan->remarks,
+                ]);
             } else {
                 $document->update(['status' => 'rejected']);
             }
@@ -906,6 +972,8 @@ class ApprovalRequestController extends Controller
                 $updateData = ['approved_at' => now(), 'status' => OvertimeRequest::STATUS_APPROVED, 'rejected_at' => null];
             } elseif ($documentType === 'room_consumption_request') {
                 $updateData = ['approved_at' => now(), 'status' => RoomConsumptionRequest::STATUS_APPROVED, 'rejected_at' => null];
+            } elseif ($documentType === 'supply_order') {
+                $updateData = ['approved_at' => now(), 'status' => SupplyOrder::STATUS_APPROVED, 'rejected_at' => null];
             } else {
                 $updateData = ['approved_at' => now(), 'status' => 'approved'];
             }

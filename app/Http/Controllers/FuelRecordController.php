@@ -424,7 +424,7 @@ class FuelRecordController extends Controller
             ->addIndexColumn()
             ->addColumn('fuel_date_fmt', fn (FuelRecord $r) => optional($r->fuel_date)->format('Y-m-d'))
             ->addColumn('quantity_fmt', fn (FuelRecord $r) => number_format((float) $r->quantity, 2))
-            ->addColumn('vehicle_label', fn (FuelRecord $r) => $r->vehicle ? e($r->vehicle->kode.' — '.$r->vehicle->license_plate) : '—')
+            ->addColumn('vehicle_label', fn (FuelRecord $r) => $r->vehicle ? display_text($r->vehicle->kode.' — '.$r->vehicle->license_plate) : '—')
             ->addColumn('driver_label', function (FuelRecord $r) {
                 if ($r->driver) {
                     $name = $r->driver->fullname
