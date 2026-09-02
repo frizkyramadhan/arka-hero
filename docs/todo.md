@@ -1,5 +1,5 @@
 **Purpose**: Track current work and immediate priorities for ARKA HERO HRMS
-**Last Updated**: 2026-08-31
+**Last Updated**: 2026-09-02
 
 ## Task Management Guidelines
 
@@ -53,6 +53,8 @@ Include relevant context in brackets to help with future AI-assisted coding:
 -   None currently
 
 ## Recently Completed
+
+-   `[done] P1: Supply workbook cutover seed — ATK (GAA 146 items) + Consumable (GAC 29 items) → catalog, opening SI, dated Masuk/Keluar SI/SO on 000H [SupplyWorkbookImporter, SupplyWorkbookSeeder, ADR-0012, database/seeders/data/supplies/*.xlsx] (completed: 2026-09-02)`
 
 -   `[done] P1: Supplies refactor — Item Category master, multi-line SI/SO docs, ORD-/SI-/SO- numbering, order date/dept/remarks, UI aligned with Meeting Rooms/Overtime [SupplyItemCategoryController, migration rewrite, ADRs 0006/0009/0011] (completed: 2026-08-31)`
 

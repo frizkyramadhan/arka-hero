@@ -37,8 +37,11 @@ use App\Models\RecruitmentRequest;
 use App\Models\RecruitmentSession;
 use App\Models\RoomConsumptionRequest;
 use App\Models\MeetingRoom;
+use App\Models\SupplyItem;
+use App\Models\SupplyItemCategory;
 use App\Models\SupplyOrder;
 use App\Models\SupplyStockIn;
+use App\Models\SupplyStockInItem;
 use App\Models\SupplyStockOut;
 use App\Models\SupplyStockOutItem;
 use App\Models\Taxidentification;
@@ -2602,6 +2605,7 @@ class DashboardController extends Controller
         $countRejected = (clone $orderBase)->where('status', SupplyOrder::STATUS_REJECTED)->count();
         $countCancelled = (clone $orderBase)->where('status', SupplyOrder::STATUS_CANCELLED)->count();
         $countClosed = (clone $orderBase)->where('status', SupplyOrder::STATUS_CLOSED)->count();
+        $ordersActive = $countSubmitted + $countApproved;
 
         $thisMonthOrders = (clone $orderBase)->whereMonth('created_at', now()->month)
             ->whereYear('created_at', now()->year)
@@ -2637,6 +2641,9 @@ class DashboardController extends Controller
         $stockOutBase = SupplyStockOut::query();
         UserProject::scopeToAssignedProjects($stockOutBase, 'project_id');
 
+        $totalStockInDocs = (clone $stockInBase)->count();
+        $totalStockOutDocs = (clone $stockOutBase)->count();
+
         $stockInThisMonth = (clone $stockInBase)
             ->whereMonth('stock_date', now()->month)
             ->whereYear('stock_date', now()->year)
@@ -2645,6 +2652,72 @@ class DashboardController extends Controller
             ->whereMonth('stock_date', now()->month)
             ->whereYear('stock_date', now()->year)
             ->count();
+
+        $stockInQtyThisMonth = (int) SupplyStockInItem::query()
+            ->join('supply_stock_ins', 'supply_stock_ins.id', '=', 'supply_stock_in_items.supply_stock_in_id')
+            ->whereMonth('supply_stock_ins.stock_date', now()->month)
+            ->whereYear('supply_stock_ins.stock_date', now()->year)
+            ->when(UserProject::assignmentScope() !== null, function ($q) {
+                $scope = UserProject::assignmentScope();
+                if ($scope === []) {
+                    $q->whereRaw('0 = 1');
+                } else {
+                    $q->whereIn('supply_stock_ins.project_id', $scope);
+                }
+            })
+            ->sum('supply_stock_in_items.quantity');
+
+        $stockOutQtyThisMonth = (int) SupplyStockOutItem::query()
+            ->join('supply_stock_outs', 'supply_stock_outs.id', '=', 'supply_stock_out_items.supply_stock_out_id')
+            ->whereMonth('supply_stock_outs.stock_date', now()->month)
+            ->whereYear('supply_stock_outs.stock_date', now()->year)
+            ->when(UserProject::assignmentScope() !== null, function ($q) {
+                $scope = UserProject::assignmentScope();
+                if ($scope === []) {
+                    $q->whereRaw('0 = 1');
+                } else {
+                    $q->whereIn('supply_stock_outs.project_id', $scope);
+                }
+            })
+            ->sum('supply_stock_out_items.quantity');
+
+        $netMovementThisMonth = $stockInQtyThisMonth - $stockOutQtyThisMonth;
+
+        $stockInQtyToday = (int) SupplyStockInItem::query()
+            ->join('supply_stock_ins', 'supply_stock_ins.id', '=', 'supply_stock_in_items.supply_stock_in_id')
+            ->whereDate('supply_stock_ins.stock_date', now()->toDateString())
+            ->when(UserProject::assignmentScope() !== null, function ($q) {
+                $scope = UserProject::assignmentScope();
+                if ($scope === []) {
+                    $q->whereRaw('0 = 1');
+                } else {
+                    $q->whereIn('supply_stock_ins.project_id', $scope);
+                }
+            })
+            ->sum('supply_stock_in_items.quantity');
+
+        $stockOutQtyToday = (int) SupplyStockOutItem::query()
+            ->join('supply_stock_outs', 'supply_stock_outs.id', '=', 'supply_stock_out_items.supply_stock_out_id')
+            ->whereDate('supply_stock_outs.stock_date', now()->toDateString())
+            ->when(UserProject::assignmentScope() !== null, function ($q) {
+                $scope = UserProject::assignmentScope();
+                if ($scope === []) {
+                    $q->whereRaw('0 = 1');
+                } else {
+                    $q->whereIn('supply_stock_outs.project_id', $scope);
+                }
+            })
+            ->sum('supply_stock_out_items.quantity');
+
+        $totalCatalogItems = SupplyItem::query()->active()->count();
+        $catalogByCategory = SupplyItemCategory::query()
+            ->withCount(['items' => fn ($q) => $q->where('status', 'active')])
+            ->orderBy('name')
+            ->get();
+
+        $stockMovementTrend = $this->supplyStockMovementTrend();
+
+        $lowStockItems = $this->supplyLowStockItems(12);
 
         $byProject = DB::table('supply_orders')
             ->join('projects', 'supply_orders.project_id', '=', 'projects.id')
@@ -2689,6 +2762,28 @@ class DashboardController extends Controller
             ->limit(10)
             ->get();
 
+        $topReceived = SupplyStockInItem::query()
+            ->select(
+                'supply_items.code',
+                'supply_items.name',
+                DB::raw('SUM(supply_stock_in_items.quantity) as total_in')
+            )
+            ->join('supply_stock_ins', 'supply_stock_ins.id', '=', 'supply_stock_in_items.supply_stock_in_id')
+            ->join('supply_items', 'supply_items.id', '=', 'supply_stock_in_items.supply_item_id')
+            ->where('supply_stock_ins.stock_date', '>=', now()->subDays(30)->toDateString())
+            ->when(UserProject::assignmentScope() !== null, function ($q) {
+                $scope = UserProject::assignmentScope();
+                if ($scope === []) {
+                    $q->whereRaw('0 = 1');
+                } else {
+                    $q->whereIn('supply_stock_ins.project_id', $scope);
+                }
+            })
+            ->groupBy('supply_items.id', 'supply_items.code', 'supply_items.name')
+            ->orderByDesc('total_in')
+            ->limit(10)
+            ->get();
+
         $recentOrders = (clone $orderBase)
             ->with(['project', 'requestedBy', 'department'])
             ->orderByDesc('created_at')
@@ -2696,14 +2791,16 @@ class DashboardController extends Controller
             ->get();
 
         $recentStockIns = (clone $stockInBase)
-            ->with(['project', 'order'])
+            ->with(['project', 'order', 'items'])
+            ->withCount('items')
             ->orderByDesc('stock_date')
             ->orderByDesc('created_at')
             ->limit(8)
             ->get();
 
         $recentStockOuts = (clone $stockOutBase)
-            ->with(['project'])
+            ->with(['project', 'items'])
+            ->withCount('items')
             ->orderByDesc('stock_date')
             ->orderByDesc('created_at')
             ->limit(8)
@@ -2719,18 +2816,153 @@ class DashboardController extends Controller
             'countRejected',
             'countCancelled',
             'countClosed',
+            'ordersActive',
             'thisMonthOrders',
             'lastMonthOrders',
             'ordersMonthGrowthPct',
             'approvedAwaitingReceipt',
             'pendingApprovalSteps',
+            'totalStockInDocs',
+            'totalStockOutDocs',
             'stockInThisMonth',
             'stockOutThisMonth',
+            'stockInQtyThisMonth',
+            'stockOutQtyThisMonth',
+            'netMovementThisMonth',
+            'stockInQtyToday',
+            'stockOutQtyToday',
+            'totalCatalogItems',
+            'catalogByCategory',
+            'stockMovementTrend',
+            'lowStockItems',
             'byProject',
             'topConsumed',
+            'topReceived',
             'recentOrders',
             'recentStockIns',
             'recentStockOuts'
         ));
+    }
+
+    /**
+     * @return list<array{label: string, in_qty: int, out_qty: int, in_docs: int, out_docs: int}>
+     */
+    private function supplyStockMovementTrend(): array
+    {
+        $trend = [];
+
+        for ($i = 5; $i >= 0; $i--) {
+            $month = now()->subMonths($i);
+            $scope = UserProject::assignmentScope();
+
+            $inDocs = SupplyStockIn::query()
+                ->whereMonth('stock_date', $month->month)
+                ->whereYear('stock_date', $month->year)
+                ->when($scope !== null, function ($q) use ($scope) {
+                    if ($scope === []) {
+                        $q->whereRaw('0 = 1');
+                    } else {
+                        $q->whereIn('project_id', $scope);
+                    }
+                })
+                ->count();
+
+            $outDocs = SupplyStockOut::query()
+                ->whereMonth('stock_date', $month->month)
+                ->whereYear('stock_date', $month->year)
+                ->when($scope !== null, function ($q) use ($scope) {
+                    if ($scope === []) {
+                        $q->whereRaw('0 = 1');
+                    } else {
+                        $q->whereIn('project_id', $scope);
+                    }
+                })
+                ->count();
+
+            $inQty = (int) SupplyStockInItem::query()
+                ->join('supply_stock_ins', 'supply_stock_ins.id', '=', 'supply_stock_in_items.supply_stock_in_id')
+                ->whereMonth('supply_stock_ins.stock_date', $month->month)
+                ->whereYear('supply_stock_ins.stock_date', $month->year)
+                ->when($scope !== null, function ($q) use ($scope) {
+                    if ($scope === []) {
+                        $q->whereRaw('0 = 1');
+                    } else {
+                        $q->whereIn('supply_stock_ins.project_id', $scope);
+                    }
+                })
+                ->sum('supply_stock_in_items.quantity');
+
+            $outQty = (int) SupplyStockOutItem::query()
+                ->join('supply_stock_outs', 'supply_stock_outs.id', '=', 'supply_stock_out_items.supply_stock_out_id')
+                ->whereMonth('supply_stock_outs.stock_date', $month->month)
+                ->whereYear('supply_stock_outs.stock_date', $month->year)
+                ->when($scope !== null, function ($q) use ($scope) {
+                    if ($scope === []) {
+                        $q->whereRaw('0 = 1');
+                    } else {
+                        $q->whereIn('supply_stock_outs.project_id', $scope);
+                    }
+                })
+                ->sum('supply_stock_out_items.quantity');
+
+            $trend[] = [
+                'label' => $month->format('M Y'),
+                'in_qty' => $inQty,
+                'out_qty' => $outQty,
+                'in_docs' => $inDocs,
+                'out_docs' => $outDocs,
+            ];
+        }
+
+        return $trend;
+    }
+
+    /**
+     * @return \Illuminate\Support\Collection<int, object{code: string, name: string, ending: int, category: string}>
+     */
+    private function supplyLowStockItems(int $limit = 10)
+    {
+        $scope = UserProject::assignmentScope();
+
+        $inSub = DB::table('supply_stock_in_items')
+            ->join('supply_stock_ins', 'supply_stock_ins.id', '=', 'supply_stock_in_items.supply_stock_in_id')
+            ->select('supply_stock_in_items.supply_item_id', DB::raw('SUM(supply_stock_in_items.quantity) as total_in'))
+            ->when($scope !== null, function ($q) use ($scope) {
+                if ($scope === []) {
+                    $q->whereRaw('0 = 1');
+                } else {
+                    $q->whereIn('supply_stock_ins.project_id', $scope);
+                }
+            })
+            ->groupBy('supply_stock_in_items.supply_item_id');
+
+        $outSub = DB::table('supply_stock_out_items')
+            ->join('supply_stock_outs', 'supply_stock_outs.id', '=', 'supply_stock_out_items.supply_stock_out_id')
+            ->select('supply_stock_out_items.supply_item_id', DB::raw('SUM(supply_stock_out_items.quantity) as total_out'))
+            ->when($scope !== null, function ($q) use ($scope) {
+                if ($scope === []) {
+                    $q->whereRaw('0 = 1');
+                } else {
+                    $q->whereIn('supply_stock_outs.project_id', $scope);
+                }
+            })
+            ->groupBy('supply_stock_out_items.supply_item_id');
+
+        return DB::table('supply_items')
+            ->join('supply_item_categories', 'supply_item_categories.id', '=', 'supply_items.supply_item_category_id')
+            ->leftJoinSub($inSub, 'stock_in', 'stock_in.supply_item_id', '=', 'supply_items.id')
+            ->leftJoinSub($outSub, 'stock_out', 'stock_out.supply_item_id', '=', 'supply_items.id')
+            ->where('supply_items.status', 'active')
+            ->select(
+                'supply_items.code',
+                'supply_items.name',
+                'supply_item_categories.name as category',
+                DB::raw('COALESCE(stock_in.total_in, 0) - COALESCE(stock_out.total_out, 0) as ending')
+            )
+            ->havingRaw('ending <= 10')
+            ->orderBy('ending')
+            ->orderBy('supply_items.code')
+            ->limit($limit)
+            ->get();
     }
 }

@@ -81,6 +81,18 @@ _Avoid_: employee_id (as required on walk-in issue)
 **Opening balance**:
 The quantity on a Supply Item for a Project at cut-over (Excel column Awal). Later loaded from the latest workbook the operator provides. Not a yearly reset.
 
+**Supply workbook**:
+GA’s Excel stock card — one file per Item Category (Office Supply / GAA, Consumable / GAC). Sheets: **Katalog** (catalog + summary columns Awal, Masuk, Keluar, Akhir), **Masuk** (receipts), **Keluar** (issues with location and PIC). Header location (e.g. HO Balikpapan) is the site, not a Stock Out line field.
+_Avoid_: treating Katalog Masuk/Keluar/Akhir as movement rows, mixing GAA and GAC in one workbook, ATK as a UI label
+
+**Cutover seed**:
+One-time load from the latest Supply workbook into catalog and stock tables. Katalog → Supply Items; Awal → one opening-balance Stock In on the mapped Project; Masuk and Keluar rows → additional Stock In / Stock Out documents grouped by date (multi-line per ADR-0011). Does not create Supply Orders.
+_Avoid_: storing Awal as a column, one Stock In/Out per Excel row, re-import without a replace strategy, seeding on every deploy
+
+**Workbook location**:
+The site named in the workbook header (e.g. HO Balikpapan). Maps to the **Project** that owns stock (`000H` in Phase 1). Distinct from **Location** on a Stock Out line (where goods are used).
+_Avoid_: Lokasi Kebutuhan as Project, warehouse master, department_id on issue lines
+
 **Ending balance**:
 That Project’s opening plus Stock In minus Stock Out for the item (Excel column Akhir). Not a separately entered number. Perpetual, per Project.
 
