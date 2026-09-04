@@ -1,6 +1,10 @@
 @extends('layouts.main')
 
 @section('content')
+    @php
+        $isPersonalView = $isPersonalView ?? false;
+        $displaySessions = $candidate->sessions;
+    @endphp
     <div class="content-wrapper-custom">
         <div class="candidate-header">
             <div class="candidate-header-content">
@@ -174,7 +178,7 @@
                                 </div>
                             @endif
 
-                            @if ($candidate->global_status === 'blacklisted' && $candidate->blacklist_reason)
+                            @if (!$isPersonalView && $candidate->global_status === 'blacklisted' && $candidate->blacklist_reason)
                                 <div class="row mt-3">
                                     <div class="col-12">
                                         <h5><i class="fas fa-ban mr-2 text-danger"></i>Blacklist Reason</h5>
@@ -193,10 +197,10 @@
                     <div class="candidate-card sessions-card">
                         <div class="card-head">
                             <h2><i class="fas fa-list-alt"></i> Recruitment Sessions <span
-                                    class="sessions-count">{{ $candidate->sessions->count() }}</span></h2>
+                                    class="sessions-count">{{ $displaySessions->count() }}</span></h2>
                         </div>
                         <div class="card-body">
-                            @if ($candidate->sessions->count() > 0)
+                            @if ($displaySessions->count() > 0)
                                 <div class="table-responsive">
                                     <table class="table table-bordered table-striped">
                                         <thead>
@@ -207,11 +211,13 @@
                                                 <th class="align-middle">Department</th>
                                                 <th class="align-middle">Status</th>
                                                 <th class="align-middle">Applied Date</th>
-                                                <th class="align-middle">Action</th>
+                                                @unless ($isPersonalView)
+                                                    <th class="align-middle">Action</th>
+                                                @endunless
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            @foreach ($candidate->sessions as $session)
+                                            @foreach ($displaySessions as $session)
                                                 <tr>
                                                     <td>{{ $session->session_number }}</td>
                                                     <td>
@@ -249,21 +255,24 @@
                                                                 'completed' => 'badge-success',
                                                                 'rejected' => 'badge-danger',
                                                                 'withdrawn' => 'badge-secondary',
+                                                                'hired' => 'badge-success',
                                                             ];
                                                             $sessionStatusClass =
                                                                 $sessionStatusBadges[$session->status] ?? 'badge-light';
                                                         @endphp
                                                         <span
-                                                            class="badge {{ $sessionStatusClass }}">{{ ucfirst($session->status) }}</span>
+                                                            class="badge {{ $sessionStatusClass }}">{{ ucfirst(str_replace('_', ' ', $session->status)) }}</span>
                                                     </td>
                                                     <td>{{ $session->applied_date ? $session->applied_date->format('d/m/Y') : '-' }}
                                                     </td>
-                                                    <td>
-                                                        <a href="{{ route('recruitment.sessions.candidate', $session->id) }}"
-                                                            class="btn btn-sm btn-info">
-                                                            <i class="fas fa-eye"></i> View
-                                                        </a>
-                                                    </td>
+                                                    @unless ($isPersonalView)
+                                                        <td>
+                                                            <a href="{{ route('recruitment.sessions.candidate', $session->id) }}"
+                                                                class="btn btn-sm btn-info">
+                                                                <i class="fas fa-eye"></i> View
+                                                            </a>
+                                                        </td>
+                                                    @endunless
                                                 </tr>
                                             @endforeach
                                         </tbody>
@@ -273,7 +282,7 @@
                                 <div class="text-center py-4">
                                     <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
                                     <p class="text-muted">No recruitment sessions found for this candidate.</p>
-                                    @if ($candidate->global_status === 'available')
+                                    @if (!$isPersonalView && $candidate->global_status === 'available')
                                         <button type="button" class="btn btn-primary btn-apply"
                                             data-id="{{ $candidate->id }}">
                                             <i class="fas fa-plus mr-2"></i>Apply to FPTK
@@ -289,82 +298,94 @@
                 <div class="col-lg-4">
                     <!-- Action Buttons -->
                     <div class="candidate-action-buttons">
-                        <a href="{{ route('recruitment.candidates.index') }}" class="btn-action back-btn">
-                            <i class="fas fa-arrow-left"></i> Back to List
-                        </a>
-
-                        @can('recruitment-candidates.edit')
-                            <a href="{{ route('recruitment.candidates.edit', $candidate->id) }}" class="btn-action edit-btn">
-                                <i class="fas fa-edit"></i> Edit
+                        @if ($isPersonalView)
+                            <a href="{{ route('recruitment.my-requests.show', $fptk->id) }}" class="btn-action back-btn">
+                                <i class="fas fa-arrow-left"></i> Back to FPTK
                             </a>
-                        @endcan
-
-                        @if ($candidate->cv_file_path)
-                            <div class="btn-group">
-                                <a href="{{ route('recruitment.candidates.download-cv', $candidate->id) }}"
+                            @if ($candidate->cv_file_path)
+                                <a href="{{ route('recruitment.my-requests.candidate-cv', [$fptk->id, $candidate->id]) }}"
                                     class="btn-action download-btn">
                                     <i class="fas fa-download"></i> Download CV
                                 </a>
-                                <button type="button"
-                                    class="btn-action download-btn dropdown-toggle dropdown-toggle-split"
-                                    data-toggle="dropdown" aria-expanded="false">
-                                    <span class="sr-only">Toggle Dropdown</span>
-                                </button>
-                                <div class="dropdown-menu">
-                                    <form action="{{ route('recruitment.candidates.delete-cv', $candidate->id) }}"
-                                        method="POST" style="display: inline;">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit" class="dropdown-item text-danger"
-                                            onclick="return confirm('Are you sure you want to delete this CV file?')">
-                                            <i class="fas fa-trash mr-2"></i> Delete CV
-                                        </button>
-                                    </form>
-                                </div>
-                            </div>
-                        @endif
-
-                        @if ($candidate->global_status === 'available')
-                            <button type="button" class="btn-action apply-btn btn-apply"
-                                data-id="{{ $candidate->id }}">
-                                <i class="fas fa-plus"></i> Apply to FPTK
-                            </button>
-                        @endif
-
-                        @if ($candidate->global_status !== 'blacklisted')
-                            <button type="button" class="btn-action btn-dark btn-blacklist"
-                                data-id="{{ $candidate->id }}">
-                                <i class="fas fa-ban"></i> Blacklist
-                            </button>
+                            @endif
                         @else
-                            <form action="{{ route('recruitment.candidates.remove-from-blacklist', $candidate->id) }}"
-                                method="POST" style="display: inline;">
-                                @csrf
-                                <button type="submit" class="btn-action unblacklist-btn"
-                                    onclick="return confirm('Are you sure you want to remove this candidate from blacklist?')"
-                                    style="width: 100%;">
-                                    <i class="fas fa-user-check"></i> Remove from Blacklist
+                            <a href="{{ route('recruitment.candidates.index') }}" class="btn-action back-btn">
+                                <i class="fas fa-arrow-left"></i> Back to List
+                            </a>
+
+                            @can('recruitment-candidates.edit')
+                                <a href="{{ route('recruitment.candidates.edit', $candidate->id) }}" class="btn-action edit-btn">
+                                    <i class="fas fa-edit"></i> Edit
+                                </a>
+                            @endcan
+
+                            @if ($candidate->cv_file_path)
+                                <div class="btn-group">
+                                    <a href="{{ route('recruitment.candidates.download-cv', $candidate->id) }}"
+                                        class="btn-action download-btn">
+                                        <i class="fas fa-download"></i> Download CV
+                                    </a>
+                                    <button type="button"
+                                        class="btn-action download-btn dropdown-toggle dropdown-toggle-split"
+                                        data-toggle="dropdown" aria-expanded="false">
+                                        <span class="sr-only">Toggle Dropdown</span>
+                                    </button>
+                                    <div class="dropdown-menu">
+                                        <form action="{{ route('recruitment.candidates.delete-cv', $candidate->id) }}"
+                                            method="POST" style="display: inline;">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="dropdown-item text-danger"
+                                                onclick="return confirm('Are you sure you want to delete this CV file?')">
+                                                <i class="fas fa-trash mr-2"></i> Delete CV
+                                            </button>
+                                        </form>
+                                    </div>
+                                </div>
+                            @endif
+
+                            @if ($candidate->global_status === 'available')
+                                <button type="button" class="btn-action apply-btn btn-apply"
+                                    data-id="{{ $candidate->id }}">
+                                    <i class="fas fa-plus"></i> Apply to FPTK
                                 </button>
-                            </form>
+                            @endif
+
+                            @if ($candidate->global_status !== 'blacklisted')
+                                <button type="button" class="btn-action btn-dark btn-blacklist"
+                                    data-id="{{ $candidate->id }}">
+                                    <i class="fas fa-ban"></i> Blacklist
+                                </button>
+                            @else
+                                <form action="{{ route('recruitment.candidates.remove-from-blacklist', $candidate->id) }}"
+                                    method="POST" style="display: inline;">
+                                    @csrf
+                                    <button type="submit" class="btn-action unblacklist-btn"
+                                        onclick="return confirm('Are you sure you want to remove this candidate from blacklist?')"
+                                        style="width: 100%;">
+                                        <i class="fas fa-user-check"></i> Remove from Blacklist
+                                    </button>
+                                </form>
+                            @endif
+
+                            @can('recruitment-candidates.delete')
+                                <form action="{{ route('recruitment.candidates.destroy', $candidate->id) }}" method="POST"
+                                    style="display: inline;">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="btn-action btn-danger"
+                                        onclick="return confirm('Are you sure you want to delete this candidate? This action cannot be undone.')"
+                                        style="width: 100%;">
+                                        <i class="fas fa-trash"></i> Delete Candidate
+                                    </button>
+                                </form>
+                            @endcan
+
+                            <a href="{{ route('recruitment.candidates.print', $candidate->id) }}"
+                                class="btn-action print-btn" target="_blank">
+                                <i class="fas fa-print"></i> Print
+                            </a>
                         @endif
-
-                        @can('recruitment-candidates.delete')
-                            <form action="{{ route('recruitment.candidates.destroy', $candidate->id) }}" method="POST"
-                                style="display: inline;">
-                                @csrf
-                                @method('DELETE')
-                                <button type="submit" class="btn-action btn-danger"
-                                    onclick="return confirm('Are you sure you want to delete this candidate? This action cannot be undone.')"
-                                    style="width: 100%;">
-                                    <i class="fas fa-trash"></i> Delete Candidate
-                                </button>
-                            </form>
-                        @endcan
-
-                        <a href="{{ route('recruitment.candidates.print', $candidate->id) }}"
-                            class="btn-action print-btn" target="_blank">
-                            <i class="fas fa-print"></i> Print
-                        </a>
                     </div>
                     <br>
                     <!-- Statistics Card -->
@@ -379,31 +400,33 @@
                                         <i class="fas fa-file-alt"></i>
                                     </div>
                                     <div class="stat-content">
-                                        <div class="stat-value">{{ $candidate->sessions->count() }}</div>
-                                        <div class="stat-label">Applications</div>
+                                        <div class="stat-value">{{ $displaySessions->count() }}</div>
+                                        <div class="stat-label">{{ $isPersonalView ? 'Sessions on FPTK' : 'Applications' }}</div>
                                     </div>
                                 </div>
-                                <div class="stat-item">
-                                    <div class="stat-icon" style="background-color: #27ae60;">
-                                        <i class="fas fa-check-circle"></i>
-                                    </div>
-                                    <div class="stat-content">
-                                        <div class="stat-value">
-                                            @php
-                                                $totalSessions = $candidate->sessions->count();
-                                                $successfulSessions = $candidate->sessions
-                                                    ->where('status', 'completed')
-                                                    ->count();
-                                                $successRate =
-                                                    $totalSessions > 0
-                                                        ? round(($successfulSessions / $totalSessions) * 100, 1)
-                                                        : 0;
-                                            @endphp
-                                            {{ $successRate }}%
+                                @unless ($isPersonalView)
+                                    <div class="stat-item">
+                                        <div class="stat-icon" style="background-color: #27ae60;">
+                                            <i class="fas fa-check-circle"></i>
                                         </div>
-                                        <div class="stat-label">Success Rate</div>
+                                        <div class="stat-content">
+                                            <div class="stat-value">
+                                                @php
+                                                    $totalSessions = $candidate->sessions->count();
+                                                    $successfulSessions = $candidate->sessions
+                                                        ->where('status', 'completed')
+                                                        ->count();
+                                                    $successRate =
+                                                        $totalSessions > 0
+                                                            ? round(($successfulSessions / $totalSessions) * 100, 1)
+                                                            : 0;
+                                                @endphp
+                                                {{ $successRate }}%
+                                            </div>
+                                            <div class="stat-label">Success Rate</div>
+                                        </div>
                                     </div>
-                                </div>
+                                @endunless
                             </div>
                         </div>
                     </div>
@@ -411,6 +434,7 @@
             </div>
         </div>
 
+        @unless ($isPersonalView)
         <!-- Apply to FPTK Modal -->
         <div class="modal fade" id="applyModal">
             <div class="modal-dialog modal-lg">
@@ -491,6 +515,7 @@
                 </div>
             </div>
         </div>
+        @endunless
     </div>
 @endsection
 
@@ -899,6 +924,7 @@
 @endsection
 
 @section('scripts')
+    @unless ($isPersonalView ?? false)
     <!-- Select2 -->
     <script src="{{ asset('assets/plugins/select2/js/select2.full.min.js') }}"></script>
 
@@ -951,4 +977,5 @@
             });
         });
     </script>
+    @endunless
 @endsection

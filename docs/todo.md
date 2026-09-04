@@ -54,6 +54,11 @@ Include relevant context in brackets to help with future AI-assisted coding:
 
 ## Recently Completed
 
+-   `[done] P2: My-request candidate detail (read-only) — route my-requests/{id}/candidate/{candidateId} + CV download; differs from HR candidate show [RecruitmentRequestController::myRequestsCandidate, candidates/show isPersonalView] (completed: 2026-09-04)`
+-   `[done] P2: FPTK recruitment sessions Action — add View Candidate button [sessions/show, requests/show → recruitment.candidates.show] (completed: 2026-09-04)`
+
+-   `[done] P2: Supplies user manual for GA, employees, and approvers [docs/SUPPLIES_USER_MANUAL.md] (completed: 2026-09-02)`
+
 -   `[done] P1: Supply workbook cutover seed — ATK (GAA 146 items) + Consumable (GAC 29 items) → catalog, opening SI, dated Masuk/Keluar SI/SO on 000H [SupplyWorkbookImporter, SupplyWorkbookSeeder, ADR-0012, database/seeders/data/supplies/*.xlsx] (completed: 2026-09-02)`
 
 -   `[done] P1: Supplies refactor — Item Category master, multi-line SI/SO docs, ORD-/SI-/SO- numbering, order date/dept/remarks, UI aligned with Meeting Rooms/Overtime [SupplyItemCategoryController, migration rewrite, ADRs 0006/0009/0011] (completed: 2026-08-31)`

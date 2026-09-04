@@ -636,7 +636,7 @@
                                                         <th class="text-center align-middle">MCU</th>
                                                         <th class="text-center align-middle">Hiring & Onboarding</th>
                                                         <th class="text-center align-middle">Final Status</th>
-                                                        <th class="text-center align-middle" style="width: 120px;">Action
+                                                        <th class="text-center align-middle" style="width: 160px;">Action
                                                         </th>
                                                     </tr>
                                                 </thead>
@@ -721,14 +721,24 @@
                                                                 {!! $finalStatusMap[$session->status] ??
                                                                     '<span class="badge badge-secondary">' . ucfirst($session->status) . '</span>' !!}
                                                             </td>
-                                                            <td class="text-center">
+                                                            <td class="text-center text-nowrap">
                                                                 @if(Request::is('recruitment/my-requests*'))
                                                                     @can('personal.recruitment.view-own')
-                                                                        <a href="{{ route('recruitment.sessions.candidate', $session->id) }}"
-                                                                            class="btn btn-sm btn-info"
-                                                                            title="View Session Details">
-                                                                            <i class="fas fa-eye"></i>
-                                                                        </a>
+                                                                        @if ($session->candidate)
+                                                                            <a href="{{ route('recruitment.my-requests.candidate', [$fptk->id, $session->candidate->id]) }}"
+                                                                                class="btn btn-sm btn-primary"
+                                                                                title="View Candidate Details">
+                                                                                <i class="fas fa-user"></i>
+                                                                            </a>
+                                                                            @if ($session->candidate->cv_file_path)
+                                                                                <a href="{{ route('recruitment.my-requests.candidate-cv', [$fptk->id, $session->candidate->id]) }}"
+                                                                                    class="btn btn-sm btn-secondary"
+                                                                                    title="View CV"
+                                                                                    target="_blank">
+                                                                                    <i class="fas fa-file-alt"></i>
+                                                                                </a>
+                                                                            @endif
+                                                                        @endif
                                                                     @endcan
                                                                 @else
                                                                     @can('recruitment-sessions.delete')
@@ -749,6 +759,23 @@
                                                                                 title="Remove Candidate from Session">
                                                                                 <i class="fas fa-trash"></i>
                                                                             </button>
+                                                                        @endif
+                                                                    @endcan
+                                                                    @can('recruitment-candidates.show')
+                                                                        @if ($session->candidate)
+                                                                            <a href="{{ route('recruitment.candidates.show', $session->candidate->id) }}"
+                                                                                class="btn btn-sm btn-primary"
+                                                                                title="View Candidate Details">
+                                                                                <i class="fas fa-user"></i>
+                                                                            </a>
+                                                                        @endif
+                                                                        @if ($session->candidate && $session->candidate->cv_file_path)
+                                                                            <a href="{{ route('recruitment.candidates.download-cv', $session->candidate->id) }}"
+                                                                                class="btn btn-sm btn-secondary"
+                                                                                title="View CV"
+                                                                                target="_blank">
+                                                                                <i class="fas fa-file-alt"></i>
+                                                                            </a>
                                                                         @endif
                                                                     @endcan
                                                                 @endif
