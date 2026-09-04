@@ -534,7 +534,7 @@
                                     <th class="text-center align-middle">MCU</th>
                                     <th class="text-center align-middle">Hiring & Onboarding</th>
                                     <th class="text-center align-middle">Final Status</th>
-                                    <th class="text-center align-middle" style="width: 120px;">Action</th>
+                                    <th class="text-center align-middle" style="width: 160px;">Action</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -772,11 +772,19 @@
                                             {!! $finalStatusMap[$session->status] ??
                                                 '<span class="badge badge-secondary">' . ucfirst($session->status) . '</span>' !!}
                                         </td>
-                                        <td class="text-center">
+                                        <td class="text-center text-nowrap">
                                             <a href="{{ route('recruitment.sessions.candidate', $session->id) }}"
                                                 class="btn btn-sm btn-info" title="View Session Details">
                                                 <i class="fas fa-eye"></i>
                                             </a>
+                                            @can('recruitment-candidates.show')
+                                                @if ($session->candidate)
+                                                    <a href="{{ route('recruitment.candidates.show', $session->candidate->id) }}"
+                                                        class="btn btn-sm btn-primary" title="View Candidate Details">
+                                                        <i class="fas fa-user"></i>
+                                                    </a>
+                                                @endif
+                                            @endcan
                                             @can('recruitment-sessions.delete')
                                                 @if ($session->status !== 'hired')
                                                     <button type="button" class="btn btn-sm btn-danger delete-session-btn"

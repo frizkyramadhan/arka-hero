@@ -8,6 +8,7 @@ use App\Models\LetterNumber;
 use App\Models\Level;
 use App\Models\Position;
 use App\Models\Project;
+use App\Models\RecruitmentCandidate;
 use App\Models\RecruitmentRequest;
 use App\Models\User;
 use App\Services\RecruitmentLetterNumberService;
@@ -18,6 +19,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 
 class RecruitmentRequestController extends Controller
 {
@@ -33,7 +35,13 @@ class RecruitmentRequestController extends Controller
         $this->middleware('permission:recruitment-requests.hold')->only('hold', 'unhold');
 
         // Personal/self-service permissions
-        $this->middleware('permission:personal.recruitment.view-own')->only('myRequests', 'myRequestsData', 'myRequestsShow');
+        $this->middleware('permission:personal.recruitment.view-own')->only(
+            'myRequests',
+            'myRequestsData',
+            'myRequestsShow',
+            'myRequestsCandidate',
+            'myRequestsCandidateCv'
+        );
         $this->middleware('permission:personal.recruitment.create-own')->only('myRequestsCreate', 'myRequestsStore');
         $this->middleware('permission:personal.recruitment.edit-own')->only('myRequestsEdit', 'myRequestsUpdate', 'print');
 
@@ -1875,7 +1883,6 @@ class RecruitmentRequestController extends Controller
     {
         $this->authorize('personal.recruitment.view-own');
 
-        $user = Auth::user();
         $fptk = RecruitmentRequest::with([
             'department',
             'project',
@@ -1896,18 +1903,7 @@ class RecruitmentRequestController extends Controller
         ])->findOrFail($id);
 
         // Check if user has access to this recruitment request
-        $userProjectIds = $user->projects()->pluck('projects.id')->toArray();
-        $userDepartmentIds = $user->departments()->pluck('departments.id')->toArray();
-
-        $hasAccess = false;
-        if (! empty($userProjectIds) || ! empty($userDepartmentIds)) {
-            $hasAccess = in_array($fptk->project_id, $userProjectIds) ||
-                in_array($fptk->department_id, $userDepartmentIds);
-        } else {
-            $hasAccess = $fptk->created_by === $user->id;
-        }
-
-        if (! $hasAccess) {
+        if (! $this->userCanAccessMyRecruitmentRequest($fptk)) {
             abort(403, 'You do not have permission to view this recruitment request.');
         }
 
@@ -1917,6 +1913,79 @@ class RecruitmentRequestController extends Controller
         $sessions = $fptk->sessions;
 
         return view('recruitment.requests.show', compact('fptk', 'letterInfo', 'title', 'subtitle', 'sessions'));
+    }
+
+    /**
+     * Candidate detail from my-request (read-only; not HR candidate show).
+     */
+    public function myRequestsCandidate($id, $candidateId)
+    {
+        $this->authorize('personal.recruitment.view-own');
+
+        $fptk = RecruitmentRequest::findOrFail($id);
+        if (! $this->userCanAccessMyRecruitmentRequest($fptk)) {
+            abort(403, 'You do not have permission to view this recruitment request.');
+        }
+
+        $candidate = RecruitmentCandidate::with([
+            'sessions' => function ($query) use ($id) {
+                $query->where('fptk_id', $id)
+                    ->with([
+                        'fptk.department',
+                        'fptk.position',
+                        'fptk.project',
+                    ]);
+            },
+        ])->findOrFail($candidateId);
+
+        $onThisFptk = $candidate->sessions->contains(fn ($session) => (int) $session->fptk_id === (int) $id);
+        if (! $onThisFptk) {
+            abort(404, 'Candidate is not part of this recruitment request.');
+        }
+
+        $title = 'My Recruitment Requests';
+        $subtitle = 'Candidate Details';
+        $isPersonalView = true;
+        $availableFptks = collect();
+
+        return view('recruitment.candidates.show', compact(
+            'candidate',
+            'title',
+            'subtitle',
+            'availableFptks',
+            'isPersonalView',
+            'fptk'
+        ));
+    }
+
+    /**
+     * Download candidate CV from my-request context.
+     */
+    public function myRequestsCandidateCv($id, $candidateId)
+    {
+        $this->authorize('personal.recruitment.view-own');
+
+        $fptk = RecruitmentRequest::findOrFail($id);
+        if (! $this->userCanAccessMyRecruitmentRequest($fptk)) {
+            abort(403, 'You do not have permission to view this recruitment request.');
+        }
+
+        $candidate = RecruitmentCandidate::findOrFail($candidateId);
+        $onThisFptk = $candidate->sessions()->where('fptk_id', $id)->exists();
+        if (! $onThisFptk) {
+            abort(404, 'Candidate is not part of this recruitment request.');
+        }
+
+        if (! $candidate->cv_file_path || ! Storage::disk('private')->exists($candidate->cv_file_path)) {
+            return redirect()->back()->with('toast_error', 'CV file not found.');
+        }
+
+        $safeName = preg_replace('/[^a-zA-Z0-9]/', '', $candidate->fullname);
+        $safeNumber = preg_replace('/[^a-zA-Z0-9]/', '', $candidate->candidate_number);
+        $extension = pathinfo($candidate->cv_file_path, PATHINFO_EXTENSION) ?: 'pdf';
+        $downloadFileName = 'CV_'.$safeName.'_'.$safeNumber.'.'.$extension;
+
+        return response()->download(storage_path('app/private/'.$candidate->cv_file_path), $downloadFileName);
     }
 
     /**
@@ -2112,5 +2181,19 @@ class RecruitmentRequestController extends Controller
                 ),
             ],
         ];
+    }
+
+    private function userCanAccessMyRecruitmentRequest(RecruitmentRequest $fptk): bool
+    {
+        $user = Auth::user();
+        $userProjectIds = $user->projects()->pluck('projects.id')->toArray();
+        $userDepartmentIds = $user->departments()->pluck('departments.id')->toArray();
+
+        if (! empty($userProjectIds) || ! empty($userDepartmentIds)) {
+            return in_array($fptk->project_id, $userProjectIds) ||
+                in_array($fptk->department_id, $userDepartmentIds);
+        }
+
+        return $fptk->created_by === $user->id;
     }
 }
