@@ -83,6 +83,11 @@ class Employee extends Model
         return $this->hasMany(Administration::class);
     }
 
+    public function mutations()
+    {
+        return $this->hasMany(EmployeeMutation::class)->orderByDesc('mutated_at')->orderByDesc('id');
+    }
+
     public function image()
     {
         return $this->hasMany(Image::class);

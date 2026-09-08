@@ -11,6 +11,7 @@ use App\Models\LeaveType;
 use App\Models\Project;
 use App\Models\User;
 use App\Services\AdministrationYearsOfServiceCalculator;
+use App\Services\EmployeeMutationLeaveAnchor;
 use App\Services\LeaveEntitlementCarryOverService;
 use App\Support\UserProject;
 use Carbon\Carbon;
@@ -400,7 +401,7 @@ class LeaveEntitlementController extends Controller
             return response()->json(['leaveTypes' => []]);
         }
 
-        $employee = Employee::with(['administrations.project', 'administrations.level'])->find($employeeId);
+        $employee = Employee::with(['administrations.project', 'administrations.level', 'mutations.project'])->find($employeeId);
 
         if ($employee && auth()->user() instanceof User && auth()->user()->can('leave-entitlements.show') && ! UserProject::canViewEmployee($employee)) {
             return response()->json(['leaveTypes' => [], 'message' => 'Forbidden'], 403);
@@ -415,7 +416,7 @@ class LeaveEntitlementController extends Controller
             return response()->json(['leaveTypes' => []]);
         }
 
-        $project = $activeAdministration->project;
+        $project = $this->getLeaveSettingsProject($employee, $activeAdministration);
         $eligibleCategories = $this->getEligibleLeaveCategories($project);
 
         $availableLeaveTypes = LeaveType::where('is_active', true)
@@ -931,6 +932,7 @@ class LeaveEntitlementController extends Controller
             'administrations.project',
             'administrations.level',
             'administrations.position',
+            'mutations.project',
             'leaveEntitlements.leaveType',
         ]);
 
@@ -980,7 +982,7 @@ class LeaveEntitlementController extends Controller
         }
 
         // Load additional data for the view
-        $employee->load(['administrations.project', 'administrations.level']);
+        $employee->load(['administrations.project', 'administrations.level', 'mutations.project']);
         $leaveType = \App\Models\LeaveType::findOrFail($leaveTypeId);
 
         if (! $periodStart || ! $periodEnd) {
@@ -1060,6 +1062,7 @@ class LeaveEntitlementController extends Controller
             'administrations.project',
             'administrations.level',
             'administrations.position',
+            'mutations.project',
             'leaveEntitlements' => function ($query) {
                 $query->with('leaveType');
             },
@@ -1302,6 +1305,7 @@ class LeaveEntitlementController extends Controller
                         ->orderBy('doh', 'asc');
                 },
                 'administrations.level',
+                'mutations.project',
                 'leaveEntitlements.leaveType' => function ($q) {
                     $q->where('is_active', true);
                 },
@@ -1324,7 +1328,7 @@ class LeaveEntitlementController extends Controller
         if (! $administration) {
             $administration = $employee->administrations->first();
         }
-        $project = $administration->project;
+        $project = $this->getLeaveSettingsProject($employee, $administration);
 
         // Get eligible leave types based on project group
         $eligibleCategories = $this->getEligibleLeaveCategories($project);
@@ -1488,9 +1492,20 @@ class LeaveEntitlementController extends Controller
             return null;
         }
 
-        $project = $administration->project;
-        $serviceStartDoh = $this->getServiceStartDoh($employee);
-        $doh = $serviceStartDoh ? Carbon::parse($serviceStartDoh) : Carbon::parse($administration->doh);
+        $project = $this->getLeaveSettingsProject($employee, $administration);
+        if (! $project) {
+            return null;
+        }
+
+        $doh = $this->mutationLeaveAnchor()->annualLeaveAnchorDate(
+            $employee,
+            $this->getServiceStartDoh($employee),
+            $administration->doh
+        );
+
+        if (! $doh) {
+            return null;
+        }
 
         if ($project->leave_type === 'roster') {
             // Group 2 (Roster): Calendar year (1 Jan - 31 Dec)
@@ -1518,6 +1533,19 @@ class LeaveEntitlementController extends Controller
     private function yearsOfServiceCalculator(): AdministrationYearsOfServiceCalculator
     {
         return app(AdministrationYearsOfServiceCalculator::class);
+    }
+
+    private function mutationLeaveAnchor(): EmployeeMutationLeaveAnchor
+    {
+        return app(EmployeeMutationLeaveAnchor::class);
+    }
+
+    private function getLeaveSettingsProject($employee, $administration)
+    {
+        return $this->mutationLeaveAnchor()->leaveProject(
+            $employee,
+            $administration?->project
+        );
     }
 
     private function getActiveAdministration($employee)
@@ -1698,7 +1726,7 @@ class LeaveEntitlementController extends Controller
         if (! $administration) {
             $administration = $employee->administrations->first();
         }
-        $project = $administration->project;
+        $project = $this->getLeaveSettingsProject($employee, $administration);
         $level = $administration->level;
 
         // Calculate months of service from service start DOH
@@ -1751,7 +1779,7 @@ class LeaveEntitlementController extends Controller
         if (! $administration) {
             $administration = $employee->administrations->first();
         }
-        $project = $administration->project;
+        $project = $this->getLeaveSettingsProject($employee, $administration);
         $level = $administration->level;
 
         // Calculate months of service from service start DOH
@@ -1848,7 +1876,7 @@ class LeaveEntitlementController extends Controller
         if (! $administration) {
             $administration = $employee->administrations->first();
         }
-        $project = $administration->project;
+        $project = $this->getLeaveSettingsProject($employee, $administration);
 
         // Only apply special rules for Group 2 projects
         if ($project->leave_type !== 'roster') {
@@ -1893,7 +1921,7 @@ class LeaveEntitlementController extends Controller
     private function applyLSLGroup2Rules($employee, $year)
     {
         $administration = $employee->administrations->first();
-        $project = $administration->project;
+        $project = $this->getLeaveSettingsProject($employee, $administration);
 
         // Only apply for Group 2 projects
         if ($project->leave_type !== 'roster') {
@@ -1930,7 +1958,7 @@ class LeaveEntitlementController extends Controller
             return null;
         }
 
-        $project = $administration->project;
+        $project = $this->getLeaveSettingsProject($employee, $administration);
         $level = $administration->level;
 
         // Calculate months of service from service start DOH

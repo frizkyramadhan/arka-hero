@@ -152,6 +152,101 @@
             </tbody>
         </table>
     </div>
+
+    <div id="mutations" class="d-flex justify-content-between align-items-center mb-2 border-bottom pb-2 mt-4">
+        <h5 class="mb-0" style="font-size: 1.1rem;">Mutations</h5>
+        <div>
+            <button class="btn btn-primary" data-toggle="modal" data-target="#modal-mutation" title="Add Mutation">
+                <i class="fas fa-plus mr-1"></i> Add Mutation
+            </button>
+            @if ($mutations->isNotEmpty())
+                <form action="{{ url('employee-mutations/' . $employee->id) }}" method="post"
+                    onsubmit="return confirm('Are you sure want to delete all mutation records?')"
+                    class="d-inline">
+                    @method('delete')
+                    @csrf
+                    <button class="btn btn-danger" title="Delete All Mutation Records">
+                        <i class="fas fa-trash mr-1"></i> Delete All
+                    </button>
+                </form>
+            @endif
+        </div>
+    </div>
+    <p class="text-muted">
+        Latest <strong>active</strong> mutation date is the annual leave anniversary. Leave settings use that
+        destination project. Long service leave still uses Date of Hire.
+    </p>
+    <div class="table-responsive">
+        <table class="table-modern">
+            <thead>
+                <tr>
+                    <th class="text-center">Status</th>
+                    <th>Mutation Date</th>
+                    <th>Destination Project</th>
+                    <th>Remarks</th>
+                    <th class="text-center" style="min-width: 120px; width: 120px;">Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                @php
+                    $latestActiveMutationId = $mutations
+                        ->first(function ($mutation) {
+                            return ($mutation->status ?? 'active') === 'active';
+                        })?->id;
+                @endphp
+                @forelse ($mutations as $mutation)
+                    <tr>
+                        <td class="text-center">
+                            @if (($mutation->status ?? 'active') === 'active')
+                                <span class="badge-status active">Active</span>
+                            @else
+                                <span class="badge-status inactive">Inactive</span>
+                            @endif
+                        </td>
+                        <td>
+                            {{ $mutation->mutated_at ? $mutation->mutated_at->format('d M Y') : '-' }}
+                            @if ($latestActiveMutationId && $mutation->id === $latestActiveMutationId)
+                                <span class="badge badge-info ml-1">Latest</span>
+                            @endif
+                        </td>
+                        <td>
+                            {{ $mutation->project->project_code ?? '-' }}
+                            @if (!empty($mutation->project->project_name))
+                                - {{ $mutation->project->project_name }}
+                            @endif
+                        </td>
+                        <td>{{ $mutation->remarks ?: '-' }}</td>
+                        <td class="text-center" style="white-space: nowrap;">
+                            <button type="button" class="btn btn-primary btn-sm" data-toggle="modal"
+                                data-target="#modal-mutation-{{ $mutation->id }}" title="Edit Mutation">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <form action="{{ url('employee-mutations/' . $employee->id . '/' . $mutation->id) }}"
+                                method="post"
+                                onsubmit="return confirm('Are you sure want to delete this mutation?')"
+                                class="d-inline">
+                                @method('delete')
+                                @csrf
+                                <button type="submit" class="btn btn-danger btn-sm" title="Delete Mutation">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                @empty
+                    <tr>
+                        <td colspan="5">
+                            <div class="empty-state">
+                                <i class="fas fa-exchange-alt"></i>
+                                <h6>No Mutations</h6>
+                                <p>No mutation records. Annual leave uses Date of Hire.</p>
+                            </div>
+                        </td>
+                    </tr>
+                @endforelse
+            </tbody>
+        </table>
+    </div>
 </div>
 
 <style>

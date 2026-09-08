@@ -24,6 +24,7 @@ use App\Http\Controllers\EmailController;
 use App\Http\Controllers\EmployeebankController;
 use App\Http\Controllers\EmployeeBondController;
 use App\Http\Controllers\EmployeeController;
+use App\Http\Controllers\EmployeeMutationController;
 use App\Http\Controllers\EmployeeRegistrationAdminController;
 use App\Http\Controllers\EmployeeRegistrationController;
 use App\Http\Controllers\EmrgcallController;
@@ -717,6 +718,11 @@ Route::group(['middleware' => ['auth']], function () {
     Route::resource('employeebanks', EmployeebankController::class)->except(['show', 'create', 'edit', 'destroy']);
     Route::get('employeebanks/getEmployeebank', [EmployeebankController::class, 'getEmployeebank'])->name('employeebanks.list');
     Route::delete('employeebanks/{employee_id}/{id}', [EmployeebankController::class, 'delete'])->name('employeebanks.delete');
+
+    Route::post('employee-mutations/{employee_id}', [EmployeeMutationController::class, 'store'])->name('employee-mutations.store');
+    Route::patch('employee-mutations/{id}', [EmployeeMutationController::class, 'update'])->name('employee-mutations.update');
+    Route::delete('employee-mutations/{employee_id}/{id}', [EmployeeMutationController::class, 'delete'])->name('employee-mutations.delete');
+    Route::delete('employee-mutations/{employee_id}', [EmployeeMutationController::class, 'deleteAll'])->name('employee-mutations.deleteAll');
 
     Route::get('administrations/getAdministration', [AdministrationController::class, 'getAdministration'])->name('administrations.list');
     Route::resource('administrations', AdministrationController::class)->except(['store', 'show', 'create', 'edit', 'destroy']);

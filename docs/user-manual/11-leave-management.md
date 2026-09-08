@@ -100,7 +100,7 @@ Jendela ini muncul saat Anda akan atau baru saja menjalankan **Generate Entitlem
 
 - **Siapa yang dapat saldo** — **Semua karyawan aktif** pada **project** tersebut (administration **aktif**).
 - **Jenis cuti yang dibuatkan** — kombinasi **Paid Leave**, **Unpaid Leave**, **Annual Leave** (sering setelah masa kerja tertentu), **LSL** (ambang masa kerja mengikuti aturan sistem) — detail pasti ada di teks jendela.
-- **Periode berlaku** — mengacu pada **DOH** di **Employee Management** dan **tahun/periode berjalan** (misalnya **Current Year**).
+- **Periode berlaku** — **Cuti Tahunan** (project non-roster) memakai **tanggal mutasi Active terakhir** bila ada di tab **Employment**; jika tidak ada mutasi Active, memakai **Service Start DOH**. Project roster tetap 1 Jan–31 Dec. Jenis cuti mengikuti **project tujuan mutasi Active terakhir** (disamakan dengan project administration aktif).
 - **Anti-duplikat** — untuk **periode yang sama**, entitlement yang **sudah ada** akan **dilewati** sehingga tidak terjadi penggandaan data.
 - **Carry over (hanya saat Generate)** — untuk **LSL** dengan flag **carry over** aktif di **Leave Types**, sisa periode sebelumnya ditambahkan ke hak periode baru. Untuk **Cuti Tahunan**, carry over otomatis hanya untuk level **Manager** dan **Director**. Penambahan/edit manual lewat **Add Entitlements** / **Edit** memakai angka yang Anda isi di formulir, **tanpa** carry over otomatis.
 - **Service Start DOH** (cara menghitung masa kerja untuk keperluan aturan cuti):

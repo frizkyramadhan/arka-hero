@@ -16,6 +16,7 @@ use App\Models\Course;
 use App\Models\Department;
 use App\Models\Education;
 use App\Models\Employee;
+use App\Models\EmployeeMutation;
 use App\Models\Employeebank;
 use App\Models\Emrgcall;
 use App\Models\Family;
@@ -598,6 +599,11 @@ class EmployeeController extends Controller
         $lastAdministration = Administration::where('employee_id', $id)
             ->orderBy('created_at', 'desc')
             ->first();
+        $mutations = EmployeeMutation::with('project')
+            ->where('employee_id', $id)
+            ->orderByDesc('mutated_at')
+            ->orderByDesc('id')
+            ->get();
 
         // for select option
         $religions = Religion::orderBy('id', 'asc')->get();
@@ -607,7 +613,7 @@ class EmployeeController extends Controller
         $grades = Grade::where('is_active', 1)->orderBy('name', 'asc')->get();
         $levels = Level::where('is_active', 1)->orderBy('name', 'asc')->get();
 
-        return view('employee.detail', compact('title', 'subtitle', 'employee', 'banks', 'bank', 'tax', 'insurances', 'families', 'educations', 'courses', 'jobs', 'units', 'licenses', 'emergencies', 'additional', 'administrations', 'images', 'religions', 'getBanks', 'positions', 'projects', 'grades', 'levels', 'profile', 'lastAdministration'));
+        return view('employee.detail', compact('title', 'subtitle', 'employee', 'banks', 'bank', 'tax', 'insurances', 'families', 'educations', 'courses', 'jobs', 'units', 'licenses', 'emergencies', 'additional', 'administrations', 'images', 'religions', 'getBanks', 'positions', 'projects', 'grades', 'levels', 'profile', 'lastAdministration', 'mutations'));
     }
 
     public function edit($id)
