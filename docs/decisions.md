@@ -1,5 +1,5 @@
 **Purpose**: Record technical decisions and rationale for future reference
-**Last Updated**: 2026-08-19
+**Last Updated**: 2026-09-08
 
 # Technical Decision Records - ARKA HERO HRMS
 
@@ -29,6 +29,14 @@ Decision: [Title] - [YYYY-MM-DD]
 ---
 
 ## Recent Decisions
+
+### Decision: Employee mutation anchors annual leave - 2026-09-08
+
+**Context**: Project transfer must change the Cuti Tahunan anniversary without treating the move as a new hire or resetting LSL / years of service.
+
+**Decision**: Thin `employee_mutations` table (date + destination project). Latest row is the annual-leave anniversary and the leave-settings project. Service Start DOH still owns LSL and years of service. See `docs/adr/0013-employee-mutation-annual-leave-anchor.md`.
+
+---
 
 ### Decision: Leave Period date fence only for annual/LSL - 2026-08-19
 

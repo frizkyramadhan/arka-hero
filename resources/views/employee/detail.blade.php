@@ -181,6 +181,7 @@
 
     @include('employee.modal-employee')
     @include('employee.modal-administration')
+    @include('employee.modal-mutation')
     @include('employee.modal-termination-employment')
     @include('employee.modal-bank')
     @include('employee.modal-tax')
@@ -598,6 +599,7 @@
             const stepMap = {
                 '#personal': 1,
                 '#administration': 2,
+                '#mutations': 2,
                 '#bank': 3,
                 '#tax': 4,
                 '#insurance': 5,

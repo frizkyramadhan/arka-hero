@@ -10,7 +10,7 @@ Panduan ini ditujukan untuk **HR** yang mengelola data karyawan di ARKA HERO, mu
 | **Dashboard**           | Ringkasan statistik dan pintasan cepat terkait data karyawan.                                                               |
 | **Employees**           | Daftar utama data karyawan aktif maupun tidak aktif.                                                                        |
 | **Personal**            | Tab data identitas, kelahiran, kontak, alamat, dan dokumen pribadi seperti KTP/KK.                                          |
-| **Employment**          | Tab data kepegawaian seperti **Employee ID (NIK)**, **Date of Hire**, **Position**, **Project**, **Grade**, dan **Level**.  |
+| **Employment**          | Tab data kepegawaian seperti **Employee ID (NIK)**, **Date of Hire**, **Position**, **Project**, **Grade**, dan **Level**. Riwayat pindah project dicatat di **Mutations**. |
 | **Termination**         | Proses mengubah status administrasi karyawan menjadi tidak aktif karena kontrak selesai, resign, retired, atau alasan lain. |
 | **Employee Bonds**      | Pencatatan ikatan dinas karyawan, termasuk nomor surat, periode ikatan, nilai investasi, dan dokumen perjanjian.            |
 | **Bond Violations**     | Pencatatan pelanggaran ikatan dinas dan nominal penalti yang perlu ditindaklanjuti.                                         |
@@ -292,6 +292,7 @@ Unggah gambar atau foto dokumen lain bila diperlukan. Gunakan file yang jelas da
 
 1. Beberapa bagian seperti **Bank**, **Tax**, **Insurances**, **Licenses**, dan **Educations** dapat memiliki dokumen pendukung. Jika mengganti dokumen, pastikan file baru adalah file final dan sesuai kebijakan perusahaan.
 2. Khusus data **Employment**, jika menambahkan NIK baru, maka NIK lama akan otomatis **Inactive**, sementara NIK baru yang aktif tampil sebagai **Active**, sehingga riwayat NIK tercatat di tabel **Employment History** (contoh: Eko Prasetyo, NIK aktif **20025** - _data dummy_).
+3. Tabel **Mutations** di tab yang sama mencatat pindah project: **Mutation Date**, **Destination Project**, **Status**, dan **Remarks**. Satu karyawan boleh punya beberapa mutasi. Mutasi **Active** terakhir menjadi acuan **Cuti Tahunan** (bukan DOH) dan mengatur jenis cuti menurut project tujuan. Mutasi **Inactive** tetap tercatat tetapi tidak dipakai untuk cuti. **Cuti Panjang** tetap memakai **Date of Hire**. Simpan mutasi **Active** terakhir juga memperbarui **Project** pada baris Employment yang **Active**.
 
 <p align="center" id="employee-detail-employment-nik-history">
     <img

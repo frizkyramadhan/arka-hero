@@ -2226,6 +2226,7 @@ class LeaveRequestController extends Controller
             'administrations.project',
             'administrations.level',
             'administrations.position',
+            'mutations.project',
         ]);
 
         // Recalculate taken_days from approved leave requests (considering cancellations)

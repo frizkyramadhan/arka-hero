@@ -129,6 +129,29 @@
                                         @endif
                                     </td>
                                 </tr>
+                                @php
+                                    $latestMutation = $employee->relationLoaded('mutations')
+                                        ? $employee->mutations
+                                            ->filter(function ($mutation) {
+                                                return ($mutation->status ?? 'active') === 'active';
+                                            })
+                                            ->sortByDesc(function ($mutation) {
+                                                return optional($mutation->mutated_at)->format('Y-m-d') . '-' . $mutation->id;
+                                            })
+                                            ->first()
+                                        : null;
+                                @endphp
+                                @if ($latestMutation)
+                                    <tr>
+                                        <th>Annual leave from:</th>
+                                        <td>
+                                            {{ $latestMutation->mutated_at?->format('d F Y') }}
+                                            <br><small class="text-info"><i class="fas fa-info-circle"></i> Latest
+                                                active mutation
+                                                ({{ $latestMutation->project->project_code ?? 'N/A' }})</small>
+                                        </td>
+                                    </tr>
+                                @endif
                                 <tr>
                                     <th>Years of Service:</th>
                                     <td>
