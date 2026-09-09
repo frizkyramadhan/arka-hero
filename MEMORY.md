@@ -1,6 +1,12 @@
 **Purpose**: AI's persistent knowledge base for project context and learnings - ARKA HERO HRMS
 **Last Updated**: 2026-09-09
 
+### [054] Vehicle ArkFleet extra unit TS001 (2026-09-09)
+
+Vehicle master dropdown normally filters ArkFleet equipments to Light Vehicles (`plant_group_id=3`). **TS 001** (id 835) is Highway Truck (`plant_group_id=19`) so it was excluded. Allowlist via `config('ark_fleet.extra_unit_nos')` / env `ARK_FLEET_EXTRA_UNIT_NOS` (default `TS001`; match ignores spaces/case).
+
+**Files**: `config/ark_fleet.php`, `ArkFleetClient.php`.
+
 ### [053] HR edit approved RCR + FRF (2026-09-09)
 
 HR (admin permissions `room-consumption-requests.edit` / `flight-requests.edit`) can **Edit** RCR with status **approved**, and FRF with **approved** or **issued**. My Request / personal path unchanged. Save keeps status; letter/Zoom preserved on RCR; approver list view-only on post-approval FRF edit.
