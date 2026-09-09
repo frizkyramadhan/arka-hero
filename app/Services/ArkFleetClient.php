@@ -29,14 +29,15 @@ class ArkFleetClient
         }
 
         $plantGroupId = (int) config('ark_fleet.light_vehicle_plant_group_id', 3);
-        $cacheKey = 'ark_fleet.light_vehicles.'.$plantGroupId;
+        $extraUnitNos = $this->normalizedExtraUnitNos();
+        $cacheKey = 'ark_fleet.light_vehicles.'.$plantGroupId.'.'.md5(implode(',', $extraUnitNos));
 
         $cached = Cache::get($cacheKey);
         if (is_array($cached) && ($cached['success'] ?? false) === true) {
             return $cached;
         }
 
-        $result = $this->fetchLightVehicleEquipments($plantGroupId);
+        $result = $this->fetchLightVehicleEquipments($plantGroupId, $extraUnitNos);
 
         if (($result['success'] ?? false) === true) {
             Cache::put($cacheKey, $result, now()->addMinutes(5));
@@ -46,9 +47,10 @@ class ArkFleetClient
     }
 
     /**
+     * @param  array<int, string>  $extraUnitNos  Normalized unit codes (no spaces, upper)
      * @return array{success: bool, message?: string, data: array<int, array<string, mixed>>}
      */
-    protected function fetchLightVehicleEquipments(int $plantGroupId): array
+    protected function fetchLightVehicleEquipments(int $plantGroupId, array $extraUnitNos = []): array
     {
         $url = rtrim((string) config('ark_fleet.base_url'), '/').'/api/equipments';
 
@@ -75,12 +77,14 @@ class ArkFleetClient
             $items = $this->normalizeList($payload);
 
             $filtered = collect($items)
-                ->filter(function ($row) use ($plantGroupId) {
+                ->filter(function ($row) use ($plantGroupId, $extraUnitNos) {
                     $id = (int) ($row['plant_group_id'] ?? 0);
                     $name = strtolower((string) ($row['plant_group'] ?? ''));
+                    $unitNo = $this->normalizeUnitNo($row['unit_no'] ?? null);
 
                     return $id === $plantGroupId
-                        || str_contains($name, 'light vehicle');
+                        || str_contains($name, 'light vehicle')
+                        || ($unitNo !== '' && in_array($unitNo, $extraUnitNos, true));
                 })
                 ->map(fn ($row) => $this->mapEquipment($row))
                 ->values()
@@ -101,6 +105,24 @@ class ArkFleetClient
                 'data' => [],
             ];
         }
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    protected function normalizedExtraUnitNos(): array
+    {
+        return collect(config('ark_fleet.extra_unit_nos', []))
+            ->map(fn ($code) => $this->normalizeUnitNo($code))
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+    }
+
+    protected function normalizeUnitNo(mixed $unitNo): string
+    {
+        return strtoupper(preg_replace('/\s+/', '', (string) $unitNo) ?? '');
     }
 
     /**
