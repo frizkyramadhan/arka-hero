@@ -250,12 +250,13 @@ class RoomConsumptionRequest extends Model implements NotifiableDocument
 
     public function canBeEditedBy(?User $user): bool
     {
-        if (! $user || ! $this->isEditable()) {
+        if (! $user) {
             return false;
         }
 
+        // HR/admin: draft (incl. pending HR confirm) + approved. Not my-request path.
         if ($user->can('room-consumption-requests.edit')) {
-            return true;
+            return in_array($this->status, [self::STATUS_DRAFT, self::STATUS_APPROVED], true);
         }
 
         return $user->can('personal.room-consumption.edit-own')

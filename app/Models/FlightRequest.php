@@ -192,6 +192,22 @@ class FlightRequest extends Model implements NotifiableDocument
     }
 
     /**
+     * HR/admin may edit draft or approved FRF (not My Flight Request / personal path).
+     */
+    public function canBeEditedByHr(?\App\Models\User $user): bool
+    {
+        if (! $user || ! $user->can('flight-requests.edit')) {
+            return false;
+        }
+
+        return in_array($this->status, [
+            self::STATUS_DRAFT,
+            self::STATUS_APPROVED,
+            self::STATUS_ISSUED,
+        ], true);
+    }
+
+    /**
      * Generate unique form number for new flight request.
      */
     public static function generateFormNumber(): string
