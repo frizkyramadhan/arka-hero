@@ -15,6 +15,7 @@ class ArkFleetClientExtraUnitsTest extends TestCase
         config([
             'ark_fleet.base_url' => 'http://ark-fleet.test',
             'ark_fleet.light_vehicle_plant_group_id' => 3,
+            'ark_fleet.bus_plant_group_id' => 5,
             'ark_fleet.extra_unit_nos' => ['TS001'],
             'ark_fleet.timeout' => 5,
         ]);
@@ -27,6 +28,12 @@ class ArkFleetClientExtraUnitsTest extends TestCase
                         'unit_no' => 'LV 001',
                         'plant_group_id' => 3,
                         'plant_group' => 'Light Vehicles',
+                    ],
+                    [
+                        'id' => 779,
+                        'unit_no' => 'VA 072',
+                        'plant_group_id' => 5,
+                        'plant_group' => 'Bus',
                     ],
                     [
                         'id' => 835,
@@ -50,6 +57,7 @@ class ArkFleetClientExtraUnitsTest extends TestCase
         $this->assertTrue($result['success']);
         $unitNos = collect($result['data'])->pluck('unit_no')->all();
         $this->assertContains('LV 001', $unitNos);
+        $this->assertContains('VA 072', $unitNos);
         $this->assertContains('TS 001', $unitNos);
         $this->assertNotContains('EX 001', $unitNos);
     }

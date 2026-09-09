@@ -14,7 +14,7 @@ class ArkFleetClient
     }
 
     /**
-     * Fetch Light Vehicle equipments from ArkFleet (cached briefly).
+     * Fetch vehicle equipments from ArkFleet (Light Vehicles + Bus + extras; cached briefly).
      *
      * @return array{success: bool, message?: string, data: array<int, array<string, mixed>>}
      */
@@ -28,16 +28,16 @@ class ArkFleetClient
             ];
         }
 
-        $plantGroupId = (int) config('ark_fleet.light_vehicle_plant_group_id', 3);
+        $plantGroupIds = $this->allowedPlantGroupIds();
         $extraUnitNos = $this->normalizedExtraUnitNos();
-        $cacheKey = 'ark_fleet.light_vehicles.'.$plantGroupId.'.'.md5(implode(',', $extraUnitNos));
+        $cacheKey = 'ark_fleet.vehicles.'.md5(implode(',', $plantGroupIds).'|'.implode(',', $extraUnitNos));
 
         $cached = Cache::get($cacheKey);
         if (is_array($cached) && ($cached['success'] ?? false) === true) {
             return $cached;
         }
 
-        $result = $this->fetchLightVehicleEquipments($plantGroupId, $extraUnitNos);
+        $result = $this->fetchLightVehicleEquipments($plantGroupIds, $extraUnitNos);
 
         if (($result['success'] ?? false) === true) {
             Cache::put($cacheKey, $result, now()->addMinutes(5));
@@ -47,10 +47,11 @@ class ArkFleetClient
     }
 
     /**
+     * @param  array<int, int>  $plantGroupIds
      * @param  array<int, string>  $extraUnitNos  Normalized unit codes (no spaces, upper)
      * @return array{success: bool, message?: string, data: array<int, array<string, mixed>>}
      */
-    protected function fetchLightVehicleEquipments(int $plantGroupId, array $extraUnitNos = []): array
+    protected function fetchLightVehicleEquipments(array $plantGroupIds, array $extraUnitNos = []): array
     {
         $url = rtrim((string) config('ark_fleet.base_url'), '/').'/api/equipments';
 
@@ -77,13 +78,14 @@ class ArkFleetClient
             $items = $this->normalizeList($payload);
 
             $filtered = collect($items)
-                ->filter(function ($row) use ($plantGroupId, $extraUnitNos) {
+                ->filter(function ($row) use ($plantGroupIds, $extraUnitNos) {
                     $id = (int) ($row['plant_group_id'] ?? 0);
-                    $name = strtolower((string) ($row['plant_group'] ?? ''));
+                    $name = strtolower(trim((string) ($row['plant_group'] ?? '')));
                     $unitNo = $this->normalizeUnitNo($row['unit_no'] ?? null);
 
-                    return $id === $plantGroupId
+                    return in_array($id, $plantGroupIds, true)
                         || str_contains($name, 'light vehicle')
+                        || $name === 'bus'
                         || ($unitNo !== '' && in_array($unitNo, $extraUnitNos, true));
                 })
                 ->map(fn ($row) => $this->mapEquipment($row))
@@ -105,6 +107,21 @@ class ArkFleetClient
                 'data' => [],
             ];
         }
+    }
+
+    /**
+     * @return array<int, int>
+     */
+    protected function allowedPlantGroupIds(): array
+    {
+        return collect([
+            (int) config('ark_fleet.light_vehicle_plant_group_id', 3),
+            (int) config('ark_fleet.bus_plant_group_id', 5),
+        ])
+            ->filter(fn ($id) => $id > 0)
+            ->unique()
+            ->values()
+            ->all();
     }
 
     /**

@@ -54,7 +54,7 @@ return old($type.'_expiry', optional($doc?->expiry_date)->format('Y-m-d'));
             </div>
             <div class="card-body">
                 <p class="text-muted small mb-3">
-                    Select a Light Vehicle from ArkFleet to auto-fill Code, License Plate, and Location.
+                    Select a Light Vehicle or Bus from ArkFleet to auto-fill Code, License Plate, and Location.
                     Fields marked <span class="text-danger">*</span> are required.
                 </p>
 
@@ -63,7 +63,7 @@ return old($type.'_expiry', optional($doc?->expiry_date)->format('Y-m-d'));
                         <div class="form-group" id="arkfleet-select-wrap">
                             <label for="arkfleet_select">
                                 <i class="fas fa-database text-muted mr-1"></i>
-                                ArkFleet Light Vehicle <span class="text-danger">*</span>
+                                ArkFleet vehicle <span class="text-danger">*</span>
                             </label>
                             <select id="arkfleet_select" class="form-control select2bs4" disabled
                                 style="width: 100%;"
@@ -73,7 +73,7 @@ return old($type.'_expiry', optional($doc?->expiry_date)->format('Y-m-d'));
                                 <option value="">Loading ArkFleet equipments…</option>
                             </select>
                             <small id="arkfleet-loading-hint" class="form-text text-muted">
-                                <i class="fas fa-spinner fa-spin"></i> Loading Light Vehicles from ArkFleet…
+                                <i class="fas fa-spinner fa-spin"></i> Loading Light Vehicles &amp; Bus from ArkFleet…
                             </small>
                             <small id="arkfleet-ready-hint" class="form-text text-muted d-none">
                                 <i class="fas fa-search"></i> Search by unit code, plate, or description
