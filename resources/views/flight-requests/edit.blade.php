@@ -355,6 +355,12 @@
                                     'selectedApprovers' => old(
                                         'manual_approvers',
                                         $flightRequest->manual_approvers ?? []),
+                                    'mode' => in_array($flightRequest->status, [
+                                        \App\Models\FlightRequest::STATUS_APPROVED,
+                                        \App\Models\FlightRequest::STATUS_ISSUED,
+                                    ], true)
+                                        ? 'view'
+                                        : 'edit',
                                 ])
                             </div>
                         </div>

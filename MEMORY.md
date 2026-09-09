@@ -1,5 +1,11 @@
 **Purpose**: AI's persistent knowledge base for project context and learnings - ARKA HERO HRMS
-**Last Updated**: 2026-08-31
+**Last Updated**: 2026-09-09
+
+### [053] HR edit approved RCR + FRF (2026-09-09)
+
+HR (admin permissions `room-consumption-requests.edit` / `flight-requests.edit`) can **Edit** RCR with status **approved**, and FRF with **approved** or **issued**. My Request / personal path unchanged. Save keeps status; letter/Zoom preserved on RCR; approver list view-only on post-approval FRF edit.
+
+**Files**: `RoomConsumptionRequest`, `FlightRequest`, `RoomConsumptionRequestController`, `FlightRequestController`, RCR/FR show+form/edit blades.
 
 ### [052] Supplies Phase 1 + refactor (2026-08-31)
 

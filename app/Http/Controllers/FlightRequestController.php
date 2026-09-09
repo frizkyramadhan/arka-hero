@@ -113,7 +113,11 @@ class FlightRequestController extends Controller
             $actions = '<div class="btn-group">';
             $actions .= '<a href="'.route('flight-requests.show', $request->id).'" class="btn btn-sm btn-info mr-1" title="View"><i class="fas fa-eye"></i></a>';
 
-            if ($request->status === FlightRequest::STATUS_DRAFT) {
+            if (in_array($request->status, [
+                FlightRequest::STATUS_DRAFT,
+                FlightRequest::STATUS_APPROVED,
+                FlightRequest::STATUS_ISSUED,
+            ], true)) {
                 $actions .= '<a href="'.route('flight-requests.edit', $request->id).'" class="btn btn-sm btn-warning" title="Edit"><i class="fas fa-edit"></i></a>';
             }
 
@@ -628,7 +632,7 @@ class FlightRequestController extends Controller
             'followers.administration',
         ])->findOrFail($id);
 
-        if ($flightRequest->status !== FlightRequest::STATUS_DRAFT) {
+        if (! $flightRequest->canBeEditedByHr(Auth::user())) {
             return redirect()->route('flight-requests.show', $id)
                 ->with('toast_error', 'Cannot edit Flight Request with current status.');
         }
@@ -647,7 +651,12 @@ class FlightRequestController extends Controller
     {
         $flightRequest = FlightRequest::findOrFail($id);
 
-        if ($flightRequest->status !== FlightRequest::STATUS_DRAFT) {
+        $isPersonalRoute = $request->routeIs('flight-requests.my-requests.*');
+        if ($isPersonalRoute) {
+            if ($flightRequest->status !== FlightRequest::STATUS_DRAFT) {
+                return back()->with('toast_error', 'Cannot update Flight Request with current status.');
+            }
+        } elseif (! $flightRequest->canBeEditedByHr(Auth::user())) {
             return back()->with('toast_error', 'Cannot update Flight Request with current status.');
         }
 
@@ -703,7 +712,7 @@ class FlightRequestController extends Controller
             }
 
             // Update flight request
-            $flightRequest->update([
+            $updatePayload = [
                 'request_type' => $validated['request_type'],
                 'employee_id' => $validated['employee_id'] ?? null,
                 'administration_id' => $validated['administration_id'] ?? null,
@@ -717,9 +726,15 @@ class FlightRequestController extends Controller
                 'total_travel_days' => $validated['total_travel_days'] ?? null,
                 'leave_request_id' => $leaveRequestId,
                 'official_travel_id' => $officialTravelId,
-                'manual_approvers' => $validated['manual_approvers'] ?? null,
                 'notes' => $validated['notes'] ?? null,
-            ]);
+            ];
+            if (! in_array($flightRequest->status, [
+                FlightRequest::STATUS_APPROVED,
+                FlightRequest::STATUS_ISSUED,
+            ], true)) {
+                $updatePayload['manual_approvers'] = $validated['manual_approvers'] ?? null;
+            }
+            $flightRequest->update($updatePayload);
 
             // Delete existing details
             $flightRequest->details()->delete();

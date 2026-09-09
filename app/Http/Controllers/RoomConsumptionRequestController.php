@@ -473,10 +473,19 @@ class RoomConsumptionRequestController extends Controller
         }
 
         $manualApprovers = $this->normalizeManualApprovers($request->input('manual_approvers'));
-        $submit = ($data['submit_action'] ?? 'draft') === 'submit';
-        $status = $submit
-            ? RoomConsumptionRequest::STATUS_SUBMITTED
-            : RoomConsumptionRequest::STATUS_DRAFT;
+        $isApprovedHrEdit = ! $isPersonal
+            && $doc
+            && $doc->status === RoomConsumptionRequest::STATUS_APPROVED;
+        if ($isApprovedHrEdit) {
+            // Approver UI is view-only on approved edit — keep existing list.
+            $manualApprovers = $this->normalizeManualApprovers($doc->manual_approvers);
+        }
+        $submit = ! $isApprovedHrEdit && ($data['submit_action'] ?? 'draft') === 'submit';
+        $status = $isApprovedHrEdit
+            ? RoomConsumptionRequest::STATUS_APPROVED
+            : ($submit
+                ? RoomConsumptionRequest::STATUS_SUBMITTED
+                : RoomConsumptionRequest::STATUS_DRAFT);
 
         $personalRegFlow = $isPersonal && (! $doc || $doc->isPendingHr());
         $hrConfirmPending = ! $isPersonal && $doc && $doc->isPendingHr();
@@ -584,8 +593,13 @@ class RoomConsumptionRequestController extends Controller
                 'manual_approvers' => $manualApprovers,
                 'notes' => $data['notes'] ?? null,
                 'status' => $status,
-                'zoom_sync_status' => ! empty($data['need_zoom']) ? 'pending' : 'not_required',
             ];
+
+            if ($isApprovedHrEdit) {
+                // Keep existing Zoom / IT WO sync fields; only flip need_zoom flag above.
+            } else {
+                $payload['zoom_sync_status'] = ! empty($data['need_zoom']) ? 'pending' : 'not_required';
+            }
 
             if ($letterNumberString) {
                 $payload['letter_number_id'] = $data['letter_number_id'];
@@ -655,11 +669,11 @@ class RoomConsumptionRequestController extends Controller
             if ($newLetterId) {
                 if ($submit) {
                     $this->markRcrLetterNumberUsed($model, $newLetterId);
-                } else {
+                } elseif (! $isApprovedHrEdit) {
                     // Draft may have been marked used by older behavior — restore reserved
                     $this->releaseRcrLetterNumberIfOwned($newLetterId, $model->id);
                 }
-            } elseif ($previousLetterId) {
+            } elseif ($previousLetterId && ! $isApprovedHrEdit) {
                 $model->update([
                     'letter_number_id' => null,
                     'letter_number' => null,
@@ -697,6 +711,8 @@ class RoomConsumptionRequestController extends Controller
                 }
             } elseif ($hrConfirmPending && $letterNumberString) {
                 $message = 'Pengajuan karyawan dikonfirmasi. Reg. No resmi dan approver telah disimpan.';
+            } elseif ($isApprovedHrEdit) {
+                $message = 'Request updated.';
             } else {
                 $message = $submit
                     ? 'Request submitted for approval.'

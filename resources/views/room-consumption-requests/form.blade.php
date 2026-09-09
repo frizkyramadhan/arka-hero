@@ -461,6 +461,11 @@
 
                         {{-- Approvers --}}
                         @unless (!empty($isPersonalRegMode))
+                            @php
+                                $approverViewOnly =
+                                    $doc &&
+                                    $doc->status === \App\Models\RoomConsumptionRequest::STATUS_APPROVED;
+                            @endphp
                             <div class="card card-info card-outline elevation-2">
                                 <div class="card-header py-2">
                                     <h3 class="card-title">
@@ -476,6 +481,7 @@
                                         'required' => false,
                                         'multiple' => true,
                                         'documentType' => 'room_consumption_request',
+                                        'mode' => $approverViewOnly ? 'view' : 'edit',
                                     ])
                                 </div>
                             </div>
@@ -489,6 +495,11 @@
                                         class="btn btn-success btn-block">
                                         <i class="fas {{ $doc ? 'fa-save' : 'fa-paper-plane' }} mr-2"></i>
                                         {{ $doc ? 'Save Changes' : 'Submit to HR' }}
+                                    </button>
+                                @elseif ($doc && $doc->status === \App\Models\RoomConsumptionRequest::STATUS_APPROVED)
+                                    <button type="submit" name="submit_action" value="draft"
+                                        class="btn btn-success btn-block">
+                                        <i class="fas fa-save mr-2"></i> Save Changes
                                     </button>
                                 @else
                                     <div class="row mb-2">

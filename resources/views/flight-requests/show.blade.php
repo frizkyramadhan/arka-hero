@@ -371,6 +371,13 @@
                                             data-target="#submitModal">
                                             <i class="fas fa-paper-plane"></i> Submit for Approval
                                         </button>
+                                    @elseif (!$fromMy && in_array($flightRequest->status, ['approved', 'issued'], true))
+                                        @can('flight-requests.edit')
+                                            <a href="{{ route('flight-requests.edit', $flightRequest->id) }}"
+                                                class="btn-action edit-btn">
+                                                <i class="fas fa-edit"></i> Edit
+                                            </a>
+                                        @endcan
                                     @endif
 
 
