@@ -16,4 +16,6 @@ yarn-error.log
 /.fleet
 /.idea
 /.vscode
+/scripts/.vscode-test/
+/scripts/node_modules/
 !/storage/app/seeds

@@ -32,6 +32,18 @@
                     <div class="card-header">
                         <h3 class="card-title">{{ $subtitle }}</h3>
                         <div class="card-tools">
+                            @can('supplies.stock-in.show')
+                                <a href="{{ route('supplies.stock-ins.export') }}" id="btn-export-stock-in"
+                                    class="btn btn-success">
+                                    <i class="fas fa-download"></i> Export
+                                </a>
+                            @endcan
+                            @canany(['supplies.stock-in.create', 'supplies.stock-in.edit'])
+                                <button type="button" class="btn btn-info" data-toggle="modal"
+                                    data-target="#importModal">
+                                    <i class="fas fa-upload"></i> Import
+                                </button>
+                            @endcanany
                             @can('supplies.stock-in.create')
                                 <a href="{{ route('supplies.stock-ins.create') }}" class="btn btn-warning">
                                     <i class="fas fa-plus"></i> Add
@@ -40,6 +52,53 @@
                         </div>
                     </div>
                     <div class="card-body">
+                        @if (session()->has('failures'))
+                            <div class="card card-danger">
+                                <div class="card-header">
+                                    <h3 class="card-title">
+                                        <i class="icon fas fa-exclamation-triangle"></i> Import Validation Errors
+                                    </h3>
+                                    <div class="card-tools">
+                                        <button type="button" class="btn btn-tool" data-card-widget="collapse">
+                                            <i class="fas fa-minus"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="card-body">
+                                    <div class="table-responsive">
+                                        <table class="table table-sm table-striped">
+                                            <thead>
+                                                <tr>
+                                                    <th style="width: 5%">Sheet</th>
+                                                    <th class="text-center" style="width: 5%">Row</th>
+                                                    <th style="width: 20%">Column</th>
+                                                    <th style="width: 20%">Value</th>
+                                                    <th>Error Message</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                @foreach (session()->get('failures') as $failure)
+                                                    <tr>
+                                                        <td>{{ $failure['sheet'] }}</td>
+                                                        <td class="text-center">{{ $failure['row'] }}</td>
+                                                        <td>
+                                                            <strong>{{ ucwords(str_replace('_', ' ', $failure['attribute'])) }}</strong>
+                                                        </td>
+                                                        <td>{{ $failure['value'] ?? '' }}</td>
+                                                        <td>{!! nl2br(e($failure['errors'])) !!}</td>
+                                                    </tr>
+                                                @endforeach
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    <small class="text-muted">
+                                        <i class="fas fa-info-circle"></i>
+                                        Please correct these errors in your Excel file and try importing again.
+                                    </small>
+                                </div>
+                            </div>
+                        @endif
+
                         <div class="card card-primary">
                             <div class="card-header">
                                 <h4 class="card-title w-100">
@@ -97,7 +156,7 @@
                                         <th class="align-middle text-center">Items</th>
                                         <th class="align-middle">Supply Order</th>
                                         <th class="align-middle">Notes</th>
-                                        <th class="align-middle text-center" width="10%">Action</th>
+                                        <th class="align-middle text-center" width="12%">Action</th>
                                     </tr>
                                 </thead>
                             </table>
@@ -105,6 +164,51 @@
                     </div>
                 </div>
             </div>
+
+            @canany(['supplies.stock-in.create', 'supplies.stock-in.edit'])
+                <div class="modal fade" id="importModal" tabindex="-1" role="dialog" aria-labelledby="importModalLabel"
+                    aria-hidden="true">
+                    <div class="modal-dialog" role="document">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="importModalLabel">Import Stock In</h5>
+                                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                    <span aria-hidden="true">&times;</span>
+                                </button>
+                            </div>
+                            <form action="{{ route('supplies.stock-ins.import') }}" method="POST" enctype="multipart/form-data">
+                                @csrf
+                                <div class="modal-body">
+                                    <div class="form-group">
+                                        <label for="import_file">Excel file (.xls / .xlsx)</label>
+                                        <div class="input-group">
+                                            <div class="custom-file">
+                                                <input type="file" class="custom-file-input" id="import_file" name="file"
+                                                    accept=".xls,.xlsx" required>
+                                                <label class="custom-file-label" for="import_file">Choose file</label>
+                                            </div>
+                                        </div>
+                                        <small class="form-text text-muted">
+                                            One row per line item. Leave <code>document_number</code> blank to create;
+                                            fill an existing SI number to update. Rows with the same blank header
+                                            (<code>project_code</code> + <code>stock_date</code> + <code>notes</code>
+                                            are grouped into one document.
+                                            <a href="{{ route('supplies.stock-ins.template') }}">Download template</a>
+                                            or use Export as a starting file.
+                                        </small>
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="fas fa-upload"></i> Import
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            @endcanany
         </div>
     </section>
 @endsection
@@ -113,8 +217,12 @@
     <script src="{{ asset('assets/plugins/datatables/jquery.dataTables.min.js') }}"></script>
     <script src="{{ asset('assets/plugins/datatables-bs4/js/dataTables.bootstrap4.min.js') }}"></script>
     <script src="{{ asset('assets/plugins/select2/js/select2.full.min.js') }}"></script>
+    <script src="{{ asset('assets/plugins/bs-custom-file-input/bs-custom-file-input.min.js') }}"></script>
     <script>
         $(function() {
+            if (typeof bsCustomFileInput !== 'undefined') {
+                bsCustomFileInput.init();
+            }
             $('.select2bs4').select2({ theme: 'bootstrap4', width: '100%' });
             const table = $('#stock-ins-table').DataTable({
                 processing: true,
@@ -145,6 +253,15 @@
                 $('#filter_project').val('').trigger('change');
                 $('#filter_date1, #filter_date2').val('');
                 table.ajax.reload();
+            });
+            $('#btn-export-stock-in').on('click', function(e) {
+                e.preventDefault();
+                const params = $.param({
+                    project_id: $('#filter_project').val(),
+                    date1: $('#filter_date1').val(),
+                    date2: $('#filter_date2').val(),
+                });
+                window.location.href = "{{ route('supplies.stock-ins.export') }}?" + params;
             });
         });
     </script>

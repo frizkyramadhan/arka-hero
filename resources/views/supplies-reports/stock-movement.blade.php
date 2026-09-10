@@ -83,6 +83,7 @@
                                     <th>Project</th>
                                     <th>Item code</th>
                                     <th>Item name</th>
+                                    <th class="text-center">Unit</th>
                                     <th class="text-center">Qty</th>
                                     <th>Reference</th>
                                     <th>Remarks / Location</th>
@@ -118,6 +119,7 @@
                     { data: 'project_code' },
                     { data: 'item_code' },
                     { data: 'item_name' },
+                    { data: 'stock_unit', className: 'text-center' },
                     { data: 'quantity_fmt', className: 'text-center' },
                     { data: 'reference' },
                     { data: 'extra' },

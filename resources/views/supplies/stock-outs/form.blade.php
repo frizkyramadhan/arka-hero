@@ -14,14 +14,25 @@
 
 @section('content')
     @php
+        $isEdit = isset($stockOut) && $stockOut;
         $oldLines = old('items');
-        $lines = $oldLines ?? [['supply_item_id' => '', 'quantity' => 1, 'location' => '', 'person_in_charge' => '', 'description' => '']];
+        $lines = $oldLines ?? ($prefillLines ?? [['supply_item_id' => '', 'quantity' => 1, 'location' => '', 'person_in_charge' => '', 'description' => '']]);
         $itemMap = $items->keyBy('id');
         $itemOptionsForJs = $items->map(fn ($i) => [
             'id' => $i->id,
-            'label' => $i->code.' — '.$i->name.' ('.$i->stock_unit.')',
+            'label' => $i->code.' — '.$i->name,
             'description' => $i->description ?: '',
+            'stock_unit' => $i->stock_unit ?: '',
         ])->values();
+        $formAction = $isEdit
+            ? route('supplies.stock-outs.update', $stockOut)
+            : route('supplies.stock-outs.store');
+        $cancelUrl = $isEdit
+            ? route('supplies.stock-outs.show', $stockOut)
+            : route('supplies.stock-outs.index');
+        $selectedProjectId = old('project_id', $isEdit ? $stockOut->project_id : null);
+        $selectedDate = old('stock_date', $isEdit ? $stockOut->stock_date?->format('Y-m-d') : now()->toDateString());
+        $selectedNotes = old('notes', $isEdit ? $stockOut->notes : '');
     @endphp
     <div class="content-header">
         <div class="container-fluid">
@@ -33,7 +44,7 @@
                     <ol class="breadcrumb float-sm-right">
                         <li class="breadcrumb-item"><a href="{{ url('/') }}">Home</a></li>
                         <li class="breadcrumb-item"><a href="{{ route('supplies.stock-outs.index') }}">Stock Out</a></li>
-                        <li class="breadcrumb-item active">Add New</li>
+                        <li class="breadcrumb-item active">{{ $isEdit ? 'Edit' : 'Add New' }}</li>
                     </ol>
                 </div>
             </div>
@@ -41,8 +52,11 @@
     </div>
     <section class="content">
         <div class="container-fluid">
-            <form method="POST" action="{{ route('supplies.stock-outs.store') }}" id="stock-out-form">
+            <form method="POST" action="{{ $formAction }}" id="stock-out-form">
                 @csrf
+                @if ($isEdit)
+                    @method('PUT')
+                @endif
                 <div class="row">
                     <div class="col-md-8 order-2">
                         <div class="card card-success card-outline elevation-3">
@@ -61,6 +75,7 @@
                                             <tr>
                                                 <th class="align-middle">Item</th>
                                                 <th class="align-middle">Description</th>
+                                                <th class="align-middle text-center" style="width:80px">Unit</th>
                                                 <th class="align-middle text-center" style="width:100px">Qty out</th>
                                                 <th class="align-middle">Location</th>
                                                 <th class="align-middle">PIC</th>
@@ -72,20 +87,24 @@
                                                 @php
                                                     $item = $itemMap->get($line['supply_item_id'] ?? '');
                                                     $desc = $line['description'] ?? ($item->description ?? '');
+                                                    $unit = $item->stock_unit ?? '';
                                                 @endphp
                                                 <tr>
                                                     <td>
                                                         <select name="items[{{ $idx }}][supply_item_id]" class="form-control select2bs4 item-select" required>
                                                             <option value="">- Select -</option>
                                                             @foreach ($items as $opt)
-                                                                <option value="{{ $opt->id }}" data-description="{{ e(display_text($opt->description ?? '', '')) }}"
+                                                                <option value="{{ $opt->id }}"
+                                                                    data-description="{{ e(display_text($opt->description ?? '', '')) }}"
+                                                                    data-stock-unit="{{ e(display_text($opt->stock_unit ?? '', '')) }}"
                                                                     @selected(($line['supply_item_id'] ?? '') == $opt->id)>
-                                                                    {{ $opt->code }} — {{ $opt->name }} ({{ $opt->stock_unit }})
+                                                                    {{ $opt->code }} — {{ $opt->name }}
                                                                 </option>
                                                             @endforeach
                                                         </select>
                                                     </td>
                                                     <td class="item-description text-muted align-middle">{{ $desc !== '' ? $desc : '—' }}</td>
+                                                    <td class="item-stock-unit text-center text-muted align-middle">{{ $unit !== '' ? $unit : '—' }}</td>
                                                     <td>
                                                         <input type="number" name="items[{{ $idx }}][quantity]" class="form-control" min="1" required
                                                             value="{{ $line['quantity'] ?? 1 }}">
@@ -123,23 +142,29 @@
                                 </div>
                                 <div class="form-group">
                                     <label>Project <span class="text-danger">*</span></label>
-                                    <select name="project_id" id="project_id_select" class="form-control select2bs4" required>
-                                        <option value="">- Select -</option>
-                                        @foreach ($projects as $project)
-                                            <option value="{{ $project->id }}" @selected(old('project_id') == $project->id)>
-                                                {{ $project->project_code }} - {{ $project->project_name }}
-                                            </option>
-                                        @endforeach
-                                    </select>
+                                    @if ($isEdit)
+                                        <input type="hidden" name="project_id" value="{{ $stockOut->project_id }}">
+                                        <input type="text" class="form-control" disabled
+                                            value="{{ $stockOut->project->project_code }} - {{ $stockOut->project->project_name }}">
+                                    @else
+                                        <select name="project_id" id="project_id_select" class="form-control select2bs4" required>
+                                            <option value="">- Select -</option>
+                                            @foreach ($projects as $project)
+                                                <option value="{{ $project->id }}" @selected($selectedProjectId == $project->id)>
+                                                    {{ $project->project_code }} - {{ $project->project_name }}
+                                                </option>
+                                            @endforeach
+                                        </select>
+                                    @endif
                                 </div>
                                 <div class="form-group">
                                     <label>Date <span class="text-danger">*</span></label>
                                     <input type="date" name="stock_date" class="form-control" required
-                                        value="{{ old('stock_date', now()->toDateString()) }}">
+                                        value="{{ $selectedDate }}">
                                 </div>
                                 <div class="form-group mb-0">
                                     <label>Notes</label>
-                                    <textarea name="notes" class="form-control" rows="3">{{ old('notes') }}</textarea>
+                                    <textarea name="notes" class="form-control" rows="3">{{ $selectedNotes }}</textarea>
                                 </div>
                             </div>
                         </div>
@@ -147,9 +172,9 @@
                         <div class="card elevation-3">
                             <div class="card-body">
                                 <button type="submit" class="btn btn-primary btn-block">
-                                    <i class="fas fa-save mr-1"></i> Save
+                                    <i class="fas fa-save mr-1"></i> {{ $isEdit ? 'Update' : 'Save' }}
                                 </button>
-                                <a href="{{ route('supplies.stock-outs.index') }}" class="btn btn-secondary btn-block">
+                                <a href="{{ $cancelUrl }}" class="btn btn-secondary btn-block">
                                     <i class="fas fa-times-circle mr-1"></i> Cancel
                                 </a>
                             </div>
@@ -169,8 +194,12 @@
             var idx = {{ count($lines) }};
             var itemOptions = @json($itemOptionsForJs);
             var documentNumberPreviews = @json($documentNumberPreviews ?? []);
+            var isEdit = @json($isEdit);
 
             function updateDocumentNumberPreview() {
+                if (isEdit) {
+                    return;
+                }
                 var projectId = $('#project_id_select').val();
                 var preview = projectId && documentNumberPreviews[projectId]
                     ? documentNumberPreviews[projectId]
@@ -181,8 +210,12 @@
             $('#project_id_select').on('change', updateDocumentNumberPreview);
 
             $(document).on('change', '.item-select', function() {
-                var desc = $(this).find('option:selected').data('description') || '';
-                $(this).closest('tr').find('.item-description').text(desc !== '' ? desc : '—');
+                var $opt = $(this).find('option:selected');
+                var desc = $opt.data('description') || '';
+                var unit = $opt.data('stock-unit') || '';
+                var $row = $(this).closest('tr');
+                $row.find('.item-description').text(desc !== '' ? desc : '—');
+                $row.find('.item-stock-unit').text(unit !== '' ? unit : '—');
             });
 
             $('#btn-add-line').on('click', function() {
@@ -193,11 +226,17 @@
                 });
                 $select.append($('<option>', { value: '', text: '- Select -' }));
                 itemOptions.forEach(function(item) {
-                    $select.append($('<option>', { value: item.id, text: item.label, 'data-description': item.description }));
+                    $select.append($('<option>', {
+                        value: item.id,
+                        text: item.label,
+                        'data-description': item.description,
+                        'data-stock-unit': item.stock_unit
+                    }));
                 });
                 var $row = $('<tr>');
                 $row.append($('<td>').append($select));
                 $row.append($('<td>', { class: 'item-description text-muted', text: '—' }));
+                $row.append($('<td>', { class: 'item-stock-unit text-center text-muted', text: '—' }));
                 $row.append($('<td>').append($('<input>', {
                     type: 'number', name: 'items['+idx+'][quantity]', class: 'form-control', min: 1, required: true, value: 1
                 })));

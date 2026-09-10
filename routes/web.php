@@ -462,17 +462,27 @@ Route::group(['middleware' => ['auth']], function () {
         Route::delete('catalog/{supplyItem}', [SupplyItemController::class, 'destroy'])->name('catalog.destroy');
 
         Route::get('stock-ins/data', [SupplyStockInController::class, 'data'])->name('stock-ins.data');
+        Route::get('stock-ins/export', [SupplyStockInController::class, 'export'])->name('stock-ins.export');
+        Route::get('stock-ins/template', [SupplyStockInController::class, 'template'])->name('stock-ins.template');
+        Route::post('stock-ins/import', [SupplyStockInController::class, 'import'])->name('stock-ins.import');
         Route::get('stock-ins/create', [SupplyStockInController::class, 'create'])->name('stock-ins.create');
         Route::get('stock-ins', [SupplyStockInController::class, 'index'])->name('stock-ins.index');
         Route::post('stock-ins', [SupplyStockInController::class, 'store'])->name('stock-ins.store');
+        Route::get('stock-ins/{supplyStockIn}/edit', [SupplyStockInController::class, 'edit'])->name('stock-ins.edit');
+        Route::put('stock-ins/{supplyStockIn}', [SupplyStockInController::class, 'update'])->name('stock-ins.update');
         Route::get('stock-ins/{supplyStockIn}/print', [SupplyStockInController::class, 'print'])->name('stock-ins.print');
         Route::get('stock-ins/{supplyStockIn}', [SupplyStockInController::class, 'show'])->name('stock-ins.show');
         Route::delete('stock-ins/{supplyStockIn}', [SupplyStockInController::class, 'destroy'])->name('stock-ins.destroy');
 
         Route::get('stock-outs/data', [SupplyStockOutController::class, 'data'])->name('stock-outs.data');
+        Route::get('stock-outs/export', [SupplyStockOutController::class, 'export'])->name('stock-outs.export');
+        Route::get('stock-outs/template', [SupplyStockOutController::class, 'template'])->name('stock-outs.template');
+        Route::post('stock-outs/import', [SupplyStockOutController::class, 'import'])->name('stock-outs.import');
         Route::get('stock-outs/create', [SupplyStockOutController::class, 'create'])->name('stock-outs.create');
         Route::get('stock-outs', [SupplyStockOutController::class, 'index'])->name('stock-outs.index');
         Route::post('stock-outs', [SupplyStockOutController::class, 'store'])->name('stock-outs.store');
+        Route::get('stock-outs/{supplyStockOut}/edit', [SupplyStockOutController::class, 'edit'])->name('stock-outs.edit');
+        Route::put('stock-outs/{supplyStockOut}', [SupplyStockOutController::class, 'update'])->name('stock-outs.update');
         Route::get('stock-outs/{supplyStockOut}/print', [SupplyStockOutController::class, 'print'])->name('stock-outs.print');
         Route::get('stock-outs/{supplyStockOut}', [SupplyStockOutController::class, 'show'])->name('stock-outs.show');
         Route::delete('stock-outs/{supplyStockOut}', [SupplyStockOutController::class, 'destroy'])->name('stock-outs.destroy');

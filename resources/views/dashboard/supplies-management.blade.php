@@ -329,6 +329,9 @@
                                                         <span class="badge badge-{{ $ending <= 0 ? 'danger' : ($ending <= 5 ? 'warning' : 'secondary') }}">
                                                             {{ number_format($ending) }}
                                                         </span>
+                                                        @if (! empty($row->stock_unit))
+                                                            <div class="small text-muted">{{ $row->stock_unit }}</div>
+                                                        @endif
                                                     </td>
                                                 </tr>
                                             @endforeach
@@ -356,7 +359,7 @@
                                                 <span class="small text-truncate" style="max-width: 70%;">
                                                     <code>{{ $row->code }}</code> {{ display_text($row->name) }}
                                                 </span>
-                                                <strong class="small">{{ number_format($row->total_out) }}</strong>
+                                                <strong class="small">{{ number_format($row->total_out) }}@if (! empty($row->stock_unit)) <span class="text-muted font-weight-normal">{{ $row->stock_unit }}</span>@endif</strong>
                                             </div>
                                             <div class="progress" style="height: 4px;">
                                                 <div class="progress-bar bg-danger" style="width: {{ ($row->total_out / $maxOut) * 100 }}%"></div>
@@ -385,7 +388,7 @@
                                                 <span class="small text-truncate" style="max-width: 70%;">
                                                     <code>{{ $row->code }}</code> {{ display_text($row->name) }}
                                                 </span>
-                                                <strong class="small">{{ number_format($row->total_in) }}</strong>
+                                                <strong class="small">{{ number_format($row->total_in) }}@if (! empty($row->stock_unit)) <span class="text-muted font-weight-normal">{{ $row->stock_unit }}</span>@endif</strong>
                                             </div>
                                             <div class="progress" style="height: 4px;">
                                                 <div class="progress-bar bg-success" style="width: {{ ($row->total_in / $maxIn) * 100 }}%"></div>

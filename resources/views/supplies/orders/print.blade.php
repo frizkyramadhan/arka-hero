@@ -2,6 +2,7 @@
     $columns = [
         ['key' => 'no', 'label' => 'No'],
         ['key' => 'item', 'label' => 'Office Supplies'],
+        ['key' => 'unit', 'label' => 'Unit'],
         ['key' => 'qty', 'label' => 'Quantity'],
         ['key' => 'remarks', 'label' => 'Remarks'],
     ];
@@ -14,6 +15,7 @@
         return [
             'no' => $idx + 1,
             'item' => ['main' => $main, 'sub' => $sub],
+            'unit' => $item->stock_unit ?? '',
             'qty' => $line->quantity_ordered,
             'remarks' => $line->remarks ?? '',
         ];

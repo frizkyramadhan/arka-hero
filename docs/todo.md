@@ -54,6 +54,10 @@ Include relevant context in brackets to help with future AI-assisted coding:
 
 ## Recently Completed
 
+-   `[done] P2: Supplies — show catalog stock_unit on SI/SO/Orders forms+detail+print, reports, dashboard, Excel export [views, SupplyReportController, DashboardController] (completed: 2026-09-10)`
+
+-   `[done] P1: Supplies Stock In/Out — Edit + Excel Export/Import (template, filter-aware export, create/update by document_number) [SupplyStockIn/OutController, Exports, Imports, index/form/action/show] (completed: 2026-09-10)`
+
 -   `[done] P2: My-request candidate detail (read-only) — route my-requests/{id}/candidate/{candidateId} + CV download; differs from HR candidate show [RecruitmentRequestController::myRequestsCandidate, candidates/show isPersonalView] (completed: 2026-09-04)`
 -   `[done] P2: FPTK recruitment sessions Action — add View Candidate button [sessions/show, requests/show → recruitment.candidates.show] (completed: 2026-09-04)`
 

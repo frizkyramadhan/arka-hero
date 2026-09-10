@@ -93,6 +93,12 @@
                             <i class="fas fa-print"></i> Print
                         </a>
 
+                        @can('supplies.stock-in.edit')
+                            <a href="{{ route('supplies.stock-ins.edit', $stockIn) }}" class="btn-action print-btn">
+                                <i class="fas fa-pencil-alt"></i> Edit
+                            </a>
+                        @endcan
+
                         @can('supplies.stock-in.delete')
                             <form method="POST" action="{{ route('supplies.stock-ins.destroy', $stockIn) }}"
                                 class="confirm-submit"
