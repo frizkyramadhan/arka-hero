@@ -30,8 +30,9 @@
         $itemMap = $items->keyBy('id');
         $itemOptionsForJs = $items->map(fn ($i) => [
             'id' => $i->id,
-            'label' => $i->code.' — '.$i->name.' ('.$i->stock_unit.')',
+            'label' => $i->code.' — '.$i->name,
             'description' => $i->description ?: '',
+            'stock_unit' => $i->stock_unit ?: '',
         ])->values();
         $defaultDept = old('department_id', $order?->department_id);
         $defaultDate = old('order_date', optional($order?->order_date)->format('Y-m-d') ?? now()->toDateString());
@@ -82,6 +83,7 @@
                                             <tr>
                                                 <th class="align-middle">Item</th>
                                                 <th class="align-middle">Description</th>
+                                                <th class="align-middle text-center" style="width:80px">Unit</th>
                                                 <th class="align-middle text-center" style="width:100px">Qty</th>
                                                 <th class="align-middle">Remarks</th>
                                                 <th class="align-middle text-center" style="width:50px"></th>
@@ -92,20 +94,24 @@
                                                 @php
                                                     $item = $itemMap->get($line['supply_item_id'] ?? '');
                                                     $desc = $item->description ?? '';
+                                                    $unit = $item->stock_unit ?? '';
                                                 @endphp
                                                 <tr>
                                                     <td>
                                                         <select name="items[{{ $idx }}][supply_item_id]" class="form-control select2bs4 item-select" required>
                                                             <option value="">- Select -</option>
                                                             @foreach ($items as $opt)
-                                                                <option value="{{ $opt->id }}" data-description="{{ e(display_text($opt->description ?? '', '')) }}"
+                                                                <option value="{{ $opt->id }}"
+                                                                    data-description="{{ e(display_text($opt->description ?? '', '')) }}"
+                                                                    data-stock-unit="{{ e(display_text($opt->stock_unit ?? '', '')) }}"
                                                                     @selected(($line['supply_item_id'] ?? '') == $opt->id)>
-                                                                    {{ $opt->code }} — {{ $opt->name }} ({{ $opt->stock_unit }})
+                                                                    {{ $opt->code }} — {{ $opt->name }}
                                                                 </option>
                                                             @endforeach
                                                         </select>
                                                     </td>
                                                     <td class="item-description text-muted align-middle">{{ $desc !== '' ? $desc : '—' }}</td>
+                                                    <td class="item-stock-unit text-center text-muted align-middle">{{ $unit !== '' ? $unit : '—' }}</td>
                                                     <td>
                                                         <input type="number" name="items[{{ $idx }}][quantity_ordered]" class="form-control" min="1" required
                                                             value="{{ $line['quantity_ordered'] ?? 1 }}">
@@ -213,8 +219,12 @@
             var itemOptions = @json($itemOptionsForJs);
 
             $(document).on('change', '.item-select', function() {
-                var desc = $(this).find('option:selected').data('description') || '';
-                $(this).closest('tr').find('.item-description').text(desc !== '' ? desc : '—');
+                var $opt = $(this).find('option:selected');
+                var desc = $opt.data('description') || '';
+                var unit = $opt.data('stock-unit') || '';
+                var $row = $(this).closest('tr');
+                $row.find('.item-description').text(desc !== '' ? desc : '—');
+                $row.find('.item-stock-unit').text(unit !== '' ? unit : '—');
             });
 
             $('#btn-add-line').on('click', function() {
@@ -225,11 +235,17 @@
                 });
                 $select.append($('<option>', { value: '', text: '- Select -' }));
                 itemOptions.forEach(function(item) {
-                    $select.append($('<option>', { value: item.id, text: item.label, 'data-description': item.description }));
+                    $select.append($('<option>', {
+                        value: item.id,
+                        text: item.label,
+                        'data-description': item.description,
+                        'data-stock-unit': item.stock_unit
+                    }));
                 });
                 var $row = $('<tr>');
                 $row.append($('<td>').append($select));
                 $row.append($('<td>', { class: 'item-description text-muted', text: '—' }));
+                $row.append($('<td>', { class: 'item-stock-unit text-center text-muted', text: '—' }));
                 $row.append($('<td>').append($('<input>', {
                     type: 'number', name: 'items['+idx+'][quantity_ordered]', class: 'form-control', min: 1, required: true, value: 1
                 })));

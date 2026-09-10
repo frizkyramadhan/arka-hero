@@ -1,6 +1,11 @@
 <a href="{{ route('supplies.stock-ins.show', $model) }}" class="btn btn-info btn-sm" title="View">
     <i class="fas fa-eye"></i>
 </a>
+@can('supplies.stock-in.edit')
+    <a href="{{ route('supplies.stock-ins.edit', $model) }}" class="btn btn-primary btn-sm" title="Edit">
+        <i class="fas fa-pencil-alt"></i>
+    </a>
+@endcan
 @can('supplies.stock-in.delete')
     <form action="{{ route('supplies.stock-ins.destroy', $model) }}" method="post" class="d-inline"
         onsubmit="return confirm('Delete this Stock In?')">

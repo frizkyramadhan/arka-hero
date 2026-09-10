@@ -109,8 +109,9 @@
                         <th style="width: 12%">Code</th>
                         <th>Name</th>
                         <th>Description</th>
+                        <th class="text-center" style="width: 8%">Unit</th>
                         <th class="text-center" style="width: 8%">Qty in</th>
-                        <th style="width: 18%">Remarks</th>
+                        <th style="width: 16%">Remarks</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -120,6 +121,7 @@
                             <td><code>{{ $line->item->code ?? '—' }}</code></td>
                             <td>{{ display_text($line->item->name ?? null) }}</td>
                             <td class="text-muted">{{ display_text($line->item->description ?? null, '—') }}</td>
+                            <td class="text-center">{{ display_text($line->item->stock_unit ?? null, '—') }}</td>
                             <td class="text-center">
                                 <span class="text-success font-weight-bold">{{ $line->quantity }}</span>
                             </td>
@@ -127,14 +129,14 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="6" class="text-center text-muted py-4">No items on this document.</td>
+                            <td colspan="7" class="text-center text-muted py-4">No items on this document.</td>
                         </tr>
                     @endforelse
                 </tbody>
                 @if ($stockIn->items->isNotEmpty())
                     <tfoot class="thead-light">
                         <tr>
-                            <th colspan="4" class="text-right">Total</th>
+                            <th colspan="5" class="text-right">Total</th>
                             <th class="text-center">{{ $totalQuantity }}</th>
                             <th></th>
                         </tr>

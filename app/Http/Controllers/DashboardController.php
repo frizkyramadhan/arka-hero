@@ -2744,6 +2744,7 @@ class DashboardController extends Controller
             ->select(
                 'supply_items.code',
                 'supply_items.name',
+                'supply_items.stock_unit',
                 DB::raw('SUM(supply_stock_out_items.quantity) as total_out')
             )
             ->join('supply_stock_outs', 'supply_stock_outs.id', '=', 'supply_stock_out_items.supply_stock_out_id')
@@ -2757,7 +2758,7 @@ class DashboardController extends Controller
                     $q->whereIn('supply_stock_outs.project_id', $scope);
                 }
             })
-            ->groupBy('supply_items.id', 'supply_items.code', 'supply_items.name')
+            ->groupBy('supply_items.id', 'supply_items.code', 'supply_items.name', 'supply_items.stock_unit')
             ->orderByDesc('total_out')
             ->limit(10)
             ->get();
@@ -2766,6 +2767,7 @@ class DashboardController extends Controller
             ->select(
                 'supply_items.code',
                 'supply_items.name',
+                'supply_items.stock_unit',
                 DB::raw('SUM(supply_stock_in_items.quantity) as total_in')
             )
             ->join('supply_stock_ins', 'supply_stock_ins.id', '=', 'supply_stock_in_items.supply_stock_in_id')
@@ -2779,7 +2781,7 @@ class DashboardController extends Controller
                     $q->whereIn('supply_stock_ins.project_id', $scope);
                 }
             })
-            ->groupBy('supply_items.id', 'supply_items.code', 'supply_items.name')
+            ->groupBy('supply_items.id', 'supply_items.code', 'supply_items.name', 'supply_items.stock_unit')
             ->orderByDesc('total_in')
             ->limit(10)
             ->get();
@@ -2956,6 +2958,7 @@ class DashboardController extends Controller
             ->select(
                 'supply_items.code',
                 'supply_items.name',
+                'supply_items.stock_unit',
                 'supply_item_categories.name as category',
                 DB::raw('COALESCE(stock_in.total_in, 0) - COALESCE(stock_out.total_out, 0) as ending')
             )

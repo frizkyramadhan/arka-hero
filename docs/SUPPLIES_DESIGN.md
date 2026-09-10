@@ -4,7 +4,9 @@
 **Last updated**: 2026-08-31  
 **Supersedes**: `docs/GA_MODULES_ANALYSIS.md` Module 1 (Office Supplies mini-ERP)  
 **Glossary**: `CONTEXT.md` (Supplies)  
-**ADRs**: `docs/adr/0002`, `0006`, `0007`–`0011`
+**User manual**: `docs/SUPPLIES_USER_MANUAL.md`  
+**PDF export**: `docs/SUPPLIES_USER_MANUAL.pdf` (generate via Markdown PDF extension: open the `.md` file → right-click → **Markdown PDF: Export (pdf)**)  
+**ADRs**: `docs/adr/0002`, `0006`, `0007`–`0012`
 
 Workbook origin: `01. ATK STOCK 2026.xlsx` (Catalog / Stock In / Stock Out as three sheets). Meeting-room food and drink stay in Room & Consumption Request (RCR).
 
@@ -20,7 +22,8 @@ Workbook origin: `01. ATK STOCK 2026.xlsx` (Catalog / Stock In / Stock Out as th
 | Stock location | Project (`project_code`). No warehouse master. No transfer document. |
 | Stock In / Stock Out | Multi-line **documents** (header + lines), like Supply Order. |
 | Stock Out line extras | **Location** and **PIC** (free text per line). |
-| Negative stock | Rejected on Stock Out create and Stock In delete. |
+| Negative stock | Rejected on Stock Out create/update/import and Stock In delete/update/import. |
+| Excel I/O | Catalog + Stock In + Stock Out: Export (filter-aware), Import (template), create or update by document/item key. |
 | Taking from the cupboard | Off-system. GA only records Stock Out. |
 | Supply Order | Buy / restock. Header: Order No, Project, Date, Department. Lines: item, qty, remarks. |
 | Order who | Employee or HCS/GA. Project = creator’s active administration. No project picker. |
@@ -72,8 +75,8 @@ Seeder: `SupplyPermissionSeeder`.
 
 - `/supplies/item-categories` — Item Categories
 - `/supplies/catalog` — Catalog
-- `/supplies/stock-ins` — Stock In (create/show multi-line)
-- `/supplies/stock-outs` — Stock Out (create/show multi-line)
+- `/supplies/stock-ins` — Stock In (create/edit/show multi-line; export/import Excel)
+- `/supplies/stock-outs` — Stock Out (create/edit/show multi-line; export/import Excel)
 - `/supplies/orders`, `/supplies/orders/my-orders` — Supply Order
 
 ## UI copy (English)
@@ -82,8 +85,8 @@ Seeder: `SupplyPermissionSeeder`.
 |--------|--------|
 | Item Categories | Name, Prefix, Description, Status |
 | Catalog | Item Category, Item code, Name, Description, Stock unit |
-| Stock In | SI No, Project, Date, Notes; lines: Item, Description, Qty in |
-| Stock Out | SO No, Project, Date, Notes; lines: Item, Description, Qty out, Location, PIC |
-| Supply Order | Order No, Project, Date, Department; lines: Item, Description, Qty, Remarks |
+| Stock In | SI No, Project, Date, Notes; lines: Item, Description, Unit (from catalog), Qty in |
+| Stock Out | SO No, Project, Date, Notes; lines: Item, Description, Unit (from catalog), Qty out, Location, PIC |
+| Supply Order | Order No, Project, Date, Department; lines: Item, Description, Unit (from catalog), Qty, Remarks |
 
 Do not use Katalog, Masuk, Keluar, ATK, Need location as labels.

@@ -74,6 +74,7 @@
                                     <th>Project</th>
                                     <th>Item code</th>
                                     <th>Item name</th>
+                                    <th class="text-center">Unit</th>
                                     <th class="text-center">Ordered</th>
                                     <th class="text-center">Received</th>
                                     <th class="text-center">Outstanding</th>
@@ -108,6 +109,7 @@
                     { data: 'project_code' },
                     { data: 'item_code' },
                     { data: 'item_name' },
+                    { data: 'stock_unit', className: 'text-center' },
                     { data: 'quantity_ordered', className: 'text-center' },
                     { data: 'quantity_received', className: 'text-center' },
                     { data: 'quantity_outstanding', className: 'text-center' },

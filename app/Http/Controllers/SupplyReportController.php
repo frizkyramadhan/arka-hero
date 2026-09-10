@@ -156,6 +156,7 @@ class SupplyReportController extends Controller
                 'project_code' => e($row['project_code']),
                 'item_code' => '<code>'.e($row['item_code']).'</code>',
                 'item_name' => display_text($row['item_name']),
+                'stock_unit' => display_text($row['stock_unit']),
                 'quantity_fmt' => $row['quantity_fmt'],
                 'reference' => $row['reference'],
                 'extra' => $row['extra'],
@@ -187,6 +188,7 @@ class SupplyReportController extends Controller
                 'Project' => $row['project_code'],
                 'Item code' => $row['item_code'],
                 'Item name' => $row['item_name'],
+                'Stock unit' => $row['stock_unit'],
                 'Quantity' => $row['quantity'],
                 'Reference' => strip_tags($row['reference']),
                 'Location / PIC' => strip_tags($row['extra']),
@@ -195,7 +197,7 @@ class SupplyReportController extends Controller
 
         return $this->excelDownload($exportData, [
             'No', 'Date', 'Type', 'Document No', 'Project', 'Item code',
-            'Item name', 'Quantity', 'Reference', 'Location / PIC',
+            'Item name', 'Stock unit', 'Quantity', 'Reference', 'Location / PIC',
         ], 'supply_stock_movement_report.xlsx');
     }
 
@@ -319,6 +321,7 @@ class SupplyReportController extends Controller
                 'project_code' => e($row['project_code']),
                 'item_code' => '<code>'.e($row['item_code']).'</code>',
                 'item_name' => display_text($row['item_name']),
+                'stock_unit' => display_text($row['stock_unit']),
                 'quantity_ordered' => $row['quantity_ordered'],
                 'quantity_received' => $row['quantity_received'],
                 'quantity_outstanding' => '<span class="badge badge-warning">'.e((string) $row['quantity_outstanding']).'</span>',
@@ -350,6 +353,7 @@ class SupplyReportController extends Controller
                 'Project' => $row['project_code'],
                 'Item code' => $row['item_code'],
                 'Item name' => $row['item_name'],
+                'Stock unit' => $row['stock_unit'],
                 'Qty ordered' => $row['quantity_ordered'],
                 'Qty received' => $row['quantity_received'],
                 'Outstanding' => $row['quantity_outstanding'],
@@ -357,7 +361,7 @@ class SupplyReportController extends Controller
         });
 
         return $this->excelDownload($exportData, [
-            'No', 'Order No', 'Project', 'Item code', 'Item name',
+            'No', 'Order No', 'Project', 'Item code', 'Item name', 'Stock unit',
             'Qty ordered', 'Qty received', 'Outstanding',
         ], 'supply_order_fulfillment_report.xlsx');
     }
@@ -453,6 +457,7 @@ class SupplyReportController extends Controller
                     'project_code' => $header->project->project_code ?? '—',
                     'item_code' => $line->item->code ?? '—',
                     'item_name' => $line->item->name ?? '—',
+                    'stock_unit' => $line->item->stock_unit ?? '—',
                     'quantity' => (int) $line->quantity,
                     'quantity_fmt' => '<span class="text-success font-weight-bold">+'.e((string) $line->quantity).'</span>',
                     'reference' => $header->order
@@ -500,6 +505,7 @@ class SupplyReportController extends Controller
                     'project_code' => $header->project->project_code ?? '—',
                     'item_code' => $line->item->code ?? '—',
                     'item_name' => $line->item->name ?? '—',
+                    'stock_unit' => $line->item->stock_unit ?? '—',
                     'quantity' => (int) $line->quantity,
                     'quantity_fmt' => '<span class="text-danger font-weight-bold">-'.e((string) $line->quantity).'</span>',
                     'reference' => '—',
@@ -594,6 +600,7 @@ class SupplyReportController extends Controller
                 'project_code' => $line->order->project->project_code ?? '—',
                 'item_code' => $line->item->code ?? '—',
                 'item_name' => $line->item->name ?? '—',
+                'stock_unit' => $line->item->stock_unit ?? '—',
                 'quantity_ordered' => $line->quantity_ordered,
                 'quantity_received' => $received,
                 'quantity_outstanding' => $outstanding,
