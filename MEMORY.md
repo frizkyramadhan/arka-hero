@@ -1,21 +1,32 @@
 **Purpose**: AI's persistent knowledge base for project context and learnings - ARKA HERO HRMS
 **Last Updated**: 2026-09-11
 
+### [055] FOA letter number cross-project duplicate (2026-09-11) ✅ FIXED
+
+**Symptom (1)**: Reserved FOA4964 for project 000H blocked by app validation "FOA No dari surat ini sudah digunakan" while UI showed available.
+
+**Symptom (2)**: After scoping validation to `letter_number_id`, create still failed with MySQL `1062 Duplicate entry 'FOA4964' for key vehicle_assignments_form_number_unique`.
+
+**Root cause**: `letter_numbers` allows the same string per project (`letter_number + year + project_id`), but `vehicle_assignments.form_number` was globally unique. App validation and DB constraint disagreed.
+
+**Fix**:
+1. Validate duplicate by `letter_number_id` (not global `form_number`).
+2. Migration `2026_09_11_150000_relax_vehicle_assignments_form_number_unique`: drop unique on `form_number` (keep index), unique on `letter_number_id`.
+3. Map Integrity constraint errors to a short toast via `foaPersistErrorMessage()`.
+
+**Files**: `VehicleAssignmentController.php`, migration above, `docs/VEHICLE_ASSIGNMENT_FOA_DESIGN.md`.
+
+**Ops**: Deploy + `php artisan migrate --force` on arka-docker so HO can save reserved FOA4964 alongside APS issued FOA4964.
+
+### [058] Receipt AI: OpenRouter vs local LLM drivers (2026-09-11)
+
+Fuel log AI (UI + Telegram) selects provider via `RECEIPT_AI_DRIVER=openrouter|local`. OpenRouter stays on `OPENROUTER_*` / `config/openrouter.php`. Local OpenAI-compatible LLM uses `LOCAL_LLM_BASE_URL`, `LOCAL_LLM_API_KEY`, `LOCAL_LLM_MODEL`, `LOCAL_LLM_TIMEOUT` / `config/receipt_ai.php`. Parser: `OpenRouterReceiptParser::connection()`.
+
 ### [056] PDO MYSQL_ATTR_SSL_CA PHP 8.5 deprecation (2026-09-11)
 
 Local Laragon may run PHP 8.5 while Docker `stack-php82-1` is older. Do **not** gitignore `config/database.php`. Use runtime pick: `Pdo\Mysql::ATTR_SSL_CA` when class exists, else `PDO::MYSQL_ATTR_SSL_CA`.
 
 **File**: `config/database.php` mysql `options`.
-
-### [055] FOA letter number cross-project duplicate validation bug (2026-09-11) ✅ FIXED
-
-**Symptom**: Reserved FOA4964 for project 000H could not be used when saving assignment - error "FOA No dari surat ini sudah digunakan: FOA4964" even though UI showed it as available/reserved.
-
-**Root cause**: `VehicleAssignmentController::resolveLetterAndFormNumber()` checked for duplicate `form_number` globally across all projects (`where('form_number', $formNumber)`), but `letter_numbers` table allows same letter_number string for different projects (unique constraint: `letter_number + year + project_id`). When FOA4964 existed as Used for APS and Reserved for HO (separate records), the global check incorrectly blocked HO.
-
-**Fix**: Changed duplicate check to be scoped by specific letter_number record ID: `where('letter_number_id', $letter->id)` instead of `where('form_number', $formNumber)`. Each letter_number record is now validated independently. Reserved FOA4964 for HO can be used even if Used FOA4964 exists for APS.
-
-**Files**: `VehicleAssignmentController.php` line 856.
 
 ### [057] FOA list UI matches vehicle list (2026-09-11)
 

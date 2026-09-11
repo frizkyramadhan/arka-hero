@@ -1,7 +1,7 @@
 # Form of Assignment (FOA) — Design
 
 **Status**: Implemented (Phase 1)
-**Last Updated**: 2026-08-11
+**Last Updated**: 2026-09-11
 **Document control (print)**: ARKA/HCS/IV/04.02 Rev.2
 
 ## Decisions
@@ -9,7 +9,7 @@
 | Aspect | Decision |
 |--------|----------|
 | Portal | GAMMA requestor/admin + driver My Features |
-| Numbering | Letter Number category **FOA** via `smart-letter-number-selector`; FOA No = letter number itself (`FOA0001`). Draft keeps letter **reserved**; **Issue** calls `markAsUsed('vehicle_assignment', id)` |
+| Numbering | Letter Number category **FOA** via `smart-letter-number-selector`; FOA No = letter number itself (`FOA0001`). Draft keeps letter **reserved**; **Issue** calls `markAsUsed('vehicle_assignment', id)`. Same FOA *string* may exist for different projects (letter unique on `letter_number+year+project_id`); `vehicle_assignments` uniqueness is on `letter_number_id`, not global `form_number`. |
 | Approval | None (not ApprovalPlan). Workflow: requestor issue → driver trip log → close at origin |
 | Destinations | Mirror Official Travel: `destination` string + `is_manual` (project Select2 vs free text) |
 | Stops | Dynamic `origin` / `destination` / `return` with jam + KM |
@@ -31,7 +31,7 @@ Also: `cancelled` from `draft`/`issued` (requestor) or `in_progress` (admin)
 
 ### `vehicle_assignments`
 
-- `form_number`, `letter_number_id`, `letter_number`, `assignment_date`, driver fields, origin snapshot (`origin_destination`, `origin_is_manual`)
+- `form_number` (indexed, **not** globally unique), `letter_number_id` (**unique**), `letter_number`, `assignment_date`, driver fields, origin snapshot (`origin_destination`, `origin_is_manual`)
 - `vehicle_id` + plate/kode snapshot, `project_id` nullable, `requested_by`, `status`, timestamps for issue/start/close
 
 Letter: seed category/subject via `FoaLetterCategorySeeder`. Required on create/edit draft.
