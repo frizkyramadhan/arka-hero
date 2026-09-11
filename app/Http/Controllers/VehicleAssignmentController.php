@@ -10,6 +10,7 @@ use App\Models\Vehicle;
 use App\Models\VehicleAssignment;
 use App\Models\VehicleAssignmentPassenger;
 use App\Models\VehicleAssignmentStop;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -152,7 +153,7 @@ class VehicleAssignmentController extends Controller
         } catch (\Throwable $e) {
             DB::rollBack();
 
-            return back()->withInput()->with('toast_error', 'Save failed: '.$e->getMessage());
+            return back()->withInput()->with('toast_error', 'Save failed: '.$this->foaPersistErrorMessage($e));
         }
 
         return redirect()
@@ -268,7 +269,7 @@ class VehicleAssignmentController extends Controller
         } catch (\Throwable $e) {
             DB::rollBack();
 
-            return back()->withInput()->with('toast_error', 'Update failed: '.$e->getMessage());
+            return back()->withInput()->with('toast_error', 'Update failed: '.$this->foaPersistErrorMessage($e));
         }
 
         return redirect()
@@ -853,8 +854,8 @@ class VehicleAssignmentController extends Controller
         $letterNumberString = $letter->letter_number;
         $formNumber = VehicleAssignment::formatFormNumber($letterNumberString);
 
-        // Check if this specific letter_number record is already used by another FOA
-        // (Same FOA string can exist for different projects as separate letter_number records)
+        // Same FOA string may exist for different projects (separate letter_number rows).
+        // Uniqueness is per letter_number_id (DB unique), not global form_number.
         $dup = VehicleAssignment::query()
             ->where('letter_number_id', $letter->id)
             ->when($doc, fn ($q) => $q->where('id', '!=', $doc->id))
@@ -866,6 +867,24 @@ class VehicleAssignmentController extends Controller
         }
 
         return [$letter, $letterNumberString, $formNumber];
+    }
+
+    protected function foaPersistErrorMessage(\Throwable $e): string
+    {
+        if ($e instanceof QueryException) {
+            $msg = $e->getMessage();
+            $isDup = (string) $e->getCode() === '23000' || str_contains($msg, 'Integrity constraint violation');
+            if ($isDup) {
+                if (str_contains($msg, 'letter_number_id')) {
+                    return 'Selected letter number is already linked to another FOA.';
+                }
+                if (str_contains($msg, 'form_number')) {
+                    return 'FOA No already exists on another assignment (same number, different letter). Ask admin to apply the latest FOA migration.';
+                }
+            }
+        }
+
+        return $e->getMessage();
     }
 
     protected function markFoaLetterNumberUsed(VehicleAssignment $model, int $letterNumberId): void

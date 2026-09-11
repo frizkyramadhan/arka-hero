@@ -30,6 +30,21 @@ Decision: [Title] - [YYYY-MM-DD]
 
 ## Recent Decisions
 
+### Decision: FOA form_number not globally unique - 2026-09-11
+
+**Context**: Letter numbers are per-project; the same FOA string (e.g. FOA4964) can be reserved for HO while already used for APS. Global unique on `vehicle_assignments.form_number` blocked the second assignment after app validation was correctly scoped to `letter_number_id`.
+
+**Options Considered**:
+
+1. **Force global FOA sequence** — change letter generation so FOA numbers never repeat across projects
+2. **Unique on `letter_number_id`; index (non-unique) on `form_number`** — align DB with letter_numbers uniqueness model
+
+**Decision**: Option 2.
+
+**Rationale**: Matches existing letter_numbers design and incomplete fix [055]. List UI already shows project/date to disambiguate identical FOA strings.
+
+**Implementation**: Migration `2026_09_11_150000_relax_vehicle_assignments_form_number_unique.php`.
+
 ### Decision: Employee mutation anchors annual leave - 2026-09-08
 
 **Context**: Project transfer must change the Cuti Tahunan anniversary without treating the move as a new hire or resetting LSL / years of service.
