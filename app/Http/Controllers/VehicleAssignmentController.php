@@ -853,8 +853,10 @@ class VehicleAssignmentController extends Controller
         $letterNumberString = $letter->letter_number;
         $formNumber = VehicleAssignment::formatFormNumber($letterNumberString);
 
+        // Check if this specific letter_number record is already used by another FOA
+        // (Same FOA string can exist for different projects as separate letter_number records)
         $dup = VehicleAssignment::query()
-            ->where('form_number', $formNumber)
+            ->where('letter_number_id', $letter->id)
             ->when($doc, fn ($q) => $q->where('id', '!=', $doc->id))
             ->exists();
         if ($dup) {
