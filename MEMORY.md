@@ -1,5 +1,15 @@
 **Purpose**: AI's persistent knowledge base for project context and learnings - ARKA HERO HRMS
-**Last Updated**: 2026-09-09
+**Last Updated**: 2026-09-11
+
+### [055] FOA letter number cross-project duplicate validation bug (2026-09-11) ✅ FIXED
+
+**Symptom**: Reserved FOA4964 for project 000H could not be used when saving assignment - error "FOA No dari surat ini sudah digunakan: FOA4964" even though UI showed it as available/reserved.
+
+**Root cause**: `VehicleAssignmentController::resolveLetterAndFormNumber()` checked for duplicate `form_number` globally across all projects (`where('form_number', $formNumber)`), but `letter_numbers` table allows same letter_number string for different projects (unique constraint: `letter_number + year + project_id`). When FOA4964 existed as Used for APS and Reserved for HO (separate records), the global check incorrectly blocked HO.
+
+**Fix**: Changed duplicate check to be scoped by specific letter_number record ID: `where('letter_number_id', $letter->id)` instead of `where('form_number', $formNumber)`. Each letter_number record is now validated independently. Reserved FOA4964 for HO can be used even if Used FOA4964 exists for APS.
+
+**Files**: `VehicleAssignmentController.php` line 856.
 
 ### [054] Vehicle ArkFleet LV + Bus + TS001 (2026-09-09)
 
